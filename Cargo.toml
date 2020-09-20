@@ -6,7 +6,7 @@ description = "MemCAM inspired Distributed Relativistic Semi-Relational Allegro 
 license = "Apache-2.0"
 keywords = ["einsteindb", "distributed-systems", "violetabft"]
 homepage = "https://einsteindb.com"
-repository = "https://github.com/whtcorpsinc/einsteindb/"
+repository = "https://github.com/whtcorpsinc/einsteindb-prod/"
 readme = "README.md"
 edition = "2020"
 publish = false
@@ -59,7 +59,7 @@ testing = []
 [lib]
 name = "einsteindb"
 
-[deplightlikeencies]
+[dependencies]
 async-stream = "0.2"
 async-trait = "0.1"
 backtrace = "0.3"
