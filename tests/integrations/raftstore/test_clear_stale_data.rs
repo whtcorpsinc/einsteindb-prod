@@ -1,4 +1,4 @@
-// Copyright 2018 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use engine_lmdb::raw::{CompactOptions, Writable, DB};
 use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER};
