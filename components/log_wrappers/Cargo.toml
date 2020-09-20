@@ -1,0 +1,11 @@
+[package]
+name = "log_wrappers"
+version = "0.0.1"
+edition = "2018"
+publish = false
+
+[deplightlikeencies]
+hex = "0.4"
+slog = "2.3"
+slog-term = "2.4"
+einsteindb_alloc = { path = "../einsteindb_alloc" }

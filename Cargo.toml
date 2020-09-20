@@ -1,0 +1,277 @@
+[package]
+name = "einsteindb"
+version = "0.0.1-alpha"
+authors = ["WHTCORPS INC"]
+description = "MemCAM inspired Distributed Relativistic Semi-Relational Allegro SQL"
+license = "Apache-2.0"
+keywords = ["einsteindb", "distributed-systems", "violetabft"]
+homepage = "https://einsteindb.com"
+repository = "https://github.com/whtcorpsinc/einsteindb/"
+readme = "README.md"
+edition = "2020"
+publish = false
+
+[features]
+default = ["protobuf-codec"]
+tcmalloc = ["einsteindb_alloc/tcmalloc"]
+jemalloc = ["einsteindb_alloc/jemalloc", "engine_lmdb/jemalloc"]
+mimalloc = ["einsteindb_alloc/mimalloc"]
+portable = ["engine_lmdb/portable"]
+sse = ["engine_lmdb/sse"]
+mem-profiling = ["einsteindb_alloc/mem-profiling"]
+failpoints = ["fail/failpoints", "violetabftstore/failpoints"]
+prost-codec = [
+  "engine_lmdb/prost-codec",
+  "grpcio/prost-codec",
+  "tuplespaceInstanton/prost-codec",
+  "ekvproto/prost-codec",
+  "fidel_client/prost-codec",
+  "violetabft/prost-codec",
+  "violetabftstore/prost-codec",
+  "sst_importer/prost-codec",
+  "milevadb_query_datatype/prost-codec",
+  "fidelpb/prost-codec",
+  "txn_types/prost-codec",
+  "encryption/prost-codec",
+  "einsteindb_util/prost-codec",
+]
+protobuf-codec = [
+  "engine_lmdb/protobuf-codec",
+  "grpcio/protobuf-codec",
+  "tuplespaceInstanton/protobuf-codec",
+  "ekvproto/protobuf-codec",
+  "fidel_client/protobuf-codec",
+  "violetabft/protobuf-codec",
+  "violetabftstore/protobuf-codec",
+  "sst_importer/protobuf-codec",
+  "milevadb_query_datatype/protobuf-codec",
+  "fidelpb/protobuf-codec",
+  "txn_types/protobuf-codec",
+  "encryption/protobuf-codec",
+  "einsteindb_util/protobuf-codec",
+]
+testexport = ["violetabftstore/testexport"]
+
+# for testing configure propegate to other crates
+# https://stackoverflow.com/questions/41700543/can-we-share-test-utilites-between-crates
+testing = []
+
+[lib]
+name = "einsteindb"
+
+[deplightlikeencies]
+async-stream = "0.2"
+async-trait = "0.1"
+backtrace = "0.3"
+batch-system = { path = "components/batch-system", default-features = false }
+bitflags = "1.0.1"
+byteorder = "1.2"
+cache-size = "0.5"
+chrono = "0.4"
+codec = { path = "components/codec" }
+concurrency_manager = { path = "components/concurrency_manager" }
+configuration = { path = "components/configuration" }
+crc32fast = "1.2"
+crc64fast = "0.1"
+crossbeam = "0.7.2"
+derive_more = "0.99.3"
+encryption = { path = "components/encryption" }
+engine_panic = { path = "components/engine_panic", optional = true }
+engine_lmdb = { path = "components/engine_lmdb" }
+engine_promises = { path = "components/engine_promises" }
+error_code = { path = "components/error_code" }
+fail = "0.3"
+failure = "0.1"
+fs2 = "0.4"
+futures = { version = "0.3", features = ["thread-pool", "compat"] }
+futures-executor = "0.3.1"
+futures-util = { version = "0.3.1", default-features = false, features = ["io", "async-await"] }
+grpcio = { version = "0.6", default-features = false, features = ["openssl-vlightlikeored"] }
+hex = "0.4"
+hyper-tls = "0.4"
+itertools = "0.8"
+openssl = "0.10"
+hyper = "0.13"
+hyper-openssl = "0.8"
+http = "0"
+into_other = { path = "components/into_other" }
+tuplespaceInstanton = { path = "components/tuplespaceInstanton" }
+ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
+lazy_static = "1.3"
+libc = "0.2"
+log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
+log_wrappers = { path = "components/log_wrappers" }
+mime = "0.3.13"
+more-asserts = "0.1"
+murmur3 = "0.5.1"
+nom = { version = "5.1.0", default-features = false, features = ["std"] }
+num_cpus = "1"
+fidel_client = { path = "components/fidel_client" }
+pin-project = "0.4.8"
+pnet_datalink = "0.23"
+prost = "0.6"
+pprof = { version = "^0.3.14", features = ["flamegraph", "protobuf"] }
+protobuf = "2.8"
+quick-error = "1.2.3"
+violetabft = { version = "0.6.0-alpha", default-features = false }
+violetabftstore = { path = "components/violetabftstore" }
+raft_log_engine = { path = "components/raft_log_engine" }
+rand = "0.7.3"
+regex = "1.3"
+rev_lines = "0.2.1"
+security = { path = "components/security" }
+serde = { version = "1.0", features = ["derive"] }
+serde_derive = "1.0"
+serde_ignored = "0.1"
+serde_json = "1.0"
+slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debug"] }
+slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global.git", rev = "0e23a5baff302a9d7bccd85f8f31e43339c2f2c1" }
+slog_derive = "0.2"
+parking_lot = "0.10"
+prometheus = { version = "0.8", features = ["nightly", "push"] }
+sst_importer = { path = "components/sst_importer" }
+sysinfo = "0.14"
+semver = "0.10"
+tempfile = "3.0"
+match_template = { path = "components/match_template" }
+milevadb_query_datatype = { path = "components/milevadb_query_datatype" }
+milevadb_query_common = { path = "components/milevadb_query_common" }
+milevadb_query_shared_expr = { path = "components/milevadb_query_shared_expr" }
+milevadb_query_normal_expr = { path = "components/milevadb_query_normal_expr" }
+milevadb_query_normal_executors = { path = "components/milevadb_query_normal_executors" }
+milevadb_query_vec_expr = { path = "components/milevadb_query_vec_expr" }
+milevadb_query_vec_aggr = { path = "components/milevadb_query_vec_aggr" }
+milevadb_query_vec_executors = { path = "components/milevadb_query_vec_executors" }
+einsteindb_alloc = { path = "components/einsteindb_alloc" }
+einsteindb_util = { path = "components/einsteindb_util" }
+time = "0.1"
+fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
+tokio = { version = "0.2", features = ["full"] }
+tokio-threadpool = "0.1.13"
+tokio-timer = "0.2"
+tokio-openssl = "0.4"
+toml = "0.4"
+txn_types = { path = "components/txn_types" }
+url = "2"
+uuid = { version = "0.8.1", features = ["serde", "v4"] }
+vlog = "0.1.4"
+walkdir = "2"
+minitrace = { git = "https://github.com/whtcorpsinc-incubator/minitrace-rust.git", branch = "master" }
+
+
+[deplightlikeencies.prometheus-static-metric]
+git = "https://github.com/einsteindb/rust-prometheus.git"
+rev = "fd122caa03de8e7e5e4fae9372583aebf19e39f6"
+
+[deplightlikeencies.yatp]
+git = "https://github.com/einsteindb/yatp.git"
+
+[dev-deplightlikeencies]
+panic_hook = { path = "components/panic_hook" }
+test_sst_importer = { path = "components/test_sst_importer" }
+test_util = { path = "components/test_util" }
+tokio = { version = "0.2", features = ["macros", "rt-threaded", "time"] }
+zipf = "6.1.0"
+
+[patch.crates-io]
+# TODO: remove this when new violetabft-rs is published.
+violetabft = { git = "https://github.com/whtcorpsinc/violetabft-rs", branch = "master", default-features = false }
+violetabft-proto = { git = "https://github.com/whtcorpsinc/violetabft-rs", branch = "master", default-features = false }
+protobuf = { git = "https://github.com/whtcorpsinc/rust-protobuf", rev = "b67d432c1b74350b38a5d96ddf885ac6c3ff46f5" }
+protobuf-codegen = { git = "https://github.com/whtcorpsinc/rust-protobuf", rev = "b67d432c1b74350b38a5d96ddf885ac6c3ff46f5" }
+fail = { git = "https://github.com/einsteindb/fail-rs.git", rev = "2causet1175a1a5cc2c70bd20ebd45313afd69b558fc" }
+prometheus = { git = "https://github.com/einsteindb/rust-prometheus.git", rev = "fd122caa03de8e7e5e4fae9372583aebf19e39f6" }
+
+[target.'causetg(target_os = "linux")'.deplightlikeencies]
+procinfo = { git = "https://github.com/einsteindb/procinfo-rs", rev = "5125fc1a69496b73b26b3c08b6e8afc3c665a56e" }
+
+[workspace]
+members = [
+  "fuzz",
+  "fuzz/fuzzer-afl",
+  "fuzz/fuzzer-libfuzzer",
+  "fuzz/fuzzer-honggfuzz",
+  "tests",
+  "cmd",
+  "components/test_violetabftstore",
+  "components/test_causetStorage",
+  "components/test_interlock",
+  "components/test_sst_importer",
+  "components/test_util",
+  "components/test_fidel",
+  "components/einsteindb_alloc",
+  "components/match_template",
+  "components/engine_promises/tests",
+  "components/codec",
+  "components/configuration",
+  "components/panic_hook",
+  "components/fidelpb_helper",
+  "components/log_wrappers",
+  "components/einsteindb_util",
+  "components/milevadb_query_datatype",
+  "components/milevadb_query_common",
+  "components/milevadb_query_codegen",
+  "components/milevadb_query_normal_expr",
+  "components/milevadb_query_normal_executors",
+  "components/milevadb_query_vec_expr",
+  "components/milevadb_query_vec_aggr",
+  "components/milevadb_query_vec_executors",
+  "components/fidel_client",
+  "components/external_causetStorage",
+  "components/backup",
+  "components/tuplespaceInstanton",
+  "components/sst_importer",
+  "components/txn_types",
+  "components/resolved_ts",
+  "components/batch-system",
+  "components/cdc",
+  "components/violetabftstore",
+  "components/into_other",
+  "components/encryption",
+  "components/error_code",
+  "components/concurrency_manager",
+]
+default-members = ["cmd"]
+
+[profile.dev]
+opt-level = 0
+debug = 1 # required for line numbers in tests, see einsteindb #5049
+codegen-units = 4
+lto = false
+incremental = true
+panic = 'unwind'
+debug-assertions = true
+overflow-checks = false
+rpath = false
+
+[profile.release]
+opt-level = 3
+debug = false
+codegen-units = 1
+lto = "thin"
+incremental = false
+panic = 'unwind'
+debug-assertions = false
+overflow-checks = false
+rpath = false
+
+[profile.test]
+opt-level = 0
+debug = 1 # enable line numbers by default for easy test debugging
+codegen-units = 16
+lto = false
+incremental = true
+debug-assertions = true
+overflow-checks = true
+rpath = false
+
+# The benchmark profile is identical to release, except that lto = false
+[profile.bench]
+opt-level = 3
+debug = false
+codegen-units = 1
+lto = 'thin'
+incremental = false
+debug-assertions = false
+overflow-checks = false
+rpath = false

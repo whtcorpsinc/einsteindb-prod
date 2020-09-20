@@ -1,0 +1,31 @@
+[package]
+name = "milevadb_query_vec_executors"
+version = "0.0.1"
+edition = "2018"
+publish = false
+description = "A vector query engine to run MilevaDB pushed down executors"
+
+[deplightlikeencies]
+protobuf = "2.8"
+codec = { path = "../codec" }
+hex = "0.3"
+ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
+match_template = { path = "../match_template" }
+slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debug"] }
+slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global.git", rev = "0e23a5baff302a9d7bccd85f8f31e43339c2f2c1" }
+smallvec = "1.4"
+milevadb_query_datatype = { path = "../milevadb_query_datatype" }
+milevadb_query_common = { path = "../milevadb_query_common" }
+milevadb_query_vec_expr = { path = "../milevadb_query_vec_expr" }
+milevadb_query_vec_aggr = { path = "../milevadb_query_vec_aggr" }
+einsteindb_util = { path = "../einsteindb_util" }
+fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
+fail = "0.3"
+
+[deplightlikeencies.yatp]
+git = "https://github.com/einsteindb/yatp.git"
+
+[dev-deplightlikeencies]
+failure = "0.1"
+fidelpb_helper = { path = "../fidelpb_helper" }
+milevadb_query_codegen = { path = "../milevadb_query_codegen" }

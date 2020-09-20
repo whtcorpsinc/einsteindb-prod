@@ -1,0 +1,50 @@
+[package]
+name = "einsteindb_tolstoy"
+version = "0.0.1"
+workspace = ".."
+authors = ["Grisha Kruglov <gkruglov@whtcorpsinc.com>"]
+
+[features]
+sqlcipher = ["rusqlite/sqlcipher"]
+
+[dependencies]
+failure = "0.1.1"
+futures = "0.1"
+hyper = "0.11"
+log = "0.4"
+tokio-embedded = "0.1"
+serde = "1.0"
+serde_json = "1.0"
+serde_cbor = "0.8.2"
+serde_derive = "1.0"
+lazy_static = "0.2"
+uuid = { version = "0.5", features = ["v4", "serde"] }
+
+[dependencies.edbn]
+path = "../edbn"
+
+[dependencies.einsteindb_embedded]
+path = "../embedded"
+
+[dependencies.embedded_promises]
+path = "../embedded-promises"
+
+[dependencies.einstein_db]
+path = "../edb"
+features = ["syncable"]
+
+[dependencies.edb_promises]
+path = "../edb-promises"
+
+[dependencies.tolstoy_promises]
+path = "../tolstoy-promises"
+
+[dependencies.public_promises]
+path = "../public-promises"
+
+[dependencies.einsteindb_transaction]
+path = "../transaction"
+
+[dependencies.rusqlite]
+version = "0.13"
+features = ["limits"]

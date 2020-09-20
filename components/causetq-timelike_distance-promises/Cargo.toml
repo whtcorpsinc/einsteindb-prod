@@ -1,0 +1,43 @@
+[package]
+name = "causetq_projector_promises"
+version = "0.0.1"
+workspace = ".."
+
+[lib]
+name = "causetq_projector_promises"
+path = "lib.rs"
+
+[features]
+sqlcipher = ["rusqlite/sqlcipher"]
+
+[dependencies]
+failure = "0.1.1"
+failure_derive = "0.1.1"
+
+[dependencies.rusqlite]
+version = "0.13"
+features = ["limits"]
+
+[dependencies.edbn]
+path = "../edbn"
+
+[dependencies.embedded_promises]
+path = "../embedded-promises"
+
+[dependencies.edb_promises]
+path = "../edb-promises"
+
+[dependencies.causetq_pull_promises]
+path = "../causetq-pull-promises"
+
+[dependencies.einsteindb_causetq_parityfilter]
+path = "../causetq-parityfilter"
+
+[dependencies.einsteindb_causetq_sql]
+path = "../causetq-allegrosql"
+
+[dev-dependencies.einsteindb_embedded]
+path = "../embedded"
+
+[dev-dependencies.einsteindb_causetq_projector]
+path = "../causetq-projector"

@@ -1,0 +1,111 @@
+[readpool]
+unify-read-pool = true
+
+[readpool.unified]
+min-thread-count = 1
+max-thread-count = 1
+
+[readpool.causetStorage]
+high-concurrency = 1
+normal-concurrency = 1
+low-concurrency = 1
+
+[readpool.interlock]
+high-concurrency = 1
+normal-concurrency = 1
+low-concurrency = 1
+
+[server]
+addr = "127.0.0.1:0"
+grpc-concurrency = 1
+# Considering connection selection algo is involved, maybe
+# use 2 or larger value here?
+grpc-violetabft-conn-num = 1
+# Disable stats concurrency. procinfo performs too bad without optimization,
+# disable it to save CPU for real tests.
+stats-concurrency = 0
+
+[server.labels]
+
+[causetStorage]
+scheduler-concurrency = 10
+scheduler-worker-pool-size = 1
+
+[causetStorage.block-cache]
+shared = true
+capacity = "64MB"
+
+[fidel]
+
+[metric]
+
+[violetabftstore]
+sync-log = false
+violetabft-base-tick-interval = "10ms"
+violetabft-heartbeat-ticks = 2
+violetabft-election-timeout-ticks = 25
+violetabft-log-gc-tick-interval = "100ms"
+violetabft-log-gc-memory_barrier = 1
+violetabft-log-reserve-max-ticks = 1000000
+violetabft-engine-purge-interval = "100ms"
+brane-split-check-diff = 10000
+brane-compact-check-interval = "12s"
+clean-stale-peer-delay = "0s"
+# Use a value of 3 seconds as max_leader_missing_duration just for test.
+# In production environment, the value of max_leader_missing_duration
+# should be configured far beyond the election timeout.
+max-leader-missing-duration = "2s"
+# To make a valid config, use a value of 2 seconds as
+# abnormal_leader_missing_duration and set
+# peer_stale_state_check_interval to 1 second.
+abnormal-leader-missing-duration = "1500ms"
+peer-stale-state-check-interval = "1s"
+report-brane-flow-interval = "100ms"
+violetabft-store-max-leader-lease = "250ms"
+allow-remove-leader = true
+merge-check-tick-interval = "100ms"
+fidel-heartbeat-tick-interval = "20ms"
+violetabft-reject-transfer-leader-duration = "0s"
+hibernate-timeout = "0s"
+dev-assert = true
+
+[interlock]
+
+[rocksdb]
+max-background-jobs = 1
+max-sub-compactions = 1
+
+[rocksdb.titan]
+max-background-gc = 1
+
+[rocksdb.defaultcauset]
+
+[rocksdb.defaultcauset.titan]
+
+[rocksdb.writecauset]
+
+[rocksdb.lockcauset]
+
+[rocksdb.raftcauset]
+
+[raftdb]
+max-background-jobs = 1
+max-sub-compactions = 1
+
+[raftdb.titan]
+max-background-gc = 1
+
+[raftdb.defaultcauset]
+
+[raftdb.defaultcauset.titan]
+
+[security]
+
+[import]
+num-threads = 1
+
+[gc]
+
+[pessimistic-txn]
+wait-for-lock-timeout = "3s"
+wake-up-delay-duration = "100ms"

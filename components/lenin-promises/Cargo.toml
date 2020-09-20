@@ -1,0 +1,25 @@
+[package]
+name = "tolstoy_promises"
+version = "0.0.1"
+workspace = ".."
+
+[lib]
+name = "tolstoy_promises"
+path = "lib.rs"
+
+[features]
+sqlcipher = ["rusqlite/sqlcipher"]
+
+[dependencies]
+failure = "0.1.1"
+failure_derive = "0.1.1"
+hyper = "0.11"
+serde_json = "1.0"
+uuid = { version = "0.5" }
+
+[dependencies.edb_promises]
+path = "../edb-promises"
+
+[dependencies.rusqlite]
+version = "0.13"
+features = ["limits"]

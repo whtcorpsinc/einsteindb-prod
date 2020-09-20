@@ -1,0 +1,545 @@
+[error.KV-Codec-Io]
+error = 'KV-Codec-Io'
+description = ''
+workaround = ''
+
+[error.KV-Codec-BadPadding]
+error = 'KV-Codec-BadPadding'
+description = ''
+workaround = ''
+
+[error.KV-Codec-KeyLength]
+error = 'KV-Codec-KeyLength'
+description = ''
+workaround = ''
+
+[error.KV-Codec-KeyNotFound]
+error = 'KV-Codec-KeyNotFound'
+description = ''
+workaround = ''
+
+[error.KV-Interlock-Locked]
+error = 'KV-Interlock-Locked'
+description = ''
+workaround = ''
+
+[error.KV-Interlock-DeadlineExceeded]
+error = 'KV-Interlock-DeadlineExceeded'
+description = ''
+workaround = ''
+
+[error.KV-Interlock-MaxPlightlikeingTasksExceeded]
+error = 'KV-Interlock-MaxPlightlikeingTasksExceeded'
+description = ''
+workaround = ''
+
+[error.KV-Interlock-InvalidDataType]
+error = 'KV-Interlock-InvalidDataType'
+description = ''
+workaround = ''
+
+[error.KV-Interlock-Encoding]
+error = 'KV-Interlock-Encoding'
+description = ''
+workaround = ''
+
+[error.KV-Interlock-PrimaryCausetOffset]
+error = 'KV-Interlock-PrimaryCausetOffset'
+description = ''
+workaround = ''
+
+[error.KV-Interlock-UnknownSignature]
+error = 'KV-Interlock-UnknownSignature'
+description = ''
+workaround = ''
+
+[error.KV-Interlock-Eval]
+error = 'KV-Interlock-Eval'
+description = ''
+workaround = ''
+
+[error.KV-Interlock-StorageError]
+error = 'KV-Interlock-StorageError'
+description = ''
+workaround = ''
+
+[error.KV-Interlock-InvalidCharacterString]
+error = 'KV-Interlock-InvalidCharacterString'
+description = ''
+workaround = ''
+
+[error.KV-Interlock-Unknown]
+error = 'KV-Interlock-Unknown'
+description = ''
+workaround = ''
+
+[error.KV-Encryption-Lmdb]
+error = 'KV-Encryption-Lmdb'
+description = ''
+workaround = ''
+
+[error.KV-Encryption-IO]
+error = 'KV-Encryption-IO'
+description = ''
+workaround = ''
+
+[error.KV-Encryption-Crypter]
+error = 'KV-Encryption-Crypter'
+description = ''
+workaround = ''
+
+[error.KV-Encryption-Proto]
+error = 'KV-Encryption-Proto'
+description = ''
+workaround = ''
+
+[error.KV-Encryption-UnknownEncryption]
+error = 'KV-Encryption-UnknownEncryption'
+description = ''
+workaround = ''
+
+[error.KV-Encryption-WrongMasterKey]
+error = 'KV-Encryption-WrongMasterKey'
+description = ''
+workaround = ''
+
+[error.KV-Encryption-BothMasterKeyFail]
+error = 'KV-Encryption-BothMasterKeyFail'
+description = ''
+workaround = ''
+
+[error.KV-Encryption-Unknown]
+error = 'KV-Encryption-Unknown'
+description = ''
+workaround = ''
+
+[error.KV-Engine-Engine]
+error = 'KV-Engine-Engine'
+description = ''
+workaround = ''
+
+[error.KV-Engine-NotInCone]
+error = 'KV-Engine-NotInCone'
+description = ''
+workaround = ''
+
+[error.KV-Engine-Protobuf]
+error = 'KV-Engine-Protobuf'
+description = ''
+workaround = ''
+
+[error.KV-Engine-IO]
+error = 'KV-Engine-IO'
+description = ''
+workaround = ''
+
+[error.KV-Engine-CAUSETName]
+error = 'KV-Engine-CAUSETName'
+description = ''
+workaround = ''
+
+[error.KV-Engine-Codec]
+error = 'KV-Engine-Codec'
+description = ''
+workaround = ''
+
+[error.KV-Engine-Unknown]
+error = 'KV-Engine-Unknown'
+description = ''
+workaround = ''
+
+[error.KV-FIDel-IO]
+error = 'KV-FIDel-IO'
+description = ''
+workaround = ''
+
+[error.KV-FIDel-ClusterBootstraped]
+error = 'KV-FIDel-ClusterBootstraped'
+description = ''
+workaround = ''
+
+[error.KV-FIDel-ClusterNotBootstraped]
+error = 'KV-FIDel-ClusterNotBootstraped'
+description = ''
+workaround = ''
+
+[error.KV-FIDel-Imcompatible]
+error = 'KV-FIDel-Imcompatible'
+description = ''
+workaround = ''
+
+[error.KV-FIDel-gRPC]
+error = 'KV-FIDel-gRPC'
+description = ''
+workaround = ''
+
+[error.KV-FIDel-BraneNotFound]
+error = 'KV-FIDel-BraneNotFound'
+description = ''
+workaround = ''
+
+[error.KV-FIDel-StoreTombstone]
+error = 'KV-FIDel-StoreTombstone'
+description = ''
+workaround = ''
+
+[error.KV-FIDel-Unknown]
+error = 'KV-FIDel-Unknown'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBft-Io]
+error = 'KV-VioletaBft-Io'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBft-CausetStore]
+error = 'KV-VioletaBft-CausetStore'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBft-StepLocalMsg]
+error = 'KV-VioletaBft-StepLocalMsg'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBft-StepPeerNotFound]
+error = 'KV-VioletaBft-StepPeerNotFound'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBft-ProposalDropped]
+error = 'KV-VioletaBft-ProposalDropped'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBft-ConfigInvalid]
+error = 'KV-VioletaBft-ConfigInvalid'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBft-CodecError]
+error = 'KV-VioletaBft-CodecError'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBft-Exists]
+error = 'KV-VioletaBft-Exists'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBft-NotExists]
+error = 'KV-VioletaBft-NotExists'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBft-RequestSnapshotDropped]
+error = 'KV-VioletaBft-RequestSnapshotDropped'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-EntryTooLarge]
+error = 'KV-VioletaBftstore-EntryTooLarge'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-NotLeader]
+error = 'KV-VioletaBftstore-NotLeader'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-StoreNotMatch]
+error = 'KV-VioletaBftstore-StoreNotMatch'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-BraneNotFound]
+error = 'KV-VioletaBftstore-BraneNotFound'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-BraneNotInitialized]
+error = 'KV-VioletaBftstore-BraneNotInitialized'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-KeyNotInBrane]
+error = 'KV-VioletaBftstore-KeyNotInBrane'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-StaleCommand]
+error = 'KV-VioletaBftstore-StaleCommand'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-Transport]
+error = 'KV-VioletaBftstore-Transport'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-Interlock]
+error = 'KV-VioletaBftstore-Interlock'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-IO]
+error = 'KV-VioletaBftstore-IO'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-Protobuf]
+error = 'KV-VioletaBftstore-Protobuf'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-AddressParse]
+error = 'KV-VioletaBftstore-AddressParse'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-Timeout]
+error = 'KV-VioletaBftstore-Timeout'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-EpochNotMatch]
+error = 'KV-VioletaBftstore-EpochNotMatch'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-Unknown]
+error = 'KV-VioletaBftstore-Unknown'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-ServerIsBusy]
+error = 'KV-VioletaBftstore-ServerIsBusy'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-SnapAbort]
+error = 'KV-VioletaBftstore-SnapAbort'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-SnapTooMany]
+error = 'KV-VioletaBftstore-SnapTooMany'
+description = ''
+workaround = ''
+
+[error.KV-VioletaBftstore-SnapUnknown]
+error = 'KV-VioletaBftstore-SnapUnknown'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-Io]
+error = 'KV-SSTImporter-Io'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-gRPC]
+error = 'KV-SSTImporter-gRPC'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-Uuid]
+error = 'KV-SSTImporter-Uuid'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-Future]
+error = 'KV-SSTImporter-Future'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-Lmdb]
+error = 'KV-SSTImporter-Lmdb'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-ParseIntError]
+error = 'KV-SSTImporter-ParseIntError'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-FileExists]
+error = 'KV-SSTImporter-FileExists'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-FileCorrupted]
+error = 'KV-SSTImporter-FileCorrupted'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-InvalidSSTPath]
+error = 'KV-SSTImporter-InvalidSSTPath'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-InvalidSoliton]
+error = 'KV-SSTImporter-InvalidSoliton'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-Engine]
+error = 'KV-SSTImporter-Engine'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-CannotReadExternalStorage]
+error = 'KV-SSTImporter-CannotReadExternalStorage'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-WrongKeyPrefix]
+error = 'KV-SSTImporter-WrongKeyPrefix'
+description = ''
+workaround = ''
+
+[error.KV-SSTImporter-BadFormat]
+error = 'KV-SSTImporter-BadFormat'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-Timeout]
+error = 'KV-CausetStorage-Timeout'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-EmptyRequest]
+error = 'KV-CausetStorage-EmptyRequest'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-Closed]
+error = 'KV-CausetStorage-Closed'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-Io]
+error = 'KV-CausetStorage-Io'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-SchedTooBusy]
+error = 'KV-CausetStorage-SchedTooBusy'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-GcWorkerTooBusy]
+error = 'KV-CausetStorage-GcWorkerTooBusy'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-KeyTooLarge]
+error = 'KV-CausetStorage-KeyTooLarge'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-InvalidCAUSET]
+error = 'KV-CausetStorage-InvalidCAUSET'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-Protobuf]
+error = 'KV-CausetStorage-Protobuf'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-INVALIDTXNTSO]
+error = 'KV-CausetStorage-INVALIDTXNTSO'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-InvalidReqCone]
+error = 'KV-CausetStorage-InvalidReqCone'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-BadFormatLock]
+error = 'KV-CausetStorage-BadFormatLock'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-BadFormatWrite]
+error = 'KV-CausetStorage-BadFormatWrite'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-KeyIsLocked]
+error = 'KV-CausetStorage-KeyIsLocked'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-MaxTimestampNotSynced]
+error = 'KV-CausetStorage-MaxTimestampNotSynced'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-Committed]
+error = 'KV-CausetStorage-Committed'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-PessimisticLockRolledBack]
+error = 'KV-CausetStorage-PessimisticLockRolledBack'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-TxnLockNotFound]
+error = 'KV-CausetStorage-TxnLockNotFound'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-TxnNotFound]
+error = 'KV-CausetStorage-TxnNotFound'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-LockTypeNotMatch]
+error = 'KV-CausetStorage-LockTypeNotMatch'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-WriteConflict]
+error = 'KV-CausetStorage-WriteConflict'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-Deadlock]
+error = 'KV-CausetStorage-Deadlock'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-AlreadyExist]
+error = 'KV-CausetStorage-AlreadyExist'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-DefaultNotFound]
+error = 'KV-CausetStorage-DefaultNotFound'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-CommitTsExpired]
+error = 'KV-CausetStorage-CommitTsExpired'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-KeyVersion]
+error = 'KV-CausetStorage-KeyVersion'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-PessimisticLockNotFound]
+error = 'KV-CausetStorage-PessimisticLockNotFound'
+description = ''
+workaround = ''
+
+[error.KV-CausetStorage-Unknown]
+error = 'KV-CausetStorage-Unknown'
+description = ''
+workaround = ''
+

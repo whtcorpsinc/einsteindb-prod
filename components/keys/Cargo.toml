@@ -1,0 +1,20 @@
+[package]
+name = "tuplespaceInstanton"
+version = "0.1.0"
+edition = "2018"
+publish = false
+
+[features]
+protobuf-codec = ["ekvproto/protobuf-codec"]
+prost-codec = ["ekvproto/prost-codec"]
+
+[deplightlikeencies]
+byteorder = "1.2"
+derive_more = "0.99.3"
+failure = "0.1"
+hex = "0.4"
+ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
+einsteindb_alloc = { path = "../einsteindb_alloc" }
+
+[dev-deplightlikeencies]
+panic_hook = { path = "../panic_hook" }

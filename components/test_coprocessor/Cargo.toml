@@ -1,0 +1,36 @@
+[package]
+name = "test_interlock"
+version = "0.0.1"
+edition = "2018"
+publish = false
+
+[features]
+protobuf-codec = [
+  "ekvproto/protobuf-codec",
+  "test_causetStorage/protobuf-codec",
+  "milevadb_query_datatype/protobuf-codec",
+  "einsteindb/protobuf-codec",
+  "fidelpb/protobuf-codec",
+  "txn_types/protobuf-codec",
+]
+prost-codec = [
+  "ekvproto/prost-codec",
+  "test_causetStorage/prost-codec",
+  "milevadb_query_datatype/prost-codec",
+  "einsteindb/prost-codec",
+  "fidelpb/prost-codec",
+  "txn_types/prost-codec",
+]
+
+[deplightlikeencies]
+futures = "0.3"
+ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
+protobuf = "2"
+test_causetStorage = { path = "../test_causetStorage" }
+milevadb_query_datatype = { path = "../milevadb_query_datatype" }
+milevadb_query_common = { path = "../milevadb_query_common" }
+einsteindb = { path = "../../", default-features = false }
+einsteindb_util = { path = "../einsteindb_util" }
+fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
+txn_types = { path = "../txn_types" }
+concurrency_manager = { path = "../concurrency_manager" }

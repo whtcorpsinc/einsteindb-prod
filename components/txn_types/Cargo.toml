@@ -1,0 +1,22 @@
+[package]
+name = "txn_types"
+version = "0.1.0"
+edition = "2018"
+publish = false
+
+[features]
+protobuf-codec = ["ekvproto/protobuf-codec"]
+prost-codec = ["ekvproto/prost-codec"]
+
+[deplightlikeencies]
+byteorder = "1.2"
+farmhash = "1.1.5"
+hex = "0.4"
+derive-new = "0.5"
+error_code = { path = "../error_code" }
+codec = { path = "../codec" }
+ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
+slog = "2.3"
+quick-error = "1.2.3"
+einsteindb_alloc = { path = "../einsteindb_alloc" }
+einsteindb_util = { path = "../einsteindb_util" }

@@ -1,0 +1,29 @@
+[package]
+name = "einsteindb_causetq_pull"
+version = "0.0.1"
+workspace = ".."
+
+[features]
+sqlcipher = ["rusqlite/sqlcipher"]
+
+[dependencies]
+failure = "0.1.1"
+
+[dependencies.causetq_pull_promises]
+path = "../causetq-pull-promises"
+
+[dependencies.rusqlite]
+version = "0.13"
+features = ["limits"]
+
+[dependencies.edbn]
+path = "../edbn"
+
+[dependencies.einsteindb_embedded]
+path = "../embedded"
+
+[dependencies.embedded_promises]
+path = "../embedded-promises"
+
+[dependencies.einstein_db]
+path = "../edb"

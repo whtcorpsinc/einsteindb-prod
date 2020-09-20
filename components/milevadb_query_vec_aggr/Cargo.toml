@@ -1,0 +1,19 @@
+[package]
+name = "milevadb_query_vec_aggr"
+version = "0.0.1"
+edition = "2018"
+publish = false
+description = "Vector aggr functions of query engine to run MilevaDB pushed down executors"
+
+[deplightlikeencies]
+match_template = { path = "../match_template" }
+milevadb_query_codegen = { path = "../milevadb_query_codegen" }
+milevadb_query_datatype = { path = "../milevadb_query_datatype" }
+milevadb_query_common = { path = "../milevadb_query_common" }
+milevadb_query_vec_expr = { path = "../milevadb_query_vec_expr" }
+einsteindb_util = { path = "../einsteindb_util" }
+fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
+
+[dev-deplightlikeencies]
+panic_hook = { path = "../panic_hook" }
+fidelpb_helper = { path = "../fidelpb_helper" }

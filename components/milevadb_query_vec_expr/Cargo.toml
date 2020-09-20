@@ -1,0 +1,34 @@
+[package]
+name = "milevadb_query_vec_expr"
+version = "0.0.1"
+edition = "2018"
+publish = false
+description = "Vector expressions of query engine to run MilevaDB pushed down executors"
+
+[deplightlikeencies]
+base64 = "0.12"
+bstr = "0.2.8"
+byteorder = "1.2"
+codec = { path = "../codec" }
+hex = "0.3"
+match_template = { path = "../match_template" }
+num = { version = "0.2", default-features = false }
+num-promises = "0.2"
+openssl = { version = "0.10" }
+protobuf = "2"
+milevadb_query_codegen = { path = "../milevadb_query_codegen" }
+milevadb_query_datatype = { path = "../milevadb_query_datatype" }
+milevadb_query_common = { path = "../milevadb_query_common" }
+milevadb_query_shared_expr = { path = "../milevadb_query_shared_expr" }
+einsteindb_util = { path = "../einsteindb_util" }
+fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
+twoway = "0.2.0"
+uuid = { version = "0.8.1", features = ["v4"] }
+static_assertions = { version = "1.0", features = ["nightly"] }
+
+[dev-deplightlikeencies]
+bstr = "0.2.8"
+chrono = "0.4"
+profiler = { path = "../profiler" }
+panic_hook = { path = "../panic_hook" }
+fidelpb_helper = { path = "../fidelpb_helper" }

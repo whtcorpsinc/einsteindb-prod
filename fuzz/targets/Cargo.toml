@@ -1,0 +1,19 @@
+[package]
+name = "fuzz-targets"
+version = "0.0.1"
+publish = false
+edition = "2018"
+
+[features]
+default = ["protobuf-codec"]
+protobuf-codec = ["milevadb_query_datatype/protobuf-codec"]
+prost-codec = ["milevadb_query_datatype/prost-codec"]
+
+[lib]
+path = "mod.rs"
+
+[deplightlikeencies]
+anyhow = "1.0"
+byteorder = "1"
+milevadb_query_datatype = { path = "../../components/milevadb_query_datatype" }
+einsteindb_util = { path = "../../components/einsteindb_util" }

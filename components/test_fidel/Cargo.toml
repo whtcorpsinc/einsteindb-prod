@@ -1,0 +1,28 @@
+[package]
+name = "test_fidel"
+version = "0.0.1"
+edition = "2018"
+publish = false
+
+[features]
+protobuf-codec = [
+  "grpcio/protobuf-codec",
+  "ekvproto/protobuf-codec",
+  "fidel_client/protobuf-codec",
+]
+prost-codec = [
+  "grpcio/prost-codec",
+  "ekvproto/prost-codec",
+  "fidel_client/prost-codec",
+]
+
+[deplightlikeencies]
+fail = "0.3"
+futures = "0.3"
+grpcio = { version = "0.6", default-features = false, features = ["openssl-vlightlikeored"] }
+ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
+slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debug"] }
+slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global.git", rev = "0e23a5baff302a9d7bccd85f8f31e43339c2f2c1" }
+fidel_client = { path = "../fidel_client" }
+security = { path = "../security" }
+einsteindb_util = { path = "../einsteindb_util" }

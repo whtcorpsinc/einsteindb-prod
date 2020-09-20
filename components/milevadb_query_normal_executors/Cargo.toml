@@ -1,0 +1,19 @@
+[package]
+name = "milevadb_query_normal_executors"
+version = "0.0.1"
+edition = "2018"
+publish = false
+description = "A scalar query engine to run MilevaDB pushed down executors"
+
+[deplightlikeencies]
+byteorder = "1.2"
+codec = { path = "../codec" }
+failure = "0.1"
+indexmap = { version = "1.0", features = ["serde-1"] }
+ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
+protobuf = "2"
+milevadb_query_datatype = { path = "../milevadb_query_datatype" }
+milevadb_query_common = { path = "../milevadb_query_common" }
+milevadb_query_normal_expr = { path = "../milevadb_query_normal_expr" }
+einsteindb_util = { path = "../einsteindb_util" }
+fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }

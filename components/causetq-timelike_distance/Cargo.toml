@@ -1,0 +1,48 @@
+[package]
+name = "einsteindb_causetq_projector"
+version = "0.0.1"
+workspace = ".."
+
+[features]
+sqlcipher = ["rusqlite/sqlcipher"]
+
+[dependencies]
+failure = "0.1.1"
+indexmap = "1"
+
+[dependencies.rusqlite]
+version = "0.13"
+features = ["limits"]
+
+[dependencies.embedded_promises]
+path = "../embedded-promises"
+
+[dependencies.edbn]
+path = "../edbn"
+
+[dependencies.einsteindb_embedded]
+path = "../embedded"
+
+[dependencies.einstein_db]
+path = "../edb"
+
+[dependencies.edb_promises]
+path = "../edb-promises"
+
+[dependencies.einsteindb_causetq_parityfilter]
+path = "../causetq-parityfilter"
+
+[dependencies.einsteindb_causetq_pull]
+path = "../causetq-pull"
+
+[dependencies.causetq_pull_promises]
+path = "../causetq-pull-promises"
+
+[dependencies.causetq_projector_promises]
+path = "../causetq-projector-promises"
+
+[dependencies.einsteindb_causetq_sql]
+path = "../causetq-allegrosql"
+
+[dev-dependencies.einsteindb_sql]
+path = "../allegrosql"

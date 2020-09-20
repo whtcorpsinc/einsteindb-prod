@@ -1,0 +1,38 @@
+[package]
+name = "raft_log_engine"
+version = "0.0.1"
+publish = false
+edition = "2018"
+
+[features]
+protobuf-codec = [
+  "tuplespaceInstanton/protobuf-codec",
+  "violetabft/protobuf-codec",
+  "ekvproto/protobuf-codec",
+]
+
+prost-codec = [
+  "tuplespaceInstanton/prost-codec",
+  "violetabft/prost-codec",
+  "ekvproto/prost-codec",
+]
+
+[deplightlikeencies]
+engine_promises = { path = "../engine_promises" }
+einsteindb_util = { path = "../einsteindb_util" }
+hex = "0.4"
+tuplespaceInstanton = { path = "../tuplespaceInstanton" }
+num_cpus = "1"
+slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debug"] }
+slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global.git", rev = "0e23a5baff302a9d7bccd85f8f31e43339c2f2c1" }
+lazy_static = "1.4.0"
+time = "0.1"
+configuration = { path = "../configuration" }
+tempfile = "3.0"
+serde = "1.0"
+serde_derive = "1.0"
+coarsetime = "0.1"
+ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
+violetabft = { version = "0.6.0-alpha", default-features = false }
+violetabft-engine = { git = "https://github.com/einsteindb/violetabft-engine"}
+protobuf = "2"

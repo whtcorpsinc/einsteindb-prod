@@ -1,0 +1,31 @@
+[package]
+name = "test_causetStorage"
+version = "0.0.1"
+edition = "2018"
+publish = false
+
+[features]
+protobuf-codec = [
+  "ekvproto/protobuf-codec",
+  "violetabftstore/protobuf-codec",
+  "test_violetabftstore/protobuf-codec",
+  "einsteindb/protobuf-codec",
+  "txn_types/protobuf-codec",
+]
+prost-codec = [
+  "ekvproto/prost-codec",
+  "violetabftstore/prost-codec",
+  "test_violetabftstore/prost-codec",
+  "einsteindb/prost-codec",
+  "txn_types/prost-codec",
+]
+
+[deplightlikeencies]
+futures = "0.3"
+ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
+violetabftstore = { path = "../violetabftstore" }
+fidel_client = { path = "../fidel_client" }
+test_violetabftstore = { path = "../test_violetabftstore" }
+einsteindb = { path = "../../", default-features = false }
+einsteindb_util = { path = "../einsteindb_util" }
+txn_types = { path = "../txn_types" }

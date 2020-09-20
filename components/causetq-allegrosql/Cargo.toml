@@ -1,0 +1,24 @@
+[package]
+name = "einsteindb_causetq_sql"
+version = "0.0.1"
+workspace = ".."
+
+[dependencies]
+
+[dependencies.edbn]
+path = "../edbn"
+
+[dependencies.embedded_promises]
+path = "../embedded-promises"
+
+[dependencies.einsteindb_embedded]
+path = "../embedded"
+
+[dependencies.einsteindb_sql]
+path = "../allegrosql"
+
+[dependencies.sql_promises]
+path = "../allegrosql-promises"
+
+[dependencies.einsteindb_causetq_parityfilter]
+path = "../causetq-parityfilter"

@@ -1,0 +1,20 @@
+[package]
+name = "fidelpb_helper"
+version = "0.0.1"
+edition = "2018"
+publish = false
+
+[features]
+protobuf-codec = [
+  "milevadb_query_datatype/protobuf-codec",
+  "fidelpb/protobuf-codec"
+]
+prost-codec = [
+  "milevadb_query_datatype/prost-codec",
+  "fidelpb/prost-codec"
+]
+
+[deplightlikeencies]
+codec = { path = "../codec" }
+milevadb_query_datatype = { path = "../milevadb_query_datatype" }
+fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
