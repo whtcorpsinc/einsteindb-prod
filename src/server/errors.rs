@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::error;
 use std::io::Error as IoError;
@@ -12,8 +12,8 @@ use openssl::error::ErrorStack as OpenSSLError;
 use protobuf::ProtobufError;
 
 use super::snap::Task as SnapTask;
-use crate::causetStorage::kv::Error as EngineError;
-use crate::causetStorage::Error as StorageError;
+use crate::persistence::kv::Error as EngineError;
+use crate::persistence::Error as StorageError;
 use engine_promises::Error as EngineTraitError;
 use fidel_client::Error as FidelError;
 use violetabftstore::Error as VioletaBftServerError;

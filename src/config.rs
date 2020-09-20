@@ -29,7 +29,7 @@ use crate::server::gc_worker::WriteCompactionFilterFactory;
 use crate::server::lock_manager::Config as PessimisticTxnConfig;
 use crate::server::Config as ServerConfig;
 use crate::server::CONFIG_LMDB_GAUGE;
-use crate::causetStorage::config::{Config as StorageConfig, DEFAULT_DATA_DIR, DEFAULT_LMDB_SUB_DIR};
+use crate::persistence::config::{Config as StorageConfig, DEFAULT_DATA_DIR, DEFAULT_LMDB_SUB_DIR};
 use engine_lmdb::config::{self as rocks_config, BlobRunMode, CompressionType, LogLevel};
 use engine_lmdb::properties::MvccPropertiesCollectorFactory;
 use engine_lmdb::raw_util::CAUSETOptions;
@@ -1315,7 +1315,7 @@ impl DBConfigManger {
         self.validate_causet(causet)?;
         if self.shared_block_cache {
             return Err("shared block cache is enabled, change cache size through \
-                 block-cache.capacity in causetStorage module instead"
+                 block-cache.capacity in persistence module instead"
                 .into());
         }
         let handle = self.db.causet_handle(causet)?;
@@ -1749,7 +1749,7 @@ const DEFAULT_READPOOL_MAX_TASKS_PER_WORKER: usize = 2 * 1000;
 const MIN_READPOOL_STACK_SIZE_MB: u64 = 2;
 const DEFAULT_READPOOL_STACK_SIZE_MB: u64 = 10;
 
-readpool_config!(StorageReadPoolConfig, causetStorage_read_pool_test, "causetStorage");
+readpool_config!(StorageReadPoolConfig, causetStorage_read_pool_test, "persistence");
 
 impl Default for StorageReadPoolConfig {
     fn default() -> Self {
@@ -1772,14 +1772,14 @@ impl Default for StorageReadPoolConfig {
 
 impl StorageReadPoolConfig {
     pub fn use_unified_pool(&self) -> bool {
-        // The causetStorage module does not use the unified pool by default.
+        // The persistence module does not use the unified pool by default.
         self.use_unified_pool.unwrap_or(false)
     }
 
     pub fn adjust_use_unified_pool(&mut self) {
         if self.use_unified_pool.is_none() {
-            // The causetStorage module does not use the unified pool by default.
-            info!("readpool.causetStorage.use-unified-pool is not set, set to false by default");
+            // The persistence module does not use the unified pool by default.
+            info!("readpool.persistence.use-unified-pool is not set, set to false by default");
             self.use_unified_pool = Some(false);
         }
     }
@@ -1837,17 +1837,17 @@ impl CoprReadPoolConfig {
 #[serde(rename_all = "kebab-case")]
 pub struct ReadPoolConfig {
     pub unified: UnifiedReadPoolConfig,
-    pub causetStorage: StorageReadPoolConfig,
+    pub persistence: StorageReadPoolConfig,
     pub interlock: CoprReadPoolConfig,
 }
 
 impl ReadPoolConfig {
     pub fn is_unified_pool_enabled(&self) -> bool {
-        self.causetStorage.use_unified_pool() || self.interlock.use_unified_pool()
+        self.persistence.use_unified_pool() || self.interlock.use_unified_pool()
     }
 
     pub fn adjust_use_unified_pool(&mut self) {
-        self.causetStorage.adjust_use_unified_pool();
+        self.persistence.adjust_use_unified_pool();
         self.interlock.adjust_use_unified_pool();
     }
 
@@ -1855,7 +1855,7 @@ impl ReadPoolConfig {
         if self.is_unified_pool_enabled() {
             self.unified.validate()?;
         }
-        self.causetStorage.validate()?;
+        self.persistence.validate()?;
         self.interlock.validate()?;
         Ok(())
     }
@@ -1875,11 +1875,11 @@ mod readpool_tests {
             max_tasks_per_worker: 0,
         };
         assert!(unified.validate().is_err());
-        let causetStorage = StorageReadPoolConfig {
+        let persistence = StorageReadPoolConfig {
             use_unified_pool: Some(false),
             ..Default::default()
         };
-        assert!(causetStorage.validate().is_ok());
+        assert!(persistence.validate().is_ok());
         let interlock = CoprReadPoolConfig {
             use_unified_pool: Some(false),
             ..Default::default()
@@ -1887,7 +1887,7 @@ mod readpool_tests {
         assert!(interlock.validate().is_ok());
         let causetg = ReadPoolConfig {
             unified,
-            causetStorage,
+            persistence,
             interlock,
         };
         assert!(!causetg.is_unified_pool_enabled());
@@ -1896,19 +1896,19 @@ mod readpool_tests {
         // CausetStorage and interlock config must be valid when yatp is not used.
         let unified = UnifiedReadPoolConfig::default();
         assert!(unified.validate().is_ok());
-        let causetStorage = StorageReadPoolConfig {
+        let persistence = StorageReadPoolConfig {
             use_unified_pool: Some(false),
             high_concurrency: 0,
             ..Default::default()
         };
-        assert!(causetStorage.validate().is_err());
+        assert!(persistence.validate().is_err());
         let interlock = CoprReadPoolConfig {
             use_unified_pool: Some(false),
             ..Default::default()
         };
         let invalid_causetg = ReadPoolConfig {
             unified,
-            causetStorage,
+            persistence,
             interlock,
         };
         assert!(!invalid_causetg.is_unified_pool_enabled());
@@ -1924,16 +1924,16 @@ mod readpool_tests {
             ..Default::default()
         };
         assert!(unified.validate().is_err());
-        let causetStorage = StorageReadPoolConfig {
+        let persistence = StorageReadPoolConfig {
             use_unified_pool: Some(true),
             ..Default::default()
         };
-        assert!(causetStorage.validate().is_ok());
+        assert!(persistence.validate().is_ok());
         let interlock = CoprReadPoolConfig::default();
         assert!(interlock.validate().is_ok());
         let mut causetg = ReadPoolConfig {
             unified,
-            causetStorage,
+            persistence,
             interlock,
         };
         causetg.adjust_use_unified_pool();
@@ -1943,13 +1943,13 @@ mod readpool_tests {
 
     #[test]
     fn test_is_unified() {
-        let causetStorage = StorageReadPoolConfig::default();
-        assert!(!causetStorage.use_unified_pool());
+        let persistence = StorageReadPoolConfig::default();
+        assert!(!persistence.use_unified_pool());
         let interlock = CoprReadPoolConfig::default();
         assert!(interlock.use_unified_pool());
 
         let mut causetg = ReadPoolConfig {
-            causetStorage,
+            persistence,
             interlock,
             ..Default::default()
         };
@@ -1961,32 +1961,32 @@ mod readpool_tests {
 
     #[test]
     fn test_partially_unified() {
-        let causetStorage = StorageReadPoolConfig {
+        let persistence = StorageReadPoolConfig {
             use_unified_pool: Some(false),
             low_concurrency: 0,
             ..Default::default()
         };
-        assert!(!causetStorage.use_unified_pool());
+        assert!(!persistence.use_unified_pool());
         let interlock = CoprReadPoolConfig {
             use_unified_pool: Some(true),
             ..Default::default()
         };
         assert!(interlock.use_unified_pool());
         let mut causetg = ReadPoolConfig {
-            causetStorage,
+            persistence,
             interlock,
             ..Default::default()
         };
         assert!(causetg.is_unified_pool_enabled());
         assert!(causetg.validate().is_err());
-        causetg.causetStorage.low_concurrency = 1;
+        causetg.persistence.low_concurrency = 1;
         assert!(causetg.validate().is_ok());
 
-        let causetStorage = StorageReadPoolConfig {
+        let persistence = StorageReadPoolConfig {
             use_unified_pool: Some(true),
             ..Default::default()
         };
-        assert!(causetStorage.use_unified_pool());
+        assert!(persistence.use_unified_pool());
         let interlock = CoprReadPoolConfig {
             use_unified_pool: Some(false),
             low_concurrency: 0,
@@ -1994,7 +1994,7 @@ mod readpool_tests {
         };
         assert!(!interlock.use_unified_pool());
         let mut causetg = ReadPoolConfig {
-            causetStorage,
+            persistence,
             interlock,
             ..Default::default()
         };
@@ -2089,7 +2089,7 @@ pub struct EINSTEINDBConfig {
     pub server: ServerConfig,
 
     #[config(submodule)]
-    pub causetStorage: StorageConfig,
+    pub persistence: StorageConfig,
 
     #[config(skip)]
     pub fidel: FidelConfig,
@@ -2156,7 +2156,7 @@ impl Default for EINSTEINDBConfig {
             rocksdb: DbConfig::default(),
             raftdb: VioletaBftDbConfig::default(),
             raft_engine: VioletaBftEngineConfig::default(),
-            causetStorage: StorageConfig::default(),
+            persistence: StorageConfig::default(),
             security: SecurityConfig::default(),
             import: ImportConfig::default(),
             backup: BackupConfig::default(),
@@ -2172,12 +2172,12 @@ impl EINSTEINDBConfig {
     // TODO: change to validate(&self)
     pub fn validate(&mut self) -> Result<(), Box<dyn Error>> {
         self.readpool.validate()?;
-        self.causetStorage.validate()?;
+        self.persistence.validate()?;
 
         self.raft_store.brane_split_check_diff = self.interlock.brane_split_size / 16;
 
         if self.causetg_path.is_empty() {
-            self.causetg_path = Path::new(&self.causetStorage.data_dir)
+            self.causetg_path = Path::new(&self.persistence.data_dir)
                 .join(LAST_CONFIG_FILE)
                 .to_str()
                 .unwrap()
@@ -2186,7 +2186,7 @@ impl EINSTEINDBConfig {
 
         if !self.raft_engine.enable {
             let default_raftdb_path =
-                config::canonicalize_sub_path(&self.causetStorage.data_dir, "violetabft")?;
+                config::canonicalize_sub_path(&self.persistence.data_dir, "violetabft")?;
             if self.raft_store.raftdb_path.is_empty() {
                 self.raft_store.raftdb_path = default_raftdb_path;
             } else if self.raft_store.raftdb_path != default_raftdb_path {
@@ -2195,7 +2195,7 @@ impl EINSTEINDBConfig {
             }
         } else {
             let default_er_path =
-                config::canonicalize_sub_path(&self.causetStorage.data_dir, "violetabft-engine")?;
+                config::canonicalize_sub_path(&self.persistence.data_dir, "violetabft-engine")?;
             if self.raft_engine.config.dir.is_empty() {
                 self.raft_engine.config.dir = default_er_path;
             } else if self.raft_engine.config.dir != default_er_path {
@@ -2205,10 +2205,10 @@ impl EINSTEINDBConfig {
         }
 
         let kv_db_path =
-            config::canonicalize_sub_path(&self.causetStorage.data_dir, DEFAULT_LMDB_SUB_DIR)?;
+            config::canonicalize_sub_path(&self.persistence.data_dir, DEFAULT_LMDB_SUB_DIR)?;
 
         if kv_db_path == self.raft_store.raftdb_path {
-            return Err("raft_store.raftdb_path can not same with causetStorage.data_dir/db".into());
+            return Err("raft_store.raftdb_path can not same with persistence.data_dir/db".into());
         }
         if !self.raft_engine.enable {
             if LmdbEngine::exists(&kv_db_path)
@@ -2359,7 +2359,7 @@ impl EINSTEINDBConfig {
         // When shared block cache is enabled, if its capacity is set, it overrides individual
         // block cache sizes. Otherwise use the sum of block cache size of all PrimaryCauset families
         // as the shared cache size.
-        let cache_causetg = &mut self.causetStorage.block_cache;
+        let cache_causetg = &mut self.persistence.block_cache;
         if cache_causetg.shared && cache_causetg.capacity.0.is_none() {
             cache_causetg.capacity.0 = Some(ReadableSize {
                 0: self.rocksdb.defaultcauset.block_cache_size.0
@@ -2391,17 +2391,17 @@ impl EINSTEINDBConfig {
             ));
         }
 
-        if last_causetg.causetStorage.data_dir != self.causetStorage.data_dir {
-            // In einsteindb 3.0 the default value of causetStorage.data-dir changed
+        if last_causetg.persistence.data_dir != self.persistence.data_dir {
+            // In einsteindb 3.0 the default value of persistence.data-dir changed
             // from "" to "./"
             let using_default_after_upgrade =
-                last_causetg.causetStorage.data_dir.is_empty() && self.causetStorage.data_dir == DEFAULT_DATA_DIR;
+                last_causetg.persistence.data_dir.is_empty() && self.persistence.data_dir == DEFAULT_DATA_DIR;
 
             if !using_default_after_upgrade {
                 return Err(format!(
-                    "causetStorage data dir have been changed, former data dir is {}, \
+                    "persistence data dir have been changed, former data dir is {}, \
                      current data dir is {}, please check if it is expected.",
-                    last_causetg.causetStorage.data_dir, self.causetStorage.data_dir
+                    last_causetg.persistence.data_dir, self.persistence.data_dir
                 ));
             }
         }
@@ -2469,7 +2469,7 @@ impl EINSTEINDBConfig {
     pub fn with_tmp() -> Result<(EINSTEINDBConfig, tempfile::TempDir), IoError> {
         let tmp = tempfile::temfidelir()?;
         let mut causetg = EINSTEINDBConfig::default();
-        causetg.causetStorage.data_dir = tmp.path().display().to_string();
+        causetg.persistence.data_dir = tmp.path().display().to_string();
         causetg.causetg_path = tmp.path().join(LAST_CONFIG_FILE).display().to_string();
         Ok((causetg, tmp))
     }
@@ -2483,7 +2483,7 @@ impl EINSTEINDBConfig {
 pub fn check_critical_config(config: &EINSTEINDBConfig) -> Result<(), String> {
     // Check current critical configurations with last time, if there are some
     // changes, user must guarantee relevant works have been done.
-    if let Some(mut causetg) = get_last_config(&config.causetStorage.data_dir) {
+    if let Some(mut causetg) = get_last_config(&config.persistence.data_dir) {
         causetg.compatible_adjust();
         let _ = causetg.validate();
         config.check_critical_causetg_with(&causetg)?;
@@ -2502,7 +2502,7 @@ fn get_last_config(data_dir: &str) -> Option<EINSTEINDBConfig> {
 
 /// Persists config to `last_einsteindb.toml`
 pub fn persist_config(config: &EINSTEINDBConfig) -> Result<(), String> {
-    let store_path = Path::new(&config.causetStorage.data_dir);
+    let store_path = Path::new(&config.persistence.data_dir);
     let last_causetg_path = store_path.join(LAST_CONFIG_FILE);
     let tmp_causetg_path = store_path.join(TMP_CONFIG_FILE);
 
@@ -2721,7 +2721,7 @@ impl From<&str> for Module {
             "rocksdb" => Module::Lmdbdb,
             "raftdb" => Module::VioletaBftdb,
             "raft_engine" => Module::VioletaBftEngine,
-            "causetStorage" => Module::CausetStorage,
+            "persistence" => Module::CausetStorage,
             "security" => Module::Security,
             "import" => Module::Import,
             "backup" => Module::Backup,
@@ -2824,7 +2824,7 @@ mod tests {
     use tempfile::Builder;
 
     use super::*;
-    use crate::causetStorage::config::StorageConfigManger;
+    use crate::persistence::config::StorageConfigManger;
     use engine_lmdb::raw_util::new_engine_opt;
     use engine_promises::DBOptions as DBOptionsTrait;
     use raft_log_engine::RecoveryMode;
@@ -2849,10 +2849,10 @@ mod tests {
         last_causetg.raftdb.wal_dir = "/violetabft/wal_dir".to_owned();
         assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_ok());
 
-        einsteindb_causetg.causetStorage.data_dir = "/data1".to_owned();
+        einsteindb_causetg.persistence.data_dir = "/data1".to_owned();
         assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_err());
 
-        last_causetg.causetStorage.data_dir = "/data1".to_owned();
+        last_causetg.persistence.data_dir = "/data1".to_owned();
         assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_ok());
 
         einsteindb_causetg.raft_store.raftdb_path = "/raft_path".to_owned();
@@ -2865,7 +2865,7 @@ mod tests {
     #[test]
     fn test_last_causetg_modified() {
         let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-        let store_path = Path::new(&causetg.causetStorage.data_dir);
+        let store_path = Path::new(&causetg.persistence.data_dir);
         let last_causetg_path = store_path.join(LAST_CONFIG_FILE);
 
         causetg.write_to_file(&last_causetg_path).unwrap();
@@ -2919,7 +2919,7 @@ mod tests {
         let path = root_path.path().join("not_exist_dir");
 
         let mut einsteindb_causetg = EINSTEINDBConfig::default();
-        einsteindb_causetg.causetStorage.data_dir = path.as_path().to_str().unwrap().to_owned();
+        einsteindb_causetg.persistence.data_dir = path.as_path().to_str().unwrap().to_owned();
         assert!(persist_config(&einsteindb_causetg).is_ok());
     }
 
@@ -3093,15 +3093,15 @@ mod tests {
     fn new_engines(causetg: EINSTEINDBConfig) -> (LmdbEngine, ConfigController) {
         let engine = LmdbEngine::from_db(Arc::new(
             new_engine_opt(
-                &causetg.causetStorage.data_dir,
+                &causetg.persistence.data_dir,
                 causetg.rocksdb.build_opt(),
                 causetg.rocksdb
-                    .build_causet_opts(&causetg.causetStorage.block_cache.build_shared_cache()),
+                    .build_causet_opts(&causetg.persistence.block_cache.build_shared_cache()),
             )
             .unwrap(),
         ));
 
-        let (shared, causetg_controller) = (causetg.causetStorage.block_cache.shared, ConfigController::new(causetg));
+        let (shared, causetg_controller) = (causetg.persistence.block_cache.shared, ConfigController::new(causetg));
         causetg_controller.register(
             Module::Lmdbdb,
             Box::new(DBConfigManger::new(engine.clone(), DBType::Kv, shared)),
@@ -3121,7 +3121,7 @@ mod tests {
         causetg.rocksdb.defaultcauset.target_file_size_base = ReadableSize::mb(64);
         causetg.rocksdb.defaultcauset.block_cache_size = ReadableSize::mb(8);
         causetg.rocksdb.rate_bytes_per_sec = ReadableSize::mb(64);
-        causetg.causetStorage.block_cache.shared = false;
+        causetg.persistence.block_cache.shared = false;
         causetg.validate().unwrap();
         let (db, causetg_controller) = new_engines(causetg);
 
@@ -3176,17 +3176,17 @@ mod tests {
         assert_eq!(causet_opts.get_target_file_size_base(), ReadableSize::mb(32).0);
         assert_eq!(causet_opts.get_block_cache_capacity(), ReadableSize::mb(256).0);
 
-        // Can not ufidelate block cache through causetStorage module
+        // Can not ufidelate block cache through persistence module
         // when shared block cache is disabled
         assert!(causetg_controller
-            .ufidelate_config("causetStorage.block-cache.capacity", "512MB")
+            .ufidelate_config("persistence.block-cache.capacity", "512MB")
             .is_err());
     }
 
     #[test]
     fn test_change_shared_block_cache() {
         let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-        causetg.causetStorage.block_cache.shared = true;
+        causetg.persistence.block_cache.shared = true;
         causetg.validate().unwrap();
         let (db, causetg_controller) = new_engines(causetg);
 
@@ -3196,7 +3196,7 @@ mod tests {
             .is_err());
 
         causetg_controller
-            .ufidelate_config("causetStorage.block-cache.capacity", "256MB")
+            .ufidelate_config("persistence.block-cache.capacity", "256MB")
             .unwrap();
 
         let defaultcauset = db.causet_handle(CAUSET_DEFAULT).unwrap();
@@ -3246,23 +3246,23 @@ mod tests {
     #[test]
     fn test_readpool_compatible_adjust_config() {
         let content = r#"
-        [readpool.causetStorage]
+        [readpool.persistence]
         [readpool.interlock]
         "#;
         let mut causetg: EINSTEINDBConfig = toml::from_str(content).unwrap();
         causetg.compatible_adjust();
-        assert_eq!(causetg.readpool.causetStorage.use_unified_pool, Some(false));
+        assert_eq!(causetg.readpool.persistence.use_unified_pool, Some(false));
         assert_eq!(causetg.readpool.interlock.use_unified_pool, Some(true));
 
         let content = r#"
-        [readpool.causetStorage]
+        [readpool.persistence]
         stack-size = "10MB"
         [readpool.interlock]
         normal-concurrency = 1
         "#;
         let mut causetg: EINSTEINDBConfig = toml::from_str(content).unwrap();
         causetg.compatible_adjust();
-        assert_eq!(causetg.readpool.causetStorage.use_unified_pool, Some(false));
+        assert_eq!(causetg.readpool.persistence.use_unified_pool, Some(false));
         assert_eq!(causetg.readpool.interlock.use_unified_pool, Some(false));
     }
 
@@ -3334,7 +3334,7 @@ mod tests {
         causetg.validate().unwrap();
         assert_eq!(
             causetg.raft_engine.config.dir,
-            config::canonicalize_sub_path(&causetg.causetStorage.data_dir, "violetabft-engine").unwrap()
+            config::canonicalize_sub_path(&causetg.persistence.data_dir, "violetabft-engine").unwrap()
         );
     }
 }

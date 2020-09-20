@@ -3,13 +3,13 @@
 use ekvproto::kvrpcpb;
 use ekvproto::kvrpcpb::ScanDetailV2;
 
-use crate::causetStorage::kv::{PerfStatisticsDelta, PerfStatisticsInstant};
+use crate::persistence::kv::{PerfStatisticsDelta, PerfStatisticsInstant};
 
 use einsteindb_util::time::{self, Duration, Instant};
 
 use super::metrics::*;
 use crate::interlock::*;
-use crate::causetStorage::Statistics;
+use crate::persistence::Statistics;
 
 // If handle time is larger than the lower bound, the query is considered as slow query.
 const SLOW_QUERY_LOWER_BOUND: f64 = 1.0; // 1 second.

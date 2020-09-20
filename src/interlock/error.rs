@@ -1,9 +1,9 @@
 // Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::causetStorage;
-use crate::causetStorage::kv::{Error as KvError, ErrorInner as KvErrorInner};
-use crate::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner};
-use crate::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
+use crate::persistence;
+use crate::persistence::kv::{Error as KvError, ErrorInner as KvErrorInner};
+use crate::persistence::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner};
+use crate::persistence::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
 
 use error_code::{self, ErrorCode, ErrorCodeExt};
 
@@ -42,7 +42,7 @@ impl From<milevadb_query_common::error::StorageError> for Error {
     fn from(err: milevadb_query_common::error::StorageError) -> Self {
         match err.0.downcast::<Error>() {
             Ok(e) => e,
-            Err(e) => box_err!("Unknown causetStorage error: {}", e),
+            Err(e) => box_err!("Unknown persistence error: {}", e),
         }
     }
 }
@@ -84,7 +84,7 @@ impl From<MvccError> for Error {
 }
 
 impl From<TxnError> for Error {
-    fn from(err: causetStorage::txn::Error) -> Self {
+    fn from(err: persistence::txn::Error) -> Self {
         match err {
             TxnError(box TxnErrorInner::Mvcc(mvcc_error)) => Error::from(mvcc_error),
             TxnError(box TxnErrorInner::Engine(engine_error)) => Error::from(engine_error),

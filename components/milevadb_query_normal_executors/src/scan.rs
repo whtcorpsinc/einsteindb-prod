@@ -7,8 +7,8 @@ use fidelpb::PrimaryCausetInfo;
 
 use super::{FreeDaemon, Row};
 use milevadb_query_common::execute_stats::ExecuteStats;
-use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
-use milevadb_query_common::causetStorage::{IntervalCone, Cone, CausetStorage};
+use milevadb_query_common::persistence::scanner::{ConesScanner, ConesScannerOptions};
+use milevadb_query_common::persistence::{IntervalCone, Cone, CausetStorage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::table;
 use milevadb_query_datatype::expr::{EvalContext, EvalWarnings};
@@ -38,7 +38,7 @@ pub struct ScanFreeDaemonOptions<S, T> {
     pub context: EvalContext,
     pub PrimaryCausets: Vec<PrimaryCausetInfo>,
     pub key_cones: Vec<KeyCone>,
-    pub causetStorage: S,
+    pub persistence: S,
     pub is_backward: bool,
     pub is_key_only: bool,
     pub accept_point_cone: bool,
@@ -52,7 +52,7 @@ impl<S: CausetStorage, T: InnerFreeDaemon> ScanFreeDaemon<S, T> {
             context,
             PrimaryCausets,
             mut key_cones,
-            causetStorage,
+            persistence,
             is_backward,
             is_key_only,
             accept_point_cone,
@@ -65,7 +65,7 @@ impl<S: CausetStorage, T: InnerFreeDaemon> ScanFreeDaemon<S, T> {
         }
 
         let scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage,
+            persistence,
             cones: key_cones
                 .into_iter()
                 .map(|r| Cone::from_pb_cone(r, accept_point_cone))

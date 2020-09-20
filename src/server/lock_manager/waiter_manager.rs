@@ -3,10 +3,10 @@
 use super::config::Config;
 use super::deadlock::Scheduler as DetectorScheduler;
 use super::metrics::*;
-use crate::causetStorage::lock_manager::{Lock, WaitTimeout};
-use crate::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner, TimeStamp};
-use crate::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
-use crate::causetStorage::{
+use crate::persistence::lock_manager::{Lock, WaitTimeout};
+use crate::persistence::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner, TimeStamp};
+use crate::persistence::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
+use crate::persistence::{
     Error as StorageError, ErrorInner as StorageErrorInner, ProcessResult, StorageCallback,
 };
 use einsteindb_util::collections::HashMap;
@@ -604,7 +604,7 @@ impl FutureRunnable<Task> for WaiterManager {
 #[causetg(test)]
 pub mod tests {
     use super::*;
-    use crate::causetStorage::PessimisticLockRes;
+    use crate::persistence::PessimisticLockRes;
     use einsteindb_util::future::paired_future_callback;
     use einsteindb_util::worker::FutureWorker;
 

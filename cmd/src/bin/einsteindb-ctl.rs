@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 #[macro_use]
 extern crate clap;
@@ -71,10 +71,10 @@ fn new_debug_executor(
     match (host, db) {
         (None, Some(kv_path)) => {
             let key_manager =
-                DataKeyManager::from_config(&causetg.security.encryption, &causetg.causetStorage.data_dir)
+                DataKeyManager::from_config(&causetg.security.encryption, &causetg.persistence.data_dir)
                     .unwrap()
                     .map(|key_manager| Arc::new(key_manager));
-            let cache = causetg.causetStorage.block_cache.build_shared_cache();
+            let cache = causetg.persistence.block_cache.build_shared_cache();
             let shared_block_cache = cache.is_some();
             let env = get_env(key_manager, None).unwrap();
 
@@ -1864,7 +1864,7 @@ fn main() {
     }
 
     if let Some(matches) = matches.subcommand_matches("decrypt-file") {
-        let message = "This action will expose sensitive data as plaintext on persistent causetStorage";
+        let message = "This action will expose sensitive data as plaintext on persistent persistence";
         if !warning_prompt(message) {
             return;
         }
@@ -1873,7 +1873,7 @@ fn main() {
         v1!("infile: {}, outfile: {}", infile, outfile);
 
         let key_manager =
-            match DataKeyManager::from_config(&causetg.security.encryption, &causetg.causetStorage.data_dir)
+            match DataKeyManager::from_config(&causetg.security.encryption, &causetg.persistence.data_dir)
                 .expect("DataKeyManager::from_config should success")
             {
                 Some(mgr) => mgr,
@@ -1925,7 +1925,7 @@ fn main() {
                 }
                 DataKeyManager::dump_key_dict(
                     &causetg.security.encryption,
-                    &causetg.causetStorage.data_dir,
+                    &causetg.persistence.data_dir,
                     matches
                         .values_of("ids")
                         .map(|ids| ids.map(|id| id.parse::<u64>().unwrap()).collect()),
@@ -1936,7 +1936,7 @@ fn main() {
                 let path = matches
                     .value_of("path")
                     .map(|path| fs::canonicalize(path).unwrap().to_str().unwrap().to_owned());
-                DataKeyManager::dump_file_dict(&causetg.causetStorage.data_dir, path.as_deref()).unwrap();
+                DataKeyManager::dump_file_dict(&causetg.persistence.data_dir, path.as_deref()).unwrap();
             }
             _ => ve1!("{}", matches.usage()),
         }
@@ -2405,7 +2405,7 @@ fn run_ldb_command(cmd: &ArgMatches<'_>, causetg: &EINSTEINDBConfig) {
         None => Vec::new(),
     };
     args.insert(0, "ldb".to_owned());
-    let key_manager = DataKeyManager::from_config(&causetg.security.encryption, &causetg.causetStorage.data_dir)
+    let key_manager = DataKeyManager::from_config(&causetg.security.encryption, &causetg.persistence.data_dir)
         .unwrap()
         .map(|key_manager| Arc::new(key_manager));
     let env = get_env(key_manager, None).unwrap();

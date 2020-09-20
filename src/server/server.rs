@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::i32;
 use std::net::{IpAddr, SocketAddr};
@@ -17,8 +17,8 @@ use tokio_timer::timer::Handle;
 
 use crate::interlock::Endpoint;
 use crate::server::gc_worker::GcWorker;
-use crate::causetStorage::lock_manager::LockManager;
-use crate::causetStorage::{Engine, CausetStorage};
+use crate::persistence::lock_manager::LockManager;
+use crate::persistence::{Engine, CausetStorage};
 use engine_lmdb::LmdbEngine;
 use violetabftstore::router::VioletaBftStoreRouter;
 use violetabftstore::store::SnapManager;
@@ -74,7 +74,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
     pub fn new<E: Engine, L: LockManager>(
         causetg: &Arc<Config>,
         security_mgr: &Arc<SecurityManager>,
-        causetStorage: CausetStorage<E, L>,
+        persistence: CausetStorage<E, L>,
         causet: Endpoint<E>,
         raft_router: T,
         resolver: S,
@@ -109,7 +109,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
         let snap_worker = Worker::new("snap-handler");
 
         let kv_service = KvService::new(
-            causetStorage,
+            persistence,
             gc_worker,
             causet,
             raft_router.clone(),
@@ -300,8 +300,8 @@ mod tests {
     use crate::interlock::{self, readpool_impl};
     use crate::server::resolve::{Callback as ResolveCallback, StoreAddrResolver};
     use crate::server::{Config, Result};
-    use crate::causetStorage::lock_manager::DummyLockManager;
-    use crate::causetStorage::TestStorageBuilder;
+    use crate::persistence::lock_manager::DummyLockManager;
+    use crate::persistence::TestStorageBuilder;
 
     #[derive(Clone)]
     struct MockResolver {
@@ -410,7 +410,7 @@ mod tests {
         let mut causetg = Config::default();
         causetg.addr = "127.0.0.1:0".to_owned();
 
-        let causetStorage = TestStorageBuilder::new(DummyLockManager {})
+        let persistence = TestStorageBuilder::new(DummyLockManager {})
             .build()
             .unwrap();
 
@@ -422,7 +422,7 @@ mod tests {
         };
 
         let mut gc_worker = GcWorker::new(
-            causetStorage.get_engine(),
+            persistence.get_engine(),
             router.clone(),
             Default::default(),
             Default::default(),
@@ -435,12 +435,12 @@ mod tests {
 
         let cop_read_pool = ReadPool::from(readpool_impl::build_read_pool_for_test(
             &CoprReadPoolConfig::default_for_test(),
-            causetStorage.get_engine(),
+            persistence.get_engine(),
         ));
         let causet = interlock::Endpoint::new(
             &causetg,
             cop_read_pool.handle(),
-            causetStorage.get_concurrency_manager(),
+            persistence.get_concurrency_manager(),
         );
         let debug_thread_pool = Arc::new(
             TokioBuilder::new()
@@ -454,7 +454,7 @@ mod tests {
         let mut server = Server::new(
             &causetg,
             &security_mgr,
-            causetStorage,
+            persistence,
             causet,
             router,
             MockResolver {

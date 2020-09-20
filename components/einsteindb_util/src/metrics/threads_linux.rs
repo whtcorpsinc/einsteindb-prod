@@ -60,7 +60,7 @@ impl ThreadsCollector {
         let io_totals = CounterVec::new(
             Opts::new(
                 "threads_io_bytes_total",
-                "Total number of bytes which threads cause to be fetched from or sent to the causetStorage layer.",
+                "Total number of bytes which threads cause to be fetched from or sent to the persistence layer.",
             ).namespace(ns.clone()),
             &["name", "tid", "io"],
         )

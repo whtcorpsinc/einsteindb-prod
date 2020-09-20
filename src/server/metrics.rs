@@ -1,9 +1,9 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use prometheus::*;
 use prometheus_static_metric::*;
 
-use crate::causetStorage::ErrorHeaderKind;
+use crate::persistence::ErrorHeaderKind;
 use prometheus::exponential_buckets;
 
 make_auto_flush_static_metric! {

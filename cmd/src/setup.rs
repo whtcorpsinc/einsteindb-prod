@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use chrono::Local;
 use clap::ArgMatches;
 use einsteindb::config::{check_critical_config, persist_config, MetricConfig, EINSTEINDBConfig};
-use einsteindb::causetStorage::config::DEFAULT_LMDB_SUB_DIR;
+use einsteindb::persistence::config::DEFAULT_LMDB_SUB_DIR;
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::{self, config, logger};
 
@@ -129,7 +129,7 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
             make_engine_log_path(&config.rocksdb.info_log_dir, "", DEFAULT_LMDB_LOG_FILE)
         } else {
             make_engine_log_path(
-                &config.causetStorage.data_dir,
+                &config.persistence.data_dir,
                 DEFAULT_LMDB_SUB_DIR,
                 DEFAULT_LMDB_LOG_FILE,
             )
@@ -144,7 +144,7 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
                     DEFAULT_RAFTDB_LOG_FILE,
                 )
             } else {
-                make_engine_log_path(&config.causetStorage.data_dir, "violetabft", DEFAULT_RAFTDB_LOG_FILE)
+                make_engine_log_path(&config.persistence.data_dir, "violetabft", DEFAULT_RAFTDB_LOG_FILE)
             }
         };
         let rocksdb_log_writer = logger::file_writer(
@@ -272,7 +272,7 @@ pub fn overwrite_config_with_cmd_args(config: &mut EINSTEINDBConfig, matches: &A
     }
 
     if let Some(data_dir) = matches.value_of("data-dir") {
-        config.causetStorage.data_dir = data_dir.to_owned();
+        config.persistence.data_dir = data_dir.to_owned();
     }
 
     if let Some(lightlikepoints) = matches.values_of("fidel-lightlikepoints") {

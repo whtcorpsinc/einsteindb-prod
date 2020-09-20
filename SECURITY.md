@@ -1,6 +1,6 @@
 # EinsteinDB Security Policy
 
-As a widely adopted distributed causetStorage service, EinsteinDB attaches great importance to code security. We are very grateful to users, security vulnerability researchers, etc. for reporting security vulnerabilities to us. All reported security vulnerabilities will be carefully assessed, addressed, and answered by us.
+As a widely adopted distributed persistence service, EinsteinDB attaches great importance to code security. We are very grateful to users, security vulnerability researchers, etc. for reporting security vulnerabilities to us. All reported security vulnerabilities will be carefully assessed, addressed, and answered by us.
 
 This document describes the security process and policy followed by the EinsteinDB project.
 

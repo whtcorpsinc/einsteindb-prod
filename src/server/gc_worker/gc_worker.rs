@@ -24,8 +24,8 @@ use einsteindb_util::worker::{
 use txn_types::{Key, TimeStamp};
 
 use crate::server::metrics::*;
-use crate::causetStorage::kv::{Engine, ScanMode, Statistics};
-use crate::causetStorage::mvcc::{check_need_gc, Error as MvccError, GcInfo, MvccReader, MvccTxn};
+use crate::persistence::kv::{Engine, ScanMode, Statistics};
+use crate::persistence::mvcc::{check_need_gc, Error as MvccError, GcInfo, MvccReader, MvccTxn};
 
 use super::applied_lock_collector::{AppliedLockCollector, Callback as LockCollectorCallback};
 use super::config::{GcConfig, GcWorkerConfigManager};
@@ -828,12 +828,12 @@ mod tests {
     use einsteindb_util::time::ThreadReadId;
     use txn_types::Mutation;
 
-    use crate::causetStorage::kv::{
+    use crate::persistence::kv::{
         self, write_modifies, Callback as EngineCallback, Modify, Result as EngineResult,
         TestEngineBuilder, WriteData,
     };
-    use crate::causetStorage::lock_manager::DummyLockManager;
-    use crate::causetStorage::{txn::commands, Engine, CausetStorage, TestStorageBuilder};
+    use crate::persistence::lock_manager::DummyLockManager;
+    use crate::persistence::{txn::commands, Engine, CausetStorage, TestStorageBuilder};
 
     use super::*;
 
@@ -937,13 +937,13 @@ mod tests {
         }
     }
 
-    /// Assert the data in `causetStorage` is the same as `expected_data`. TuplespaceInstanton in `expected_data` should
+    /// Assert the data in `persistence` is the same as `expected_data`. TuplespaceInstanton in `expected_data` should
     /// be encoded form without ts.
     fn check_data<E: Engine>(
-        causetStorage: &CausetStorage<E, DummyLockManager>,
+        persistence: &CausetStorage<E, DummyLockManager>,
         expected_data: &BTreeMap<Vec<u8>, Vec<u8>>,
     ) {
-        let scan_res = block_on(causetStorage.scan(
+        let scan_res = block_on(persistence.scan(
             Context::default(),
             Key::from_encoded_slice(b""),
             None,
@@ -973,7 +973,7 @@ mod tests {
         // Return Result from this function so we can use the `wait_op` macro here.
 
         let engine = TestEngineBuilder::new().build().unwrap();
-        let causetStorage =
+        let persistence =
             TestStorageBuilder::from_engine_and_lock_mgr(engine.clone(), DummyLockManager {})
                 .build()
                 .unwrap();
@@ -1007,8 +1007,8 @@ mod tests {
 
         let spacelike_ts = spacelike_ts.into();
 
-        // Write these data to the causetStorage.
-        wait_op!(|cb| causetStorage.sched_txn_command(
+        // Write these data to the persistence.
+        wait_op!(|cb| persistence.sched_txn_command(
             commands::Prewrite::with_defaults(mutations, primary, spacelike_ts),
             cb,
         ))
@@ -1017,15 +1017,15 @@ mod tests {
 
         // Commit.
         let tuplespaceInstanton: Vec<_> = init_tuplespaceInstanton.iter().map(|k| Key::from_raw(k)).collect();
-        wait_op!(|cb| causetStorage.sched_txn_command(
+        wait_op!(|cb| persistence.sched_txn_command(
             commands::Commit::new(tuplespaceInstanton, spacelike_ts, commit_ts.into(), Context::default()),
             cb
         ))
         .unwrap()
         .unwrap();
 
-        // Assert these data is successfully written to the causetStorage.
-        check_data(&causetStorage, &data);
+        // Assert these data is successfully written to the persistence.
+        check_data(&persistence, &data);
 
         let spacelike_key = Key::from_raw(spacelike_key);
         let lightlike_key = Key::from_raw(lightlike_key);
@@ -1042,7 +1042,7 @@ mod tests {
             .unwrap();
 
         // Check remaining data is as expected.
-        check_data(&causetStorage, &data);
+        check_data(&persistence, &data);
 
         Ok(())
     }
@@ -1136,7 +1136,7 @@ mod tests {
     fn test_physical_scan_lock() {
         let engine = TestEngineBuilder::new().build().unwrap();
         let prefixed_engine = PrefixedEngine(engine);
-        let causetStorage = TestStorageBuilder::<_, DummyLockManager>::from_engine_and_lock_mgr(
+        let persistence = TestStorageBuilder::<_, DummyLockManager>::from_engine_and_lock_mgr(
             prefixed_engine.clone(),
             DummyLockManager {},
         )
@@ -1160,7 +1160,7 @@ mod tests {
 
         let mut expected_lock_info = Vec::new();
 
-        // Put locks into the causetStorage.
+        // Put locks into the persistence.
         for i in 0..50 {
             let mut k = vec![];
             k.encode_u64(i).unwrap();
@@ -1181,7 +1181,7 @@ mod tests {
             }
 
             let (tx, rx) = channel();
-            causetStorage
+            persistence
                 .sched_txn_command(
                     commands::Prewrite::with_defaults(vec![mutation], k, lock_ts.into()),
                     Box::new(move |res| tx.slightlike(res).unwrap()),

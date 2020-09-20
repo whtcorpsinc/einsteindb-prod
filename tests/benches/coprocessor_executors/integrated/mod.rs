@@ -13,7 +13,7 @@ use crate::util::executor_descriptor::*;
 use crate::util::store::*;
 use crate::util::BenchCase;
 use test_interlock::*;
-use einsteindb::causetStorage::LmdbEngine;
+use einsteindb::persistence::LmdbEngine;
 
 /// SELECT COUNT(1) FROM Table, or SELECT COUNT(PrimaryKey) FROM Table
 fn bench_select_count_1<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)

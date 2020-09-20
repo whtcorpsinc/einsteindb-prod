@@ -22,7 +22,7 @@ use super::{
 };
 use ekvproto::backup::S3 as Config;
 
-/// S3 compatible causetStorage
+/// S3 compatible persistence
 #[derive(Clone)]
 pub struct S3Storage {
     config: Config,
@@ -34,7 +34,7 @@ pub struct S3Storage {
 }
 
 impl S3Storage {
-    /// Create a new S3 causetStorage for the given config.
+    /// Create a new S3 persistence for the given config.
     pub fn new(config: &Config) -> io::Result<S3Storage> {
         Self::check_config(config)?;
         let client = new_client!(S3Client, config);
@@ -91,7 +91,7 @@ impl<E> RetryError for RusotoError<E> {
     }
 }
 
-/// A helper for uploading a large files to S3 causetStorage.
+/// A helper for uploading a large files to S3 persistence.
 ///
 /// Note: this uploader does not support uploading files larger than 19.5 GiB.
 struct S3Uploader<'client> {
@@ -280,7 +280,7 @@ impl ExternalStorage for S3Storage {
         content_length: u64,
     ) -> io::Result<()> {
         let key = self.maybe_prefix_key(name);
-        debug!("save file to s3 causetStorage"; "key" => %key);
+        debug!("save file to s3 persistence"; "key" => %key);
 
         let uploader = S3Uploader::new(&self.client, &self.config, key);
         block_on_external_io(uploader.run(&mut *reader, content_length)).map_err(|e| {
@@ -291,7 +291,7 @@ impl ExternalStorage for S3Storage {
     fn read(&self, name: &str) -> Box<dyn AsyncRead + Unpin + '_> {
         let key = self.maybe_prefix_key(name);
         let bucket = self.config.bucket.clone();
-        debug!("read file from s3 causetStorage"; "key" => %key);
+        debug!("read file from s3 persistence"; "key" => %key);
         let req = GetObjectRequest {
             key,
             bucket: bucket.clone(),
@@ -402,10 +402,10 @@ mod tests {
 
         let limiter = Limiter::new(INFINITY);
 
-        let causetStorage = S3Storage::new(&s3).unwrap();
+        let persistence = S3Storage::new(&s3).unwrap();
         const LEN: usize = 1024 * 1024 * 4;
         static CONTENT: [u8; LEN] = [50_u8; LEN];
-        causetStorage
+        persistence
             .write(
                 "huge_file",
                 Box::new(limiter.limit(&CONTENT[..])),
@@ -413,7 +413,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut reader = causetStorage.read("huge_file");
+        let mut reader = persistence.read("huge_file");
         let mut buf = Vec::new();
         block_on_external_io(reader.read_to_lightlike(&mut buf)).unwrap();
         assert_eq!(buf.len(), LEN);

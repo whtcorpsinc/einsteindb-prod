@@ -9,7 +9,7 @@ use futures_util::io::{copy, AllowStdIo};
 
 use super::ExternalStorage;
 
-/// A causetStorage saves files into void.
+/// A persistence saves files into void.
 /// It is mainly for test use.
 #[derive(Clone, Default)]
 pub struct NoopStorage {}

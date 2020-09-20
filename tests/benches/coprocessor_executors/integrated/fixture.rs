@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use test_interlock::*;
-use einsteindb::causetStorage::LmdbEngine;
+use einsteindb::persistence::LmdbEngine;
 
 pub fn table_with_int_PrimaryCauset_two_groups(events: usize) -> (Table, CausetStore<LmdbEngine>) {
     let id = PrimaryCausetBuilder::new()

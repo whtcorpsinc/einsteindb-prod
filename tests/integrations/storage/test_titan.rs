@@ -22,8 +22,8 @@ use violetabftstore::store::{apply_sst_causet_file, build_sst_causet_file};
 use tempfile::Builder;
 use test_violetabftstore::*;
 use einsteindb::config::EINSTEINDBConfig;
-use einsteindb::causetStorage::mvcc::ScannerBuilder;
-use einsteindb::causetStorage::txn::Scanner;
+use einsteindb::persistence::mvcc::ScannerBuilder;
+use einsteindb::persistence::txn::Scanner;
 use einsteindb_util::config::{ReadableDuration, ReadableSize};
 use einsteindb_util::time::Limiter;
 use txn_types::{Key, Write, WriteType};
@@ -148,7 +148,7 @@ fn test_delete_files_in_cone_for_titan() {
 
     // Set configs and create engines
     let mut causetg = EINSTEINDBConfig::default();
-    let cache = causetg.causetStorage.block_cache.build_shared_cache();
+    let cache = causetg.persistence.block_cache.build_shared_cache();
     causetg.rocksdb.titan.enabled = true;
     causetg.rocksdb.titan.disable_gc = true;
     causetg.rocksdb.titan.purge_obsolete_files_period = ReadableDuration::secs(1);

@@ -112,7 +112,7 @@ impl super::CausetStorage for FixtureStorage {
 #[causetg(test)]
 mod tests {
     use super::*;
-    use crate::causetStorage::CausetStorage;
+    use crate::persistence::CausetStorage;
 
     #[test]
     fn test_basic() {
@@ -123,103 +123,103 @@ mod tests {
             (b"bar_2", b"4"),
             (b"foo_3", b"5"),
         ];
-        let mut causetStorage = FixtureStorage::from(data);
+        let mut persistence = FixtureStorage::from(data);
 
         // Get Key only = false
-        assert_eq!(causetStorage.get(false, PointCone::from("a")).unwrap(), None);
+        assert_eq!(persistence.get(false, PointCone::from("a")).unwrap(), None);
         assert_eq!(
-            causetStorage.get(false, PointCone::from("foo")).unwrap(),
+            persistence.get(false, PointCone::from("foo")).unwrap(),
             Some((b"foo".to_vec(), b"1".to_vec()))
         );
 
         // Get Key only = true
-        assert_eq!(causetStorage.get(true, PointCone::from("a")).unwrap(), None);
+        assert_eq!(persistence.get(true, PointCone::from("a")).unwrap(), None);
         assert_eq!(
-            causetStorage.get(true, PointCone::from("foo")).unwrap(),
+            persistence.get(true, PointCone::from("foo")).unwrap(),
             Some((b"foo".to_vec(), Vec::new()))
         );
 
         // Scan Backward = false, Key only = false
-        causetStorage
+        persistence
             .begin_scan(false, false, IntervalCone::from(("foo", "foo_3")))
             .unwrap();
 
         assert_eq!(
-            causetStorage.scan_next().unwrap(),
+            persistence.scan_next().unwrap(),
             Some((b"foo".to_vec(), b"1".to_vec()))
         );
 
-        let mut s2 = causetStorage.clone();
+        let mut s2 = persistence.clone();
         assert_eq!(
             s2.scan_next().unwrap(),
             Some((b"foo_2".to_vec(), b"3".to_vec()))
         );
 
         assert_eq!(
-            causetStorage.scan_next().unwrap(),
+            persistence.scan_next().unwrap(),
             Some((b"foo_2".to_vec(), b"3".to_vec()))
         );
-        assert_eq!(causetStorage.scan_next().unwrap(), None);
-        assert_eq!(causetStorage.scan_next().unwrap(), None);
+        assert_eq!(persistence.scan_next().unwrap(), None);
+        assert_eq!(persistence.scan_next().unwrap(), None);
 
         assert_eq!(s2.scan_next().unwrap(), None);
         assert_eq!(s2.scan_next().unwrap(), None);
 
         // Scan Backward = false, Key only = false
-        causetStorage
+        persistence
             .begin_scan(false, false, IntervalCone::from(("bar", "bar_2")))
             .unwrap();
 
         assert_eq!(
-            causetStorage.scan_next().unwrap(),
+            persistence.scan_next().unwrap(),
             Some((b"bar".to_vec(), b"2".to_vec()))
         );
-        assert_eq!(causetStorage.scan_next().unwrap(), None);
+        assert_eq!(persistence.scan_next().unwrap(), None);
 
         // Scan Backward = false, Key only = true
-        causetStorage
+        persistence
             .begin_scan(false, true, IntervalCone::from(("bar", "foo_")))
             .unwrap();
 
         assert_eq!(
-            causetStorage.scan_next().unwrap(),
+            persistence.scan_next().unwrap(),
             Some((b"bar".to_vec(), Vec::new()))
         );
         assert_eq!(
-            causetStorage.scan_next().unwrap(),
+            persistence.scan_next().unwrap(),
             Some((b"bar_2".to_vec(), Vec::new()))
         );
         assert_eq!(
-            causetStorage.scan_next().unwrap(),
+            persistence.scan_next().unwrap(),
             Some((b"foo".to_vec(), Vec::new()))
         );
-        assert_eq!(causetStorage.scan_next().unwrap(), None);
+        assert_eq!(persistence.scan_next().unwrap(), None);
 
         // Scan Backward = true, Key only = false
-        causetStorage
+        persistence
             .begin_scan(true, false, IntervalCone::from(("foo", "foo_3")))
             .unwrap();
 
         assert_eq!(
-            causetStorage.scan_next().unwrap(),
+            persistence.scan_next().unwrap(),
             Some((b"foo_2".to_vec(), b"3".to_vec()))
         );
         assert_eq!(
-            causetStorage.scan_next().unwrap(),
+            persistence.scan_next().unwrap(),
             Some((b"foo".to_vec(), b"1".to_vec()))
         );
-        assert_eq!(causetStorage.scan_next().unwrap(), None);
-        assert_eq!(causetStorage.scan_next().unwrap(), None);
+        assert_eq!(persistence.scan_next().unwrap(), None);
+        assert_eq!(persistence.scan_next().unwrap(), None);
 
         // Scan empty cone
-        causetStorage
+        persistence
             .begin_scan(false, false, IntervalCone::from(("faa", "fab")))
             .unwrap();
-        assert_eq!(causetStorage.scan_next().unwrap(), None);
+        assert_eq!(persistence.scan_next().unwrap(), None);
 
-        causetStorage
+        persistence
             .begin_scan(false, false, IntervalCone::from(("foo", "foo")))
             .unwrap();
-        assert_eq!(causetStorage.scan_next().unwrap(), None);
+        assert_eq!(persistence.scan_next().unwrap(), None);
     }
 }

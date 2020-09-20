@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::path::Path;
 use std::sync::{Arc, Mutex, RwLock};
@@ -50,7 +50,7 @@ use einsteindb::server::{
     create_raft_causetStorage, Config, Error, Node, FidelStoreAddrResolver, VioletaBftClient, VioletaBftKv, Server,
     ServerTransport,
 };
-use einsteindb::causetStorage;
+use einsteindb::persistence;
 use einsteindb_util::collections::{HashMap, HashSet};
 use einsteindb_util::config::VersionTrack;
 use einsteindb_util::time::ThreadReadId;
@@ -191,9 +191,9 @@ impl Simulator for ServerCluster {
             }
         }
 
-        // Create causetStorage.
+        // Create persistence.
         let fidel_worker = FutureWorker::new("test-fidel-worker");
-        let causetStorage_read_pool = ReadPool::from(causetStorage::build_read_pool_for_test(
+        let causetStorage_read_pool = ReadPool::from(persistence::build_read_pool_for_test(
             &einsteindb::config::StorageReadPoolConfig::default_for_test(),
             raft_engine.clone(),
         ));
@@ -217,7 +217,7 @@ impl Simulator for ServerCluster {
         let mut lock_mgr = LockManager::new();
         let store = create_raft_causetStorage(
             engine,
-            &causetg.causetStorage,
+            &causetg.persistence,
             causetStorage_read_pool.handle(),
             lock_mgr.clone(),
             concurrency_manager.clone(),

@@ -13,7 +13,7 @@ use fidelpb::TableScan;
 
 use super::util::scan_executor::*;
 use crate::interface::*;
-use milevadb_query_common::causetStorage::{IntervalCone, CausetStorage};
+use milevadb_query_common::persistence::{IntervalCone, CausetStorage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::codec::row;
@@ -35,7 +35,7 @@ impl BatchTableScanFreeDaemon<Box<dyn CausetStorage<Statistics = ()>>> {
 
 impl<S: CausetStorage> BatchTableScanFreeDaemon<S> {
     pub fn new(
-        causetStorage: S,
+        persistence: S,
         config: Arc<EvalConfig>,
         PrimaryCausets_info: Vec<PrimaryCausetInfo>,
         key_cones: Vec<KeyCone>,
@@ -86,7 +86,7 @@ impl<S: CausetStorage> BatchTableScanFreeDaemon<S> {
         };
         let wrapper = ScanFreeDaemon::new(ScanFreeDaemonOptions {
             imp,
-            causetStorage,
+            persistence,
             key_cones,
             is_backward,
             is_key_only,
@@ -137,7 +137,7 @@ struct TableScanFreeDaemonImpl {
     context: EvalContext,
 
     /// The schema of the output. All of the output come from specific PrimaryCausets in the underlying
-    /// causetStorage.
+    /// persistence.
     schema: Vec<FieldType>,
 
     /// The default value of corresponding PrimaryCausets in the schema. When PrimaryCauset data is missing,
@@ -396,7 +396,7 @@ mod tests {
     use fidelpb::FieldType;
 
     use milevadb_query_common::execute_stats::*;
-    use milevadb_query_common::causetStorage::test_fixture::FixtureStorage;
+    use milevadb_query_common::persistence::test_fixture::FixtureStorage;
     use milevadb_query_common::util::convert_to_prefix_next;
     use milevadb_query_datatype::codec::batch::LazyBatchPrimaryCausetVec;
     use milevadb_query_datatype::codec::data_type::*;
@@ -941,7 +941,7 @@ mod tests {
             kv.push((key, Ok(value)));
         }
         {
-            // row 1: causetStorage error
+            // row 1: persistence error
             let key = table::encode_row_key(TABLE_ID, 1);
             let value: std::result::Result<
                 _,

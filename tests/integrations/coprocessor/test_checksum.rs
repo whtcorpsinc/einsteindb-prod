@@ -8,11 +8,11 @@ use protobuf::Message;
 use fidelpb::{ChecksumAlgorithm, ChecksumRequest, ChecksumResponse, ChecksumScanOn};
 
 use test_interlock::*;
-use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
-use milevadb_query_common::causetStorage::Cone;
+use milevadb_query_common::persistence::scanner::{ConesScanner, ConesScannerOptions};
+use milevadb_query_common::persistence::Cone;
 use einsteindb::interlock::dag::EinsteinDBStorage;
 use einsteindb::interlock::*;
-use einsteindb::causetStorage::{Engine, SnapshotStore};
+use einsteindb::persistence::{Engine, SnapshotStore};
 use txn_types::TimeStamp;
 
 fn new_checksum_request(cone: KeyCone, scan_on: ChecksumScanOn) -> Request {
@@ -75,7 +75,7 @@ fn reversed_checksum_crc64_xor<E: Engine>(store: &CausetStore<E>, cone: KeyCone)
         false,
     );
     let mut scanner = ConesScanner::new(ConesScannerOptions {
-        causetStorage: EinsteinDBStorage::new(store, false),
+        persistence: EinsteinDBStorage::new(store, false),
         cones: vec![Cone::from_pb_cone(cone, false)],
         scan_backward_in_cone: true,
         is_key_only: false,

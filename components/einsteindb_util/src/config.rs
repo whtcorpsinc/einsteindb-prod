@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::error::Error;
 use std::fmt::{self, Write};
@@ -1527,7 +1527,7 @@ mod tests {
 ## commet1
 log-level = "info"
 
-[readpool.causetStorage]
+[readpool.persistence]
 ## commet2
 normal-concurrency = 1
 # high-concurrency = 1
@@ -1542,9 +1542,9 @@ compression-per-level = ["no", "no", "no", "no", "no", "no", "no"]
 "#;
         let mut m = HashMap::new();
         m.insert("log-file".to_owned(), "log-file-name".to_owned());
-        m.insert("readpool.causetStorage.xxx".to_owned(), "zzz".to_owned());
+        m.insert("readpool.persistence.xxx".to_owned(), "zzz".to_owned());
         m.insert(
-            "readpool.causetStorage.high-concurrency".to_owned(),
+            "readpool.persistence.high-concurrency".to_owned(),
             "345".to_owned(),
         );
         m.insert(
@@ -1564,7 +1564,7 @@ compression-per-level = ["no", "no", "no", "no", "no", "no", "no"]
 log-level = "info"
 
 log-file = log-file-name
-[readpool.causetStorage]
+[readpool.persistence]
 ## commet2
 normal-concurrency = 1
 high-concurrency = 345
@@ -1592,7 +1592,7 @@ yyy = 100
         src = {
             let mut m = HashMap::new();
             m.insert(
-                "readpool.causetStorage.high-concurrency".to_owned(),
+                "readpool.persistence.high-concurrency".to_owned(),
                 "1".to_owned(),
             );
             let mut t = TomlWriter::new();
@@ -1602,14 +1602,14 @@ yyy = 100
         // src should have valid toml format
         let toml_value: toml::Value = toml::from_str(src.as_str()).unwrap();
         assert_eq!(
-            toml_value["readpool"]["causetStorage"]["high-concurrency"].as_integer(),
+            toml_value["readpool"]["persistence"]["high-concurrency"].as_integer(),
             Some(1)
         );
 
         src = {
             let mut m = HashMap::new();
             m.insert(
-                "readpool.causetStorage.normal-concurrency".to_owned(),
+                "readpool.persistence.normal-concurrency".to_owned(),
                 "2".to_owned(),
             );
             let mut t = TomlWriter::new();
@@ -1619,7 +1619,7 @@ yyy = 100
         // src should have valid toml format
         let toml_value: toml::Value = toml::from_str(src.as_str()).unwrap();
         assert_eq!(
-            toml_value["readpool"]["causetStorage"]["normal-concurrency"].as_integer(),
+            toml_value["readpool"]["persistence"]["normal-concurrency"].as_integer(),
             Some(2)
         );
     }

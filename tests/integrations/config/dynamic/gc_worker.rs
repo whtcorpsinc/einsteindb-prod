@@ -7,7 +7,7 @@ use std::time::Duration;
 use einsteindb::config::{ConfigController, Module, EINSTEINDBConfig};
 use einsteindb::server::gc_worker::GcConfig;
 use einsteindb::server::gc_worker::{GcTask, GcWorker};
-use einsteindb::causetStorage::kv::TestEngineBuilder;
+use einsteindb::persistence::kv::TestEngineBuilder;
 use einsteindb_util::config::ReadableSize;
 use einsteindb_util::time::Limiter;
 use einsteindb_util::worker::FutureScheduler;
@@ -25,7 +25,7 @@ fn test_gc_config_validate() {
 fn setup_causetg_controller(
     causetg: EINSTEINDBConfig,
 ) -> (
-    GcWorker<einsteindb::causetStorage::kv::LmdbEngine, VioletaBftStoreBlackHole>,
+    GcWorker<einsteindb::persistence::kv::LmdbEngine, VioletaBftStoreBlackHole>,
     ConfigController,
 ) {
     let engine = TestEngineBuilder::new().build().unwrap();

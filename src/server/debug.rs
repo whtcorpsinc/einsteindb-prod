@@ -25,7 +25,7 @@ use violetabft::eraftpb::Entry;
 use violetabft::{self, RawNode};
 
 use crate::config::ConfigController;
-use crate::causetStorage::mvcc::{Lock, LockType, TimeStamp, Write, WriteRef, WriteType};
+use crate::persistence::mvcc::{Lock, LockType, TimeStamp, Write, WriteRef, WriteType};
 use engine_lmdb::properties::MvccProperties;
 use violetabftstore::interlock::get_brane_approximate_middle;
 use violetabftstore::store::util as violetabftstore_util;
@@ -140,7 +140,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
         &self.engines
     }
 
-    /// Get all branes holding brane meta data from violetabft CAUSET in KV causetStorage.
+    /// Get all branes holding brane meta data from violetabft CAUSET in KV persistence.
     pub fn get_all_meta_branes(&self) -> Result<Vec<u64>> {
         let db = &self.engines.kv;
         let causet = CAUSET_RAFT;
@@ -1398,7 +1398,7 @@ mod tests {
     use tempfile::Builder;
 
     use super::*;
-    use crate::causetStorage::mvcc::{Lock, LockType};
+    use crate::persistence::mvcc::{Lock, LockType};
     use engine_lmdb::raw_util::{new_engine_opt, CAUSETOptions};
     use engine_lmdb::LmdbEngine;
     use engine_promises::{CAUSETHandleExt, Mutable, SyncMutable};

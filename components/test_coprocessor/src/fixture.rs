@@ -10,8 +10,8 @@ use einsteindb::config::CoprReadPoolConfig;
 use einsteindb::interlock::{readpool_impl, Endpoint};
 use einsteindb::read_pool::ReadPool;
 use einsteindb::server::Config;
-use einsteindb::causetStorage::kv::LmdbEngine;
-use einsteindb::causetStorage::{Engine, TestEngineBuilder};
+use einsteindb::persistence::kv::LmdbEngine;
+use einsteindb::persistence::{Engine, TestEngineBuilder};
 
 #[derive(Clone)]
 pub struct ProductTable(Table);

@@ -105,11 +105,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 impl ErrorCodeExt for Error {
     fn error_code(&self) -> ErrorCode {
         match self.0.as_ref() {
-            ErrorInner::Io(_) => error_code::causetStorage::IO,
+            ErrorInner::Io(_) => error_code::persistence::IO,
             ErrorInner::Codec(e) => e.error_code(),
-            ErrorInner::BadFormatLock => error_code::causetStorage::BAD_FORMAT_LOCK,
-            ErrorInner::BadFormatWrite => error_code::causetStorage::BAD_FORMAT_WRITE,
-            ErrorInner::KeyIsLocked(_) => error_code::causetStorage::KEY_IS_LOCKED,
+            ErrorInner::BadFormatLock => error_code::persistence::BAD_FORMAT_LOCK,
+            ErrorInner::BadFormatWrite => error_code::persistence::BAD_FORMAT_WRITE,
+            ErrorInner::KeyIsLocked(_) => error_code::persistence::KEY_IS_LOCKED,
         }
     }
 }

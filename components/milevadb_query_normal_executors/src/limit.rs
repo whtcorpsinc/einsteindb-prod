@@ -4,7 +4,7 @@ use fidelpb::Limit;
 
 use crate::{FreeDaemon, Row};
 use milevadb_query_common::execute_stats::ExecuteStats;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::persistence::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::expr::EvalWarnings;
 

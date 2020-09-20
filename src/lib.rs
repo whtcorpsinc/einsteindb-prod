@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 //! EinsteinDB - A distributed key/value database
 //!
@@ -59,7 +59,7 @@ pub mod interlock;
 pub mod import;
 pub mod read_pool;
 pub mod server;
-pub mod causetStorage;
+pub mod persistence;
 
 /// Returns the einsteindb version information.
 pub fn einsteindb_version_info() -> String {

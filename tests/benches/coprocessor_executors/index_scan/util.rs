@@ -16,7 +16,7 @@ use milevadb_query_vec_executors::interface::*;
 use milevadb_query_vec_executors::BatchIndexScanFreeDaemon;
 use einsteindb::interlock::dag::EinsteinDBStorage;
 use einsteindb::interlock::RequestHandler;
-use einsteindb::causetStorage::{LmdbEngine, Statistics, CausetStore as TxnStore};
+use einsteindb::persistence::{LmdbEngine, Statistics, CausetStore as TxnStore};
 
 use crate::util::executor_descriptor::index_scan;
 use crate::util::scan_bencher;

@@ -11,7 +11,7 @@ use crate::server::metrics::*;
 use crate::server::snap::Task as SnapTask;
 use crate::server::Error;
 use crate::server::Result as ServerResult;
-use crate::causetStorage::{
+use crate::persistence::{
     errors::{
         extract_committed, extract_key_error, extract_key_errors, extract_kv_pairs,
         extract_brane_error,
@@ -51,7 +51,7 @@ pub struct Service<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L:
     /// Used to handle requests related to GC.
     gc_worker: GcWorker<E, T>,
     // For handling KV requests.
-    causetStorage: CausetStorage<E, L>,
+    persistence: CausetStorage<E, L>,
     // For handling interlock requests.
     causet: Endpoint<E>,
     // For handling violetabft messages.
@@ -79,7 +79,7 @@ impl<
     fn clone(&self) -> Self {
         Service {
             gc_worker: self.gc_worker.clone(),
-            causetStorage: self.causetStorage.clone(),
+            persistence: self.persistence.clone(),
             causet: self.causet.clone(),
             ch: self.ch.clone(),
             snap_scheduler: self.snap_scheduler.clone(),
@@ -95,7 +95,7 @@ impl<
 impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> Service<T, E, L> {
     /// Constructs a new `Service` which provides the `EINSTEINDB` service.
     pub fn new(
-        causetStorage: CausetStorage<E, L>,
+        persistence: CausetStorage<E, L>,
         gc_worker: GcWorker<E, T>,
         causet: Endpoint<E>,
         ch: T,
@@ -113,7 +113,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
         ));
         Service {
             gc_worker,
-            causetStorage,
+            persistence,
             causet,
             ch,
             snap_scheduler,
@@ -145,7 +145,7 @@ macro_rules! handle_request {
             }
             let begin_instant = Instant::now_coarse();
 
-            let resp = $future_name(&self.causetStorage, req);
+            let resp = $future_name(&self.persistence, req);
             let task = async move {
                 let resp = resp.await?;
                 sink.success(resp).await?;
@@ -858,7 +858,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
 
         let ctx = Arc::new(ctx);
         let peer = ctx.peer();
-        let causetStorage = self.causetStorage.clone();
+        let persistence = self.persistence.clone();
         let causet = self.causet.clone();
         let enable_req_batch = self.enable_req_batch;
         let request_handler = stream.try_for_each(move |mut req| {
@@ -871,11 +871,11 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
             };
             GRPC_REQ_BATCH_COMMANDS_SIZE.observe(requests.len() as f64);
             for (id, req) in request_ids.into_iter().zip(requests) {
-                handle_batch_commands_request(&mut batcher, &causetStorage, &causet, &peer, id, req, &tx);
+                handle_batch_commands_request(&mut batcher, &persistence, &causet, &peer, id, req, &tx);
             }
             if let Some(mut batch) = batcher {
-                batch.commit(&causetStorage, &tx);
-                causetStorage.release_snapshot();
+                batch.commit(&persistence, &tx);
+                persistence.release_snapshot();
             }
             future::ok(())
         });
@@ -1004,7 +1004,7 @@ fn response_batch_commands_request<F>(
 
 fn handle_batch_commands_request<E: Engine, L: LockManager>(
     batcher: &mut Option<ReqBatcher>,
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     causet: &Endpoint<E>,
     peer: &str,
     id: u64,
@@ -1033,13 +1033,13 @@ fn handle_batch_commands_request<E: Engine, L: LockManager>(
                 },
                 Some(batch_commands_request::request::Cmd::Get(req)) => {
                     if batcher.as_mut().map_or(false, |req_batch| {
-                        req_batch.maybe_commit(causetStorage, tx);
+                        req_batch.maybe_commit(persistence, tx);
                         req_batch.can_batch_get(&req)
                     }) {
                         batcher.as_mut().unwrap().add_get_request(req, id);
                     } else {
                        let begin_instant = Instant::now();
-                       let resp = future_get(causetStorage, req)
+                       let resp = future_get(persistence, req)
                             .map_ok(oneof!(batch_commands_response::response::Cmd::Get))
                             .map_err(|_| GRPC_MSG_FAIL_COUNTER.kv_get.inc());
                         response_batch_commands_request(id, resp, tx.clone(), begin_instant, GrpcTypeKind::kv_get);
@@ -1047,13 +1047,13 @@ fn handle_batch_commands_request<E: Engine, L: LockManager>(
                 },
                 Some(batch_commands_request::request::Cmd::RawGet(req)) => {
                     if batcher.as_mut().map_or(false, |req_batch| {
-                        req_batch.maybe_commit(causetStorage, tx);
+                        req_batch.maybe_commit(persistence, tx);
                         req_batch.can_batch_raw_get(&req)
                     }) {
                         batcher.as_mut().unwrap().add_raw_get_request(req, id);
                     } else {
                        let begin_instant = Instant::now();
-                       let resp = future_raw_get(causetStorage, req)
+                       let resp = future_raw_get(persistence, req)
                             .map_ok(oneof!(batch_commands_response::response::Cmd::RawGet))
                             .map_err(|_| GRPC_MSG_FAIL_COUNTER.raw_get.inc());
                         response_batch_commands_request(id, resp, tx.clone(), begin_instant, GrpcTypeKind::raw_get);
@@ -1072,36 +1072,36 @@ fn handle_batch_commands_request<E: Engine, L: LockManager>(
     }
 
     handle_cmd! {
-        Scan, future_scan(causetStorage), kv_scan;
-        Prewrite, future_prewrite(causetStorage), kv_prewrite;
-        Commit, future_commit(causetStorage), kv_commit;
-        Cleanup, future_cleanup(causetStorage), kv_cleanup;
-        BatchGet, future_batch_get(causetStorage), kv_batch_get;
-        BatchRollback, future_batch_rollback(causetStorage), kv_batch_rollback;
-        TxnHeartBeat, future_txn_heart_beat(causetStorage), kv_txn_heart_beat;
-        CheckTxnStatus, future_check_txn_status(causetStorage), kv_check_txn_status;
-        CheckSecondaryLocks, future_check_secondary_locks(causetStorage), kv_check_secondary_locks;
-        ScanLock, future_scan_lock(causetStorage), kv_scan_lock;
-        ResolveLock, future_resolve_lock(causetStorage), kv_resolve_lock;
+        Scan, future_scan(persistence), kv_scan;
+        Prewrite, future_prewrite(persistence), kv_prewrite;
+        Commit, future_commit(persistence), kv_commit;
+        Cleanup, future_cleanup(persistence), kv_cleanup;
+        BatchGet, future_batch_get(persistence), kv_batch_get;
+        BatchRollback, future_batch_rollback(persistence), kv_batch_rollback;
+        TxnHeartBeat, future_txn_heart_beat(persistence), kv_txn_heart_beat;
+        CheckTxnStatus, future_check_txn_status(persistence), kv_check_txn_status;
+        CheckSecondaryLocks, future_check_secondary_locks(persistence), kv_check_secondary_locks;
+        ScanLock, future_scan_lock(persistence), kv_scan_lock;
+        ResolveLock, future_resolve_lock(persistence), kv_resolve_lock;
         Gc, future_gc(), kv_gc;
-        DeleteCone, future_delete_cone(causetStorage), kv_delete_cone;
-        RawBatchGet, future_raw_batch_get(causetStorage), raw_batch_get;
-        RawPut, future_raw_put(causetStorage), raw_put;
-        RawBatchPut, future_raw_batch_put(causetStorage), raw_batch_put;
-        RawDelete, future_raw_delete(causetStorage), raw_delete;
-        RawBatchDelete, future_raw_batch_delete(causetStorage), raw_batch_delete;
-        RawScan, future_raw_scan(causetStorage), raw_scan;
-        RawDeleteCone, future_raw_delete_cone(causetStorage), raw_delete_cone;
-        RawBatchScan, future_raw_batch_scan(causetStorage), raw_batch_scan;
-        VerGet, future_ver_get(causetStorage), ver_get;
-        VerBatchGet, future_ver_batch_get(causetStorage), ver_batch_get;
-        VerMut, future_ver_mut(causetStorage), ver_mut;
-        VerBatchMut, future_ver_batch_mut(causetStorage), ver_batch_mut;
-        VerScan, future_ver_scan(causetStorage), ver_scan;
-        VerDeleteCone, future_ver_delete_cone(causetStorage), ver_delete_cone;
+        DeleteCone, future_delete_cone(persistence), kv_delete_cone;
+        RawBatchGet, future_raw_batch_get(persistence), raw_batch_get;
+        RawPut, future_raw_put(persistence), raw_put;
+        RawBatchPut, future_raw_batch_put(persistence), raw_batch_put;
+        RawDelete, future_raw_delete(persistence), raw_delete;
+        RawBatchDelete, future_raw_batch_delete(persistence), raw_batch_delete;
+        RawScan, future_raw_scan(persistence), raw_scan;
+        RawDeleteCone, future_raw_delete_cone(persistence), raw_delete_cone;
+        RawBatchScan, future_raw_batch_scan(persistence), raw_batch_scan;
+        VerGet, future_ver_get(persistence), ver_get;
+        VerBatchGet, future_ver_batch_get(persistence), ver_batch_get;
+        VerMut, future_ver_mut(persistence), ver_mut;
+        VerBatchMut, future_ver_batch_mut(persistence), ver_batch_mut;
+        VerScan, future_ver_scan(persistence), ver_scan;
+        VerDeleteCone, future_ver_delete_cone(persistence), ver_delete_cone;
         Interlock, future_cop(causet, Some(peer.to_string())), interlock;
-        PessimisticLock, future_acquire_pessimistic_lock(causetStorage), kv_pessimistic_lock;
-        PessimisticRollback, future_pessimistic_rollback(causetStorage), kv_pessimistic_rollback;
+        PessimisticLock, future_acquire_pessimistic_lock(persistence), kv_pessimistic_lock;
+        PessimisticRollback, future_pessimistic_rollback(persistence), kv_pessimistic_rollback;
         Empty, future_handle_empty(), invalid;
     }
 }
@@ -1127,10 +1127,10 @@ async fn future_handle_empty(
 }
 
 fn future_get<E: Engine, L: LockManager>(
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     mut req: GetRequest,
 ) -> impl Future<Output = ServerResult<GetResponse>> {
-    let v = causetStorage.get(
+    let v = persistence.get(
         req.take_context(),
         Key::from_raw(req.get_key()),
         req.get_version().into(),
@@ -1153,7 +1153,7 @@ fn future_get<E: Engine, L: LockManager>(
 }
 
 fn future_scan<E: Engine, L: LockManager>(
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     mut req: ScanRequest,
 ) -> impl Future<Output = ServerResult<ScanResponse>> {
     let lightlike_key = if req.get_lightlike_key().is_empty() {
@@ -1161,7 +1161,7 @@ fn future_scan<E: Engine, L: LockManager>(
     } else {
         Some(Key::from_raw(req.get_lightlike_key()))
     };
-    let v = causetStorage.scan(
+    let v = persistence.scan(
         req.take_context(),
         Key::from_raw(req.get_spacelike_key()),
         lightlike_key,
@@ -1185,11 +1185,11 @@ fn future_scan<E: Engine, L: LockManager>(
 }
 
 fn future_batch_get<E: Engine, L: LockManager>(
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     mut req: BatchGetRequest,
 ) -> impl Future<Output = ServerResult<BatchGetResponse>> {
     let tuplespaceInstanton = req.get_tuplespaceInstanton().iter().map(|x| Key::from_raw(x)).collect();
-    let v = causetStorage.batch_get(req.take_context(), tuplespaceInstanton, req.get_version().into());
+    let v = persistence.batch_get(req.take_context(), tuplespaceInstanton, req.get_version().into());
 
     async move {
         let v = v.await;
@@ -1211,11 +1211,11 @@ async fn future_gc(_: GcRequest) -> ServerResult<GcResponse> {
 }
 
 fn future_delete_cone<E: Engine, L: LockManager>(
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     mut req: DeleteConeRequest,
 ) -> impl Future<Output = ServerResult<DeleteConeResponse>> {
     let (cb, f) = paired_future_callback();
-    let res = causetStorage.delete_cone(
+    let res = persistence.delete_cone(
         req.take_context(),
         Key::from_raw(req.get_spacelike_key()),
         Key::from_raw(req.get_lightlike_key()),
@@ -1239,10 +1239,10 @@ fn future_delete_cone<E: Engine, L: LockManager>(
 }
 
 fn future_raw_get<E: Engine, L: LockManager>(
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     mut req: RawGetRequest,
 ) -> impl Future<Output = ServerResult<RawGetResponse>> {
-    let v = causetStorage.raw_get(req.take_context(), req.take_causet(), req.take_key());
+    let v = persistence.raw_get(req.take_context(), req.take_causet(), req.take_key());
 
     async move {
         let v = v.await;
@@ -1261,11 +1261,11 @@ fn future_raw_get<E: Engine, L: LockManager>(
 }
 
 fn future_raw_batch_get<E: Engine, L: LockManager>(
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     mut req: RawBatchGetRequest,
 ) -> impl Future<Output = ServerResult<RawBatchGetResponse>> {
     let tuplespaceInstanton = req.take_tuplespaceInstanton().into();
-    let v = causetStorage.raw_batch_get(req.take_context(), req.take_causet(), tuplespaceInstanton);
+    let v = persistence.raw_batch_get(req.take_context(), req.take_causet(), tuplespaceInstanton);
 
     async move {
         let v = v.await;
@@ -1280,11 +1280,11 @@ fn future_raw_batch_get<E: Engine, L: LockManager>(
 }
 
 fn future_raw_put<E: Engine, L: LockManager>(
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     mut req: RawPutRequest,
 ) -> impl Future<Output = ServerResult<RawPutResponse>> {
     let (cb, f) = paired_future_callback();
-    let res = causetStorage.raw_put(
+    let res = persistence.raw_put(
         req.take_context(),
         req.take_causet(),
         req.take_key(),
@@ -1308,7 +1308,7 @@ fn future_raw_put<E: Engine, L: LockManager>(
 }
 
 fn future_raw_batch_put<E: Engine, L: LockManager>(
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     mut req: RawBatchPutRequest,
 ) -> impl Future<Output = ServerResult<RawBatchPutResponse>> {
     let causet = req.take_causet();
@@ -1319,7 +1319,7 @@ fn future_raw_batch_put<E: Engine, L: LockManager>(
         .collect();
 
     let (cb, f) = paired_future_callback();
-    let res = causetStorage.raw_batch_put(req.take_context(), causet, pairs, cb);
+    let res = persistence.raw_batch_put(req.take_context(), causet, pairs, cb);
 
     async move {
         let v = match res {
@@ -1337,11 +1337,11 @@ fn future_raw_batch_put<E: Engine, L: LockManager>(
 }
 
 fn future_raw_delete<E: Engine, L: LockManager>(
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     mut req: RawDeleteRequest,
 ) -> impl Future<Output = ServerResult<RawDeleteResponse>> {
     let (cb, f) = paired_future_callback();
-    let res = causetStorage.raw_delete(req.take_context(), req.take_causet(), req.take_key(), cb);
+    let res = persistence.raw_delete(req.take_context(), req.take_causet(), req.take_key(), cb);
 
     async move {
         let v = match res {
@@ -1359,13 +1359,13 @@ fn future_raw_delete<E: Engine, L: LockManager>(
 }
 
 fn future_raw_batch_delete<E: Engine, L: LockManager>(
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     mut req: RawBatchDeleteRequest,
 ) -> impl Future<Output = ServerResult<RawBatchDeleteResponse>> {
     let causet = req.take_causet();
     let tuplespaceInstanton = req.take_tuplespaceInstanton().into();
     let (cb, f) = paired_future_callback();
-    let res = causetStorage.raw_batch_delete(req.take_context(), causet, tuplespaceInstanton, cb);
+    let res = persistence.raw_batch_delete(req.take_context(), causet, tuplespaceInstanton, cb);
 
     async move {
         let v = match res {
@@ -1383,7 +1383,7 @@ fn future_raw_batch_delete<E: Engine, L: LockManager>(
 }
 
 fn future_raw_scan<E: Engine, L: LockManager>(
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     mut req: RawScanRequest,
 ) -> impl Future<Output = ServerResult<RawScanResponse>> {
     let lightlike_key = if req.get_lightlike_key().is_empty() {
@@ -1391,7 +1391,7 @@ fn future_raw_scan<E: Engine, L: LockManager>(
     } else {
         Some(req.take_lightlike_key())
     };
-    let v = causetStorage.raw_scan(
+    let v = persistence.raw_scan(
         req.take_context(),
         req.take_causet(),
         req.take_spacelike_key(),
@@ -1414,10 +1414,10 @@ fn future_raw_scan<E: Engine, L: LockManager>(
 }
 
 fn future_raw_batch_scan<E: Engine, L: LockManager>(
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     mut req: RawBatchScanRequest,
 ) -> impl Future<Output = ServerResult<RawBatchScanResponse>> {
-    let v = causetStorage.raw_batch_scan(
+    let v = persistence.raw_batch_scan(
         req.take_context(),
         req.take_causet(),
         req.take_cones().into(),
@@ -1439,11 +1439,11 @@ fn future_raw_batch_scan<E: Engine, L: LockManager>(
 }
 
 fn future_raw_delete_cone<E: Engine, L: LockManager>(
-    causetStorage: &CausetStorage<E, L>,
+    persistence: &CausetStorage<E, L>,
     mut req: RawDeleteConeRequest,
 ) -> impl Future<Output = ServerResult<RawDeleteConeResponse>> {
     let (cb, f) = paired_future_callback();
-    let res = causetStorage.raw_delete_cone(
+    let res = persistence.raw_delete_cone(
         req.take_context(),
         req.take_causet(),
         req.take_spacelike_key(),
@@ -1532,12 +1532,12 @@ fn future_cop<E: Engine>(
 macro_rules! txn_command_future {
     ($fn_name: ident, $req_ty: ident, $resp_ty: ident, ($req: ident) $prelude: stmt; ($v: ident, $resp: ident) { $else_branch: expr }) => {
         fn $fn_name<E: Engine, L: LockManager>(
-            causetStorage: &CausetStorage<E, L>,
+            persistence: &CausetStorage<E, L>,
             $req: $req_ty,
         ) -> impl Future<Output = ServerResult<$resp_ty>> {
             $prelude
             let (cb, f) = paired_future_callback();
-            let res = causetStorage.sched_txn_command($req.into(), cb);
+            let res = persistence.sched_txn_command($req.into(), cb);
 
             async move {
                 let $v = match res {

@@ -38,7 +38,7 @@ pub mod fidel;
 pub mod violetabft;
 pub mod violetabftstore;
 pub mod sst_importer;
-pub mod causetStorage;
+pub mod persistence;
 
 use std::fmt::{self, Display, Formatter};
 

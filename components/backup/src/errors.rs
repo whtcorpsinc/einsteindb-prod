@@ -7,9 +7,9 @@ use engine_promises::Error as EngineTraitError;
 use ekvproto::backup::Error as ErrorPb;
 use ekvproto::errorpb::{Error as BraneError, ServerIsBusy};
 use ekvproto::kvrpcpb::KeyError;
-use einsteindb::causetStorage::kv::{Error as EngineError, ErrorInner as EngineErrorInner};
-use einsteindb::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner};
-use einsteindb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
+use einsteindb::persistence::kv::{Error as EngineError, ErrorInner as EngineErrorInner};
+use einsteindb::persistence::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner};
+use einsteindb::persistence::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
 
 use crate::metrics::*;
 

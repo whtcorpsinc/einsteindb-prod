@@ -23,7 +23,7 @@ use einsteindb::server::config::GrpcCompressionType;
 use einsteindb::server::gc_worker::GcConfig;
 use einsteindb::server::lock_manager::Config as PessimisticTxnConfig;
 use einsteindb::server::Config as ServerConfig;
-use einsteindb::causetStorage::config::{BlockCacheConfig, Config as StorageConfig};
+use einsteindb::persistence::config::{BlockCacheConfig, Config as StorageConfig};
 use einsteindb_util::collections::HashSet;
 use einsteindb_util::config::{LogFormat, OptionReadableSize, ReadableDuration, ReadableSize};
 
@@ -102,7 +102,7 @@ fn test_serde_custom_einsteindb_config() {
             stack_size: ReadableSize::mb(20),
             max_tasks_per_worker: 2200,
         },
-        causetStorage: StorageReadPoolConfig {
+        persistence: StorageReadPoolConfig {
             use_unified_pool: Some(true),
             high_concurrency: 1,
             normal_concurrency: 3,
@@ -590,7 +590,7 @@ fn test_serde_custom_einsteindb_config() {
     };
     value.raft_engine.enable = true;
     value.raft_engine.mut_config().dir = "test-dir".to_owned();
-    value.causetStorage = StorageConfig {
+    value.persistence = StorageConfig {
         data_dir: "/var".to_owned(),
         gc_ratio_memory_barrier: 1.2,
         max_key_size: 8192,
@@ -727,7 +727,7 @@ fn test_readpool_default_config() {
 #[test]
 fn test_do_not_use_unified_readpool_with_legacy_config() {
     let content = r#"
-        [readpool.causetStorage]
+        [readpool.persistence]
         normal-concurrency = 1
 
         [readpool.interlock]
@@ -741,12 +741,12 @@ fn test_do_not_use_unified_readpool_with_legacy_config() {
 fn test_block_cache_backward_compatible() {
     let content = read_file_in_project_dir("integrations/config/test-cache-compatible.toml");
     let mut causetg: EINSTEINDBConfig = toml::from_str(&content).unwrap();
-    assert!(causetg.causetStorage.block_cache.shared);
-    assert!(causetg.causetStorage.block_cache.capacity.0.is_none());
+    assert!(causetg.persistence.block_cache.shared);
+    assert!(causetg.persistence.block_cache.capacity.0.is_none());
     causetg.compatible_adjust();
-    assert!(causetg.causetStorage.block_cache.capacity.0.is_some());
+    assert!(causetg.persistence.block_cache.capacity.0.is_some());
     assert_eq!(
-        causetg.causetStorage.block_cache.capacity.0.unwrap().0,
+        causetg.persistence.block_cache.capacity.0.unwrap().0,
         causetg.rocksdb.defaultcauset.block_cache_size.0
             + causetg.rocksdb.writecauset.block_cache_size.0
             + causetg.rocksdb.lockcauset.block_cache_size.0

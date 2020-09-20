@@ -1189,7 +1189,7 @@ fn test_merge_remove_target_peer_isolated() {
 
 #[test]
 fn test_sync_max_ts_after_brane_merge() {
-    use einsteindb::causetStorage::{Engine, Snapshot};
+    use einsteindb::persistence::{Engine, Snapshot};
 
     let mut cluster = new_server_cluster(0, 3);
     configure_for_merge(&mut cluster);
@@ -1207,7 +1207,7 @@ fn test_sync_max_ts_after_brane_merge() {
     let right = cluster.get_brane(b"k3");
 
     let cm = cluster.sim.read().unwrap().get_concurrency_manager(1);
-    let causetStorage = cluster
+    let persistence = cluster
         .sim
         .read()
         .unwrap()
@@ -1224,7 +1224,7 @@ fn test_sync_max_ts_after_brane_merge() {
         ctx.set_peer(leader.clone());
         ctx.set_brane_epoch(epoch);
 
-        let snapshot = causetStorage.snapshot(&ctx).unwrap();
+        let snapshot = persistence.snapshot(&ctx).unwrap();
         let max_ts_sync_status = snapshot.max_ts_sync_status.clone().unwrap();
         for retry in 0..10 {
             if max_ts_sync_status.load(Ordering::SeqCst) & 1 == 1 {

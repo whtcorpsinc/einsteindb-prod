@@ -183,7 +183,7 @@ where
 /// It's used in these scenarios:
 ///   1. build local snapshot
 ///   2. read local snapshot and then replicate it to remote violetabftstores
-///   3. receive snapshot from remote violetabftstore and write it to local causetStorage
+///   3. receive snapshot from remote violetabftstore and write it to local persistence
 ///   4. apply snapshot
 ///   5. snapshot gc
 pub trait Snapshot<EK: KvEngine>: GenericSnapshot {

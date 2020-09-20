@@ -28,7 +28,7 @@ fn maybe_create_dir(path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-/// A causetStorage saves files in local file system.
+/// A persistence saves files in local file system.
 #[derive(Clone)]
 pub struct LocalStorage {
     base: PathBuf,
@@ -37,9 +37,9 @@ pub struct LocalStorage {
 }
 
 impl LocalStorage {
-    /// Create a new local causetStorage in the given path.
+    /// Create a new local persistence in the given path.
     pub fn new(base: &Path) -> io::Result<LocalStorage> {
-        info!("create local causetStorage"; "base" => base.display());
+        info!("create local persistence"; "base" => base.display());
         let tmp_dir = base.join(LOCAL_STORAGE_TMP_DIR);
         maybe_create_dir(&tmp_dir)?;
         let base_dir = Arc::new(File::open(base)?);
@@ -72,7 +72,7 @@ impl ExternalStorage for LocalStorage {
         {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("[{}] parent is not allowed in causetStorage", name),
+                format!("[{}] parent is not allowed in persistence", name),
             ));
         }
         // Sanitize check, do not save file if it is already exist.
@@ -88,7 +88,7 @@ impl ExternalStorage for LocalStorage {
         let tmp_f = tmp_f.into_inner();
         tmp_f.metadata()?.permissions().set_readonly(true);
         tmp_f.sync_all()?;
-        debug!("save file to local causetStorage";
+        debug!("save file to local persistence";
             "name" => %name, "base" => %self.base.display());
         fs::rename(tmp_path, self.base.join(name))?;
         // Fsync the base dir.
@@ -96,7 +96,7 @@ impl ExternalStorage for LocalStorage {
     }
 
     fn read(&self, name: &str) -> Box<dyn AsyncRead + Unpin + '_> {
-        debug!("read file from local causetStorage";
+        debug!("read file from local persistence";
             "name" => %name, "base" => %self.base.display());
         match File::open(self.base.join(name)) {
             Ok(file) => Box::new(AllowStdIo::new(file)) as _,

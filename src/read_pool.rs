@@ -2,7 +2,7 @@
 
 use self::metrics::*;
 use crate::config::UnifiedReadPoolConfig;
-use crate::causetStorage::kv::{destroy_tls_engine, set_tls_engine, Engine, FlowStatsReporter};
+use crate::persistence::kv::{destroy_tls_engine, set_tls_engine, Engine, FlowStatsReporter};
 use futures::channel::oneshot;
 use futures::future::TryFutureExt;
 use ekvproto::kvrpcpb::CommandPri;
@@ -158,7 +158,7 @@ impl<R: FlowStatsReporter> PoolTicker for ReporterTicker<R> {
 
 impl<R: FlowStatsReporter> ReporterTicker<R> {
     fn flush_metrics_on_tick(&mut self) {
-        crate::causetStorage::metrics::tls_flush(&self.reporter);
+        crate::persistence::metrics::tls_flush(&self.reporter);
         crate::interlock::metrics::tls_flush(&self.reporter);
     }
 }
@@ -258,7 +258,7 @@ mod metrics {
 #[causetg(test)]
 mod tests {
     use super::*;
-    use crate::causetStorage::TestEngineBuilder;
+    use crate::persistence::TestEngineBuilder;
     use futures::channel::oneshot;
     use violetabftstore::store::ReadStats;
     use std::thread;

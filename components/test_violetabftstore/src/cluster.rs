@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::error::Error as StdError;
 use std::sync::{mpsc, Arc, Mutex, RwLock};
@@ -168,7 +168,7 @@ impl<T: Simulator> Cluster<T> {
 
     pub fn pre_spacelike_check(&mut self) -> result::Result<(), Box<dyn StdError>> {
         for path in &self.paths {
-            self.causetg.causetStorage.data_dir = path.path().to_str().unwrap().to_owned();
+            self.causetg.persistence.data_dir = path.path().to_str().unwrap().to_owned();
             self.causetg.validate()?
         }
         Ok(())

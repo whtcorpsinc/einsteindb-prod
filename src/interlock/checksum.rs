@@ -3,13 +3,13 @@
 use async_trait::async_trait;
 use ekvproto::interlock::{KeyCone, Response};
 use protobuf::Message;
-use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
-use milevadb_query_common::causetStorage::Cone;
+use milevadb_query_common::persistence::scanner::{ConesScanner, ConesScannerOptions};
+use milevadb_query_common::persistence::Cone;
 use fidelpb::{ChecksumAlgorithm, ChecksumRequest, ChecksumResponse};
 
 use crate::interlock::dag::EinsteinDBStorage;
 use crate::interlock::*;
-use crate::causetStorage::{Snapshot, SnapshotStore, Statistics};
+use crate::persistence::{Snapshot, SnapshotStore, Statistics};
 
 // `ChecksumContext` is used to handle `ChecksumRequest`
 pub struct ChecksumContext<S: Snapshot> {
@@ -34,7 +34,7 @@ impl<S: Snapshot> ChecksumContext<S> {
             false,
         );
         let scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage: EinsteinDBStorage::new(store, false),
+            persistence: EinsteinDBStorage::new(store, false),
             cones: cones
                 .into_iter()
                 .map(|r| Cone::from_pb_cone(r, false))

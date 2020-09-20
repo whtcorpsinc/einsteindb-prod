@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use prometheus::*;
 
@@ -22,7 +22,7 @@ lazy_static! {
     )
     .unwrap();
     pub static ref STORE_SIZE_GAUGE_VEC: IntGaugeVec =
-        register_int_gauge_vec!("einsteindb_store_size_bytes", "Size of causetStorage.", &["type"]).unwrap();
+        register_int_gauge_vec!("einsteindb_store_size_bytes", "Size of persistence.", &["type"]).unwrap();
     pub static ref REGION_READ_KEYS_HISTOGRAM: Histogram = register_histogram!(
         "einsteindb_brane_read_tuplespaceInstanton",
         "Histogram of tuplespaceInstanton written for branes",

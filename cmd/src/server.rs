@@ -62,7 +62,7 @@ use einsteindb::{
         status_server::StatusServer,
         Node, VioletaBftKv, Server, CPU_CORES_QUOTA_GAUGE, DEFAULT_CLUSTER_ID,
     },
-    causetStorage::{self, config::StorageConfigManger},
+    persistence::{self, config::StorageConfigManger},
 };
 use einsteindb_util::config::VersionTrack;
 use einsteindb_util::{
@@ -176,7 +176,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         let causetg_controller = Self::init_config(config);
         let config = causetg_controller.get_current();
 
-        let store_path = Path::new(&config.causetStorage.data_dir).to_owned();
+        let store_path = Path::new(&config.persistence.data_dir).to_owned();
 
         // Initialize violetabftstore channels.
         let (router, system) = fsm::create_raft_batch_system(&config.raft_store);
@@ -249,13 +249,13 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
     /// - If the max open file descriptor limit is not high enough to support
     ///   the main database and the violetabft database.
     fn init_config(mut config: EINSTEINDBConfig) -> ConfigController {
-        ensure_dir_exist(&config.causetStorage.data_dir).unwrap();
+        ensure_dir_exist(&config.persistence.data_dir).unwrap();
         ensure_dir_exist(&config.raft_store.raftdb_path).unwrap();
 
         validate_and_persist_config(&mut config, true);
         check_system_config(&config);
 
-        einsteindb_util::set_panic_hook(false, &config.causetStorage.data_dir);
+        einsteindb_util::set_panic_hook(false, &config.persistence.data_dir);
 
         info!(
             "using config";
@@ -347,10 +347,10 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         }
         self.lock_files.push(f);
 
-        if einsteindb_util::panic_mark_file_exists(&self.config.causetStorage.data_dir) {
+        if einsteindb_util::panic_mark_file_exists(&self.config.persistence.data_dir) {
             fatal!(
                 "panic_mark_file {} exists, there must be something wrong with the db.",
-                einsteindb_util::panic_mark_file_path(&self.config.causetStorage.data_dir).display()
+                einsteindb_util::panic_mark_file_path(&self.config.persistence.data_dir).display()
             );
         }
 
@@ -358,8 +358,8 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         // to compaction when EinsteinDB recover. This file is created in data_dir rather than db_path,
         // because we must not increase store size of db_path.
         einsteindb_util::reserve_space_for_recover(
-            &self.config.causetStorage.data_dir,
-            self.config.causetStorage.reserve_space.0,
+            &self.config.persistence.data_dir,
+            self.config.persistence.reserve_space.0,
         )
         .unwrap();
     }
@@ -373,7 +373,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
     fn init_encryption(&mut self) {
         self.encryption_key_manager = DataKeyManager::from_config(
             &self.config.security.encryption,
-            &self.config.causetStorage.data_dir,
+            &self.config.persistence.data_dir,
         )
         .unwrap()
         .map(|key_manager| Arc::new(key_manager));
@@ -422,7 +422,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             einsteindb::config::Module::CausetStorage,
             Box::new(StorageConfigManger::new(
                 engines.kv.clone(),
-                self.config.causetStorage.block_cache.shared,
+                self.config.persistence.block_cache.shared,
             )),
         );
 
@@ -514,26 +514,26 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
                 .unwrap(),
         );
 
-        let causetStorage_read_pool_handle = if self.config.readpool.causetStorage.use_unified_pool() {
+        let causetStorage_read_pool_handle = if self.config.readpool.persistence.use_unified_pool() {
             unified_read_pool.as_ref().unwrap().handle()
         } else {
-            let causetStorage_read_pools = ReadPool::from(causetStorage::build_read_pool(
-                &self.config.readpool.causetStorage,
+            let causetStorage_read_pools = ReadPool::from(persistence::build_read_pool(
+                &self.config.readpool.persistence,
                 fidel_slightlikeer.clone(),
                 engines.engine.clone(),
             ));
             causetStorage_read_pools.handle()
         };
 
-        let causetStorage = create_raft_causetStorage(
+        let persistence = create_raft_causetStorage(
             engines.engine.clone(),
-            &self.config.causetStorage,
+            &self.config.persistence,
             causetStorage_read_pool_handle,
             lock_mgr.clone(),
             self.concurrency_manager.clone(),
             self.config.pessimistic_txn.pipelined,
         )
-        .unwrap_or_else(|e| fatal!("failed to create violetabft causetStorage: {}", e));
+        .unwrap_or_else(|e| fatal!("failed to create violetabft persistence: {}", e));
 
         // Create snapshot manager, server.
         let snap_path = self
@@ -574,7 +574,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         let server = Server::new(
             &server_config,
             &self.security_mgr,
-            causetStorage,
+            persistence,
             interlock::Endpoint::new(
                 &server_config,
                 cop_read_pool_handle,
@@ -656,7 +656,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             node.id(),
         );
         if let Err(e) = gc_worker.spacelike_auto_gc(auto_gc_config) {
-            fatal!("failed to spacelike auto_gc on causetStorage, error: {}", e);
+            fatal!("failed to spacelike auto_gc on persistence, error: {}", e);
         }
 
         // Start CDC.
@@ -875,7 +875,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
 impl EinsteinDBServer<LmdbEngine> {
     fn init_raw_engines(&mut self) -> Engines<LmdbEngine, LmdbEngine> {
         let env = get_env(self.encryption_key_manager.clone(), None /*base_env*/).unwrap();
-        let block_cache = self.config.causetStorage.block_cache.build_shared_cache();
+        let block_cache = self.config.persistence.block_cache.build_shared_cache();
 
         // Create violetabft engine.
         let raft_db_path = Path::new(&self.config.raft_store.raftdb_path);
@@ -897,7 +897,7 @@ impl EinsteinDBServer<LmdbEngine> {
         let kv_causets_opts = self.config.rocksdb.build_causet_opts(&block_cache);
         let db_path = self
             .store_path
-            .join(Path::new(causetStorage::config::DEFAULT_LMDB_SUB_DIR));
+            .join(Path::new(persistence::config::DEFAULT_LMDB_SUB_DIR));
         let kv_engine = engine_lmdb::raw_util::new_engine_opt(
             db_path.to_str().unwrap(),
             kv_db_opts,
@@ -918,7 +918,7 @@ impl EinsteinDBServer<LmdbEngine> {
             Box::new(DBConfigManger::new(
                 engines.kv.clone(),
                 DBType::Kv,
-                self.config.causetStorage.block_cache.shared,
+                self.config.persistence.block_cache.shared,
             )),
         );
         causetg_controller.register(
@@ -926,7 +926,7 @@ impl EinsteinDBServer<LmdbEngine> {
             Box::new(DBConfigManger::new(
                 engines.violetabft.clone(),
                 DBType::VioletaBft,
-                self.config.causetStorage.block_cache.shared,
+                self.config.persistence.block_cache.shared,
             )),
         );
 
@@ -937,7 +937,7 @@ impl EinsteinDBServer<LmdbEngine> {
 impl EinsteinDBServer<VioletaBftLogEngine> {
     fn init_raw_engines(&mut self) -> Engines<LmdbEngine, VioletaBftLogEngine> {
         let env = get_env(self.encryption_key_manager.clone(), None /*base_env*/).unwrap();
-        let block_cache = self.config.causetStorage.block_cache.build_shared_cache();
+        let block_cache = self.config.persistence.block_cache.build_shared_cache();
 
         // Create violetabft engine.
         let raft_config = self.config.raft_engine.config();
@@ -950,7 +950,7 @@ impl EinsteinDBServer<VioletaBftLogEngine> {
         let kv_causets_opts = self.config.rocksdb.build_causet_opts(&block_cache);
         let db_path = self
             .store_path
-            .join(Path::new(causetStorage::config::DEFAULT_LMDB_SUB_DIR));
+            .join(Path::new(persistence::config::DEFAULT_LMDB_SUB_DIR));
         let kv_engine = engine_lmdb::raw_util::new_engine_opt(
             db_path.to_str().unwrap(),
             kv_db_opts,
@@ -969,7 +969,7 @@ impl EinsteinDBServer<VioletaBftLogEngine> {
             Box::new(DBConfigManger::new(
                 engines.kv.clone(),
                 DBType::Kv,
-                self.config.causetStorage.block_cache.shared,
+                self.config.persistence.block_cache.shared,
             )),
         );
 
@@ -1022,10 +1022,10 @@ fn check_system_config(config: &EINSTEINDBConfig) {
     }
 
     // Check Lmdb data dir
-    if let Err(e) = einsteindb_util::config::check_data_dir(&config.causetStorage.data_dir) {
+    if let Err(e) = einsteindb_util::config::check_data_dir(&config.persistence.data_dir) {
         warn!(
             "check: rocksdb-data-dir";
-            "path" => &config.causetStorage.data_dir,
+            "path" => &config.persistence.data_dir,
             "err" => %e
         );
     }

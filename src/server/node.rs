@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -10,7 +10,7 @@ use crate::import::SSTImporter;
 use crate::read_pool::ReadPoolHandle;
 use crate::server::lock_manager::LockManager;
 use crate::server::Config as ServerConfig;
-use crate::causetStorage::{config::Config as StorageConfig, CausetStorage};
+use crate::persistence::{config::Config as StorageConfig, CausetStorage};
 use concurrency_manager::ConcurrencyManager;
 use engine_lmdb::LmdbEngine;
 use engine_promises::{Engines, Peekable, VioletaBftEngine};
@@ -32,7 +32,7 @@ use einsteindb_util::worker::Worker;
 const MAX_CHECK_CLUSTER_BOOTSTRAPPED_RETRY_COUNT: u64 = 60;
 const CHECK_CLUSTER_BOOTSTRAPPED_RETRY_SECONDS: u64 = 3;
 
-/// Creates a new causetStorage engine which is backed by the VioletaBft consensus
+/// Creates a new persistence engine which is backed by the VioletaBft consensus
 /// protocol.
 pub fn create_raft_causetStorage<S>(
     engine: VioletaBftKv<S>,

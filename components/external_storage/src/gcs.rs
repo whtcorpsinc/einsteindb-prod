@@ -23,11 +23,11 @@ use tame_gcs::{
 use tame_oauth::gcp::{ServiceAccountAccess, ServiceAccountInfo, TokenOrRequest};
 
 const HARDCODED_ENDPOINTS: &[&str] = &[
-    "https://www.googleapis.com/upload/causetStorage/v1",
-    "https://www.googleapis.com/causetStorage/v1",
+    "https://www.googleapis.com/upload/persistence/v1",
+    "https://www.googleapis.com/persistence/v1",
 ];
 
-// GCS compatible causetStorage
+// GCS compatible persistence
 #[derive(Clone)]
 pub struct GCSStorage {
     config: Config,
@@ -132,7 +132,7 @@ impl RetryError for RequestError {
                     || e.is_incomplete_message()
                     || e.is_body_write_aborted()
             }
-            // See https://cloud.google.com/causetStorage/docs/exponential-backoff.
+            // See https://cloud.google.com/persistence/docs/exponential-backoff.
             Self::OAuth(tame_oauth::Error::HttpStatus(StatusCode::TOO_MANY_REQUESTS)) => true,
             Self::OAuth(tame_oauth::Error::HttpStatus(StatusCode::REQUEST_TIMEOUT)) => true,
             Self::OAuth(tame_oauth::Error::HttpStatus(status)) => status.is_server_error(),
@@ -143,7 +143,7 @@ impl RetryError for RequestError {
 }
 
 impl GCSStorage {
-    /// Create a new GCS causetStorage for the given config.
+    /// Create a new GCS persistence for the given config.
     pub fn new(config: &Config) -> io::Result<GCSStorage> {
         if config.bucket.is_empty() {
             return Err(io::Error::new(
@@ -263,7 +263,7 @@ impl ExternalStorage for GCSStorage {
         use std::convert::TryFrom;
 
         let key = self.maybe_prefix_key(name);
-        debug!("save file to GCS causetStorage"; "key" => %key);
+        debug!("save file to GCS persistence"; "key" => %key);
         let bucket = BucketName::try_from(self.config.bucket.clone())
             .or_invalid_input(format_args!("invalid bucket {}", self.config.bucket))?;
         let causetStorage_class: Option<StorageClass> = if self.config.causetStorage_class.is_empty() {
@@ -327,7 +327,7 @@ impl ExternalStorage for GCSStorage {
     fn read(&self, name: &str) -> Box<dyn AsyncRead + Unpin + '_> {
         let bucket = self.config.bucket.clone();
         let name = self.maybe_prefix_key(name);
-        debug!("read file from GCS causetStorage"; "key" => %name);
+        debug!("read file from GCS persistence"; "key" => %name);
         let oid = match ObjectId::new(bucket, name) {
             Ok(oid) => oid,
             Err(e) => return GCSStorage::error_to_async_read(io::ErrorKind::InvalidInput, e),

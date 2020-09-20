@@ -12,7 +12,7 @@ use indexmap::IndexMap as OrderMap;
 use super::aggregate::{self, AggrFunc};
 use super::{FreeDaemon, ExprPrimaryCausetRefVisitor, Row};
 use milevadb_query_common::execute_stats::ExecuteStats;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::persistence::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::datum::{self, Datum};
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext, EvalWarnings};

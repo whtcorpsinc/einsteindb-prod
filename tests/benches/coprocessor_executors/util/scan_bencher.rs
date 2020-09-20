@@ -11,7 +11,7 @@ use test_interlock::*;
 use milevadb_query_normal_executors::FreeDaemon;
 use milevadb_query_vec_executors::interface::*;
 use einsteindb::interlock::RequestHandler;
-use einsteindb::causetStorage::{LmdbEngine, CausetStore as TxnStore};
+use einsteindb::persistence::{LmdbEngine, CausetStore as TxnStore};
 
 use crate::util::bencher::Bencher;
 use crate::util::store::StoreDescriber;

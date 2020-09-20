@@ -29,7 +29,7 @@ pub type KvPair = (Vec<u8>, Value);
 ///
 /// TuplespaceInstanton have 2 types of binary representation - raw and encoded. The raw
 /// representation is for public interface, the encoded representation is for
-/// internal causetStorage. We can get both representations from an instance of this
+/// internal persistence. We can get both representations from an instance of this
 /// type.
 ///
 /// Orthogonal to binary representation, tuplespaceInstanton may or may not embed a timestamp,
@@ -121,7 +121,7 @@ impl Key {
             // a better way is to introduce a type `TimestampedKey`, and
             // functions to convert between `TimestampedKey` and `Key`.
             // `TimestampedKey` is in a higher (MVCC) layer, while `Key` is
-            // in the core causetStorage engine layer.
+            // in the core persistence engine layer.
             Err(codec::Error::KeyLength)
         } else {
             self.0.truncate(len - number::U64_SIZE);

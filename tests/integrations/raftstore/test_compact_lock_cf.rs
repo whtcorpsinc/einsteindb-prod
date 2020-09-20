@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use engine_lmdb::raw::DBStatisticsTickerType;
 use engine_promises::{MiscExt, CAUSET_DAGGER};

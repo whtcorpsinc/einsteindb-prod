@@ -6,7 +6,7 @@ use super::metrics::*;
 use super::waiter_manager::Scheduler as WaiterMgrScheduler;
 use super::{Error, Result};
 use crate::server::resolve::StoreAddrResolver;
-use crate::causetStorage::lock_manager::Lock;
+use crate::persistence::lock_manager::Lock;
 use engine_lmdb::LmdbEngine;
 use futures::future::{self, FutureExt, TryFutureExt};
 use futures::sink::SinkExt;

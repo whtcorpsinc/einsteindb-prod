@@ -616,7 +616,7 @@ impl<S: GcSafePointProvider, R: BraneInfoProvider> GcManager<S, R> {
 #[causetg(test)]
 mod tests {
     use super::*;
-    use crate::causetStorage::Callback;
+    use crate::persistence::Callback;
     use ekvproto::metapb;
     use violetabft::StateRole;
     use violetabftstore::interlock::Result as CopResult;

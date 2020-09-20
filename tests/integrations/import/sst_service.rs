@@ -180,7 +180,7 @@ fn test_download_sst() {
     meta.set_brane_id(ctx.get_brane_id());
     meta.set_brane_epoch(ctx.get_brane_epoch().clone());
 
-    // Checks that downloading a non-existing causetStorage returns error.
+    // Checks that downloading a non-existing persistence returns error.
     let mut download = DownloadRequest::default();
     download.set_sst(meta.clone());
     download.set_causetStorage_backlightlike(external_causetStorage::make_local_backlightlike(temp_dir.path()));

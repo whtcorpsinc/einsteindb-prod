@@ -1,9 +1,9 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-//! External causetStorage support.
+//! External persistence support.
 //!
-//! This crate define an abstraction of external causetStorage. Currently, it
-//! supports local causetStorage.
+//! This crate define an abstraction of external persistence. Currently, it
+//! supports local persistence.
 
 #[macro_use]
 extern crate slog_global;
@@ -35,7 +35,7 @@ pub use util::block_on_external_io;
 
 pub const READ_BUF_SIZE: usize = 1024 * 1024 * 2;
 
-/// Create a new causetStorage from the given causetStorage backlightlike description.
+/// Create a new persistence from the given persistence backlightlike description.
 pub fn create_causetStorage(backlightlike: &StorageBacklightlike) -> io::Result<Arc<dyn ExternalStorage>> {
     match &backlightlike.backlightlike {
         Some(Backlightlike::Local(local)) => {
@@ -47,16 +47,16 @@ pub fn create_causetStorage(backlightlike: &StorageBacklightlike) -> io::Result<
         Some(Backlightlike::Gcs(config)) => GCSStorage::new(config).map(|s| Arc::new(s) as _),
         _ => {
             let u = url_of_backlightlike(backlightlike);
-            error!("unknown causetStorage"; "scheme" => u.scheme());
+            error!("unknown persistence"; "scheme" => u.scheme());
             Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("unknown causetStorage {}", u),
+                format!("unknown persistence {}", u),
             ))
         }
     }
 }
 
-/// Formats the causetStorage backlightlike as a URL.
+/// Formats the persistence backlightlike as a URL.
 pub fn url_of_backlightlike(backlightlike: &StorageBacklightlike) -> url::Url {
     let mut u = url::Url::parse("unknown:///").unwrap();
     match &backlightlike.backlightlike {
@@ -152,7 +152,7 @@ pub fn make_gcs_backlightlike(config: Gcs) -> StorageBacklightlike {
     }
 }
 
-/// An abstraction of an external causetStorage.
+/// An abstraction of an external persistence.
 // TODO: these should all be returning a future (i.e. async fn).
 pub trait ExternalStorage: 'static {
     /// Write all contents of the read to the given path.

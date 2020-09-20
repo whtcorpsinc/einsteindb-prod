@@ -1,9 +1,9 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::cell::RefCell;
 use std::mem;
 
-use crate::causetStorage::{FlowStatsReporter, Statistics};
+use crate::persistence::{FlowStatsReporter, Statistics};
 use ekvproto::metapb;
 use violetabftstore::store::util::build_key_cone;
 use violetabftstore::store::ReadStats;

@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 //! Handles simple SQL query executors locally.
 //!
@@ -34,8 +34,8 @@ pub use self::lightlikepoint::Endpoint;
 pub use self::error::{Error, Result};
 pub use checksum::checksum_crc64_xor;
 
-use crate::causetStorage::mvcc::TimeStamp;
-use crate::causetStorage::Statistics;
+use crate::persistence::mvcc::TimeStamp;
+use crate::persistence::Statistics;
 use async_trait::async_trait;
 use ekvproto::{interlock as coppb, kvrpcpb};
 use metrics::ReqTag;

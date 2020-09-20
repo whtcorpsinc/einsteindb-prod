@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use einsteindb::causetStorage::{
+use einsteindb::persistence::{
     kv::{BTreeEngine, LmdbEngine},
     Engine, TestEngineBuilder,
 };

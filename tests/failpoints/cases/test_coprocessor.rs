@@ -46,7 +46,7 @@ fn test_deadline_3() {
 
     let product = ProductTable::new();
     let (_, lightlikepoint) = {
-        let engine = einsteindb::causetStorage::TestEngineBuilder::new().build().unwrap();
+        let engine = einsteindb::persistence::TestEngineBuilder::new().build().unwrap();
         let mut causetg = einsteindb::server::Config::default();
         causetg.lightlike_point_request_max_handle_duration = einsteindb_util::config::ReadableDuration::secs(1);
         init_data_with_details(Context::default(), engine, &product, &data, true, &causetg)

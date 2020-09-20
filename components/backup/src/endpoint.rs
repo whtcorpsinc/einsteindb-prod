@@ -20,12 +20,12 @@ use violetabft::StateRole;
 use violetabftstore::interlock::BraneInfoProvider;
 use violetabftstore::store::util::find_peer;
 use einsteindb::config::BackupConfig;
-use einsteindb::causetStorage::kv::{Engine, ScanMode, Snapshot};
-use einsteindb::causetStorage::mvcc::Error as MvccError;
-use einsteindb::causetStorage::txn::{
+use einsteindb::persistence::kv::{Engine, ScanMode, Snapshot};
+use einsteindb::persistence::mvcc::Error as MvccError;
+use einsteindb::persistence::txn::{
     EntryBatch, Error as TxnError, SnapshotStore, TxnEntryScanner, TxnEntryStore,
 };
-use einsteindb::causetStorage::Statistics;
+use einsteindb::persistence::Statistics;
 use einsteindb_util::threadpool::{DefaultContext, ThreadPool, ThreadPoolBuilder};
 use einsteindb_util::time::Limiter;
 use einsteindb_util::timer::Timer;
@@ -83,7 +83,7 @@ impl fmt::Debug for Task {
 #[derive(Clone)]
 struct LimitedStorage {
     limiter: Limiter,
-    causetStorage: Arc<dyn ExternalStorage>,
+    persistence: Arc<dyn ExternalStorage>,
 }
 
 impl Task {
@@ -104,7 +104,7 @@ impl Task {
             causet: req.get_causet().to_owned(),
         })?;
 
-        // Check causetStorage backlightlike eagerly.
+        // Check persistence backlightlike eagerly.
         create_causetStorage(req.get_causetStorage_backlightlike())?;
 
         let task = Task {
@@ -143,7 +143,7 @@ pub struct BackupCone {
 }
 
 impl BackupCone {
-    /// Get entries from the scanner and save them to causetStorage
+    /// Get entries from the scanner and save them to persistence
     fn backup<E: Engine>(
         &self,
         writer: &mut BackupWriter,
@@ -288,7 +288,7 @@ impl BackupCone {
         &self,
         engine: &E,
         db: Arc<DB>,
-        causetStorage: &LimitedStorage,
+        persistence: &LimitedStorage,
         concurrency_manager: ConcurrencyManager,
         file_name: String,
         backup_ts: TimeStamp,
@@ -299,7 +299,7 @@ impl BackupCone {
         let mut writer = match BackupWriter::new(
             db,
             &file_name,
-            causetStorage.limiter.clone(),
+            persistence.limiter.clone(),
             compression_type,
             compression_level,
         ) {
@@ -319,8 +319,8 @@ impl BackupCone {
             Ok(s) => s,
             Err(e) => return Err(e),
         };
-        // Save sst files to causetStorage.
-        match writer.save(&causetStorage.causetStorage) {
+        // Save sst files to persistence.
+        match writer.save(&persistence.persistence) {
             Ok(files) => Ok((files, stat)),
             Err(e) => {
                 error!(?e; "backup save file failed");
@@ -333,7 +333,7 @@ impl BackupCone {
         &self,
         engine: &E,
         db: Arc<DB>,
-        causetStorage: &LimitedStorage,
+        persistence: &LimitedStorage,
         file_name: String,
         causet: CfName,
         compression_type: Option<SstCompressionType>,
@@ -343,7 +343,7 @@ impl BackupCone {
             db,
             &file_name,
             causet,
-            causetStorage.limiter.clone(),
+            persistence.limiter.clone(),
             compression_type,
             compression_level,
         ) {
@@ -357,8 +357,8 @@ impl BackupCone {
             Ok(s) => s,
             Err(e) => return Err(e),
         };
-        // Save sst files to causetStorage.
-        match writer.save(&causetStorage.causetStorage) {
+        // Save sst files to persistence.
+        match writer.save(&persistence.persistence) {
             Ok(files) => Ok((files, stat)),
             Err(e) => {
                 error!(?e; "backup save file failed");
@@ -658,9 +658,9 @@ impl<E: Engine, R: BraneInfoProvider> Endpoint<E, R> {
 
             // CausetStorage backlightlike has been checked in `Task::new()`.
             let backlightlike = create_causetStorage(&request.backlightlike).unwrap();
-            let causetStorage = LimitedStorage {
+            let persistence = LimitedStorage {
                 limiter: request.limiter.clone(),
-                causetStorage: backlightlike,
+                persistence: backlightlike,
             };
             for bcone in bcones {
                 if request.cancel.load(Ordering::SeqCst) {
@@ -685,7 +685,7 @@ impl<E: Engine, R: BraneInfoProvider> Endpoint<E, R> {
                         bcone.backup_raw_kv_to_file(
                             &engine,
                             db.clone(),
-                            &causetStorage,
+                            &persistence,
                             name,
                             causet,
                             ct,
@@ -701,7 +701,7 @@ impl<E: Engine, R: BraneInfoProvider> Endpoint<E, R> {
                         bcone.backup_to_file(
                             &engine,
                             db.clone(),
-                            &causetStorage,
+                            &persistence,
                             concurrency_manager.clone(),
                             name,
                             backup_ts,
@@ -903,9 +903,9 @@ pub mod tests {
     use violetabftstore::store::util::new_peer;
     use std::thread;
     use tempfile::TempDir;
-    use einsteindb::causetStorage::mvcc::tests::*;
-    use einsteindb::causetStorage::txn::tests::must_commit;
-    use einsteindb::causetStorage::{LmdbEngine, TestEngineBuilder};
+    use einsteindb::persistence::mvcc::tests::*;
+    use einsteindb::persistence::txn::tests::must_commit;
+    use einsteindb::persistence::{LmdbEngine, TestEngineBuilder};
     use einsteindb_util::time::Instant;
     use txn_types::SHORT_VALUE_MAX_LEN;
 

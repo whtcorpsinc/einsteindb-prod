@@ -16,7 +16,7 @@ use fidelpb::FreeDaemon as PbFreeDaemon;
 
 use test_interlock::*;
 use einsteindb::interlock::RequestHandler;
-use einsteindb::causetStorage::{LmdbEngine, CausetStore as TxnStore};
+use einsteindb::persistence::{LmdbEngine, CausetStore as TxnStore};
 
 use std::marker::PhantomData;
 

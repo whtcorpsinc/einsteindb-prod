@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -166,14 +166,14 @@ fn test_server_transfer_leader_during_snapshot() {
 
 #[test]
 fn test_sync_max_ts_after_leader_transfer() {
-    use einsteindb::causetStorage::{Engine, Snapshot};
+    use einsteindb::persistence::{Engine, Snapshot};
 
     let mut cluster = new_server_cluster(0, 3);
     cluster.causetg.raft_store.raft_heartbeat_ticks = 20;
     cluster.run();
 
     let cm = cluster.sim.read().unwrap().get_concurrency_manager(1);
-    let causetStorage = cluster
+    let persistence = cluster
         .sim
         .read()
         .unwrap()
@@ -190,7 +190,7 @@ fn test_sync_max_ts_after_leader_transfer() {
         ctx.set_peer(leader.clone());
         ctx.set_brane_epoch(epoch);
 
-        let snapshot = causetStorage.snapshot(&ctx).unwrap();
+        let snapshot = persistence.snapshot(&ctx).unwrap();
         let max_ts_sync_status = snapshot.max_ts_sync_status.clone().unwrap();
         for retry in 0..10 {
             if max_ts_sync_status.load(Ordering::SeqCst) & 1 == 1 {

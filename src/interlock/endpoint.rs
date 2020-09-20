@@ -19,9 +19,9 @@ use fidelpb::{AnalyzeReq, AnalyzeType, ChecksumRequest, ChecksumScanOn, PosetDag
 
 use crate::read_pool::ReadPoolHandle;
 use crate::server::Config;
-use crate::causetStorage::kv::{self, with_tls_engine};
-use crate::causetStorage::mvcc::Error as MvccError;
-use crate::causetStorage::{self, Engine, Snapshot, SnapshotStore};
+use crate::persistence::kv::{self, with_tls_engine};
+use crate::persistence::mvcc::Error as MvccError;
+use crate::persistence::{self, Engine, Snapshot, SnapshotStore};
 
 use crate::interlock::cache::CachedRequestHandler;
 use crate::interlock::interceptors::limit_concurrency;
@@ -608,7 +608,7 @@ fn make_error_response(e: Error) -> coppb::Response {
     let tag;
     match e {
         Error::Brane(e) => {
-            tag = causetStorage::get_tag_from_header(&e);
+            tag = persistence::get_tag_from_header(&e);
             resp.set_brane_error(e);
         }
         Error::Locked(info) => {
@@ -653,8 +653,8 @@ mod tests {
     use crate::config::CoprReadPoolConfig;
     use crate::interlock::readpool_impl::build_read_pool_for_test;
     use crate::read_pool::ReadPool;
-    use crate::causetStorage::kv::LmdbEngine;
-    use crate::causetStorage::TestEngineBuilder;
+    use crate::persistence::kv::LmdbEngine;
+    use crate::persistence::TestEngineBuilder;
     use protobuf::Message;
     use txn_types::{Key, LockType};
 
@@ -906,7 +906,7 @@ mod tests {
 
     #[test]
     fn test_full() {
-        use crate::causetStorage::kv::{destroy_tls_engine, set_tls_engine};
+        use crate::persistence::kv::{destroy_tls_engine, set_tls_engine};
         use std::sync::Mutex;
         use einsteindb_util::yatp_pool::{DefaultTicker, YatpPoolBuilder};
 

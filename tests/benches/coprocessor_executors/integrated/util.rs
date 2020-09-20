@@ -13,7 +13,7 @@ use test_interlock::*;
 use milevadb_query_common::execute_stats::ExecSummaryCollectorDisabled;
 use milevadb_query_datatype::expr::EvalConfig;
 use einsteindb::interlock::dag::EinsteinDBStorage;
-use einsteindb::causetStorage::{LmdbEngine, CausetStore as TxnStore};
+use einsteindb::persistence::{LmdbEngine, CausetStore as TxnStore};
 
 use crate::util::bencher::Bencher;
 use crate::util::store::StoreDescriber;

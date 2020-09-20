@@ -12,7 +12,7 @@ use violetabftstore::interlock::*;
 use violetabftstore::store::fsm::ObserveID;
 use violetabftstore::store::BraneSnapshot;
 use violetabftstore::Error as VioletaBftStoreError;
-use einsteindb::causetStorage::{Cursor, ScanMode, Snapshot as EngineSnapshot, Statistics};
+use einsteindb::persistence::{Cursor, ScanMode, Snapshot as EngineSnapshot, Statistics};
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::worker::Scheduler;
 use txn_types::{Key, Lock, MutationType, Value, WriteRef, WriteType};
@@ -311,9 +311,9 @@ mod tests {
     use ekvproto::metapb::Brane;
     use ekvproto::raft_cmdpb::*;
     use std::time::Duration;
-    use einsteindb::causetStorage::kv::TestEngineBuilder;
-    use einsteindb::causetStorage::mvcc::tests::*;
-    use einsteindb::causetStorage::txn::tests::*;
+    use einsteindb::persistence::kv::TestEngineBuilder;
+    use einsteindb::persistence::mvcc::tests::*;
+    use einsteindb::persistence::txn::tests::*;
 
     #[test]
     fn test_register_and_deregister() {

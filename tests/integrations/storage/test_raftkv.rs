@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::thread;
@@ -9,8 +9,8 @@ use violetabft::eraftpb::MessageType;
 
 use engine_promises::{CfName, IterOptions, CAUSET_DEFAULT};
 use test_violetabftstore::*;
-use einsteindb::causetStorage::kv::*;
-use einsteindb::causetStorage::CfStatistics;
+use einsteindb::persistence::kv::*;
+use einsteindb::persistence::CfStatistics;
 use einsteindb_util::codec::bytes;
 use einsteindb_util::HandyRwLock;
 use txn_types::Key;
@@ -26,20 +26,20 @@ fn test_raftkv() {
 
     let brane = cluster.get_brane(b"");
     let leader_id = cluster.leader_of_brane(brane.get_id()).unwrap();
-    let causetStorage = cluster.sim.rl().causetStorages[&leader_id.get_id()].clone();
+    let persistence = cluster.sim.rl().causetStorages[&leader_id.get_id()].clone();
 
     let mut ctx = Context::default();
     ctx.set_brane_id(brane.get_id());
     ctx.set_brane_epoch(brane.get_brane_epoch().clone());
     ctx.set_peer(brane.get_peers()[0].clone());
 
-    get_put(&ctx, &causetStorage);
-    batch(&ctx, &causetStorage);
-    seek(&ctx, &causetStorage);
-    near_seek(&ctx, &causetStorage);
-    causet(&ctx, &causetStorage);
-    empty_write(&ctx, &causetStorage);
-    wrong_context(&ctx, &causetStorage);
+    get_put(&ctx, &persistence);
+    batch(&ctx, &persistence);
+    seek(&ctx, &persistence);
+    near_seek(&ctx, &persistence);
+    causet(&ctx, &persistence);
+    empty_write(&ctx, &persistence);
+    wrong_context(&ctx, &persistence);
     // TODO: test multiple node
 }
 
@@ -57,7 +57,7 @@ fn test_read_leader_in_lease() {
 
     let brane = cluster.get_brane(b"");
     let leader = cluster.leader_of_brane(brane.get_id()).unwrap();
-    let causetStorage = cluster.sim.rl().causetStorages[&leader.get_id()].clone();
+    let persistence = cluster.sim.rl().causetStorages[&leader.get_id()].clone();
 
     let mut ctx = Context::default();
     ctx.set_brane_id(brane.get_id());
@@ -65,14 +65,14 @@ fn test_read_leader_in_lease() {
     ctx.set_peer(leader.clone());
 
     // write some data
-    assert_none(&ctx, &causetStorage, k2);
-    must_put(&ctx, &causetStorage, k2, v2);
+    assert_none(&ctx, &persistence, k2);
+    must_put(&ctx, &persistence, k2, v2);
 
     // isolate leader
     cluster.add_slightlike_filter(IsolationFilterFactory::new(leader.get_store_id()));
 
     // leader still in lease, check if can read on leader
-    assert_eq!(can_read(&ctx, &causetStorage, k2, v2), true);
+    assert_eq!(can_read(&ctx, &persistence, k2, v2), true);
 }
 
 #[test]
@@ -89,7 +89,7 @@ fn test_read_index_on_replica() {
 
     let brane = cluster.get_brane(b"");
     let leader = cluster.leader_of_brane(brane.get_id()).unwrap();
-    let causetStorage = cluster.sim.rl().causetStorages[&leader.get_id()].clone();
+    let persistence = cluster.sim.rl().causetStorages[&leader.get_id()].clone();
 
     let mut ctx = Context::default();
     ctx.set_brane_id(brane.get_id());
@@ -98,8 +98,8 @@ fn test_read_index_on_replica() {
 
     // write some data
     let peers = brane.get_peers();
-    assert_none(&ctx, &causetStorage, k2);
-    must_put(&ctx, &causetStorage, k2, v2);
+    assert_none(&ctx, &persistence, k2);
+    must_put(&ctx, &persistence, k2, v2);
 
     // read on follower
     let mut follower_peer = None;

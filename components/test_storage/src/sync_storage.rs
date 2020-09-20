@@ -1,14 +1,14 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use futures::executor::block_on;
 use ekvproto::kvrpcpb::{Context, GetRequest, LockInfo};
 use violetabftstore::interlock::BraneInfoProvider;
 use violetabftstore::router::VioletaBftStoreBlackHole;
 use einsteindb::server::gc_worker::{AutoGcConfig, GcConfig, GcSafePointProvider, GcWorker};
-use einsteindb::causetStorage::config::Config;
-use einsteindb::causetStorage::kv::LmdbEngine;
-use einsteindb::causetStorage::lock_manager::DummyLockManager;
-use einsteindb::causetStorage::{
+use einsteindb::persistence::config::Config;
+use einsteindb::persistence::kv::LmdbEngine;
+use einsteindb::persistence::lock_manager::DummyLockManager;
+use einsteindb::persistence::{
     txn::commands, Engine, PrewriteResult, Result, CausetStorage, TestEngineBuilder, TestStorageBuilder,
     TxnStatus,
 };

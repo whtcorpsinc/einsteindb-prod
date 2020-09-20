@@ -94,7 +94,7 @@ impl SSTImporter {
         }
     }
 
-    // Downloads an SST file from an external causetStorage.
+    // Downloads an SST file from an external persistence.
     //
     // This method is blocking. It performs the following transformations before
     // writing to disk:

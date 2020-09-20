@@ -20,7 +20,7 @@ use self::deadlock::{Detector, RoleChangeNotifier};
 use self::waiter_manager::WaiterManager;
 use crate::server::resolve::StoreAddrResolver;
 use crate::server::{Error, Result};
-use crate::causetStorage::{
+use crate::persistence::{
     lock_manager::{Lock, LockManager as LockManagerTrait, WaitTimeout},
     ProcessResult, StorageCallback,
 };

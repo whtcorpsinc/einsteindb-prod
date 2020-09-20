@@ -7,7 +7,7 @@ mod gc_manager;
 mod gc_worker;
 
 // TODO: Use separated error type for GCWorker instead.
-pub use crate::causetStorage::{Callback, Error, ErrorInner, Result};
+pub use crate::persistence::{Callback, Error, ErrorInner, Result};
 pub use compaction_filter::WriteCompactionFilterFactory;
 use compaction_filter::{is_compaction_filter_allowd, CompactionFilterInitializer};
 pub use config::{GcConfig, GcWorkerConfigManager, DEFAULT_GC_BATCH_KEYS};

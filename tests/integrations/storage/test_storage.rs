@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -13,9 +13,9 @@ use ekvproto::kvrpcpb::{Context, LockInfo};
 use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER};
 use test_causetStorage::*;
 use einsteindb::server::gc_worker::DEFAULT_GC_BATCH_KEYS;
-use einsteindb::causetStorage::mvcc::MAX_TXN_WRITE_SIZE;
-use einsteindb::causetStorage::txn::RESOLVE_LOCK_BATCH_SIZE;
-use einsteindb::causetStorage::Engine;
+use einsteindb::persistence::mvcc::MAX_TXN_WRITE_SIZE;
+use einsteindb::persistence::txn::RESOLVE_LOCK_BATCH_SIZE;
+use einsteindb::persistence::Engine;
 use txn_types::{Key, Mutation, TimeStamp};
 
 #[test]

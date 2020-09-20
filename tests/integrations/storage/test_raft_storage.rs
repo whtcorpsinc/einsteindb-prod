@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::thread;
 use std::time::Duration;
@@ -9,10 +9,10 @@ use std::sync::Arc;
 use test_violetabftstore::*;
 use test_causetStorage::*;
 use einsteindb::server::gc_worker::{AutoGcConfig, GcConfig};
-use einsteindb::causetStorage::kv::{Engine, Error as KvError, ErrorInner as KvErrorInner};
-use einsteindb::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner};
-use einsteindb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
-use einsteindb::causetStorage::{Error as StorageError, ErrorInner as StorageErrorInner};
+use einsteindb::persistence::kv::{Engine, Error as KvError, ErrorInner as KvErrorInner};
+use einsteindb::persistence::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner};
+use einsteindb::persistence::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
+use einsteindb::persistence::{Error as StorageError, ErrorInner as StorageErrorInner};
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::HandyRwLock;
 use txn_types::{Key, Mutation, TimeStamp};
@@ -27,10 +27,10 @@ fn new_raft_causetStorage() -> (
 
 #[test]
 fn test_raft_causetStorage() {
-    let (_cluster, causetStorage, mut ctx) = new_raft_causetStorage();
+    let (_cluster, persistence, mut ctx) = new_raft_causetStorage();
     let key = Key::from_raw(b"key");
-    assert_eq!(causetStorage.get(ctx.clone(), &key, 5).unwrap(), None);
-    causetStorage
+    assert_eq!(persistence.get(ctx.clone(), &key, 5).unwrap(), None);
+    persistence
         .prewrite(
             ctx.clone(),
             vec![Mutation::Put((key.clone(), b"value".to_vec()))],
@@ -38,39 +38,39 @@ fn test_raft_causetStorage() {
             10,
         )
         .unwrap();
-    causetStorage
+    persistence
         .commit(ctx.clone(), vec![key.clone()], 10, 15)
         .unwrap();
     assert_eq!(
-        causetStorage.get(ctx.clone(), &key, 20).unwrap().unwrap(),
+        persistence.get(ctx.clone(), &key, 20).unwrap().unwrap(),
         b"value".to_vec()
     );
 
     // Test wrong brane id.
     let brane_id = ctx.get_brane_id();
     ctx.set_brane_id(brane_id + 1);
-    assert!(causetStorage.get(ctx.clone(), &key, 20).is_err());
-    assert!(causetStorage.batch_get(ctx.clone(), &[key.clone()], 20).is_err());
-    assert!(causetStorage.scan(ctx.clone(), key, None, 1, false, 20).is_err());
-    assert!(causetStorage.scan_locks(ctx, 20, None, 100).is_err());
+    assert!(persistence.get(ctx.clone(), &key, 20).is_err());
+    assert!(persistence.batch_get(ctx.clone(), &[key.clone()], 20).is_err());
+    assert!(persistence.scan(ctx.clone(), key, None, 1, false, 20).is_err());
+    assert!(persistence.scan_locks(ctx, 20, None, 100).is_err());
 }
 
 #[test]
 fn test_raft_causetStorage_get_after_lease() {
-    let (cluster, causetStorage, ctx) = new_raft_causetStorage();
+    let (cluster, persistence, ctx) = new_raft_causetStorage();
     let key = b"key";
     let value = b"value";
     assert_eq!(
-        causetStorage
+        persistence
             .raw_get(ctx.clone(), "".to_string(), key.to_vec())
             .unwrap(),
         None
     );
-    causetStorage
+    persistence
         .raw_put(ctx.clone(), "".to_string(), key.to_vec(), value.to_vec())
         .unwrap();
     assert_eq!(
-        causetStorage
+        persistence
             .raw_get(ctx.clone(), "".to_string(), key.to_vec())
             .unwrap()
             .unwrap(),
@@ -80,7 +80,7 @@ fn test_raft_causetStorage_get_after_lease() {
     // Sleep until the leader lease is expired.
     thread::sleep(cluster.causetg.raft_store.raft_store_max_leader_lease.0);
     assert_eq!(
-        causetStorage
+        persistence
             .raw_get(ctx, "".to_string(), key.to_vec())
             .unwrap()
             .unwrap(),
@@ -90,10 +90,10 @@ fn test_raft_causetStorage_get_after_lease() {
 
 #[test]
 fn test_raft_causetStorage_rollback_before_prewrite() {
-    let (_cluster, causetStorage, ctx) = new_raft_causetStorage();
-    let ret = causetStorage.rollback(ctx.clone(), vec![Key::from_raw(b"key")], 10);
+    let (_cluster, persistence, ctx) = new_raft_causetStorage();
+    let ret = persistence.rollback(ctx.clone(), vec![Key::from_raw(b"key")], 10);
     assert!(ret.is_ok());
-    let ret = causetStorage.prewrite(
+    let ret = persistence.prewrite(
         ctx,
         vec![Mutation::Put((Key::from_raw(b"key"), b"value".to_vec()))],
         b"key".to_vec(),
@@ -113,11 +113,11 @@ fn test_raft_causetStorage_rollback_before_prewrite() {
 
 #[test]
 fn test_raft_causetStorage_store_not_match() {
-    let (_cluster, causetStorage, mut ctx) = new_raft_causetStorage();
+    let (_cluster, persistence, mut ctx) = new_raft_causetStorage();
 
     let key = Key::from_raw(b"key");
-    assert_eq!(causetStorage.get(ctx.clone(), &key, 5).unwrap(), None);
-    causetStorage
+    assert_eq!(persistence.get(ctx.clone(), &key, 5).unwrap(), None);
+    persistence
         .prewrite(
             ctx.clone(),
             vec![Mutation::Put((key.clone(), b"value".to_vec()))],
@@ -125,11 +125,11 @@ fn test_raft_causetStorage_store_not_match() {
             10,
         )
         .unwrap();
-    causetStorage
+    persistence
         .commit(ctx.clone(), vec![key.clone()], 10, 15)
         .unwrap();
     assert_eq!(
-        causetStorage.get(ctx.clone(), &key, 20).unwrap().unwrap(),
+        persistence.get(ctx.clone(), &key, 20).unwrap().unwrap(),
         b"value".to_vec()
     );
 
@@ -139,8 +139,8 @@ fn test_raft_causetStorage_store_not_match() {
 
     peer.set_store_id(store_id + 1);
     ctx.set_peer(peer);
-    assert!(causetStorage.get(ctx.clone(), &key, 20).is_err());
-    let res = causetStorage.get(ctx.clone(), &key, 20);
+    assert!(persistence.get(ctx.clone(), &key, 20).is_err());
+    let res = persistence.get(ctx.clone(), &key, 20);
     if let StorageError(box StorageErrorInner::Txn(TxnError(box TxnErrorInner::Engine(KvError(
         box KvErrorInner::Request(ref e),
     ))))) = *res.as_ref().err().unwrap()
@@ -149,9 +149,9 @@ fn test_raft_causetStorage_store_not_match() {
     } else {
         panic!("expect store_not_match, but got {:?}", res);
     }
-    assert!(causetStorage.batch_get(ctx.clone(), &[key.clone()], 20).is_err());
-    assert!(causetStorage.scan(ctx.clone(), key, None, 1, false, 20).is_err());
-    assert!(causetStorage.scan_locks(ctx, 20, None, 100).is_err());
+    assert!(persistence.batch_get(ctx.clone(), &[key.clone()], 20).is_err());
+    assert!(persistence.scan(ctx.clone(), key, None, 1, false, 20).is_err());
+    assert!(persistence.scan_locks(ctx, 20, None, 100).is_err());
 }
 
 #[test]
@@ -192,14 +192,14 @@ fn test_engine_leader_change_twice() {
 }
 
 fn write_test_data<E: Engine>(
-    causetStorage: &SyncTestStorage<E>,
+    persistence: &SyncTestStorage<E>,
     ctx: &Context,
     data: &[(Vec<u8>, Vec<u8>)],
     ts: impl Into<TimeStamp>,
 ) {
     let mut ts = ts.into();
     for (k, v) in data {
-        causetStorage
+        persistence
             .prewrite(
                 ctx.clone(),
                 vec![Mutation::Put((Key::from_raw(k), v.to_vec()))],
@@ -210,7 +210,7 @@ fn write_test_data<E: Engine>(
             .locks
             .into_iter()
             .for_each(|res| res.unwrap());
-        causetStorage
+        persistence
             .commit(ctx.clone(), vec![Key::from_raw(k)], ts, ts.next())
             .unwrap();
         ts.incr().incr();
@@ -251,10 +251,10 @@ fn test_auto_gc() {
     let (mut cluster, first_leader_causetStorage, ctx) = new_raft_causetStorage_with_store_count(count, "");
     let fidel_client = Arc::clone(&cluster.fidel_client);
 
-    // Used to wait for all causetStorage's GC to finish
+    // Used to wait for all persistence's GC to finish
     let (finish_signal_tx, finish_signal_rx) = channel();
 
-    // Create causetStorage object for each store in the cluster
+    // Create persistence object for each store in the cluster
     let mut causetStorages: HashMap<_, _> = cluster
         .sim
         .rl()
@@ -264,18 +264,18 @@ fn test_auto_gc() {
             let mut config = GcConfig::default();
             // Do not skip GC
             config.ratio_memory_barrier = 0.9;
-            let causetStorage = SyncTestStorageBuilder::from_engine(engine.clone())
+            let persistence = SyncTestStorageBuilder::from_engine(engine.clone())
                 .gc_config(config)
                 .build()
                 .unwrap();
 
-            (*id, causetStorage)
+            (*id, persistence)
         })
         .collect();
 
     let mut brane_info_accessors = cluster.sim.rl().brane_info_accessors.clone();
 
-    for (id, causetStorage) in &mut causetStorages {
+    for (id, persistence) in &mut causetStorages {
         let tx = finish_signal_tx.clone();
 
         let mut causetg = AutoGcConfig::new_test_causetg(
@@ -284,7 +284,7 @@ fn test_auto_gc() {
             *id,
         );
         causetg.post_a_round_of_gc = Some(Box::new(move || tx.slightlike(()).unwrap()));
-        causetStorage.spacelike_auto_gc(causetg);
+        persistence.spacelike_auto_gc(causetg);
     }
 
     assert_eq!(causetStorages.len(), count);

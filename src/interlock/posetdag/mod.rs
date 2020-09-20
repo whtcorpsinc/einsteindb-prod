@@ -7,12 +7,12 @@ pub use self::causetStorage_impl::EinsteinDBStorage;
 use async_trait::async_trait;
 use ekvproto::interlock::{KeyCone, Response};
 use protobuf::Message;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::persistence::IntervalCone;
 use fidelpb::{PosetDagRequest, SelectResponse, StreamResponse};
 
 use crate::interlock::metrics::*;
 use crate::interlock::{Deadline, RequestHandler, Result};
-use crate::causetStorage::{Statistics, CausetStore};
+use crate::persistence::{Statistics, CausetStore};
 
 pub struct PosetDagHandlerBuilder<S: CausetStore + 'static> {
     req: PosetDagRequest,

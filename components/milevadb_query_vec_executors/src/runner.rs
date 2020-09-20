@@ -17,7 +17,7 @@ use yatp::task::future::reschedule;
 use super::interface::{BatchFreeDaemon, ExecuteStats};
 use super::*;
 use milevadb_query_common::metrics::*;
-use milevadb_query_common::causetStorage::{IntervalCone, CausetStorage};
+use milevadb_query_common::persistence::{IntervalCone, CausetStorage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext, EvalWarnings};
 
@@ -132,7 +132,7 @@ fn is_arrow_encodable(schema: &[FieldType]) -> bool {
 #[allow(clippy::explicit_counter_loop)]
 pub fn build_executors<S: CausetStorage + 'static>(
     executor_descriptors: Vec<fidelpb::FreeDaemon>,
-    causetStorage: S,
+    persistence: S,
     cones: Vec<KeyCone>,
     config: Arc<EvalConfig>,
     is_scanned_cone_aware: bool,
@@ -155,7 +155,7 @@ pub fn build_executors<S: CausetStorage + 'static>(
 
             executor = Box::new(
                 BatchTableScanFreeDaemon::new(
-                    causetStorage,
+                    persistence,
                     config.clone(),
                     PrimaryCausets_info,
                     cones,
@@ -174,7 +174,7 @@ pub fn build_executors<S: CausetStorage + 'static>(
             let primary_PrimaryCauset_ids_len = descriptor.take_primary_PrimaryCauset_ids().len();
             executor = Box::new(
                 BatchIndexScanFreeDaemon::new(
-                    causetStorage,
+                    persistence,
                     config.clone(),
                     PrimaryCausets_info,
                     cones,
@@ -313,7 +313,7 @@ impl<SS: 'static> BatchFreeDaemonsRunner<SS> {
     pub fn from_request<S: CausetStorage<Statistics = SS> + 'static>(
         mut req: PosetDagRequest,
         cones: Vec<KeyCone>,
-        causetStorage: S,
+        persistence: S,
         deadline: Deadline,
         stream_row_limit: usize,
         is_streaming: bool,
@@ -324,7 +324,7 @@ impl<SS: 'static> BatchFreeDaemonsRunner<SS> {
 
         let out_most_executor = build_executors(
             req.take_executors().into(),
-            causetStorage,
+            persistence,
             cones,
             config.clone(),
             is_streaming, // For streaming request, executors will continue scan from cone lightlike where last scan is finished

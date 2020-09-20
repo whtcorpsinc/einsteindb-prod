@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io::Error as IoError;
@@ -18,12 +18,12 @@ use ekvproto::{errorpb, metapb};
 use txn_types::{Key, TxnExtraScheduler, Value};
 
 use super::metrics::*;
-use crate::causetStorage::kv::{
+use crate::persistence::kv::{
     write_modifies, Callback, CbContext, Cursor, Engine, Error as KvError,
     ErrorInner as KvErrorInner, Iteron as EngineIterator, Modify, ScanMode,
     Snapshot as EngineSnapshot, WriteData,
 };
-use crate::causetStorage::{self, kv};
+use crate::persistence::{self, kv};
 use violetabftstore::errors::Error as VioletaBftServerError;
 use violetabftstore::router::{LocalReadRouter, VioletaBftStoreRouter};
 use violetabftstore::store::{Callback as StoreCallback, ReadResponse, WriteResponse};
@@ -64,7 +64,7 @@ quick_error! {
 fn get_status_kind_from_error(e: &Error) -> RequestStatusKind {
     match *e {
         Error::RequestFailed(ref header) => {
-            RequestStatusKind::from(causetStorage::get_error_kind_from_header(header))
+            RequestStatusKind::from(persistence::get_error_kind_from_header(header))
         }
         Error::Io(_) => RequestStatusKind::err_io,
         Error::Server(_) => RequestStatusKind::err_server,
@@ -77,7 +77,7 @@ fn get_status_kind_from_error(e: &Error) -> RequestStatusKind {
 fn get_status_kind_from_engine_error(e: &kv::Error) -> RequestStatusKind {
     match *e {
         KvError(box KvErrorInner::Request(ref header)) => {
-            RequestStatusKind::from(causetStorage::get_error_kind_from_header(header))
+            RequestStatusKind::from(persistence::get_error_kind_from_header(header))
         }
 
         KvError(box KvErrorInner::Timeout(_)) => RequestStatusKind::err_timeout,
@@ -104,7 +104,7 @@ impl From<VioletaBftServerError> for KvError {
     }
 }
 
-/// `VioletaBftKv` is a causetStorage engine base on `VioletaBftStore`.
+/// `VioletaBftKv` is a persistence engine base on `VioletaBftStore`.
 #[derive(Clone)]
 pub struct VioletaBftKv<S>
 where

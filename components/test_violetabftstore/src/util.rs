@@ -31,7 +31,7 @@ use violetabftstore::store::fsm::VioletaBftRouter;
 use violetabftstore::store::*;
 use violetabftstore::Result;
 use einsteindb::config::*;
-use einsteindb::causetStorage::config::DEFAULT_LMDB_SUB_DIR;
+use einsteindb::persistence::config::DEFAULT_LMDB_SUB_DIR;
 use einsteindb_util::config::*;
 use einsteindb_util::{escape, HandyRwLock};
 
@@ -526,7 +526,7 @@ pub fn create_test_engine(
             .map(|key_manager| Arc::new(key_manager));
 
     let env = get_env(key_manager.clone(), None).unwrap();
-    let cache = causetg.causetStorage.block_cache.build_shared_cache();
+    let cache = causetg.persistence.block_cache.build_shared_cache();
 
     let kv_path = dir.path().join(DEFAULT_LMDB_SUB_DIR);
     let kv_path_str = kv_path.to_str().unwrap();

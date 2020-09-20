@@ -11,7 +11,7 @@ use fidelpb::PrimaryCausetInfo;
 use fidelpb::{SelectResponse, StreamResponse};
 
 use einsteindb::interlock::Endpoint;
-use einsteindb::causetStorage::Engine;
+use einsteindb::persistence::Engine;
 
 static ID_GENERATOR: AtomicUsize = AtomicUsize::new(1);
 

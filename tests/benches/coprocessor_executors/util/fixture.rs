@@ -15,7 +15,7 @@ use einsteindb_util::collections::HashMap;
 use fidelpb::PrimaryCausetInfo;
 use fidelpb::FieldType;
 
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::persistence::IntervalCone;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::codec::data_type::Decimal;
 use milevadb_query_datatype::codec::datum::{Datum, DatumEncoder};
@@ -23,7 +23,7 @@ use milevadb_query_datatype::codec::table::RowColsDict;
 use milevadb_query_datatype::expr::{EvalContext, EvalWarnings};
 use milevadb_query_normal_executors::{FreeDaemon, Row};
 use milevadb_query_vec_executors::interface::*;
-use einsteindb::causetStorage::{LmdbEngine, Statistics};
+use einsteindb::persistence::{LmdbEngine, Statistics};
 
 use crate::util::bencher::Bencher;
 

@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
@@ -234,7 +234,7 @@ impl EntryCache {
         if self.cache.len() < SHRINK_CACHE_CAPACITY && self.cache.capacity() > SHRINK_CACHE_CAPACITY
         {
             let old_capacity = self.cache.capacity();
-            // So the peer causetStorage doesn't have much writes since the proposal of compaction,
+            // So the peer persistence doesn't have much writes since the proposal of compaction,
             // we can consider this peer is going to be inactive.
             self.cache.shrink_to_fit();
             self.mem_size_change += self
@@ -653,7 +653,7 @@ where
         tag: String,
     ) -> Result<PeerStorage<EK, ER>> {
         debug!(
-            "creating causetStorage on specified path";
+            "creating persistence on specified path";
             "brane_id" => brane.get_id(),
             "peer_id" => peer_id,
             "path" => ?engines.kv.path(),
@@ -1216,7 +1216,7 @@ where
         self.engines.violetabft.clone()
     }
 
-    /// Check whether the causetStorage has finished applying snapshot.
+    /// Check whether the persistence has finished applying snapshot.
     #[inline]
     pub fn is_applying_snapshot(&self) -> bool {
         match *self.snap_state.borrow() {
@@ -1234,7 +1234,7 @@ where
         }
     }
 
-    /// Check if the causetStorage is applying a snapshot.
+    /// Check if the persistence is applying a snapshot.
     #[inline]
     pub fn check_applying_snap(&mut self) -> CheckApplyingSnapStatus {
         let mut res = CheckApplyingSnapStatus::Idle;

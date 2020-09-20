@@ -18,10 +18,10 @@ use violetabftstore::store::{
 use violetabftstore::Result;
 use tempfile::{Builder, TempDir};
 use einsteindb::server::raftkv::{CmdRes, VioletaBftKv};
-use einsteindb::causetStorage::kv::{
+use einsteindb::persistence::kv::{
     Callback as EngineCallback, CbContext, Modify, Result as EngineResult, WriteData,
 };
-use einsteindb::causetStorage::Engine;
+use einsteindb::persistence::Engine;
 use einsteindb_util::time::ThreadReadId;
 use txn_types::Key;
 

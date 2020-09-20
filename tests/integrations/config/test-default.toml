@@ -1,14 +1,14 @@
 [readpool.unified]
 
-[readpool.causetStorage]
+[readpool.persistence]
 
 [readpool.interlock]
 
 [server]
 
-[causetStorage]
+[persistence]
 
-[causetStorage.block-cache]
+[persistence.block-cache]
 
 [fidel]
 

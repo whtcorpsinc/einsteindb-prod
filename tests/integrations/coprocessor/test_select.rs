@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::cmp;
 use std::i64;
@@ -14,7 +14,7 @@ use test_causetStorage::*;
 use milevadb_query_datatype::codec::{datum, Datum};
 use milevadb_query_datatype::expr::EvalContext;
 use einsteindb::server::Config;
-use einsteindb::causetStorage::TestEngineBuilder;
+use einsteindb::persistence::TestEngineBuilder;
 use einsteindb_util::codec::number::*;
 
 const FLAG_IGNORE_TRUNCATE: u64 = 1;

@@ -12,7 +12,7 @@ max-thread-count = 10
 stack-size = "20MB"
 max-tasks-per-worker = 2200
 
-[readpool.causetStorage]
+[readpool.persistence]
 use-unified-pool = true
 high-concurrency = 1
 normal-concurrency = 3
@@ -67,7 +67,7 @@ enable-request-batch = false
 [server.labels]
 a = "b"
 
-[causetStorage]
+[persistence]
 data-dir = "/var"
 gc-ratio-memory_barrier = 1.2
 max-key-size = 8192
@@ -76,7 +76,7 @@ scheduler-worker-pool-size = 1
 scheduler-plightlikeing-write-memory_barrier = "123KB"
 enable-async-commit = false
 
-[causetStorage.block-cache]
+[persistence.block-cache]
 shared = true
 capacity = "40GB"
 num-shard-bits = 10

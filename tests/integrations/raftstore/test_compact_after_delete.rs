@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use engine_lmdb::raw::Cone;
 use engine_lmdb::util::get_causet_handle;
@@ -8,7 +8,7 @@ use std::sync::mpsc;
 use std::sync::Mutex;
 use std::time::Duration;
 use test_violetabftstore::*;
-use einsteindb::causetStorage::mvcc::{TimeStamp, Write, WriteType};
+use einsteindb::persistence::mvcc::{TimeStamp, Write, WriteType};
 use einsteindb_util::config::*;
 use txn_types::Key;
 

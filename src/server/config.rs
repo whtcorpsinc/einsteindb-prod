@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::{cmp, i32, isize};
 
@@ -9,7 +9,7 @@ use einsteindb_util::collections::HashMap;
 use einsteindb_util::config::{self, ReadableDuration, ReadableSize};
 use einsteindb_util::sys::sys_quota::SysQuota;
 
-pub use crate::causetStorage::config::Config as StorageConfig;
+pub use crate::persistence::config::Config as StorageConfig;
 pub use violetabftstore::store::Config as VioletaBftStoreConfig;
 
 pub const DEFAULT_CLUSTER_ID: u64 = 0;

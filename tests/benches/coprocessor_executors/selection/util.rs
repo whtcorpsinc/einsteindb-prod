@@ -11,7 +11,7 @@ use milevadb_query_datatype::expr::EvalConfig;
 use milevadb_query_normal_executors::{FreeDaemon, SelectionFreeDaemon};
 use milevadb_query_vec_executors::interface::BatchFreeDaemon;
 use milevadb_query_vec_executors::BatchSelectionFreeDaemon;
-use einsteindb::causetStorage::Statistics;
+use einsteindb::persistence::Statistics;
 
 use crate::util::bencher::Bencher;
 use crate::util::executor_descriptor::selection;

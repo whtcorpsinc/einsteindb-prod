@@ -13,13 +13,13 @@ use ekvproto::kvrpcpb::LockInfo;
 use ekvproto::raft_cmdpb::CmdType;
 use einsteindb_util::worker::{Builder as WorkerBuilder, Runnable, ScheduleError, Scheduler, Worker};
 
-use crate::causetStorage::mvcc::{Error as MvccError, Lock, TimeStamp};
+use crate::persistence::mvcc::{Error as MvccError, Lock, TimeStamp};
 use violetabftstore::interlock::{
     ApplySnapshotObserver, BoxApplySnapshotObserver, BoxQueryObserver, Cmd, Interlock,
     InterlockHost, ObserverContext, QueryObserver,
 };
 
-// TODO: Use new error type for GCWorker instead of causetStorage::Error.
+// TODO: Use new error type for GCWorker instead of persistence::Error.
 use super::{Error, ErrorInner, Result};
 
 const MAX_COLLECT_SIZE: usize = 1024;

@@ -25,7 +25,7 @@ use test_violetabftstore::*;
 use einsteindb::interlock::REQ_TYPE_DAG;
 use einsteindb::import::SSTImporter;
 use einsteindb::server::gc_worker::sync_gc;
-use einsteindb::causetStorage::mvcc::{Lock, LockType, TimeStamp};
+use einsteindb::persistence::mvcc::{Lock, LockType, TimeStamp};
 use einsteindb_util::worker::{FutureWorker, Worker};
 use einsteindb_util::HandyRwLock;
 use txn_types::Key;
