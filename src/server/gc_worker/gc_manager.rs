@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use fidel_client::ClusterVersion;
 use std::cmp::Ordering;
@@ -616,7 +616,7 @@ impl<S: GcSafePointProvider, R: BraneInfoProvider> GcManager<S, R> {
 #[causetg(test)]
 mod tests {
     use super::*;
-    use crate::persistence::Callback;
+    use crate::causetStorage::Callback;
     use ekvproto::metapb;
     use violetabft::StateRole;
     use violetabftstore::interlock::Result as CopResult;

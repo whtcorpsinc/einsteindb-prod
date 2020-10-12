@@ -1,6 +1,6 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
-use crate::lock::LockType;
+use crate::dagger::LockType;
 use crate::timestamp::TimeStamp;
 use crate::types::{Value, SHORT_VALUE_MAX_LEN, SHORT_VALUE_PREFIX};
 use crate::{Error, ErrorInner, Result};
@@ -11,7 +11,7 @@ use einsteindb_util::codec::number::{NumberEncoder, MAX_VAR_U64_LEN};
 pub enum WriteType {
     Put,
     Delete,
-    Lock,
+    Dagger,
     Rollback,
 }
 
@@ -30,7 +30,7 @@ impl WriteType {
         match tp {
             LockType::Put => Some(WriteType::Put),
             LockType::Delete => Some(WriteType::Delete),
-            LockType::Lock => Some(WriteType::Lock),
+            LockType::Dagger => Some(WriteType::Dagger),
             LockType::Pessimistic => None,
         }
     }
@@ -39,7 +39,7 @@ impl WriteType {
         match b {
             FLAG_PUT => Some(WriteType::Put),
             FLAG_DELETE => Some(WriteType::Delete),
-            FLAG_LOCK => Some(WriteType::Lock),
+            FLAG_LOCK => Some(WriteType::Dagger),
             FLAG_ROLLBACK => Some(WriteType::Rollback),
             _ => None,
         }
@@ -49,7 +49,7 @@ impl WriteType {
         match self {
             WriteType::Put => FLAG_PUT,
             WriteType::Delete => FLAG_DELETE,
-            WriteType::Lock => FLAG_LOCK,
+            WriteType::Dagger => FLAG_LOCK,
             WriteType::Rollback => FLAG_ROLLBACK,
         }
     }
@@ -250,7 +250,7 @@ mod tests {
         let mut tests = vec![
             (Some(LockType::Put), WriteType::Put, FLAG_PUT),
             (Some(LockType::Delete), WriteType::Delete, FLAG_DELETE),
-            (Some(LockType::Lock), WriteType::Lock, FLAG_LOCK),
+            (Some(LockType::Dagger), WriteType::Dagger, FLAG_LOCK),
             (None, WriteType::Rollback, FLAG_ROLLBACK),
         ];
         for (i, (lock_type, write_type, flag)) in tests.drain(..).enumerate() {
@@ -301,10 +301,10 @@ mod tests {
         // Test `Write::parse()` handles incorrect input.
         assert!(WriteRef::parse(b"").is_err());
 
-        let lock = Write::new(WriteType::Lock, 1.into(), Some(b"short_value".to_vec()));
-        let v = lock.as_ref().to_bytes();
+        let dagger = Write::new(WriteType::Dagger, 1.into(), Some(b"short_value".to_vec()));
+        let v = dagger.as_ref().to_bytes();
         assert!(WriteRef::parse(&v[..1]).is_err());
-        assert_eq!(Write::parse_type(&v).unwrap(), lock.write_type);
+        assert_eq!(Write::parse_type(&v).unwrap(), dagger.write_type);
     }
 
     #[test]

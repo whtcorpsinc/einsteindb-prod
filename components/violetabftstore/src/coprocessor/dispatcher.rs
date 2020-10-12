@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::marker::PhantomData;
 use std::mem;
@@ -7,7 +7,7 @@ use std::ops::Deref;
 use engine_promises::{CfName, KvEngine};
 use ekvproto::metapb::Brane;
 use ekvproto::fidelpb::CheckPolicy;
-use ekvproto::raft_cmdpb::{ComputeHashRequest, VioletaBftCmdRequest};
+use ekvproto::violetabft_cmdpb::{ComputeHashRequest, VioletaBftCmdRequest};
 
 use super::*;
 use crate::store::CasualRouter;
@@ -556,7 +556,7 @@ mod tests {
 
     use engine_panic::PanicEngine;
     use ekvproto::metapb::Brane;
-    use ekvproto::raft_cmdpb::{
+    use ekvproto::violetabft_cmdpb::{
         AdminRequest, AdminResponse, VioletaBftCmdRequest, VioletaBftCmdResponse, Request,
     };
 

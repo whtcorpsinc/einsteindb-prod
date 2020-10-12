@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::fmt::{self, Display, Formatter};
 use std::pin::Pin;
@@ -14,8 +14,8 @@ use grpcio::{
     ChannelBuilder, ClientStreamingSink, Environment, RequestStream, RpcStatus, RpcStatusCode,
     WriteFlags,
 };
-use ekvproto::raft_serverpb::VioletaBftMessage;
-use ekvproto::raft_serverpb::{Done, SnapshotSoliton};
+use ekvproto::violetabft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_serverpb::{Done, SnapshotSoliton};
 use ekvproto::einsteindbpb::EINSTEINDBClient;
 use tokio::runtime::{Builder as RuntimeBuilder, Runtime};
 
@@ -182,7 +182,7 @@ fn slightlike_snap(
 struct RecvSnapContext {
     key: SnapKey,
     file: Option<Box<dyn GenericSnapshot>>,
-    raft_msg: VioletaBftMessage,
+    violetabft_msg: VioletaBftMessage,
 }
 
 impl RecvSnapContext {
@@ -218,11 +218,11 @@ impl RecvSnapContext {
         Ok(RecvSnapContext {
             key,
             file: snap,
-            raft_msg: meta,
+            violetabft_msg: meta,
         })
     }
 
-    fn finish<R: VioletaBftStoreRouter<LmdbEngine>>(self, raft_router: R) -> Result<()> {
+    fn finish<R: VioletaBftStoreRouter<LmdbEngine>>(self, violetabft_router: R) -> Result<()> {
         let key = self.key;
         if let Some(mut file) = self.file {
             info!("saving snapshot file"; "snap_key" => %key, "file" => file.path());
@@ -232,7 +232,7 @@ impl RecvSnapContext {
                 return Err(e);
             }
         }
-        if let Err(e) = raft_router.slightlike_raft_msg(self.raft_msg) {
+        if let Err(e) = violetabft_router.slightlike_violetabft_msg(self.violetabft_msg) {
             return Err(box_err!("{} failed to slightlike snapshot to violetabft: {}", key, e));
         }
         Ok(())
@@ -243,14 +243,14 @@ fn recv_snap<R: VioletaBftStoreRouter<LmdbEngine> + 'static>(
     stream: RequestStream<SnapshotSoliton>,
     sink: ClientStreamingSink<Done>,
     snap_mgr: SnapManager,
-    raft_router: R,
+    violetabft_router: R,
 ) -> impl Future<Output = Result<()>> {
     let recv_task = async move {
         let mut stream = stream.map_err(Error::from);
         let head = stream.next().await.transpose()?;
         let mut context = RecvSnapContext::new(head, &snap_mgr)?;
         if context.file.is_none() {
-            return context.finish(raft_router);
+            return context.finish(violetabft_router);
         }
         let context_key = context.key.clone();
         snap_mgr.register(context.key.clone(), SnapEntry::Receiving);
@@ -269,7 +269,7 @@ fn recv_snap<R: VioletaBftStoreRouter<LmdbEngine> + 'static>(
             }
         }
 
-        let res = context.finish(raft_router);
+        let res = context.finish(violetabft_router);
         snap_mgr.deregister(&context_key, &SnapEntry::Receiving);
         res
     };
@@ -289,7 +289,7 @@ pub struct Runner<R: VioletaBftStoreRouter<LmdbEngine> + 'static> {
     env: Arc<Environment>,
     snap_mgr: SnapManager,
     pool: Runtime,
-    raft_router: R,
+    violetabft_router: R,
     security_mgr: Arc<SecurityManager>,
     causetg: Arc<Config>,
     slightlikeing_count: Arc<AtomicUsize>,
@@ -315,7 +315,7 @@ impl<R: VioletaBftStoreRouter<LmdbEngine> + 'static> Runner<R> {
                 .on_thread_stop(|| einsteindb_alloc::remove_thread_memory_accessor())
                 .build()
                 .unwrap(),
-            raft_router: r,
+            violetabft_router: r,
             security_mgr,
             causetg,
             slightlikeing_count: Arc::new(AtomicUsize::new(0)),
@@ -346,11 +346,11 @@ impl<R: VioletaBftStoreRouter<LmdbEngine> + 'static> Runnable for Runner<R> {
                 SNAP_TASK_COUNTER_STATIC.recv.inc();
 
                 let snap_mgr = self.snap_mgr.clone();
-                let raft_router = self.raft_router.clone();
+                let violetabft_router = self.violetabft_router.clone();
                 let recving_count = Arc::clone(&self.recving_count);
                 recving_count.fetch_add(1, Ordering::SeqCst);
                 let task = async move {
-                    let result = recv_snap(stream, sink, snap_mgr, raft_router).await;
+                    let result = recv_snap(stream, sink, snap_mgr, violetabft_router).await;
                     recving_count.fetch_sub(1, Ordering::SeqCst);
                     if let Err(e) = result {
                         error!("failed to recv snapshot"; "err" => %e);

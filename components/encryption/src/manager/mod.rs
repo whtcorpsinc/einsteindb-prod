@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::collections::hash_map::Entry;
 use std::fs::File;
@@ -672,9 +672,9 @@ mod tests {
         let manager = manager.unwrap().unwrap();
         let info2 = manager.get_file("foo").unwrap();
         assert_eq!(info1, info2);
-        assert_eq!(1, current_key.lock().unwrap().encrypt_called);
-        assert_eq!(1, current_key.lock().unwrap().decrypt_called);
-        assert_eq!(1, previous_key.lock().unwrap().decrypt_called);
+        assert_eq!(1, current_key.dagger().unwrap().encrypt_called);
+        assert_eq!(1, current_key.dagger().unwrap().decrypt_called);
+        assert_eq!(1, previous_key.dagger().unwrap().decrypt_called);
     }
 
     #[test]
@@ -698,9 +698,9 @@ mod tests {
             Some(MasterKeyConfig::Mock(Mock(previous_key.clone()))),
         );
         assert!(manager.is_err());
-        assert_eq!(1, current_key.lock().unwrap().encrypt_called);
-        assert_eq!(1, current_key.lock().unwrap().decrypt_called);
-        assert_eq!(1, previous_key.lock().unwrap().decrypt_called);
+        assert_eq!(1, current_key.dagger().unwrap().encrypt_called);
+        assert_eq!(1, current_key.dagger().unwrap().decrypt_called);
+        assert_eq!(1, previous_key.dagger().unwrap().decrypt_called);
     }
 
     #[test]

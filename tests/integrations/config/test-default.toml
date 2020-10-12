@@ -1,14 +1,14 @@
 [readpool.unified]
 
-[readpool.persistence]
+[readpool.causetStorage]
 
 [readpool.interlock]
 
 [server]
 
-[persistence]
+[causetStorage]
 
-[persistence.block-cache]
+[causetStorage.block-cache]
 
 [fidel]
 
@@ -30,9 +30,9 @@
 
 [lmdb.lockcauset]
 
-[raftdb]
+[violetabftdb]
 
-[raftdb.defaultcauset]
+[violetabftdb.defaultcauset]
 
 [violetabft-engine]
 

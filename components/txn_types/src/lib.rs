@@ -8,7 +8,7 @@ extern crate quick_error;
 #[allow(unused_extern_crates)]
 extern crate einsteindb_alloc;
 
-mod lock;
+mod dagger;
 mod timestamp;
 mod types;
 mod write;
@@ -16,7 +16,7 @@ mod write;
 use std::fmt;
 use std::io;
 
-pub use lock::{Lock, LockType};
+pub use dagger::{Dagger, LockType};
 pub use timestamp::{TimeStamp, TsSet};
 pub use types::{
     is_short_value, Key, KvPair, Mutation, MutationType, OldValue, TxnExtra, TxnExtraScheduler,
@@ -39,7 +39,7 @@ quick_error! {
             cause(err)
             display("{}", err)
         }
-        BadFormatLock { display("bad format lock data") }
+        BadFormatLock { display("bad format dagger data") }
         BadFormatWrite { display("bad format write data") }
         KeyIsLocked(info: ekvproto::kvrpcpb::LockInfo) {
             display("key is locked (backoff or cleanup) {:?}", info)
@@ -105,11 +105,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 impl ErrorCodeExt for Error {
     fn error_code(&self) -> ErrorCode {
         match self.0.as_ref() {
-            ErrorInner::Io(_) => error_code::persistence::IO,
+            ErrorInner::Io(_) => error_code::causetStorage::IO,
             ErrorInner::Codec(e) => e.error_code(),
-            ErrorInner::BadFormatLock => error_code::persistence::BAD_FORMAT_LOCK,
-            ErrorInner::BadFormatWrite => error_code::persistence::BAD_FORMAT_WRITE,
-            ErrorInner::KeyIsLocked(_) => error_code::persistence::KEY_IS_LOCKED,
+            ErrorInner::BadFormatLock => error_code::causetStorage::BAD_FORMAT_LOCK,
+            ErrorInner::BadFormatWrite => error_code::causetStorage::BAD_FORMAT_WRITE,
+            ErrorInner::KeyIsLocked(_) => error_code::causetStorage::KEY_IS_LOCKED,
         }
     }
 }

@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ use futures::stream::{self, TryStreamExt};
 use grpcio::{Error as GrpcError, WriteFlags};
 use grpcio::{RpcContext, RpcStatus, RpcStatusCode, ServerStreamingSink, UnarySink};
 use ekvproto::debugpb::{self, *};
-use ekvproto::raft_cmdpb::{
+use ekvproto::violetabft_cmdpb::{
     AdminCmdType, AdminRequest, VioletaBftCmdRequest, VioletaBftRequestHeader, BraneDetailResponse,
     StatusCmdType, StatusRequest,
 };
@@ -50,7 +50,7 @@ fn error_to_grpc_error(tag: &'static str, e: Error) -> GrpcError {
 pub struct Service<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine>> {
     pool: Handle,
     debugger: Debugger<ER>,
-    raft_router: T,
+    violetabft_router: T,
     security_mgr: Arc<SecurityManager>,
 }
 
@@ -59,7 +59,7 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine>> Service<ER, T> 
     pub fn new(
         engines: Engines<LmdbEngine, ER>,
         pool: Handle,
-        raft_router: T,
+        violetabft_router: T,
         causetg_controller: ConfigController,
         security_mgr: Arc<SecurityManager>,
     ) -> Service<ER, T> {
@@ -67,7 +67,7 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine>> Service<ER, T> 
         Service {
             pool,
             debugger,
-            raft_router,
+            violetabft_router,
             security_mgr,
         }
     }
@@ -118,7 +118,7 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine> + 'static> debug
         self.handle_response(ctx, sink, f, TAG);
     }
 
-    fn raft_log(
+    fn violetabft_log(
         &mut self,
         ctx: RpcContext<'_>,
         req: VioletaBftLogRequest,
@@ -127,7 +127,7 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine> + 'static> debug
         if !check_common_name(self.security_mgr.cert_allowed_cn(), &ctx) {
             return;
         }
-        const TAG: &str = "debug_raft_log";
+        const TAG: &str = "debug_violetabft_log";
 
         let brane_id = req.get_brane_id();
         let log_index = req.get_log_index();
@@ -135,7 +135,7 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine> + 'static> debug
 
         let join = self
             .pool
-            .spawn(async move { debugger.raft_log(brane_id, log_index) });
+            .spawn(async move { debugger.violetabft_log(brane_id, log_index) });
         let f = async move {
             let entry = join.await.unwrap()?;
             let mut resp = VioletaBftLogResponse::default();
@@ -166,11 +166,11 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine> + 'static> debug
         let f = async move {
             let brane_info = join.await.unwrap()?;
             let mut resp = BraneInfoResponse::default();
-            if let Some(raft_local_state) = brane_info.raft_local_state {
-                resp.set_raft_local_state(raft_local_state);
+            if let Some(violetabft_local_state) = brane_info.violetabft_local_state {
+                resp.set_violetabft_local_state(violetabft_local_state);
             }
-            if let Some(raft_apply_state) = brane_info.raft_apply_state {
-                resp.set_raft_apply_state(raft_apply_state);
+            if let Some(violetabft_apply_state) = brane_info.violetabft_apply_state {
+                resp.set_violetabft_apply_state(violetabft_apply_state);
             }
             if let Some(brane_state) = brane_info.brane_local_state {
                 resp.set_brane_local_state(brane_state);
@@ -390,7 +390,7 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine> + 'static> debug
                 if req.get_all() {
                     let engines = debugger.get_engine();
                     resp.set_lmdb_kv(box_try!(MiscExt::dump_stats(&engines.kv)));
-                    resp.set_lmdb_raft(box_try!(VioletaBftEngine::dump_stats(&engines.violetabft)));
+                    resp.set_lmdb_violetabft(box_try!(VioletaBftEngine::dump_stats(&engines.violetabft)));
                     resp.set_jemalloc(einsteindb_alloc::dump_stats());
                 }
                 Ok(resp)
@@ -411,8 +411,8 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine> + 'static> debug
         }
         let brane_id = req.get_brane_id();
         let debugger = self.debugger.clone();
-        let router1 = self.raft_router.clone();
-        let router2 = self.raft_router.clone();
+        let router1 = self.violetabft_router.clone();
+        let router2 = self.violetabft_router.clone();
 
         let consistency_check_task = async move {
             let store_id = debugger.get_store_id()?;
@@ -537,7 +537,7 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine> + 'static> debug
 }
 
 fn brane_detail<T: VioletaBftStoreRouter<LmdbEngine>>(
-    raft_router: T,
+    violetabft_router: T,
     brane_id: u64,
     store_id: u64,
 ) -> impl Future<Output = Result<BraneDetailResponse>> {
@@ -546,16 +546,16 @@ fn brane_detail<T: VioletaBftStoreRouter<LmdbEngine>>(
     header.mut_peer().set_store_id(store_id);
     let mut status_request = StatusRequest::default();
     status_request.set_cmd_type(StatusCmdType::BraneDetail);
-    let mut raft_cmd = VioletaBftCmdRequest::default();
-    raft_cmd.set_header(header);
-    raft_cmd.set_status_request(status_request);
+    let mut violetabft_cmd = VioletaBftCmdRequest::default();
+    violetabft_cmd.set_header(header);
+    violetabft_cmd.set_status_request(status_request);
 
     let (tx, rx) = oneshot::channel();
     let cb = Callback::Read(Box::new(|resp| tx.slightlike(resp).unwrap()));
 
     async move {
-        raft_router
-            .slightlike_command(raft_cmd, cb)
+        violetabft_router
+            .slightlike_command(violetabft_cmd, cb)
             .map_err(|e| Error::Other(Box::new(e)))?;
 
         let mut r = rx.map_err(|e| Error::Other(Box::new(e))).await?;
@@ -578,7 +578,7 @@ fn brane_detail<T: VioletaBftStoreRouter<LmdbEngine>>(
 }
 
 fn consistency_check<T: VioletaBftStoreRouter<LmdbEngine>>(
-    raft_router: T,
+    violetabft_router: T,
     mut detail: BraneDetailResponse,
 ) -> impl Future<Output = Result<()>> {
     let mut header = VioletaBftRequestHeader::default();
@@ -586,16 +586,16 @@ fn consistency_check<T: VioletaBftStoreRouter<LmdbEngine>>(
     header.set_peer(detail.take_leader());
     let mut admin_request = AdminRequest::default();
     admin_request.set_cmd_type(AdminCmdType::ComputeHash);
-    let mut raft_cmd = VioletaBftCmdRequest::default();
-    raft_cmd.set_header(header);
-    raft_cmd.set_admin_request(admin_request);
+    let mut violetabft_cmd = VioletaBftCmdRequest::default();
+    violetabft_cmd.set_header(header);
+    violetabft_cmd.set_admin_request(admin_request);
 
     let (tx, rx) = oneshot::channel();
     let cb = Callback::Read(Box::new(|resp| tx.slightlike(resp).unwrap()));
 
     async move {
-        raft_router
-            .slightlike_command(raft_cmd, cb)
+        violetabft_router
+            .slightlike_command(violetabft_cmd, cb)
             .map_err(|e| Error::Other(Box::new(e)))?;
 
         let r = rx.map_err(|e| Error::Other(Box::new(e))).await?;

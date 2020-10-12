@@ -17,7 +17,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 pub fn new_temp_engine(path: &tempfile::TempDir) -> Engines<LmdbEngine, LmdbEngine> {
-    let raft_path = path.path().join(std::path::Path::new("violetabft"));
+    let violetabft_path = path.path().join(std::path::Path::new("violetabft"));
     Engines::new(
         new_engine(
             path.path().to_str().unwrap(),
@@ -27,7 +27,7 @@ pub fn new_temp_engine(path: &tempfile::TempDir) -> Engines<LmdbEngine, LmdbEngi
         )
         .unwrap(),
         new_engine(
-            raft_path.to_str().unwrap(),
+            violetabft_path.to_str().unwrap(),
             None,
             &[engine_promises::CAUSET_DEFAULT],
             None,

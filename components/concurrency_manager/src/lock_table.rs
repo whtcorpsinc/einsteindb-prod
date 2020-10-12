@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use super::key_handle::{KeyHandle, KeyHandleGuard};
 
@@ -7,7 +7,7 @@ use std::{
     ops::Bound,
     sync::{Arc, Weak},
 };
-use txn_types::{Key, Lock};
+use txn_types::{Key, Dagger};
 
 #[derive(Clone)]
 pub struct LockTable(pub Arc<SkipMap<Key, Weak<KeyHandle>>>);
@@ -24,13 +24,13 @@ impl LockTable {
             let handle = Arc::new(KeyHandle::new(key.clone(), self.clone()));
             let weak = Arc::downgrade(&handle);
             let weak2 = weak.clone();
-            let guard = handle.lock().await;
+            let guard = handle.dagger().await;
 
             let entry = self.0.get_or_insert(key.clone(), weak);
             if entry.value().ptr_eq(&weak2) {
                 return guard;
             } else if let Some(handle) = entry.value().upgrade() {
-                return handle.lock().await;
+                return handle.dagger().await;
             }
         }
     }
@@ -38,12 +38,12 @@ impl LockTable {
     pub fn check_key<E>(
         &self,
         key: &Key,
-        check_fn: impl FnOnce(&Lock) -> Result<(), E>,
+        check_fn: impl FnOnce(&Dagger) -> Result<(), E>,
     ) -> Result<(), E> {
         if let Some(lock_ref) = self.get(key) {
-            return lock_ref.with_lock(|lock| {
-                if let Some(lock) = &*lock {
-                    return check_fn(lock);
+            return lock_ref.with_lock(|dagger| {
+                if let Some(dagger) = &*dagger {
+                    return check_fn(dagger);
                 }
                 Ok(())
             });
@@ -55,12 +55,12 @@ impl LockTable {
         &self,
         spacelike_key: Option<&Key>,
         lightlike_key: Option<&Key>,
-        mut check_fn: impl FnMut(&Key, &Lock) -> Result<(), E>,
+        mut check_fn: impl FnMut(&Key, &Dagger) -> Result<(), E>,
     ) -> Result<(), E> {
         let e = self.find_first(spacelike_key, lightlike_key, |handle| {
-            handle.with_lock(|lock| {
-                lock.as_ref()
-                    .and_then(|lock| check_fn(&handle.key, lock).err())
+            handle.with_lock(|dagger| {
+                dagger.as_ref()
+                    .and_then(|dagger| check_fn(&handle.key, dagger).err())
             })
         });
         if let Some(e) = e {
@@ -149,9 +149,9 @@ mod test {
         assert_eq!(counter.load(Ordering::SeqCst), 100);
     }
 
-    fn ts_check(lock: &Lock, ts: u64) -> Result<(), Lock> {
-        if lock.ts.into_inner() < ts {
-            Err(lock.clone())
+    fn ts_check(dagger: &Dagger, ts: u64) -> Result<(), Dagger> {
+        if dagger.ts.into_inner() < ts {
+            Err(dagger.clone())
         } else {
             Ok(())
         }
@@ -162,11 +162,11 @@ mod test {
         let lock_table = LockTable::default();
         let key_k = Key::from_raw(b"k");
 
-        // no lock found
+        // no dagger found
         assert!(lock_table.check_key(&key_k, |_| Err(())).is_ok());
 
-        let lock = Lock::new(
-            LockType::Lock,
+        let dagger = Dagger::new(
+            LockType::Dagger,
             b"k".to_vec(),
             10.into(),
             100,
@@ -177,22 +177,22 @@ mod test {
         );
         let guard = lock_table.lock_key(&key_k).await;
         guard.with_lock(|l| {
-            *l = Some(lock.clone());
+            *l = Some(dagger.clone());
         });
 
-        // lock passes check_fn
+        // dagger passes check_fn
         assert!(lock_table.check_key(&key_k, |l| ts_check(l, 5)).is_ok());
 
-        // lock does not pass check_fn
-        assert_eq!(lock_table.check_key(&key_k, |l| ts_check(l, 20)), Err(lock));
+        // dagger does not pass check_fn
+        assert_eq!(lock_table.check_key(&key_k, |l| ts_check(l, 20)), Err(dagger));
     }
 
     #[tokio::test]
     async fn test_check_cone() {
         let lock_table = LockTable::default();
 
-        let lock_k = Lock::new(
-            LockType::Lock,
+        let lock_k = Dagger::new(
+            LockType::Dagger,
             b"k".to_vec(),
             20.into(),
             100,
@@ -206,8 +206,8 @@ mod test {
             *l = Some(lock_k.clone());
         });
 
-        let lock_l = Lock::new(
-            LockType::Lock,
+        let lock_l = Dagger::new(
+            LockType::Dagger,
             b"l".to_vec(),
             10.into(),
             100,
@@ -221,7 +221,7 @@ mod test {
             *l = Some(lock_l.clone());
         });
 
-        // no lock found
+        // no dagger found
         assert!(lock_table
             .check_cone(
                 Some(&Key::from_raw(b"m")),
@@ -230,18 +230,18 @@ mod test {
             )
             .is_ok());
 
-        // lock passes check_fn
+        // dagger passes check_fn
         assert!(lock_table
             .check_cone(None, Some(&Key::from_raw(b"z")), |_, l| ts_check(l, 5))
             .is_ok());
 
-        // first lock does not pass check_fn
+        // first dagger does not pass check_fn
         assert_eq!(
             lock_table.check_cone(Some(&Key::from_raw(b"a")), None, |_, l| ts_check(l, 25)),
             Err(lock_k)
         );
 
-        // first lock passes check_fn but the second does not
+        // first dagger passes check_fn but the second does not
         assert_eq!(
             lock_table.check_cone(None, None, |_, l| ts_check(l, 15)),
             Err(lock_l)
@@ -256,15 +256,15 @@ mod test {
         let mut expect_locks = Vec::new();
 
         let collect = |h: Arc<KeyHandle>, to: &mut Vec<_>| {
-            let lock = h.with_lock(|l| l.clone());
-            to.push((h.key.clone(), lock));
+            let dagger = h.with_lock(|l| l.clone());
+            to.push((h.key.clone(), dagger));
         };
 
         lock_table.for_each(|h| collect(h, &mut found_locks));
         assert!(found_locks.is_empty());
 
-        let lock_a = Lock::new(
-            LockType::Lock,
+        let lock_a = Dagger::new(
+            LockType::Dagger,
             b"a".to_vec(),
             20.into(),
             100,
@@ -283,8 +283,8 @@ mod test {
         assert_eq!(found_locks, expect_locks);
         found_locks.clear();
 
-        let lock_b = Lock::new(
-            LockType::Lock,
+        let lock_b = Dagger::new(
+            LockType::Dagger,
             b"b".to_vec(),
             30.into(),
             120,

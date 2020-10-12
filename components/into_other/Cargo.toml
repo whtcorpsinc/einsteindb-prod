@@ -11,4 +11,4 @@ prost-codec = ["ekvproto/prost-codec", "violetabft/prost-codec"]
 [deplightlikeencies]
 engine_promises = { path = "../engine_promises" }
 ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
-violetabft = { version = "0.6.0-alpha", default-features = false }
+violetabft = { version = "0.0.1-alpha", default-features = false }

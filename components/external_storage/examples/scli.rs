@@ -28,18 +28,18 @@ arg_enum! {
 
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case", name = "scli", version = "0.1")]
-/// An example using persistence to save and load a file.
+/// An example using causetStorage to save and load a file.
 pub struct Opt {
     /// CausetStorage backlightlike.
     #[structopt(short, long, possible_values = &StorageType::variants(), case_insensitive = true)]
-    persistence: StorageType,
+    causetStorage: StorageType,
     /// Local file to load from or save to.
     #[structopt(short, long)]
     file: String,
     /// Remote name of the file to load from or save to.
     #[structopt(short, long)]
     name: String,
-    /// Path to use for local persistence.
+    /// Path to use for local causetStorage.
     #[structopt(short, long)]
     path: String,
     /// Credential file path. For S3, use ~/.aws/credentials.
@@ -64,9 +64,9 @@ pub struct Opt {
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 enum Command {
-    /// Save file to persistence.
+    /// Save file to causetStorage.
     Save,
-    /// Load file from persistence.
+    /// Load file from causetStorage.
     Load,
 }
 
@@ -134,7 +134,7 @@ fn create_gcs_causetStorage(opt: &Opt) -> Result<Arc<dyn ExternalStorage>> {
 
 fn process() -> Result<()> {
     let opt = Opt::from_args();
-    let persistence = match opt.persistence {
+    let causetStorage = match opt.causetStorage {
         StorageType::Noop => create_causetStorage(&make_noop_backlightlike())?,
         StorageType::Local => create_causetStorage(&make_local_backlightlike(Path::new(&opt.path)))?,
         StorageType::S3 => create_s3_causetStorage(&opt)?,
@@ -145,10 +145,10 @@ fn process() -> Result<()> {
         Command::Save => {
             let file = File::open(&opt.file)?;
             let file_size = file.metadata()?.len();
-            persistence.write(&opt.name, Box::new(AllowStdIo::new(file)), file_size)?;
+            causetStorage.write(&opt.name, Box::new(AllowStdIo::new(file)), file_size)?;
         }
         Command::Load => {
-            let reader = persistence.read(&opt.name);
+            let reader = causetStorage.read(&opt.name);
             let mut file = AllowStdIo::new(File::create(&opt.file)?);
             block_on(copy(reader, &mut file))?;
         }

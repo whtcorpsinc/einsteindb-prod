@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::future::Future;
 use std::marker::PhantomData;
@@ -19,9 +19,9 @@ use fidelpb::{AnalyzeReq, AnalyzeType, ChecksumRequest, ChecksumScanOn, PosetDag
 
 use crate::read_pool::ReadPoolHandle;
 use crate::server::Config;
-use crate::persistence::kv::{self, with_tls_engine};
-use crate::persistence::mvcc::Error as MvccError;
-use crate::persistence::{self, Engine, Snapshot, SnapshotStore};
+use crate::causetStorage::kv::{self, with_tls_engine};
+use crate::causetStorage::mvcc::Error as MvccError;
+use crate::causetStorage::{self, Engine, Snapshot, SnapshotStore};
 
 use crate::interlock::cache::CachedRequestHandler;
 use crate::interlock::interceptors::limit_concurrency;
@@ -31,7 +31,7 @@ use crate::interlock::tracker::Tracker;
 use crate::interlock::*;
 use concurrency_manager::ConcurrencyManager;
 use minitrace::prelude::*;
-use txn_types::Lock;
+use txn_types::Dagger;
 
 /// Requests that need time of less than `LIGHT_TASK_THRESHOLD` is considered as light ones,
 /// which means they don't need a permit from the semaphore before execution.
@@ -122,9 +122,9 @@ impl<E: Engine> Endpoint<E> {
                 let spacelike_key = txn_types::Key::from_raw(cone.get_spacelike());
                 let lightlike_key = txn_types::Key::from_raw(cone.get_lightlike());
                 self.concurrency_manager
-                    .read_cone_check(Some(&spacelike_key), Some(&lightlike_key), |key, lock| {
-                        Lock::check_ts_conflict(
-                            Cow::Borrowed(lock),
+                    .read_cone_check(Some(&spacelike_key), Some(&lightlike_key), |key, dagger| {
+                        Dagger::check_ts_conflict(
+                            Cow::Borrowed(dagger),
                             key,
                             spacelike_ts,
                             &req_ctx.bypass_locks,
@@ -209,11 +209,11 @@ impl<E: Engine> Endpoint<E> {
 
         match req.get_tp() {
             REQ_TYPE_DAG => {
-                let mut dag = PosetDagRequest::default();
-                parser.merge_to(&mut dag)?;
+                let mut posetdag = PosetDagRequest::default();
+                parser.merge_to(&mut posetdag)?;
                 let mut table_scan = false;
                 let mut is_desc_scan = false;
-                if let Some(scan) = dag.get_executors().iter().next() {
+                if let Some(scan) = posetdag.get_executors().iter().next() {
                     table_scan = scan.get_tp() == ExecType::TypeTableScan;
                     if table_scan {
                         is_desc_scan = scan.get_tbl_scan().get_desc();
@@ -222,7 +222,7 @@ impl<E: Engine> Endpoint<E> {
                     }
                 }
                 if spacelike_ts == 0 {
-                    spacelike_ts = dag.get_spacelike_ts_fallback();
+                    spacelike_ts = posetdag.get_spacelike_ts_fallback();
                 }
                 let tag = if table_scan {
                     ReqTag::select
@@ -255,8 +255,8 @@ impl<E: Engine> Endpoint<E> {
                         req_ctx.bypass_locks.clone(),
                         req.get_is_cache_enabled(),
                     );
-                    dag::PosetDagHandlerBuilder::new(
-                        dag,
+                    posetdag::PosetDagHandlerBuilder::new(
+                        posetdag,
                         cones,
                         store,
                         req_ctx.deadline,
@@ -608,7 +608,7 @@ fn make_error_response(e: Error) -> coppb::Response {
     let tag;
     match e {
         Error::Brane(e) => {
-            tag = persistence::get_tag_from_header(&e);
+            tag = causetStorage::get_tag_from_header(&e);
             resp.set_brane_error(e);
         }
         Error::Locked(info) => {
@@ -653,8 +653,8 @@ mod tests {
     use crate::config::CoprReadPoolConfig;
     use crate::interlock::readpool_impl::build_read_pool_for_test;
     use crate::read_pool::ReadPool;
-    use crate::persistence::kv::LmdbEngine;
-    use crate::persistence::TestEngineBuilder;
+    use crate::causetStorage::kv::LmdbEngine;
+    use crate::causetStorage::TestEngineBuilder;
     use protobuf::Message;
     use txn_types::{Key, LockType};
 
@@ -857,11 +857,11 @@ mod tests {
             }
             let mut e = FreeDaemon::default();
             e.mut_selection().mut_conditions().push(expr);
-            let mut dag = PosetDagRequest::default();
-            dag.mut_executors().push(e);
+            let mut posetdag = PosetDagRequest::default();
+            posetdag.mut_executors().push(e);
             let mut req = coppb::Request::default();
             req.set_tp(REQ_TYPE_DAG);
-            req.set_data(dag.write_to_bytes().unwrap());
+            req.set_data(posetdag.write_to_bytes().unwrap());
             req
         };
 
@@ -906,7 +906,7 @@ mod tests {
 
     #[test]
     fn test_full() {
-        use crate::persistence::kv::{destroy_tls_engine, set_tls_engine};
+        use crate::causetStorage::kv::{destroy_tls_engine, set_tls_engine};
         use std::sync::Mutex;
         use einsteindb_util::yatp_pool::{DefaultTicker, YatpPoolBuilder};
 
@@ -925,7 +925,7 @@ mod tests {
                 YatpPoolBuilder::new(DefaultTicker::default())
                     .config(config)
                     .name_prefix("interlock_lightlikepoint_test_full")
-                    .after_spacelike(move || set_tls_engine(engine.lock().unwrap().clone()))
+                    .after_spacelike(move || set_tls_engine(engine.dagger().unwrap().clone()))
                     // Safety: we call `set_` and `destroy_` with the same engine type.
                     .before_stop(|| unsafe { destroy_tls_engine::<LmdbEngine>() })
                     .build_future_pool()
@@ -1487,8 +1487,8 @@ mod tests {
         let cm = ConcurrencyManager::new(1.into());
         let key = Key::from_raw(b"key");
         let guard = block_on(cm.lock_key(&key));
-        guard.with_lock(|lock| {
-            *lock = Some(txn_types::Lock::new(
+        guard.with_lock(|dagger| {
+            *dagger = Some(txn_types::Dagger::new(
                 LockType::Put,
                 b"key".to_vec(),
                 10.into(),
@@ -1514,9 +1514,9 @@ mod tests {
         key_cone.set_spacelike(b"a".to_vec());
         key_cone.set_lightlike(b"z".to_vec());
         req.mut_cones().push(key_cone);
-        let mut dag = PosetDagRequest::default();
-        dag.mut_executors().push(FreeDaemon::default());
-        req.set_data(dag.write_to_bytes().unwrap());
+        let mut posetdag = PosetDagRequest::default();
+        posetdag.mut_executors().push(FreeDaemon::default());
+        req.set_data(posetdag.write_to_bytes().unwrap());
 
         let resp = block_on(causet.parse_and_handle_unary_request(req, None));
         assert_eq!(resp.get_locked().get_key(), b"key");

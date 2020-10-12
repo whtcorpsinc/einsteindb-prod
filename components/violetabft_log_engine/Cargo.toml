@@ -1,5 +1,5 @@
 [package]
-name = "raft_log_engine"
+name = "violetabft_log_engine"
 version = "0.0.1"
 publish = false
 edition = "2018"

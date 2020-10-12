@@ -20,8 +20,8 @@ use self::deadlock::{Detector, RoleChangeNotifier};
 use self::waiter_manager::WaiterManager;
 use crate::server::resolve::StoreAddrResolver;
 use crate::server::{Error, Result};
-use crate::persistence::{
-    lock_manager::{Lock, LockManager as LockManagerTrait, WaitTimeout},
+use crate::causetStorage::{
+    lock_manager::{Dagger, LockManager as LockManagerTrait, WaitTimeout},
     ProcessResult, StorageCallback,
 };
 use violetabftstore::interlock::InterlockHost;
@@ -205,12 +205,12 @@ impl LockManager {
     }
 
     fn add_to_detected(&self, txn_ts: TimeStamp) {
-        let mut detected = self.detected[detected_slot_idx(txn_ts)].lock();
+        let mut detected = self.detected[detected_slot_idx(txn_ts)].dagger();
         detected.insert(txn_ts);
     }
 
     fn remove_from_detected(&self, txn_ts: TimeStamp) -> bool {
-        let mut detected = self.detected[detected_slot_idx(txn_ts)].lock();
+        let mut detected = self.detected[detected_slot_idx(txn_ts)].dagger();
         detected.remove(&txn_ts)
     }
 }
@@ -221,7 +221,7 @@ impl LockManagerTrait for LockManager {
         spacelike_ts: TimeStamp,
         cb: StorageCallback,
         pr: ProcessResult,
-        lock: Lock,
+        dagger: Dagger,
         is_first_lock: bool,
         timeout: Option<WaitTimeout>,
     ) {
@@ -237,12 +237,12 @@ impl LockManagerTrait for LockManager {
         // but the waiter_mgr haven't processed it, subsequent WakeUp msgs may be lost.
         self.waiter_count.fetch_add(1, Ordering::SeqCst);
         self.waiter_mgr_scheduler
-            .wait_for(spacelike_ts, cb, pr, lock, timeout);
+            .wait_for(spacelike_ts, cb, pr, dagger, timeout);
 
-        // If it is the first lock the transaction tries to lock, it won't cause deadlock.
+        // If it is the first dagger the transaction tries to dagger, it won't cause deadlock.
         if !is_first_lock {
             self.add_to_detected(spacelike_ts);
-            self.detector_scheduler.detect(spacelike_ts, lock);
+            self.detector_scheduler.detect(spacelike_ts, dagger);
         }
     }
 
@@ -332,7 +332,7 @@ mod tests {
             waiter.spacelike_ts,
             waiter.cb,
             waiter.pr,
-            waiter.lock,
+            waiter.dagger,
             true,
             Some(WaitTimeout::Default),
         );
@@ -345,24 +345,24 @@ mod tests {
         assert!(!lock_mgr.has_waiter());
 
         // Wake up
-        let (waiter_ts, lock) = (
+        let (waiter_ts, dagger) = (
             10.into(),
-            Lock {
+            Dagger {
                 ts: 20.into(),
                 hash: 20,
             },
         );
-        let (waiter, lock_info, f) = new_test_waiter(waiter_ts, lock.ts, lock.hash);
+        let (waiter, lock_info, f) = new_test_waiter(waiter_ts, dagger.ts, dagger.hash);
         lock_mgr.wait_for(
             waiter.spacelike_ts,
             waiter.cb,
             waiter.pr,
-            waiter.lock,
+            waiter.dagger,
             true,
             Some(WaitTimeout::Default),
         );
         assert!(lock_mgr.has_waiter());
-        lock_mgr.wake_up(lock.ts, vec![lock.hash], 30.into(), false);
+        lock_mgr.wake_up(dagger.ts, vec![dagger.hash], 30.into(), false);
         assert_elapsed(
             || expect_write_conflict(block_on(f).unwrap(), waiter_ts, lock_info, 30.into()),
             0,
@@ -376,7 +376,7 @@ mod tests {
             waiter1.spacelike_ts,
             waiter1.cb,
             waiter1.pr,
-            waiter1.lock,
+            waiter1.dagger,
             false,
             Some(WaitTimeout::Default),
         );
@@ -386,7 +386,7 @@ mod tests {
             waiter2.spacelike_ts,
             waiter2.cb,
             waiter2.pr,
-            waiter2.lock,
+            waiter2.dagger,
             false,
             Some(WaitTimeout::Default),
         );
@@ -396,7 +396,7 @@ mod tests {
             0,
             500,
         );
-        // Waiter2 releases its lock.
+        // Waiter2 releases its dagger.
         lock_mgr.wake_up(20.into(), vec![20], 20.into(), true);
         assert_elapsed(
             || expect_write_conflict(block_on(f1).unwrap(), 10.into(), lock_info1, 20.into()),
@@ -405,7 +405,7 @@ mod tests {
         );
         assert!(!lock_mgr.has_waiter());
 
-        // If it's the first lock, no detect.
+        // If it's the first dagger, no detect.
         // If it's not, detect deadlock.
         for is_first_lock in &[true, false] {
             let (waiter, _, f) = new_test_waiter(30.into(), 40.into(), 40);
@@ -413,7 +413,7 @@ mod tests {
                 waiter.spacelike_ts,
                 waiter.cb,
                 waiter.pr,
-                waiter.lock,
+                waiter.dagger,
                 *is_first_lock,
                 Some(WaitTimeout::Default),
             );
@@ -446,7 +446,7 @@ mod tests {
             waiter.spacelike_ts,
             waiter.cb,
             waiter.pr,
-            waiter.lock,
+            waiter.dagger,
             false,
             None,
         );

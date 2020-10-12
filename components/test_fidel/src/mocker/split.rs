@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::Mutex;
 
@@ -27,7 +27,7 @@ impl Split {
 
 impl FidelMocker for Split {
     fn get_members(&self, _: &GetMembersRequest) -> Option<Result<GetMembersResponse>> {
-        let mut holder = self.inner.lock().unwrap();
+        let mut holder = self.inner.dagger().unwrap();
         let inner = holder.as_mut().unwrap();
         inner.idx += 1;
         info!(
@@ -61,7 +61,7 @@ impl FidelMocker for Split {
 
         info!("[Split] resps {:?}", resps);
 
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.dagger().unwrap();
         *inner = Some(Inner { resps, idx: 0 })
     }
 }

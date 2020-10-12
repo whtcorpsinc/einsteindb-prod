@@ -78,7 +78,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The persistence size per EinsteinDB instance",
+          "description": "The causetStorage size per EinsteinDB instance",
           "editable": true,
           "error": false,
           "fill": 5,
@@ -1635,7 +1635,7 @@
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} - {{type}} - to - {{store_id}}",
-              "metric": "einsteindb_server_raft_store_msg_total",
+              "metric": "einsteindb_server_violetabft_store_msg_total",
               "refId": "A",
               "step": 10
             }
@@ -2418,7 +2418,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The persistence size per EinsteinDB instance",
+          "description": "The causetStorage size per EinsteinDB instance",
           "editable": true,
           "error": false,
           "fill": 5,
@@ -4090,7 +4090,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_server_raft_message_batch_size_bucket{instance=~\"$instance\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_server_violetabft_message_batch_size_bucket{instance=~\"$instance\"}[1m])) by (le))",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 2,
@@ -4099,7 +4099,7 @@
               "step": 10
             },
             {
-              "expr": "sum(rate(einsteindb_server_raft_message_batch_size_sum{instance=~\"$instance\"}[1m])) / sum(rate(einsteindb_server_raft_message_batch_size_count{instance=~\"$instance\"}[1m]))",
+              "expr": "sum(rate(einsteindb_server_violetabft_message_batch_size_sum{instance=~\"$instance\"}[1m])) / sum(rate(einsteindb_server_violetabft_message_batch_size_count{instance=~\"$instance\"}[1m]))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "avg",
@@ -6541,16 +6541,16 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_violetabftstore_raft_ready_handled_total{instance=~\"$instance\"}[1m])) by (type)",
+              "expr": "sum(rate(einsteindb_violetabftstore_violetabft_ready_handled_total{instance=~\"$instance\"}[1m])) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{type}}",
-              "metric": "einsteindb_violetabftstore_raft_ready_handled_total",
+              "metric": "einsteindb_violetabftstore_violetabft_ready_handled_total",
               "refId": "A",
               "step": 4
             },
             {
-              "expr": "sum(rate(einsteindb_violetabftstore_raft_process_duration_secs_count{instance=~\"$instance\", type=\"ready\"}[1m]))",
+              "expr": "sum(rate(einsteindb_violetabftstore_violetabft_process_duration_secs_count{instance=~\"$instance\", type=\"ready\"}[1m]))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "count",
@@ -6737,7 +6737,7 @@
           "reverseYBuckets": false,
           "targets": [
             {
-              "expr": "sum(delta(einsteindb_violetabftstore_raft_process_duration_secs_bucket{instance=~\"$instance\", type='ready'}[1m])) by (le)",
+              "expr": "sum(delta(einsteindb_violetabftstore_violetabft_process_duration_secs_bucket{instance=~\"$instance\", type='ready'}[1m])) by (le)",
               "format": "heatmap",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{le}}",
@@ -6818,7 +6818,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_violetabftstore_raft_process_duration_secs_bucket{instance=~\"$instance\", type='ready'}[1m])) by (le, instance))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_violetabftstore_violetabft_process_duration_secs_bucket{instance=~\"$instance\", type='ready'}[1m])) by (le, instance))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -6939,7 +6939,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_violetabftstore_raft_sent_message_total{instance=~\"$instance\"}[1m])) by (instance)",
+              "expr": "sum(rate(einsteindb_violetabftstore_violetabft_sent_message_total{instance=~\"$instance\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -7036,11 +7036,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_server_raft_message_flush_total{instance=~\"$instance\"}[1m])) by (instance)",
+              "expr": "sum(rate(einsteindb_server_violetabft_message_flush_total{instance=~\"$instance\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
-              "metric": "einsteindb_server_raft_message_flush_total",
+              "metric": "einsteindb_server_violetabft_message_flush_total",
               "refId": "A",
               "step": 4
             }
@@ -7131,7 +7131,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_server_raft_message_recv_total{instance=~\"$instance\"}[1m])) by (instance)",
+              "expr": "sum(rate(einsteindb_server_violetabft_message_recv_total{instance=~\"$instance\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -7227,7 +7227,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_violetabftstore_raft_sent_message_total{instance=~\"$instance\"}[1m])) by (type)",
+              "expr": "sum(rate(einsteindb_violetabftstore_violetabft_sent_message_total{instance=~\"$instance\"}[1m])) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{type}}",
@@ -7324,7 +7324,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_violetabftstore_raft_sent_message_total{instance=~\"$instance\", type=\"vote\"}[1m])) by (instance)",
+              "expr": "sum(rate(einsteindb_violetabftstore_violetabft_sent_message_total{instance=~\"$instance\", type=\"vote\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -7421,7 +7421,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_violetabftstore_raft_dropped_message_total{instance=~\"$instance\"}[1m])) by (type)",
+              "expr": "sum(rate(einsteindb_violetabftstore_violetabft_dropped_message_total{instance=~\"$instance\"}[1m])) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{type}}",
@@ -9362,7 +9362,7 @@
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{status}}",
-              "metric": "einsteindb_violetabftstore_raft_process_duration_secs_bucket",
+              "metric": "einsteindb_violetabftstore_violetabft_process_duration_secs_bucket",
               "refId": "A",
               "step": 4
             }
@@ -10735,7 +10735,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The tuplespaceInstanton scan details of lock CAUSET when executing commit command",
+          "description": "The tuplespaceInstanton scan details of dagger CAUSET when executing commit command",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -10784,7 +10784,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_scheduler_kv_scan_details{instance=~\"$instance\", req=\"$command\", causet=\"lock\"}[1m])) by (tag)",
+              "expr": "sum(rate(einsteindb_scheduler_kv_scan_details{instance=~\"$instance\", req=\"$command\", causet=\"dagger\"}[1m])) by (tag)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{tag}}",
@@ -10797,7 +10797,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler scan details [lock]",
+          "title": "Scheduler scan details [dagger]",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -12466,7 +12466,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(delta(einsteindb_violetabftstore_raft_sent_message_total{instance=~\"$instance\", type=\"snapshot\"}[1m]))",
+              "expr": "sum(delta(einsteindb_violetabftstore_violetabft_sent_message_total{instance=~\"$instance\", type=\"snapshot\"}[1m]))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": " ",
@@ -22740,7 +22740,7 @@
         }
       ],
       "repeat": "titan_db",
-      "title": "Titan - $titan_db",
+      "title": "Noether - $titan_db",
       "type": "row"
     },
     {
@@ -23468,7 +23468,7 @@
           }
         }
       ],
-      "title": "Lock manager",
+      "title": "Dagger manager",
       "type": "row"
     },
     {

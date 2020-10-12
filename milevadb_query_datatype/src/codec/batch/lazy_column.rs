@@ -16,9 +16,9 @@ use crate::expr::EvalContext;
 /// the `VectorValue` type.
 ///
 /// TODO:
-/// Since currently the data format in response can be the same as in persistence, we use this structure
+/// Since currently the data format in response can be the same as in causetStorage, we use this structure
 /// to avoid unnecessary repeated serialization / deserialization. In future, Interlock will
-/// respond all data in Soliton format which is different to the format in persistence. At that time,
+/// respond all data in Soliton format which is different to the format in causetStorage. At that time,
 /// this structure is no longer useful and should be removed.
 #[derive(Clone, Debug)]
 pub enum LazyBatchPrimaryCauset {

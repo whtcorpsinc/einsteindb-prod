@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::error::Error as StdError;
 use std::sync::{mpsc, Arc, Mutex, RwLock};
@@ -9,22 +9,22 @@ use futures::executor::block_on;
 use ekvproto::errorpb::Error as PbError;
 use ekvproto::metapb::{self, Peer, BraneEpoch, StoreLabel};
 use ekvproto::fidelpb;
-use ekvproto::raft_cmdpb::*;
-use ekvproto::raft_serverpb::{
+use ekvproto::violetabft_cmdpb::*;
+use ekvproto::violetabft_serverpb::{
     self, VioletaBftApplyState, VioletaBftLocalState, VioletaBftMessage, VioletaBftTruncatedState, BraneLocalState,
 };
-use violetabft::eraftpb::ConfChangeType;
+use violetabft::evioletabftpb::ConfChangeType;
 use tempfile::TempDir;
 
 use encryption::DataKeyManager;
 use engine_lmdb::raw::DB;
 use engine_lmdb::{Compat, LmdbEngine, LmdbSnapshot};
 use engine_promises::{
-    CompactExt, Engines, Iterable, MiscExt, Mutable, Peekable, WriteBatchExt, CAUSET_RAFT,
+    CompactExt, Engines, Iterable, MiscExt, Mutable, Peekable, WriteBatchExt, CAUSET_VIOLETABFT,
 };
 use fidel_client::FidelClient;
 use violetabftstore::store::fsm::store::{StoreMeta, PENDING_VOTES_CAP};
-use violetabftstore::store::fsm::{create_raft_batch_system, VioletaBftBatchSystem, VioletaBftRouter};
+use violetabftstore::store::fsm::{create_violetabft_batch_system, VioletaBftBatchSystem, VioletaBftRouter};
 use violetabftstore::store::transport::CasualRouter;
 use violetabftstore::store::*;
 use violetabftstore::{Error, Result};
@@ -65,7 +65,7 @@ pub trait Simulator {
         request: VioletaBftCmdRequest,
         cb: Callback<LmdbSnapshot>,
     ) -> Result<()>;
-    fn slightlike_raft_msg(&mut self, msg: VioletaBftMessage) -> Result<()>;
+    fn slightlike_violetabft_msg(&mut self, msg: VioletaBftMessage) -> Result<()>;
     fn get_snap_dir(&self, node_id: u64) -> String;
     fn get_router(&self, node_id: u64) -> Option<VioletaBftRouter<LmdbEngine, LmdbEngine>>;
     fn add_slightlike_filter(&mut self, node_id: u64, filter: Box<dyn Filter>);
@@ -168,7 +168,7 @@ impl<T: Simulator> Cluster<T> {
 
     pub fn pre_spacelike_check(&mut self) -> result::Result<(), Box<dyn StdError>> {
         for path in &self.paths {
-            self.causetg.persistence.data_dir = path.path().to_str().unwrap().to_owned();
+            self.causetg.causetStorage.data_dir = path.path().to_str().unwrap().to_owned();
             self.causetg.validate()?
         }
         Ok(())
@@ -208,7 +208,7 @@ impl<T: Simulator> Cluster<T> {
 
         // Try spacelike new nodes.
         for _ in 0..self.count - self.engines.len() {
-            let (router, system) = create_raft_batch_system(&self.causetg.raft_store);
+            let (router, system) = create_violetabft_batch_system(&self.causetg.violetabft_store);
             self.create_engine(Some(router.clone()));
 
             let engines = self.dbs.last().unwrap().clone();
@@ -264,7 +264,7 @@ impl<T: Simulator> Cluster<T> {
         debug!("spacelikeing node {}", node_id);
         let engines = self.engines[&node_id].clone();
         let key_mgr = self.key_managers_map[&node_id].clone();
-        let (router, system) = create_raft_batch_system(&self.causetg.raft_store);
+        let (router, system) = create_violetabft_batch_system(&self.causetg.violetabft_store);
         let mut causetg = self.causetg.clone();
         if let Some(labels) = self.labels.get(&node_id) {
             causetg.server.labels = labels.to_owned();
@@ -286,7 +286,7 @@ impl<T: Simulator> Cluster<T> {
             Ok(mut sim) => sim.stop_node(node_id),
             Err(_) => {
                 if !thread::panicking() {
-                    panic!("failed to acquire write lock.")
+                    panic!("failed to acquire write dagger.")
                 }
             }
         }
@@ -298,7 +298,7 @@ impl<T: Simulator> Cluster<T> {
         Arc::clone(&self.engines[&node_id].kv.as_inner())
     }
 
-    pub fn get_raft_engine(&self, node_id: u64) -> Arc<DB> {
+    pub fn get_violetabft_engine(&self, node_id: u64) -> Arc<DB> {
         Arc::clone(&self.engines[&node_id].violetabft.as_inner())
     }
 
@@ -306,8 +306,8 @@ impl<T: Simulator> Cluster<T> {
         self.engines[&node_id].clone()
     }
 
-    pub fn slightlike_raft_msg(&mut self, msg: VioletaBftMessage) -> Result<()> {
-        self.sim.wl().slightlike_raft_msg(msg)
+    pub fn slightlike_violetabft_msg(&mut self, msg: VioletaBftMessage) -> Result<()> {
+        self.sim.wl().slightlike_violetabft_msg(msg)
     }
 
     pub fn call_command_on_node(
@@ -662,7 +662,7 @@ impl<T: Simulator> Cluster<T> {
                     // Leave the resource to avoid double panic.
                     return;
                 } else {
-                    panic!("failed to acquire read lock");
+                    panic!("failed to acquire read dagger");
                 }
             }
         }
@@ -982,16 +982,16 @@ impl<T: Simulator> Cluster<T> {
         let key = tuplespaceInstanton::apply_state_key(brane_id);
         self.get_engine(store_id)
             .c()
-            .get_msg_causet::<VioletaBftApplyState>(engine_promises::CAUSET_RAFT, &key)
+            .get_msg_causet::<VioletaBftApplyState>(engine_promises::CAUSET_VIOLETABFT, &key)
             .unwrap()
             .unwrap()
     }
 
-    pub fn raft_local_state(&self, brane_id: u64, store_id: u64) -> VioletaBftLocalState {
-        let key = tuplespaceInstanton::raft_state_key(brane_id);
-        self.get_raft_engine(store_id)
+    pub fn violetabft_local_state(&self, brane_id: u64, store_id: u64) -> VioletaBftLocalState {
+        let key = tuplespaceInstanton::violetabft_state_key(brane_id);
+        self.get_violetabft_engine(store_id)
             .c()
-            .get_msg::<raft_serverpb::VioletaBftLocalState>(&key)
+            .get_msg::<violetabft_serverpb::VioletaBftLocalState>(&key)
             .unwrap()
             .unwrap()
     }
@@ -1000,7 +1000,7 @@ impl<T: Simulator> Cluster<T> {
         self.get_engine(store_id)
             .c()
             .get_msg_causet::<BraneLocalState>(
-                engine_promises::CAUSET_RAFT,
+                engine_promises::CAUSET_VIOLETABFT,
                 &tuplespaceInstanton::brane_state_key(brane_id),
             )
             .unwrap()
@@ -1016,15 +1016,15 @@ impl<T: Simulator> Cluster<T> {
     ) {
         let timer = Instant::now();
         loop {
-            let raft_state = self.raft_local_state(brane_id, store_id);
-            let cur_index = raft_state.get_last_index();
+            let violetabft_state = self.violetabft_local_state(brane_id, store_id);
+            let cur_index = violetabft_state.get_last_index();
             if cur_index >= expected {
                 return;
             }
             if timer.elapsed() >= timeout {
                 panic!(
                     "[brane {}] last index still not reach {}: {:?}",
-                    brane_id, expected, raft_state
+                    brane_id, expected, violetabft_state
                 );
             }
             thread::sleep(Duration::from_millis(10));
@@ -1039,29 +1039,29 @@ impl<T: Simulator> Cluster<T> {
         let mut kv_wb = self.engines[&store_id].kv.write_batch();
         self.engines[&store_id]
             .kv
-            .scan_causet(CAUSET_RAFT, &meta_spacelike, &meta_lightlike, false, |k, _| {
+            .scan_causet(CAUSET_VIOLETABFT, &meta_spacelike, &meta_lightlike, false, |k, _| {
                 kv_wb.delete(k).unwrap();
                 Ok(true)
             })
             .unwrap();
-        snap.scan_causet(CAUSET_RAFT, &meta_spacelike, &meta_lightlike, false, |k, v| {
+        snap.scan_causet(CAUSET_VIOLETABFT, &meta_spacelike, &meta_lightlike, false, |k, v| {
             kv_wb.put(k, v).unwrap();
             Ok(true)
         })
         .unwrap();
 
-        let (raft_spacelike, raft_lightlike) = (
-            tuplespaceInstanton::brane_raft_prefix(brane_id),
-            tuplespaceInstanton::brane_raft_prefix(brane_id + 1),
+        let (violetabft_spacelike, violetabft_lightlike) = (
+            tuplespaceInstanton::brane_violetabft_prefix(brane_id),
+            tuplespaceInstanton::brane_violetabft_prefix(brane_id + 1),
         );
         self.engines[&store_id]
             .kv
-            .scan_causet(CAUSET_RAFT, &raft_spacelike, &raft_lightlike, false, |k, _| {
+            .scan_causet(CAUSET_VIOLETABFT, &violetabft_spacelike, &violetabft_lightlike, false, |k, _| {
                 kv_wb.delete(k).unwrap();
                 Ok(true)
             })
             .unwrap();
-        snap.scan_causet(CAUSET_RAFT, &raft_spacelike, &raft_lightlike, false, |k, v| {
+        snap.scan_causet(CAUSET_VIOLETABFT, &violetabft_spacelike, &violetabft_lightlike, false, |k, v| {
             kv_wb.put(k, v).unwrap();
             Ok(true)
         })
@@ -1069,25 +1069,25 @@ impl<T: Simulator> Cluster<T> {
         self.engines[&store_id].kv.write(&kv_wb).unwrap();
     }
 
-    pub fn restore_raft(&self, brane_id: u64, store_id: u64, snap: &LmdbSnapshot) {
-        let (raft_spacelike, raft_lightlike) = (
-            tuplespaceInstanton::brane_raft_prefix(brane_id),
-            tuplespaceInstanton::brane_raft_prefix(brane_id + 1),
+    pub fn restore_violetabft(&self, brane_id: u64, store_id: u64, snap: &LmdbSnapshot) {
+        let (violetabft_spacelike, violetabft_lightlike) = (
+            tuplespaceInstanton::brane_violetabft_prefix(brane_id),
+            tuplespaceInstanton::brane_violetabft_prefix(brane_id + 1),
         );
-        let mut raft_wb = self.engines[&store_id].violetabft.write_batch();
+        let mut violetabft_wb = self.engines[&store_id].violetabft.write_batch();
         self.engines[&store_id]
             .violetabft
-            .scan(&raft_spacelike, &raft_lightlike, false, |k, _| {
-                raft_wb.delete(k).unwrap();
+            .scan(&violetabft_spacelike, &violetabft_lightlike, false, |k, _| {
+                violetabft_wb.delete(k).unwrap();
                 Ok(true)
             })
             .unwrap();
-        snap.scan(&raft_spacelike, &raft_lightlike, false, |k, v| {
-            raft_wb.put(k, v).unwrap();
+        snap.scan(&violetabft_spacelike, &violetabft_lightlike, false, |k, v| {
+            violetabft_wb.put(k, v).unwrap();
             Ok(true)
         })
         .unwrap();
-        self.engines[&store_id].violetabft.write(&raft_wb).unwrap();
+        self.engines[&store_id].violetabft.write(&violetabft_wb).unwrap();
     }
 
     pub fn add_slightlike_filter<F: FilterFactory>(&self, factory: F) {
@@ -1373,8 +1373,8 @@ impl<T: Simulator> Cluster<T> {
             &router,
             brane_id,
             CasualMessage::AccessPeer(Box::new(move |peer: &mut dyn AbstractPeer| {
-                let idx = peer.raft_committed_index();
-                peer.raft_request_snapshot(idx);
+                let idx = peer.violetabft_committed_index();
+                peer.violetabft_request_snapshot(idx);
                 debug!("{} request snapshot at {:?}", idx, peer.meta_peer());
                 request_tx.slightlike(idx).unwrap();
             })),

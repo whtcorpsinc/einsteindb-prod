@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::{atomic::Ordering, mpsc::channel, Arc};
 use std::thread;
@@ -10,10 +10,10 @@ use ekvproto::einsteindbpb::EINSTEINDBClient;
 
 use errors::extract_brane_error;
 use test_violetabftstore::{must_get_equal, must_get_none, new_peer, new_server_cluster};
-use einsteindb::persistence::kv::{Error as KvError, ErrorInner as KvErrorInner};
-use einsteindb::persistence::lock_manager::DummyLockManager;
-use einsteindb::persistence::txn::{commands, Error as TxnError, ErrorInner as TxnErrorInner};
-use einsteindb::persistence::{self, test_util::*, *};
+use einsteindb::causetStorage::kv::{Error as KvError, ErrorInner as KvErrorInner};
+use einsteindb::causetStorage::lock_manager::DummyLockManager;
+use einsteindb::causetStorage::txn::{commands, Error as TxnError, ErrorInner as TxnErrorInner};
+use einsteindb::causetStorage::{self, test_util::*, *};
 use einsteindb_util::{collections::HashMap, HandyRwLock};
 use txn_types::Key;
 use txn_types::{Mutation, TimeStamp};
@@ -53,7 +53,7 @@ fn test_scheduler_leader_change_twice() {
                 None,
                 ctx0,
             ),
-            Box::new(move |res: persistence::Result<_>| {
+            Box::new(move |res: causetStorage::Result<_>| {
                 prewrite_tx.slightlike(res).unwrap();
             }),
         )
@@ -80,13 +80,13 @@ fn test_scheduler_leader_change_twice() {
 
 #[test]
 fn test_server_catching_api_error() {
-    let raftkv_fp = "raftkv_early_error_report";
+    let violetabftkv_fp = "violetabftkv_early_error_report";
     let mut cluster = new_server_cluster(0, 1);
     cluster.run();
     let brane = cluster.get_brane(b"");
     let leader = brane.get_peers()[0].clone();
 
-    fail::causetg(raftkv_fp, "return").unwrap();
+    fail::causetg(violetabftkv_fp, "return").unwrap();
 
     let env = Arc::new(Environment::new(1));
     let channel =
@@ -130,15 +130,15 @@ fn test_server_catching_api_error() {
     );
     must_get_none(&cluster.get_engine(1), b"k3");
 
-    fail::remove(raftkv_fp);
+    fail::remove(violetabftkv_fp);
     let put_resp = client.raw_put(&put_req).unwrap();
     assert!(!put_resp.has_brane_error(), "{:?}", put_resp);
     must_get_equal(&cluster.get_engine(1), b"k3", b"v3");
 }
 
 #[test]
-fn test_raftkv_early_error_report() {
-    let raftkv_fp = "raftkv_early_error_report";
+fn test_violetabftkv_early_error_report() {
+    let violetabftkv_fp = "violetabftkv_early_error_report";
     let mut cluster = new_server_cluster(0, 1);
     cluster.run();
     cluster.must_split(&cluster.get_brane(b"k0"), b"k1");
@@ -159,7 +159,7 @@ fn test_raftkv_early_error_report() {
     }
 
     // Inject error to all branes.
-    fail::causetg(raftkv_fp, "return").unwrap();
+    fail::causetg(violetabftkv_fp, "return").unwrap();
     for (k, (ctx, client)) in &clients {
         let mut put_req = RawPutRequest::default();
         put_req.set_context(ctx.clone());
@@ -174,11 +174,11 @@ fn test_raftkv_early_error_report() {
         );
         must_get_none(&cluster.get_engine(1), k);
     }
-    fail::remove(raftkv_fp);
+    fail::remove(violetabftkv_fp);
 
     // Inject only one brane
     let injected_brane_id = clients[b"k0".as_ref()].0.get_brane_id();
-    fail::causetg(raftkv_fp, &format!("return({})", injected_brane_id)).unwrap();
+    fail::causetg(violetabftkv_fp, &format!("return({})", injected_brane_id)).unwrap();
     for (k, (ctx, client)) in &clients {
         let mut put_req = RawPutRequest::default();
         put_req.set_context(ctx.clone());
@@ -198,7 +198,7 @@ fn test_raftkv_early_error_report() {
             must_get_equal(&cluster.get_engine(1), k, b"v");
         }
     }
-    fail::remove(raftkv_fp);
+    fail::remove(violetabftkv_fp);
 }
 
 #[test]
@@ -208,7 +208,7 @@ fn test_pipelined_pessimistic_lock() {
     let scheduler_async_write_finish_fp = "scheduler_async_write_finish";
     let scheduler_pipelined_write_finish_fp = "scheduler_pipelined_write_finish";
 
-    let persistence = TestStorageBuilder::new(DummyLockManager {})
+    let causetStorage = TestStorageBuilder::new(DummyLockManager {})
         .set_pipelined_pessimistic_lock(true)
         .build()
         .unwrap();
@@ -216,11 +216,11 @@ fn test_pipelined_pessimistic_lock() {
     let (tx, rx) = channel();
     let (key, val) = (Key::from_raw(b"key"), b"val".to_vec());
 
-    // Even if persistence fails to write the lock to engine, client should
+    // Even if causetStorage fails to write the dagger to engine, client should
     // receive the successful response.
     fail::causetg(rockskv_write_modifies_fp, "return()").unwrap();
     fail::causetg(scheduler_async_write_finish_fp, "pause").unwrap();
-    persistence
+    causetStorage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(vec![(key.clone(), false)], 10, 10, true),
             expect_pessimistic_lock_res_callback(
@@ -232,7 +232,7 @@ fn test_pipelined_pessimistic_lock() {
     rx.recv().unwrap();
     fail::remove(rockskv_write_modifies_fp);
     fail::remove(scheduler_async_write_finish_fp);
-    persistence
+    causetStorage
         .sched_txn_command(
             commands::PrewritePessimistic::new(
                 vec![(Mutation::Put((key.clone(), val.clone())), true)],
@@ -249,7 +249,7 @@ fn test_pipelined_pessimistic_lock() {
         )
         .unwrap();
     rx.recv().unwrap();
-    persistence
+    causetStorage
         .sched_txn_command(
             commands::Commit::new(vec![key.clone()], 10.into(), 20.into(), Context::default()),
             expect_ok_callback(tx.clone(), 0),
@@ -257,9 +257,9 @@ fn test_pipelined_pessimistic_lock() {
         .unwrap();
     rx.recv().unwrap();
 
-    // Should report failure if persistence fails to schedule write request to engine.
+    // Should report failure if causetStorage fails to schedule write request to engine.
     fail::causetg(rockskv_async_write_fp, "return()").unwrap();
-    persistence
+    causetStorage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(vec![(key.clone(), false)], 30, 30, true),
             expect_fail_callback(tx.clone(), 0, |_| ()),
@@ -271,7 +271,7 @@ fn test_pipelined_pessimistic_lock() {
     // Shouldn't release latches until async write finished.
     fail::causetg(scheduler_async_write_finish_fp, "pause").unwrap();
     for blocked in &[false, true] {
-        persistence
+        causetStorage
             .sched_txn_command(
                 new_acquire_pessimistic_lock_command(vec![(key.clone(), false)], 40, 40, true),
                 expect_pessimistic_lock_res_callback(
@@ -290,11 +290,11 @@ fn test_pipelined_pessimistic_lock() {
     }
     fail::remove(scheduler_async_write_finish_fp);
     rx.recv().unwrap();
-    delete_pessimistic_lock(&persistence, key.clone(), 40, 40);
+    delete_pessimistic_lock(&causetStorage, key.clone(), 40, 40);
 
     // Pipelined write is finished before async write.
     fail::causetg(scheduler_async_write_finish_fp, "pause").unwrap();
-    persistence
+    causetStorage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(vec![(key.clone(), false)], 50, 50, true),
             expect_pessimistic_lock_res_callback(
@@ -305,12 +305,12 @@ fn test_pipelined_pessimistic_lock() {
         .unwrap();
     rx.recv().unwrap();
     fail::remove(scheduler_async_write_finish_fp);
-    delete_pessimistic_lock(&persistence, key.clone(), 50, 50);
+    delete_pessimistic_lock(&causetStorage, key.clone(), 50, 50);
 
     // Async write is finished before pipelined write due to thread scheduling.
     // CausetStorage should handle it properly.
     fail::causetg(scheduler_pipelined_write_finish_fp, "pause").unwrap();
-    persistence
+    causetStorage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(
                 vec![(key.clone(), false), (Key::from_raw(b"nonexist"), false)],
@@ -326,7 +326,7 @@ fn test_pipelined_pessimistic_lock() {
         .unwrap();
     rx.recv().unwrap();
     fail::remove(scheduler_pipelined_write_finish_fp);
-    delete_pessimistic_lock(&persistence, key, 60, 60);
+    delete_pessimistic_lock(&causetStorage, key, 60, 60);
 }
 
 #[test]
@@ -342,7 +342,7 @@ fn test_async_commit_prewrite_with_stale_max_ts() {
         .get(&1)
         .unwrap()
         .clone();
-    let persistence = TestStorageBuilder::<_, DummyLockManager>::from_engine_and_lock_mgr(
+    let causetStorage = TestStorageBuilder::<_, DummyLockManager>::from_engine_and_lock_mgr(
         engine.clone(),
         DummyLockManager {},
     )
@@ -362,7 +362,7 @@ fn test_async_commit_prewrite_with_stale_max_ts() {
     let check_max_timestamp_not_synced = |expected: bool| {
         // prewrite
         let (prewrite_tx, prewrite_rx) = channel();
-        persistence
+        causetStorage
             .sched_txn_command(
                 commands::Prewrite::new(
                     vec![Mutation::Put((Key::from_raw(b"k1"), b"v".to_vec()))],
@@ -375,7 +375,7 @@ fn test_async_commit_prewrite_with_stale_max_ts() {
                     Some(vec![b"k2".to_vec()]),
                     ctx.clone(),
                 ),
-                Box::new(move |res: persistence::Result<_>| {
+                Box::new(move |res: causetStorage::Result<_>| {
                     prewrite_tx.slightlike(res).unwrap();
                 }),
             )
@@ -391,7 +391,7 @@ fn test_async_commit_prewrite_with_stale_max_ts() {
 
         // pessimistic prewrite
         let (prewrite_tx, prewrite_rx) = channel();
-        persistence
+        causetStorage
             .sched_txn_command(
                 commands::PrewritePessimistic::new(
                     vec![(Mutation::Put((Key::from_raw(b"k1"), b"v".to_vec())), true)],
@@ -404,7 +404,7 @@ fn test_async_commit_prewrite_with_stale_max_ts() {
                     Some(vec![b"k2".to_vec()]),
                     ctx.clone(),
                 ),
-                Box::new(move |res: persistence::Result<_>| {
+                Box::new(move |res: causetStorage::Result<_>| {
                     prewrite_tx.slightlike(res).unwrap();
                 }),
             )

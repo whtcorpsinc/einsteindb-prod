@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
@@ -8,15 +8,15 @@ use std::sync::Arc;
 use std::time::Instant;
 use std::{cmp, error, u64};
 
-use engine_promises::CAUSET_RAFT;
+use engine_promises::CAUSET_VIOLETABFT;
 use engine_promises::{Engines, KvEngine, Mutable, Peekable};
 use tuplespaceInstanton::{self, enc_lightlike_key, enc_spacelike_key};
 use ekvproto::metapb::{self, Brane};
-use ekvproto::raft_serverpb::{
+use ekvproto::violetabft_serverpb::{
     MergeState, PeerState, VioletaBftApplyState, VioletaBftLocalState, VioletaBftSnapshotData, BraneLocalState,
 };
 use protobuf::Message;
-use violetabft::eraftpb::{ConfState, Entry, HardState, Snapshot};
+use violetabft::evioletabftpb::{ConfState, Entry, HardState, Snapshot};
 use violetabft::{self, Error as VioletaBftError, VioletaBftState, Ready, CausetStorage, StorageError};
 
 use crate::store::fsm::GenSnapTask;
@@ -33,8 +33,8 @@ use super::{SnapEntry, SnapKey, SnapManager, SnapshotStatistics};
 
 // When we create a brane peer, we should initialize its log term/index > 0,
 // so that we can force the follower peer to sync the snapshot first.
-pub const RAFT_INIT_LOG_TERM: u64 = 5;
-pub const RAFT_INIT_LOG_INDEX: u64 = 5;
+pub const VIOLETABFT_INIT_LOG_TERM: u64 = 5;
+pub const VIOLETABFT_INIT_LOG_INDEX: u64 = 5;
 const MAX_SNAP_TRY_CNT: usize = 5;
 
 /// The initial brane epoch version.
@@ -234,7 +234,7 @@ impl EntryCache {
         if self.cache.len() < SHRINK_CACHE_CAPACITY && self.cache.capacity() > SHRINK_CACHE_CAPACITY
         {
             let old_capacity = self.cache.capacity();
-            // So the peer persistence doesn't have much writes since the proposal of compaction,
+            // So the peer causetStorage doesn't have much writes since the proposal of compaction,
             // we can consider this peer is going to be inactive.
             self.cache.shrink_to_fit();
             self.mem_size_change += self
@@ -264,15 +264,15 @@ impl EntryCache {
     }
 
     fn flush_mem_size_change(&mut self) {
-        RAFT_ENTRIES_CACHES_GAUGE.add(self.mem_size_change);
+        VIOLETABFT_ENTRIES_CACHES_GAUGE.add(self.mem_size_change);
         self.mem_size_change = 0;
     }
 
     fn flush_stats(&self) {
         let hit = self.hit.replace(0);
-        RAFT_ENTRY_FETCHES.hit.inc_by(hit);
+        VIOLETABFT_ENTRY_FETCHES.hit.inc_by(hit);
         let miss = self.miss.replace(0);
-        RAFT_ENTRY_FETCHES.miss.inc_by(miss);
+        VIOLETABFT_ENTRY_FETCHES.miss.inc_by(miss);
     }
 
     #[inline]
@@ -299,7 +299,7 @@ impl Default for EntryCache {
 impl Drop for EntryCache {
     fn drop(&mut self) {
         self.flush_mem_size_change();
-        RAFT_ENTRIES_CACHES_GAUGE.sub(self.get_total_mem_size());
+        VIOLETABFT_ENTRIES_CACHES_GAUGE.sub(self.get_total_mem_size());
         self.flush_stats();
     }
 }
@@ -312,7 +312,7 @@ where
     /// Returns the mutable references of WriteBatch for both KvDB and VioletaBftDB in one interface.
     fn wb_mut(&mut self) -> (&mut WK, &mut WR);
     fn kv_wb_mut(&mut self) -> &mut WK;
-    fn raft_wb_mut(&mut self) -> &mut WR;
+    fn violetabft_wb_mut(&mut self) -> &mut WR;
     fn sync_log(&self) -> bool;
     fn set_sync_log(&mut self, sync: bool);
 }
@@ -337,12 +337,12 @@ pub struct ApplySnapResult {
     pub destroyed_branes: Vec<metapb::Brane>,
 }
 
-/// Returned by `PeerStorage::handle_raft_ready`, used for recording changed status of
+/// Returned by `PeerStorage::handle_violetabft_ready`, used for recording changed status of
 /// `VioletaBftLocalState` and `VioletaBftApplyState`.
 pub struct InvokeContext {
     pub brane_id: u64,
-    /// Changed VioletaBftLocalState is stored into `raft_state`.
-    pub raft_state: VioletaBftLocalState,
+    /// Changed VioletaBftLocalState is stored into `violetabft_state`.
+    pub violetabft_state: VioletaBftLocalState,
     /// Changed VioletaBftApplyState is stored into `apply_state`.
     pub apply_state: VioletaBftApplyState,
     last_term: u64,
@@ -356,7 +356,7 @@ impl InvokeContext {
     pub fn new<EK: KvEngine, ER: VioletaBftEngine>(store: &PeerStorage<EK, ER>) -> InvokeContext {
         InvokeContext {
             brane_id: store.get_brane_id(),
-            raft_state: store.raft_state.clone(),
+            violetabft_state: store.violetabft_state.clone(),
             apply_state: store.apply_state.clone(),
             last_term: store.last_term,
             snap_brane: None,
@@ -370,27 +370,27 @@ impl InvokeContext {
     }
 
     #[inline]
-    pub fn save_raft_state_to<W: VioletaBftLogBatch>(&self, raft_wb: &mut W) -> Result<()> {
-        raft_wb.put_raft_state(self.brane_id, &self.raft_state)?;
+    pub fn save_violetabft_state_to<W: VioletaBftLogBatch>(&self, violetabft_wb: &mut W) -> Result<()> {
+        violetabft_wb.put_violetabft_state(self.brane_id, &self.violetabft_state)?;
         Ok(())
     }
 
     #[inline]
-    pub fn save_snapshot_raft_state_to(
+    pub fn save_snapshot_violetabft_state_to(
         &self,
         snapshot_index: u64,
         kv_wb: &mut impl Mutable,
     ) -> Result<()> {
-        let mut snapshot_raft_state = self.raft_state.clone();
-        snapshot_raft_state
+        let mut snapshot_violetabft_state = self.violetabft_state.clone();
+        snapshot_violetabft_state
             .mut_hard_state()
             .set_commit(snapshot_index);
-        snapshot_raft_state.set_last_index(snapshot_index);
+        snapshot_violetabft_state.set_last_index(snapshot_index);
 
         kv_wb.put_msg_causet(
-            CAUSET_RAFT,
-            &tuplespaceInstanton::snapshot_raft_state_key(self.brane_id),
-            &snapshot_raft_state,
+            CAUSET_VIOLETABFT,
+            &tuplespaceInstanton::snapshot_violetabft_state_key(self.brane_id),
+            &snapshot_violetabft_state,
         )?;
         Ok(())
     }
@@ -398,7 +398,7 @@ impl InvokeContext {
     #[inline]
     pub fn save_apply_state_to(&self, kv_wb: &mut impl Mutable) -> Result<()> {
         kv_wb.put_msg_causet(
-            CAUSET_RAFT,
+            CAUSET_VIOLETABFT,
             &tuplespaceInstanton::apply_state_key(self.brane_id),
             &self.apply_state,
         )?;
@@ -408,32 +408,32 @@ impl InvokeContext {
 
 pub fn recover_from_applying_state<EK: KvEngine, ER: VioletaBftEngine>(
     engines: &Engines<EK, ER>,
-    raft_wb: &mut ER::LogBatch,
+    violetabft_wb: &mut ER::LogBatch,
     brane_id: u64,
 ) -> Result<()> {
-    let snapshot_raft_state_key = tuplespaceInstanton::snapshot_raft_state_key(brane_id);
-    let snapshot_raft_state: VioletaBftLocalState =
-        match box_try!(engines.kv.get_msg_causet(CAUSET_RAFT, &snapshot_raft_state_key)) {
+    let snapshot_violetabft_state_key = tuplespaceInstanton::snapshot_violetabft_state_key(brane_id);
+    let snapshot_violetabft_state: VioletaBftLocalState =
+        match box_try!(engines.kv.get_msg_causet(CAUSET_VIOLETABFT, &snapshot_violetabft_state_key)) {
             Some(state) => state,
             None => {
                 return Err(box_err!(
-                    "[brane {}] failed to get raftstate from kv engine, \
+                    "[brane {}] failed to get violetabftstate from kv engine, \
                      when recover from applying state",
                     brane_id
                 ));
             }
         };
 
-    let raft_state = box_try!(engines.violetabft.get_raft_state(brane_id)).unwrap_or_default();
+    let violetabft_state = box_try!(engines.violetabft.get_violetabft_state(brane_id)).unwrap_or_default();
 
-    // if we recv applightlike log when applying snapshot, last_index in raft_local_state will
-    // larger than snapshot_index. since raft_local_state is written to violetabft engine, and
-    // violetabft write_batch is written after kv write_batch, raft_local_state may wrong if
-    // respacelike happen between the two write. so we copy raft_local_state to kv engine
-    // (snapshot_raft_state), and set snapshot_raft_state.last_index = snapshot_index.
+    // if we recv applightlike log when applying snapshot, last_index in violetabft_local_state will
+    // larger than snapshot_index. since violetabft_local_state is written to violetabft engine, and
+    // violetabft write_batch is written after kv write_batch, violetabft_local_state may wrong if
+    // respacelike happen between the two write. so we copy violetabft_local_state to kv engine
+    // (snapshot_violetabft_state), and set snapshot_violetabft_state.last_index = snapshot_index.
     // after respacelike, we need check last_index.
-    if last_index(&snapshot_raft_state) > last_index(&raft_state) {
-        raft_wb.put_raft_state(brane_id, &snapshot_raft_state)?;
+    if last_index(&snapshot_violetabft_state) > last_index(&violetabft_state) {
+        violetabft_wb.put_violetabft_state(brane_id, &snapshot_violetabft_state)?;
     }
     Ok(())
 }
@@ -443,8 +443,8 @@ fn init_applied_index_term<EK: KvEngine, ER: VioletaBftEngine>(
     brane: &Brane,
     apply_state: &VioletaBftApplyState,
 ) -> Result<u64> {
-    if apply_state.applied_index == RAFT_INIT_LOG_INDEX {
-        return Ok(RAFT_INIT_LOG_TERM);
+    if apply_state.applied_index == VIOLETABFT_INIT_LOG_INDEX {
+        return Ok(VIOLETABFT_INIT_LOG_TERM);
     }
     let truncated_state = apply_state.get_truncated_state();
     if apply_state.applied_index == truncated_state.get_index() {
@@ -464,23 +464,23 @@ fn init_applied_index_term<EK: KvEngine, ER: VioletaBftEngine>(
     }
 }
 
-fn init_raft_state<EK: KvEngine, ER: VioletaBftEngine>(
+fn init_violetabft_state<EK: KvEngine, ER: VioletaBftEngine>(
     engines: &Engines<EK, ER>,
     brane: &Brane,
 ) -> Result<VioletaBftLocalState> {
-    if let Some(state) = engines.violetabft.get_raft_state(brane.get_id())? {
+    if let Some(state) = engines.violetabft.get_violetabft_state(brane.get_id())? {
         return Ok(state);
     }
 
-    let mut raft_state = VioletaBftLocalState::default();
+    let mut violetabft_state = VioletaBftLocalState::default();
     if util::is_brane_initialized(brane) {
         // new split brane
-        raft_state.last_index = RAFT_INIT_LOG_INDEX;
-        raft_state.mut_hard_state().set_term(RAFT_INIT_LOG_TERM);
-        raft_state.mut_hard_state().set_commit(RAFT_INIT_LOG_INDEX);
-        engines.violetabft.put_raft_state(brane.get_id(), &raft_state)?;
+        violetabft_state.last_index = VIOLETABFT_INIT_LOG_INDEX;
+        violetabft_state.mut_hard_state().set_term(VIOLETABFT_INIT_LOG_TERM);
+        violetabft_state.mut_hard_state().set_commit(VIOLETABFT_INIT_LOG_INDEX);
+        engines.violetabft.put_violetabft_state(brane.get_id(), &violetabft_state)?;
     }
-    Ok(raft_state)
+    Ok(violetabft_state)
 }
 
 fn init_apply_state<EK: KvEngine, ER: VioletaBftEngine>(
@@ -490,16 +490,16 @@ fn init_apply_state<EK: KvEngine, ER: VioletaBftEngine>(
     Ok(
         match engines
             .kv
-            .get_msg_causet(CAUSET_RAFT, &tuplespaceInstanton::apply_state_key(brane.get_id()))?
+            .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane.get_id()))?
         {
             Some(s) => s,
             None => {
                 let mut apply_state = VioletaBftApplyState::default();
                 if util::is_brane_initialized(brane) {
-                    apply_state.set_applied_index(RAFT_INIT_LOG_INDEX);
+                    apply_state.set_applied_index(VIOLETABFT_INIT_LOG_INDEX);
                     let state = apply_state.mut_truncated_state();
-                    state.set_index(RAFT_INIT_LOG_INDEX);
-                    state.set_term(RAFT_INIT_LOG_TERM);
+                    state.set_index(VIOLETABFT_INIT_LOG_INDEX);
+                    state.set_term(VIOLETABFT_INIT_LOG_TERM);
                 }
                 apply_state
             }
@@ -510,17 +510,17 @@ fn init_apply_state<EK: KvEngine, ER: VioletaBftEngine>(
 fn validate_states<EK: KvEngine, ER: VioletaBftEngine>(
     brane_id: u64,
     engines: &Engines<EK, ER>,
-    raft_state: &mut VioletaBftLocalState,
+    violetabft_state: &mut VioletaBftLocalState,
     apply_state: &VioletaBftApplyState,
 ) -> Result<()> {
-    let last_index = raft_state.get_last_index();
-    let mut commit_index = raft_state.get_hard_state().get_commit();
+    let last_index = violetabft_state.get_last_index();
+    let mut commit_index = violetabft_state.get_hard_state().get_commit();
     let apply_index = apply_state.get_applied_index();
 
     if commit_index < apply_state.get_last_commit_index() {
         return Err(box_err!(
             "violetabft state {:?} not match apply state {:?} and can't be recovered.",
-            raft_state,
+            violetabft_state,
             apply_state
         ));
     }
@@ -541,14 +541,14 @@ fn validate_states<EK: KvEngine, ER: VioletaBftEngine>(
     if commit_index > last_index || apply_index > commit_index {
         return Err(box_err!(
             "violetabft state {:?} not match apply state {:?} and can't be recovered,",
-            raft_state,
+            violetabft_state,
             apply_state
         ));
     }
 
-    raft_state.mut_hard_state().set_commit(commit_index);
-    if raft_state.get_hard_state().get_term() < apply_state.get_commit_term() {
-        return Err(box_err!("violetabft state {:?} corrupted", raft_state));
+    violetabft_state.mut_hard_state().set_commit(commit_index);
+    if violetabft_state.get_hard_state().get_term() < apply_state.get_commit_term() {
+        return Err(box_err!("violetabft state {:?} corrupted", violetabft_state));
     }
 
     Ok(())
@@ -557,18 +557,18 @@ fn validate_states<EK: KvEngine, ER: VioletaBftEngine>(
 fn init_last_term<EK: KvEngine, ER: VioletaBftEngine>(
     engines: &Engines<EK, ER>,
     brane: &Brane,
-    raft_state: &VioletaBftLocalState,
+    violetabft_state: &VioletaBftLocalState,
     apply_state: &VioletaBftApplyState,
 ) -> Result<u64> {
-    let last_idx = raft_state.get_last_index();
+    let last_idx = violetabft_state.get_last_index();
     if last_idx == 0 {
         return Ok(0);
-    } else if last_idx == RAFT_INIT_LOG_INDEX {
-        return Ok(RAFT_INIT_LOG_TERM);
+    } else if last_idx == VIOLETABFT_INIT_LOG_INDEX {
+        return Ok(VIOLETABFT_INIT_LOG_TERM);
     } else if last_idx == apply_state.get_truncated_state().get_index() {
         return Ok(apply_state.get_truncated_state().get_term());
     } else {
-        assert!(last_idx > RAFT_INIT_LOG_INDEX);
+        assert!(last_idx > VIOLETABFT_INIT_LOG_INDEX);
     }
     let entry = engines.violetabft.get_entry(brane.get_id(), last_idx)?;
     match entry {
@@ -589,7 +589,7 @@ where
 
     peer_id: u64,
     brane: metapb::Brane,
-    raft_state: VioletaBftLocalState,
+    violetabft_state: VioletaBftLocalState,
     apply_state: VioletaBftApplyState,
     applied_index_term: u64,
     last_term: u64,
@@ -653,17 +653,17 @@ where
         tag: String,
     ) -> Result<PeerStorage<EK, ER>> {
         debug!(
-            "creating persistence on specified path";
+            "creating causetStorage on specified path";
             "brane_id" => brane.get_id(),
             "peer_id" => peer_id,
             "path" => ?engines.kv.path(),
         );
-        let mut raft_state = init_raft_state(&engines, brane)?;
+        let mut violetabft_state = init_violetabft_state(&engines, brane)?;
         let apply_state = init_apply_state(&engines, brane)?;
-        if let Err(e) = validate_states(brane.get_id(), &engines, &mut raft_state, &apply_state) {
+        if let Err(e) = validate_states(brane.get_id(), &engines, &mut violetabft_state, &apply_state) {
             return Err(box_err!("{} validate state fail: {:?}", tag, e));
         }
-        let last_term = init_last_term(&engines, brane, &raft_state, &apply_state)?;
+        let last_term = init_last_term(&engines, brane, &violetabft_state, &apply_state)?;
         let applied_index_term = init_applied_index_term(&engines, brane, &apply_state)?;
 
         let cache = if engines.violetabft.has_builtin_entry_cache() {
@@ -676,7 +676,7 @@ where
             engines,
             peer_id,
             brane: brane.clone(),
-            raft_state,
+            violetabft_state,
             apply_state,
             snap_state: RefCell::new(SnapState::Relax),
             gen_snap_task: RefCell::new(None),
@@ -694,14 +694,14 @@ where
     }
 
     pub fn initial_state(&self) -> violetabft::Result<VioletaBftState> {
-        let hard_state = self.raft_state.get_hard_state().clone();
+        let hard_state = self.violetabft_state.get_hard_state().clone();
         if hard_state == HardState::default() {
             assert!(
                 !self.is_initialized(),
                 "peer for brane {:?} is initialized but local state {:?} has empty hard \
                  state",
                 self.brane,
-                self.raft_state
+                self.violetabft_state
             );
 
             return Ok(VioletaBftState::new(hard_state, ConfState::default()));
@@ -801,7 +801,7 @@ where
 
     #[inline]
     pub fn last_index(&self) -> u64 {
-        last_index(&self.raft_state)
+        last_index(&self.violetabft_state)
     }
 
     #[inline]
@@ -836,7 +836,7 @@ where
 
     #[inline]
     pub fn committed_index(&self) -> u64 {
-        self.raft_state.get_hard_state().get_commit()
+        self.violetabft_state.get_hard_state().get_commit()
     }
 
     #[inline]
@@ -997,7 +997,7 @@ where
             "peer_id" => self.peer_id,
             "count" => entries.len(),
         );
-        let prev_last_index = invoke_ctx.raft_state.get_last_index();
+        let prev_last_index = invoke_ctx.violetabft_state.get_last_index();
         if entries.is_empty() {
             return Ok(prev_last_index);
         }
@@ -1014,7 +1014,7 @@ where
         }
 
         // TODO: save a copy here.
-        ready_ctx.raft_wb_mut().applightlike_slice(brane_id, entries)?;
+        ready_ctx.violetabft_wb_mut().applightlike_slice(brane_id, entries)?;
 
         if let Some(ref mut cache) = self.cache {
             // TODO: if the writebatch is failed to commit, the cache will be wrong.
@@ -1024,10 +1024,10 @@ where
         // Delete any previously applightlikeed log entries which never committed.
         // TODO: Wrap it as an engine::Error.
         ready_ctx
-            .raft_wb_mut()
+            .violetabft_wb_mut()
             .cut_logs(brane_id, last_index + 1, prev_last_index);
 
-        invoke_ctx.raft_state.set_last_index(last_index);
+        invoke_ctx.violetabft_state.set_last_index(last_index);
         invoke_ctx.last_term = last_term;
 
         Ok(last_index)
@@ -1080,9 +1080,9 @@ where
             return;
         }
         if let Some(stats) = self.engines.violetabft.flush_stats() {
-            RAFT_ENTRIES_CACHES_GAUGE.set(stats.cache_size as i64);
-            RAFT_ENTRY_FETCHES.hit.inc_by(stats.hit as i64);
-            RAFT_ENTRY_FETCHES.miss.inc_by(stats.miss as i64);
+            VIOLETABFT_ENTRIES_CACHES_GAUGE.set(stats.cache_size as i64);
+            VIOLETABFT_ENTRY_FETCHES.hit.inc_by(stats.hit as i64);
+            VIOLETABFT_ENTRY_FETCHES.miss.inc_by(stats.miss as i64);
         }
     }
 
@@ -1092,7 +1092,7 @@ where
         ctx: &mut InvokeContext,
         snap: &Snapshot,
         kv_wb: &mut EK::WriteBatch,
-        raft_wb: &mut ER::LogBatch,
+        violetabft_wb: &mut ER::LogBatch,
         destroy_branes: &[metapb::Brane],
     ) -> Result<()> {
         info!(
@@ -1117,7 +1117,7 @@ where
 
         if self.is_initialized() {
             // we can only delete the old data when the peer is initialized.
-            self.clear_meta(kv_wb, raft_wb)?;
+            self.clear_meta(kv_wb, violetabft_wb)?;
         }
         // Write its source peers' `BraneLocalState` together with itself for atomicity
         for r in destroy_branes {
@@ -1127,7 +1127,7 @@ where
 
         let last_index = snap.get_metadata().get_index();
 
-        ctx.raft_state.set_last_index(last_index);
+        ctx.violetabft_state.set_last_index(last_index);
         ctx.last_term = snap.get_metadata().get_term();
         ctx.apply_state.set_applied_index(last_index);
 
@@ -1156,10 +1156,10 @@ where
     pub fn clear_meta(
         &mut self,
         kv_wb: &mut EK::WriteBatch,
-        raft_wb: &mut ER::LogBatch,
+        violetabft_wb: &mut ER::LogBatch,
     ) -> Result<()> {
         let brane_id = self.get_brane_id();
-        clear_meta(&self.engines, kv_wb, raft_wb, brane_id, &self.raft_state)?;
+        clear_meta(&self.engines, kv_wb, violetabft_wb, brane_id, &self.violetabft_state)?;
         if !self.engines.violetabft.has_builtin_entry_cache() {
             self.cache = Some(EntryCache::default());
         }
@@ -1212,11 +1212,11 @@ where
         Ok(())
     }
 
-    pub fn get_raft_engine(&self) -> ER {
+    pub fn get_violetabft_engine(&self) -> ER {
         self.engines.violetabft.clone()
     }
 
-    /// Check whether the persistence has finished applying snapshot.
+    /// Check whether the causetStorage has finished applying snapshot.
     #[inline]
     pub fn is_applying_snapshot(&self) -> bool {
         match *self.snap_state.borrow() {
@@ -1234,7 +1234,7 @@ where
         }
     }
 
-    /// Check if the persistence is applying a snapshot.
+    /// Check if the causetStorage is applying a snapshot.
     #[inline]
     pub fn check_applying_snap(&mut self) -> CheckApplyingSnapStatus {
         let mut res = CheckApplyingSnapStatus::Idle;
@@ -1345,7 +1345,7 @@ where
     /// to ufidelate the memory states properly.
     // Using `&Ready` here to make sure `Ready` struct is not modified in this function. This is
     // a requirement to advance the ready object properly later.
-    pub fn handle_raft_ready<H: HandleVioletaBftReadyContext<EK::WriteBatch, ER::LogBatch>>(
+    pub fn handle_violetabft_ready<H: HandleVioletaBftReadyContext<EK::WriteBatch, ER::LogBatch>>(
         &mut self,
         ready_ctx: &mut H,
         ready: &Ready,
@@ -1355,14 +1355,14 @@ where
         let snapshot_index = if ready.snapshot().is_empty() {
             0
         } else {
-            fail_point!("raft_before_apply_snap");
-            let (kv_wb, raft_wb) = ready_ctx.wb_mut();
-            self.apply_snapshot(&mut ctx, ready.snapshot(), kv_wb, raft_wb, &destroy_branes)?;
-            fail_point!("raft_after_apply_snap");
+            fail_point!("violetabft_before_apply_snap");
+            let (kv_wb, violetabft_wb) = ready_ctx.wb_mut();
+            self.apply_snapshot(&mut ctx, ready.snapshot(), kv_wb, violetabft_wb, &destroy_branes)?;
+            fail_point!("violetabft_after_apply_snap");
 
             ctx.destroyed_branes = destroy_branes;
 
-            last_index(&ctx.raft_state)
+            last_index(&ctx.violetabft_state)
         };
 
         if ready.must_sync() {
@@ -1375,21 +1375,21 @@ where
 
         // Last index is 0 means the peer is created from violetabft message
         // and has not applied snapshot yet, so skip persistent hard state.
-        if ctx.raft_state.get_last_index() > 0 {
+        if ctx.violetabft_state.get_last_index() > 0 {
             if let Some(hs) = ready.hs() {
-                ctx.raft_state.set_hard_state(hs.clone());
+                ctx.violetabft_state.set_hard_state(hs.clone());
             }
         }
 
         // Save violetabft state if it has changed or peer has applied a snapshot.
-        if ctx.raft_state != self.raft_state || snapshot_index > 0 {
-            ctx.save_raft_state_to(ready_ctx.raft_wb_mut())?;
+        if ctx.violetabft_state != self.violetabft_state || snapshot_index > 0 {
+            ctx.save_violetabft_state_to(ready_ctx.violetabft_wb_mut())?;
             if snapshot_index > 0 {
                 // in case of respacelike happen when we just write brane state to Applying,
-                // but not write raft_local_state to violetabft lmdb in time.
+                // but not write violetabft_local_state to violetabft lmdb in time.
                 // we write violetabft state to default lmdb, with last index set to snap index,
                 // in case of recv violetabft log after snapshot.
-                ctx.save_snapshot_raft_state_to(snapshot_index, ready_ctx.kv_wb_mut())?;
+                ctx.save_snapshot_violetabft_state_to(snapshot_index, ready_ctx.kv_wb_mut())?;
             }
         }
 
@@ -1403,7 +1403,7 @@ where
 
     /// Ufidelate the memory state after ready changes are flushed to disk successfully.
     pub fn post_ready(&mut self, ctx: InvokeContext) -> Option<ApplySnapResult> {
-        self.raft_state = ctx.raft_state;
+        self.violetabft_state = ctx.violetabft_state;
         self.apply_state = ctx.apply_state;
         self.last_term = ctx.last_term;
         // If we apply snapshot ok, we should ufidelate some infos like applied index too.
@@ -1475,25 +1475,25 @@ fn get_sync_log_from_entry(entry: &Entry) -> bool {
 pub fn clear_meta<EK, ER>(
     engines: &Engines<EK, ER>,
     kv_wb: &mut EK::WriteBatch,
-    raft_wb: &mut ER::LogBatch,
+    violetabft_wb: &mut ER::LogBatch,
     brane_id: u64,
-    raft_state: &VioletaBftLocalState,
+    violetabft_state: &VioletaBftLocalState,
 ) -> Result<()>
 where
     EK: KvEngine,
     ER: VioletaBftEngine,
 {
     let t = Instant::now();
-    box_try!(kv_wb.delete_causet(CAUSET_RAFT, &tuplespaceInstanton::brane_state_key(brane_id)));
-    box_try!(kv_wb.delete_causet(CAUSET_RAFT, &tuplespaceInstanton::apply_state_key(brane_id)));
-    box_try!(engines.violetabft.clean(brane_id, raft_state, raft_wb));
+    box_try!(kv_wb.delete_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id)));
+    box_try!(kv_wb.delete_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id)));
+    box_try!(engines.violetabft.clean(brane_id, violetabft_state, violetabft_wb));
 
     info!(
         "finish clear peer meta";
         "brane_id" => brane_id,
         "meta_key" => 1,
         "apply_key" => 1,
-        "raft_key" => 1,
+        "violetabft_key" => 1,
         "takes" => ?t.elapsed(),
     );
     Ok(())
@@ -1516,7 +1516,7 @@ where
     );
 
     let msg = kv_snap
-        .get_msg_causet(CAUSET_RAFT, &tuplespaceInstanton::apply_state_key(brane_id))
+        .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id))
         .map_err(into_other::<_, violetabft::Error>)?;
     let apply_state: VioletaBftApplyState = match msg {
         None => {
@@ -1539,7 +1539,7 @@ where
     defer!(mgr.deregister(&key, &SnapEntry::Generating));
 
     let state: BraneLocalState = kv_snap
-        .get_msg_causet(CAUSET_RAFT, &tuplespaceInstanton::brane_state_key(key.brane_id))
+        .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(key.brane_id))
         .and_then(|res| match res {
             None => Err(box_err!("brane {} could not find brane info", brane_id)),
             Some(state) => Ok(state),
@@ -1584,12 +1584,12 @@ where
 }
 
 // When we bootstrap the brane we must call this to initialize brane local state first.
-pub fn write_initial_raft_state<W: VioletaBftLogBatch>(raft_wb: &mut W, brane_id: u64) -> Result<()> {
-    let mut raft_state = VioletaBftLocalState::default();
-    raft_state.last_index = RAFT_INIT_LOG_INDEX;
-    raft_state.mut_hard_state().set_term(RAFT_INIT_LOG_TERM);
-    raft_state.mut_hard_state().set_commit(RAFT_INIT_LOG_INDEX);
-    raft_wb.put_raft_state(brane_id, &raft_state)?;
+pub fn write_initial_violetabft_state<W: VioletaBftLogBatch>(violetabft_wb: &mut W, brane_id: u64) -> Result<()> {
+    let mut violetabft_state = VioletaBftLocalState::default();
+    violetabft_state.last_index = VIOLETABFT_INIT_LOG_INDEX;
+    violetabft_state.mut_hard_state().set_term(VIOLETABFT_INIT_LOG_TERM);
+    violetabft_state.mut_hard_state().set_commit(VIOLETABFT_INIT_LOG_INDEX);
+    violetabft_wb.put_violetabft_state(brane_id, &violetabft_state)?;
     Ok(())
 }
 
@@ -1597,15 +1597,15 @@ pub fn write_initial_raft_state<W: VioletaBftLogBatch>(raft_wb: &mut W, brane_id
 // call this to initialize brane apply state first.
 pub fn write_initial_apply_state<T: Mutable>(kv_wb: &mut T, brane_id: u64) -> Result<()> {
     let mut apply_state = VioletaBftApplyState::default();
-    apply_state.set_applied_index(RAFT_INIT_LOG_INDEX);
+    apply_state.set_applied_index(VIOLETABFT_INIT_LOG_INDEX);
     apply_state
         .mut_truncated_state()
-        .set_index(RAFT_INIT_LOG_INDEX);
+        .set_index(VIOLETABFT_INIT_LOG_INDEX);
     apply_state
         .mut_truncated_state()
-        .set_term(RAFT_INIT_LOG_TERM);
+        .set_term(VIOLETABFT_INIT_LOG_TERM);
 
-    kv_wb.put_msg_causet(CAUSET_RAFT, &tuplespaceInstanton::apply_state_key(brane_id), &apply_state)?;
+    kv_wb.put_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id), &apply_state)?;
     Ok(())
 }
 
@@ -1628,14 +1628,14 @@ pub fn write_peer_state<T: Mutable>(
         "brane_id" => brane_id,
         "state" => ?brane_state,
     );
-    kv_wb.put_msg_causet(CAUSET_RAFT, &tuplespaceInstanton::brane_state_key(brane_id), &brane_state)?;
+    kv_wb.put_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id), &brane_state)?;
     Ok(())
 }
 
 #[causetg(test)]
 mod tests {
     use crate::interlock::InterlockHost;
-    use crate::store::fsm::apply::compact_raft_log;
+    use crate::store::fsm::apply::compact_violetabft_log;
     use crate::store::worker::BraneRunner;
     use crate::store::worker::BraneTask;
     use crate::store::{bootstrap_store, initial_brane, prepare_bootstrap_cluster};
@@ -1644,9 +1644,9 @@ mod tests {
     use engine_promises::Engines;
     use engine_promises::{Iterable, SyncMutable, WriteBatchExt};
     use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT};
-    use ekvproto::raft_serverpb::VioletaBftSnapshotData;
-    use violetabft::eraftpb::HardState;
-    use violetabft::eraftpb::{ConfState, Entry};
+    use ekvproto::violetabft_serverpb::VioletaBftSnapshotData;
+    use violetabft::evioletabftpb::HardState;
+    use violetabft::evioletabftpb::{ConfState, Entry};
     use violetabft::{Error as VioletaBftError, StorageError};
     use std::cell::RefCell;
     use std::path::Path;
@@ -1664,9 +1664,9 @@ mod tests {
         path: &TempDir,
     ) -> PeerStorage<LmdbEngine, LmdbEngine> {
         let kv_db = new_engine(path.path().to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();
-        let raft_path = path.path().join(Path::new("violetabft"));
-        let raft_db = new_engine(raft_path.to_str().unwrap(), None, &[CAUSET_DEFAULT], None).unwrap();
-        let engines = Engines::new(kv_db, raft_db);
+        let violetabft_path = path.path().join(Path::new("violetabft"));
+        let violetabft_db = new_engine(violetabft_path.to_str().unwrap(), None, &[CAUSET_DEFAULT], None).unwrap();
+        let engines = Engines::new(kv_db, violetabft_db);
         bootstrap_store(&engines, 1, 1).unwrap();
 
         let brane = initial_brane(1, 1, 1);
@@ -1676,7 +1676,7 @@ mod tests {
 
     struct ReadyContext {
         kv_wb: LmdbWriteBatch,
-        raft_wb: LmdbWriteBatch,
+        violetabft_wb: LmdbWriteBatch,
         sync_log: bool,
     }
 
@@ -1684,7 +1684,7 @@ mod tests {
         fn new(s: &PeerStorage<LmdbEngine, LmdbEngine>) -> ReadyContext {
             ReadyContext {
                 kv_wb: s.engines.kv.write_batch(),
-                raft_wb: s.engines.violetabft.write_batch(),
+                violetabft_wb: s.engines.violetabft.write_batch(),
                 sync_log: false,
             }
         }
@@ -1692,13 +1692,13 @@ mod tests {
 
     impl HandleVioletaBftReadyContext<LmdbWriteBatch, LmdbWriteBatch> for ReadyContext {
         fn wb_mut(&mut self) -> (&mut LmdbWriteBatch, &mut LmdbWriteBatch) {
-            (&mut self.kv_wb, &mut self.raft_wb)
+            (&mut self.kv_wb, &mut self.violetabft_wb)
         }
         fn kv_wb_mut(&mut self) -> &mut LmdbWriteBatch {
             &mut self.kv_wb
         }
-        fn raft_wb_mut(&mut self) -> &mut LmdbWriteBatch {
-            &mut self.raft_wb
+        fn violetabft_wb_mut(&mut self) -> &mut LmdbWriteBatch {
+            &mut self.violetabft_wb
         }
         fn sync_log(&self) -> bool {
             self.sync_log
@@ -1727,9 +1727,9 @@ mod tests {
         ctx.apply_state
             .set_applied_index(ents.last().unwrap().get_index());
         ctx.save_apply_state_to(&mut kv_wb).unwrap();
-        store.engines.violetabft.write(&ready_ctx.raft_wb).unwrap();
+        store.engines.violetabft.write(&ready_ctx.violetabft_wb).unwrap();
         store.engines.kv.write(&kv_wb).unwrap();
-        store.raft_state = ctx.raft_state;
+        store.violetabft_state = ctx.violetabft_state;
         store.apply_state = ctx.apply_state;
         store
     }
@@ -1738,15 +1738,15 @@ mod tests {
         let mut ctx = InvokeContext::new(store);
         let mut ready_ctx = ReadyContext::new(store);
         store.applightlike(&mut ctx, ents, &mut ready_ctx).unwrap();
-        ctx.save_raft_state_to(&mut ready_ctx.raft_wb).unwrap();
-        store.engines.violetabft.write(&ready_ctx.raft_wb).unwrap();
-        store.raft_state = ctx.raft_state;
+        ctx.save_violetabft_state_to(&mut ready_ctx.violetabft_wb).unwrap();
+        store.engines.violetabft.write(&ready_ctx.violetabft_wb).unwrap();
+        store.violetabft_state = ctx.violetabft_state;
     }
 
     fn validate_cache(store: &PeerStorage<LmdbEngine, LmdbEngine>, exp_ents: &[Entry]) {
         assert_eq!(store.cache.as_ref().unwrap().cache, exp_ents);
         for e in exp_ents {
-            let key = tuplespaceInstanton::raft_log_key(store.get_brane_id(), e.get_index());
+            let key = tuplespaceInstanton::violetabft_log_key(store.get_brane_id(), e.get_index());
             let bytes = store.engines.violetabft.get_value(&key).unwrap().unwrap();
             let mut entry = Entry::default();
             entry.merge_from_bytes(&bytes).unwrap();
@@ -1797,20 +1797,20 @@ mod tests {
         store
             .engines
             .kv
-            .scan_causet(CAUSET_RAFT, &meta_spacelike, &meta_lightlike, false, |_, _| {
+            .scan_causet(CAUSET_VIOLETABFT, &meta_spacelike, &meta_lightlike, false, |_, _| {
                 count += 1;
                 Ok(true)
             })
             .unwrap();
 
-        let (raft_spacelike, raft_lightlike) = (
-            tuplespaceInstanton::brane_raft_prefix(brane_id),
-            tuplespaceInstanton::brane_raft_prefix(brane_id + 1),
+        let (violetabft_spacelike, violetabft_lightlike) = (
+            tuplespaceInstanton::brane_violetabft_prefix(brane_id),
+            tuplespaceInstanton::brane_violetabft_prefix(brane_id + 1),
         );
         store
             .engines
             .kv
-            .scan_causet(CAUSET_RAFT, &raft_spacelike, &raft_lightlike, false, |_, _| {
+            .scan_causet(CAUSET_VIOLETABFT, &violetabft_spacelike, &violetabft_lightlike, false, |_, _| {
                 count += 1;
                 Ok(true)
             })
@@ -1819,7 +1819,7 @@ mod tests {
         store
             .engines
             .violetabft
-            .scan(&raft_spacelike, &raft_lightlike, false, |_, _| {
+            .scan(&violetabft_spacelike, &violetabft_lightlike, false, |_, _| {
                 count += 1;
                 Ok(true)
             })
@@ -1839,10 +1839,10 @@ mod tests {
         assert_eq!(6, get_meta_key_count(&store));
 
         let mut kv_wb = store.engines.kv.write_batch();
-        let mut raft_wb = store.engines.violetabft.write_batch();
-        store.clear_meta(&mut kv_wb, &mut raft_wb).unwrap();
+        let mut violetabft_wb = store.engines.violetabft.write_batch();
+        store.clear_meta(&mut kv_wb, &mut violetabft_wb).unwrap();
         store.engines.kv.write(&kv_wb).unwrap();
-        store.engines.violetabft.write(&raft_wb).unwrap();
+        store.engines.violetabft.write(&violetabft_wb).unwrap();
 
         assert_eq!(0, get_meta_key_count(&store));
     }
@@ -1940,7 +1940,7 @@ mod tests {
             let res = store
                 .term(idx)
                 .map_err(From::from)
-                .and_then(|term| compact_raft_log(&store.tag, &mut ctx.apply_state, idx, term));
+                .and_then(|term| compact_violetabft_log(&store.tag, &mut ctx.apply_state, idx, term));
             // TODO check exact error type after refactoring error.
             if res.is_err() ^ werr.is_err() {
                 panic!("#{}: want {:?}, got {:?}", i, werr, res);
@@ -1960,13 +1960,13 @@ mod tests {
     ) -> Result<()> {
         let apply_state: VioletaBftApplyState = engines
             .kv
-            .get_msg_causet(CAUSET_RAFT, &tuplespaceInstanton::apply_state_key(gen_task.brane_id))
+            .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(gen_task.brane_id))
             .unwrap()
             .unwrap();
         let idx = apply_state.get_applied_index();
         let entry = engines
             .violetabft
-            .get_msg::<Entry>(&tuplespaceInstanton::raft_log_key(gen_task.brane_id, idx))
+            .get_msg::<Entry>(&tuplespaceInstanton::violetabft_log_key(gen_task.brane_id, idx))
             .unwrap()
             .unwrap();
         gen_task.generate_and_schedule_snapshot::<LmdbEngine>(
@@ -2052,18 +2052,18 @@ mod tests {
         let mut hs = HardState::default();
         hs.set_commit(7);
         hs.set_term(5);
-        ctx.raft_state.set_hard_state(hs);
-        ctx.raft_state.set_last_index(7);
+        ctx.violetabft_state.set_hard_state(hs);
+        ctx.violetabft_state.set_last_index(7);
         ctx.apply_state.set_applied_index(7);
-        ctx.save_raft_state_to(&mut ready_ctx.raft_wb).unwrap();
+        ctx.save_violetabft_state_to(&mut ready_ctx.violetabft_wb).unwrap();
         ctx.save_apply_state_to(&mut kv_wb).unwrap();
         s.engines.kv.write(&kv_wb).unwrap();
-        s.engines.violetabft.write(&ready_ctx.raft_wb).unwrap();
+        s.engines.violetabft.write(&ready_ctx.violetabft_wb).unwrap();
         s.apply_state = ctx.apply_state;
-        s.raft_state = ctx.raft_state;
+        s.violetabft_state = ctx.violetabft_state;
         ctx = InvokeContext::new(&s);
         let term = s.term(7).unwrap();
-        compact_raft_log(&s.tag, &mut ctx.apply_state, 7, term).unwrap();
+        compact_violetabft_log(&s.tag, &mut ctx.apply_state, 7, term).unwrap();
         kv_wb = s.engines.kv.write_batch();
         ctx.save_apply_state_to(&mut kv_wb).unwrap();
         s.engines.kv.write(&kv_wb).unwrap();
@@ -2333,12 +2333,12 @@ mod tests {
         let mut ctx = InvokeContext::new(&s2);
         assert_ne!(ctx.last_term, snap1.get_metadata().get_term());
         let mut kv_wb = s2.engines.kv.write_batch();
-        let mut raft_wb = s2.engines.violetabft.write_batch();
-        s2.apply_snapshot(&mut ctx, &snap1, &mut kv_wb, &mut raft_wb, &[])
+        let mut violetabft_wb = s2.engines.violetabft.write_batch();
+        s2.apply_snapshot(&mut ctx, &snap1, &mut kv_wb, &mut violetabft_wb, &[])
             .unwrap();
         assert_eq!(ctx.last_term, snap1.get_metadata().get_term());
         assert_eq!(ctx.apply_state.get_applied_index(), 6);
-        assert_eq!(ctx.raft_state.get_last_index(), 6);
+        assert_eq!(ctx.violetabft_state.get_last_index(), 6);
         assert_eq!(ctx.apply_state.get_truncated_state().get_index(), 6);
         assert_eq!(ctx.apply_state.get_truncated_state().get_term(), 6);
         assert_eq!(s2.first_index(), s2.applied_index() + 1);
@@ -2351,12 +2351,12 @@ mod tests {
         let mut ctx = InvokeContext::new(&s3);
         assert_ne!(ctx.last_term, snap1.get_metadata().get_term());
         let mut kv_wb = s3.engines.kv.write_batch();
-        let mut raft_wb = s3.engines.violetabft.write_batch();
-        s3.apply_snapshot(&mut ctx, &snap1, &mut kv_wb, &mut raft_wb, &[])
+        let mut violetabft_wb = s3.engines.violetabft.write_batch();
+        s3.apply_snapshot(&mut ctx, &snap1, &mut kv_wb, &mut violetabft_wb, &[])
             .unwrap();
         assert_eq!(ctx.last_term, snap1.get_metadata().get_term());
         assert_eq!(ctx.apply_state.get_applied_index(), 6);
-        assert_eq!(ctx.raft_state.get_last_index(), 6);
+        assert_eq!(ctx.violetabft_state.get_last_index(), 6);
         assert_eq!(ctx.apply_state.get_truncated_state().get_index(), 6);
         assert_eq!(ctx.apply_state.get_truncated_state().get_term(), 6);
         validate_cache(&s3, &[]);
@@ -2490,9 +2490,9 @@ mod tests {
         let worker = Worker::new("snap-manager");
         let sched = worker.scheduler();
         let kv_db = new_engine(td.path().to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();
-        let raft_path = td.path().join(Path::new("violetabft"));
-        let raft_db = new_engine(raft_path.to_str().unwrap(), None, &[CAUSET_DEFAULT], None).unwrap();
-        let engines = Engines::new(kv_db, raft_db);
+        let violetabft_path = td.path().join(Path::new("violetabft"));
+        let violetabft_db = new_engine(violetabft_path.to_str().unwrap(), None, &[CAUSET_DEFAULT], None).unwrap();
+        let engines = Engines::new(kv_db, violetabft_db);
         bootstrap_store(&engines, 1, 1).unwrap();
 
         let brane = initial_brane(1, 1, 1);
@@ -2501,42 +2501,42 @@ mod tests {
             PeerStorage::new(engines.clone(), &brane, sched.clone(), 0, "".to_owned())
         };
         let mut s = build_causetStorage().unwrap();
-        let mut raft_state = VioletaBftLocalState::default();
-        raft_state.set_last_index(RAFT_INIT_LOG_INDEX);
-        raft_state.mut_hard_state().set_term(RAFT_INIT_LOG_TERM);
-        raft_state.mut_hard_state().set_commit(RAFT_INIT_LOG_INDEX);
+        let mut violetabft_state = VioletaBftLocalState::default();
+        violetabft_state.set_last_index(VIOLETABFT_INIT_LOG_INDEX);
+        violetabft_state.mut_hard_state().set_term(VIOLETABFT_INIT_LOG_TERM);
+        violetabft_state.mut_hard_state().set_commit(VIOLETABFT_INIT_LOG_INDEX);
         let initial_state = s.initial_state().unwrap();
-        assert_eq!(initial_state.hard_state, *raft_state.get_hard_state());
+        assert_eq!(initial_state.hard_state, *violetabft_state.get_hard_state());
 
         // last_index < commit_index is invalid.
-        let raft_state_key = tuplespaceInstanton::raft_state_key(1);
-        raft_state.set_last_index(11);
-        let log_key = tuplespaceInstanton::raft_log_key(1, 11);
+        let violetabft_state_key = tuplespaceInstanton::violetabft_state_key(1);
+        violetabft_state.set_last_index(11);
+        let log_key = tuplespaceInstanton::violetabft_log_key(1, 11);
         engines
             .violetabft
-            .put_msg(&log_key, &new_entry(11, RAFT_INIT_LOG_TERM))
+            .put_msg(&log_key, &new_entry(11, VIOLETABFT_INIT_LOG_TERM))
             .unwrap();
-        raft_state.mut_hard_state().set_commit(12);
-        engines.violetabft.put_msg(&raft_state_key, &raft_state).unwrap();
+        violetabft_state.mut_hard_state().set_commit(12);
+        engines.violetabft.put_msg(&violetabft_state_key, &violetabft_state).unwrap();
         assert!(build_causetStorage().is_err());
 
-        let log_key = tuplespaceInstanton::raft_log_key(1, 20);
+        let log_key = tuplespaceInstanton::violetabft_log_key(1, 20);
         engines
             .violetabft
-            .put_msg(&log_key, &new_entry(20, RAFT_INIT_LOG_TERM))
+            .put_msg(&log_key, &new_entry(20, VIOLETABFT_INIT_LOG_TERM))
             .unwrap();
-        raft_state.set_last_index(20);
-        engines.violetabft.put_msg(&raft_state_key, &raft_state).unwrap();
+        violetabft_state.set_last_index(20);
+        engines.violetabft.put_msg(&violetabft_state_key, &violetabft_state).unwrap();
         s = build_causetStorage().unwrap();
         let initial_state = s.initial_state().unwrap();
-        assert_eq!(initial_state.hard_state, *raft_state.get_hard_state());
+        assert_eq!(initial_state.hard_state, *violetabft_state.get_hard_state());
 
         // Missing last log is invalid.
         engines.violetabft.delete(&log_key).unwrap();
         assert!(build_causetStorage().is_err());
         engines
             .violetabft
-            .put_msg(&log_key, &new_entry(20, RAFT_INIT_LOG_TERM))
+            .put_msg(&log_key, &new_entry(20, VIOLETABFT_INIT_LOG_TERM))
             .unwrap();
 
         // applied_index > commit_index is invalid.
@@ -2545,68 +2545,68 @@ mod tests {
         apply_state.mut_truncated_state().set_index(13);
         apply_state
             .mut_truncated_state()
-            .set_term(RAFT_INIT_LOG_TERM);
+            .set_term(VIOLETABFT_INIT_LOG_TERM);
         let apply_state_key = tuplespaceInstanton::apply_state_key(1);
         engines
             .kv
-            .put_msg_causet(CAUSET_RAFT, &apply_state_key, &apply_state)
+            .put_msg_causet(CAUSET_VIOLETABFT, &apply_state_key, &apply_state)
             .unwrap();
         assert!(build_causetStorage().is_err());
 
         // It should not recover if corresponding log doesn't exist.
         apply_state.set_commit_index(14);
-        apply_state.set_commit_term(RAFT_INIT_LOG_TERM);
+        apply_state.set_commit_term(VIOLETABFT_INIT_LOG_TERM);
         engines
             .kv
-            .put_msg_causet(CAUSET_RAFT, &apply_state_key, &apply_state)
+            .put_msg_causet(CAUSET_VIOLETABFT, &apply_state_key, &apply_state)
             .unwrap();
         assert!(build_causetStorage().is_err());
 
-        let log_key = tuplespaceInstanton::raft_log_key(1, 14);
+        let log_key = tuplespaceInstanton::violetabft_log_key(1, 14);
         engines
             .violetabft
-            .put_msg(&log_key, &new_entry(14, RAFT_INIT_LOG_TERM))
+            .put_msg(&log_key, &new_entry(14, VIOLETABFT_INIT_LOG_TERM))
             .unwrap();
-        raft_state.mut_hard_state().set_commit(14);
+        violetabft_state.mut_hard_state().set_commit(14);
         s = build_causetStorage().unwrap();
         let initial_state = s.initial_state().unwrap();
-        assert_eq!(initial_state.hard_state, *raft_state.get_hard_state());
+        assert_eq!(initial_state.hard_state, *violetabft_state.get_hard_state());
 
         // log term miss match is invalid.
         engines
             .violetabft
-            .put_msg(&log_key, &new_entry(14, RAFT_INIT_LOG_TERM - 1))
+            .put_msg(&log_key, &new_entry(14, VIOLETABFT_INIT_LOG_TERM - 1))
             .unwrap();
         assert!(build_causetStorage().is_err());
 
         // hard state term miss match is invalid.
         engines
             .violetabft
-            .put_msg(&log_key, &new_entry(14, RAFT_INIT_LOG_TERM))
+            .put_msg(&log_key, &new_entry(14, VIOLETABFT_INIT_LOG_TERM))
             .unwrap();
-        raft_state.mut_hard_state().set_term(RAFT_INIT_LOG_TERM - 1);
-        engines.violetabft.put_msg(&raft_state_key, &raft_state).unwrap();
+        violetabft_state.mut_hard_state().set_term(VIOLETABFT_INIT_LOG_TERM - 1);
+        engines.violetabft.put_msg(&violetabft_state_key, &violetabft_state).unwrap();
         assert!(build_causetStorage().is_err());
 
         // last index < recorded_commit_index is invalid.
-        raft_state.mut_hard_state().set_term(RAFT_INIT_LOG_TERM);
-        raft_state.set_last_index(13);
-        let log_key = tuplespaceInstanton::raft_log_key(1, 13);
+        violetabft_state.mut_hard_state().set_term(VIOLETABFT_INIT_LOG_TERM);
+        violetabft_state.set_last_index(13);
+        let log_key = tuplespaceInstanton::violetabft_log_key(1, 13);
         engines
             .violetabft
-            .put_msg(&log_key, &new_entry(13, RAFT_INIT_LOG_TERM))
+            .put_msg(&log_key, &new_entry(13, VIOLETABFT_INIT_LOG_TERM))
             .unwrap();
-        engines.violetabft.put_msg(&raft_state_key, &raft_state).unwrap();
+        engines.violetabft.put_msg(&violetabft_state_key, &violetabft_state).unwrap();
         assert!(build_causetStorage().is_err());
 
         // last_commit_index > commit_index is invalid.
-        raft_state.set_last_index(20);
-        raft_state.mut_hard_state().set_commit(12);
-        engines.violetabft.put_msg(&raft_state_key, &raft_state).unwrap();
+        violetabft_state.set_last_index(20);
+        violetabft_state.mut_hard_state().set_commit(12);
+        engines.violetabft.put_msg(&violetabft_state_key, &violetabft_state).unwrap();
         apply_state.set_last_commit_index(13);
         engines
             .kv
-            .put_msg_causet(CAUSET_RAFT, &apply_state_key, &apply_state)
+            .put_msg_causet(CAUSET_VIOLETABFT, &apply_state_key, &apply_state)
             .unwrap();
         assert!(build_causetStorage().is_err());
     }

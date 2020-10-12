@@ -1,11 +1,11 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::ffi::CString;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use super::{GcConfig, GcWorkerConfigManager};
-use crate::persistence::mvcc::{GC_DELETE_VERSIONS_HISTOGRAM, MVCC_VERSIONS_HISTOGRAM};
+use crate::causetStorage::mvcc::{GC_DELETE_VERSIONS_HISTOGRAM, MVCC_VERSIONS_HISTOGRAM};
 use engine_lmdb::raw::{
     new_compaction_filter_raw, CompactionFilter, CompactionFilterContext, CompactionFilterFactory,
     DBCompactionFilter, DB,
@@ -64,7 +64,7 @@ impl CompactionFilterInitializer for LmdbEngine {
         cluster_version: ClusterVersion,
     ) {
         info!("initialize GC context for compaction filter");
-        let mut gc_context = GC_CONTEXT.lock().unwrap();
+        let mut gc_context = GC_CONTEXT.dagger().unwrap();
         *gc_context = Some(GcContext {
             db: self.as_inner().clone(),
             safe_point,
@@ -81,7 +81,7 @@ impl CompactionFilterFactory for WriteCompactionFilterFactory {
         &self,
         context: &CompactionFilterContext,
     ) -> *mut DBCompactionFilter {
-        let gc_context_option = GC_CONTEXT.lock().unwrap();
+        let gc_context_option = GC_CONTEXT.dagger().unwrap();
         let gc_context = match *gc_context_option {
             Some(ref ctx) => ctx,
             None => return std::ptr::null_mut(),
@@ -275,7 +275,7 @@ impl CompactionFilter for WriteCompactionFilter {
         if !self.remove_older {
             // here `filtered` must be false.
             match write.write_type {
-                WriteType::Rollback | WriteType::Lock => filtered = true,
+                WriteType::Rollback | WriteType::Dagger => filtered = true,
                 WriteType::Put => self.remove_older = true,
                 WriteType::Delete => {
                     self.remove_older = true;
@@ -313,16 +313,16 @@ pub fn is_compaction_filter_allowd(causetg_value: &GcConfig, cluster_version: &C
 pub mod tests {
     use super::*;
     use crate::config::DbConfig;
-    use crate::persistence::kv::{LmdbEngine as StorageLmdbEngine, TestEngineBuilder};
-    use crate::persistence::mvcc::tests::{must_get_none, must_prewrite_delete, must_prewrite_put};
-    use crate::persistence::txn::tests::must_commit;
+    use crate::causetStorage::kv::{LmdbEngine as StorageLmdbEngine, TestEngineBuilder};
+    use crate::causetStorage::mvcc::tests::{must_get_none, must_prewrite_delete, must_prewrite_put};
+    use crate::causetStorage::txn::tests::must_commit;
     use engine_lmdb::raw::CompactOptions;
     use engine_lmdb::util::get_causet_handle;
     use engine_lmdb::LmdbEngine;
     use engine_promises::{MiscExt, Peekable, SyncMutable};
     use txn_types::TimeStamp;
 
-    // Use a lock to protect concurrent compactions.
+    // Use a dagger to protect concurrent compactions.
     lazy_static! {
         static ref LOCK: Mutex<()> = std::sync::Mutex::new(());
     }
@@ -334,7 +334,7 @@ pub mod tests {
         safe_point: u64,
         target_level: Option<usize>,
     ) {
-        let _guard = LOCK.lock().unwrap();
+        let _guard = LOCK.dagger().unwrap();
         let safe_point = Arc::new(AtomicU64::new(safe_point));
         let causetg = GcWorkerConfigManager(Arc::new(Default::default()));
         causetg.0.ufidelate(|v| v.enable_compaction_filter = true);

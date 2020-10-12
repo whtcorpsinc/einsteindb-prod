@@ -4,8 +4,8 @@ use std::cell::RefCell;
 
 use crossbeam::{SlightlikeError, TrySlightlikeError};
 use engine_promises::{KvEngine, VioletaBftEngine, Snapshot};
-use ekvproto::raft_cmdpb::VioletaBftCmdRequest;
-use ekvproto::raft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_cmdpb::VioletaBftCmdRequest;
+use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use violetabft::SnapshotStatus;
 use einsteindb_util::time::ThreadReadId;
 
@@ -23,7 +23,7 @@ where
     EK: KvEngine,
 {
     /// Slightlikes VioletaBftMessage to local store.
-    fn slightlike_raft_msg(&self, msg: VioletaBftMessage) -> VioletaBftStoreResult<()>;
+    fn slightlike_violetabft_msg(&self, msg: VioletaBftMessage) -> VioletaBftStoreResult<()>;
 
     /// Slightlikes a significant message. We should guarantee that the message can't be dropped.
     fn significant_slightlike(
@@ -133,7 +133,7 @@ where
     EK: KvEngine,
 {
     /// Slightlikes VioletaBftMessage to local store.
-    fn slightlike_raft_msg(&self, _: VioletaBftMessage) -> VioletaBftStoreResult<()> {
+    fn slightlike_violetabft_msg(&self, _: VioletaBftMessage) -> VioletaBftStoreResult<()> {
         Ok(())
     }
 
@@ -196,8 +196,8 @@ impl<EK: KvEngine, ER: VioletaBftEngine> CasualRouter<EK> for ServerVioletaBftSt
 }
 
 impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftStoreRouter<EK> for ServerVioletaBftStoreRouter<EK, ER> {
-    fn slightlike_raft_msg(&self, msg: VioletaBftMessage) -> VioletaBftStoreResult<()> {
-        VioletaBftStoreRouter::slightlike_raft_msg(&self.router, msg)
+    fn slightlike_violetabft_msg(&self, msg: VioletaBftMessage) -> VioletaBftStoreResult<()> {
+        VioletaBftStoreRouter::slightlike_violetabft_msg(&self.router, msg)
     }
 
     /// Slightlikes a significant message. We should guarantee that the message can't be dropped.
@@ -241,9 +241,9 @@ pub fn handle_slightlike_error<T>(brane_id: u64, e: TrySlightlikeError<T>) -> Vi
 }
 
 impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftStoreRouter<EK> for VioletaBftRouter<EK, ER> {
-    fn slightlike_raft_msg(&self, msg: VioletaBftMessage) -> VioletaBftStoreResult<()> {
+    fn slightlike_violetabft_msg(&self, msg: VioletaBftMessage) -> VioletaBftStoreResult<()> {
         let brane_id = msg.get_brane_id();
-        self.slightlike_raft_message(msg)
+        self.slightlike_violetabft_message(msg)
             .map_err(|e| handle_slightlike_error(brane_id, e))
     }
 

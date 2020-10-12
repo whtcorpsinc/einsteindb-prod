@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::cmp::{Ord, Ordering as CmpOrdering};
 use std::collections::BTreeMap;
@@ -13,14 +13,14 @@ use batch_system::{BasicMailbox, BatchRouter, BatchSystem, Fsm, HandlerBuilder, 
 use crossbeam::channel::{TryRecvError, TrySlightlikeError};
 use engine_lmdb::{PerfContext, PerfLevel};
 use engine_promises::{Engines, KvEngine, Mutable, WriteBatch, WriteBatchExt, WriteOptions};
-use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_RAFT, CAUSET_WRITE};
+use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
 use futures::compat::Future01CompatExt;
 use futures::FutureExt;
 use ekvproto::import_sstpb::SstMeta;
 use ekvproto::metapb::{self, Brane, BraneEpoch};
 use ekvproto::fidelpb::StoreStats;
-use ekvproto::raft_cmdpb::{AdminCmdType, AdminRequest};
-use ekvproto::raft_serverpb::{ExtraMessageType, PeerState, VioletaBftMessage, BraneLocalState};
+use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest};
+use ekvproto::violetabft_serverpb::{ExtraMessageType, PeerState, VioletaBftMessage, BraneLocalState};
 use ekvproto::replication_modepb::{ReplicationMode, ReplicationStatus};
 use protobuf::Message;
 use violetabft::{Ready, StateRole};
@@ -76,7 +76,7 @@ use einsteindb_util::future::poll_future_notify;
 type Key = Vec<u8>;
 
 const KV_WB_SHRINK_SIZE: usize = 256 * 1024;
-const RAFT_WB_SHRINK_SIZE: usize = 1024 * 1024;
+const VIOLETABFT_WB_SHRINK_SIZE: usize = 1024 * 1024;
 pub const PENDING_VOTES_CAP: usize = 20;
 const UNREACHABLE_BACKOFF: Duration = Duration::from_secs(10);
 
@@ -140,7 +140,7 @@ impl StoreMeta {
     ) {
         let prev = self.branes.insert(brane.get_id(), brane.clone());
         if prev.map_or(true, |r| r.get_id() != brane.get_id()) {
-            // TODO: may not be a good idea to panic when holding a lock.
+            // TODO: may not be a good idea to panic when holding a dagger.
             panic!("{} brane corrupted", peer.tag);
         }
         let reader = self.readers.get_mut(&brane.get_id()).unwrap();
@@ -209,7 +209,7 @@ where
     EK: KvEngine,
     ER: VioletaBftEngine,
 {
-    pub fn slightlike_raft_message(
+    pub fn slightlike_violetabft_message(
         &self,
         mut msg: VioletaBftMessage,
     ) -> std::result::Result<(), TrySlightlikeError<VioletaBftMessage>> {
@@ -236,7 +236,7 @@ where
     }
 
     #[inline]
-    pub fn slightlike_raft_command(
+    pub fn slightlike_violetabft_command(
         &self,
         cmd: VioletaBftCommand<EK::Snapshot>,
     ) -> std::result::Result<(), TrySlightlikeError<VioletaBftCommand<EK::Snapshot>>> {
@@ -296,7 +296,7 @@ where
     pub split_check_scheduler: Scheduler<SplitCheckTask>,
     // handle Compact, CleanupSST task
     pub cleanup_scheduler: Scheduler<CleanupTask>,
-    pub raftlog_gc_scheduler: Scheduler<VioletaBftlogGcTask>,
+    pub violetabftlog_gc_scheduler: Scheduler<VioletaBftlogGcTask>,
     pub brane_scheduler: Scheduler<BraneTask<EK::Snapshot>>,
     pub apply_router: ApplyRouter<EK>,
     pub router: VioletaBftRouter<EK, ER>,
@@ -308,11 +308,11 @@ where
     ///
     /// WARNING:
     /// To avoid deadlock, if you want to use `store_meta` and `plightlikeing_create_peers` together,
-    /// the lock sequence MUST BE:
-    /// 1. lock the store_meta.
-    /// 2. lock the plightlikeing_create_peers.
+    /// the dagger sequence MUST BE:
+    /// 1. dagger the store_meta.
+    /// 2. dagger the plightlikeing_create_peers.
     pub plightlikeing_create_peers: Arc<Mutex<HashMap<u64, (u64, bool)>>>,
-    pub raft_metrics: VioletaBftMetrics,
+    pub violetabft_metrics: VioletaBftMetrics,
     pub snap_mgr: SnapManager,
     pub applying_snap_count: Arc<AtomicUsize>,
     pub interlock_host: InterlockHost<EK>,
@@ -324,7 +324,7 @@ where
     pub store_stat: LocalStoreStat,
     pub engines: Engines<EK, ER>,
     pub kv_wb: EK::WriteBatch,
-    pub raft_wb: ER::LogBatch,
+    pub violetabft_wb: ER::LogBatch,
     pub plightlikeing_count: usize,
     pub sync_log: bool,
     pub has_ready: bool,
@@ -343,7 +343,7 @@ where
     ER: VioletaBftEngine,
 {
     fn wb_mut(&mut self) -> (&mut EK::WriteBatch, &mut ER::LogBatch) {
-        (&mut self.kv_wb, &mut self.raft_wb)
+        (&mut self.kv_wb, &mut self.violetabft_wb)
     }
 
     #[inline]
@@ -352,8 +352,8 @@ where
     }
 
     #[inline]
-    fn raft_wb_mut(&mut self) -> &mut ER::LogBatch {
-        &mut self.raft_wb
+    fn violetabft_wb_mut(&mut self) -> &mut ER::LogBatch {
+        &mut self.violetabft_wb
     }
 
     #[inline]
@@ -393,9 +393,9 @@ where
 
     pub fn ufidelate_ticks_timeout(&mut self) {
         self.tick_batch[PeerTicks::VIOLETABFT.bits() as usize].wait_duration =
-            self.causetg.raft_base_tick_interval.0;
-        self.tick_batch[PeerTicks::RAFT_LOG_GC.bits() as usize].wait_duration =
-            self.causetg.raft_log_gc_tick_interval.0;
+            self.causetg.violetabft_base_tick_interval.0;
+        self.tick_batch[PeerTicks::VIOLETABFT_LOG_GC.bits() as usize].wait_duration =
+            self.causetg.violetabft_log_gc_tick_interval.0;
         self.tick_batch[PeerTicks::FIDel_HEARTBEAT.bits() as usize].wait_duration =
             self.causetg.fidel_heartbeat_tick_interval.0;
         self.tick_batch[PeerTicks::SPLIT_REGION_CHECK.bits() as usize].wait_duration =
@@ -448,7 +448,7 @@ where
                 "current_brane_epoch" => ?cur_epoch,
                 "msg_type" => ?msg_type,
             );
-            self.raft_metrics.message_dropped.stale_msg += 1;
+            self.violetabft_metrics.message_dropped.stale_msg += 1;
             return;
         }
 
@@ -553,10 +553,10 @@ impl<'a, EK: KvEngine + 'static, ER: VioletaBftEngine + 'static, T: Transport, C
             StoreTick::CompactCheck => self.on_compact_check_tick(),
             StoreTick::ConsistencyCheck => self.on_consistency_check_tick(),
             StoreTick::CleanupImportSST => self.on_cleanup_import_sst_tick(),
-            StoreTick::VioletaBftEnginePurge => self.on_raft_engine_purge_tick(),
+            StoreTick::VioletaBftEnginePurge => self.on_violetabft_engine_purge_tick(),
         }
         let elapsed = t.elapsed();
-        RAFT_EVENT_DURATION
+        VIOLETABFT_EVENT_DURATION
             .get(tick.tag())
             .observe(duration_to_sec(elapsed) as f64);
         slow_log!(
@@ -572,7 +572,7 @@ impl<'a, EK: KvEngine + 'static, ER: VioletaBftEngine + 'static, T: Transport, C
             match m {
                 StoreMsg::Tick(tick) => self.on_tick(tick),
                 StoreMsg::VioletaBftMessage(msg) => {
-                    if let Err(e) = self.on_raft_message(msg) {
+                    if let Err(e) = self.on_violetabft_message(msg) {
                         error!(?e;
                             "handle violetabft message failed";
                             "store_id" => self.fsm.store.id,
@@ -612,7 +612,7 @@ impl<'a, EK: KvEngine + 'static, ER: VioletaBftEngine + 'static, T: Transport, C
         self.register_compact_lock_causet_tick();
         self.register_snap_mgr_gc_tick();
         self.register_consistency_check_tick();
-        self.register_raft_engine_purge_tick();
+        self.register_violetabft_engine_purge_tick();
     }
 }
 
@@ -628,12 +628,12 @@ pub struct VioletaBftPoller<EK: KvEngine + 'static, ER: VioletaBftEngine + 'stat
 }
 
 impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBftPoller<EK, ER, T, C> {
-    fn handle_raft_ready(&mut self, peers: &mut [Box<PeerFsm<EK, ER>>]) {
+    fn handle_violetabft_ready(&mut self, peers: &mut [Box<PeerFsm<EK, ER>>]) {
         // Only enable the fail point when the store id is equal to 3, which is
         // the id of slow store in tests.
-        fail_point!("on_raft_ready", self.poll_ctx.store_id() == 3, |_| {});
+        fail_point!("on_violetabft_ready", self.poll_ctx.store_id() == 3, |_| {});
         if self.poll_ctx.need_flush_trans
-            && (!self.poll_ctx.kv_wb.is_empty() || !self.poll_ctx.raft_wb.is_empty())
+            && (!self.poll_ctx.kv_wb.is_empty() || !self.poll_ctx.violetabft_wb.is_empty())
         {
             self.poll_ctx.trans.flush();
             self.poll_ctx.need_flush_trans = false;
@@ -651,12 +651,12 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBf
                     }
                 }
                 PeerFsmDelegate::new(&mut peers[batch_pos], &mut self.poll_ctx)
-                    .handle_raft_ready_apply(ready, invoke_ctx);
+                    .handle_violetabft_ready_apply(ready, invoke_ctx);
             }
             self.poll_ctx.ready_res = ready_res;
         }
-        self.poll_ctx.raft_metrics.ready.has_ready_brane += ready_cnt as u64;
-        fail_point!("raft_before_save");
+        self.poll_ctx.violetabft_metrics.ready.has_ready_brane += ready_cnt as u64;
+        fail_point!("violetabft_before_save");
         if !self.poll_ctx.kv_wb.is_empty() {
             let mut write_opts = WriteOptions::new();
             write_opts.set_sync(true);
@@ -674,10 +674,10 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBf
                 self.poll_ctx.kv_wb.clear();
             }
         }
-        fail_point!("raft_between_save");
-        if !self.poll_ctx.raft_wb.is_empty() {
+        fail_point!("violetabft_between_save");
+        if !self.poll_ctx.violetabft_wb.is_empty() {
             fail_point!(
-                "raft_before_save_on_store_1",
+                "violetabft_before_save_on_store_1",
                 self.poll_ctx.store_id() == 1,
                 |_| {}
             );
@@ -686,9 +686,9 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBf
                 .engines
                 .violetabft
                 .consume_and_shrink(
-                    &mut self.poll_ctx.raft_wb,
+                    &mut self.poll_ctx.violetabft_wb,
                     true,
-                    RAFT_WB_SHRINK_SIZE,
+                    VIOLETABFT_WB_SHRINK_SIZE,
                     4 * 1024,
                 )
                 .unwrap_or_else(|e| {
@@ -700,7 +700,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBf
             self.poll_ctx.perf_context_statistics,
             STORE_PERF_CONTEXT_TIME_HISTOGRAM_STATIC
         );
-        fail_point!("raft_after_save");
+        fail_point!("violetabft_after_save");
         if ready_cnt != 0 {
             let mut batch_pos = 0;
             let mut ready_res = mem::take(&mut self.poll_ctx.ready_res);
@@ -713,14 +713,14 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBf
                     }
                 }
                 PeerFsmDelegate::new(&mut peers[batch_pos], &mut self.poll_ctx)
-                    .post_raft_ready_applightlike(ready, invoke_ctx);
+                    .post_violetabft_ready_applightlike(ready, invoke_ctx);
             }
         }
         let dur = self.timer.elapsed();
         if !self.poll_ctx.store_stat.is_busy {
             let election_timeout = Duration::from_millis(
-                self.poll_ctx.causetg.raft_base_tick_interval.as_millis()
-                    * self.poll_ctx.causetg.raft_election_timeout_ticks as u64,
+                self.poll_ctx.causetg.violetabft_base_tick_interval.as_millis()
+                    * self.poll_ctx.causetg.violetabft_election_timeout_ticks as u64,
             );
             if dur >= election_timeout {
                 self.poll_ctx.store_stat.is_busy = true;
@@ -728,7 +728,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBf
         }
 
         self.poll_ctx
-            .raft_metrics
+            .violetabft_metrics
             .applightlike_log
             .observe(duration_to_sec(dur) as f64);
 
@@ -739,9 +739,9 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBf
             self.tag,
             self.poll_ctx.plightlikeing_count,
             ready_cnt,
-            self.poll_ctx.raft_metrics.ready.applightlike - self.previous_metrics.ready.applightlike,
-            self.poll_ctx.raft_metrics.ready.message - self.previous_metrics.ready.message,
-            self.poll_ctx.raft_metrics.ready.snapshot - self.previous_metrics.ready.snapshot
+            self.poll_ctx.violetabft_metrics.ready.applightlike - self.previous_metrics.ready.applightlike,
+            self.poll_ctx.violetabft_metrics.ready.message - self.previous_metrics.ready.message,
+            self.poll_ctx.violetabft_metrics.ready.snapshot - self.previous_metrics.ready.snapshot
         );
     }
 
@@ -771,7 +771,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     PollHandler<PeerFsm<EK, ER>, StoreFsm<EK>> for VioletaBftPoller<EK, ER, T, C>
 {
     fn begin(&mut self, _batch_size: usize) {
-        self.previous_metrics = self.poll_ctx.raft_metrics.clone();
+        self.previous_metrics = self.poll_ctx.violetabft_metrics.clone();
         self.poll_ctx.plightlikeing_count = 0;
         self.poll_ctx.sync_log = false;
         self.poll_ctx.has_ready = false;
@@ -870,14 +870,14 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     fn lightlike(&mut self, peers: &mut [Box<PeerFsm<EK, ER>>]) {
         self.flush_ticks();
         if self.poll_ctx.has_ready {
-            self.handle_raft_ready(peers);
+            self.handle_violetabft_ready(peers);
         }
         self.poll_ctx.current_time = None;
         self.poll_ctx
-            .raft_metrics
+            .violetabft_metrics
             .process_ready
             .observe(duration_to_sec(self.timer.elapsed()) as f64);
-        self.poll_ctx.raft_metrics.flush();
+        self.poll_ctx.violetabft_metrics.flush();
         self.poll_ctx.store_stat.flush();
     }
 
@@ -896,7 +896,7 @@ pub struct VioletaBftPollerBuilder<EK: KvEngine, ER: VioletaBftEngine, T, C> {
     consistency_check_scheduler: Scheduler<ConsistencyCheckTask<EK::Snapshot>>,
     split_check_scheduler: Scheduler<SplitCheckTask>,
     cleanup_scheduler: Scheduler<CleanupTask>,
-    raftlog_gc_scheduler: Scheduler<VioletaBftlogGcTask>,
+    violetabftlog_gc_scheduler: Scheduler<VioletaBftlogGcTask>,
     pub brane_scheduler: Scheduler<BraneTask<EK::Snapshot>>,
     apply_router: ApplyRouter<EK>,
     pub router: VioletaBftRouter<EK, ER>,
@@ -930,12 +930,12 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
 
         let t = Instant::now();
         let mut kv_wb = self.engines.kv.write_batch();
-        let mut raft_wb = self.engines.violetabft.log_batch(4 * 1024);
+        let mut violetabft_wb = self.engines.violetabft.log_batch(4 * 1024);
         let mut applying_branes = vec![];
         let mut merging_count = 0;
-        let mut meta = self.store_meta.lock().unwrap();
-        let mut replication_state = self.global_replication_state.lock().unwrap();
-        kv_engine.scan_causet(CAUSET_RAFT, spacelike_key, lightlike_key, false, |key, value| {
+        let mut meta = self.store_meta.dagger().unwrap();
+        let mut replication_state = self.global_replication_state.dagger().unwrap();
+        kv_engine.scan_causet(CAUSET_VIOLETABFT, spacelike_key, lightlike_key, false, |key, value| {
             let (brane_id, suffix) = box_try!(tuplespaceInstanton::decode_brane_meta_key(key));
             if suffix != tuplespaceInstanton::REGION_STATE_SUFFIX {
                 return Ok(true);
@@ -950,15 +950,15 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
             if local_state.get_state() == PeerState::Tombstone {
                 tombstone_count += 1;
                 debug!("brane is tombstone"; "brane" => ?brane, "store_id" => store_id);
-                self.clear_stale_meta(&mut kv_wb, &mut raft_wb, &local_state);
+                self.clear_stale_meta(&mut kv_wb, &mut violetabft_wb, &local_state);
                 return Ok(true);
             }
             if local_state.get_state() == PeerState::Applying {
                 // in case of respacelike happen when we just write brane state to Applying,
-                // but not write raft_local_state to violetabft lmdb in time.
+                // but not write violetabft_local_state to violetabft lmdb in time.
                 box_try!(peer_causetStorage::recover_from_applying_state(
                     &self.engines,
-                    &mut raft_wb,
+                    &mut violetabft_wb,
                     brane_id
                 ));
                 applying_count += 1;
@@ -996,8 +996,8 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
             self.engines.kv.write(&kv_wb).unwrap();
             self.engines.kv.sync_wal().unwrap();
         }
-        if !raft_wb.is_empty() {
-            self.engines.violetabft.consume(&mut raft_wb, true).unwrap();
+        if !violetabft_wb.is_empty() {
+            self.engines.violetabft.consume(&mut violetabft_wb, true).unwrap();
         }
 
         // schedule applying snapshot after violetabft writebatch were written.
@@ -1036,18 +1036,18 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
     fn clear_stale_meta(
         &self,
         kv_wb: &mut EK::WriteBatch,
-        raft_wb: &mut ER::LogBatch,
+        violetabft_wb: &mut ER::LogBatch,
         origin_state: &BraneLocalState,
     ) {
         let rid = origin_state.get_brane().get_id();
-        let raft_state = match self.engines.violetabft.get_raft_state(rid).unwrap() {
+        let violetabft_state = match self.engines.violetabft.get_violetabft_state(rid).unwrap() {
             // it has been cleaned up.
             None => return,
             Some(value) => value,
         };
-        peer_causetStorage::clear_meta(&self.engines, kv_wb, raft_wb, rid, &raft_state).unwrap();
+        peer_causetStorage::clear_meta(&self.engines, kv_wb, violetabft_wb, rid, &violetabft_state).unwrap();
         let key = tuplespaceInstanton::brane_state_key(rid);
-        kv_wb.put_msg_causet(CAUSET_RAFT, &key, origin_state).unwrap();
+        kv_wb.put_msg_causet(CAUSET_VIOLETABFT, &key, origin_state).unwrap();
     }
 
     /// `clear_stale_data` clean up all possible garbage data.
@@ -1097,11 +1097,11 @@ where
             apply_router: self.apply_router.clone(),
             router: self.router.clone(),
             cleanup_scheduler: self.cleanup_scheduler.clone(),
-            raftlog_gc_scheduler: self.raftlog_gc_scheduler.clone(),
+            violetabftlog_gc_scheduler: self.violetabftlog_gc_scheduler.clone(),
             importer: self.importer.clone(),
             store_meta: self.store_meta.clone(),
             plightlikeing_create_peers: self.plightlikeing_create_peers.clone(),
-            raft_metrics: VioletaBftMetrics::default(),
+            violetabft_metrics: VioletaBftMetrics::default(),
             snap_mgr: self.snap_mgr.clone(),
             applying_snap_count: self.applying_snap_count.clone(),
             interlock_host: self.interlock_host.clone(),
@@ -1113,7 +1113,7 @@ where
             store_stat: self.global_stat.local(),
             engines: self.engines.clone(),
             kv_wb: self.engines.kv.write_batch(),
-            raft_wb: self.engines.violetabft.log_batch(4 * 1024),
+            violetabft_wb: self.engines.violetabft.log_batch(4 * 1024),
             plightlikeing_count: 0,
             sync_log: false,
             has_ready: false,
@@ -1130,7 +1130,7 @@ where
             tag: tag.clone(),
             store_msg_buf: Vec::with_capacity(ctx.causetg.messages_per_tick),
             peer_msg_buf: Vec::with_capacity(ctx.causetg.messages_per_tick),
-            previous_metrics: ctx.raft_metrics.clone(),
+            previous_metrics: ctx.violetabft_metrics.clone(),
             timer: TiInstant::now_coarse(),
             messages_per_tick: ctx.causetg.messages_per_tick,
             poll_ctx: ctx,
@@ -1145,7 +1145,7 @@ struct Workers<EK: KvEngine> {
     split_check_worker: Worker<SplitCheckTask>,
     // handle Compact, CleanupSST task
     cleanup_worker: Worker<CleanupTask>,
-    raftlog_gc_worker: Worker<VioletaBftlogGcTask>,
+    violetabftlog_gc_worker: Worker<VioletaBftlogGcTask>,
     brane_worker: Worker<BraneTask<EK::Snapshot>>,
     interlock_host: InterlockHost<EK>,
 }
@@ -1199,7 +1199,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
             fidel_worker,
             consistency_check_worker: Worker::new("consistency-check"),
             cleanup_worker: Worker::new("cleanup-worker"),
-            raftlog_gc_worker: Worker::new("violetabft-gc-worker"),
+            violetabftlog_gc_worker: Worker::new("violetabft-gc-worker"),
             interlock_host: interlock_host.clone(),
         };
         let mut builder = VioletaBftPollerBuilder {
@@ -1212,7 +1212,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
             fidel_scheduler: workers.fidel_worker.scheduler(),
             consistency_check_scheduler: workers.consistency_check_worker.scheduler(),
             cleanup_scheduler: workers.cleanup_worker.scheduler(),
-            raftlog_gc_scheduler: workers.raftlog_gc_worker.scheduler(),
+            violetabftlog_gc_scheduler: workers.violetabftlog_gc_worker.scheduler(),
             apply_router: self.apply_router.clone(),
             trans,
             fidel_client,
@@ -1276,7 +1276,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
             .schedule_all(brane_peers.iter().map(|pair| pair.1.get_peer()));
 
         {
-            let mut meta = builder.store_meta.lock().unwrap();
+            let mut meta = builder.store_meta.dagger().unwrap();
             for (_, peer_fsm) in &brane_peers {
                 let peer = peer_fsm.get_peer();
                 meta.readers
@@ -1287,7 +1287,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
         let router = Mutex::new(self.router.clone());
         fidel_client.handle_reconnect(move || {
             router
-                .lock()
+                .dagger()
                 .unwrap()
                 .broadcast_normal(|| PeerMsg::HeartbeatFidel);
         });
@@ -1326,11 +1326,11 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
         let timer = brane_runner.new_timer();
         box_try!(workers.brane_worker.spacelike_with_timer(brane_runner, timer));
 
-        let raftlog_gc_runner = VioletaBftlogGcRunner::new(self.router(), engines.clone());
-        let timer = raftlog_gc_runner.new_timer();
+        let violetabftlog_gc_runner = VioletaBftlogGcRunner::new(self.router(), engines.clone());
+        let timer = violetabftlog_gc_runner.new_timer();
         box_try!(workers
-            .raftlog_gc_worker
-            .spacelike_with_timer(raftlog_gc_runner, timer));
+            .violetabftlog_gc_worker
+            .spacelike_with_timer(violetabftlog_gc_runner, timer));
 
         let compact_runner = CompactRunner::new(engines.kv.clone());
         let cleanup_sst_runner = CleanupSSTRunner::new(
@@ -1379,7 +1379,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
         handles.push(workers.fidel_worker.stop());
         handles.push(workers.consistency_check_worker.stop());
         handles.push(workers.cleanup_worker.stop());
-        handles.push(workers.raftlog_gc_worker.stop());
+        handles.push(workers.violetabftlog_gc_worker.stop());
         self.apply_system.shutdown();
         self.system.shutdown();
         for h in handles {
@@ -1391,22 +1391,22 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
     }
 }
 
-pub fn create_raft_batch_system<EK: KvEngine, ER: VioletaBftEngine>(
+pub fn create_violetabft_batch_system<EK: KvEngine, ER: VioletaBftEngine>(
     causetg: &Config,
 ) -> (VioletaBftRouter<EK, ER>, VioletaBftBatchSystem<EK, ER>) {
     let (store_tx, store_fsm) = StoreFsm::new(causetg);
     let (apply_router, apply_system) = create_apply_batch_system(&causetg);
     let (router, system) =
         batch_system::create_system(&causetg.store_batch_system, store_tx, store_fsm);
-    let raft_router = VioletaBftRouter { router };
+    let violetabft_router = VioletaBftRouter { router };
     let system = VioletaBftBatchSystem {
         system,
         workers: None,
         apply_router,
         apply_system,
-        router: raft_router.clone(),
+        router: violetabft_router.clone(),
     };
-    (raft_router, system)
+    (violetabft_router, system)
 }
 
 #[derive(Debug, PartialEq)]
@@ -1435,7 +1435,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         // Check if the target peer is tombstone.
         let state_key = tuplespaceInstanton::brane_state_key(brane_id);
         let local_state: BraneLocalState =
-            match self.ctx.engines.kv.get_msg_causet(CAUSET_RAFT, &state_key)? {
+            match self.ctx.engines.kv.get_msg_causet(CAUSET_VIOLETABFT, &state_key)? {
                 Some(state) => state,
                 None => return Ok(CheckMsgStatus::NewPeerFirst),
             };
@@ -1443,7 +1443,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         if local_state.get_state() != PeerState::Tombstone {
             // Maybe split, but not registered yet.
             if !util::is_first_vote_msg(msg.get_message()) {
-                self.ctx.raft_metrics.message_dropped.brane_nonexistent += 1;
+                self.ctx.violetabft_metrics.message_dropped.brane_nonexistent += 1;
                 return Err(box_err!(
                     "[brane {}] brane not exist but not tombstone: {:?}",
                     brane_id,
@@ -1489,7 +1489,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         }
         // The brane in this peer is already destroyed
         if util::is_epoch_stale(from_epoch, brane_epoch) {
-            self.ctx.raft_metrics.message_dropped.brane_tombstone_peer += 1;
+            self.ctx.violetabft_metrics.message_dropped.brane_tombstone_peer += 1;
             info!(
                 "tombstone peer receives a stale message";
                 "brane_id" => brane_id,
@@ -1537,7 +1537,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             util::find_peer(brane, self.ctx.store_id()).map(|r| r.get_id())
         {
             if to_peer_id <= local_peer_id {
-                self.ctx.raft_metrics.message_dropped.brane_tombstone_peer += 1;
+                self.ctx.violetabft_metrics.message_dropped.brane_tombstone_peer += 1;
                 info!(
                     "tombstone peer receives a stale message, local_peer_id >= to_peer_id in msg";
                     "brane_id" => brane_id,
@@ -1551,7 +1551,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         Ok(CheckMsgStatus::NewPeer)
     }
 
-    fn on_raft_message(&mut self, mut msg: VioletaBftMessage) -> Result<()> {
+    fn on_violetabft_message(&mut self, mut msg: VioletaBftMessage) -> Result<()> {
         let brane_id = msg.get_brane_id();
         match self.ctx.router.slightlike(brane_id, PeerMsg::VioletaBftMessage(msg)) {
             Ok(()) | Err(TrySlightlikeError::Full(_)) => return Ok(()),
@@ -1579,7 +1579,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                 "to_store_id" => msg.get_to_peer().get_store_id(),
                 "brane_id" => brane_id,
             );
-            self.ctx.raft_metrics.message_dropped.mismatch_store_id += 1;
+            self.ctx.violetabft_metrics.message_dropped.mismatch_store_id += 1;
             return Ok(());
         }
 
@@ -1588,7 +1588,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                 "missing epoch in violetabft message, ignore it";
                 "brane_id" => brane_id,
             );
-            self.ctx.raft_metrics.message_dropped.mismatch_brane_epoch += 1;
+            self.ctx.violetabft_metrics.message_dropped.mismatch_brane_epoch += 1;
             return Ok(());
         }
         if msg.get_is_tombstone() || msg.has_merge_target() {
@@ -1619,7 +1619,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         if is_first_request_vote {
             // To void losing request vote messages, either put it to
             // plightlikeing_votes or force slightlike.
-            let mut store_meta = self.ctx.store_meta.lock().unwrap();
+            let mut store_meta = self.ctx.store_meta.dagger().unwrap();
             if !store_meta.branes.contains_key(&brane_id) {
                 store_meta.plightlikeing_votes.push(msg);
                 return Ok(());
@@ -1656,12 +1656,12 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                 "brane_id" => brane_id,
                 "msg_type" => ?msg_type,
             );
-            self.ctx.raft_metrics.message_dropped.stale_msg += 1;
+            self.ctx.violetabft_metrics.message_dropped.stale_msg += 1;
             return Ok(false);
         }
 
         if is_local_first {
-            let mut plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.lock().unwrap();
+            let mut plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.dagger().unwrap();
             if plightlikeing_create_peers.contains_key(&brane_id) {
                 return Ok(false);
             }
@@ -1671,7 +1671,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         let res = self.maybe_create_peer_internal(brane_id, &msg, is_local_first);
         // If failed, i.e. Err or Ok(false), remove this peer data from `plightlikeing_create_peers`.
         if res.as_ref().map_or(true, |b| !*b) && is_local_first {
-            let mut plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.lock().unwrap();
+            let mut plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.dagger().unwrap();
             if let Some(status) = plightlikeing_create_peers.get(&brane_id) {
                 if *status == (msg.get_to_peer().get_id(), false) {
                     plightlikeing_create_peers.remove(&brane_id);
@@ -1692,7 +1692,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                 .ctx
                 .engines
                 .kv
-                .get_value_causet(CAUSET_RAFT, &tuplespaceInstanton::brane_state_key(brane_id))?
+                .get_value_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id))?
                 .is_some()
             {
                 return Ok(false);
@@ -1701,22 +1701,22 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
 
         let target = msg.get_to_peer();
 
-        let mut meta = self.ctx.store_meta.lock().unwrap();
+        let mut meta = self.ctx.store_meta.dagger().unwrap();
         if meta.branes.contains_key(&brane_id) {
             return Ok(true);
         }
 
         if is_local_first {
-            let plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.lock().unwrap();
+            let plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.dagger().unwrap();
             match plightlikeing_create_peers.get(&brane_id) {
                 Some(status) if *status == (msg.get_to_peer().get_id(), false) => (),
                 // If changed, it means this peer has been/will be replaced from the new one from splitting.
                 _ => return Ok(false),
             }
-            // Note that `StoreMeta` lock is held and status is (peer_id, false) in `plightlikeing_create_peers` now.
+            // Note that `StoreMeta` dagger is held and status is (peer_id, false) in `plightlikeing_create_peers` now.
             // If this peer is created from splitting latter and then status in `plightlikeing_create_peers` is changed,
             // that peer creation in `on_ready_split_brane` must be executed **after** current peer creation
-            // because of the `StoreMeta` lock.
+            // because of the `StoreMeta` dagger.
         }
 
         let mut is_overlapped = false;
@@ -1772,7 +1772,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         }
 
         if is_overlapped {
-            self.ctx.raft_metrics.message_dropped.brane_overlap += 1;
+            self.ctx.violetabft_metrics.message_dropped.brane_overlap += 1;
             return Ok(false);
         }
 
@@ -1803,7 +1803,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         // WARNING: The checking code must be above this line.
         // Now all checking passed
 
-        let mut replication_state = self.ctx.global_replication_state.lock().unwrap();
+        let mut replication_state = self.ctx.global_replication_state.dagger().unwrap();
         peer.peer.init_replication_mode(&mut *replication_state);
         drop(replication_state);
 
@@ -1835,7 +1835,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
 
         // self.causetg.brane_split_check_diff.0 / 16 is an experienced value.
         let mut brane_declined_bytes = {
-            let meta = self.ctx.store_meta.lock().unwrap();
+            let meta = self.ctx.store_meta.dagger().unwrap();
             event.calc_cones_declined_bytes(
                 &meta.brane_cones,
                 self.ctx.causetg.brane_split_check_diff.0 / 16,
@@ -1893,7 +1893,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         cones_need_check.push(self.fsm.store.last_compact_checked_key.clone());
 
         let largest_key = {
-            let meta = self.ctx.store_meta.lock().unwrap();
+            let meta = self.ctx.store_meta.dagger().unwrap();
             if meta.brane_cones.is_empty() {
                 debug!(
                     "there is no cone need to check";
@@ -1954,7 +1954,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         stats.set_used_size(used_size);
         stats.set_store_id(self.ctx.store_id());
         {
-            let meta = self.ctx.store_meta.lock().unwrap();
+            let meta = self.ctx.store_meta.dagger().unwrap();
             stats.set_brane_count(meta.branes.len() as u32);
         }
 
@@ -2096,7 +2096,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     }
 
     fn on_compact_lock_causet(&mut self) {
-        // Create a compact lock causet task(compact whole cone) and schedule directly.
+        // Create a compact dagger causet task(compact whole cone) and schedule directly.
         let lock_causet_bytes_written = self
             .ctx
             .global_stat
@@ -2121,7 +2121,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                 .schedule(CleanupTask::Compact(task))
             {
                 error!(
-                    "schedule compact lock causet task failed";
+                    "schedule compact dagger causet task failed";
                     "store_id" => self.fsm.store.id,
                     "err" => ?e,
                 );
@@ -2162,7 +2162,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         // destroyed. We need to make sure that no stale peer exists.
         let mut delete_ssts = Vec::new();
         {
-            let meta = self.ctx.store_meta.lock().unwrap();
+            let meta = self.ctx.store_meta.dagger().unwrap();
             for sst in ssts {
                 if !meta.branes.contains_key(&sst.get_brane_id()) {
                     delete_ssts.push(sst);
@@ -2196,7 +2196,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             return Ok(());
         }
         {
-            let meta = self.ctx.store_meta.lock().unwrap();
+            let meta = self.ctx.store_meta.dagger().unwrap();
             for sst in ssts {
                 if let Some(r) = meta.branes.get(&sst.get_brane_id()) {
                     let brane_epoch = r.get_brane_epoch();
@@ -2260,7 +2260,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         }
         let (mut target_brane_id, mut oldest) = (0, Instant::now());
         let target_peer = {
-            let meta = self.ctx.store_meta.lock().unwrap();
+            let meta = self.ctx.store_meta.dagger().unwrap();
             for brane_id in meta.branes.tuplespaceInstanton() {
                 match self.fsm.store.consistency_check_time.get(brane_id) {
                     Some(time) => {
@@ -2329,7 +2329,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
 
         let mut branes = vec![];
         {
-            let meta = self.ctx.store_meta.lock().unwrap();
+            let meta = self.ctx.store_meta.dagger().unwrap();
             for (_, brane_id) in meta
                 .brane_cones
                 .cone((Excluded(spacelike_key), Included(lightlike_key)))
@@ -2363,14 +2363,14 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             "unreachable_store_id" => store_id,
         );
         self.fsm.store.last_unreachable_report.insert(store_id, now);
-        // It's possible to acquire the lock and only slightlike notification to
+        // It's possible to acquire the dagger and only slightlike notification to
         // involved branes. However loop over all the branes can take a
         // lot of time, which may block other operations.
         self.ctx.router.report_unreachable(store_id);
     }
 
     fn on_ufidelate_replication_mode(&mut self, status: ReplicationStatus) {
-        let mut state = self.ctx.global_replication_state.lock().unwrap();
+        let mut state = self.ctx.global_replication_state.dagger().unwrap();
         if state.status().mode == status.mode {
             if status.get_mode() == ReplicationMode::Majority {
                 return;
@@ -2387,17 +2387,17 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         self.ctx.router.report_status_ufidelate()
     }
 
-    fn register_raft_engine_purge_tick(&self) {
+    fn register_violetabft_engine_purge_tick(&self) {
         self.ctx.schedule_store_tick(
             StoreTick::VioletaBftEnginePurge,
-            self.ctx.causetg.raft_engine_purge_interval.0,
+            self.ctx.causetg.violetabft_engine_purge_interval.0,
         )
     }
 
-    fn on_raft_engine_purge_tick(&self) {
-        let scheduler = &self.ctx.raftlog_gc_scheduler;
+    fn on_violetabft_engine_purge_tick(&self) {
+        let scheduler = &self.ctx.violetabftlog_gc_scheduler;
         let _ = scheduler.schedule(VioletaBftlogGcTask::Purge);
-        self.register_raft_engine_purge_tick();
+        self.register_violetabft_engine_purge_tick();
     }
 }
 

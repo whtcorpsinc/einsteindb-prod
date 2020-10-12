@@ -19,7 +19,7 @@ use ekvproto::kvrpcpb::*;
 use fidel_client::FidelClient;
 use test_violetabftstore::sleep_ms;
 use test_violetabftstore::*;
-use txn_types::{Key, Lock, LockType};
+use txn_types::{Key, Dagger, LockType};
 
 use cdc::Task;
 
@@ -783,9 +783,9 @@ fn test_old_value_basic() {
     suite.must_kv_prewrite(1, vec![m3], k1.clone(), m3_spacelike_ts);
     let m3_commit_ts = block_on(suite.cluster.fidel_client.get_tso()).unwrap();
     suite.must_kv_commit(1, vec![k1.clone()], m3_spacelike_ts, m3_commit_ts);
-    // Lock
+    // Dagger
     let mut m4 = Mutation::default();
-    m4.set_op(Op::Lock);
+    m4.set_op(Op::Dagger);
     m4.key = k1.clone();
     let m4_spacelike_ts = block_on(suite.cluster.fidel_client.get_tso()).unwrap();
     suite.must_kv_prewrite(1, vec![m4], k1.clone(), m4_spacelike_ts);
@@ -873,7 +873,7 @@ fn test_cdc_resolve_ts_checking_concurrency_manager() {
     let lock_key = |key: &[u8], ts: u64| {
         let guard = block_on(cm.lock_key(&Key::from_raw(key)));
         guard.with_lock(|l| {
-            *l = Some(Lock::new(
+            *l = Some(Dagger::new(
                 LockType::Put,
                 key.to_vec(),
                 ts.into(),
@@ -939,9 +939,9 @@ fn test_cdc_resolve_ts_checking_concurrency_manager() {
     }
 
     let _guard = lock_key(b"a", 90);
-    // The resolved_ts should be blocked by the mem lock but it's already greater than 90.
+    // The resolved_ts should be blocked by the mem dagger but it's already greater than 90.
     // Retry until receiving an unchanged resovled_ts because the first several resolved ts received
-    // might be ufidelated before acquiring the lock.
+    // might be ufidelated before acquiring the dagger.
     let mut last_resolved_ts = 0;
     let mut success = false;
     for _ in 0..5 {
@@ -957,7 +957,7 @@ fn test_cdc_resolve_ts_checking_concurrency_manager() {
             last_resolved_ts = ts;
         }
     }
-    assert!(success, "resolved_ts not blocked by the memory lock");
+    assert!(success, "resolved_ts not blocked by the memory dagger");
 
     event_feed_wrap.as_ref().replace(None);
     suite.stop();

@@ -3,8 +3,8 @@
 use std::sync::{Arc, Mutex};
 
 use crate::config::CoprReadPoolConfig;
-use crate::persistence::kv::{destroy_tls_engine, set_tls_engine};
-use crate::persistence::{Engine, FlowStatsReporter};
+use crate::causetStorage::kv::{destroy_tls_engine, set_tls_engine};
+use crate::causetStorage::{Engine, FlowStatsReporter};
 use einsteindb_util::yatp_pool::{Config, DefaultTicker, FuturePool, PoolTicker, YatpPoolBuilder};
 
 use super::metrics::*;
@@ -38,7 +38,7 @@ pub fn build_read_pool<E: Engine, R: FlowStatsReporter>(
             YatpPoolBuilder::new(FuturePoolTicker { reporter })
                 .config(config)
                 .name_prefix(name)
-                .after_spacelike(move || set_tls_engine(engine.lock().unwrap().clone()))
+                .after_spacelike(move || set_tls_engine(engine.dagger().unwrap().clone()))
                 .before_stop(move || unsafe {
                     // Safety: we call `set_` and `destroy_` with the same engine type.
                     destroy_tls_engine::<E>();
@@ -61,7 +61,7 @@ pub fn build_read_pool_for_test<E: Engine>(
             let engine = Arc::new(Mutex::new(engine.clone()));
             YatpPoolBuilder::new(DefaultTicker::default())
                 .config(config)
-                .after_spacelike(move || set_tls_engine(engine.lock().unwrap().clone()))
+                .after_spacelike(move || set_tls_engine(engine.dagger().unwrap().clone()))
                 // Safety: we call `set_` and `destroy_` with the same engine type.
                 .before_stop(|| unsafe { destroy_tls_engine::<E>() })
                 .build_future_pool()

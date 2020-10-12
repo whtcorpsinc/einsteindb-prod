@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -60,12 +60,12 @@ fn test_collect_lock_from_stale_leader() {
     std::thread::sleep(Duration::from_secs(1));
     cluster.fidel_client.must_have_peer(brane_id, leader);
 
-    // Must scan the lock from the old leader.
+    // Must scan the dagger from the old leader.
     let locks = must_physical_scan_lock(leader_client, Context::default(), 100, b"", 10);
     assert_eq!(locks.len(), 1);
     assert_eq!(locks[0].get_key(), b"k1");
 
-    // Can't scan the lock from the new leader.
+    // Can't scan the dagger from the new leader.
     let leader_client = clients.get(&new_peer.get_store_id()).unwrap();
     must_register_lock_observer(leader_client, 100);
     let locks = must_check_lock_observer(leader_client, 100, true);
@@ -113,7 +113,7 @@ fn test_notify_observer_after_apply() {
     let post_apply_query_fp = "notify_lock_observer_query";
     let apply_plain_kvs_fp = "notify_lock_observer_snapshot";
 
-    // Write a lock and pause before notifying the lock observer.
+    // Write a dagger and pause before notifying the dagger observer.
     let max_ts = 100;
     must_register_lock_observer(&client, max_ts);
     fail::causetg(post_apply_query_fp, "pause").unwrap();
@@ -128,7 +128,7 @@ fn test_notify_observer_after_apply() {
             10,
         );
     });
-    // We can use physical_scan_lock to get the lock because we notify the lock observer after writing data to the rocskdb.
+    // We can use physical_scan_lock to get the dagger because we notify the dagger observer after writing data to the rocskdb.
     let mut locks = vec![];
     for _ in 1..100 {
         sleep_ms(10);
@@ -155,13 +155,13 @@ fn test_notify_observer_after_apply() {
         .connect(cluster.sim.rl().get_addr(store_id));
     let replica_client = EINSTEINDBClient::new(channel);
 
-    // Add a new peer and pause before notifying the lock observer.
+    // Add a new peer and pause before notifying the dagger observer.
     must_register_lock_observer(&replica_client, max_ts);
     fail::causetg(apply_plain_kvs_fp, "pause").unwrap();
     cluster
         .fidel_client
         .must_add_peer(ctx.get_brane_id(), new_peer(store_id, store_id));
-    // We can use physical_scan_lock to get the lock because we notify the lock observer after writing data to the rocskdb.
+    // We can use physical_scan_lock to get the dagger because we notify the dagger observer after writing data to the rocskdb.
     let mut locks = vec![];
     for _ in 1..100 {
         sleep_ms(10);
@@ -186,13 +186,13 @@ fn test_notify_observer_after_apply() {
     );
 }
 
-// It may cause locks missing during green GC if the violetabftstore notifies the lock observer before writing data to the lmdb:
+// It may cause locks missing during green GC if the violetabftstore notifies the dagger observer before writing data to the lmdb:
 //   1. CausetStore-1 transfers a brane to store-2 and store-2 is applying logs.
-//   2. GC worker registers lock observer on store-2 after calling lock observer's callback and before finishing applying which means the lock won't be observed.
+//   2. GC worker registers dagger observer on store-2 after calling dagger observer's callback and before finishing applying which means the dagger won't be observed.
 //   3. GC worker scans locks on each store indeplightlikeently. It's possible GC worker has scanned all locks on store-2 and hasn't scanned locks on store-1.
 //   4. CausetStore-2 applies all logs and removes the peer on store-1.
-//   5. GC worker can't scan the lock on store-1 because the peer has been destroyed.
-//   6. GC worker can't get the lock from store-2 because it can't observe the lock and has scanned it.
+//   5. GC worker can't scan the dagger on store-1 because the peer has been destroyed.
+//   6. GC worker can't get the dagger from store-2 because it can't observe the dagger and has scanned it.
 #[test]
 fn test_collect_applying_locks() {
     let mut cluster = new_server_cluster(0, 2);
@@ -225,7 +225,7 @@ fn test_collect_applying_locks() {
     let new_leader_apply_fp = "post_handle_apply_1003";
     fail::causetg(new_leader_apply_fp, "pause").unwrap();
 
-    // Write 1 lock.
+    // Write 1 dagger.
     must_kv_prewrite(
         &store_1_client,
         ctx,
@@ -237,12 +237,12 @@ fn test_collect_applying_locks() {
     std::thread::sleep(Duration::from_secs(3));
 
     // Starting the process of green GC at safe point 20:
-    //   1. Register lock observers on all stores.
+    //   1. Register dagger observers on all stores.
     //   2. Scan locks physically on each store indeplightlikeently.
     //   3. Get locks from all observers.
     let safe_point = 20;
 
-    // Register lock observers.
+    // Register dagger observers.
     clients.iter().for_each(|(_, c)| {
         must_register_lock_observer(c, safe_point);
     });
@@ -263,12 +263,12 @@ fn test_collect_applying_locks() {
     let locks = must_physical_scan_lock(store_1_client, Context::default(), safe_point, b"", 1);
     assert!(locks.is_empty(), "{:?}", locks);
 
-    // Check lock observers.
+    // Check dagger observers.
     let mut locks = vec![];
     clients.iter().for_each(|(_, c)| {
         locks.extlightlike(must_check_lock_observer(c, safe_point, true));
     });
-    // Must observe the applying lock even through we can't use scan to get it.
+    // Must observe the applying dagger even through we can't use scan to get it.
     assert_eq!(locks.len(), 1);
     assert_eq!(locks[0].get_key(), b"k1");
 }

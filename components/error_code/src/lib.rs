@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 #![feature(min_specialization)]
 
 #[allow(unused_extern_crates)]
@@ -38,7 +38,7 @@ pub mod fidel;
 pub mod violetabft;
 pub mod violetabftstore;
 pub mod sst_importer;
-pub mod persistence;
+pub mod causetStorage;
 
 use std::fmt::{self, Display, Formatter};
 

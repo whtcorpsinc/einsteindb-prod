@@ -61,7 +61,7 @@ groups:
       value: '{{ $value }}'
       summary: EinsteinDB write stall
 
-  - alert: EinsteinDB_raft_log_lag
+  - alert: EinsteinDB_violetabft_log_lag
     expr: histogram_quantile(0.99, sum(rate(einsteindb_violetabftstore_log_lag_bucket[1m])) by (le, instance))  > 5000
     for: 1m
     labels:
@@ -121,7 +121,7 @@ groups:
       value: '{{ $value }}'
       summary: EinsteinDB violetabftstore thread CPU seconds is high
 
-  - alert: EinsteinDB_raft_applightlike_log_duration_secs
+  - alert: EinsteinDB_violetabft_applightlike_log_duration_secs
     expr: histogram_quantile(0.99, sum(rate(einsteindb_violetabftstore_applightlike_log_duration_seconds_bucket[1m])) by (le, instance)) > 1
     for: 1m
     labels:
@@ -131,9 +131,9 @@ groups:
     annotations:
       description: 'cluster: ENV_LABELS_ENV, instance: {{ $labels.instance }}, values:{{ $value }}'
       value: '{{ $value }}'
-      summary: EinsteinDB_raft_applightlike_log_duration_secs
+      summary: EinsteinDB_violetabft_applightlike_log_duration_secs
 
-  - alert: EinsteinDB_raft_apply_log_duration_secs
+  - alert: EinsteinDB_violetabft_apply_log_duration_secs
     expr: histogram_quantile(0.99, sum(rate(einsteindb_violetabftstore_apply_log_duration_seconds_bucket[1m])) by (le, instance)) > 1
     for: 1m
     labels:
@@ -143,7 +143,7 @@ groups:
     annotations:
       description: 'cluster: ENV_LABELS_ENV, instance: {{ $labels.instance }}, values:{{ $value }}'
       value: '{{ $value }}'
-      summary: EinsteinDB_raft_apply_log_duration_secs
+      summary: EinsteinDB_violetabft_apply_log_duration_secs
 
   - alert: EinsteinDB_scheduler_latch_wait_duration_seconds
     expr: histogram_quantile(0.99, sum(rate(einsteindb_scheduler_latch_wait_duration_seconds_bucket[1m])) by (le, instance, type))  > 1
@@ -193,29 +193,29 @@ groups:
       value: '{{ $value }}'
       summary: EinsteinDB leader drops
 
-  - alert: EinsteinDB_raft_process_ready_duration_secs
-    expr: histogram_quantile(0.999, sum(rate(einsteindb_violetabftstore_raft_process_duration_secs_bucket{type='ready'}[1m])) by (le, instance, type)) > 2
+  - alert: EinsteinDB_violetabft_process_ready_duration_secs
+    expr: histogram_quantile(0.999, sum(rate(einsteindb_violetabftstore_violetabft_process_duration_secs_bucket{type='ready'}[1m])) by (le, instance, type)) > 2
     for: 1m
     labels:
       env: ENV_LABELS_ENV
       level: warning
-      expr: histogram_quantile(0.999, sum(rate(einsteindb_violetabftstore_raft_process_duration_secs_bucket{type='ready'}[1m])) by (le, instance, type)) > 2
+      expr: histogram_quantile(0.999, sum(rate(einsteindb_violetabftstore_violetabft_process_duration_secs_bucket{type='ready'}[1m])) by (le, instance, type)) > 2
     annotations:
       description: 'cluster: ENV_LABELS_ENV, instance: {{ $labels.instance }}, values: {{ $value }}'
       value: '{{ $value }}'
-      summary: EinsteinDB_raft_process_ready_duration_secs
+      summary: EinsteinDB_violetabft_process_ready_duration_secs
 
-  - alert: EinsteinDB_raft_process_tick_duration_secs
-    expr: histogram_quantile(0.999, sum(rate(einsteindb_violetabftstore_raft_process_duration_secs_bucket{type='tick'}[1m])) by (le, instance, type)) > 2
+  - alert: EinsteinDB_violetabft_process_tick_duration_secs
+    expr: histogram_quantile(0.999, sum(rate(einsteindb_violetabftstore_violetabft_process_duration_secs_bucket{type='tick'}[1m])) by (le, instance, type)) > 2
     for: 1m
     labels:
       env: ENV_LABELS_ENV
       level: warning
-      expr: histogram_quantile(0.999, sum(rate(einsteindb_violetabftstore_raft_process_duration_secs_bucket{type='tick'}[1m])) by (le, instance, type)) > 2
+      expr: histogram_quantile(0.999, sum(rate(einsteindb_violetabftstore_violetabft_process_duration_secs_bucket{type='tick'}[1m])) by (le, instance, type)) > 2
     annotations:
       description: 'cluster: ENV_LABELS_ENV, instance: {{ $labels.instance }}, values: {{ $value }}'
       value: '{{ $value }}'
-      summary: EinsteinDB_raft_process_tick_duration_secs
+      summary: EinsteinDB_violetabft_process_tick_duration_secs
 
   - alert: EinsteinDB_scheduler_context_total
     expr: abs(delta( einsteindb_scheduler_contex_total[5m])) > 1000
@@ -242,28 +242,28 @@ groups:
       summary: EinsteinDB scheduler command duration seconds more than 1s
 
   - alert: EinsteinDB_interlock_request_error
-    expr: increase(einsteindb_interlock_request_error{reason!="lock"}[10m]) > 100
+    expr: increase(einsteindb_interlock_request_error{reason!="dagger"}[10m]) > 100
     for: 1m
     labels:
       env: ENV_LABELS_ENV
       level: warning
-      expr:  increase(einsteindb_interlock_request_error{reason!="lock"}[10m]) > 100
+      expr:  increase(einsteindb_interlock_request_error{reason!="dagger"}[10m]) > 100
     annotations:
       description: 'cluster: ENV_LABELS_ENV, reason: {{ $labels.reason }}, instance: {{ $labels.instance }}, values: {{ $value }}'
       value: '{{ $value }}'
       summary: EinsteinDB interlock request error
 
   - alert: EinsteinDB_interlock_request_lock_error
-    expr: increase(einsteindb_interlock_request_error{reason="lock"}[10m]) > 10000
+    expr: increase(einsteindb_interlock_request_error{reason="dagger"}[10m]) > 10000
     for: 1m
     labels:
       env: ENV_LABELS_ENV
       level: warning
-      expr:  increase(einsteindb_interlock_request_error{reason="lock"}[10m]) > 10000
+      expr:  increase(einsteindb_interlock_request_error{reason="dagger"}[10m]) > 10000
     annotations:
       description: 'cluster: ENV_LABELS_ENV, reason: {{ $labels.reason }}, instance: {{ $labels.instance }}, values: {{ $value }}'
       value: '{{ $value }}'
-      summary: EinsteinDB interlock request lock error
+      summary: EinsteinDB interlock request dagger error
 
   - alert: EinsteinDB_interlock_plightlikeing_request
     expr: delta( einsteindb_interlock_plightlikeing_request[10m]) > 5000

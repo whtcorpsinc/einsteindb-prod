@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::sync::atomic::*;
 use std::sync::{mpsc, Arc, Mutex};
@@ -6,7 +6,7 @@ use std::time::Duration;
 use std::{mem, thread};
 
 use ekvproto::metapb::{Peer, Brane};
-use violetabft::eraftpb::MessageType;
+use violetabft::evioletabftpb::MessageType;
 
 use fidel_client::FidelClient;
 use violetabftstore::store::Callback;
@@ -17,7 +17,7 @@ use einsteindb_util::HandyRwLock;
 fn stale_read_during_splitting(right_derive: bool) {
     let count = 3;
     let mut cluster = new_node_cluster(0, count);
-    cluster.causetg.raft_store.right_derive_when_split = right_derive;
+    cluster.causetg.violetabft_store.right_derive_when_split = right_derive;
     let election_timeout = configure_for_lease_read(&mut cluster, None, None);
     cluster.run();
 
@@ -218,9 +218,9 @@ fn test_stale_read_during_merging() {
     let mut cluster = new_node_cluster(0, count);
     configure_for_merge(&mut cluster);
     let election_timeout = configure_for_lease_read(&mut cluster, None, None);
-    cluster.causetg.raft_store.right_derive_when_split = false;
-    cluster.causetg.raft_store.fidel_heartbeat_tick_interval =
-        cluster.causetg.raft_store.raft_base_tick_interval;
+    cluster.causetg.violetabft_store.right_derive_when_split = false;
+    cluster.causetg.violetabft_store.fidel_heartbeat_tick_interval =
+        cluster.causetg.violetabft_store.violetabft_base_tick_interval;
     debug!("max leader lease: {:?}", election_timeout);
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
@@ -326,7 +326,7 @@ fn test_read_index_when_transfer_leader_2() {
     // Increase the election tick to make this test case running reliably.
     configure_for_lease_read(&mut cluster, Some(50), Some(10_000));
     let max_lease = Duration::from_secs(2);
-    cluster.causetg.raft_store.raft_store_max_leader_lease = ReadableDuration(max_lease);
+    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(max_lease);
 
     cluster.fidel_client.disable_default_operator();
     let r1 = cluster.run_conf_change();
@@ -388,10 +388,10 @@ fn test_read_index_when_transfer_leader_2() {
     let router = cluster.sim.wl().get_router(old_leader.get_id()).unwrap();
     let mut reserved_msgs = Vec::new();
     'LOOP: loop {
-        for raft_msg in mem::replace(dropped_msgs.lock().unwrap().as_mut(), vec![]) {
-            let msg_type = raft_msg.get_message().get_msg_type();
+        for violetabft_msg in mem::replace(dropped_msgs.dagger().unwrap().as_mut(), vec![]) {
+            let msg_type = violetabft_msg.get_message().get_msg_type();
             if msg_type == MessageType::MsgHeartbeatResponse || msg_type == MessageType::MsgApplightlike {
-                reserved_msgs.push(raft_msg);
+                reserved_msgs.push(violetabft_msg);
                 if msg_type == MessageType::MsgApplightlike {
                     break 'LOOP;
                 }
@@ -402,8 +402,8 @@ fn test_read_index_when_transfer_leader_2() {
     // Resume reserved messages in one batch to make sure the old leader can get read and role
     // change in one `Ready`.
     fail::causetg("pause_on_peer_collect_message", "pause").unwrap();
-    for raft_msg in reserved_msgs {
-        router.slightlike_raft_message(raft_msg).unwrap();
+    for violetabft_msg in reserved_msgs {
+        router.slightlike_violetabft_message(violetabft_msg).unwrap();
     }
     fail::causetg("pause_on_peer_collect_message", "off").unwrap();
     cluster.sim.wl().clear_recv_filters(old_leader.get_id());

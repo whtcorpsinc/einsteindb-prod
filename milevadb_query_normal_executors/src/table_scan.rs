@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::Arc;
 
@@ -8,7 +8,7 @@ use fidelpb::PrimaryCausetInfo;
 use fidelpb::TableScan;
 
 use super::{scan::InnerFreeDaemon, Row, ScanFreeDaemon, ScanFreeDaemonOptions};
-use milevadb_query_common::persistence::CausetStorage;
+use milevadb_query_common::causetStorage::CausetStorage;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::table::{self, check_record_key};
 use milevadb_query_datatype::expr::EvalContext;
@@ -55,7 +55,7 @@ impl<S: CausetStorage> TableScanFreeDaemon<S> {
         mut meta: TableScan,
         context: EvalContext,
         key_cones: Vec<KeyCone>,
-        persistence: S,
+        causetStorage: S,
         is_scanned_cone_aware: bool,
     ) -> Result<Self> {
         let inner = TableInnerFreeDaemon::new(&meta);
@@ -66,7 +66,7 @@ impl<S: CausetStorage> TableScanFreeDaemon<S> {
             context,
             PrimaryCausets: meta.take_PrimaryCausets().to_vec(),
             key_cones,
-            persistence,
+            causetStorage,
             is_backward: meta.get_desc(),
             is_key_only,
             accept_point_cone: true,
@@ -85,7 +85,7 @@ mod tests {
     use super::super::tests::*;
     use super::super::FreeDaemon;
     use milevadb_query_common::execute_stats::ExecuteStats;
-    use milevadb_query_common::persistence::test_fixture::FixtureStorage;
+    use milevadb_query_common::causetStorage::test_fixture::FixtureStorage;
     use milevadb_query_datatype::expr::EvalContext;
 
     const TABLE_ID: i64 = 1;

@@ -46,7 +46,7 @@ fn test_deadline_3() {
 
     let product = ProductTable::new();
     let (_, lightlikepoint) = {
-        let engine = einsteindb::persistence::TestEngineBuilder::new().build().unwrap();
+        let engine = einsteindb::causetStorage::TestEngineBuilder::new().build().unwrap();
         let mut causetg = einsteindb::server::Config::default();
         causetg.lightlike_point_request_max_handle_duration = einsteindb_util::config::ReadableDuration::secs(1);
         init_data_with_details(Context::default(), engine, &product, &data, true, &causetg)
@@ -152,11 +152,11 @@ fn test_brane_error_in_scan() {
     ];
 
     let product = ProductTable::new();
-    let (_cluster, raft_engine, mut ctx) = new_raft_engine(1, "");
+    let (_cluster, violetabft_engine, mut ctx) = new_violetabft_engine(1, "");
     ctx.set_isolation_level(IsolationLevel::Si);
 
     let (_, lightlikepoint) =
-        init_data_with_engine_and_commit(ctx.clone(), raft_engine, &product, &data, true);
+        init_data_with_engine_and_commit(ctx.clone(), violetabft_engine, &product, &data, true);
 
     fail::causetg("brane_snapshot_seek", "return()").unwrap();
     let req = DAGSelect::from(&product).build_with(ctx, &[0]);

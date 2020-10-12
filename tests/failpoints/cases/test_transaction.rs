@@ -1,8 +1,8 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use einsteindb::persistence::mvcc::tests::*;
-use einsteindb::persistence::txn::tests::must_commit;
-use einsteindb::persistence::TestEngineBuilder;
+use einsteindb::causetStorage::mvcc::tests::*;
+use einsteindb::causetStorage::txn::tests::must_commit;
+use einsteindb::causetStorage::TestEngineBuilder;
 
 #[test]
 fn test_txn_failpoints() {

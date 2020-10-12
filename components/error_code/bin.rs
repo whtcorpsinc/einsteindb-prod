@@ -12,7 +12,7 @@ fn main() {
         violetabft::ALL_ERROR_CODES.iter(),
         violetabftstore::ALL_ERROR_CODES.iter(),
         sst_importer::ALL_ERROR_CODES.iter(),
-        persistence::ALL_ERROR_CODES.iter(),
+        causetStorage::ALL_ERROR_CODES.iter(),
     ];
     let path = Path::new("./etc/error_code.toml");
     let mut f = fs::File::create(&path).unwrap();

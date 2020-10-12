@@ -55,7 +55,7 @@ EOT
 cat <<EOT
 COPY scripts ./scripts
 COPY etc ./etc
-COPY Cargo.lock ./Cargo.lock
+COPY Cargo.dagger ./Cargo.dagger
 EOT
 
 # Get components, remove test and profiler components

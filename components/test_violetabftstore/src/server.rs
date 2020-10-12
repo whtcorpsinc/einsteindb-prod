@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::path::Path;
 use std::sync::{Arc, Mutex, RwLock};
@@ -12,8 +12,8 @@ use ekvproto::debugpb::{create_debug, DebugClient};
 use ekvproto::import_sstpb::create_import_sst;
 use ekvproto::kvrpcpb::Context;
 use ekvproto::metapb;
-use ekvproto::raft_cmdpb::*;
-use ekvproto::raft_serverpb;
+use ekvproto::violetabft_cmdpb::*;
+use ekvproto::violetabft_serverpb;
 use ekvproto::einsteindbpb::EINSTEINDBClient;
 use tempfile::{Builder, TempDir};
 use tokio::runtime::Builder as TokioBuilder;
@@ -47,10 +47,10 @@ use einsteindb::server::resolve::{self, Task as ResolveTask};
 use einsteindb::server::service::DebugService;
 use einsteindb::server::Result as ServerResult;
 use einsteindb::server::{
-    create_raft_causetStorage, Config, Error, Node, FidelStoreAddrResolver, VioletaBftClient, VioletaBftKv, Server,
+    create_violetabft_causetStorage, Config, Error, Node, FidelStoreAddrResolver, VioletaBftClient, VioletaBftKv, Server,
     ServerTransport,
 };
-use einsteindb::persistence;
+use einsteindb::causetStorage;
 use einsteindb_util::collections::{HashMap, HashSet};
 use einsteindb_util::config::VersionTrack;
 use einsteindb_util::time::ThreadReadId;
@@ -87,7 +87,7 @@ pub struct ServerCluster {
     pub interlock_hooks: HashMap<u64, CopHooks>,
     snap_paths: HashMap<u64, TempDir>,
     fidel_client: Arc<TestFidelClient>,
-    raft_client: VioletaBftClient<VioletaBftStoreBlackHole>,
+    violetabft_client: VioletaBftClient<VioletaBftStoreBlackHole>,
     concurrency_managers: HashMap<u64, ConcurrencyManager>,
 }
 
@@ -100,7 +100,7 @@ impl ServerCluster {
                 .build(),
         );
         let security_mgr = Arc::new(SecurityManager::new(&Default::default()).unwrap());
-        let raft_client = VioletaBftClient::new(
+        let violetabft_client = VioletaBftClient::new(
             env,
             Arc::new(Config::default()),
             security_mgr,
@@ -118,7 +118,7 @@ impl ServerCluster {
             snap_paths: HashMap::default(),
             plightlikeing_services: HashMap::default(),
             interlock_hooks: HashMap::default(),
-            raft_client,
+            violetabft_client,
             concurrency_managers: HashMap::default(),
         }
     }
@@ -174,10 +174,10 @@ impl Simulator for ServerCluster {
         }
 
         let local_reader = LocalReader::new(engines.kv.clone(), store_meta.clone(), router.clone());
-        let raft_router = ServerVioletaBftStoreRouter::new(router.clone(), local_reader);
-        let sim_router = SimulateTransport::new(raft_router.clone());
+        let violetabft_router = ServerVioletaBftStoreRouter::new(router.clone(), local_reader);
+        let sim_router = SimulateTransport::new(violetabft_router.clone());
 
-        let raft_engine = VioletaBftKv::new(sim_router.clone(), engines.kv.clone());
+        let violetabft_engine = VioletaBftKv::new(sim_router.clone(), engines.kv.clone());
 
         // Create interlock.
         let mut interlock_host = InterlockHost::new(router.clone());
@@ -191,11 +191,11 @@ impl Simulator for ServerCluster {
             }
         }
 
-        // Create persistence.
+        // Create causetStorage.
         let fidel_worker = FutureWorker::new("test-fidel-worker");
-        let causetStorage_read_pool = ReadPool::from(persistence::build_read_pool_for_test(
+        let causetStorage_read_pool = ReadPool::from(causetStorage::build_read_pool_for_test(
             &einsteindb::config::StorageReadPoolConfig::default_for_test(),
-            raft_engine.clone(),
+            violetabft_engine.clone(),
         ));
 
         let engine = VioletaBftKv::new(sim_router.clone(), engines.kv.clone());
@@ -215,15 +215,15 @@ impl Simulator for ServerCluster {
             block_on(self.fidel_client.get_tso()).expect("failed to get timestamp from FIDel");
         let concurrency_manager = ConcurrencyManager::new(latest_ts);
         let mut lock_mgr = LockManager::new();
-        let store = create_raft_causetStorage(
+        let store = create_violetabft_causetStorage(
             engine,
-            &causetg.persistence,
+            &causetg.causetStorage,
             causetStorage_read_pool.handle(),
             lock_mgr.clone(),
             concurrency_manager.clone(),
             false,
         )?;
-        self.causetStorages.insert(node_id, raft_engine);
+        self.causetStorages.insert(node_id, violetabft_engine);
 
         let security_mgr = Arc::new(SecurityManager::new(&causetg.security).unwrap());
         // Create import service.
@@ -272,7 +272,7 @@ impl Simulator for ServerCluster {
         let debug_service = DebugService::new(
             engines.clone(),
             debug_thread_handle,
-            raft_router,
+            violetabft_router,
             ConfigController::default(),
             security_mgr.clone(),
         );
@@ -322,17 +322,17 @@ impl Simulator for ServerCluster {
         let apply_router = system.apply_router();
 
         // Create node.
-        let mut raft_store = causetg.raft_store.clone();
-        raft_store.validate().unwrap();
+        let mut violetabft_store = causetg.violetabft_store.clone();
+        violetabft_store.validate().unwrap();
         let mut node = Node::new(
             system,
             &causetg.server,
-            Arc::new(VersionTrack::new(raft_store)),
+            Arc::new(VersionTrack::new(violetabft_store)),
             Arc::clone(&self.fidel_client),
             state,
         );
 
-        // Register the role change observer of the lock manager.
+        // Register the role change observer of the dagger manager.
         lock_mgr.register_detector_role_change_observer(&mut interlock_host);
 
         let pessimistic_txn_causetg = causetg.pessimistic_txn.clone();
@@ -452,11 +452,11 @@ impl Simulator for ServerCluster {
         };
     }
 
-    fn slightlike_raft_msg(&mut self, raft_msg: raft_serverpb::VioletaBftMessage) -> Result<()> {
-        let store_id = raft_msg.get_to_peer().get_store_id();
+    fn slightlike_violetabft_msg(&mut self, violetabft_msg: violetabft_serverpb::VioletaBftMessage) -> Result<()> {
+        let store_id = violetabft_msg.get_to_peer().get_store_id();
         let addr = self.get_addr(store_id).to_owned();
-        self.raft_client.slightlike(store_id, &addr, raft_msg).unwrap();
-        self.raft_client.flush();
+        self.violetabft_client.slightlike(store_id, &addr, violetabft_msg).unwrap();
+        self.violetabft_client.flush();
         Ok(())
     }
 

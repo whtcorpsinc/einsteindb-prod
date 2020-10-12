@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use ekvproto::kvrpcpb::Context;
 
@@ -7,7 +7,7 @@ use einsteindb_util::HandyRwLock;
 
 use super::*;
 
-pub fn new_raft_engine(
+pub fn new_violetabft_engine(
     count: usize,
     key: &str,
 ) -> (Cluster<ServerCluster>, SimulateEngine, Context) {
@@ -25,7 +25,7 @@ pub fn new_raft_engine(
     (cluster, engine, ctx)
 }
 
-pub fn new_raft_causetStorage_with_store_count(
+pub fn new_violetabft_causetStorage_with_store_count(
     count: usize,
     key: &str,
 ) -> (
@@ -33,7 +33,7 @@ pub fn new_raft_causetStorage_with_store_count(
     SyncTestStorage<SimulateEngine>,
     Context,
 ) {
-    let (cluster, engine, ctx) = new_raft_engine(count, key);
+    let (cluster, engine, ctx) = new_violetabft_engine(count, key);
     (
         cluster,
         SyncTestStorageBuilder::from_engine(engine).build().unwrap(),

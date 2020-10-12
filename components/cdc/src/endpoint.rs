@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::cell::RefCell;
 use std::fmt;
@@ -22,10 +22,10 @@ use violetabftstore::store::fsm::{ChangeCmd, ObserveID, StoreMeta};
 use violetabftstore::store::msg::{Callback, ReadResponse, SignificantMsg};
 use resolved_ts::Resolver;
 use einsteindb::config::CdcConfig;
-use einsteindb::persistence::kv::Snapshot;
-use einsteindb::persistence::mvcc::{DeltaScanner, ScannerBuilder};
-use einsteindb::persistence::txn::TxnEntry;
-use einsteindb::persistence::txn::TxnEntryScanner;
+use einsteindb::causetStorage::kv::Snapshot;
+use einsteindb::causetStorage::mvcc::{DeltaScanner, ScannerBuilder};
+use einsteindb::causetStorage::txn::TxnEntry;
+use einsteindb::causetStorage::txn::TxnEntryScanner;
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::lru::LruCache;
 use einsteindb_util::time::Instant;
@@ -33,7 +33,7 @@ use einsteindb_util::timer::{SteadyTimer, Timer};
 use einsteindb_util::worker::{Runnable, RunnableWithTimer, ScheduleError, Scheduler};
 use tokio::runtime::{Builder, Runtime};
 use txn_types::{
-    Key, Lock, LockType, MutationType, OldValue, TimeStamp, TxnExtra, TxnExtraScheduler,
+    Key, Dagger, LockType, MutationType, OldValue, TimeStamp, TxnExtra, TxnExtraScheduler,
 };
 
 use crate::delegate::{Delegate, Downstream, DownstreamID, DownstreamState};
@@ -234,7 +234,7 @@ pub struct Endpoint<T> {
     capture_branes: HashMap<u64, Delegate>,
     connections: HashMap<ConnID, Conn>,
     scheduler: Scheduler<Task>,
-    raft_router: T,
+    violetabft_router: T,
     observer: CdcObserver,
 
     fidel_client: Arc<dyn FidelClient>,
@@ -259,7 +259,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
         causetg: &CdcConfig,
         fidel_client: Arc<dyn FidelClient>,
         scheduler: Scheduler<Task>,
-        raft_router: T,
+        violetabft_router: T,
         observer: CdcObserver,
         store_meta: Arc<Mutex<StoreMeta>>,
         concurrency_manager: ConcurrencyManager,
@@ -284,7 +284,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
             tso_worker,
             timer: SteadyTimer::default(),
             workers,
-            raft_router,
+            violetabft_router,
             observer,
             store_meta,
             concurrency_manager,
@@ -337,7 +337,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
                 }
                 if is_last {
                     let delegate = self.capture_branes.remove(&brane_id).unwrap();
-                    if let Some(reader) = self.store_meta.lock().unwrap().readers.get(&brane_id) {
+                    if let Some(reader) = self.store_meta.dagger().unwrap().readers.get(&brane_id) {
                         reader
                             .txn_extra_op
                             .compare_and_swap(TxnExtraOp::ReadOldValue, TxnExtraOp::Noop);
@@ -368,7 +368,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
                     if let Some(mut delegate) = self.capture_branes.remove(&brane_id) {
                         delegate.stop(err);
                     }
-                    if let Some(reader) = self.store_meta.lock().unwrap().readers.get(&brane_id) {
+                    if let Some(reader) = self.store_meta.dagger().unwrap().readers.get(&brane_id) {
                         reader.txn_extra_op.store(TxnExtraOp::Noop);
                     }
                     self.connections
@@ -496,7 +496,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
         let txn_extra_op = request.get_extra_op();
         if txn_extra_op != TxnExtraOp::Noop {
             delegate.txn_extra_op = request.get_extra_op();
-            if let Some(reader) = self.store_meta.lock().unwrap().readers.get(&brane_id) {
+            if let Some(reader) = self.store_meta.dagger().unwrap().readers.get(&brane_id) {
                 reader.txn_extra_op.store(txn_extra_op);
             }
         }
@@ -528,7 +528,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
             }
         };
         let scheduler = self.scheduler.clone();
-        if let Err(e) = self.raft_router.significant_slightlike(
+        if let Err(e) = self.violetabft_router.significant_slightlike(
             brane_id,
             SignificantMsg::CaptureChange {
                 cmd: change_cmd,
@@ -702,7 +702,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
         let timeout = self.timer.delay(self.min_ts_interval);
         let fidel_client = self.fidel_client.clone();
         let scheduler = self.scheduler.clone();
-        let raft_router = self.raft_router.clone();
+        let violetabft_router = self.violetabft_router.clone();
         let branes: Vec<(u64, ObserveID)> = self
             .capture_branes
             .iter()
@@ -729,10 +729,10 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
             // try to handle it outside violetabftstore.
             let branes: Vec<_> = branes.iter().copied().map(|(brane_id, observe_id)| {
                 let scheduler_clone = scheduler.clone();
-                let raft_router_clone = raft_router.clone();
+                let violetabft_router_clone = violetabft_router.clone();
                 async move {
                     let (tx, rx) = futures::channel::oneshot::channel();
-                    if let Err(e) = raft_router_clone.significant_slightlike(
+                    if let Err(e) = violetabft_router_clone.significant_slightlike(
                         brane_id,
                         SignificantMsg::LeaderCallback(Callback::Read(Box::new(move |resp| {
                             let resp = if resp.response.get_header().has_error() {
@@ -926,12 +926,12 @@ impl Initializer {
         if let Some(resolver) = resolver {
             // Track the locks.
             for entry in &entries {
-                if let Some(TxnEntry::Prewrite { lock, .. }) = entry {
-                    let (encoded_key, value) = lock;
+                if let Some(TxnEntry::Prewrite { dagger, .. }) = entry {
+                    let (encoded_key, value) = dagger;
                     let key = Key::from_encoded_slice(encoded_key).into_raw().unwrap();
-                    let lock = Lock::parse(value)?;
-                    match lock.lock_type {
-                        LockType::Put | LockType::Delete => resolver.track_lock(lock.ts, key),
+                    let dagger = Dagger::parse(value)?;
+                    match dagger.lock_type {
+                        LockType::Put | LockType::Delete => resolver.track_lock(dagger.ts, key),
                         _ => (),
                     };
                 }
@@ -1082,9 +1082,9 @@ mod tests {
     use tempfile::TempDir;
     use test_violetabftstore::MockVioletaBftStoreRouter;
     use test_violetabftstore::TestFidelClient;
-    use einsteindb::persistence::kv::Engine;
-    use einsteindb::persistence::mvcc::tests::*;
-    use einsteindb::persistence::TestEngineBuilder;
+    use einsteindb::causetStorage::kv::Engine;
+    use einsteindb::causetStorage::mvcc::tests::*;
+    use einsteindb::causetStorage::TestEngineBuilder;
     use einsteindb_util::collections::HashSet;
     use einsteindb_util::config::ReadableDuration;
     use einsteindb_util::mpsc::batch;
@@ -1225,14 +1225,14 @@ mod tests {
     #[test]
     fn test_violetabftstore_is_busy() {
         let (task_sched, task_rx) = dummy_scheduler();
-        let raft_router = MockVioletaBftStoreRouter::new();
+        let violetabft_router = MockVioletaBftStoreRouter::new();
         let observer = CdcObserver::new(task_sched.clone());
         let fidel_client = Arc::new(TestFidelClient::new(0, true));
         let mut ep = Endpoint::new(
             &CdcConfig::default(),
             fidel_client,
             task_sched,
-            raft_router.clone(),
+            violetabft_router.clone(),
             observer,
             Arc::new(Mutex::new(StoreMeta::new(0))),
             ConcurrencyManager::new(1.into()),
@@ -1240,16 +1240,16 @@ mod tests {
         let (tx, _rx) = batch::unbounded(1);
 
         // Fill the channel.
-        let _raft_rx = raft_router.add_brane(1 /* brane id */, 1 /* cap */);
+        let _violetabft_rx = violetabft_router.add_brane(1 /* brane id */, 1 /* cap */);
         loop {
             if let Err(VioletaBftStoreError::Transport(_)) =
-                raft_router.slightlike_casual_msg(1, CasualMessage::ClearBraneSize)
+                violetabft_router.slightlike_casual_msg(1, CasualMessage::ClearBraneSize)
             {
                 break;
             }
         }
         // Make sure channel is full.
-        raft_router
+        violetabft_router
             .slightlike_casual_msg(1, CasualMessage::ClearBraneSize)
             .unwrap_err();
 
@@ -1284,8 +1284,8 @@ mod tests {
     #[test]
     fn test_register() {
         let (task_sched, _task_rx) = dummy_scheduler();
-        let raft_router = MockVioletaBftStoreRouter::new();
-        let _raft_rx = raft_router.add_brane(1 /* brane id */, 100 /* cap */);
+        let violetabft_router = MockVioletaBftStoreRouter::new();
+        let _violetabft_rx = violetabft_router.add_brane(1 /* brane id */, 100 /* cap */);
         let observer = CdcObserver::new(task_sched.clone());
         let fidel_client = Arc::new(TestFidelClient::new(0, true));
         let mut ep = Endpoint::new(
@@ -1295,7 +1295,7 @@ mod tests {
             },
             fidel_client,
             task_sched,
-            raft_router,
+            violetabft_router,
             observer,
             Arc::new(Mutex::new(StoreMeta::new(0))),
             ConcurrencyManager::new(1.into()),
@@ -1371,8 +1371,8 @@ mod tests {
     #[test]
     fn test_feature_gate() {
         let (task_sched, _task_rx) = dummy_scheduler();
-        let raft_router = MockVioletaBftStoreRouter::new();
-        let _raft_rx = raft_router.add_brane(1 /* brane id */, 100 /* cap */);
+        let violetabft_router = MockVioletaBftStoreRouter::new();
+        let _violetabft_rx = violetabft_router.add_brane(1 /* brane id */, 100 /* cap */);
         let observer = CdcObserver::new(task_sched.clone());
         let fidel_client = Arc::new(TestFidelClient::new(0, true));
         let mut ep = Endpoint::new(
@@ -1382,7 +1382,7 @@ mod tests {
             },
             fidel_client,
             task_sched,
-            raft_router,
+            violetabft_router,
             observer,
             Arc::new(Mutex::new(StoreMeta::new(0))),
             ConcurrencyManager::new(1.into()),
@@ -1502,15 +1502,15 @@ mod tests {
     #[test]
     fn test_deregister() {
         let (task_sched, _task_rx) = dummy_scheduler();
-        let raft_router = MockVioletaBftStoreRouter::new();
-        let _raft_rx = raft_router.add_brane(1 /* brane id */, 100 /* cap */);
+        let violetabft_router = MockVioletaBftStoreRouter::new();
+        let _violetabft_rx = violetabft_router.add_brane(1 /* brane id */, 100 /* cap */);
         let observer = CdcObserver::new(task_sched.clone());
         let fidel_client = Arc::new(TestFidelClient::new(0, true));
         let mut ep = Endpoint::new(
             &CdcConfig::default(),
             fidel_client,
             task_sched,
-            raft_router,
+            violetabft_router,
             observer,
             Arc::new(Mutex::new(StoreMeta::new(0))),
             ConcurrencyManager::new(1.into()),

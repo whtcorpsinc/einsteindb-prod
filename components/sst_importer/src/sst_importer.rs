@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::borrow::Cow;
 use std::fmt;
@@ -94,7 +94,7 @@ impl SSTImporter {
         }
     }
 
-    // Downloads an SST file from an external persistence.
+    // Downloads an SST file from an external causetStorage.
     //
     // This method is blocking. It performs the following transformations before
     // writing to disk:

@@ -5,7 +5,7 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 //! Command line utility to run fuzz tests.
 //!
@@ -30,7 +30,7 @@ lazy_static! {
         .workspace_root;
     static ref FUZZ_ROOT: PathBuf = WORKSPACE_ROOT.join("fuzz");
     static ref FUZZ_TARGETS: Vec<String> = {
-        let source = FUZZ_ROOT.join("targets/mod.rs");
+        let source = FUZZ_ROOT.join("targets/violetabft");
         let targets_rs = fs::read_to_string(&source).unwrap();
         let match_fuzz_fs = regex::Regex::new(r"pub fn fuzz_(\w+)\(").unwrap();
         let target_names = match_fuzz_fs

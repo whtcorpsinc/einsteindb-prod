@@ -93,7 +93,7 @@ fn test_lock_manager_causetg_ufidelate() {
     causetg.validate().unwrap();
     let (causetg_controller, waiter, deadlock, mut lock_mgr) = setup(causetg);
 
-    // ufidelate of other module's config should not effect lock manager config
+    // ufidelate of other module's config should not effect dagger manager config
     causetg_controller
         .ufidelate_config("violetabftstore.violetabft-log-gc-memory_barrier", "2000")
         .unwrap();
@@ -120,13 +120,13 @@ fn test_lock_manager_causetg_ufidelate() {
         },
     );
     validate_dead_lock(&deadlock, move |ttl: u64| {
-        // dead lock ttl should not change
+        // dead dagger ttl should not change
         assert_eq!(ttl, DEFAULT_TIMEOUT);
     });
 
     // only ufidelate wait_for_lock_timeout
     causetg_controller
-        .ufidelate_config("pessimistic-txn.wait-for-lock-timeout", "4000ms")
+        .ufidelate_config("pessimistic-txn.wait-for-dagger-timeout", "4000ms")
         .unwrap();
     validate_waiter(
         &waiter,
@@ -143,7 +143,7 @@ fn test_lock_manager_causetg_ufidelate() {
     // ufidelate both config
     let mut m = std::collections::HashMap::new();
     m.insert(
-        "pessimistic-txn.wait-for-lock-timeout".to_owned(),
+        "pessimistic-txn.wait-for-dagger-timeout".to_owned(),
         "4321ms".to_owned(),
     );
     m.insert(

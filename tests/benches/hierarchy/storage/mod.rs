@@ -1,11 +1,11 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use criterion::{black_box, BatchSize, Bencher, Criterion};
 use engine_promises::CAUSET_DEFAULT;
 use ekvproto::kvrpcpb::Context;
 use test_causetStorage::SyncTestStorageBuilder;
 use test_util::KvGenerator;
-use einsteindb::persistence::kv::Engine;
+use einsteindb::causetStorage::kv::Engine;
 use txn_types::{Key, Mutation};
 
 use super::{BenchConfig, EngineFactory, DEFAULT_ITERATIONS};

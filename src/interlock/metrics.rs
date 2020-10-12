@@ -1,9 +1,9 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::cell::RefCell;
 use std::mem;
 
-use crate::persistence::{FlowStatsReporter, Statistics};
+use crate::causetStorage::{FlowStatsReporter, Statistics};
 use ekvproto::metapb;
 use violetabftstore::store::util::build_key_cone;
 use violetabftstore::store::ReadStats;
@@ -26,7 +26,7 @@ make_auto_flush_static_metric! {
 
     pub label_enum CAUSET {
         default,
-        lock,
+        dagger,
         write,
     }
 
@@ -216,7 +216,7 @@ impl Into<CAUSET> for GcTuplespaceInstantonCAUSET {
     fn into(self) -> CAUSET {
         match self {
             GcTuplespaceInstantonCAUSET::default => CAUSET::default,
-            GcTuplespaceInstantonCAUSET::lock => CAUSET::lock,
+            GcTuplespaceInstantonCAUSET::dagger => CAUSET::dagger,
             GcTuplespaceInstantonCAUSET::write => CAUSET::write,
         }
     }

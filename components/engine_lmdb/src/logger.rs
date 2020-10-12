@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 use lmdb::{DBInfoLogLevel as InfoLogLevel, Logger};
 
 // TODO(yiwu): abstract the Logger interface.
@@ -25,12 +25,12 @@ pub struct VioletaBftDBLogger;
 impl Logger for VioletaBftDBLogger {
     fn logv(&self, log_level: InfoLogLevel, log: &str) {
         match log_level {
-            InfoLogLevel::Header => info!(#"raftdb_log_header", "{}", log),
-            InfoLogLevel::Debug => debug!(#"raftdb_log", "{}", log),
-            InfoLogLevel::Info => info!(#"raftdb_log", "{}", log),
-            InfoLogLevel::Warn => warn!(#"raftdb_log", "{}", log),
-            InfoLogLevel::Error => error!(#"raftdb_log", "{}", log),
-            InfoLogLevel::Fatal => crit!(#"raftdb_log", "{}", log),
+            InfoLogLevel::Header => info!(#"violetabftdb_log_header", "{}", log),
+            InfoLogLevel::Debug => debug!(#"violetabftdb_log", "{}", log),
+            InfoLogLevel::Info => info!(#"violetabftdb_log", "{}", log),
+            InfoLogLevel::Warn => warn!(#"violetabftdb_log", "{}", log),
+            InfoLogLevel::Error => error!(#"violetabftdb_log", "{}", log),
+            InfoLogLevel::Fatal => crit!(#"violetabftdb_log", "{}", log),
             _ => {}
         }
     }

@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::collections::BTreeMap;
 use std::collections::Bound::{Excluded, Unbounded};
@@ -479,7 +479,7 @@ impl BraneInfoAccessor {
         let mut timer = Timer::new(1);
         timer.add_task(Duration::from_millis(METRICS_FLUSH_INTERVAL), ());
         self.worker
-            .lock()
+            .dagger()
             .unwrap()
             .spacelike_with_timer(BraneCollector::new(), timer)
             .unwrap();
@@ -487,7 +487,7 @@ impl BraneInfoAccessor {
 
     /// Stops the `BraneInfoAccessor`. It should be stopped after violetabftstore.
     pub fn stop(&self) {
-        self.worker.lock().unwrap().stop().unwrap().join().unwrap();
+        self.worker.dagger().unwrap().stop().unwrap().join().unwrap();
     }
 
     /// Gets all content from the collection. Only used for testing.

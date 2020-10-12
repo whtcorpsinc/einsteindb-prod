@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::Arc;
 use std::time::Instant;
@@ -10,7 +10,7 @@ use einsteindb_util::config::*;
 #[test]
 fn test_plightlikeing_peers() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.raft_store.fidel_heartbeat_tick_interval = ReadableDuration::millis(100);
+    cluster.causetg.violetabft_store.fidel_heartbeat_tick_interval = ReadableDuration::millis(100);
 
     let brane_worker_fp = "brane_apply_snap";
 
@@ -43,8 +43,8 @@ fn test_plightlikeing_snapshot() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_snapshot(&mut cluster);
     let election_timeout = configure_for_lease_read(&mut cluster, None, Some(15));
-    let gc_limit = cluster.causetg.raft_store.raft_log_gc_count_limit;
-    cluster.causetg.raft_store.fidel_heartbeat_tick_interval = ReadableDuration::millis(100);
+    let gc_limit = cluster.causetg.violetabft_store.violetabft_log_gc_count_limit;
+    cluster.causetg.violetabft_store.fidel_heartbeat_tick_interval = ReadableDuration::millis(100);
 
     let handle_snapshot_fp = "apply_on_handle_snapshot_1_1";
     let handle_snapshot_finish_fp = "apply_on_handle_snapshot_finish_1_1";
@@ -77,8 +77,8 @@ fn test_plightlikeing_snapshot() {
     }
     for _ in 0..100 {
         if cluster
-            .get_raft_engine(2)
-            .get(&tuplespaceInstanton::raft_log_key(1, state2.get_index() + 5 * gc_limit))
+            .get_violetabft_engine(2)
+            .get(&tuplespaceInstanton::violetabft_log_key(1, state2.get_index() + 5 * gc_limit))
             .unwrap()
             .is_none()
         {

@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use ekvproto::encryptionpb::EncryptedContent;
 
@@ -121,7 +121,7 @@ pub mod tests {
 
     impl Backlightlike for Mutex<MockBacklightlike> {
         fn encrypt(&self, plaintext: &[u8]) -> Result<EncryptedContent> {
-            let mut mock = self.lock().unwrap();
+            let mut mock = self.dagger().unwrap();
             mock.encrypt_called += 1;
             if mock.encrypt_fail {
                 return Err(box_err!("mock error"));
@@ -129,7 +129,7 @@ pub mod tests {
             mock.inner.encrypt(plaintext)
         }
         fn decrypt(&self, ciphertext: &EncryptedContent) -> Result<Vec<u8>> {
-            let mut mock = self.lock().unwrap();
+            let mut mock = self.dagger().unwrap();
             mock.decrypt_called += 1;
             if mock.is_wrong_master_key {
                 return Err(Error::WrongMasterKey("".to_owned().into()));

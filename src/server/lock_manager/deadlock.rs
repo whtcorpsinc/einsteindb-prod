@@ -6,7 +6,7 @@ use super::metrics::*;
 use super::waiter_manager::Scheduler as WaiterMgrScheduler;
 use super::{Error, Result};
 use crate::server::resolve::StoreAddrResolver;
-use crate::persistence::lock_manager::Lock;
+use crate::causetStorage::lock_manager::Dagger;
 use engine_lmdb::LmdbEngine;
 use futures::future::{self, FutureExt, TryFutureExt};
 use futures::sink::SinkExt;
@@ -75,9 +75,9 @@ impl Locks {
     }
 }
 
-/// Used to detect the deadlock of wait-for-lock in the cluster.
+/// Used to detect the deadlock of wait-for-dagger in the cluster.
 pub struct DetectTable {
-    /// Keeps the DAG of wait-for-lock. Every edge from `txn_ts` to `lock_ts` has a survival time -- `ttl`.
+    /// Keeps the DAG of wait-for-dagger. Every edge from `txn_ts` to `lock_ts` has a survival time -- `ttl`.
     /// When checking the deadlock, if the ttl has elpased, the corresponding edge will be removed.
     /// `last_detect_time` is the spacelike time of the edge. `Detect` requests will refresh it.
     // txn_ts => (lock_ts => Locks)
@@ -267,7 +267,7 @@ pub enum Task {
     Detect {
         tp: DetectType,
         txn_ts: TimeStamp,
-        lock: Lock,
+        dagger: Dagger,
     },
     /// The detect request of other nodes.
     DetectRpc {
@@ -291,16 +291,16 @@ pub enum Task {
 impl Display for Task {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Task::Detect { tp, txn_ts, lock } => write!(
+            Task::Detect { tp, txn_ts, dagger } => write!(
                 f,
-                "Detect {{ tp: {:?}, txn_ts: {}, lock: {:?} }}",
-                tp, txn_ts, lock
+                "Detect {{ tp: {:?}, txn_ts: {}, dagger: {:?} }}",
+                tp, txn_ts, dagger
             ),
             Task::DetectRpc { .. } => write!(f, "Detect Rpc"),
             Task::ChangeRole(role) => write!(f, "ChangeRole {{ role: {:?} }}", role),
             Task::ChangeTTL(ttl) => write!(f, "ChangeTTL {{ ttl: {:?} }}", ttl),
             #[causetg(any(test, feature = "testexport"))]
-            Task::Validate(_) => write!(f, "Validate dead lock config"),
+            Task::Validate(_) => write!(f, "Validate dead dagger config"),
             #[causetg(test)]
             Task::GetRole(_) => write!(f, "Get role of the deadlock detector"),
         }
@@ -325,19 +325,19 @@ impl Scheduler {
         }
     }
 
-    pub fn detect(&self, txn_ts: TimeStamp, lock: Lock) {
+    pub fn detect(&self, txn_ts: TimeStamp, dagger: Dagger) {
         self.notify_scheduler(Task::Detect {
             tp: DetectType::Detect,
             txn_ts,
-            lock,
+            dagger,
         });
     }
 
-    pub fn clean_up_wait_for(&self, txn_ts: TimeStamp, lock: Lock) {
+    pub fn clean_up_wait_for(&self, txn_ts: TimeStamp, dagger: Dagger) {
         self.notify_scheduler(Task::Detect {
             tp: DetectType::CleanUpWaitFor,
             txn_ts,
-            lock,
+            dagger,
         });
     }
 
@@ -345,7 +345,7 @@ impl Scheduler {
         self.notify_scheduler(Task::Detect {
             tp: DetectType::CleanUp,
             txn_ts,
-            lock: Lock::default(),
+            dagger: Dagger::default(),
         });
     }
 
@@ -417,7 +417,7 @@ impl RoleObserver for RoleChangeNotifier {
         let brane = ctx.brane();
         // A brane is created first, so the leader brane id must be valid.
         if Self::is_leader_brane(brane)
-            && *self.leader_brane_id.lock().unwrap() == brane.get_id()
+            && *self.leader_brane_id.dagger().unwrap() == brane.get_id()
         {
             self.scheduler.change_role(role.into());
         }
@@ -435,7 +435,7 @@ impl BraneChangeObserver for RoleChangeNotifier {
         if Self::is_leader_brane(brane) {
             match event {
                 BraneChangeEvent::Create | BraneChangeEvent::Ufidelate => {
-                    *self.leader_brane_id.lock().unwrap() = brane.get_id();
+                    *self.leader_brane_id.dagger().unwrap() = brane.get_id();
                     self.scheduler.change_role(role.into());
                 }
                 BraneChangeEvent::Destroy => {
@@ -447,7 +447,7 @@ impl BraneChangeObserver for RoleChangeNotifier {
                     // destroy event misleading the leader stepping down, it saves the
                     // valid leader brane id and only when the id equals to the destroyed
                     // brane id, it slightlikes a ChangeRole(Follower) task to the deadlock detector.
-                    let mut leader_brane_id = self.leader_brane_id.lock().unwrap();
+                    let mut leader_brane_id = self.leader_brane_id.dagger().unwrap();
                     if *leader_brane_id == brane.get_id() {
                         *leader_brane_id = INVALID_ID;
                         self.scheduler.change_role(Role::Follower);
@@ -651,7 +651,7 @@ where
             } = resp.take_entry();
             waiter_mgr_scheduler.deadlock(
                 txn.into(),
-                Lock {
+                Dagger {
                     ts: wait_for_txn.into(),
                     hash: key_hash,
                 },
@@ -670,7 +670,7 @@ where
     ///
     /// If the client is None, reconnects the leader first, then slightlikes the request to the leader.
     /// If slightlikes failed, sets the client to None for retry.
-    fn slightlike_request_to_leader(&mut self, tp: DetectType, txn_ts: TimeStamp, lock: Lock) -> bool {
+    fn slightlike_request_to_leader(&mut self, tp: DetectType, txn_ts: TimeStamp, dagger: Dagger) -> bool {
         assert!(!self.is_leader() && self.leader_info.is_some());
 
         if self.leader_client.is_none() {
@@ -684,8 +684,8 @@ where
             };
             let mut entry = WaitForEntry::default();
             entry.set_txn(txn_ts.into_inner());
-            entry.set_wait_for_txn(lock.ts.into_inner());
-            entry.set_key_hash(lock.hash);
+            entry.set_wait_for_txn(dagger.ts.into_inner());
+            entry.set_key_hash(dagger.hash);
             let mut req = DeadlockRequest::default();
             req.set_tp(tp);
             req.set_entry(entry);
@@ -698,26 +698,26 @@ where
         false
     }
 
-    fn handle_detect_locally(&self, tp: DetectType, txn_ts: TimeStamp, lock: Lock) {
+    fn handle_detect_locally(&self, tp: DetectType, txn_ts: TimeStamp, dagger: Dagger) {
         let detect_table = &mut self.inner.borrow_mut().detect_table;
         match tp {
             DetectType::Detect => {
-                if let Some(deadlock_key_hash) = detect_table.detect(txn_ts, lock.ts, lock.hash) {
+                if let Some(deadlock_key_hash) = detect_table.detect(txn_ts, dagger.ts, dagger.hash) {
                     self.waiter_mgr_scheduler
-                        .deadlock(txn_ts, lock, deadlock_key_hash);
+                        .deadlock(txn_ts, dagger, deadlock_key_hash);
                 }
             }
             DetectType::CleanUpWaitFor => {
-                detect_table.clean_up_wait_for(txn_ts, lock.ts, lock.hash)
+                detect_table.clean_up_wait_for(txn_ts, dagger.ts, dagger.hash)
             }
             DetectType::CleanUp => detect_table.clean_up(txn_ts),
         }
     }
 
     /// Handles detect requests of itself.
-    fn handle_detect(&mut self, tp: DetectType, txn_ts: TimeStamp, lock: Lock) {
+    fn handle_detect(&mut self, tp: DetectType, txn_ts: TimeStamp, dagger: Dagger) {
         if self.is_leader() {
-            self.handle_detect_locally(tp, txn_ts, lock);
+            self.handle_detect_locally(tp, txn_ts, dagger);
         } else {
             for _ in 0..2 {
                 // TODO: If the leader hasn't been elected, it requests Fidel for
@@ -727,15 +727,15 @@ where
                 if self.leader_client.is_none() && !self.refresh_leader_info() {
                     break;
                 }
-                if self.slightlike_request_to_leader(tp, txn_ts, lock) {
+                if self.slightlike_request_to_leader(tp, txn_ts, dagger) {
                     return;
                 }
                 // Because the client is asynchronous, it won't be closed until failing to slightlike a
                 // request. So retry to refresh the leader info and slightlike it again.
             }
             // If a request which causes deadlock is dropped, it leads to the waiter timeout.
-            // MilevaDB will retry to acquire the lock and detect deadlock again.
-            warn!("detect request dropped"; "tp" => ?tp, "txn_ts" => txn_ts, "lock" => ?lock);
+            // MilevaDB will retry to acquire the dagger and detect deadlock again.
+            warn!("detect request dropped"; "tp" => ?tp, "txn_ts" => txn_ts, "dagger" => ?dagger);
             ERROR_COUNTER_METRICS.dropped.inc();
         }
     }
@@ -828,8 +828,8 @@ where
 {
     fn run(&mut self, task: Task) {
         match task {
-            Task::Detect { tp, txn_ts, lock } => {
-                self.handle_detect(tp, txn_ts, lock);
+            Task::Detect { tp, txn_ts, dagger } => {
+                self.handle_detect(tp, txn_ts, dagger);
             }
             Task::DetectRpc { stream, sink } => {
                 self.handle_detect_rpc(stream, sink);

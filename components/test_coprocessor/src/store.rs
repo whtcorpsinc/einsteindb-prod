@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use super::*;
 
@@ -9,7 +9,7 @@ use ekvproto::kvrpcpb::{Context, IsolationLevel};
 use test_causetStorage::{SyncTestStorage, SyncTestStorageBuilder};
 use milevadb_query_datatype::codec::{datum, table, Datum};
 use milevadb_query_datatype::expr::EvalContext;
-use einsteindb::persistence::{
+use einsteindb::causetStorage::{
     kv::{Engine, LmdbEngine, TestEngineBuilder},
     txn::FixtureStore,
     SnapshotStore,
@@ -226,12 +226,12 @@ impl<E: Engine> CausetStore<E> {
 }
 
 /// A trait for a general implementation to convert to a Txn store.
-pub trait ToTxnStore<S: einsteindb::persistence::CausetStore> {
+pub trait ToTxnStore<S: einsteindb::causetStorage::CausetStore> {
     /// Converts to a specific Txn CausetStore.
     fn to_store(&self) -> S;
 }
 
-impl<E: Engine, S: einsteindb::persistence::CausetStore> ToTxnStore<S> for CausetStore<E> {
+impl<E: Engine, S: einsteindb::causetStorage::CausetStore> ToTxnStore<S> for CausetStore<E> {
     default fn to_store(&self) -> S {
         unimplemented!()
     }

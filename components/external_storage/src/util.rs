@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use super::READ_BUF_SIZE;
 
@@ -43,7 +43,7 @@ impl<R: AsyncRead + Unpin> Stream for AsyncReadAsSyncStreamOfBytes<R> {
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.get_mut();
-        let reader = this.reader.get_mut().expect("lock was poisoned");
+        let reader = this.reader.get_mut().expect("dagger was poisoned");
         let read_size = Pin::new(reader).poll_read(cx, &mut this.buf);
 
         match read_size {
@@ -59,7 +59,7 @@ pub fn error_stream(e: io::Error) -> impl Stream<Item = io::Result<Bytes>> + Unp
     stream::iter(iter::once(Err(e)))
 }
 
-/// Runs a future on the current thread involving external persistence.
+/// Runs a future on the current thread involving external causetStorage.
 ///
 /// # Caveat
 ///
@@ -94,7 +94,7 @@ pub trait RetryError {
 ///
 /// This method implements truncated exponential back-off retry strategies outlined in
 /// https://docs.aws.amazon.com/general/latest/gr/api-retries.html and
-/// https://cloud.google.com/persistence/docs/exponential-backoff
+/// https://cloud.google.com/causetStorage/docs/exponential-backoff
 /// Since rusoto does not have transparent auto-retry (https://github.com/rusoto/rusoto/issues/234),
 /// we need to implement this manually.
 pub async fn retry<G, T, F, E>(mut action: G) -> Result<T, E>

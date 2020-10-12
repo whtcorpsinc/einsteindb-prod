@@ -11,7 +11,7 @@ pub type Result<T> = std::result::Result<T, crate::error::StorageError>;
 
 pub type OwnedKvPair = (Vec<u8>, Vec<u8>);
 
-/// The abstract persistence interface. The table scan and index scan executor relies on a `CausetStorage`
+/// The abstract causetStorage interface. The table scan and index scan executor relies on a `CausetStorage`
 /// implementation to provide source data.
 pub trait CausetStorage: Slightlike {
     type Statistics;

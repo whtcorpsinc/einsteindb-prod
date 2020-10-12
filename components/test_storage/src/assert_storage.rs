@@ -1,12 +1,12 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use ekvproto::kvrpcpb::{Context, LockInfo};
 
 use test_violetabftstore::{Cluster, ServerCluster, SimulateEngine};
-use einsteindb::persistence::kv::{Error as KvError, ErrorInner as KvErrorInner, LmdbEngine};
-use einsteindb::persistence::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner, MAX_TXN_WRITE_SIZE};
-use einsteindb::persistence::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
-use einsteindb::persistence::{
+use einsteindb::causetStorage::kv::{Error as KvError, ErrorInner as KvErrorInner, LmdbEngine};
+use einsteindb::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner, MAX_TXN_WRITE_SIZE};
+use einsteindb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
+use einsteindb::causetStorage::{
     self, Engine, Error as StorageError, ErrorInner as StorageErrorInner, TxnStatus,
 };
 use einsteindb_util::HandyRwLock;
@@ -30,13 +30,13 @@ impl Default for AssertionStorage<LmdbEngine> {
 }
 
 impl AssertionStorage<SimulateEngine> {
-    pub fn new_raft_causetStorage_with_store_count(
+    pub fn new_violetabft_causetStorage_with_store_count(
         count: usize,
         key: &str,
     ) -> (Cluster<ServerCluster>, Self) {
-        let (cluster, store, ctx) = new_raft_causetStorage_with_store_count(count, key);
-        let persistence = Self { ctx, store };
-        (cluster, persistence)
+        let (cluster, store, ctx) = new_violetabft_causetStorage_with_store_count(count, key);
+        let causetStorage = Self { ctx, store };
+        (cluster, causetStorage)
     }
 
     pub fn ufidelate_with_key_byte(&mut self, cluster: &mut Cluster<ServerCluster>, key: &[u8]) {
@@ -245,7 +245,7 @@ impl<E: Engine> AssertionStorage<E> {
         assert_eq!(result, expect);
     }
 
-    fn expect_not_leader_or_stale_command(&self, err: persistence::Error) {
+    fn expect_not_leader_or_stale_command(&self, err: causetStorage::Error) {
         match err {
             StorageError(box StorageErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(
                 MvccError(box MvccErrorInner::Engine(KvError(box KvErrorInner::Request(ref e)))),
@@ -273,7 +273,7 @@ impl<E: Engine> AssertionStorage<E> {
 
     fn expect_invalid_tso_err<T>(
         &self,
-        resp: Result<T, persistence::Error>,
+        resp: Result<T, causetStorage::Error>,
         sts: impl Into<TimeStamp>,
         cmt_ts: impl Into<TimeStamp>,
     ) where

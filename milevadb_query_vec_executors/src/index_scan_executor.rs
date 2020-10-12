@@ -11,7 +11,7 @@ use fidelpb::IndexScan;
 use super::util::scan_executor::*;
 use crate::interface::*;
 use codec::prelude::NumberDecoder;
-use milevadb_query_common::persistence::{IntervalCone, CausetStorage};
+use milevadb_query_common::causetStorage::{IntervalCone, CausetStorage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::codec::table::{check_index_key, MAX_OLD_ENCODED_VALUE_LEN};
@@ -34,7 +34,7 @@ impl BatchIndexScanFreeDaemon<Box<dyn CausetStorage<Statistics = ()>>> {
 
 impl<S: CausetStorage> BatchIndexScanFreeDaemon<S> {
     pub fn new(
-        persistence: S,
+        causetStorage: S,
         config: Arc<EvalConfig>,
         PrimaryCausets_info: Vec<PrimaryCausetInfo>,
         key_cones: Vec<KeyCone>,
@@ -97,7 +97,7 @@ impl<S: CausetStorage> BatchIndexScanFreeDaemon<S> {
         };
         let wrapper = ScanFreeDaemon::new(ScanFreeDaemonOptions {
             imp,
-            persistence,
+            causetStorage,
             key_cones,
             is_backward,
             is_key_only: false,
@@ -501,7 +501,7 @@ mod tests {
     use milevadb_query_datatype::{FieldTypeAccessor, FieldTypeTp};
     use fidelpb::PrimaryCausetInfo;
 
-    use milevadb_query_common::persistence::test_fixture::FixtureStorage;
+    use milevadb_query_common::causetStorage::test_fixture::FixtureStorage;
     use milevadb_query_common::util::convert_to_prefix_next;
     use milevadb_query_datatype::codec::data_type::*;
     use milevadb_query_datatype::codec::{

@@ -1,6 +1,6 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use violetabft::eraftpb::MessageType;
+use violetabft::evioletabftpb::MessageType;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -11,8 +11,8 @@ use test_violetabftstore::*;
 #[test]
 fn test_singleton_early_apply() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.raft_store.early_apply = true;
-    cluster.causetg.raft_store.store_batch_system.pool_size = 1;
+    cluster.causetg.violetabft_store.early_apply = true;
+    cluster.causetg.violetabft_store.store_batch_system.pool_size = 1;
     cluster.fidel_client.disable_default_operator();
     // So compact log will not be triggered automatically.
     configure_for_request_snapshot(&mut cluster);
@@ -20,7 +20,7 @@ fn test_singleton_early_apply() {
     // Put one key first to cache leader.
     cluster.must_put(b"k0", b"v0");
 
-    let store_1_fp = "raft_before_save_on_store_1";
+    let store_1_fp = "violetabft_before_save_on_store_1";
 
     // Check singleton brane can be scheduled correctly.
     fail::causetg(store_1_fp, "pause").unwrap();
@@ -69,7 +69,7 @@ fn test_singleton_early_apply() {
 #[test]
 fn test_disable_early_apply() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.raft_store.early_apply = false;
+    cluster.causetg.violetabft_store.early_apply = false;
     // So compact log will not be triggered automatically.
     configure_for_request_snapshot(&mut cluster);
     cluster.run();
@@ -82,10 +82,10 @@ fn test_disable_early_apply() {
         .msg_type(MessageType::MsgApplightlikeResponse)
         .direction(Direction::Recv);
     cluster.add_slightlike_filter(CloneFilterFactory(filter));
-    let last_index = cluster.raft_local_state(1, 1).get_last_index();
+    let last_index = cluster.violetabft_local_state(1, 1).get_last_index();
     cluster.async_put(b"k2", b"v2").unwrap();
     cluster.wait_last_index(1, 1, last_index + 1, Duration::from_secs(3));
-    fail::causetg("raft_before_save_on_store_1", "pause").unwrap();
+    fail::causetg("violetabft_before_save_on_store_1", "pause").unwrap();
     cluster.clear_slightlike_filters();
     must_get_equal(&cluster.get_engine(2), b"k2", b"v2");
     must_get_none(&cluster.get_engine(1), b"k2");

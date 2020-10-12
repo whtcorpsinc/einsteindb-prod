@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -11,7 +11,7 @@ use fidelpb::TopN;
 use super::topn_heap::TopNHeap;
 use super::{FreeDaemon, ExprPrimaryCausetRefVisitor, Row};
 use milevadb_query_common::execute_stats::ExecuteStats;
-use milevadb_query_common::persistence::IntervalCone;
+use milevadb_query_common::causetStorage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::datum::Datum;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext, EvalWarnings};

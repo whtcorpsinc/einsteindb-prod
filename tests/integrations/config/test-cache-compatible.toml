@@ -1,12 +1,12 @@
 [readpool.interlock]
 
-[readpool.persistence]
+[readpool.causetStorage]
 
 [server]
 
-[persistence]
+[causetStorage]
 
-[persistence.block-cache]
+[causetStorage.block-cache]
 
 [fidel]
 
@@ -31,9 +31,9 @@ block-cache-size = "1GB"
 [lmdb.lockcauset]
 block-cache-size = "128MB"
 
-[raftdb]
+[violetabftdb]
 
-[raftdb.defaultcauset]
+[violetabftdb.defaultcauset]
 block-cache-size = "128MB"
 
 [security]

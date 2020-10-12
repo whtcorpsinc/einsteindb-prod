@@ -4,12 +4,12 @@ use std::fs;
 use std::path::Path;
 
 use engine_promises::{CacheStats, VioletaBftEngine, VioletaBftLogBatch as VioletaBftLogBatchTrait, Result};
-use ekvproto::raft_serverpb::VioletaBftLocalState;
-use violetabft::eraftpb::Entry;
-use raft_engine::{EntryExt, Error as VioletaBftEngineError, LogBatch, VioletaBftLogEngine as RawVioletaBftEngine};
+use ekvproto::violetabft_serverpb::VioletaBftLocalState;
+use violetabft::evioletabftpb::Entry;
+use violetabft_engine::{EntryExt, Error as VioletaBftEngineError, LogBatch, VioletaBftLogEngine as RawVioletaBftEngine};
 
-pub use raft_engine::config::RecoveryMode;
-pub use raft_engine::Config as VioletaBftEngineConfig;
+pub use violetabft_engine::config::RecoveryMode;
+pub use violetabft_engine::Config as VioletaBftEngineConfig;
 
 #[derive(Clone)]
 pub struct EntryExtTyped;
@@ -41,11 +41,11 @@ impl VioletaBftLogEngine {
 #[derive(Default)]
 pub struct VioletaBftLogBatch(LogBatch<Entry, EntryExtTyped>);
 
-const RAFT_LOG_STATE_KEY: &[u8] = b"R";
+const VIOLETABFT_LOG_STATE_KEY: &[u8] = b"R";
 
 impl VioletaBftLogBatchTrait for VioletaBftLogBatch {
-    fn applightlike(&mut self, raft_group_id: u64, entries: Vec<Entry>) -> Result<()> {
-        self.0.add_entries(raft_group_id, entries);
+    fn applightlike(&mut self, violetabft_group_id: u64, entries: Vec<Entry>) -> Result<()> {
+        self.0.add_entries(violetabft_group_id, entries);
         Ok(())
     }
 
@@ -53,10 +53,10 @@ impl VioletaBftLogBatchTrait for VioletaBftLogBatch {
         // It's unnecessary because overlapped entries can be handled in `applightlike`.
     }
 
-    fn put_raft_state(&mut self, raft_group_id: u64, state: &VioletaBftLocalState) -> Result<()> {
+    fn put_violetabft_state(&mut self, violetabft_group_id: u64, state: &VioletaBftLocalState) -> Result<()> {
         box_try!(self
             .0
-            .put_msg(raft_group_id, RAFT_LOG_STATE_KEY.to_vec(), state));
+            .put_msg(violetabft_group_id, VIOLETABFT_LOG_STATE_KEY.to_vec(), state));
         Ok(())
     }
 
@@ -77,27 +77,27 @@ impl VioletaBftEngine for VioletaBftLogEngine {
         Ok(())
     }
 
-    fn get_raft_state(&self, raft_group_id: u64) -> Result<Option<VioletaBftLocalState>> {
-        let state = box_try!(self.0.get_msg(raft_group_id, RAFT_LOG_STATE_KEY));
+    fn get_violetabft_state(&self, violetabft_group_id: u64) -> Result<Option<VioletaBftLocalState>> {
+        let state = box_try!(self.0.get_msg(violetabft_group_id, VIOLETABFT_LOG_STATE_KEY));
         Ok(state)
     }
 
-    fn get_entry(&self, raft_group_id: u64, index: u64) -> Result<Option<Entry>> {
+    fn get_entry(&self, violetabft_group_id: u64, index: u64) -> Result<Option<Entry>> {
         self.0
-            .get_entry(raft_group_id, index)
+            .get_entry(violetabft_group_id, index)
             .map_err(|e| transfer_error(e))
     }
 
     fn fetch_entries_to(
         &self,
-        raft_group_id: u64,
+        violetabft_group_id: u64,
         begin: u64,
         lightlike: u64,
         max_size: Option<usize>,
         to: &mut Vec<Entry>,
     ) -> Result<usize> {
         self.0
-            .fetch_entries_to(raft_group_id, begin, lightlike, max_size, to)
+            .fetch_entries_to(violetabft_group_id, begin, lightlike, max_size, to)
             .map_err(|e| transfer_error(e))
     }
 
@@ -119,28 +119,28 @@ impl VioletaBftEngine for VioletaBftLogEngine {
 
     fn clean(
         &self,
-        raft_group_id: u64,
+        violetabft_group_id: u64,
         _: &VioletaBftLocalState,
         batch: &mut VioletaBftLogBatch,
     ) -> Result<()> {
-        batch.0.clean_brane(raft_group_id);
+        batch.0.clean_brane(violetabft_group_id);
         Ok(())
     }
 
-    fn applightlike(&self, raft_group_id: u64, entries: Vec<Entry>) -> Result<usize> {
+    fn applightlike(&self, violetabft_group_id: u64, entries: Vec<Entry>) -> Result<usize> {
         let mut batch = Self::LogBatch::default();
-        batch.0.add_entries(raft_group_id, entries);
+        batch.0.add_entries(violetabft_group_id, entries);
         let ret = box_try!(self.0.write(&mut batch.0, false));
         Ok(ret)
     }
 
-    fn put_raft_state(&self, raft_group_id: u64, state: &VioletaBftLocalState) -> Result<()> {
-        box_try!(self.0.put_msg(raft_group_id, RAFT_LOG_STATE_KEY, state));
+    fn put_violetabft_state(&self, violetabft_group_id: u64, state: &VioletaBftLocalState) -> Result<()> {
+        box_try!(self.0.put_msg(violetabft_group_id, VIOLETABFT_LOG_STATE_KEY, state));
         Ok(())
     }
 
-    fn gc(&self, raft_group_id: u64, _from: u64, to: u64) -> Result<usize> {
-        Ok(self.0.compact_to(raft_group_id, to) as usize)
+    fn gc(&self, violetabft_group_id: u64, _from: u64, to: u64) -> Result<usize> {
+        Ok(self.0.compact_to(violetabft_group_id, to) as usize)
     }
 
     fn purge_expired_files(&self) -> Result<Vec<u64>> {
@@ -152,8 +152,8 @@ impl VioletaBftEngine for VioletaBftLogEngine {
         true
     }
 
-    fn gc_entry_cache(&self, raft_group_id: u64, to: u64) {
-        self.0.compact_cache_to(raft_group_id, to)
+    fn gc_entry_cache(&self, violetabft_group_id: u64, to: u64) {
+        self.0.compact_cache_to(violetabft_group_id, to)
     }
     /// Flush current cache stats.
     fn flush_stats(&self) -> Option<CacheStats> {

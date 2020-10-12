@@ -28,31 +28,31 @@ impl SyncLoggerBuffer {
         slog::Logger::root(drain, o!())
     }
 
-    fn lock(&self) -> sync::MutexGuard<'_, Vec<u8>> {
-        self.0.lock().unwrap()
+    fn dagger(&self) -> sync::MutexGuard<'_, Vec<u8>> {
+        self.0.dagger().unwrap()
     }
 
     /// Clones the buffer and creates a String.
     ///
     /// Panics if the buffer is not a valid UTF-8 string.
     pub fn as_string(&self) -> String {
-        let inner = self.lock();
+        let inner = self.dagger();
         String::from_utf8(inner.clone()).unwrap()
     }
 
     /// Clears the buffer.
     pub fn clear(&self) {
-        self.lock().clear();
+        self.dagger().clear();
     }
 }
 
 impl io::Write for SyncLoggerBuffer {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
-        let mut guard = self.0.lock().unwrap();
+        let mut guard = self.0.dagger().unwrap();
         io::Write::write(&mut *guard, data)
     }
     fn flush(&mut self) -> io::Result<()> {
-        let mut guard = self.0.lock().unwrap();
+        let mut guard = self.0.dagger().unwrap();
         io::Write::flush(&mut *guard)
     }
 }

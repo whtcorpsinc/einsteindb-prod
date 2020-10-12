@@ -1,6 +1,6 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::db_options::LmdbTitanDBOptions;
+use crate::db_options::LmdbNoetherDBOptions;
 use engine_promises::PrimaryCausetNetworkOptions;
 use lmdb::PrimaryCausetNetworkOptions as RawCAUSETOptions;
 
@@ -18,7 +18,7 @@ impl LmdbPrimaryCausetNetworkOptions {
 }
 
 impl PrimaryCausetNetworkOptions for LmdbPrimaryCausetNetworkOptions {
-    type TitanDBOptions = LmdbTitanDBOptions;
+    type NoetherDBOptions = LmdbNoetherDBOptions;
 
     fn new() -> Self {
         LmdbPrimaryCausetNetworkOptions::from_raw(RawCAUSETOptions::new())
@@ -48,7 +48,7 @@ impl PrimaryCausetNetworkOptions for LmdbPrimaryCausetNetworkOptions {
         self.0.set_block_cache_capacity(capacity)
     }
 
-    fn set_titandb_options(&mut self, opts: &Self::TitanDBOptions) {
+    fn set_titandb_options(&mut self, opts: &Self::NoetherDBOptions) {
         self.0.set_titandb_options(opts.as_raw())
     }
 

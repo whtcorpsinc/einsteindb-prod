@@ -20,17 +20,17 @@ use violetabft::StateRole;
 use violetabftstore::interlock::BraneInfoProvider;
 use violetabftstore::store::util::find_peer;
 use einsteindb::config::BackupConfig;
-use einsteindb::persistence::kv::{Engine, ScanMode, Snapshot};
-use einsteindb::persistence::mvcc::Error as MvccError;
-use einsteindb::persistence::txn::{
+use einsteindb::causetStorage::kv::{Engine, ScanMode, Snapshot};
+use einsteindb::causetStorage::mvcc::Error as MvccError;
+use einsteindb::causetStorage::txn::{
     EntryBatch, Error as TxnError, SnapshotStore, TxnEntryScanner, TxnEntryStore,
 };
-use einsteindb::persistence::Statistics;
+use einsteindb::causetStorage::Statistics;
 use einsteindb_util::threadpool::{DefaultContext, ThreadPool, ThreadPoolBuilder};
 use einsteindb_util::time::Limiter;
 use einsteindb_util::timer::Timer;
 use einsteindb_util::worker::{Runnable, RunnableWithTimer};
-use txn_types::{Key, Lock, TimeStamp};
+use txn_types::{Key, Dagger, TimeStamp};
 
 use crate::metrics::*;
 use crate::*;
@@ -83,7 +83,7 @@ impl fmt::Debug for Task {
 #[derive(Clone)]
 struct LimitedStorage {
     limiter: Limiter,
-    persistence: Arc<dyn ExternalStorage>,
+    causetStorage: Arc<dyn ExternalStorage>,
 }
 
 impl Task {
@@ -104,7 +104,7 @@ impl Task {
             causet: req.get_causet().to_owned(),
         })?;
 
-        // Check persistence backlightlike eagerly.
+        // Check causetStorage backlightlike eagerly.
         create_causetStorage(req.get_causetStorage_backlightlike())?;
 
         let task = Task {
@@ -143,7 +143,7 @@ pub struct BackupCone {
 }
 
 impl BackupCone {
-    /// Get entries from the scanner and save them to persistence
+    /// Get entries from the scanner and save them to causetStorage
     fn backup<E: Engine>(
         &self,
         writer: &mut BackupWriter,
@@ -159,15 +159,15 @@ impl BackupCone {
         ctx.set_brane_epoch(self.brane.get_brane_epoch().to_owned());
         ctx.set_peer(self.leader.clone());
 
-        // Ufidelate max_ts and check the in-memory lock table before getting the snapshot
+        // Ufidelate max_ts and check the in-memory dagger table before getting the snapshot
         concurrency_manager.ufidelate_max_ts(backup_ts);
         concurrency_manager
             .read_cone_check(
                 self.spacelike_key.as_ref(),
                 self.lightlike_key.as_ref(),
-                |key, lock| {
-                    Lock::check_ts_conflict(
-                        Cow::Borrowed(lock),
+                |key, dagger| {
+                    Dagger::check_ts_conflict(
+                        Cow::Borrowed(dagger),
                         &key,
                         backup_ts,
                         &Default::default(),
@@ -288,7 +288,7 @@ impl BackupCone {
         &self,
         engine: &E,
         db: Arc<DB>,
-        persistence: &LimitedStorage,
+        causetStorage: &LimitedStorage,
         concurrency_manager: ConcurrencyManager,
         file_name: String,
         backup_ts: TimeStamp,
@@ -299,7 +299,7 @@ impl BackupCone {
         let mut writer = match BackupWriter::new(
             db,
             &file_name,
-            persistence.limiter.clone(),
+            causetStorage.limiter.clone(),
             compression_type,
             compression_level,
         ) {
@@ -319,8 +319,8 @@ impl BackupCone {
             Ok(s) => s,
             Err(e) => return Err(e),
         };
-        // Save sst files to persistence.
-        match writer.save(&persistence.persistence) {
+        // Save sst files to causetStorage.
+        match writer.save(&causetStorage.causetStorage) {
             Ok(files) => Ok((files, stat)),
             Err(e) => {
                 error!(?e; "backup save file failed");
@@ -333,7 +333,7 @@ impl BackupCone {
         &self,
         engine: &E,
         db: Arc<DB>,
-        persistence: &LimitedStorage,
+        causetStorage: &LimitedStorage,
         file_name: String,
         causet: CfName,
         compression_type: Option<SstCompressionType>,
@@ -343,7 +343,7 @@ impl BackupCone {
             db,
             &file_name,
             causet,
-            persistence.limiter.clone(),
+            causetStorage.limiter.clone(),
             compression_type,
             compression_level,
         ) {
@@ -357,8 +357,8 @@ impl BackupCone {
             Ok(s) => s,
             Err(e) => return Err(e),
         };
-        // Save sst files to persistence.
-        match writer.save(&persistence.persistence) {
+        // Save sst files to causetStorage.
+        match writer.save(&causetStorage.causetStorage) {
             Ok(files) => Ok((files, stat)),
             Err(e) => {
                 error!(?e; "backup save file failed");
@@ -640,10 +640,10 @@ impl<E: Engine, R: BraneInfoProvider> Endpoint<E, R> {
         // TODO: make it async.
         self.pool.borrow_mut().spawn(move || loop {
             let (bcones, is_raw_kv, causet) = {
-                // Release lock as soon as possible.
+                // Release dagger as soon as possible.
                 // It is critical to speed up backup, otherwise workers are
                 // blocked by each other.
-                let mut progress = prs.lock().unwrap();
+                let mut progress = prs.dagger().unwrap();
                 (
                     progress.forward(WORKER_TAKE_RANGE),
                     progress.is_raw_kv,
@@ -658,9 +658,9 @@ impl<E: Engine, R: BraneInfoProvider> Endpoint<E, R> {
 
             // CausetStorage backlightlike has been checked in `Task::new()`.
             let backlightlike = create_causetStorage(&request.backlightlike).unwrap();
-            let persistence = LimitedStorage {
+            let causetStorage = LimitedStorage {
                 limiter: request.limiter.clone(),
-                persistence: backlightlike,
+                causetStorage: backlightlike,
             };
             for bcone in bcones {
                 if request.cancel.load(Ordering::SeqCst) {
@@ -685,7 +685,7 @@ impl<E: Engine, R: BraneInfoProvider> Endpoint<E, R> {
                         bcone.backup_raw_kv_to_file(
                             &engine,
                             db.clone(),
-                            &persistence,
+                            &causetStorage,
                             name,
                             causet,
                             ct,
@@ -701,7 +701,7 @@ impl<E: Engine, R: BraneInfoProvider> Endpoint<E, R> {
                         bcone.backup_to_file(
                             &engine,
                             db.clone(),
-                            &persistence,
+                            &causetStorage,
                             concurrency_manager.clone(),
                             name,
                             backup_ts,
@@ -903,9 +903,9 @@ pub mod tests {
     use violetabftstore::store::util::new_peer;
     use std::thread;
     use tempfile::TempDir;
-    use einsteindb::persistence::mvcc::tests::*;
-    use einsteindb::persistence::txn::tests::must_commit;
-    use einsteindb::persistence::{LmdbEngine, TestEngineBuilder};
+    use einsteindb::causetStorage::mvcc::tests::*;
+    use einsteindb::causetStorage::txn::tests::must_commit;
+    use einsteindb::causetStorage::{LmdbEngine, TestEngineBuilder};
     use einsteindb_util::time::Instant;
     use txn_types::SHORT_VALUE_MAX_LEN;
 
@@ -922,7 +922,7 @@ pub mod tests {
             }
         }
         pub fn set_branes(&self, branes: Vec<(Vec<u8>, Vec<u8>, u64)>) {
-            let mut map = self.branes.lock().unwrap();
+            let mut map = self.branes.dagger().unwrap();
             for (mut spacelike_key, mut lightlike_key, id) in branes {
                 if !spacelike_key.is_empty() {
                     spacelike_key = Key::from_raw(&spacelike_key).into_encoded();
@@ -945,7 +945,7 @@ pub mod tests {
     impl BraneInfoProvider for MockBraneInfoProvider {
         fn seek_brane(&self, from: &[u8], callback: SeekBraneCallback) -> CopResult<()> {
             let from = from.to_vec();
-            let branes = self.branes.lock().unwrap();
+            let branes = self.branes.dagger().unwrap();
             if let Some(c) = self.cancel.as_ref() {
                 c.store(true, Ordering::SeqCst);
             }
@@ -1405,10 +1405,10 @@ pub mod tests {
                     _ => None,
                 };
                 if let Some(task) = task {
-                    let mut lightlikepoint = lightlikepoint.lock().unwrap();
+                    let mut lightlikepoint = lightlikepoint.dagger().unwrap();
                     lightlikepoint.run(task);
                 }
-                lightlikepoint.lock().unwrap().on_timeout(&mut backup_timer, ());
+                lightlikepoint.dagger().unwrap().on_timeout(&mut backup_timer, ());
             });
             tx
         };
@@ -1421,7 +1421,7 @@ pub mod tests {
         req.set_causetStorage_backlightlike(make_noop_backlightlike());
 
         lightlikepoint
-            .lock()
+            .dagger()
             .unwrap()
             .get_config_manager()
             .set_num_threads(10);
@@ -1430,20 +1430,20 @@ pub mod tests {
         let (task, _) = Task::new(req, tx).unwrap();
 
         // if not task arrive after create the thread pool is empty
-        assert_eq!(lightlikepoint.lock().unwrap().pool.borrow().size, 0);
+        assert_eq!(lightlikepoint.dagger().unwrap().pool.borrow().size, 0);
 
         scheduler.slightlike(Some(task)).unwrap();
         // wait until the task finish
         let _ = block_on(resp_rx.into_future());
-        assert_eq!(lightlikepoint.lock().unwrap().pool.borrow().size, 10);
+        assert_eq!(lightlikepoint.dagger().unwrap().pool.borrow().size, 10);
 
         // thread pool not yet shutdown
         thread::sleep(Duration::from_millis(50));
-        assert_eq!(lightlikepoint.lock().unwrap().pool.borrow().size, 10);
+        assert_eq!(lightlikepoint.dagger().unwrap().pool.borrow().size, 10);
 
         // thread pool shutdown if not task arrive more than 100ms
         thread::sleep(Duration::from_millis(100));
-        assert_eq!(lightlikepoint.lock().unwrap().pool.borrow().size, 0);
+        assert_eq!(lightlikepoint.dagger().unwrap().pool.borrow().size, 0);
     }
     // TODO: brane err in txn(engine(request))
 }

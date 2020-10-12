@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::fmt::{self, Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -84,7 +84,7 @@ where
         let fidel_client = Arc::clone(&self.fidel_client);
         let mut s = box_try!(fidel_client.get_store(store_id));
         let mut group_id = None;
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.dagger().unwrap();
         if state.status().get_mode() == ReplicationMode::DrAutoSync {
             let state_id = state.status().get_dr_auto_sync().state_id;
             if state.group.group_id(state_id, store_id).is_none() {

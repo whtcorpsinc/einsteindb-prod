@@ -1,11 +1,11 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use super::lock_table::LockTable;
 
 use parking_lot::Mutex;
 use std::{mem, sync::Arc};
 use tokio::sync::{Mutex as AsyncMutex, MutexGuard as AsyncMutexGuard};
-use txn_types::{Key, Lock};
+use txn_types::{Key, Dagger};
 
 /// An entry in the in-memory table providing functions related to a specific
 /// key.
@@ -13,7 +13,7 @@ pub struct KeyHandle {
     pub key: Key,
     table: LockTable,
     mutex: AsyncMutex<()>,
-    lock_store: Mutex<Option<Lock>>,
+    lock_store: Mutex<Option<Dagger>>,
 }
 
 impl KeyHandle {
@@ -26,19 +26,19 @@ impl KeyHandle {
         }
     }
 
-    pub async fn lock(self: Arc<Self>) -> KeyHandleGuard {
+    pub async fn dagger(self: Arc<Self>) -> KeyHandleGuard {
         // Safety: `_mutex_guard` is declared before `handle_ref` in `KeyHandleGuard`.
         // So the mutex guard will be released earlier than the `Arc<KeyHandle>`.
         // Then we can make sure the mutex guard doesn't point to released memory.
-        let mutex_guard = unsafe { mem::transmute(self.mutex.lock().await) };
+        let mutex_guard = unsafe { mem::transmute(self.mutex.dagger().await) };
         KeyHandleGuard {
             _mutex_guard: mutex_guard,
             handle: self,
         }
     }
 
-    pub fn with_lock<T>(&self, f: impl FnOnce(&Option<Lock>) -> T) -> T {
-        f(&*self.lock_store.lock())
+    pub fn with_lock<T>(&self, f: impl FnOnce(&Option<Dagger>) -> T) -> T {
+        f(&*self.lock_store.dagger())
     }
 }
 
@@ -63,17 +63,17 @@ impl KeyHandleGuard {
         &self.handle.key
     }
 
-    pub fn with_lock<T>(&self, f: impl FnOnce(&mut Option<Lock>) -> T) -> T {
-        f(&mut *self.handle.lock_store.lock())
+    pub fn with_lock<T>(&self, f: impl FnOnce(&mut Option<Dagger>) -> T) -> T {
+        f(&mut *self.handle.lock_store.dagger())
     }
 }
 
 impl Drop for KeyHandleGuard {
     fn drop(&mut self) {
-        // We only keep the lock in memory until the write to the underlying
+        // We only keep the dagger in memory until the write to the underlying
         // store finishes.
         // The guard can be released after finishes writing.
-        *self.handle.lock_store.lock() = None;
+        *self.handle.lock_store.dagger() = None;
     }
 }
 
@@ -100,7 +100,7 @@ mod tests {
             let key_handle = key_handle.clone();
             let counter = counter.clone();
             let handle = tokio::spawn(async move {
-                let _guard = key_handle.lock().await;
+                let _guard = key_handle.dagger().await;
                 // Modify an atomic counter with a mutex guard. The value of the counter
                 // should remain unchanged if the mutex works.
                 let counter_val = counter.fetch_add(1, Ordering::SeqCst) + 1;

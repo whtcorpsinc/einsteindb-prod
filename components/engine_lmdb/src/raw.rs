@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 //! Reexports from the lmdb crate
 //!
@@ -12,8 +12,8 @@ pub use lmdb::{
     CompactionFilterFactory, CompactionJobInfo, CompactionPriority, DBBottommostLevelCompaction,
     DBCompactionFilter, DBCompactionStyle, DBCompressionType, DBEntryType, DBInfoLogLevel,
     DBIterator, DBOptions, DBRateLimiterMode, DBRecoveryMode, DBStatisticsTickerType,
-    DBTitanDBBlobRunMode, Env, EventListener, IngestExternalFileOptions, LRUCacheOptions,
+    DBNoetherDBBlobRunMode, Env, EventListener, IngestExternalFileOptions, LRUCacheOptions,
     MemoryAllocator, PerfContext, Cone, ReadOptions, SeekKey, SliceTransform, TableFilter,
-    TablePropertiesCollector, TablePropertiesCollectorFactory, TitanBlobIndex, TitanDBOptions,
+    TablePropertiesCollector, TablePropertiesCollectorFactory, NoetherBlobIndex, NoetherDBOptions,
     Writable, WriteOptions, DB,
 };

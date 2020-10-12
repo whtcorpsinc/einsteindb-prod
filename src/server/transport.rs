@@ -1,11 +1,11 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
-use ekvproto::raft_serverpb::VioletaBftMessage;
-use violetabft::eraftpb::MessageType;
+use ekvproto::violetabft_serverpb::VioletaBftMessage;
+use violetabft::evioletabftpb::MessageType;
 use std::sync::{Arc, RwLock};
 
 use crate::server::metrics::*;
-use crate::server::raft_client::VioletaBftClient;
+use crate::server::violetabft_client::VioletaBftClient;
 use crate::server::resolve::StoreAddrResolver;
 use crate::server::snap::Task as SnapTask;
 use crate::server::Result;
@@ -23,9 +23,9 @@ where
     T: VioletaBftStoreRouter<LmdbEngine> + 'static,
     S: StoreAddrResolver + 'static,
 {
-    raft_client: Arc<RwLock<VioletaBftClient<T>>>,
+    violetabft_client: Arc<RwLock<VioletaBftClient<T>>>,
     snap_scheduler: Scheduler<SnapTask>,
-    pub raft_router: T,
+    pub violetabft_router: T,
     resolving: Arc<RwLock<HashSet<u64>>>,
     resolver: S,
 }
@@ -37,9 +37,9 @@ where
 {
     fn clone(&self) -> Self {
         ServerTransport {
-            raft_client: Arc::clone(&self.raft_client),
+            violetabft_client: Arc::clone(&self.violetabft_client),
             snap_scheduler: self.snap_scheduler.clone(),
-            raft_router: self.raft_router.clone(),
+            violetabft_router: self.violetabft_router.clone(),
             resolving: Arc::clone(&self.resolving),
             resolver: self.resolver.clone(),
         }
@@ -50,15 +50,15 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, S: StoreAddrResolver + 'sta
     ServerTransport<T, S>
 {
     pub fn new(
-        raft_client: Arc<RwLock<VioletaBftClient<T>>>,
+        violetabft_client: Arc<RwLock<VioletaBftClient<T>>>,
         snap_scheduler: Scheduler<SnapTask>,
-        raft_router: T,
+        violetabft_router: T,
         resolver: S,
     ) -> ServerTransport<T, S> {
         ServerTransport {
-            raft_client,
+            violetabft_client,
             snap_scheduler,
-            raft_router,
+            violetabft_router,
             resolving: Arc::new(RwLock::new(Default::default())),
             resolver,
         }
@@ -71,14 +71,14 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, S: StoreAddrResolver + 'sta
             fail_point!("transport_on_slightlike_store", |sid| if let Some(sid) = sid {
                 let sid: u64 = sid.parse().unwrap();
                 if sid == store_id {
-                    self.raft_client.wl().addrs.remove(&store_id);
+                    self.violetabft_client.wl().addrs.remove(&store_id);
                 }
             })
         };
         transport_on_slightlike_store_fp();
         // check the corresponding token for store.
         // TODO: avoid clone
-        let addr = self.raft_client.rl().addrs.get(&store_id).cloned();
+        let addr = self.violetabft_client.rl().addrs.get(&store_id).cloned();
         if let Some(addr) = addr {
             self.write_data(store_id, &addr, msg);
             return;
@@ -143,10 +143,10 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, S: StoreAddrResolver + 'sta
 
             let addr = addr.unwrap();
             info!("resolve store address ok"; "store_id" => store_id, "addr" => %addr);
-            trans.raft_client.wl().addrs.insert(store_id, addr.clone());
+            trans.violetabft_client.wl().addrs.insert(store_id, addr.clone());
             trans.write_data(store_id, &addr, msg);
             // There may be no messages in the near future, so flush it immediately.
-            trans.raft_client.wl().flush();
+            trans.violetabft_client.wl().flush();
         });
         if let Err(e) = self.resolver.resolve(store_id, cb) {
             error!("resolve store address failed"; "store_id" => store_id, "err" => ?e);
@@ -160,7 +160,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, S: StoreAddrResolver + 'sta
         if msg.get_message().has_snapshot() {
             return self.slightlike_snapshot_sock(addr, msg);
         }
-        if let Err(e) = self.raft_client.wl().slightlike(store_id, addr, msg) {
+        if let Err(e) = self.violetabft_client.wl().slightlike(store_id, addr, msg) {
             error!("slightlike violetabft msg err"; "err" => ?e);
         }
     }
@@ -195,7 +195,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, S: StoreAddrResolver + 'sta
         let to_store_id = msg.get_to_peer().get_store_id();
 
         SnapshotReporter {
-            raft_router: self.raft_router.clone(),
+            violetabft_router: self.violetabft_router.clone(),
             brane_id,
             to_peer_id,
             to_store_id,
@@ -213,7 +213,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, S: StoreAddrResolver + 'sta
                 .report(SnapshotStatus::Failure);
         }
 
-        if let Err(e) = self.raft_router.report_unreachable(brane_id, to_peer_id) {
+        if let Err(e) = self.violetabft_router.report_unreachable(brane_id, to_peer_id) {
             error!(?e;
                 "report peer unreachable failed";
                 "brane_id" => brane_id,
@@ -223,8 +223,8 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, S: StoreAddrResolver + 'sta
         }
     }
 
-    pub fn flush_raft_client(&mut self) {
-        self.raft_client.wl().flush();
+    pub fn flush_violetabft_client(&mut self) {
+        self.violetabft_client.wl().flush();
     }
 }
 
@@ -240,12 +240,12 @@ where
     }
 
     fn flush(&mut self) {
-        self.flush_raft_client();
+        self.flush_violetabft_client();
     }
 }
 
 struct SnapshotReporter<T: VioletaBftStoreRouter<LmdbEngine> + 'static> {
-    raft_router: T,
+    violetabft_router: T,
     brane_id: u64,
     to_peer_id: u64,
     to_store_id: u64,
@@ -268,7 +268,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static> SnapshotReporter<T> {
         };
 
         if let Err(e) =
-            self.raft_router
+            self.violetabft_router
                 .report_snapshot_status(self.brane_id, self.to_peer_id, status)
         {
             error!(?e;

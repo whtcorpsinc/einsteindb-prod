@@ -1,13 +1,13 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::io::Error as IoError;
 use std::{error, result};
 
 use engine_promises::Error as EnginePromisesError;
 use ekvproto::errorpb::Error as ErrorHeader;
-use einsteindb::persistence::kv::{Error as EngineError, ErrorInner as EngineErrorInner};
-use einsteindb::persistence::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner};
-use einsteindb::persistence::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
+use einsteindb::causetStorage::kv::{Error as EngineError, ErrorInner as EngineErrorInner};
+use einsteindb::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner};
+use einsteindb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
 use txn_types::Error as TxnTypesError;
 
 /// The error type for cdc.

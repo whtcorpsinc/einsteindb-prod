@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::env;
 use std::fmt;
@@ -75,7 +75,7 @@ impl Drain for CaseTraceLogger {
     type Err = Never;
     fn log(&self, record: &Record<'_>, values: &OwnedKVList) -> Result<Self::Ok, Self::Err> {
         if let Some(ref out) = self.f {
-            let mut w = out.lock().unwrap();
+            let mut w = out.dagger().unwrap();
             let _ = Self::write_log(&mut *w, record, values, &self.skip_tags);
         } else {
             let mut w = io::stderr();
@@ -88,7 +88,7 @@ impl Drain for CaseTraceLogger {
 impl Drop for CaseTraceLogger {
     fn drop(&mut self) {
         if let Some(ref w) = self.f {
-            w.lock().unwrap().flush().unwrap();
+            w.dagger().unwrap().flush().unwrap();
         }
     }
 }
@@ -107,9 +107,9 @@ pub fn init_log_for_test() {
         f: writer,
         skip_tags: vec![
             "lmdb_log",
-            "raftdb_log",
+            "violetabftdb_log",
             "lmdb_log_header",
-            "raftdb_log_header",
+            "violetabftdb_log_header",
         ],
     };
 

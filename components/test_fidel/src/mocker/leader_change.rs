@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -50,7 +50,7 @@ const DEAD_URL: &str = "127.0.0.1:65534";
 
 impl FidelMocker for LeaderChange {
     fn get_members(&self, _: &GetMembersRequest) -> Option<Result<GetMembersResponse>> {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.dagger().unwrap();
         let now = Instant::now();
         if now - inner.r.ts > LeaderChange::get_leader_interval() {
             inner.r.idx += 1;
@@ -66,7 +66,7 @@ impl FidelMocker for LeaderChange {
     }
 
     fn get_brane_by_id(&self, _: &GetBraneByIdRequest) -> Option<Result<GetBraneResponse>> {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.dagger().unwrap();
         let now = Instant::now();
         if now.duration_since(inner.r.ts) > LeaderChange::get_leader_interval() {
             inner.r.idx += 1;
@@ -112,7 +112,7 @@ impl FidelMocker for LeaderChange {
         }
 
         info!("[LeaerChange] set_lightlikepoints {:?}", resps);
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.dagger().unwrap();
         inner.resps = resps;
     }
 }

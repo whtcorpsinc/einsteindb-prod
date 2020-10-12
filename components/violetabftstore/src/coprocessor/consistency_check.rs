@@ -1,8 +1,8 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::marker::PhantomData;
 
-use engine_promises::{KvEngine, Snapshot, CAUSET_RAFT};
+use engine_promises::{KvEngine, Snapshot, CAUSET_VIOLETABFT};
 use ekvproto::metapb::Brane;
 
 use crate::interlock::{ConsistencyCheckMethod, Interlock};
@@ -74,7 +74,7 @@ fn compute_hash_on_raw<S: Snapshot>(brane: &Brane, snap: &S) -> Result<u32> {
     // Computes the hash from the Brane state too.
     let brane_state_key = tuplespaceInstanton::brane_state_key(brane_id);
     digest.ufidelate(&brane_state_key);
-    match snap.get_value_causet(CAUSET_RAFT, &brane_state_key) {
+    match snap.get_value_causet(CAUSET_VIOLETABFT, &brane_state_key) {
         Err(e) => return Err(e.into()),
         Ok(Some(v)) => digest.ufidelate(&v),
         Ok(None) => {}

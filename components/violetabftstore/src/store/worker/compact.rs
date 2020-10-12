@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::collections::VecDeque;
 use std::error;
@@ -255,7 +255,7 @@ mod tests {
     use engine_lmdb::util::get_causet_handle;
     use engine_lmdb::Compat;
     use engine_promises::{CAUSETHandleExt, Mutable, WriteBatchExt};
-    use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_RAFT, CAUSET_WRITE};
+    use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
     use tempfile::Builder;
 
     use engine_lmdb::get_cone_entries_and_versions;
@@ -343,7 +343,7 @@ mod tests {
         causet_opts.add_table_properties_collector_factory("einsteindb.test-collector", f);
         let causets_opts = vec![
             CAUSETOptions::new(CAUSET_DEFAULT, PrimaryCausetNetworkOptions::new()),
-            CAUSETOptions::new(CAUSET_RAFT, PrimaryCausetNetworkOptions::new()),
+            CAUSETOptions::new(CAUSET_VIOLETABFT, PrimaryCausetNetworkOptions::new()),
             CAUSETOptions::new(CAUSET_DAGGER, PrimaryCausetNetworkOptions::new()),
             CAUSETOptions::new(CAUSET_WRITE, causet_opts),
         ];

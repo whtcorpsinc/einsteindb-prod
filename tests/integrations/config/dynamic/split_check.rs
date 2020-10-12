@@ -65,7 +65,7 @@ where
 fn test_ufidelate_split_check_config() {
     let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
     causetg.validate().unwrap();
-    let engine = tmp_engine(&causetg.persistence.data_dir);
+    let engine = tmp_engine(&causetg.causetStorage.data_dir);
     let (causetg_controller, mut worker) = setup(causetg.clone(), engine);
     let scheduler = worker.scheduler();
 

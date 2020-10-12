@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::f64::INFINITY;
 use std::fmt::{self, Display, Formatter};
@@ -24,8 +24,8 @@ use einsteindb_util::worker::{
 use txn_types::{Key, TimeStamp};
 
 use crate::server::metrics::*;
-use crate::persistence::kv::{Engine, ScanMode, Statistics};
-use crate::persistence::mvcc::{check_need_gc, Error as MvccError, GcInfo, MvccReader, MvccTxn};
+use crate::causetStorage::kv::{Engine, ScanMode, Statistics};
+use crate::causetStorage::mvcc::{check_need_gc, Error as MvccError, GcInfo, MvccReader, MvccTxn};
 
 use super::applied_lock_collector::{AppliedLockCollector, Callback as LockCollectorCallback};
 use super::config::{GcConfig, GcWorkerConfigManager};
@@ -132,7 +132,7 @@ where
 {
     engine: E,
 
-    raft_store_router: RR,
+    violetabft_store_router: RR,
 
     /// Used to limit the write flow of GC.
     limiter: Limiter,
@@ -150,7 +150,7 @@ where
 {
     pub fn new(
         engine: E,
-        raft_store_router: RR,
+        violetabft_store_router: RR,
         causetg_tracker: Tracker<GcConfig>,
         causetg: GcConfig,
     ) -> Self {
@@ -161,7 +161,7 @@ where
         });
         Self {
             engine,
-            raft_store_router,
+            violetabft_store_router,
             limiter,
             causetg,
             causetg_tracker,
@@ -338,7 +338,7 @@ where
 
         let cleanup_all_time_cost = cleanup_all_spacelike_time.elapsed();
 
-        self.raft_store_router
+        self.violetabft_store_router
             .slightlike_store_msg(StoreMsg::ClearBraneSizeInCone {
                 spacelike_key: spacelike_key.as_encoded().to_vec(),
                 lightlike_key: lightlike_key.as_encoded().to_vec(),
@@ -370,9 +370,9 @@ where
         let (locks, _) = reader.scan_locks(Some(spacelike_key), |l| l.ts <= max_ts, limit)?;
 
         let mut lock_infos = Vec::with_capacity(locks.len());
-        for (key, lock) in locks {
+        for (key, dagger) in locks {
             let raw_key = key.into_raw().map_err(MvccError::from)?;
-            lock_infos.push(lock.into_lock_info(raw_key));
+            lock_infos.push(dagger.into_lock_info(raw_key));
         }
         Ok(lock_infos)
     }
@@ -536,8 +536,8 @@ where
 {
     engine: E,
 
-    /// `raft_store_router` is useful to signal violetabftstore clean brane size informations.
-    raft_store_router: RR,
+    /// `violetabft_store_router` is useful to signal violetabftstore clean brane size informations.
+    violetabft_store_router: RR,
 
     config_manager: GcWorkerConfigManager,
 
@@ -567,7 +567,7 @@ where
 
         Self {
             engine: self.engine.clone(),
-            raft_store_router: self.raft_store_router.clone(),
+            violetabft_store_router: self.violetabft_store_router.clone(),
             config_manager: self.config_manager.clone(),
             scheduled_tasks: self.scheduled_tasks.clone(),
             refs: self.refs.clone(),
@@ -607,15 +607,15 @@ where
 {
     pub fn new(
         engine: E,
-        raft_store_router: RR,
+        violetabft_store_router: RR,
         causetg: GcConfig,
         cluster_version: ClusterVersion,
     ) -> GcWorker<E, RR> {
         let worker = Arc::new(Mutex::new(FutureWorker::new("gc-worker")));
-        let worker_scheduler = worker.lock().unwrap().scheduler();
+        let worker_scheduler = worker.dagger().unwrap().scheduler();
         GcWorker {
             engine,
-            raft_store_router,
+            violetabft_store_router,
             config_manager: GcWorkerConfigManager(Arc::new(VersionTrack::new(causetg))),
             scheduled_tasks: Arc::new(AtomicUsize::new(0)),
             refs: Arc::new(AtomicUsize::new(1)),
@@ -638,7 +638,7 @@ where
         let cluster_version = self.cluster_version.clone();
         kvdb.init_compaction_filter(safe_point.clone(), causetg_mgr, cluster_version);
 
-        let mut handle = self.gc_manager_handle.lock().unwrap();
+        let mut handle = self.gc_manager_handle.dagger().unwrap();
         assert!(handle.is_none());
         let new_handle = GcManager::new(
             causetg,
@@ -655,12 +655,12 @@ where
     pub fn spacelike(&mut self) -> Result<()> {
         let runner = GcRunner::new(
             self.engine.clone(),
-            self.raft_store_router.clone(),
+            self.violetabft_store_router.clone(),
             self.config_manager.0.clone().tracker("gc-woker".to_owned()),
             self.config_manager.value().clone(),
         );
         self.worker
-            .lock()
+            .dagger()
             .unwrap()
             .spacelike(runner)
             .map_err(|e| box_err!("failed to spacelike gc_worker, err: {:?}", e))
@@ -678,11 +678,11 @@ where
 
     pub fn stop(&self) -> Result<()> {
         // Stop GcManager.
-        if let Some(h) = self.gc_manager_handle.lock().unwrap().take() {
+        if let Some(h) = self.gc_manager_handle.dagger().unwrap().take() {
             h.stop()?;
         }
         // Stop self.
-        if let Some(h) = self.worker.lock().unwrap().stop() {
+        if let Some(h) = self.worker.dagger().unwrap().stop() {
             if let Err(e) = h.join() {
                 return Err(box_err!("failed to join gc_worker handle, err: {:?}", e));
             }
@@ -828,12 +828,12 @@ mod tests {
     use einsteindb_util::time::ThreadReadId;
     use txn_types::Mutation;
 
-    use crate::persistence::kv::{
+    use crate::causetStorage::kv::{
         self, write_modifies, Callback as EngineCallback, Modify, Result as EngineResult,
         TestEngineBuilder, WriteData,
     };
-    use crate::persistence::lock_manager::DummyLockManager;
-    use crate::persistence::{txn::commands, Engine, CausetStorage, TestStorageBuilder};
+    use crate::causetStorage::lock_manager::DummyLockManager;
+    use crate::causetStorage::{txn::commands, Engine, CausetStorage, TestStorageBuilder};
 
     use super::*;
 
@@ -937,13 +937,13 @@ mod tests {
         }
     }
 
-    /// Assert the data in `persistence` is the same as `expected_data`. TuplespaceInstanton in `expected_data` should
+    /// Assert the data in `causetStorage` is the same as `expected_data`. TuplespaceInstanton in `expected_data` should
     /// be encoded form without ts.
     fn check_data<E: Engine>(
-        persistence: &CausetStorage<E, DummyLockManager>,
+        causetStorage: &CausetStorage<E, DummyLockManager>,
         expected_data: &BTreeMap<Vec<u8>, Vec<u8>>,
     ) {
-        let scan_res = block_on(persistence.scan(
+        let scan_res = block_on(causetStorage.scan(
             Context::default(),
             Key::from_encoded_slice(b""),
             None,
@@ -973,7 +973,7 @@ mod tests {
         // Return Result from this function so we can use the `wait_op` macro here.
 
         let engine = TestEngineBuilder::new().build().unwrap();
-        let persistence =
+        let causetStorage =
             TestStorageBuilder::from_engine_and_lock_mgr(engine.clone(), DummyLockManager {})
                 .build()
                 .unwrap();
@@ -1007,8 +1007,8 @@ mod tests {
 
         let spacelike_ts = spacelike_ts.into();
 
-        // Write these data to the persistence.
-        wait_op!(|cb| persistence.sched_txn_command(
+        // Write these data to the causetStorage.
+        wait_op!(|cb| causetStorage.sched_txn_command(
             commands::Prewrite::with_defaults(mutations, primary, spacelike_ts),
             cb,
         ))
@@ -1017,15 +1017,15 @@ mod tests {
 
         // Commit.
         let tuplespaceInstanton: Vec<_> = init_tuplespaceInstanton.iter().map(|k| Key::from_raw(k)).collect();
-        wait_op!(|cb| persistence.sched_txn_command(
+        wait_op!(|cb| causetStorage.sched_txn_command(
             commands::Commit::new(tuplespaceInstanton, spacelike_ts, commit_ts.into(), Context::default()),
             cb
         ))
         .unwrap()
         .unwrap();
 
-        // Assert these data is successfully written to the persistence.
-        check_data(&persistence, &data);
+        // Assert these data is successfully written to the causetStorage.
+        check_data(&causetStorage, &data);
 
         let spacelike_key = Key::from_raw(spacelike_key);
         let lightlike_key = Key::from_raw(lightlike_key);
@@ -1042,7 +1042,7 @@ mod tests {
             .unwrap();
 
         // Check remaining data is as expected.
-        check_data(&persistence, &data);
+        check_data(&causetStorage, &data);
 
         Ok(())
     }
@@ -1136,7 +1136,7 @@ mod tests {
     fn test_physical_scan_lock() {
         let engine = TestEngineBuilder::new().build().unwrap();
         let prefixed_engine = PrefixedEngine(engine);
-        let persistence = TestStorageBuilder::<_, DummyLockManager>::from_engine_and_lock_mgr(
+        let causetStorage = TestStorageBuilder::<_, DummyLockManager>::from_engine_and_lock_mgr(
             prefixed_engine.clone(),
             DummyLockManager {},
         )
@@ -1160,7 +1160,7 @@ mod tests {
 
         let mut expected_lock_info = Vec::new();
 
-        // Put locks into the persistence.
+        // Put locks into the causetStorage.
         for i in 0..50 {
             let mut k = vec![];
             k.encode_u64(i).unwrap();
@@ -1181,7 +1181,7 @@ mod tests {
             }
 
             let (tx, rx) = channel();
-            persistence
+            causetStorage
                 .sched_txn_command(
                     commands::Prewrite::with_defaults(vec![mutation], k, lock_ts.into()),
                     Box::new(move |res| tx.slightlike(res).unwrap()),

@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use crate::fsm::{Fsm, FsmScheduler};
 use crate::mailbox::{BasicMailbox, Mailbox};
@@ -72,7 +72,7 @@ where
     /// mailbox.
     ///
     /// Generally, when slightlikeing a message to a mailbox, cache should be
-    /// check first, if not found, lock should be acquired.
+    /// check first, if not found, dagger should be acquired.
     ///
     /// Returns None means there is no mailbox inside the normal registry.
     /// Some(None) means there is expected mailbox inside the normal registry
@@ -95,7 +95,7 @@ where
         }
 
         let (cnt, mailbox) = {
-            let mut boxes = self.normals.lock().unwrap();
+            let mut boxes = self.normals.dagger().unwrap();
             let cnt = boxes.len();
             let b = match boxes.get_mut(&addr) {
                 Some(mailbox) => mailbox.clone(),
@@ -130,14 +130,14 @@ where
 
     /// Register a mailbox with given address.
     pub fn register(&self, addr: u64, mailbox: BasicMailbox<N>) {
-        let mut normals = self.normals.lock().unwrap();
+        let mut normals = self.normals.dagger().unwrap();
         if let Some(mailbox) = normals.insert(addr, mailbox) {
             mailbox.close();
         }
     }
 
     pub fn register_all(&self, mailboxes: Vec<(u64, BasicMailbox<N>)>) {
-        let mut normals = self.normals.lock().unwrap();
+        let mut normals = self.normals.dagger().unwrap();
         normals.reserve(mailboxes.len());
         for (addr, mailbox) in mailboxes {
             if let Some(m) = normals.insert(addr, mailbox) {
@@ -239,7 +239,7 @@ where
 
     /// Try to notify all normal fsm a message.
     pub fn broadcast_normal(&self, mut msg_gen: impl FnMut() -> N::Message) {
-        let mailboxes = self.normals.lock().unwrap();
+        let mailboxes = self.normals.dagger().unwrap();
         for mailbox in mailboxes.values() {
             let _ = mailbox.force_slightlike(msg_gen(), &self.normal_scheduler);
         }
@@ -250,7 +250,7 @@ where
         info!("broadcasting shutdown");
         self.shutdown.store(true, Ordering::SeqCst);
         unsafe { &mut *self.caches.as_ptr() }.clear();
-        let mut mailboxes = self.normals.lock().unwrap();
+        let mut mailboxes = self.normals.dagger().unwrap();
         for (addr, mailbox) in mailboxes.drain() {
             debug!("[brane {}] shutdown mailbox", addr);
             mailbox.close();
@@ -264,7 +264,7 @@ where
     pub fn close(&self, addr: u64) {
         info!("[brane {}] shutdown mailbox", addr);
         unsafe { &mut *self.caches.as_ptr() }.remove(&addr);
-        let mut mailboxes = self.normals.lock().unwrap();
+        let mut mailboxes = self.normals.dagger().unwrap();
         if let Some(mb) = mailboxes.remove(&addr) {
             mb.close();
         }

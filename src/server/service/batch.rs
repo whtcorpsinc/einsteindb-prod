@@ -1,8 +1,8 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use crate::server::metrics::GRPC_MSG_HISTOGRAM_STATIC;
 use crate::server::service::kv::batch_commands_response;
-use crate::persistence::{
+use crate::causetStorage::{
     errors::{extract_key_error, extract_brane_error},
     kv::Engine,
     lock_manager::LockManager,
@@ -50,47 +50,47 @@ impl ReqBatcher {
 
     pub fn maybe_commit<E: Engine, L: LockManager>(
         &mut self,
-        persistence: &CausetStorage<E, L>,
+        causetStorage: &CausetStorage<E, L>,
         tx: &Slightlikeer<(u64, batch_commands_response::Response)>,
     ) {
         if self.gets.len() > 10 {
             let gets = std::mem::replace(&mut self.gets, vec![]);
             let ids = std::mem::replace(&mut self.get_ids, vec![]);
-            future_batch_get_command(persistence, ids, gets, tx.clone());
+            future_batch_get_command(causetStorage, ids, gets, tx.clone());
         }
         if self.raw_gets.len() > 16 {
             let gets = std::mem::replace(&mut self.raw_gets, vec![]);
             let ids = std::mem::replace(&mut self.raw_get_ids, vec![]);
-            future_batch_raw_get_command(persistence, ids, gets, tx.clone());
+            future_batch_raw_get_command(causetStorage, ids, gets, tx.clone());
         }
     }
 
     pub fn commit<E: Engine, L: LockManager>(
         &mut self,
-        persistence: &CausetStorage<E, L>,
+        causetStorage: &CausetStorage<E, L>,
         tx: &Slightlikeer<(u64, batch_commands_response::Response)>,
     ) {
         if !self.gets.is_empty() {
             let gets = std::mem::replace(&mut self.gets, vec![]);
             let ids = std::mem::replace(&mut self.get_ids, vec![]);
-            future_batch_get_command(persistence, ids, gets, tx.clone());
+            future_batch_get_command(causetStorage, ids, gets, tx.clone());
         }
         if !self.raw_gets.is_empty() {
             let gets = std::mem::replace(&mut self.raw_gets, vec![]);
             let ids = std::mem::replace(&mut self.raw_get_ids, vec![]);
-            future_batch_raw_get_command(persistence, ids, gets, tx.clone());
+            future_batch_raw_get_command(causetStorage, ids, gets, tx.clone());
         }
     }
 }
 
 fn future_batch_get_command<E: Engine, L: LockManager>(
-    persistence: &CausetStorage<E, L>,
+    causetStorage: &CausetStorage<E, L>,
     requests: Vec<u64>,
     gets: Vec<GetRequest>,
     tx: Slightlikeer<(u64, batch_commands_response::Response)>,
 ) {
     let begin_instant = Instant::now_coarse();
-    let ret = persistence.batch_get_command(gets);
+    let ret = causetStorage.batch_get_command(gets);
     let f = async move {
         match ret.await {
             Ok(ret) => {
@@ -136,13 +136,13 @@ fn future_batch_get_command<E: Engine, L: LockManager>(
 }
 
 fn future_batch_raw_get_command<E: Engine, L: LockManager>(
-    persistence: &CausetStorage<E, L>,
+    causetStorage: &CausetStorage<E, L>,
     requests: Vec<u64>,
     gets: Vec<RawGetRequest>,
     tx: Slightlikeer<(u64, batch_commands_response::Response)>,
 ) {
     let begin_instant = Instant::now_coarse();
-    let ret = persistence.raw_batch_get_command(gets);
+    let ret = causetStorage.raw_batch_get_command(gets);
     let f = async move {
         match ret.await {
             Ok(v) => {

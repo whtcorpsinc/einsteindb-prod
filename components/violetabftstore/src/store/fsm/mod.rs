@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 //! Generally peers are state machines that represent a replica of a brane,
 //! and store is also a special state machine that handles all requests across
@@ -17,5 +17,5 @@ pub use self::apply::{
 };
 pub use self::peer::{DestroyPeerJob, GroupState, PeerFsm};
 pub use self::store::{
-    create_raft_batch_system, VioletaBftBatchSystem, VioletaBftPollerBuilder, VioletaBftRouter, StoreInfo, StoreMeta,
+    create_violetabft_batch_system, VioletaBftBatchSystem, VioletaBftPollerBuilder, VioletaBftRouter, StoreInfo, StoreMeta,
 };

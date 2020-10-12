@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::sync::atomic::AtomicBool;
 use std::sync::{mpsc, Arc};
@@ -6,9 +6,9 @@ use std::thread;
 use std::time::Duration;
 
 use futures::executor::block_on;
-use ekvproto::raft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use fidel_client::FidelClient;
-use violetabft::eraftpb::{ConfChangeType, MessageType};
+use violetabft::evioletabftpb::{ConfChangeType, MessageType};
 use test_violetabftstore::*;
 use einsteindb_util::config::ReadableDuration;
 use einsteindb_util::HandyRwLock;
@@ -143,7 +143,7 @@ fn test_write_after_destroy() {
 fn test_tick_after_destroy() {
     // 3 nodes cluster.
     let mut cluster = new_server_cluster(0, 3);
-    cluster.causetg.raft_store.raft_log_gc_tick_interval = ReadableDuration::millis(50);
+    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(50);
 
     let fidel_client = cluster.fidel_client.clone();
     // Disable default max peer count check.
@@ -159,7 +159,7 @@ fn test_tick_after_destroy() {
     let engine_3 = cluster.get_engine(3);
     must_get_equal(&engine_3, b"k1", b"v1");
 
-    let tick_fp = "on_raft_log_gc_tick_1";
+    let tick_fp = "on_violetabft_log_gc_tick_1";
     fail::causetg(tick_fp, "return").unwrap();
     let poll_fp = "pause_on_peer_destroy_res";
     fail::causetg(poll_fp, "pause").unwrap();
@@ -177,7 +177,7 @@ fn test_tick_after_destroy() {
     cluster.must_put(b"k3", b"v3");
 
     fail::remove(tick_fp);
-    thread::sleep(cluster.causetg.raft_store.raft_log_gc_tick_interval.0);
+    thread::sleep(cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval.0);
     thread::sleep(Duration::from_millis(100));
     fail::remove(poll_fp);
 
@@ -213,9 +213,9 @@ fn test_stale_peer_cache() {
 #[test]
 fn test_redundant_conf_change_by_snapshot() {
     let mut cluster = new_node_cluster(0, 4);
-    cluster.causetg.raft_store.raft_log_gc_count_limit = 5;
-    cluster.causetg.raft_store.merge_max_log_gap = 4;
-    cluster.causetg.raft_store.raft_log_gc_tick_interval = ReadableDuration::millis(20);
+    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 5;
+    cluster.causetg.violetabft_store.merge_max_log_gap = 4;
+    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();

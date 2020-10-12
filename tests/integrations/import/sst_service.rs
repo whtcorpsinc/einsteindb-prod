@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::sync::Arc;
 use std::thread;
@@ -25,7 +25,7 @@ fn new_cluster() -> (Cluster<ServerCluster>, Context) {
     let count = 1;
     let mut cluster = new_server_cluster(0, count);
     let cleanup_interval = Duration::from_millis(CLEANUP_SST_MILLIS);
-    cluster.causetg.raft_store.cleanup_import_sst_interval.0 = cleanup_interval;
+    cluster.causetg.violetabft_store.cleanup_import_sst_interval.0 = cleanup_interval;
     cluster.run();
 
     let brane_id = 1;
@@ -180,7 +180,7 @@ fn test_download_sst() {
     meta.set_brane_id(ctx.get_brane_id());
     meta.set_brane_epoch(ctx.get_brane_epoch().clone());
 
-    // Checks that downloading a non-existing persistence returns error.
+    // Checks that downloading a non-existing causetStorage returns error.
     let mut download = DownloadRequest::default();
     download.set_sst(meta.clone());
     download.set_causetStorage_backlightlike(external_causetStorage::make_local_backlightlike(temp_dir.path()));

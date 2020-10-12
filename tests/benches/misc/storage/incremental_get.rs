@@ -5,7 +5,7 @@ use ekvproto::kvrpcpb::{Context, IsolationLevel};
 use std::sync::Arc;
 use test_causetStorage::SyncTestStorageBuilder;
 use milevadb_query_datatype::codec::table;
-use einsteindb::persistence::{Engine, SnapshotStore, Statistics, CausetStore};
+use einsteindb::causetStorage::{Engine, SnapshotStore, Statistics, CausetStore};
 use txn_types::{Key, Mutation};
 
 fn table_lookup_gen_data() -> (SnapshotStore<Arc<LmdbSnapshot>>, Vec<Key>) {
@@ -32,7 +32,7 @@ fn table_lookup_gen_data() -> (SnapshotStore<Arc<LmdbSnapshot>>, Vec<Key>) {
     let db = engine.get_lmdb().get_sync_db();
     db.compact_cone_causet(db.causet_handle("write").unwrap(), None, None);
     db.compact_cone_causet(db.causet_handle("default").unwrap(), None, None);
-    db.compact_cone_causet(db.causet_handle("lock").unwrap(), None, None);
+    db.compact_cone_causet(db.causet_handle("dagger").unwrap(), None, None);
 
     let snapshot = engine.snapshot(&Context::default()).unwrap();
     let store = SnapshotStore::new(

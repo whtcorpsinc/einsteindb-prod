@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use prometheus::*;
 use prometheus_static_metric::*;
@@ -100,7 +100,7 @@ make_auto_flush_static_metric! {
 
     pub label_enum CfNames {
         default,
-        lock,
+        dagger,
         write,
         violetabft,
     }
@@ -128,7 +128,7 @@ make_auto_flush_static_metric! {
         compact_lock_causet,
         consistency_check,
         cleanup_import_sst,
-        raft_engine_purge,
+        violetabft_engine_purge,
     }
 
     pub struct VioletaBftEventDuration : LocalHistogram {
@@ -226,32 +226,32 @@ lazy_static! {
             exponential_buckets(0.0005, 2.0, 20).unwrap()
         ).unwrap();
 
-    pub static ref STORE_RAFT_READY_COUNTER_VEC: IntCounterVec =
+    pub static ref STORE_VIOLETABFT_READY_COUNTER_VEC: IntCounterVec =
         register_int_counter_vec!(
-            "einsteindb_violetabftstore_raft_ready_handled_total",
+            "einsteindb_violetabftstore_violetabft_ready_handled_total",
             "Total number of violetabft ready handled.",
             &["type"]
         ).unwrap();
-    pub static ref STORE_RAFT_READY_COUNTER: VioletaBftReadyVec =
-        auto_flush_from!(STORE_RAFT_READY_COUNTER_VEC, VioletaBftReadyVec);
+    pub static ref STORE_VIOLETABFT_READY_COUNTER: VioletaBftReadyVec =
+        auto_flush_from!(STORE_VIOLETABFT_READY_COUNTER_VEC, VioletaBftReadyVec);
 
-    pub static ref STORE_RAFT_SENT_MESSAGE_COUNTER_VEC: IntCounterVec =
+    pub static ref STORE_VIOLETABFT_SENT_MESSAGE_COUNTER_VEC: IntCounterVec =
         register_int_counter_vec!(
-            "einsteindb_violetabftstore_raft_sent_message_total",
+            "einsteindb_violetabftstore_violetabft_sent_message_total",
             "Total number of violetabft ready sent messages.",
             &["type"]
         ).unwrap();
-    pub static ref STORE_RAFT_SENT_MESSAGE_COUNTER: MessageCounterVec =
-        auto_flush_from!(STORE_RAFT_SENT_MESSAGE_COUNTER_VEC, MessageCounterVec);
+    pub static ref STORE_VIOLETABFT_SENT_MESSAGE_COUNTER: MessageCounterVec =
+        auto_flush_from!(STORE_VIOLETABFT_SENT_MESSAGE_COUNTER_VEC, MessageCounterVec);
 
-    pub static ref STORE_RAFT_DROPPED_MESSAGE_COUNTER_VEC: IntCounterVec =
+    pub static ref STORE_VIOLETABFT_DROPPED_MESSAGE_COUNTER_VEC: IntCounterVec =
         register_int_counter_vec!(
-            "einsteindb_violetabftstore_raft_dropped_message_total",
+            "einsteindb_violetabftstore_violetabft_dropped_message_total",
             "Total number of violetabft dropped messages.",
             &["type"]
         ).unwrap();
-    pub static ref STORE_RAFT_DROPPED_MESSAGE_COUNTER: VioletaBftDropedVec =
-        auto_flush_from!(STORE_RAFT_DROPPED_MESSAGE_COUNTER_VEC, VioletaBftDropedVec);
+    pub static ref STORE_VIOLETABFT_DROPPED_MESSAGE_COUNTER: VioletaBftDropedVec =
+        auto_flush_from!(STORE_VIOLETABFT_DROPPED_MESSAGE_COUNTER_VEC, VioletaBftDropedVec);
 
     pub static ref STORE_SNAPSHOT_TRAFFIC_GAUGE_VEC: IntGaugeVec =
         register_int_gauge_vec!(
@@ -269,9 +269,9 @@ lazy_static! {
     pub static ref STORE_SNAPSHOT_VALIDATION_FAILURE_COUNTER: SnapValidVec =
         auto_flush_from!(STORE_SNAPSHOT_VALIDATION_FAILURE_COUNTER_VEC, SnapValidVec);
 
-    pub static ref PEER_RAFT_PROCESS_DURATION: HistogramVec =
+    pub static ref PEER_VIOLETABFT_PROCESS_DURATION: HistogramVec =
         register_histogram_vec!(
-            "einsteindb_violetabftstore_raft_process_duration_secs",
+            "einsteindb_violetabftstore_violetabft_process_duration_secs",
             "Bucketed histogram of peer processing violetabft duration.",
             &["type"],
             exponential_buckets(0.0005, 2.0, 20).unwrap()
@@ -309,9 +309,9 @@ lazy_static! {
             exponential_buckets(0.0005, 2.0, 20).unwrap()
         ).unwrap();
 
-    pub static ref PEER_GC_RAFT_LOG_COUNTER: IntCounter =
+    pub static ref PEER_GC_VIOLETABFT_LOG_COUNTER: IntCounter =
         register_int_counter!(
-            "einsteindb_violetabftstore_gc_raft_log_total",
+            "einsteindb_violetabftstore_gc_violetabft_log_total",
             "Total number of GC violetabft log."
         ).unwrap();
 
@@ -377,14 +377,14 @@ lazy_static! {
             exponential_buckets(1024.0, 2.0, 22).unwrap() // 1024,1024*2^1,..,4G
         ).unwrap();
 
-    pub static ref RAFT_ENTRY_FETCHES_VEC: IntCounterVec =
+    pub static ref VIOLETABFT_ENTRY_FETCHES_VEC: IntCounterVec =
         register_int_counter_vec!(
             "einsteindb_violetabftstore_entry_fetches",
             "Total number of violetabft entry fetches.",
             &["type"]
         ).unwrap();
-    pub static ref RAFT_ENTRY_FETCHES: VioletaBftEntryFetches =
-        auto_flush_from!(RAFT_ENTRY_FETCHES_VEC, VioletaBftEntryFetches);
+    pub static ref VIOLETABFT_ENTRY_FETCHES: VioletaBftEntryFetches =
+        auto_flush_from!(VIOLETABFT_ENTRY_FETCHES_VEC, VioletaBftEntryFetches);
 
     pub static ref LEADER_MISSING: IntGauge =
         register_int_gauge!(
@@ -399,33 +399,33 @@ lazy_static! {
             exponential_buckets(0.005, 2.0, 20).unwrap()
         ).unwrap();
 
-    pub static ref RAFT_INVALID_PROPOSAL_COUNTER_VEC: IntCounterVec =
+    pub static ref VIOLETABFT_INVALID_PROPOSAL_COUNTER_VEC: IntCounterVec =
         register_int_counter_vec!(
-            "einsteindb_violetabftstore_raft_invalid_proposal_total",
+            "einsteindb_violetabftstore_violetabft_invalid_proposal_total",
             "Total number of violetabft invalid proposal.",
             &["type"]
         ).unwrap();
-    pub static ref RAFT_INVALID_PROPOSAL_COUNTER: VioletaBftInvalidProposalCount =
-        auto_flush_from!(RAFT_INVALID_PROPOSAL_COUNTER_VEC, VioletaBftInvalidProposalCount);
+    pub static ref VIOLETABFT_INVALID_PROPOSAL_COUNTER: VioletaBftInvalidProposalCount =
+        auto_flush_from!(VIOLETABFT_INVALID_PROPOSAL_COUNTER_VEC, VioletaBftInvalidProposalCount);
 
-    pub static ref RAFT_EVENT_DURATION_VEC: HistogramVec =
+    pub static ref VIOLETABFT_EVENT_DURATION_VEC: HistogramVec =
         register_histogram_vec!(
             "einsteindb_violetabftstore_event_duration",
             "Duration of violetabft store events.",
             &["type"],
             exponential_buckets(0.001, 1.59, 20).unwrap() // max 10s
         ).unwrap();
-    pub static ref RAFT_EVENT_DURATION: VioletaBftEventDuration =
-        auto_flush_from!(RAFT_EVENT_DURATION_VEC, VioletaBftEventDuration);
+    pub static ref VIOLETABFT_EVENT_DURATION: VioletaBftEventDuration =
+        auto_flush_from!(VIOLETABFT_EVENT_DURATION_VEC, VioletaBftEventDuration);
 
-    pub static ref RAFT_READ_INDEX_PENDING_DURATION: Histogram =
+    pub static ref VIOLETABFT_READ_INDEX_PENDING_DURATION: Histogram =
         register_histogram!(
             "einsteindb_violetabftstore_read_index_plightlikeing_duration",
             "Duration of plightlikeing read index.",
             exponential_buckets(0.001, 2.0, 20).unwrap() // max 1000s
         ).unwrap();
 
-    pub static ref RAFT_READ_INDEX_PENDING_COUNT: IntGauge =
+    pub static ref VIOLETABFT_READ_INDEX_PENDING_COUNT: IntGauge =
         register_int_gauge!(
             "einsteindb_violetabftstore_read_index_plightlikeing",
             "Plightlikeing read index count."
@@ -460,8 +460,8 @@ lazy_static! {
         &["order"]
         ).unwrap();
 
-    pub static ref RAFT_ENTRIES_CACHES_GAUGE: IntGauge = register_int_gauge!(
-        "einsteindb_raft_entries_caches",
+    pub static ref VIOLETABFT_ENTRIES_CACHES_GAUGE: IntGauge = register_int_gauge!(
+        "einsteindb_violetabft_entries_caches",
         "Total memory size of violetabft entries caches."
         ).unwrap();
 

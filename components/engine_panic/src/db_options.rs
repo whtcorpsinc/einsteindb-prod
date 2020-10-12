@@ -2,7 +2,7 @@
 
 use crate::engine::PanicEngine;
 use engine_promises::Result;
-use engine_promises::{DBOptions, DBOptionsExt, TitanDBOptions};
+use engine_promises::{DBOptions, DBOptionsExt, NoetherDBOptions};
 
 impl DBOptionsExt for PanicEngine {
     type DBOptions = PanicDBOptions;
@@ -18,7 +18,7 @@ impl DBOptionsExt for PanicEngine {
 pub struct PanicDBOptions;
 
 impl DBOptions for PanicDBOptions {
-    type TitanDBOptions = PanicTitanDBOptions;
+    type NoetherDBOptions = PanicNoetherDBOptions;
 
     fn new() -> Self {
         panic!()
@@ -36,14 +36,14 @@ impl DBOptions for PanicDBOptions {
         panic!()
     }
 
-    fn set_titandb_options(&mut self, opts: &Self::TitanDBOptions) {
+    fn set_titandb_options(&mut self, opts: &Self::NoetherDBOptions) {
         panic!()
     }
 }
 
-pub struct PanicTitanDBOptions;
+pub struct PanicNoetherDBOptions;
 
-impl TitanDBOptions for PanicTitanDBOptions {
+impl NoetherDBOptions for PanicNoetherDBOptions {
     fn new() -> Self {
         panic!()
     }

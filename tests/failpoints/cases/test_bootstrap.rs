@@ -3,7 +3,7 @@
 use std::sync::{Arc, RwLock};
 
 use engine_promises::Peekable;
-use ekvproto::{metapb, raft_serverpb};
+use ekvproto::{metapb, violetabft_serverpb};
 use test_violetabftstore::*;
 
 fn test_bootstrap_half_way_failure(fp: &str) {
@@ -18,7 +18,7 @@ fn test_bootstrap_half_way_failure(fp: &str) {
     let engines = cluster.dbs[0].clone();
     let ident = engines
         .kv
-        .get_msg::<raft_serverpb::StoreIdent>(tuplespaceInstanton::STORE_IDENT_KEY)
+        .get_msg::<violetabft_serverpb::StoreIdent>(tuplespaceInstanton::STORE_IDENT_KEY)
         .unwrap()
         .unwrap();
     let store_id = ident.get_store_id();

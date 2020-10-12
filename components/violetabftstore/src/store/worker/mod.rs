@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 mod cleanup;
 mod cleanup_sst;
@@ -6,7 +6,7 @@ mod compact;
 mod consistency_check;
 mod metrics;
 mod fidel;
-mod raftlog_gc;
+mod violetabftlog_gc;
 mod read;
 mod brane;
 mod split_check;
@@ -18,7 +18,7 @@ pub use self::cleanup_sst::{Runner as CleanupSSTRunner, Task as CleanupSSTTask};
 pub use self::compact::{Runner as CompactRunner, Task as CompactTask};
 pub use self::consistency_check::{Runner as ConsistencyCheckRunner, Task as ConsistencyCheckTask};
 pub use self::fidel::{FlowStatistics, FlowStatsReporter, Runner as FidelRunner, Task as FidelTask};
-pub use self::raftlog_gc::{Runner as VioletaBftlogGcRunner, Task as VioletaBftlogGcTask};
+pub use self::violetabftlog_gc::{Runner as VioletaBftlogGcRunner, Task as VioletaBftlogGcTask};
 pub use self::read::{LocalReader, Progress as ReadProgress, ReadDelegate, ReadFreeDaemon};
 pub use self::brane::{Runner as BraneRunner, Task as BraneTask};
 pub use self::split_check::{KeyEntry, Runner as SplitCheckRunner, Task as SplitCheckTask};

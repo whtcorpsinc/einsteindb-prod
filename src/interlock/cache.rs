@@ -5,7 +5,7 @@ use ekvproto::interlock::Response;
 
 use crate::interlock::RequestHandler;
 use crate::interlock::*;
-use crate::persistence::Snapshot;
+use crate::causetStorage::Snapshot;
 
 pub struct CachedRequestHandler {
     data_version: Option<u64>,

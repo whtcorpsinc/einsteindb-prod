@@ -1,13 +1,13 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 //! The concurrency manager is responsible for concurrency control of
 //! transactions.
 //!
-//! The concurrency manager contains a lock table in memory. Lock information
+//! The concurrency manager contains a dagger table in memory. Dagger information
 //! can be stored in it and reading requests can check if these locks block
 //! the read.
 //!
-//! In order to mutate the lock of a key stored in the lock table, it needs
+//! In order to mutate the dagger of a key stored in the dagger table, it needs
 //! to be locked first using `lock_key` or `lock_tuplespaceInstanton`.
 
 mod key_handle;
@@ -23,7 +23,7 @@ use std::{
         Arc,
     },
 };
-use txn_types::{Key, Lock, TimeStamp};
+use txn_types::{Key, Dagger, TimeStamp};
 
 // TODO: Currently we are using a Mutex<BTreeMap> to implement the handle table.
 // In the future we should replace it with a concurrent ordered map.
@@ -58,7 +58,7 @@ impl ConcurrencyManager {
     /// Acquires a mutex of the key and returns an RAII guard. When the guard goes
     /// out of scope, the mutex will be unlocked.
     ///
-    /// The guard can be used to store Lock in the table. The stored lock
+    /// The guard can be used to store Dagger in the table. The stored dagger
     /// is visible to `read_key_check` and `read_cone_check`.
     pub async fn lock_key(&self, key: &Key) -> KeyHandleGuard {
         self.lock_table.lock_key(key).await
@@ -67,11 +67,11 @@ impl ConcurrencyManager {
     /// Acquires mutexes of the tuplespaceInstanton and returns the RAII guards. The order of the
     /// guards is the same with the given tuplespaceInstanton.
     ///
-    /// The guards can be used to store Lock in the table. The stored lock
+    /// The guards can be used to store Dagger in the table. The stored dagger
     /// is visible to `read_key_check` and `read_cone_check`.
     pub async fn lock_tuplespaceInstanton(&self, tuplespaceInstanton: impl Iteron<Item = &Key>) -> Vec<KeyHandleGuard> {
         let mut tuplespaceInstanton_with_index: Vec<_> = tuplespaceInstanton.enumerate().collect();
-        // To prevent deadlock, we sort the tuplespaceInstanton and lock them one by one.
+        // To prevent deadlock, we sort the tuplespaceInstanton and dagger them one by one.
         tuplespaceInstanton_with_index.sort_by_key(|(_, key)| *key);
         let mut result: Vec<MaybeUninit<KeyHandleGuard>> = Vec::new();
         result.resize_with(tuplespaceInstanton_with_index.len(), || MaybeUninit::uninit());
@@ -84,25 +84,25 @@ impl ConcurrencyManager {
         }
     }
 
-    /// Checks if there is a memory lock of the key which blocks the read.
-    /// The given `check_fn` should return false iff the lock passed in
+    /// Checks if there is a memory dagger of the key which blocks the read.
+    /// The given `check_fn` should return false iff the dagger passed in
     /// blocks the read.
     pub fn read_key_check<E>(
         &self,
         key: &Key,
-        check_fn: impl FnOnce(&Lock) -> Result<(), E>,
+        check_fn: impl FnOnce(&Dagger) -> Result<(), E>,
     ) -> Result<(), E> {
         self.lock_table.check_key(key, check_fn)
     }
 
-    /// Checks if there is a memory lock in the cone which blocks the read.
-    /// The given `check_fn` should return false iff the lock passed in
+    /// Checks if there is a memory dagger in the cone which blocks the read.
+    /// The given `check_fn` should return false iff the dagger passed in
     /// blocks the read.
     pub fn read_cone_check<E>(
         &self,
         spacelike_key: Option<&Key>,
         lightlike_key: Option<&Key>,
-        check_fn: impl FnMut(&Key, &Lock) -> Result<(), E>,
+        check_fn: impl FnMut(&Key, &Dagger) -> Result<(), E>,
     ) -> Result<(), E> {
         self.lock_table.check_cone(spacelike_key, lightlike_key, check_fn)
     }
@@ -112,7 +112,7 @@ impl ConcurrencyManager {
         let mut min_lock_ts = None;
         // TODO: The iteration looks not so efficient. It's better to be optimized.
         self.lock_table.for_each(|handle| {
-            if let Some(curr_ts) = handle.with_lock(|lock| lock.as_ref().map(|l| l.ts)) {
+            if let Some(curr_ts) = handle.with_lock(|dagger| dagger.as_ref().map(|l| l.ts)) {
                 if min_lock_ts.map(|ts| ts > curr_ts).unwrap_or(true) {
                     min_lock_ts = Some(curr_ts);
                 }
@@ -153,9 +153,9 @@ mod tests {
         assert_eq!(concurrency_manager.max_ts(), 20.into());
     }
 
-    fn new_lock(ts: impl Into<TimeStamp>, primary: &[u8], lock_type: LockType) -> Lock {
+    fn new_lock(ts: impl Into<TimeStamp>, primary: &[u8], lock_type: LockType) -> Dagger {
         let ts = ts.into();
-        Lock::new(
+        Dagger::new(
             lock_type,
             primary.to_vec(),
             ts.into(),

@@ -29,7 +29,7 @@ pub type KvPair = (Vec<u8>, Value);
 ///
 /// TuplespaceInstanton have 2 types of binary representation - raw and encoded. The raw
 /// representation is for public interface, the encoded representation is for
-/// internal persistence. We can get both representations from an instance of this
+/// internal causetStorage. We can get both representations from an instance of this
 /// type.
 ///
 /// Orthogonal to binary representation, tuplespaceInstanton may or may not embed a timestamp,
@@ -121,7 +121,7 @@ impl Key {
             // a better way is to introduce a type `TimestampedKey`, and
             // functions to convert between `TimestampedKey` and `Key`.
             // `TimestampedKey` is in a higher (MVCC) layer, while `Key` is
-            // in the core persistence engine layer.
+            // in the core causetStorage engine layer.
             Err(codec::Error::KeyLength)
         } else {
             self.0.truncate(len - number::U64_SIZE);
@@ -229,7 +229,7 @@ impl Display for Key {
 pub enum MutationType {
     Put,
     Delete,
-    Lock,
+    Dagger,
     Insert,
     Other,
 }
@@ -241,8 +241,8 @@ pub enum Mutation {
     Put((Key, Value)),
     /// Delete `Key`.
     Delete(Key),
-    /// Set a lock on `Key`.
-    Lock(Key),
+    /// Set a dagger on `Key`.
+    Dagger(Key),
     /// Put `Value` into `Key` if `Key` does not yet exist.
     ///
     /// Returns `kvrpcpb::KeyError::AlreadyExists` if the key already exists.
@@ -258,7 +258,7 @@ impl Mutation {
         match self {
             Mutation::Put((ref key, _)) => key,
             Mutation::Delete(ref key) => key,
-            Mutation::Lock(ref key) => key,
+            Mutation::Dagger(ref key) => key,
             Mutation::Insert((ref key, _)) => key,
             Mutation::CheckNotExists(ref key) => key,
         }
@@ -268,7 +268,7 @@ impl Mutation {
         match self {
             Mutation::Put(_) => MutationType::Put,
             Mutation::Delete(_) => MutationType::Delete,
-            Mutation::Lock(_) => MutationType::Lock,
+            Mutation::Dagger(_) => MutationType::Dagger,
             Mutation::Insert(_) => MutationType::Insert,
             _ => MutationType::Other,
         }
@@ -278,7 +278,7 @@ impl Mutation {
         match self {
             Mutation::Put((key, value)) => (key, Some(value)),
             Mutation::Delete(key) => (key, None),
-            Mutation::Lock(key) => (key, None),
+            Mutation::Dagger(key) => (key, None),
             Mutation::Insert((key, value)) => (key, Some(value)),
             Mutation::CheckNotExists(key) => (key, None),
         }
@@ -304,7 +304,7 @@ impl From<kvrpcpb::Mutation> for Mutation {
         match m.get_op() {
             kvrpcpb::Op::Put => Mutation::Put((Key::from_raw(m.get_key()), m.take_value())),
             kvrpcpb::Op::Del => Mutation::Delete(Key::from_raw(m.get_key())),
-            kvrpcpb::Op::Lock => Mutation::Lock(Key::from_raw(m.get_key())),
+            kvrpcpb::Op::Dagger => Mutation::Dagger(Key::from_raw(m.get_key())),
             kvrpcpb::Op::Insert => Mutation::Insert((Key::from_raw(m.get_key()), m.take_value())),
             kvrpcpb::Op::CheckNotExists => Mutation::CheckNotExists(Key::from_raw(m.get_key())),
             _ => panic!("mismatch Op in prewrite mutations"),

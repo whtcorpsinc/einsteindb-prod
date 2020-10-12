@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 mod applied_lock_collector;
 mod compaction_filter;
@@ -7,7 +7,7 @@ mod gc_manager;
 mod gc_worker;
 
 // TODO: Use separated error type for GCWorker instead.
-pub use crate::persistence::{Callback, Error, ErrorInner, Result};
+pub use crate::causetStorage::{Callback, Error, ErrorInner, Result};
 pub use compaction_filter::WriteCompactionFilterFactory;
 use compaction_filter::{is_compaction_filter_allowd, CompactionFilterInitializer};
 pub use config::{GcConfig, GcWorkerConfigManager, DEFAULT_GC_BATCH_KEYS};

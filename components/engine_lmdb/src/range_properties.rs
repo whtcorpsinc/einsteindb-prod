@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use crate::engine::LmdbEngine;
 use crate::properties::{get_cone_entries_and_versions, ConeProperties};

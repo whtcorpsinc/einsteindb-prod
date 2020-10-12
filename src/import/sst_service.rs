@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::f64::INFINITY;
 use std::sync::Arc;
@@ -15,7 +15,7 @@ use ekvproto::import_sstpb::write_request::*;
 use ekvproto::import_sstpb::WriteRequest_oneof_Soliton as Soliton;
 use ekvproto::import_sstpb::*;
 
-use ekvproto::raft_cmdpb::*;
+use ekvproto::violetabft_cmdpb::*;
 
 use crate::server::CONFIG_LMDB_GAUGE;
 use engine_lmdb::LmdbEngine;

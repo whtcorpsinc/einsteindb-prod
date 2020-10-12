@@ -5,7 +5,7 @@ unify-read-pool = true
 min-thread-count = 1
 max-thread-count = 1
 
-[readpool.persistence]
+[readpool.causetStorage]
 high-concurrency = 1
 normal-concurrency = 1
 low-concurrency = 1
@@ -27,11 +27,11 @@ stats-concurrency = 0
 
 [server.labels]
 
-[persistence]
+[causetStorage]
 scheduler-concurrency = 10
 scheduler-worker-pool-size = 1
 
-[persistence.block-cache]
+[causetStorage.block-cache]
 shared = true
 capacity = "64MB"
 
@@ -86,18 +86,18 @@ max-background-gc = 1
 
 [lmdb.lockcauset]
 
-[lmdb.raftcauset]
+[lmdb.violetabftcauset]
 
-[raftdb]
+[violetabftdb]
 max-background-jobs = 1
 max-sub-compactions = 1
 
-[raftdb.titan]
+[violetabftdb.titan]
 max-background-gc = 1
 
-[raftdb.defaultcauset]
+[violetabftdb.defaultcauset]
 
-[raftdb.defaultcauset.titan]
+[violetabftdb.defaultcauset.titan]
 
 [security]
 
@@ -107,5 +107,5 @@ num-threads = 1
 [gc]
 
 [pessimistic-txn]
-wait-for-lock-timeout = "3s"
+wait-for-dagger-timeout = "3s"
 wake-up-delay-duration = "100ms"

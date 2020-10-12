@@ -66,7 +66,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The persistence size per EinsteinDB instance",
+          "description": "The causetStorage size per EinsteinDB instance",
           "editable": true,
           "error": false,
           "fill": 5,
@@ -1518,7 +1518,7 @@
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} - {{type}} - to - {{store_id}}",
-              "metric": "einsteindb_server_raft_store_msg_total",
+              "metric": "einsteindb_server_violetabft_store_msg_total",
               "refId": "A",
               "step": 10
             }
@@ -2299,7 +2299,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The persistence size per EinsteinDB instance",
+          "description": "The causetStorage size per EinsteinDB instance",
           "editable": true,
           "error": false,
           "fill": 5,

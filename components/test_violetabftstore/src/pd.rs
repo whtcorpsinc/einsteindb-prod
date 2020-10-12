@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::collections::BTreeMap;
 use std::collections::Bound::{Excluded, Unbounded};
@@ -19,7 +19,7 @@ use ekvproto::fidelpb;
 use ekvproto::replication_modepb::{
     DrAutoSyncState, BraneReplicationStatus, ReplicationMode, ReplicationStatus,
 };
-use violetabft::eraftpb;
+use violetabft::evioletabftpb;
 
 use fail::fail_point;
 use tuplespaceInstanton::{self, data_key, enc_lightlike_key, enc_spacelike_key};
@@ -118,9 +118,9 @@ impl Operator {
             Operator::AddPeer { ref peer, .. } => {
                 if let Either::Left(ref peer) = *peer {
                     let conf_change_type = if is_learner(peer) {
-                        eraftpb::ConfChangeType::AddLearnerNode
+                        evioletabftpb::ConfChangeType::AddLearnerNode
                     } else {
-                        eraftpb::ConfChangeType::AddNode
+                        evioletabftpb::ConfChangeType::AddNode
                     };
                     new_fidel_change_peer(conf_change_type, peer.clone())
                 } else {
@@ -128,7 +128,7 @@ impl Operator {
                 }
             }
             Operator::RemovePeer { ref peer, .. } => {
-                new_fidel_change_peer(eraftpb::ConfChangeType::RemoveNode, peer.clone())
+                new_fidel_change_peer(evioletabftpb::ConfChangeType::RemoveNode, peer.clone())
             }
             Operator::TransferLeader { ref peer, .. } => new_fidel_transfer_leader(peer.clone()),
             Operator::MergeBrane {
@@ -999,7 +999,7 @@ impl TestFidelClient {
             }
             Err(e) => {
                 if !thread::panicking() {
-                    panic!("failed to acquire write lock: {:?}", e)
+                    panic!("failed to acquire write dagger: {:?}", e)
                 }
             }
         }

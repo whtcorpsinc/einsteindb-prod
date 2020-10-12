@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use ekvproto::metapb::PeerRole;
 use violetabft::{Progress, ProgressState, StateRole};
@@ -76,7 +76,7 @@ impl From<StateRole> for VioletaBftStateRole {
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct VioletaBftSoftState {
     pub leader_id: u64,
-    pub raft_state: VioletaBftStateRole,
+    pub violetabft_state: VioletaBftStateRole,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,7 +99,7 @@ impl<'a> From<violetabft::Status<'a>> for VioletaBftStatus {
         };
         let soft_state = VioletaBftSoftState {
             leader_id: status.ss.leader_id,
-            raft_state: status.ss.raft_state.into(),
+            violetabft_state: status.ss.violetabft_state.into(),
         };
         let applied = status.applied;
         let mut voters = HashMap::new();
@@ -186,8 +186,8 @@ pub struct BraneMeta {
     pub epoch: Epoch,
     pub peers: Vec<BranePeer>,
     pub merge_state: Option<BraneMergeState>,
-    pub raft_status: VioletaBftStatus,
-    pub raft_apply: VioletaBftApplyState,
+    pub violetabft_status: VioletaBftStatus,
+    pub violetabft_apply: VioletaBftApplyState,
 }
 
 impl BraneMeta {
@@ -223,8 +223,8 @@ impl BraneMeta {
                     commit: state.get_commit(),
                     brane_id: state.get_target().get_id(),
                 }),
-            raft_status: abstract_peer.raft_status().into(),
-            raft_apply: VioletaBftApplyState {
+            violetabft_status: abstract_peer.violetabft_status().into(),
+            violetabft_apply: VioletaBftApplyState {
                 applied_index: apply_state.get_applied_index(),
                 last_commit_index: apply_state.get_last_commit_index(),
                 commit_index: apply_state.get_commit_index(),

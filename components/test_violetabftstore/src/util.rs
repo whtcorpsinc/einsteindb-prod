@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::path::Path;
 use std::sync::{mpsc, Arc, Mutex};
@@ -14,11 +14,11 @@ use ekvproto::metapb::{self, BraneEpoch};
 use ekvproto::fidelpb::{
     ChangePeer, CheckPolicy, Merge, BraneHeartbeatResponse, SplitBrane, TransferLeader,
 };
-use ekvproto::raft_cmdpb::{AdminCmdType, CmdType, StatusCmdType};
-use ekvproto::raft_cmdpb::{AdminRequest, VioletaBftCmdRequest, VioletaBftCmdResponse, Request, StatusRequest};
-use ekvproto::raft_serverpb::{PeerState, VioletaBftLocalState, BraneLocalState};
+use ekvproto::violetabft_cmdpb::{AdminCmdType, CmdType, StatusCmdType};
+use ekvproto::violetabft_cmdpb::{AdminRequest, VioletaBftCmdRequest, VioletaBftCmdResponse, Request, StatusRequest};
+use ekvproto::violetabft_serverpb::{PeerState, VioletaBftLocalState, BraneLocalState};
 use ekvproto::einsteindbpb::EINSTEINDBClient;
-use violetabft::eraftpb::ConfChangeType;
+use violetabft::evioletabftpb::ConfChangeType;
 
 use encryption::{DataKeyManager, FileConfig, MasterKeyConfig};
 use engine_lmdb::config::BlobRunMode;
@@ -31,13 +31,13 @@ use violetabftstore::store::fsm::VioletaBftRouter;
 use violetabftstore::store::*;
 use violetabftstore::Result;
 use einsteindb::config::*;
-use einsteindb::persistence::config::DEFAULT_LMDB_SUB_DIR;
+use einsteindb::causetStorage::config::DEFAULT_LMDB_SUB_DIR;
 use einsteindb_util::config::*;
 use einsteindb_util::{escape, HandyRwLock};
 
 use super::*;
 
-use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_RAFT};
+use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_VIOLETABFT};
 pub use violetabftstore::store::util::{find_peer, new_learner_peer, new_peer};
 use einsteindb_util::time::ThreadReadId;
 
@@ -86,7 +86,7 @@ pub fn must_get_causet_none(engine: &Arc<DB>, causet: &str, key: &[u8]) {
 pub fn must_brane_cleared(engine: &Engines<LmdbEngine, LmdbEngine>, brane: &metapb::Brane) {
     let id = brane.get_id();
     let state_key = tuplespaceInstanton::brane_state_key(id);
-    let state: BraneLocalState = engine.kv.get_msg_causet(CAUSET_RAFT, &state_key).unwrap().unwrap();
+    let state: BraneLocalState = engine.kv.get_msg_causet(CAUSET_VIOLETABFT, &state_key).unwrap().unwrap();
     assert_eq!(state.get_state(), PeerState::Tombstone, "{:?}", state);
     let spacelike_key = tuplespaceInstanton::data_key(brane.get_spacelike_key());
     let lightlike_key = tuplespaceInstanton::data_key(brane.get_lightlike_key());
@@ -101,15 +101,15 @@ pub fn must_brane_cleared(engine: &Engines<LmdbEngine, LmdbEngine>, brane: &meta
             })
             .unwrap();
     }
-    let log_min_key = tuplespaceInstanton::raft_log_key(id, 0);
-    let log_max_key = tuplespaceInstanton::raft_log_key(id, u64::MAX);
+    let log_min_key = tuplespaceInstanton::violetabft_log_key(id, 0);
+    let log_max_key = tuplespaceInstanton::violetabft_log_key(id, u64::MAX);
     engine
         .violetabft
         .scan(&log_min_key, &log_max_key, false, |k, v| {
             panic!("[brane {}] unexpected log ({:?}, {:?})", id, k, v);
         })
         .unwrap();
-    let state_key = tuplespaceInstanton::raft_state_key(id);
+    let state_key = tuplespaceInstanton::violetabft_state_key(id);
     let state: Option<VioletaBftLocalState> = engine.violetabft.get_msg(&state_key).unwrap();
     assert!(
         state.is_none(),
@@ -526,7 +526,7 @@ pub fn create_test_engine(
             .map(|key_manager| Arc::new(key_manager));
 
     let env = get_env(key_manager.clone(), None).unwrap();
-    let cache = causetg.persistence.block_cache.build_shared_cache();
+    let cache = causetg.causetStorage.block_cache.build_shared_cache();
 
     let kv_path = dir.path().join(DEFAULT_LMDB_SUB_DIR);
     let kv_path_str = kv_path.to_str().unwrap();
@@ -538,7 +538,7 @@ pub fn create_test_engine(
         let router = Mutex::new(router);
         let cmpacted_handler = Box::new(move |event| {
             router
-                .lock()
+                .dagger()
                 .unwrap()
                 .slightlike_control(StoreMsg::CompactedEvent(event))
                 .unwrap();
@@ -555,67 +555,67 @@ pub fn create_test_engine(
         engine_lmdb::raw_util::new_engine_opt(kv_path_str, kv_db_opt, kv_causets_opt).unwrap(),
     );
 
-    let raft_path = dir.path().join("violetabft");
-    let raft_path_str = raft_path.to_str().unwrap();
+    let violetabft_path = dir.path().join("violetabft");
+    let violetabft_path_str = violetabft_path.to_str().unwrap();
 
-    let mut raft_db_opt = causetg.raftdb.build_opt();
-    raft_db_opt.set_env(env);
+    let mut violetabft_db_opt = causetg.violetabftdb.build_opt();
+    violetabft_db_opt.set_env(env);
 
-    let raft_causets_opt = causetg.raftdb.build_causet_opts(&cache);
-    let raft_engine = Arc::new(
-        engine_lmdb::raw_util::new_engine_opt(raft_path_str, raft_db_opt, raft_causets_opt).unwrap(),
+    let violetabft_causets_opt = causetg.violetabftdb.build_causet_opts(&cache);
+    let violetabft_engine = Arc::new(
+        engine_lmdb::raw_util::new_engine_opt(violetabft_path_str, violetabft_db_opt, violetabft_causets_opt).unwrap(),
     );
 
     let mut engine = LmdbEngine::from_db(engine);
-    let mut raft_engine = LmdbEngine::from_db(raft_engine);
+    let mut violetabft_engine = LmdbEngine::from_db(violetabft_engine);
     let shared_block_cache = cache.is_some();
     engine.set_shared_block_cache(shared_block_cache);
-    raft_engine.set_shared_block_cache(shared_block_cache);
-    let engines = Engines::new(engine, raft_engine);
+    violetabft_engine.set_shared_block_cache(shared_block_cache);
+    let engines = Engines::new(engine, violetabft_engine);
     (engines, key_manager, dir)
 }
 
 pub fn configure_for_request_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
     // We don't want to generate snapshots due to compact log.
-    cluster.causetg.raft_store.raft_log_gc_memory_barrier = 1000;
-    cluster.causetg.raft_store.raft_log_gc_count_limit = 1000;
-    cluster.causetg.raft_store.raft_log_gc_size_limit = ReadableSize::mb(20);
+    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
+    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 1000;
+    cluster.causetg.violetabft_store.violetabft_log_gc_size_limit = ReadableSize::mb(20);
 }
 
 pub fn configure_for_hibernate<T: Simulator>(cluster: &mut Cluster<T>) {
     // Uses long check interval to make leader keep sleeping during tests.
-    cluster.causetg.raft_store.abnormal_leader_missing_duration = ReadableDuration::secs(20);
-    cluster.causetg.raft_store.max_leader_missing_duration = ReadableDuration::secs(40);
-    cluster.causetg.raft_store.peer_stale_state_check_interval = ReadableDuration::secs(10);
+    cluster.causetg.violetabft_store.abnormal_leader_missing_duration = ReadableDuration::secs(20);
+    cluster.causetg.violetabft_store.max_leader_missing_duration = ReadableDuration::secs(40);
+    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration::secs(10);
 }
 
 pub fn configure_for_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
     // Truncate the log quickly so that we can force slightlikeing snapshot.
-    cluster.causetg.raft_store.raft_log_gc_tick_interval = ReadableDuration::millis(20);
-    cluster.causetg.raft_store.raft_log_gc_count_limit = 2;
-    cluster.causetg.raft_store.merge_max_log_gap = 1;
-    cluster.causetg.raft_store.snap_mgr_gc_tick_interval = ReadableDuration::millis(50);
+    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
+    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 2;
+    cluster.causetg.violetabft_store.merge_max_log_gap = 1;
+    cluster.causetg.violetabft_store.snap_mgr_gc_tick_interval = ReadableDuration::millis(50);
 }
 
 pub fn configure_for_merge<T: Simulator>(cluster: &mut Cluster<T>) {
     // Avoid log compaction which will prevent merge.
-    cluster.causetg.raft_store.raft_log_gc_memory_barrier = 1000;
-    cluster.causetg.raft_store.raft_log_gc_count_limit = 1000;
-    cluster.causetg.raft_store.raft_log_gc_size_limit = ReadableSize::mb(20);
+    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
+    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 1000;
+    cluster.causetg.violetabft_store.violetabft_log_gc_size_limit = ReadableSize::mb(20);
     // Make merge check resume quickly.
-    cluster.causetg.raft_store.merge_check_tick_interval = ReadableDuration::millis(100);
+    cluster.causetg.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(100);
     // When isolated, follower relies on stale check tick to detect failure leader,
     // choose a smaller number to make it recover faster.
-    cluster.causetg.raft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
+    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
 }
 
 pub fn ignore_merge_target_integrity<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.raft_store.dev_assert = false;
+    cluster.causetg.violetabft_store.dev_assert = false;
     cluster.fidel_client.ignore_merge_target_integrity();
 }
 
 pub fn configure_for_transfer_leader<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.raft_store.raft_reject_transfer_leader_duration = ReadableDuration::secs(1);
+    cluster.causetg.violetabft_store.violetabft_reject_transfer_leader_duration = ReadableDuration::secs(1);
 }
 
 pub fn configure_for_lease_read<T: Simulator>(
@@ -624,22 +624,22 @@ pub fn configure_for_lease_read<T: Simulator>(
     election_ticks: Option<usize>,
 ) -> Duration {
     if let Some(base_tick_ms) = base_tick_ms {
-        cluster.causetg.raft_store.raft_base_tick_interval = ReadableDuration::millis(base_tick_ms);
+        cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(base_tick_ms);
     }
-    let base_tick_interval = cluster.causetg.raft_store.raft_base_tick_interval.0;
+    let base_tick_interval = cluster.causetg.violetabft_store.violetabft_base_tick_interval.0;
     if let Some(election_ticks) = election_ticks {
-        cluster.causetg.raft_store.raft_election_timeout_ticks = election_ticks;
+        cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = election_ticks;
     }
-    let election_ticks = cluster.causetg.raft_store.raft_election_timeout_ticks as u32;
+    let election_ticks = cluster.causetg.violetabft_store.violetabft_election_timeout_ticks as u32;
     let election_timeout = base_tick_interval * election_ticks;
     // Adjust max leader lease.
-    cluster.causetg.raft_store.raft_store_max_leader_lease = ReadableDuration(election_timeout);
+    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(election_timeout);
     // Use large peer check interval, abnormal and max leader missing duration to make a valid config,
     // that is election timeout x 2 < peer stale state check < abnormal < max leader missing duration.
-    cluster.causetg.raft_store.peer_stale_state_check_interval = ReadableDuration(election_timeout * 3);
-    cluster.causetg.raft_store.abnormal_leader_missing_duration =
+    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration(election_timeout * 3);
+    cluster.causetg.violetabft_store.abnormal_leader_missing_duration =
         ReadableDuration(election_timeout * 4);
-    cluster.causetg.raft_store.max_leader_missing_duration = ReadableDuration(election_timeout * 5);
+    cluster.causetg.violetabft_store.max_leader_missing_duration = ReadableDuration(election_timeout * 5);
 
     election_timeout
 }

@@ -87,7 +87,7 @@ pub mod config;
 pub use config::*;
 pub mod encryption;
 
-mod raft_engine;
+mod violetabft_engine;
 
 pub use lmdb::set_perf_level;
 pub use lmdb::PerfContext;

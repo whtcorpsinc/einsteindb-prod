@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -31,50 +31,50 @@ pub struct Config {
     #[config(skip)]
     pub prevote: bool,
     #[config(skip)]
-    pub raftdb_path: String,
+    pub violetabftdb_path: String,
 
     // store capacity. 0 means no limit.
     #[config(skip)]
     pub capacity: ReadableSize,
 
-    // raft_base_tick_interval is a base tick interval (ms).
+    // violetabft_base_tick_interval is a base tick interval (ms).
     #[config(hidden)]
-    pub raft_base_tick_interval: ReadableDuration,
+    pub violetabft_base_tick_interval: ReadableDuration,
     #[config(hidden)]
-    pub raft_heartbeat_ticks: usize,
+    pub violetabft_heartbeat_ticks: usize,
     #[config(hidden)]
-    pub raft_election_timeout_ticks: usize,
+    pub violetabft_election_timeout_ticks: usize,
     #[config(hidden)]
-    pub raft_min_election_timeout_ticks: usize,
+    pub violetabft_min_election_timeout_ticks: usize,
     #[config(hidden)]
-    pub raft_max_election_timeout_ticks: usize,
+    pub violetabft_max_election_timeout_ticks: usize,
     #[config(hidden)]
-    pub raft_max_size_per_msg: ReadableSize,
+    pub violetabft_max_size_per_msg: ReadableSize,
     #[config(hidden)]
-    pub raft_max_inflight_msgs: usize,
+    pub violetabft_max_inflight_msgs: usize,
     // When the entry exceed the max size, reject to propose it.
-    pub raft_entry_max_size: ReadableSize,
+    pub violetabft_entry_max_size: ReadableSize,
 
     // Interval to gc unnecessary violetabft log (ms).
-    pub raft_log_gc_tick_interval: ReadableDuration,
+    pub violetabft_log_gc_tick_interval: ReadableDuration,
     // A memory_barrier to gc stale violetabft log, must >= 1.
-    pub raft_log_gc_memory_barrier: u64,
+    pub violetabft_log_gc_memory_barrier: u64,
     // When entry count exceed this value, gc will be forced trigger.
-    pub raft_log_gc_count_limit: u64,
+    pub violetabft_log_gc_count_limit: u64,
     // When the approximate size of violetabft log entries exceed this value,
     // gc will be forced trigger.
-    pub raft_log_gc_size_limit: ReadableSize,
-    // Old VioletaBft logs could be reserved if `raft_log_gc_memory_barrier` is not reached.
-    // GC them after ticks `raft_log_reserve_max_ticks` times.
+    pub violetabft_log_gc_size_limit: ReadableSize,
+    // Old VioletaBft logs could be reserved if `violetabft_log_gc_memory_barrier` is not reached.
+    // GC them after ticks `violetabft_log_reserve_max_ticks` times.
     #[doc(hidden)]
     #[config(hidden)]
-    pub raft_log_reserve_max_ticks: usize,
+    pub violetabft_log_reserve_max_ticks: usize,
     // Old logs in VioletaBft engine needs to be purged peridically.
-    pub raft_engine_purge_interval: ReadableDuration,
+    pub violetabft_engine_purge_interval: ReadableDuration,
     // When a peer is not responding for this time, leader will not keep entry cache for it.
-    pub raft_entry_cache_life_time: ReadableDuration,
+    pub violetabft_entry_cache_life_time: ReadableDuration,
     // When a peer is newly added, reject transferring leader to the peer for a while.
-    pub raft_reject_transfer_leader_duration: ReadableDuration,
+    pub violetabft_reject_transfer_leader_duration: ReadableDuration,
 
     // Interval (ms) to check brane whether need to be split or not.
     pub split_brane_check_tick_interval: ReadableDuration,
@@ -127,7 +127,7 @@ pub struct Config {
     pub report_brane_flow_interval: ReadableDuration,
 
     // The lease provided by a successfully proposed and applied entry.
-    pub raft_store_max_leader_lease: ReadableDuration,
+    pub violetabft_store_max_leader_lease: ReadableDuration,
 
     // Right brane derive origin brane id when split.
     #[config(hidden)]
@@ -195,25 +195,25 @@ impl Default for Config {
         let split_size = ReadableSize::mb(interlock::config::SPLIT_SIZE_MB);
         Config {
             prevote: true,
-            raftdb_path: String::new(),
+            violetabftdb_path: String::new(),
             capacity: ReadableSize(0),
-            raft_base_tick_interval: ReadableDuration::secs(1),
-            raft_heartbeat_ticks: 2,
-            raft_election_timeout_ticks: 10,
-            raft_min_election_timeout_ticks: 0,
-            raft_max_election_timeout_ticks: 0,
-            raft_max_size_per_msg: ReadableSize::mb(1),
-            raft_max_inflight_msgs: 256,
-            raft_entry_max_size: ReadableSize::mb(8),
-            raft_log_gc_tick_interval: ReadableDuration::secs(10),
-            raft_log_gc_memory_barrier: 50,
+            violetabft_base_tick_interval: ReadableDuration::secs(1),
+            violetabft_heartbeat_ticks: 2,
+            violetabft_election_timeout_ticks: 10,
+            violetabft_min_election_timeout_ticks: 0,
+            violetabft_max_election_timeout_ticks: 0,
+            violetabft_max_size_per_msg: ReadableSize::mb(1),
+            violetabft_max_inflight_msgs: 256,
+            violetabft_entry_max_size: ReadableSize::mb(8),
+            violetabft_log_gc_tick_interval: ReadableDuration::secs(10),
+            violetabft_log_gc_memory_barrier: 50,
             // Assume the average size of entries is 1k.
-            raft_log_gc_count_limit: split_size * 3 / 4 / ReadableSize::kb(1),
-            raft_log_gc_size_limit: split_size * 3 / 4,
-            raft_log_reserve_max_ticks: 6,
-            raft_engine_purge_interval: ReadableDuration::secs(10),
-            raft_entry_cache_life_time: ReadableDuration::secs(30),
-            raft_reject_transfer_leader_duration: ReadableDuration::secs(3),
+            violetabft_log_gc_count_limit: split_size * 3 / 4 / ReadableSize::kb(1),
+            violetabft_log_gc_size_limit: split_size * 3 / 4,
+            violetabft_log_reserve_max_ticks: 6,
+            violetabft_engine_purge_interval: ReadableDuration::secs(10),
+            violetabft_entry_cache_life_time: ReadableDuration::secs(30),
+            violetabft_reject_transfer_leader_duration: ReadableDuration::secs(3),
             split_brane_check_tick_interval: ReadableDuration::secs(10),
             brane_split_check_diff: split_size / 16,
             brane_compact_check_interval: ReadableDuration::minutes(5),
@@ -238,7 +238,7 @@ impl Default for Config {
             // We should turn on this only in our tests.
             consistency_check_interval: ReadableDuration::secs(0),
             report_brane_flow_interval: ReadableDuration::minutes(1),
-            raft_store_max_leader_lease: ReadableDuration::secs(9),
+            violetabft_store_max_leader_lease: ReadableDuration::secs(9),
             right_derive_when_split: true,
             allow_remove_leader: false,
             merge_max_log_gap: 10,
@@ -269,65 +269,65 @@ impl Config {
         Config::default()
     }
 
-    pub fn raft_store_max_leader_lease(&self) -> TimeDuration {
-        TimeDuration::from_std(self.raft_store_max_leader_lease.0).unwrap()
+    pub fn violetabft_store_max_leader_lease(&self) -> TimeDuration {
+        TimeDuration::from_std(self.violetabft_store_max_leader_lease.0).unwrap()
     }
 
-    pub fn raft_heartbeat_interval(&self) -> Duration {
-        self.raft_base_tick_interval.0 * self.raft_heartbeat_ticks as u32
+    pub fn violetabft_heartbeat_interval(&self) -> Duration {
+        self.violetabft_base_tick_interval.0 * self.violetabft_heartbeat_ticks as u32
     }
 
     pub fn validate(&mut self) -> Result<()> {
-        if self.raft_heartbeat_ticks == 0 {
+        if self.violetabft_heartbeat_ticks == 0 {
             return Err(box_err!("heartbeat tick must greater than 0"));
         }
 
-        if self.raft_election_timeout_ticks != 10 {
+        if self.violetabft_election_timeout_ticks != 10 {
             warn!(
                 "Election timeout ticks needs to be same across all the cluster, \
                  otherwise it may lead to inconsistency."
             );
         }
 
-        if self.raft_election_timeout_ticks <= self.raft_heartbeat_ticks {
+        if self.violetabft_election_timeout_ticks <= self.violetabft_heartbeat_ticks {
             return Err(box_err!(
                 "election tick must be greater than heartbeat tick"
             ));
         }
 
-        if self.raft_min_election_timeout_ticks == 0 {
-            self.raft_min_election_timeout_ticks = self.raft_election_timeout_ticks;
+        if self.violetabft_min_election_timeout_ticks == 0 {
+            self.violetabft_min_election_timeout_ticks = self.violetabft_election_timeout_ticks;
         }
 
-        if self.raft_max_election_timeout_ticks == 0 {
-            self.raft_max_election_timeout_ticks = self.raft_election_timeout_ticks * 2;
+        if self.violetabft_max_election_timeout_ticks == 0 {
+            self.violetabft_max_election_timeout_ticks = self.violetabft_election_timeout_ticks * 2;
         }
 
-        if self.raft_min_election_timeout_ticks < self.raft_election_timeout_ticks
-            || self.raft_min_election_timeout_ticks >= self.raft_max_election_timeout_ticks
+        if self.violetabft_min_election_timeout_ticks < self.violetabft_election_timeout_ticks
+            || self.violetabft_min_election_timeout_ticks >= self.violetabft_max_election_timeout_ticks
         {
             return Err(box_err!(
                 "invalid timeout cone [{}, {}) for timeout {}",
-                self.raft_min_election_timeout_ticks,
-                self.raft_max_election_timeout_ticks,
-                self.raft_election_timeout_ticks
+                self.violetabft_min_election_timeout_ticks,
+                self.violetabft_max_election_timeout_ticks,
+                self.violetabft_election_timeout_ticks
             ));
         }
 
-        if self.raft_log_gc_memory_barrier < 1 {
+        if self.violetabft_log_gc_memory_barrier < 1 {
             return Err(box_err!(
                 "violetabft log gc memory_barrier must >= 1, not {}",
-                self.raft_log_gc_memory_barrier
+                self.violetabft_log_gc_memory_barrier
             ));
         }
 
-        if self.raft_log_gc_size_limit.0 == 0 {
+        if self.violetabft_log_gc_size_limit.0 == 0 {
             return Err(box_err!("violetabft log gc size limit should large than 0."));
         }
 
         let election_timeout =
-            self.raft_base_tick_interval.as_millis() * self.raft_election_timeout_ticks as u64;
-        let lease = self.raft_store_max_leader_lease.as_millis() as u64;
+            self.violetabft_base_tick_interval.as_millis() * self.violetabft_election_timeout_ticks as u64;
+        let lease = self.violetabft_store_max_leader_lease.as_millis() as u64;
         if election_timeout < lease {
             return Err(box_err!(
                 "election timeout {} ms is less than lease {} ms",
@@ -336,11 +336,11 @@ impl Config {
             ));
         }
 
-        if self.merge_max_log_gap >= self.raft_log_gc_count_limit {
+        if self.merge_max_log_gap >= self.violetabft_log_gc_count_limit {
             return Err(box_err!(
                 "merge log gap {} should be less than log gc limit {}.",
                 self.merge_max_log_gap,
-                self.raft_log_gc_count_limit
+                self.violetabft_log_gc_count_limit
             ));
         }
 
@@ -421,54 +421,54 @@ impl Config {
             .with_label_values(&["capacity"])
             .set(self.capacity.0 as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_base_tick_interval"])
-            .set(self.raft_base_tick_interval.as_secs() as f64);
+            .with_label_values(&["violetabft_base_tick_interval"])
+            .set(self.violetabft_base_tick_interval.as_secs() as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_heartbeat_ticks"])
-            .set(self.raft_heartbeat_ticks as f64);
+            .with_label_values(&["violetabft_heartbeat_ticks"])
+            .set(self.violetabft_heartbeat_ticks as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_election_timeout_ticks"])
-            .set(self.raft_election_timeout_ticks as f64);
+            .with_label_values(&["violetabft_election_timeout_ticks"])
+            .set(self.violetabft_election_timeout_ticks as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_min_election_timeout_ticks"])
-            .set(self.raft_min_election_timeout_ticks as f64);
+            .with_label_values(&["violetabft_min_election_timeout_ticks"])
+            .set(self.violetabft_min_election_timeout_ticks as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_max_election_timeout_ticks"])
-            .set(self.raft_max_election_timeout_ticks as f64);
+            .with_label_values(&["violetabft_max_election_timeout_ticks"])
+            .set(self.violetabft_max_election_timeout_ticks as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_max_size_per_msg"])
-            .set(self.raft_max_size_per_msg.0 as f64);
+            .with_label_values(&["violetabft_max_size_per_msg"])
+            .set(self.violetabft_max_size_per_msg.0 as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_max_inflight_msgs"])
-            .set(self.raft_max_inflight_msgs as f64);
+            .with_label_values(&["violetabft_max_inflight_msgs"])
+            .set(self.violetabft_max_inflight_msgs as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_entry_max_size"])
-            .set(self.raft_entry_max_size.0 as f64);
+            .with_label_values(&["violetabft_entry_max_size"])
+            .set(self.violetabft_entry_max_size.0 as f64);
 
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_log_gc_tick_interval"])
-            .set(self.raft_log_gc_tick_interval.as_secs() as f64);
+            .with_label_values(&["violetabft_log_gc_tick_interval"])
+            .set(self.violetabft_log_gc_tick_interval.as_secs() as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_log_gc_memory_barrier"])
-            .set(self.raft_log_gc_memory_barrier as f64);
+            .with_label_values(&["violetabft_log_gc_memory_barrier"])
+            .set(self.violetabft_log_gc_memory_barrier as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_log_gc_count_limit"])
-            .set(self.raft_log_gc_count_limit as f64);
+            .with_label_values(&["violetabft_log_gc_count_limit"])
+            .set(self.violetabft_log_gc_count_limit as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_log_gc_size_limit"])
-            .set(self.raft_log_gc_size_limit.0 as f64);
+            .with_label_values(&["violetabft_log_gc_size_limit"])
+            .set(self.violetabft_log_gc_size_limit.0 as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_log_reserve_max_ticks"])
-            .set(self.raft_log_reserve_max_ticks as f64);
+            .with_label_values(&["violetabft_log_reserve_max_ticks"])
+            .set(self.violetabft_log_reserve_max_ticks as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_engine_purge_interval"])
-            .set(self.raft_engine_purge_interval.as_secs() as f64);
+            .with_label_values(&["violetabft_engine_purge_interval"])
+            .set(self.violetabft_engine_purge_interval.as_secs() as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_entry_cache_life_time"])
-            .set(self.raft_entry_cache_life_time.as_secs() as f64);
+            .with_label_values(&["violetabft_entry_cache_life_time"])
+            .set(self.violetabft_entry_cache_life_time.as_secs() as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_reject_transfer_leader_duration"])
-            .set(self.raft_reject_transfer_leader_duration.as_secs() as f64);
+            .with_label_values(&["violetabft_reject_transfer_leader_duration"])
+            .set(self.violetabft_reject_transfer_leader_duration.as_secs() as f64);
 
         CONFIG_VIOLETABFTSTORE_GAUGE
             .with_label_values(&["split_brane_check_tick_interval"])
@@ -541,8 +541,8 @@ impl Config {
             .with_label_values(&["report_brane_flow_interval"])
             .set(self.report_brane_flow_interval.as_secs() as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
-            .with_label_values(&["raft_store_max_leader_lease"])
-            .set(self.raft_store_max_leader_lease.as_secs() as f64);
+            .with_label_values(&["violetabft_store_max_leader_lease"])
+            .set(self.violetabft_store_max_leader_lease.as_secs() as f64);
         CONFIG_VIOLETABFTSTORE_GAUGE
             .with_label_values(&["right_derive_when_split"])
             .set((self.right_derive_when_split as i32).into());
@@ -639,49 +639,49 @@ mod tests {
         let mut causetg = Config::new();
         causetg.validate().unwrap();
         assert_eq!(
-            causetg.raft_min_election_timeout_ticks,
-            causetg.raft_election_timeout_ticks
+            causetg.violetabft_min_election_timeout_ticks,
+            causetg.violetabft_election_timeout_ticks
         );
         assert_eq!(
-            causetg.raft_max_election_timeout_ticks,
-            causetg.raft_election_timeout_ticks * 2
+            causetg.violetabft_max_election_timeout_ticks,
+            causetg.violetabft_election_timeout_ticks * 2
         );
 
-        causetg.raft_heartbeat_ticks = 0;
+        causetg.violetabft_heartbeat_ticks = 0;
         assert!(causetg.validate().is_err());
 
         causetg = Config::new();
-        causetg.raft_election_timeout_ticks = 10;
-        causetg.raft_heartbeat_ticks = 10;
+        causetg.violetabft_election_timeout_ticks = 10;
+        causetg.violetabft_heartbeat_ticks = 10;
         assert!(causetg.validate().is_err());
 
         causetg = Config::new();
-        causetg.raft_min_election_timeout_ticks = 5;
+        causetg.violetabft_min_election_timeout_ticks = 5;
         causetg.validate().unwrap_err();
-        causetg.raft_min_election_timeout_ticks = 25;
+        causetg.violetabft_min_election_timeout_ticks = 25;
         causetg.validate().unwrap_err();
-        causetg.raft_min_election_timeout_ticks = 10;
+        causetg.violetabft_min_election_timeout_ticks = 10;
         causetg.validate().unwrap();
 
-        causetg.raft_heartbeat_ticks = 11;
+        causetg.violetabft_heartbeat_ticks = 11;
         assert!(causetg.validate().is_err());
 
         causetg = Config::new();
-        causetg.raft_log_gc_memory_barrier = 0;
+        causetg.violetabft_log_gc_memory_barrier = 0;
         assert!(causetg.validate().is_err());
 
         causetg = Config::new();
-        causetg.raft_log_gc_size_limit = ReadableSize(0);
+        causetg.violetabft_log_gc_size_limit = ReadableSize(0);
         assert!(causetg.validate().is_err());
 
         causetg = Config::new();
-        causetg.raft_base_tick_interval = ReadableDuration::secs(1);
-        causetg.raft_election_timeout_ticks = 10;
-        causetg.raft_store_max_leader_lease = ReadableDuration::secs(20);
+        causetg.violetabft_base_tick_interval = ReadableDuration::secs(1);
+        causetg.violetabft_election_timeout_ticks = 10;
+        causetg.violetabft_store_max_leader_lease = ReadableDuration::secs(20);
         assert!(causetg.validate().is_err());
 
         causetg = Config::new();
-        causetg.raft_log_gc_count_limit = 100;
+        causetg.violetabft_log_gc_count_limit = 100;
         causetg.merge_max_log_gap = 110;
         assert!(causetg.validate().is_err());
 
@@ -690,8 +690,8 @@ mod tests {
         assert!(causetg.validate().is_err());
 
         causetg = Config::new();
-        causetg.raft_base_tick_interval = ReadableDuration::secs(1);
-        causetg.raft_election_timeout_ticks = 10;
+        causetg.violetabft_base_tick_interval = ReadableDuration::secs(1);
+        causetg.violetabft_election_timeout_ticks = 10;
         causetg.peer_stale_state_check_interval = ReadableDuration::secs(5);
         assert!(causetg.validate().is_err());
 

@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -10,12 +10,12 @@ use crate::import::SSTImporter;
 use crate::read_pool::ReadPoolHandle;
 use crate::server::lock_manager::LockManager;
 use crate::server::Config as ServerConfig;
-use crate::persistence::{config::Config as StorageConfig, CausetStorage};
+use crate::causetStorage::{config::Config as StorageConfig, CausetStorage};
 use concurrency_manager::ConcurrencyManager;
 use engine_lmdb::LmdbEngine;
 use engine_promises::{Engines, Peekable, VioletaBftEngine};
 use ekvproto::metapb;
-use ekvproto::raft_serverpb::StoreIdent;
+use ekvproto::violetabft_serverpb::StoreIdent;
 use ekvproto::replication_modepb::ReplicationStatus;
 use fidel_client::{Error as FidelError, FidelClient, INVALID_ID};
 use violetabftstore::interlock::dispatcher::InterlockHost;
@@ -32,9 +32,9 @@ use einsteindb_util::worker::Worker;
 const MAX_CHECK_CLUSTER_BOOTSTRAPPED_RETRY_COUNT: u64 = 60;
 const CHECK_CLUSTER_BOOTSTRAPPED_RETRY_SECONDS: u64 = 3;
 
-/// Creates a new persistence engine which is backed by the VioletaBft consensus
+/// Creates a new causetStorage engine which is backed by the VioletaBft consensus
 /// protocol.
-pub fn create_raft_causetStorage<S>(
+pub fn create_violetabft_causetStorage<S>(
     engine: VioletaBftKv<S>,
     causetg: &StorageConfig,
     read_pool: ReadPoolHandle,
@@ -158,7 +158,7 @@ where
         }
         self.store.set_id(store_id);
         {
-            let mut meta = store_meta.lock().unwrap();
+            let mut meta = store_meta.dagger().unwrap();
             meta.store_id = Some(store_id);
         }
         if let Some(first_brane) = self.check_or_prepare_bootstrap_cluster(&engines, store_id)? {
@@ -243,7 +243,7 @@ where
             Ok(stores) => stores,
             Err(e) => panic!("failed to load all stores: {:?}", e),
         };
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.dagger().unwrap();
         if let Some(s) = status {
             state.set_status(s);
         }

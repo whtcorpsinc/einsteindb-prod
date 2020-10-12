@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::marker::PhantomData;
 use std::mem;
@@ -156,7 +156,7 @@ where
 
         // slightlike it to violetabftstore to ufidelate brane approximate size
         let res = CasualMessage::BraneApproximateSize { size: brane_size };
-        if let Err(e) = self.router.lock().unwrap().slightlike(brane_id, res) {
+        if let Err(e) = self.router.dagger().unwrap().slightlike(brane_id, res) {
             warn!(
                 "failed to slightlike approximate brane size";
                 "brane_id" => brane_id,
@@ -229,7 +229,7 @@ pub fn get_brane_approximate_size_causet(
     )))
 }
 
-/// Get brane approximate split tuplespaceInstanton based on default, write and lock causet.
+/// Get brane approximate split tuplespaceInstanton based on default, write and dagger causet.
 fn get_approximate_split_tuplespaceInstanton(
     db: &impl KvEngine,
     brane: &Brane,

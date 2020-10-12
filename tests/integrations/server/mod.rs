@@ -1,9 +1,9 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 mod gc_worker;
 mod kv_service;
 mod lock_manager;
-mod raft_client;
+mod violetabft_client;
 mod security;
 mod status_server;
 
@@ -15,7 +15,7 @@ use grpcio::RpcStatusCode;
 use grpcio::*;
 use ekvproto::interlock::*;
 use ekvproto::kvrpcpb::*;
-use ekvproto::raft_serverpb::{Done, VioletaBftMessage, SnapshotSoliton};
+use ekvproto::violetabft_serverpb::{Done, VioletaBftMessage, SnapshotSoliton};
 use ekvproto::einsteindbpb::{
     create_einsteindb, BatchCommandsRequest, BatchCommandsResponse, BatchVioletaBftMessage, EINSTEINDB,
 };
@@ -215,7 +215,7 @@ trait MockKvService {
     sstream_call!(batch_interlock, BatchRequest, BatchResponse);
     sstream_call!(interlock_stream, Request, Response);
     cstream_call!(violetabft, VioletaBftMessage, Done);
-    cstream_call!(batch_raft, BatchVioletaBftMessage, Done);
+    cstream_call!(batch_violetabft, BatchVioletaBftMessage, Done);
     cstream_call!(snapshot, SnapshotSoliton, Done);
     unary_call!(
         mvcc_get_by_spacelike_ts,
@@ -322,7 +322,7 @@ impl<T: MockKvService + Clone + Slightlike + 'static> EINSTEINDB for MockKv<T> {
     sstream_call_dispatch!(batch_interlock, BatchRequest, BatchResponse);
     sstream_call_dispatch!(interlock_stream, Request, Response);
     cstream_call_dispatch!(violetabft, VioletaBftMessage, Done);
-    cstream_call_dispatch!(batch_raft, BatchVioletaBftMessage, Done);
+    cstream_call_dispatch!(batch_violetabft, BatchVioletaBftMessage, Done);
     cstream_call_dispatch!(snapshot, SnapshotSoliton, Done);
     unary_call_dispatch!(
         mvcc_get_by_spacelike_ts,

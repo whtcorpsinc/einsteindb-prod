@@ -20,18 +20,18 @@ use external_causetStorage::*;
 use ekvproto::backup::*;
 use ekvproto::import_sstpb::*;
 use ekvproto::kvrpcpb::*;
-use ekvproto::raft_cmdpb::{CmdType, VioletaBftCmdRequest, VioletaBftRequestHeader, Request};
+use ekvproto::violetabft_cmdpb::{CmdType, VioletaBftCmdRequest, VioletaBftRequestHeader, Request};
 use ekvproto::einsteindbpb::EINSTEINDBClient;
 use fidel_client::FidelClient;
 use tempfile::Builder;
 use test_violetabftstore::*;
-use milevadb_query_common::persistence::scanner::{ConesScanner, ConesScannerOptions};
-use milevadb_query_common::persistence::{IntervalCone, Cone};
+use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
+use milevadb_query_common::causetStorage::{IntervalCone, Cone};
 use einsteindb::config::BackupConfig;
 use einsteindb::interlock::checksum_crc64_xor;
-use einsteindb::interlock::dag::EinsteinDBStorage;
-use einsteindb::persistence::kv::Engine;
-use einsteindb::persistence::SnapshotStore;
+use einsteindb::interlock::posetdag::EinsteinDBStorage;
+use einsteindb::causetStorage::kv::Engine;
+use einsteindb::causetStorage::SnapshotStore;
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::file::calc_crc32_bytes;
 use einsteindb_util::worker::Worker;
@@ -262,7 +262,7 @@ impl TestSuite {
             false,
         );
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            persistence: EinsteinDBStorage::new(snap_store, false),
+            causetStorage: EinsteinDBStorage::new(snap_store, false),
             cones: vec![Cone::Interval(IntervalCone::from((spacelike, lightlike)))],
             scan_backward_in_cone: false,
             is_key_only: false,
@@ -377,7 +377,7 @@ fn test_backup_and_import() {
 
     // Use importer to restore backup files.
     let backlightlike = make_local_backlightlike(&causetStorage_path);
-    let persistence = create_causetStorage(&backlightlike).unwrap();
+    let causetStorage = create_causetStorage(&backlightlike).unwrap();
     let brane = suite.cluster.get_brane(b"");
     let mut sst_meta = SstMeta::default();
     sst_meta.brane_id = brane.get_id();
@@ -385,7 +385,7 @@ fn test_backup_and_import() {
     sst_meta.set_uuid(uuid::Uuid::new_v4().as_bytes().to_vec());
     let mut metas = vec![];
     for f in files1.clone().into_iter() {
-        let mut reader = persistence.read(&f.name);
+        let mut reader = causetStorage.read(&f.name);
         let mut content = vec![];
         block_on(reader.read_to_lightlike(&mut content)).unwrap();
         let mut m = sst_meta.clone();
@@ -536,7 +536,7 @@ fn test_backup_rawkv() {
 
     // Use importer to restore backup files.
     let backlightlike = make_local_backlightlike(&causetStorage_path);
-    let persistence = create_causetStorage(&backlightlike).unwrap();
+    let causetStorage = create_causetStorage(&backlightlike).unwrap();
     let brane = suite.cluster.get_brane(b"");
     let mut sst_meta = SstMeta::default();
     sst_meta.brane_id = brane.get_id();
@@ -544,7 +544,7 @@ fn test_backup_rawkv() {
     sst_meta.set_uuid(uuid::Uuid::new_v4().as_bytes().to_vec());
     let mut metas = vec![];
     for f in files1.clone().into_iter() {
-        let mut reader = persistence.read(&f.name);
+        let mut reader = causetStorage.read(&f.name);
         let mut content = vec![];
         block_on(reader.read_to_lightlike(&mut content)).unwrap();
         let mut m = sst_meta.clone();

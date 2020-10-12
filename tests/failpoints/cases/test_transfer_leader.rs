@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use test_violetabftstore::*;
 
@@ -23,7 +23,7 @@ fn test_transfer_leader_slow_apply() {
 
     let fp = "on_handle_apply_1003";
     fail::causetg(fp, "pause").unwrap();
-    for i in 0..=cluster.causetg.raft_store.leader_transfer_max_log_lag {
+    for i in 0..=cluster.causetg.violetabft_store.leader_transfer_max_log_lag {
         let bytes = format!("k{:03}", i).into_bytes();
         cluster.must_put(&bytes, &bytes);
     }

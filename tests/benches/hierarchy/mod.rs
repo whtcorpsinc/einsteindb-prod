@@ -1,7 +1,7 @@
 mod engine;
 mod engine_factory;
 mod mvcc;
-mod persistence;
+mod causetStorage;
 mod txn;
 
 use std::fmt;
@@ -9,10 +9,10 @@ use std::fmt;
 use self::engine::bench_engine;
 use self::engine_factory::{BTreeEngineFactory, EngineFactory, LmdbEngineFactory};
 use self::mvcc::bench_mvcc;
-use self::persistence::bench_causetStorage;
+use self::causetStorage::bench_causetStorage;
 use self::txn::bench_txn;
 use criterion::Criterion;
-use einsteindb::persistence::Engine;
+use einsteindb::causetStorage::Engine;
 
 const DEFAULT_ITERATIONS: usize = 10;
 const DEFAULT_KEY_LENGTHS: [usize; 1] = [64];

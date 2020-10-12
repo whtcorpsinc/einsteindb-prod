@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::cell::RefCell;
 use std::mem;
@@ -23,16 +23,16 @@ use ekvproto::cdcpb::{
 use ekvproto::errorpb;
 use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
 use ekvproto::metapb::{Brane, BraneEpoch};
-use ekvproto::raft_cmdpb::{AdminCmdType, AdminRequest, AdminResponse, CmdType, Request};
+use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, AdminResponse, CmdType, Request};
 use violetabftstore::interlock::{Cmd, CmdBatch};
 use violetabftstore::store::fsm::ObserveID;
 use violetabftstore::store::util::compare_brane_epoch;
 use violetabftstore::Error as VioletaBftStoreError;
 use resolved_ts::Resolver;
-use einsteindb::persistence::txn::TxnEntry;
+use einsteindb::causetStorage::txn::TxnEntry;
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::mpsc::batch::Slightlikeer as BatchSlightlikeer;
-use txn_types::{Key, Lock, LockType, TimeStamp, WriteRef, WriteType};
+use txn_types::{Key, Dagger, LockType, TimeStamp, WriteRef, WriteType};
 
 use crate::lightlikepoint::{OldValueCache, OldValueCallback};
 use crate::metrics::*;
@@ -379,8 +379,8 @@ impl Delegate {
         // Mark the delegate as initialized.
         self.brane = Some(brane);
         let mut plightlikeing = self.plightlikeing.take().unwrap();
-        for lock in plightlikeing.take_locks() {
-            match lock {
+        for dagger in plightlikeing.take_locks() {
+            match dagger {
                 PlightlikeingLock::Track { key, spacelike_ts } => resolver.track_lock(spacelike_ts, key),
                 PlightlikeingLock::Untrack {
                     key,
@@ -470,11 +470,11 @@ impl Delegate {
             match entry {
                 Some(TxnEntry::Prewrite {
                     default,
-                    lock,
+                    dagger,
                     old_value,
                 }) => {
                     let mut row = EventRow::default();
-                    let skip = decode_lock(lock.0, &lock.1, &mut row);
+                    let skip = decode_lock(dagger.0, &dagger.1, &mut row);
                     if skip {
                         continue;
                     }
@@ -603,7 +603,7 @@ impl Delegate {
                     let r = events.insert(row.key.clone(), row);
                     assert!(r.is_none());
                 }
-                "lock" => {
+                "dagger" => {
                     let mut row = EventRow::default();
                     let skip = decode_lock(put.take_key(), put.get_value(), &mut row);
                     if skip {
@@ -734,25 +734,25 @@ fn decode_write(key: Vec<u8>, value: &[u8], row: &mut EventRow) -> bool {
 }
 
 fn decode_lock(key: Vec<u8>, value: &[u8], row: &mut EventRow) -> bool {
-    let lock = Lock::parse(value).unwrap();
-    let op_type = match lock.lock_type {
+    let dagger = Dagger::parse(value).unwrap();
+    let op_type = match dagger.lock_type {
         LockType::Put => EventRowOpType::Put,
         LockType::Delete => EventRowOpType::Delete,
         other => {
-            debug!("skip lock record";
+            debug!("skip dagger record";
                 "type" => ?other,
-                "spacelike_ts" => ?lock.ts,
+                "spacelike_ts" => ?dagger.ts,
                 "key" => hex::encode_upper(key),
-                "for_ufidelate_ts" => ?lock.for_ufidelate_ts);
+                "for_ufidelate_ts" => ?dagger.for_ufidelate_ts);
             return true;
         }
     };
     let key = Key::from_encoded(key);
-    row.spacelike_ts = lock.ts.into_inner();
+    row.spacelike_ts = dagger.ts.into_inner();
     row.key = key.into_raw().unwrap();
     row.op_type = op_type.into();
     set_event_row_type(row, EventLogType::Prewrite);
-    if let Some(value) = lock.short_value {
+    if let Some(value) = dagger.short_value {
         row.value = value;
     }
 
@@ -773,7 +773,7 @@ mod tests {
     use ekvproto::errorpb::Error as ErrorHeader;
     use ekvproto::metapb::Brane;
     use std::cell::Cell;
-    use einsteindb::persistence::mvcc::test_util::*;
+    use einsteindb::causetStorage::mvcc::test_util::*;
     use einsteindb_util::mpsc::batch::{self, BatchReceiver, VecCollector};
 
     #[test]

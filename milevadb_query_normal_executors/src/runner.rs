@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ use einsteindb_util::deadline::Deadline;
 use super::FreeDaemon;
 use milevadb_query_common::execute_stats::*;
 use milevadb_query_common::metrics::*;
-use milevadb_query_common::persistence::{IntervalCone, CausetStorage};
+use milevadb_query_common::causetStorage::{IntervalCone, CausetStorage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
 
@@ -32,7 +32,7 @@ pub struct FreeDaemonsRunner<SS> {
 #[allow(clippy::explicit_counter_loop)]
 pub fn build_executors<S: CausetStorage + 'static, C: ExecSummaryCollector + 'static>(
     exec_descriptors: Vec<fidelpb::FreeDaemon>,
-    persistence: S,
+    causetStorage: S,
     cones: Vec<KeyCone>,
     ctx: Arc<EvalConfig>,
     is_streaming: bool,
@@ -42,7 +42,7 @@ pub fn build_executors<S: CausetStorage + 'static, C: ExecSummaryCollector + 'st
         .next()
         .ok_or_else(|| other_err!("No executor specified"))?;
 
-    let mut src = build_first_executor::<_, C>(first, persistence, cones, ctx.clone(), is_streaming)?;
+    let mut src = build_first_executor::<_, C>(first, causetStorage, cones, ctx.clone(), is_streaming)?;
     let mut summary_slot_index = 0;
 
     for mut exec in exec_descriptors {
@@ -108,7 +108,7 @@ pub fn build_executors<S: CausetStorage + 'static, C: ExecSummaryCollector + 'st
 /// The inner-most executor must be a table scan executor or an index scan executor.
 fn build_first_executor<S: CausetStorage + 'static, C: ExecSummaryCollector + 'static>(
     mut first: fidelpb::FreeDaemon,
-    persistence: S,
+    causetStorage: S,
     cones: Vec<KeyCone>,
     context: Arc<EvalConfig>,
     is_streaming: bool,
@@ -123,7 +123,7 @@ fn build_first_executor<S: CausetStorage + 'static, C: ExecSummaryCollector + 's
                     first.take_tbl_scan(),
                     context,
                     cones,
-                    persistence,
+                    causetStorage,
                     is_streaming,
                 )?
                 .with_summary_collector(C::new(0)),
@@ -139,7 +139,7 @@ fn build_first_executor<S: CausetStorage + 'static, C: ExecSummaryCollector + 's
                     first.take_idx_scan(),
                     context,
                     cones,
-                    persistence,
+                    causetStorage,
                     unique,
                     is_streaming,
                 )?
@@ -155,7 +155,7 @@ impl<SS: 'static> FreeDaemonsRunner<SS> {
     pub fn from_request<S: CausetStorage<Statistics = SS> + 'static>(
         mut req: PosetDagRequest,
         cones: Vec<KeyCone>,
-        persistence: S,
+        causetStorage: S,
         deadline: Deadline,
         batch_row_limit: usize,
         is_streaming: bool,
@@ -168,7 +168,7 @@ impl<SS: 'static> FreeDaemonsRunner<SS> {
         let executor = if !(req.get_collect_execution_summaries()) {
             build_executors::<_, ExecSummaryCollectorDisabled>(
                 req.take_executors().into(),
-                persistence,
+                causetStorage,
                 cones,
                 config,
                 is_streaming,
@@ -176,7 +176,7 @@ impl<SS: 'static> FreeDaemonsRunner<SS> {
         } else {
             build_executors::<_, ExecSummaryCollectorEnabled>(
                 req.take_executors().into(),
-                persistence,
+                causetStorage,
                 cones,
                 config,
                 is_streaming,
@@ -314,7 +314,7 @@ impl<SS: 'static> FreeDaemonsRunner<SS> {
 
     #[inline]
     pub fn collect_causetStorage_stats(&mut self, dest: &mut SS) {
-        // TODO: A better way is to fill persistence stats in `handle_request`, or
+        // TODO: A better way is to fill causetStorage stats in `handle_request`, or
         // return SelectResponse in `handle_request`.
         self.executor.collect_causetStorage_stats(dest);
     }

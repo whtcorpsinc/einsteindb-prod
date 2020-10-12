@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 //! Configuration for the entire server.
 //!
@@ -20,7 +20,7 @@ use configuration::{ConfigChange, ConfigManager, ConfigValue, Configuration, Res
 use engine_lmdb::raw::{
     BlockBasedOptions, Cache, PrimaryCausetNetworkOptions, CompactionFilterFactory, CompactionPriority,
     DBCompactionStyle, DBCompressionType, DBOptions, DBRateLimiterMode, DBRecoveryMode,
-    LRUCacheOptions, TitanDBOptions,
+    LRUCacheOptions, NoetherDBOptions,
 };
 
 use crate::import::Config as ImportConfig;
@@ -29,7 +29,7 @@ use crate::server::gc_worker::WriteCompactionFilterFactory;
 use crate::server::lock_manager::Config as PessimisticTxnConfig;
 use crate::server::Config as ServerConfig;
 use crate::server::CONFIG_LMDB_GAUGE;
-use crate::persistence::config::{Config as StorageConfig, DEFAULT_DATA_DIR, DEFAULT_LMDB_SUB_DIR};
+use crate::causetStorage::config::{Config as StorageConfig, DEFAULT_DATA_DIR, DEFAULT_LMDB_SUB_DIR};
 use engine_lmdb::config::{self as rocks_config, BlobRunMode, CompressionType, LogLevel};
 use engine_lmdb::properties::MvccPropertiesCollectorFactory;
 use engine_lmdb::raw_util::CAUSETOptions;
@@ -41,11 +41,11 @@ use engine_lmdb::{
     DEFAULT_PROP_KEYS_INDEX_DISTANCE, DEFAULT_PROP_SIZE_INDEX_DISTANCE,
 };
 use engine_promises::{CAUSETHandleExt, PrimaryCausetNetworkOptions as PrimaryCausetNetworkOptionsTrait, DBOptionsExt};
-use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_RAFT, CAUSET_VER_DEFAULT, CAUSET_WRITE};
-use tuplespaceInstanton::brane_raft_prefix_len;
+use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_VER_DEFAULT, CAUSET_WRITE};
+use tuplespaceInstanton::brane_violetabft_prefix_len;
 use fidel_client::Config as FidelConfig;
-use raft_log_engine::VioletaBftEngineConfig as RawVioletaBftEngineConfig;
-use raft_log_engine::VioletaBftLogEngine;
+use violetabft_log_engine::VioletaBftEngineConfig as RawVioletaBftEngineConfig;
+use violetabft_log_engine::VioletaBftLogEngine;
 use violetabftstore::interlock::Config as CopConfig;
 use violetabftstore::store::Config as VioletaBftstoreConfig;
 use violetabftstore::store::SplitConfig;
@@ -59,16 +59,16 @@ use einsteindb_util::yatp_pool;
 
 const LOCKCAUSET_MIN_MEM: usize = 256 * MB as usize;
 const LOCKCAUSET_MAX_MEM: usize = GB as usize;
-const RAFT_MIN_MEM: usize = 256 * MB as usize;
-const RAFT_MAX_MEM: usize = 2 * GB as usize;
+const VIOLETABFT_MIN_MEM: usize = 256 * MB as usize;
+const VIOLETABFT_MAX_MEM: usize = 2 * GB as usize;
 const LAST_CONFIG_FILE: &str = "last_einsteindb.toml";
 const TMP_CONFIG_FILE: &str = "tmp_einsteindb.toml";
 const MAX_BLOCK_SIZE: usize = 32 * MB as usize;
 
-fn memory_mb_for_causet(is_raft_db: bool, causet: &str) -> usize {
+fn memory_mb_for_causet(is_violetabft_db: bool, causet: &str) -> usize {
     let total_mem = SysQuota::new().memory_limit_in_bytes();
-    let (ratio, min, max) = match (is_raft_db, causet) {
-        (true, CAUSET_DEFAULT) => (0.02, RAFT_MIN_MEM, RAFT_MAX_MEM),
+    let (ratio, min, max) = match (is_violetabft_db, causet) {
+        (true, CAUSET_DEFAULT) => (0.02, VIOLETABFT_MIN_MEM, VIOLETABFT_MAX_MEM),
         (false, CAUSET_DEFAULT) => (0.25, 0, usize::MAX),
         (false, CAUSET_DAGGER) => (0.02, LOCKCAUSET_MIN_MEM, LOCKCAUSET_MAX_MEM),
         (false, CAUSET_WRITE) => (0.15, 0, usize::MAX),
@@ -87,7 +87,7 @@ fn memory_mb_for_causet(is_raft_db: bool, causet: &str) -> usize {
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug, Configuration)]
 #[serde(default)]
 #[serde(rename_all = "kebab-case")]
-pub struct TitanCfConfig {
+pub struct NoetherCfConfig {
     #[config(skip)]
     pub min_blob_size: ReadableSize,
     #[config(skip)]
@@ -115,7 +115,7 @@ pub struct TitanCfConfig {
     pub gc_merge_rewrite: bool,
 }
 
-impl Default for TitanCfConfig {
+impl Default for NoetherCfConfig {
     fn default() -> Self {
         Self {
             min_blob_size: ReadableSize::kb(1), // disable titan default
@@ -135,9 +135,9 @@ impl Default for TitanCfConfig {
     }
 }
 
-impl TitanCfConfig {
-    fn build_opts(&self) -> TitanDBOptions {
-        let mut opts = TitanDBOptions::new();
+impl NoetherCfConfig {
+    fn build_opts(&self) -> NoetherDBOptions {
+        let mut opts = NoetherDBOptions::new();
         opts.set_min_blob_size(self.min_blob_size.0 as u64);
         opts.set_blob_file_compression(self.blob_file_compression.into());
         opts.set_blob_cache(self.blob_cache_size.0 as usize, -1, false, 0.0);
@@ -173,7 +173,7 @@ fn get_background_job_limit(
         1,
         cmp::min(default_sub_compactions, (max_compactions - 1) as u32),
     );
-    // Maximum background GC threads for Titan
+    // Maximum background GC threads for Noether
     let max_background_gc: i32 = cmp::min(default_background_gc, cpu_num as i32);
 
     (max_background_jobs, max_sub_compactions, max_background_gc)
@@ -242,7 +242,7 @@ macro_rules! causet_config {
             #[config(skip)]
             pub enable_doubly_skiplist: bool,
             #[config(submodule)]
-            pub titan: TitanCfConfig,
+            pub titan: NoetherCfConfig,
         }
 
         impl $name {
@@ -476,7 +476,7 @@ impl Default for DefaultCfConfig {
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_tuplespaceInstanton_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
             enable_doubly_skiplist: true,
-            titan: TitanCfConfig::default(),
+            titan: NoetherCfConfig::default(),
         }
     }
 }
@@ -498,8 +498,8 @@ causet_config!(WriteCfConfig);
 
 impl Default for WriteCfConfig {
     fn default() -> WriteCfConfig {
-        // Setting blob_run_mode=read_only effectively disable Titan.
-        let mut titan = TitanCfConfig::default();
+        // Setting blob_run_mode=read_only effectively disable Noether.
+        let mut titan = NoetherCfConfig::default();
         titan.blob_run_mode = BlobRunMode::ReadOnly;
         WriteCfConfig {
             block_size: ReadableSize::kb(64),
@@ -581,8 +581,8 @@ causet_config!(LockCfConfig);
 
 impl Default for LockCfConfig {
     fn default() -> LockCfConfig {
-        // Setting blob_run_mode=read_only effectively disable Titan.
-        let mut titan = TitanCfConfig::default();
+        // Setting blob_run_mode=read_only effectively disable Noether.
+        let mut titan = NoetherCfConfig::default();
         titan.blob_run_mode = BlobRunMode::ReadOnly;
         LockCfConfig {
             block_size: ReadableSize::kb(16),
@@ -645,8 +645,8 @@ causet_config!(VioletaBftCfConfig);
 
 impl Default for VioletaBftCfConfig {
     fn default() -> VioletaBftCfConfig {
-        // Setting blob_run_mode=read_only effectively disable Titan.
-        let mut titan = TitanCfConfig::default();
+        // Setting blob_run_mode=read_only effectively disable Noether.
+        let mut titan = NoetherCfConfig::default();
         titan.blob_run_mode = BlobRunMode::ReadOnly;
         VioletaBftCfConfig {
             block_size: ReadableSize::kb(16),
@@ -746,7 +746,7 @@ impl Default for VersionCfConfig {
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_tuplespaceInstanton_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
             enable_doubly_skiplist: true,
-            titan: TitanCfConfig::default(),
+            titan: NoetherCfConfig::default(),
         }
     }
 }
@@ -767,9 +767,9 @@ impl VersionCfConfig {
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(default)]
 #[serde(rename_all = "kebab-case")]
-// Note that Titan is still an experimental feature. Once enabled, it can't fall back.
+// Note that Noether is still an experimental feature. Once enabled, it can't fall back.
 // Forced fallback may result in data loss.
-pub struct TitanDBConfig {
+pub struct NoetherDBConfig {
     pub enabled: bool,
     pub dirname: String,
     pub disable_gc: bool,
@@ -778,7 +778,7 @@ pub struct TitanDBConfig {
     pub purge_obsolete_files_period: ReadableDuration,
 }
 
-impl Default for TitanDBConfig {
+impl Default for NoetherDBConfig {
     fn default() -> Self {
         Self {
             enabled: false,
@@ -790,9 +790,9 @@ impl Default for TitanDBConfig {
     }
 }
 
-impl TitanDBConfig {
-    fn build_opts(&self) -> TitanDBOptions {
-        let mut opts = TitanDBOptions::new();
+impl NoetherDBConfig {
+    fn build_opts(&self) -> NoetherDBOptions {
+        let mut opts = NoetherDBOptions::new();
         opts.set_dirname(&self.dirname);
         opts.set_disable_background_gc(self.disable_gc);
         opts.set_max_background_gc(self.max_background_gc);
@@ -868,18 +868,18 @@ pub struct DbConfig {
     #[config(submodule)]
     pub lockcauset: LockCfConfig,
     #[config(submodule)]
-    pub raftcauset: VioletaBftCfConfig,
+    pub violetabftcauset: VioletaBftCfConfig,
     #[config(submodule)]
     pub ver_defaultcauset: VersionCfConfig,
     #[config(skip)]
-    pub titan: TitanDBConfig,
+    pub titan: NoetherDBConfig,
 }
 
 impl Default for DbConfig {
     fn default() -> DbConfig {
         let (max_background_jobs, max_sub_compactions, max_background_gc) =
             get_background_job_limit(8, 3, 4);
-        let mut titan_config = TitanDBConfig::default();
+        let mut titan_config = NoetherDBConfig::default();
         titan_config.max_background_gc = max_background_gc;
         DbConfig {
             wal_recovery_mode: DBRecoveryMode::PointInTime,
@@ -914,7 +914,7 @@ impl Default for DbConfig {
             defaultcauset: DefaultCfConfig::default(),
             writecauset: WriteCfConfig::default(),
             lockcauset: LockCfConfig::default(),
-            raftcauset: VioletaBftCfConfig::default(),
+            violetabftcauset: VioletaBftCfConfig::default(),
             ver_defaultcauset: VersionCfConfig::default(),
             titan: titan_config,
         }
@@ -977,8 +977,8 @@ impl DbConfig {
             CAUSETOptions::new(CAUSET_DEFAULT, self.defaultcauset.build_opt(cache)),
             CAUSETOptions::new(CAUSET_DAGGER, self.lockcauset.build_opt(cache)),
             CAUSETOptions::new(CAUSET_WRITE, self.writecauset.build_opt(cache)),
-            // TODO: remove CAUSET_RAFT.
-            CAUSETOptions::new(CAUSET_RAFT, self.raftcauset.build_opt(cache)),
+            // TODO: remove CAUSET_VIOLETABFT.
+            CAUSETOptions::new(CAUSET_VIOLETABFT, self.violetabftcauset.build_opt(cache)),
             CAUSETOptions::new(CAUSET_VER_DEFAULT, self.ver_defaultcauset.build_opt(cache)),
         ]
     }
@@ -988,7 +988,7 @@ impl DbConfig {
             CAUSETOptions::new(CAUSET_DEFAULT, self.defaultcauset.build_opt(cache)),
             CAUSETOptions::new(CAUSET_DAGGER, self.lockcauset.build_opt(cache)),
             CAUSETOptions::new(CAUSET_WRITE, self.writecauset.build_opt(cache)),
-            CAUSETOptions::new(CAUSET_RAFT, self.raftcauset.build_opt(cache)),
+            CAUSETOptions::new(CAUSET_VIOLETABFT, self.violetabftcauset.build_opt(cache)),
             CAUSETOptions::new(CAUSET_VER_DEFAULT, self.ver_defaultcauset.build_opt(cache)),
         ]
     }
@@ -997,12 +997,12 @@ impl DbConfig {
         self.defaultcauset.validate()?;
         self.lockcauset.validate()?;
         self.writecauset.validate()?;
-        self.raftcauset.validate()?;
+        self.violetabftcauset.validate()?;
         self.ver_defaultcauset.validate()?;
         self.titan.validate()?;
         if self.enable_unordered_write {
             if self.titan.enabled {
-                return Err("Lmdb.unordered_write does not support Titan".into());
+                return Err("Lmdb.unordered_write does not support Noether".into());
             }
             if self.enable_pipelined_write || self.enable_multi_batch_write {
                 return Err("pipelined_write is not compatible with unordered_write".into());
@@ -1015,7 +1015,7 @@ impl DbConfig {
         write_into_metrics!(self.defaultcauset, CAUSET_DEFAULT, CONFIG_LMDB_GAUGE);
         write_into_metrics!(self.lockcauset, CAUSET_DAGGER, CONFIG_LMDB_GAUGE);
         write_into_metrics!(self.writecauset, CAUSET_WRITE, CONFIG_LMDB_GAUGE);
-        write_into_metrics!(self.raftcauset, CAUSET_RAFT, CONFIG_LMDB_GAUGE);
+        write_into_metrics!(self.violetabftcauset, CAUSET_VIOLETABFT, CONFIG_LMDB_GAUGE);
         write_into_metrics!(self.ver_defaultcauset, CAUSET_VER_DEFAULT, CONFIG_LMDB_GAUGE);
     }
 }
@@ -1066,7 +1066,7 @@ impl Default for VioletaBftDefaultCfConfig {
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_tuplespaceInstanton_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
             enable_doubly_skiplist: true,
-            titan: TitanCfConfig::default(),
+            titan: NoetherCfConfig::default(),
         }
     }
 }
@@ -1074,7 +1074,7 @@ impl Default for VioletaBftDefaultCfConfig {
 impl VioletaBftDefaultCfConfig {
     pub fn build_opt(&self, cache: &Option<Cache>) -> PrimaryCausetNetworkOptions {
         let mut causet_opts = build_causet_opt!(self, cache);
-        let f = Box::new(FixedPrefixSliceTransform::new(brane_raft_prefix_len()));
+        let f = Box::new(FixedPrefixSliceTransform::new(brane_violetabft_prefix_len()));
         causet_opts
             .set_memtable_insert_hint_prefix_extractor("VioletaBftPrefixSliceTransform", f)
             .unwrap();
@@ -1085,7 +1085,7 @@ impl VioletaBftDefaultCfConfig {
 
 // Lmdb Env associate thread pools of multiple instances from the same process.
 // When construct Options, options.env is set to same singleton Env::Default() object.
-// So total max_background_jobs = max(lmdb.max_background_jobs, raftdb.max_background_jobs)
+// So total max_background_jobs = max(lmdb.max_background_jobs, violetabftdb.max_background_jobs)
 // But each instance will limit their background jobs according to their own max_background_jobs
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug, Configuration)]
 #[serde(default)]
@@ -1138,14 +1138,14 @@ pub struct VioletaBftDbConfig {
     #[config(submodule)]
     pub defaultcauset: VioletaBftDefaultCfConfig,
     #[config(skip)]
-    pub titan: TitanDBConfig,
+    pub titan: NoetherDBConfig,
 }
 
 impl Default for VioletaBftDbConfig {
     fn default() -> VioletaBftDbConfig {
         let (max_background_jobs, max_sub_compactions, max_background_gc) =
             get_background_job_limit(4, 2, 4);
-        let mut titan_config = TitanDBConfig::default();
+        let mut titan_config = NoetherDBConfig::default();
         titan_config.max_background_gc = max_background_gc;
         VioletaBftDbConfig {
             wal_recovery_mode: DBRecoveryMode::PointInTime,
@@ -1228,11 +1228,11 @@ impl VioletaBftDbConfig {
         self.defaultcauset.validate()?;
         if self.enable_unordered_write {
             if self.titan.enabled {
-                return Err("raftdb: unordered_write is not compatible with Titan".into());
+                return Err("violetabftdb: unordered_write is not compatible with Noether".into());
             }
             if self.enable_pipelined_write {
                 return Err(
-                    "raftdb: pipelined_write is not compatible with unordered_write".into(),
+                    "violetabftdb: pipelined_write is not compatible with unordered_write".into(),
                 );
             }
         }
@@ -1315,7 +1315,7 @@ impl DBConfigManger {
         self.validate_causet(causet)?;
         if self.shared_block_cache {
             return Err("shared block cache is enabled, change cache size through \
-                 block-cache.capacity in persistence module instead"
+                 block-cache.capacity in causetStorage module instead"
                 .into());
         }
         let handle = self.db.causet_handle(causet)?;
@@ -1339,7 +1339,7 @@ impl DBConfigManger {
             (DBType::Kv, CAUSET_DEFAULT)
             | (DBType::Kv, CAUSET_WRITE)
             | (DBType::Kv, CAUSET_DAGGER)
-            | (DBType::Kv, CAUSET_RAFT)
+            | (DBType::Kv, CAUSET_VIOLETABFT)
             | (DBType::Kv, CAUSET_VER_DEFAULT)
             | (DBType::VioletaBft, CAUSET_DEFAULT) => Ok(()),
             _ => Err(format!("invalid causet {:?} for db {:?}", causet, self.db_type).into()),
@@ -1749,7 +1749,7 @@ const DEFAULT_READPOOL_MAX_TASKS_PER_WORKER: usize = 2 * 1000;
 const MIN_READPOOL_STACK_SIZE_MB: u64 = 2;
 const DEFAULT_READPOOL_STACK_SIZE_MB: u64 = 10;
 
-readpool_config!(StorageReadPoolConfig, causetStorage_read_pool_test, "persistence");
+readpool_config!(StorageReadPoolConfig, causetStorage_read_pool_test, "causetStorage");
 
 impl Default for StorageReadPoolConfig {
     fn default() -> Self {
@@ -1772,14 +1772,14 @@ impl Default for StorageReadPoolConfig {
 
 impl StorageReadPoolConfig {
     pub fn use_unified_pool(&self) -> bool {
-        // The persistence module does not use the unified pool by default.
+        // The causetStorage module does not use the unified pool by default.
         self.use_unified_pool.unwrap_or(false)
     }
 
     pub fn adjust_use_unified_pool(&mut self) {
         if self.use_unified_pool.is_none() {
-            // The persistence module does not use the unified pool by default.
-            info!("readpool.persistence.use-unified-pool is not set, set to false by default");
+            // The causetStorage module does not use the unified pool by default.
+            info!("readpool.causetStorage.use-unified-pool is not set, set to false by default");
             self.use_unified_pool = Some(false);
         }
     }
@@ -1837,17 +1837,17 @@ impl CoprReadPoolConfig {
 #[serde(rename_all = "kebab-case")]
 pub struct ReadPoolConfig {
     pub unified: UnifiedReadPoolConfig,
-    pub persistence: StorageReadPoolConfig,
+    pub causetStorage: StorageReadPoolConfig,
     pub interlock: CoprReadPoolConfig,
 }
 
 impl ReadPoolConfig {
     pub fn is_unified_pool_enabled(&self) -> bool {
-        self.persistence.use_unified_pool() || self.interlock.use_unified_pool()
+        self.causetStorage.use_unified_pool() || self.interlock.use_unified_pool()
     }
 
     pub fn adjust_use_unified_pool(&mut self) {
-        self.persistence.adjust_use_unified_pool();
+        self.causetStorage.adjust_use_unified_pool();
         self.interlock.adjust_use_unified_pool();
     }
 
@@ -1855,7 +1855,7 @@ impl ReadPoolConfig {
         if self.is_unified_pool_enabled() {
             self.unified.validate()?;
         }
-        self.persistence.validate()?;
+        self.causetStorage.validate()?;
         self.interlock.validate()?;
         Ok(())
     }
@@ -1875,11 +1875,11 @@ mod readpool_tests {
             max_tasks_per_worker: 0,
         };
         assert!(unified.validate().is_err());
-        let persistence = StorageReadPoolConfig {
+        let causetStorage = StorageReadPoolConfig {
             use_unified_pool: Some(false),
             ..Default::default()
         };
-        assert!(persistence.validate().is_ok());
+        assert!(causetStorage.validate().is_ok());
         let interlock = CoprReadPoolConfig {
             use_unified_pool: Some(false),
             ..Default::default()
@@ -1887,7 +1887,7 @@ mod readpool_tests {
         assert!(interlock.validate().is_ok());
         let causetg = ReadPoolConfig {
             unified,
-            persistence,
+            causetStorage,
             interlock,
         };
         assert!(!causetg.is_unified_pool_enabled());
@@ -1896,19 +1896,19 @@ mod readpool_tests {
         // CausetStorage and interlock config must be valid when yatp is not used.
         let unified = UnifiedReadPoolConfig::default();
         assert!(unified.validate().is_ok());
-        let persistence = StorageReadPoolConfig {
+        let causetStorage = StorageReadPoolConfig {
             use_unified_pool: Some(false),
             high_concurrency: 0,
             ..Default::default()
         };
-        assert!(persistence.validate().is_err());
+        assert!(causetStorage.validate().is_err());
         let interlock = CoprReadPoolConfig {
             use_unified_pool: Some(false),
             ..Default::default()
         };
         let invalid_causetg = ReadPoolConfig {
             unified,
-            persistence,
+            causetStorage,
             interlock,
         };
         assert!(!invalid_causetg.is_unified_pool_enabled());
@@ -1924,16 +1924,16 @@ mod readpool_tests {
             ..Default::default()
         };
         assert!(unified.validate().is_err());
-        let persistence = StorageReadPoolConfig {
+        let causetStorage = StorageReadPoolConfig {
             use_unified_pool: Some(true),
             ..Default::default()
         };
-        assert!(persistence.validate().is_ok());
+        assert!(causetStorage.validate().is_ok());
         let interlock = CoprReadPoolConfig::default();
         assert!(interlock.validate().is_ok());
         let mut causetg = ReadPoolConfig {
             unified,
-            persistence,
+            causetStorage,
             interlock,
         };
         causetg.adjust_use_unified_pool();
@@ -1943,13 +1943,13 @@ mod readpool_tests {
 
     #[test]
     fn test_is_unified() {
-        let persistence = StorageReadPoolConfig::default();
-        assert!(!persistence.use_unified_pool());
+        let causetStorage = StorageReadPoolConfig::default();
+        assert!(!causetStorage.use_unified_pool());
         let interlock = CoprReadPoolConfig::default();
         assert!(interlock.use_unified_pool());
 
         let mut causetg = ReadPoolConfig {
-            persistence,
+            causetStorage,
             interlock,
             ..Default::default()
         };
@@ -1961,32 +1961,32 @@ mod readpool_tests {
 
     #[test]
     fn test_partially_unified() {
-        let persistence = StorageReadPoolConfig {
+        let causetStorage = StorageReadPoolConfig {
             use_unified_pool: Some(false),
             low_concurrency: 0,
             ..Default::default()
         };
-        assert!(!persistence.use_unified_pool());
+        assert!(!causetStorage.use_unified_pool());
         let interlock = CoprReadPoolConfig {
             use_unified_pool: Some(true),
             ..Default::default()
         };
         assert!(interlock.use_unified_pool());
         let mut causetg = ReadPoolConfig {
-            persistence,
+            causetStorage,
             interlock,
             ..Default::default()
         };
         assert!(causetg.is_unified_pool_enabled());
         assert!(causetg.validate().is_err());
-        causetg.persistence.low_concurrency = 1;
+        causetg.causetStorage.low_concurrency = 1;
         assert!(causetg.validate().is_ok());
 
-        let persistence = StorageReadPoolConfig {
+        let causetStorage = StorageReadPoolConfig {
             use_unified_pool: Some(true),
             ..Default::default()
         };
-        assert!(persistence.use_unified_pool());
+        assert!(causetStorage.use_unified_pool());
         let interlock = CoprReadPoolConfig {
             use_unified_pool: Some(false),
             low_concurrency: 0,
@@ -1994,7 +1994,7 @@ mod readpool_tests {
         };
         assert!(!interlock.use_unified_pool());
         let mut causetg = ReadPoolConfig {
-            persistence,
+            causetStorage,
             interlock,
             ..Default::default()
         };
@@ -2089,7 +2089,7 @@ pub struct EINSTEINDBConfig {
     pub server: ServerConfig,
 
     #[config(submodule)]
-    pub persistence: StorageConfig,
+    pub causetStorage: StorageConfig,
 
     #[config(skip)]
     pub fidel: FidelConfig,
@@ -2099,7 +2099,7 @@ pub struct EINSTEINDBConfig {
 
     #[config(submodule)]
     #[serde(rename = "violetabftstore")]
-    pub raft_store: VioletaBftstoreConfig,
+    pub violetabft_store: VioletaBftstoreConfig,
 
     #[config(submodule)]
     pub interlock: CopConfig,
@@ -2108,10 +2108,10 @@ pub struct EINSTEINDBConfig {
     pub lmdb: DbConfig,
 
     #[config(submodule)]
-    pub raftdb: VioletaBftDbConfig,
+    pub violetabftdb: VioletaBftDbConfig,
 
     #[config(skip)]
-    pub raft_engine: VioletaBftEngineConfig,
+    pub violetabft_engine: VioletaBftEngineConfig,
 
     #[config(skip)]
     pub security: SecurityConfig,
@@ -2150,13 +2150,13 @@ impl Default for EINSTEINDBConfig {
             readpool: ReadPoolConfig::default(),
             server: ServerConfig::default(),
             metric: MetricConfig::default(),
-            raft_store: VioletaBftstoreConfig::default(),
+            violetabft_store: VioletaBftstoreConfig::default(),
             interlock: CopConfig::default(),
             fidel: FidelConfig::default(),
             lmdb: DbConfig::default(),
-            raftdb: VioletaBftDbConfig::default(),
-            raft_engine: VioletaBftEngineConfig::default(),
-            persistence: StorageConfig::default(),
+            violetabftdb: VioletaBftDbConfig::default(),
+            violetabft_engine: VioletaBftEngineConfig::default(),
+            causetStorage: StorageConfig::default(),
             security: SecurityConfig::default(),
             import: ImportConfig::default(),
             backup: BackupConfig::default(),
@@ -2172,63 +2172,63 @@ impl EINSTEINDBConfig {
     // TODO: change to validate(&self)
     pub fn validate(&mut self) -> Result<(), Box<dyn Error>> {
         self.readpool.validate()?;
-        self.persistence.validate()?;
+        self.causetStorage.validate()?;
 
-        self.raft_store.brane_split_check_diff = self.interlock.brane_split_size / 16;
+        self.violetabft_store.brane_split_check_diff = self.interlock.brane_split_size / 16;
 
         if self.causetg_path.is_empty() {
-            self.causetg_path = Path::new(&self.persistence.data_dir)
+            self.causetg_path = Path::new(&self.causetStorage.data_dir)
                 .join(LAST_CONFIG_FILE)
                 .to_str()
                 .unwrap()
                 .to_owned();
         }
 
-        if !self.raft_engine.enable {
-            let default_raftdb_path =
-                config::canonicalize_sub_path(&self.persistence.data_dir, "violetabft")?;
-            if self.raft_store.raftdb_path.is_empty() {
-                self.raft_store.raftdb_path = default_raftdb_path;
-            } else if self.raft_store.raftdb_path != default_raftdb_path {
-                self.raft_store.raftdb_path =
-                    config::canonicalize_path(&self.raft_store.raftdb_path)?;
+        if !self.violetabft_engine.enable {
+            let default_violetabftdb_path =
+                config::canonicalize_sub_path(&self.causetStorage.data_dir, "violetabft")?;
+            if self.violetabft_store.violetabftdb_path.is_empty() {
+                self.violetabft_store.violetabftdb_path = default_violetabftdb_path;
+            } else if self.violetabft_store.violetabftdb_path != default_violetabftdb_path {
+                self.violetabft_store.violetabftdb_path =
+                    config::canonicalize_path(&self.violetabft_store.violetabftdb_path)?;
             }
         } else {
             let default_er_path =
-                config::canonicalize_sub_path(&self.persistence.data_dir, "violetabft-engine")?;
-            if self.raft_engine.config.dir.is_empty() {
-                self.raft_engine.config.dir = default_er_path;
-            } else if self.raft_engine.config.dir != default_er_path {
-                self.raft_engine.config.dir =
-                    config::canonicalize_path(&self.raft_engine.config.dir)?;
+                config::canonicalize_sub_path(&self.causetStorage.data_dir, "violetabft-engine")?;
+            if self.violetabft_engine.config.dir.is_empty() {
+                self.violetabft_engine.config.dir = default_er_path;
+            } else if self.violetabft_engine.config.dir != default_er_path {
+                self.violetabft_engine.config.dir =
+                    config::canonicalize_path(&self.violetabft_engine.config.dir)?;
             }
         }
 
         let kv_db_path =
-            config::canonicalize_sub_path(&self.persistence.data_dir, DEFAULT_LMDB_SUB_DIR)?;
+            config::canonicalize_sub_path(&self.causetStorage.data_dir, DEFAULT_LMDB_SUB_DIR)?;
 
-        if kv_db_path == self.raft_store.raftdb_path {
-            return Err("raft_store.raftdb_path can not same with persistence.data_dir/db".into());
+        if kv_db_path == self.violetabft_store.violetabftdb_path {
+            return Err("violetabft_store.violetabftdb_path can not same with causetStorage.data_dir/db".into());
         }
-        if !self.raft_engine.enable {
+        if !self.violetabft_engine.enable {
             if LmdbEngine::exists(&kv_db_path)
-                && !LmdbEngine::exists(&self.raft_store.raftdb_path)
+                && !LmdbEngine::exists(&self.violetabft_store.violetabftdb_path)
             {
-                return Err("default lmdb exist, buf raftdb not exist".into());
+                return Err("default lmdb exist, buf violetabftdb not exist".into());
             }
             if !LmdbEngine::exists(&kv_db_path)
-                && LmdbEngine::exists(&self.raft_store.raftdb_path)
+                && LmdbEngine::exists(&self.violetabft_store.violetabftdb_path)
             {
-                return Err("default lmdb not exist, buf raftdb exist".into());
+                return Err("default lmdb not exist, buf violetabftdb exist".into());
             }
         } else {
             if LmdbEngine::exists(&kv_db_path)
-                && !VioletaBftLogEngine::exists(&self.raft_engine.config.dir)
+                && !VioletaBftLogEngine::exists(&self.violetabft_engine.config.dir)
             {
                 return Err("default lmdb exist, buf violetabft engine not exist".into());
             }
             if !LmdbEngine::exists(&kv_db_path)
-                && VioletaBftLogEngine::exists(&self.raft_engine.config.dir)
+                && VioletaBftLogEngine::exists(&self.violetabft_engine.config.dir)
             {
                 return Err("default lmdb not exist, buf violetabft engine exist".into());
             }
@@ -2255,7 +2255,7 @@ impl EINSTEINDBConfig {
             }
         }
 
-        let expect_keepalive = self.raft_store.raft_heartbeat_interval() * 2;
+        let expect_keepalive = self.violetabft_store.violetabft_heartbeat_interval() * 2;
         if expect_keepalive > self.server.grpc_keepalive_time.0 {
             return Err(format!(
                 "grpc_keepalive_time is too small, it should not less than the double of \
@@ -2266,10 +2266,10 @@ impl EINSTEINDBConfig {
         }
 
         self.lmdb.validate()?;
-        self.raftdb.validate()?;
-        self.raft_engine.validate()?;
+        self.violetabftdb.validate()?;
+        self.violetabft_engine.validate()?;
         self.server.validate()?;
-        self.raft_store.validate()?;
+        self.violetabft_store.validate()?;
         self.fidel.validate()?;
         self.interlock.validate()?;
         self.security.validate()?;
@@ -2281,9 +2281,9 @@ impl EINSTEINDBConfig {
     }
 
     pub fn compatible_adjust(&mut self) {
-        let default_raft_store = VioletaBftstoreConfig::default();
+        let default_violetabft_store = VioletaBftstoreConfig::default();
         let default_interlock = CopConfig::default();
-        if self.raft_store.brane_max_size != default_raft_store.brane_max_size {
+        if self.violetabft_store.brane_max_size != default_violetabft_store.brane_max_size {
             warn!(
                 "deprecated configuration, \
                  violetabftstore.brane-max-size has been moved to interlock"
@@ -2291,13 +2291,13 @@ impl EINSTEINDBConfig {
             if self.interlock.brane_max_size == default_interlock.brane_max_size {
                 warn!(
                     "override interlock.brane-max-size with violetabftstore.brane-max-size, {:?}",
-                    self.raft_store.brane_max_size
+                    self.violetabft_store.brane_max_size
                 );
-                self.interlock.brane_max_size = self.raft_store.brane_max_size;
+                self.interlock.brane_max_size = self.violetabft_store.brane_max_size;
             }
-            self.raft_store.brane_max_size = default_raft_store.brane_max_size;
+            self.violetabft_store.brane_max_size = default_violetabft_store.brane_max_size;
         }
-        if self.raft_store.brane_split_size != default_raft_store.brane_split_size {
+        if self.violetabft_store.brane_split_size != default_violetabft_store.brane_split_size {
             warn!(
                 "deprecated configuration, \
                  violetabftstore.brane-split-size has been moved to interlock",
@@ -2305,11 +2305,11 @@ impl EINSTEINDBConfig {
             if self.interlock.brane_split_size == default_interlock.brane_split_size {
                 warn!(
                     "override interlock.brane-split-size with violetabftstore.brane-split-size, {:?}",
-                    self.raft_store.brane_split_size
+                    self.violetabft_store.brane_split_size
                 );
-                self.interlock.brane_split_size = self.raft_store.brane_split_size;
+                self.interlock.brane_split_size = self.violetabft_store.brane_split_size;
             }
-            self.raft_store.brane_split_size = default_raft_store.brane_split_size;
+            self.violetabft_store.brane_split_size = default_violetabft_store.brane_split_size;
         }
         if self.server.lightlike_point_concurrency.is_some() {
             warn!(
@@ -2350,22 +2350,22 @@ impl EINSTEINDBConfig {
             // new configuration using old values.
             self.server.lightlike_point_max_tasks = None;
         }
-        if self.raft_store.clean_stale_peer_delay.as_secs() > 0 {
+        if self.violetabft_store.clean_stale_peer_delay.as_secs() > 0 {
             warn!(
                 "deprecated configuration, {} is no longer used and ignored.",
-                "raft_store.clean_stale_peer_delay",
+                "violetabft_store.clean_stale_peer_delay",
             );
         }
         // When shared block cache is enabled, if its capacity is set, it overrides individual
         // block cache sizes. Otherwise use the sum of block cache size of all PrimaryCauset families
         // as the shared cache size.
-        let cache_causetg = &mut self.persistence.block_cache;
+        let cache_causetg = &mut self.causetStorage.block_cache;
         if cache_causetg.shared && cache_causetg.capacity.0.is_none() {
             cache_causetg.capacity.0 = Some(ReadableSize {
                 0: self.lmdb.defaultcauset.block_cache_size.0
                     + self.lmdb.writecauset.block_cache_size.0
                     + self.lmdb.lockcauset.block_cache_size.0
-                    + self.raftdb.defaultcauset.block_cache_size.0,
+                    + self.violetabftdb.defaultcauset.block_cache_size.0,
             });
         }
 
@@ -2382,48 +2382,48 @@ impl EINSTEINDBConfig {
             ));
         }
 
-        if last_causetg.raftdb.wal_dir != self.raftdb.wal_dir {
+        if last_causetg.violetabftdb.wal_dir != self.violetabftdb.wal_dir {
             return Err(format!(
-                "raftdb wal_dir have been changed, former raftdb wal_dir is '{}', \
-                 current raftdb wal_dir is '{}', please guarantee all violetabft wal logs \
+                "violetabftdb wal_dir have been changed, former violetabftdb wal_dir is '{}', \
+                 current violetabftdb wal_dir is '{}', please guarantee all violetabft wal logs \
                  have been moved to destination directory.",
-                last_causetg.raftdb.wal_dir, self.lmdb.wal_dir
+                last_causetg.violetabftdb.wal_dir, self.lmdb.wal_dir
             ));
         }
 
-        if last_causetg.persistence.data_dir != self.persistence.data_dir {
-            // In einsteindb 3.0 the default value of persistence.data-dir changed
+        if last_causetg.causetStorage.data_dir != self.causetStorage.data_dir {
+            // In einsteindb 3.0 the default value of causetStorage.data-dir changed
             // from "" to "./"
             let using_default_after_upgrade =
-                last_causetg.persistence.data_dir.is_empty() && self.persistence.data_dir == DEFAULT_DATA_DIR;
+                last_causetg.causetStorage.data_dir.is_empty() && self.causetStorage.data_dir == DEFAULT_DATA_DIR;
 
             if !using_default_after_upgrade {
                 return Err(format!(
-                    "persistence data dir have been changed, former data dir is {}, \
+                    "causetStorage data dir have been changed, former data dir is {}, \
                      current data dir is {}, please check if it is expected.",
-                    last_causetg.persistence.data_dir, self.persistence.data_dir
+                    last_causetg.causetStorage.data_dir, self.causetStorage.data_dir
                 ));
             }
         }
 
-        if last_causetg.raft_store.raftdb_path != self.raft_store.raftdb_path {
+        if last_causetg.violetabft_store.violetabftdb_path != self.violetabft_store.violetabftdb_path {
             return Err(format!(
                 "violetabft dir have been changed, former violetabft dir is '{}', \
                  current violetabft dir is '{}', please check if it is expected.",
-                last_causetg.raft_store.raftdb_path, self.raft_store.raftdb_path
+                last_causetg.violetabft_store.violetabftdb_path, self.violetabft_store.violetabftdb_path
             ));
         }
-        if last_causetg.raft_engine.enable
-            && self.raft_engine.enable
-            && last_causetg.raft_engine.config.dir != self.raft_engine.config.dir
+        if last_causetg.violetabft_engine.enable
+            && self.violetabft_engine.enable
+            && last_causetg.violetabft_engine.config.dir != self.violetabft_engine.config.dir
         {
             return Err(format!(
                 "violetabft engine dir have been changed, former is '{}', \
                  current is '{}', please check if it is expected.",
-                last_causetg.raft_engine.config.dir, self.raft_engine.config.dir
+                last_causetg.violetabft_engine.config.dir, self.violetabft_engine.config.dir
             ));
         }
-        if last_causetg.raft_engine.enable && !self.raft_engine.enable {
+        if last_causetg.violetabft_engine.enable && !self.violetabft_engine.enable {
             return Err("violetabft engine can't be disabled after switched on.".to_owned());
         }
 
@@ -2462,14 +2462,14 @@ impl EINSTEINDBConfig {
     }
 
     pub fn write_into_metrics(&self) {
-        self.raft_store.write_into_metrics();
+        self.violetabft_store.write_into_metrics();
         self.lmdb.write_into_metrics();
     }
 
     pub fn with_tmp() -> Result<(EINSTEINDBConfig, tempfile::TempDir), IoError> {
         let tmp = tempfile::temfidelir()?;
         let mut causetg = EINSTEINDBConfig::default();
-        causetg.persistence.data_dir = tmp.path().display().to_string();
+        causetg.causetStorage.data_dir = tmp.path().display().to_string();
         causetg.causetg_path = tmp.path().join(LAST_CONFIG_FILE).display().to_string();
         Ok((causetg, tmp))
     }
@@ -2483,7 +2483,7 @@ impl EINSTEINDBConfig {
 pub fn check_critical_config(config: &EINSTEINDBConfig) -> Result<(), String> {
     // Check current critical configurations with last time, if there are some
     // changes, user must guarantee relevant works have been done.
-    if let Some(mut causetg) = get_last_config(&config.persistence.data_dir) {
+    if let Some(mut causetg) = get_last_config(&config.causetStorage.data_dir) {
         causetg.compatible_adjust();
         let _ = causetg.validate();
         config.check_critical_causetg_with(&causetg)?;
@@ -2502,7 +2502,7 @@ fn get_last_config(data_dir: &str) -> Option<EINSTEINDBConfig> {
 
 /// Persists config to `last_einsteindb.toml`
 pub fn persist_config(config: &EINSTEINDBConfig) -> Result<(), String> {
-    let store_path = Path::new(&config.persistence.data_dir);
+    let store_path = Path::new(&config.causetStorage.data_dir);
     let last_causetg_path = store_path.join(LAST_CONFIG_FILE);
     let tmp_causetg_path = store_path.join(TMP_CONFIG_FILE);
 
@@ -2577,7 +2577,7 @@ fn to_config_change(change: HashMap<String, String>) -> CfgResult<ConfigChange> 
     ) -> CfgResult<()> {
         if let Some(field) = fields.pop() {
             let f = if field == "violetabftstore" {
-                "raft_store".to_owned()
+                "violetabft_store".to_owned()
             } else {
                 field.replace("-", "_")
             };
@@ -2646,7 +2646,7 @@ fn to_toml_encode(change: HashMap<String, String>) -> CfgResult<HashMap<String, 
     fn helper(mut fields: Vec<String>, typed: &ConfigChange) -> CfgResult<bool> {
         if let Some(field) = fields.pop() {
             let f = if field == "violetabftstore" {
-                "raft_store".to_owned()
+                "violetabft_store".to_owned()
             } else {
                 field.replace("-", "_")
             };
@@ -2714,14 +2714,14 @@ impl From<&str> for Module {
             "readpool" => Module::Readpool,
             "server" => Module::Server,
             "metric" => Module::Metric,
-            "raft_store" => Module::VioletaBftstore,
+            "violetabft_store" => Module::VioletaBftstore,
             "interlock" => Module::Interlock,
             "fidel" => Module::Fidel,
             "split" => Module::Split,
             "lmdb" => Module::Lmdbdb,
-            "raftdb" => Module::VioletaBftdb,
-            "raft_engine" => Module::VioletaBftEngine,
-            "persistence" => Module::CausetStorage,
+            "violetabftdb" => Module::VioletaBftdb,
+            "violetabft_engine" => Module::VioletaBftEngine,
+            "causetStorage" => Module::CausetStorage,
             "security" => Module::Security,
             "import" => Module::Import,
             "backup" => Module::Backup,
@@ -2824,10 +2824,10 @@ mod tests {
     use tempfile::Builder;
 
     use super::*;
-    use crate::persistence::config::StorageConfigManger;
+    use crate::causetStorage::config::StorageConfigManger;
     use engine_lmdb::raw_util::new_engine_opt;
     use engine_promises::DBOptions as DBOptionsTrait;
-    use raft_log_engine::RecoveryMode;
+    use violetabft_log_engine::RecoveryMode;
     use slog::Level;
     use std::sync::Arc;
 
@@ -2843,29 +2843,29 @@ mod tests {
         last_causetg.lmdb.wal_dir = "/data/wal_dir".to_owned();
         assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_ok());
 
-        einsteindb_causetg.raftdb.wal_dir = "/violetabft/wal_dir".to_owned();
+        einsteindb_causetg.violetabftdb.wal_dir = "/violetabft/wal_dir".to_owned();
         assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_err());
 
-        last_causetg.raftdb.wal_dir = "/violetabft/wal_dir".to_owned();
+        last_causetg.violetabftdb.wal_dir = "/violetabft/wal_dir".to_owned();
         assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_ok());
 
-        einsteindb_causetg.persistence.data_dir = "/data1".to_owned();
+        einsteindb_causetg.causetStorage.data_dir = "/data1".to_owned();
         assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_err());
 
-        last_causetg.persistence.data_dir = "/data1".to_owned();
+        last_causetg.causetStorage.data_dir = "/data1".to_owned();
         assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_ok());
 
-        einsteindb_causetg.raft_store.raftdb_path = "/raft_path".to_owned();
+        einsteindb_causetg.violetabft_store.violetabftdb_path = "/violetabft_path".to_owned();
         assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_err());
 
-        last_causetg.raft_store.raftdb_path = "/raft_path".to_owned();
+        last_causetg.violetabft_store.violetabftdb_path = "/violetabft_path".to_owned();
         assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_ok());
     }
 
     #[test]
     fn test_last_causetg_modified() {
         let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-        let store_path = Path::new(&causetg.persistence.data_dir);
+        let store_path = Path::new(&causetg.causetStorage.data_dir);
         let last_causetg_path = store_path.join(LAST_CONFIG_FILE);
 
         causetg.write_to_file(&last_causetg_path).unwrap();
@@ -2895,19 +2895,19 @@ mod tests {
         let mut einsteindb_causetg = EINSTEINDBConfig::default();
 
         einsteindb_causetg.lmdb.wal_dir = s1.clone();
-        einsteindb_causetg.raftdb.wal_dir = s2.clone();
+        einsteindb_causetg.violetabftdb.wal_dir = s2.clone();
         einsteindb_causetg.write_to_file(file).unwrap();
         let causetg_from_file = EINSTEINDBConfig::from_file(file, None);
         assert_eq!(causetg_from_file.lmdb.wal_dir, s1);
-        assert_eq!(causetg_from_file.raftdb.wal_dir, s2);
+        assert_eq!(causetg_from_file.violetabftdb.wal_dir, s2);
 
         // write critical config when exist.
         einsteindb_causetg.lmdb.wal_dir = s2.clone();
-        einsteindb_causetg.raftdb.wal_dir = s1.clone();
+        einsteindb_causetg.violetabftdb.wal_dir = s1.clone();
         einsteindb_causetg.write_to_file(file).unwrap();
         let causetg_from_file = EINSTEINDBConfig::from_file(file, None);
         assert_eq!(causetg_from_file.lmdb.wal_dir, s2);
-        assert_eq!(causetg_from_file.raftdb.wal_dir, s1);
+        assert_eq!(causetg_from_file.violetabftdb.wal_dir, s1);
     }
 
     #[test]
@@ -2919,7 +2919,7 @@ mod tests {
         let path = root_path.path().join("not_exist_dir");
 
         let mut einsteindb_causetg = EINSTEINDBConfig::default();
-        einsteindb_causetg.persistence.data_dir = path.as_path().to_str().unwrap().to_owned();
+        einsteindb_causetg.causetStorage.data_dir = path.as_path().to_str().unwrap().to_owned();
         assert!(persist_config(&einsteindb_causetg).is_ok());
     }
 
@@ -2927,7 +2927,7 @@ mod tests {
     fn test_keepalive_check() {
         let mut einsteindb_causetg = EINSTEINDBConfig::default();
         einsteindb_causetg.fidel.lightlikepoints = vec!["".to_owned()];
-        let dur = einsteindb_causetg.raft_store.raft_heartbeat_interval();
+        let dur = einsteindb_causetg.violetabft_store.violetabft_heartbeat_interval();
         einsteindb_causetg.server.grpc_keepalive_time = ReadableDuration(dur);
         assert!(einsteindb_causetg.validate().is_err());
         einsteindb_causetg.server.grpc_keepalive_time = ReadableDuration(dur * 2);
@@ -2941,14 +2941,14 @@ mod tests {
         einsteindb_causetg.lmdb.defaultcauset.block_size = ReadableSize::gb(10);
         einsteindb_causetg.lmdb.lockcauset.block_size = ReadableSize::gb(10);
         einsteindb_causetg.lmdb.writecauset.block_size = ReadableSize::gb(10);
-        einsteindb_causetg.lmdb.raftcauset.block_size = ReadableSize::gb(10);
-        einsteindb_causetg.raftdb.defaultcauset.block_size = ReadableSize::gb(10);
+        einsteindb_causetg.lmdb.violetabftcauset.block_size = ReadableSize::gb(10);
+        einsteindb_causetg.violetabftdb.defaultcauset.block_size = ReadableSize::gb(10);
         assert!(einsteindb_causetg.validate().is_err());
         einsteindb_causetg.lmdb.defaultcauset.block_size = ReadableSize::kb(10);
         einsteindb_causetg.lmdb.lockcauset.block_size = ReadableSize::kb(10);
         einsteindb_causetg.lmdb.writecauset.block_size = ReadableSize::kb(10);
-        einsteindb_causetg.lmdb.raftcauset.block_size = ReadableSize::kb(10);
-        einsteindb_causetg.raftdb.defaultcauset.block_size = ReadableSize::kb(10);
+        einsteindb_causetg.lmdb.violetabftcauset.block_size = ReadableSize::kb(10);
+        einsteindb_causetg.violetabftdb.defaultcauset.block_size = ReadableSize::kb(10);
         einsteindb_causetg.validate().unwrap();
     }
 
@@ -3030,7 +3030,7 @@ mod tests {
             // wrong value type
             ("gc.max-write-bytes-per-sec".to_owned(), "10s".to_owned()),
             (
-                "pessimistic-txn.wait-for-lock-timeout".to_owned(),
+                "pessimistic-txn.wait-for-dagger-timeout".to_owned(),
                 "1MB".to_owned(),
             ),
             // missing or unknown config fields
@@ -3093,15 +3093,15 @@ mod tests {
     fn new_engines(causetg: EINSTEINDBConfig) -> (LmdbEngine, ConfigController) {
         let engine = LmdbEngine::from_db(Arc::new(
             new_engine_opt(
-                &causetg.persistence.data_dir,
+                &causetg.causetStorage.data_dir,
                 causetg.lmdb.build_opt(),
                 causetg.lmdb
-                    .build_causet_opts(&causetg.persistence.block_cache.build_shared_cache()),
+                    .build_causet_opts(&causetg.causetStorage.block_cache.build_shared_cache()),
             )
             .unwrap(),
         ));
 
-        let (shared, causetg_controller) = (causetg.persistence.block_cache.shared, ConfigController::new(causetg));
+        let (shared, causetg_controller) = (causetg.causetStorage.block_cache.shared, ConfigController::new(causetg));
         causetg_controller.register(
             Module::Lmdbdb,
             Box::new(DBConfigManger::new(engine.clone(), DBType::Kv, shared)),
@@ -3121,7 +3121,7 @@ mod tests {
         causetg.lmdb.defaultcauset.target_file_size_base = ReadableSize::mb(64);
         causetg.lmdb.defaultcauset.block_cache_size = ReadableSize::mb(8);
         causetg.lmdb.rate_bytes_per_sec = ReadableSize::mb(64);
-        causetg.persistence.block_cache.shared = false;
+        causetg.causetStorage.block_cache.shared = false;
         causetg.validate().unwrap();
         let (db, causetg_controller) = new_engines(causetg);
 
@@ -3176,17 +3176,17 @@ mod tests {
         assert_eq!(causet_opts.get_target_file_size_base(), ReadableSize::mb(32).0);
         assert_eq!(causet_opts.get_block_cache_capacity(), ReadableSize::mb(256).0);
 
-        // Can not ufidelate block cache through persistence module
+        // Can not ufidelate block cache through causetStorage module
         // when shared block cache is disabled
         assert!(causetg_controller
-            .ufidelate_config("persistence.block-cache.capacity", "512MB")
+            .ufidelate_config("causetStorage.block-cache.capacity", "512MB")
             .is_err());
     }
 
     #[test]
     fn test_change_shared_block_cache() {
         let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-        causetg.persistence.block_cache.shared = true;
+        causetg.causetStorage.block_cache.shared = true;
         causetg.validate().unwrap();
         let (db, causetg_controller) = new_engines(causetg);
 
@@ -3196,7 +3196,7 @@ mod tests {
             .is_err());
 
         causetg_controller
-            .ufidelate_config("persistence.block-cache.capacity", "256MB")
+            .ufidelate_config("causetStorage.block-cache.capacity", "256MB")
             .unwrap();
 
         let defaultcauset = db.causet_handle(CAUSET_DEFAULT).unwrap();
@@ -3246,23 +3246,23 @@ mod tests {
     #[test]
     fn test_readpool_compatible_adjust_config() {
         let content = r#"
-        [readpool.persistence]
+        [readpool.causetStorage]
         [readpool.interlock]
         "#;
         let mut causetg: EINSTEINDBConfig = toml::from_str(content).unwrap();
         causetg.compatible_adjust();
-        assert_eq!(causetg.readpool.persistence.use_unified_pool, Some(false));
+        assert_eq!(causetg.readpool.causetStorage.use_unified_pool, Some(false));
         assert_eq!(causetg.readpool.interlock.use_unified_pool, Some(true));
 
         let content = r#"
-        [readpool.persistence]
+        [readpool.causetStorage]
         stack-size = "10MB"
         [readpool.interlock]
         normal-concurrency = 1
         "#;
         let mut causetg: EINSTEINDBConfig = toml::from_str(content).unwrap();
         causetg.compatible_adjust();
-        assert_eq!(causetg.readpool.persistence.use_unified_pool, Some(false));
+        assert_eq!(causetg.readpool.causetStorage.use_unified_pool, Some(false));
         assert_eq!(causetg.readpool.interlock.use_unified_pool, Some(false));
     }
 
@@ -3305,7 +3305,7 @@ mod tests {
     }
 
     #[test]
-    fn test_raft_engine() {
+    fn test_violetabft_engine() {
         let content = r#"
             [violetabft-engine]
             enable = true
@@ -3314,8 +3314,8 @@ mod tests {
             purge-memory_barrier = "1GB"
         "#;
         let causetg: EINSTEINDBConfig = toml::from_str(content).unwrap();
-        assert!(causetg.raft_engine.enable);
-        let config = &causetg.raft_engine.config;
+        assert!(causetg.violetabft_engine.enable);
+        let config = &causetg.violetabft_engine.config;
         assert_eq!(
             config.recovery_mode,
             RecoveryMode::TolerateCorruptedTailRecords
@@ -3325,7 +3325,7 @@ mod tests {
     }
 
     #[test]
-    fn test_raft_engine_dir() {
+    fn test_violetabft_engine_dir() {
         let content = r#"
             [violetabft-engine]
             enable = true
@@ -3333,8 +3333,8 @@ mod tests {
         let mut causetg: EINSTEINDBConfig = toml::from_str(content).unwrap();
         causetg.validate().unwrap();
         assert_eq!(
-            causetg.raft_engine.config.dir,
-            config::canonicalize_sub_path(&causetg.persistence.data_dir, "violetabft-engine").unwrap()
+            causetg.violetabft_engine.config.dir,
+            config::canonicalize_sub_path(&causetg.causetStorage.data_dir, "violetabft-engine").unwrap()
         );
     }
 }

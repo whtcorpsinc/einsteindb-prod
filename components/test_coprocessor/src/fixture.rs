@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use super::*;
 
@@ -10,8 +10,8 @@ use einsteindb::config::CoprReadPoolConfig;
 use einsteindb::interlock::{readpool_impl, Endpoint};
 use einsteindb::read_pool::ReadPool;
 use einsteindb::server::Config;
-use einsteindb::persistence::kv::LmdbEngine;
-use einsteindb::persistence::{Engine, TestEngineBuilder};
+use einsteindb::causetStorage::kv::LmdbEngine;
+use einsteindb::causetStorage::{Engine, TestEngineBuilder};
 
 #[derive(Clone)]
 pub struct ProductTable(Table);

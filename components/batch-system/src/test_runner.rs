@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 //! A sample Handler for test and micro-benchmark purpose.
 
@@ -103,7 +103,7 @@ impl PollHandler<Runner, Runner> for Handler {
     }
 
     fn lightlike(&mut self, _normals: &mut [Box<Runner>]) {
-        let mut c = self.metrics.lock().unwrap();
+        let mut c = self.metrics.dagger().unwrap();
         *c += self.local;
         self.local = HandleMetrics::default();
     }

@@ -1,11 +1,11 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::vec::IntoIter;
 
 use engine_promises::CfName;
 use ekvproto::metapb::Brane;
 use ekvproto::fidelpb::CheckPolicy;
-use ekvproto::raft_cmdpb::{AdminRequest, AdminResponse, VioletaBftCmdRequest, VioletaBftCmdResponse, Request};
+use ekvproto::violetabft_cmdpb::{AdminRequest, AdminResponse, VioletaBftCmdRequest, VioletaBftCmdResponse, Request};
 use violetabft::StateRole;
 
 pub mod config;

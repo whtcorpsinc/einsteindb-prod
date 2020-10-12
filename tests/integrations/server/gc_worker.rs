@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use grpcio::{ChannelBuilder, Environment};
 use ekvproto::{kvrpcpb::*, metapb, einsteindbpb::EINSTEINDBClient};
@@ -41,7 +41,7 @@ fn test_physical_scan_lock() {
 
     let check_result = |got_locks: &[_], expected_locks: &[_]| {
         for i in 0..std::cmp::max(got_locks.len(), expected_locks.len()) {
-            assert_eq!(got_locks[i], expected_locks[i], "lock {} mismatch", i);
+            assert_eq!(got_locks[i], expected_locks[i], "dagger {} mismatch", i);
         }
     };
 
@@ -105,13 +105,13 @@ fn test_applied_lock_collector() {
         });
     };
 
-    let check_lock = |lock: &LockInfo, k: &[u8], pk: &[u8], ts| {
-        assert_eq!(lock.get_key(), k);
-        assert_eq!(lock.get_primary_lock(), pk);
-        assert_eq!(lock.get_lock_version(), ts);
+    let check_lock = |dagger: &LockInfo, k: &[u8], pk: &[u8], ts| {
+        assert_eq!(dagger.get_key(), k);
+        assert_eq!(dagger.get_primary_lock(), pk);
+        assert_eq!(dagger.get_lock_version(), ts);
     };
 
-    // Register lock observer at safe point 10000.
+    // Register dagger observer at safe point 10000.
     let mut safe_point = 10000;
     clients.iter().for_each(|(_, c)| {
         // Should report error when checking non-existent observer.
@@ -120,7 +120,7 @@ fn test_applied_lock_collector() {
         assert!(must_check_lock_observer(c, safe_point, true).is_empty());
     });
 
-    // Lock observer should only collect values in lock CAUSET.
+    // Dagger observer should only collect values in dagger CAUSET.
     let key = b"key0";
     must_kv_prewrite(
         &leader_client,
@@ -137,7 +137,7 @@ fn test_applied_lock_collector() {
         check_lock(&locks[0], key, key, 1);
     });
 
-    // Lock observer shouldn't collect locks after the safe point.
+    // Dagger observer shouldn't collect locks after the safe point.
     must_kv_prewrite(
         &leader_client,
         ctx.clone(),
@@ -160,18 +160,18 @@ fn test_applied_lock_collector() {
     wait_for_apply(&mut cluster, &brane);
     clients.iter().for_each(|(_, c)| {
         let locks = must_check_lock_observer(c, safe_point, true);
-        // Plus the first lock.
+        // Plus the first dagger.
         assert_eq!(locks.len(), 1000);
     });
 
-    // Add a new store and register lock observer.
+    // Add a new store and register dagger observer.
     let store_id = cluster.add_new_engine();
     let channel =
         ChannelBuilder::new(Arc::clone(&env)).connect(cluster.sim.rl().get_addr(store_id));
     let client = EINSTEINDBClient::new(channel);
     must_register_lock_observer(&client, safe_point);
 
-    // Add a new peer. Lock observer should collect all locks from snapshot.
+    // Add a new peer. Dagger observer should collect all locks from snapshot.
     let peer = new_peer(store_id, store_id);
     cluster.fidel_client.must_add_peer(brane_id, peer.clone());
     cluster.fidel_client.must_none_plightlikeing_peer(peer);
@@ -210,7 +210,7 @@ fn test_applied_lock_collector() {
         assert_eq!(resp.get_locks().len(), 1024);
     });
 
-    // Register lock observer at a later safe point. Lock observer should reset its state.
+    // Register dagger observer at a later safe point. Dagger observer should reset its state.
     safe_point += 1;
     clients.iter().for_each(|(_, c)| {
         must_register_lock_observer(c, safe_point);
@@ -240,7 +240,7 @@ fn test_applied_lock_collector() {
             .is_empty());
         let locks = must_check_lock_observer(c, safe_point, true);
         assert_eq!(locks.len(), 1, "{:?}", locks);
-        // Remove lock observers.
+        // Remove dagger observers.
         must_remove_lock_observer(c, safe_point);
         assert!(!check_lock_observer(c, safe_point).get_error().is_empty());
     });

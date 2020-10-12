@@ -45,7 +45,7 @@ impl Resolver {
 
     pub fn track_lock(&mut self, spacelike_ts: TimeStamp, key: Vec<u8>) {
         debug!(
-            "track lock {}@{}, brane {}",
+            "track dagger {}@{}, brane {}",
             hex::encode_upper(key.clone()),
             spacelike_ts,
             self.brane_id
@@ -60,7 +60,7 @@ impl Resolver {
         key: Vec<u8>,
     ) {
         debug!(
-            "untrack lock {}@{}, commit@{}, brane {}",
+            "untrack dagger {}@{}, commit@{}, brane {}",
             hex::encode_upper(key.clone()),
             spacelike_ts,
             commit_ts.clone().unwrap_or_else(TimeStamp::zero),
@@ -131,7 +131,7 @@ impl Resolver {
         self.resolved_ts = Some(cmp::max(old_resolved_ts, new_resolved_ts));
 
         let new_min_ts = if has_lock {
-            // If there are some lock, the min_ts must be smaller than
+            // If there are some dagger, the min_ts must be smaller than
             // the min spacelike ts, so it guarantees to be smaller than
             // any late arriving commit ts.
             new_resolved_ts // cmp::min(min_spacelike_ts, min_ts)
@@ -152,7 +152,7 @@ mod tests {
 
     #[derive(Clone)]
     enum Event {
-        Lock(u64, Key),
+        Dagger(u64, Key),
         Unlock(u64, Option<u64>, Key),
         // min_ts, expect
         Resolve(u64, u64),
@@ -161,49 +161,49 @@ mod tests {
     #[test]
     fn test_resolve() {
         let cases = vec![
-            vec![Event::Lock(1, Key::from_raw(b"a")), Event::Resolve(2, 1)],
+            vec![Event::Dagger(1, Key::from_raw(b"a")), Event::Resolve(2, 1)],
             vec![
-                Event::Lock(1, Key::from_raw(b"a")),
+                Event::Dagger(1, Key::from_raw(b"a")),
                 Event::Unlock(1, Some(2), Key::from_raw(b"a")),
                 Event::Resolve(2, 2),
             ],
             vec![
-                Event::Lock(3, Key::from_raw(b"a")),
+                Event::Dagger(3, Key::from_raw(b"a")),
                 Event::Unlock(3, Some(4), Key::from_raw(b"a")),
                 Event::Resolve(2, 2),
             ],
             vec![
-                Event::Lock(1, Key::from_raw(b"a")),
+                Event::Dagger(1, Key::from_raw(b"a")),
                 Event::Unlock(1, Some(2), Key::from_raw(b"a")),
-                Event::Lock(1, Key::from_raw(b"b")),
+                Event::Dagger(1, Key::from_raw(b"b")),
                 Event::Resolve(2, 1),
             ],
             vec![
-                Event::Lock(2, Key::from_raw(b"a")),
+                Event::Dagger(2, Key::from_raw(b"a")),
                 Event::Unlock(2, Some(3), Key::from_raw(b"a")),
                 Event::Resolve(2, 2),
                 // Pessimistic txn may write a smaller spacelike_ts.
-                Event::Lock(1, Key::from_raw(b"a")),
+                Event::Dagger(1, Key::from_raw(b"a")),
                 Event::Resolve(2, 2),
                 Event::Unlock(1, Some(4), Key::from_raw(b"a")),
                 Event::Resolve(3, 3),
             ],
             vec![
                 Event::Unlock(1, None, Key::from_raw(b"a")),
-                Event::Lock(2, Key::from_raw(b"a")),
+                Event::Dagger(2, Key::from_raw(b"a")),
                 Event::Unlock(2, None, Key::from_raw(b"a")),
                 Event::Unlock(2, None, Key::from_raw(b"a")),
                 Event::Resolve(3, 3),
             ],
             vec![
-                Event::Lock(2, Key::from_raw(b"a")),
+                Event::Dagger(2, Key::from_raw(b"a")),
                 Event::Resolve(4, 2),
                 Event::Unlock(2, Some(3), Key::from_raw(b"a")),
                 Event::Resolve(5, 5),
             ],
             // Rollback may contain a key that is not locked.
             vec![
-                Event::Lock(1, Key::from_raw(b"a")),
+                Event::Dagger(1, Key::from_raw(b"a")),
                 Event::Unlock(1, None, Key::from_raw(b"b")),
                 Event::Unlock(1, None, Key::from_raw(b"a")),
             ],
@@ -214,7 +214,7 @@ mod tests {
             resolver.init();
             for e in case.clone() {
                 match e {
-                    Event::Lock(spacelike_ts, key) => {
+                    Event::Dagger(spacelike_ts, key) => {
                         resolver.track_lock(spacelike_ts.into(), key.into_raw().unwrap())
                     }
                     Event::Unlock(spacelike_ts, commit_ts, key) => resolver.untrack_lock(
@@ -234,7 +234,7 @@ mod tests {
             let mut resolver = Resolver::new(1);
             for e in case {
                 match e {
-                    Event::Lock(spacelike_ts, key) => {
+                    Event::Dagger(spacelike_ts, key) => {
                         resolver.track_lock(spacelike_ts.into(), key.into_raw().unwrap())
                     }
                     Event::Unlock(spacelike_ts, commit_ts, key) => resolver.untrack_lock(

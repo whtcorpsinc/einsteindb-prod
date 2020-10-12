@@ -3,7 +3,7 @@
 use fidelpb::FieldType;
 
 use crate::interface::*;
-use milevadb_query_common::persistence::IntervalCone;
+use milevadb_query_common::causetStorage::IntervalCone;
 
 /// A simple mock executor that will return batch data according to a fixture without any
 /// modification.

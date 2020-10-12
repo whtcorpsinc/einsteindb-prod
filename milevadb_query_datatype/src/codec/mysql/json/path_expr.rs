@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 // Refer to https://dev.mysql.com/doc/refman/5.7/en/json-path-syntax.html
 // From MySQL 5.7, JSON path expression grammar:

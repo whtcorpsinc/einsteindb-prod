@@ -1,16 +1,16 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use milevadb_query_common::persistence::{
+use milevadb_query_common::causetStorage::{
     IntervalCone, OwnedKvPair, PointCone, Result as QEResult, CausetStorage,
 };
 
 use crate::interlock::Error;
-use crate::persistence::mvcc::NewerTsCheckState;
-use crate::persistence::Statistics;
-use crate::persistence::{Scanner, CausetStore};
+use crate::causetStorage::mvcc::NewerTsCheckState;
+use crate::causetStorage::Statistics;
+use crate::causetStorage::{Scanner, CausetStore};
 use txn_types::Key;
 
-/// A `CausetStorage` implementation over EinsteinDB's persistence.
+/// A `CausetStorage` implementation over EinsteinDB's causetStorage.
 pub struct EinsteinDBStorage<S: CausetStore> {
     store: S,
     scanner: Option<S::Scanner>,
@@ -61,7 +61,7 @@ impl<S: CausetStore> CausetStorage for EinsteinDBStorage<S> {
                     upper,
                 )
                 .map_err(Error::from)?,
-            // There is no transform from persistence error to QE's StorageError,
+            // There is no transform from causetStorage error to QE's StorageError,
             // so an intermediate error is needed.
         );
         Ok(())

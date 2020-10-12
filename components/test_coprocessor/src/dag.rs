@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use super::*;
 
@@ -216,22 +216,22 @@ impl DAGSelect {
             self.execs.push(exec);
         }
 
-        let mut dag = PosetDagRequest::default();
-        dag.set_executors(self.execs.into());
-        dag.set_flags(flags.iter().fold(0, |acc, f| acc | *f));
-        dag.set_collect_cone_counts(true);
+        let mut posetdag = PosetDagRequest::default();
+        posetdag.set_executors(self.execs.into());
+        posetdag.set_flags(flags.iter().fold(0, |acc, f| acc | *f));
+        posetdag.set_collect_cone_counts(true);
 
         let output_offsets = if self.output_offsets.is_some() {
             self.output_offsets.take().unwrap()
         } else {
             (0..self.cols.len() as u32).collect()
         };
-        dag.set_output_offsets(output_offsets);
+        posetdag.set_output_offsets(output_offsets);
 
         let mut req = Request::default();
         req.set_spacelike_ts(next_id() as u64);
         req.set_tp(REQ_TYPE_DAG);
-        req.set_data(dag.write_to_bytes().unwrap());
+        req.set_data(posetdag.write_to_bytes().unwrap());
         req.set_cones(vec![self.key_cone].into());
         req.set_context(ctx);
         req

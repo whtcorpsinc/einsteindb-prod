@@ -21,7 +21,7 @@ jemalloc = ["lmdb/jemalloc"]
 portable = ["lmdb/portable"]
 sse = ["lmdb/sse"]
 
-[deplightlikeencies]
+[dependencies]
 encryption = { path = "../encryption" }
 engine_promises = { path = "../engine_promises" }
 hex = "0.4"
@@ -44,14 +44,14 @@ ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-featur
 violetabft = { version = "0.6.0-alpha", default-features = false }
 protobuf = "2"
 
-[deplightlikeencies.lmdb]
+[dependencies.lmdb]
 git = "https://github.com/einsteindb/rust-lmdb.git"
 package = "lmdb"
 features = ["encryption", "static_libcpp"]
 
-[deplightlikeencies.prometheus-static-metric]
-git = "https://github.com/einsteindb/rust-prometheus.git"
-rev = "fd122caa03de8e7e5e4fae9372583aebf19e39f6"
+[dependencies.prometheus-static-metric]
+git = "https://github.com/whtcorpsinc/einsteindb/rust-prometheus.git"
+rev = ""
 
 [dev-deplightlikeencies]
 ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }

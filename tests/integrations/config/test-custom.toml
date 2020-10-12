@@ -12,7 +12,7 @@ max-thread-count = 10
 stack-size = "20MB"
 max-tasks-per-worker = 2200
 
-[readpool.persistence]
+[readpool.causetStorage]
 use-unified-pool = true
 high-concurrency = 1
 normal-concurrency = 3
@@ -67,7 +67,7 @@ enable-request-batch = false
 [server.labels]
 a = "b"
 
-[persistence]
+[causetStorage]
 data-dir = "/var"
 gc-ratio-memory_barrier = 1.2
 max-key-size = 8192
@@ -76,7 +76,7 @@ scheduler-worker-pool-size = 1
 scheduler-plightlikeing-write-memory_barrier = "123KB"
 enable-async-commit = false
 
-[persistence.block-cache]
+[causetStorage.block-cache]
 shared = true
 capacity = "40GB"
 num-shard-bits = 10
@@ -97,7 +97,7 @@ job = "einsteindb_1"
 [violetabftstore]
 sync-log = false
 prevote = false
-raftdb-path = "/var"
+violetabftdb-path = "/var"
 capacity = 123
 violetabft-base-tick-interval = "12s"
 violetabft-heartbeat-ticks = 1
@@ -126,8 +126,8 @@ fidel-heartbeat-tick-interval = "12m"
 fidel-store-heartbeat-tick-interval = "12s"
 snap-mgr-gc-tick-interval = "12m"
 snap-gc-timeout = "12h"
-lock-causet-compact-interval = "12m"
-lock-causet-compact-bytes-memory_barrier = "123MB"
+dagger-causet-compact-interval = "12m"
+dagger-causet-compact-bytes-memory_barrier = "123MB"
 notify-capacity = 12345
 messages-per-tick = 12345
 max-peer-down-duration = "12m"
@@ -348,7 +348,7 @@ force-consistency-checks = false
 prop-size-index-distance = 4000000
 prop-tuplespaceInstanton-index-distance = 40000
 
-[lmdb.raftcauset]
+[lmdb.violetabftcauset]
 block-size = "12KB"
 block-cache-size = "12GB"
 disable-block-cache = false
@@ -448,7 +448,7 @@ cone-merge = true
 max-sorted-runs = 100
 gc-merge-rewrite = true
 
-[raftdb]
+[violetabftdb]
 wal-recovery-mode = 3
 wal-dir = "/var"
 wal-ttl-seconds = 1
@@ -473,14 +473,14 @@ allow-concurrent-memtable-write = false
 bytes-per-sync = "1MB"
 wal-bytes-per-sync = "32KB"
 
-[raftdb.titan]
+[violetabftdb.titan]
 enabled = true
 dirname = "bar"
 disable-gc = false
 max-background-gc = 9
 purge-obsolete-files-period = "1s"
 
-[raftdb.defaultcauset]
+[violetabftdb.defaultcauset]
 block-size = "12KB"
 block-cache-size = "12GB"
 disable-block-cache = false
@@ -522,7 +522,7 @@ force-consistency-checks = false
 prop-size-index-distance = 4000000
 prop-tuplespaceInstanton-index-distance = 40000
 
-[raftdb.defaultcauset.titan]
+[violetabftdb.defaultcauset.titan]
 min-blob-size = "2018B"
 blob-file-compression = "zstd"
 blob-cache-size = "12GB"
@@ -577,7 +577,7 @@ compaction-filter-skip-version-check = true
 
 [pessimistic-txn]
 enabled = false # test backward compatibility
-wait-for-lock-timeout = "10ms"
+wait-for-dagger-timeout = "10ms"
 wake-up-delay-duration = 100 # test backward compatibility
 pipelined = true
 

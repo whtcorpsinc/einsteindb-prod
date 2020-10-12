@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::*;
@@ -6,11 +6,11 @@ use std::thread;
 use std::time::*;
 
 use ekvproto::metapb::Brane;
-use ekvproto::raft_serverpb::{PeerState, VioletaBftMessage, BraneLocalState};
-use violetabft::eraftpb::MessageType;
+use ekvproto::violetabft_serverpb::{PeerState, VioletaBftMessage, BraneLocalState};
+use violetabft::evioletabftpb::MessageType;
 
 use engine_lmdb::Compat;
-use engine_promises::{Peekable, CAUSET_RAFT};
+use engine_promises::{Peekable, CAUSET_VIOLETABFT};
 use fidel_client::FidelClient;
 use violetabftstore::store::*;
 use test_violetabftstore::*;
@@ -69,7 +69,7 @@ fn test_node_merge_rollback() {
         let state: BraneLocalState = cluster
             .get_engine(i)
             .c()
-            .get_msg_causet(CAUSET_RAFT, &state_key)
+            .get_msg_causet(CAUSET_VIOLETABFT, &state_key)
             .unwrap()
             .unwrap();
         assert_eq!(state.get_state(), PeerState::Normal);
@@ -98,7 +98,7 @@ fn test_node_merge_rollback() {
         let state: BraneLocalState = cluster
             .get_engine(i)
             .c()
-            .get_msg_causet(CAUSET_RAFT, &state_key)
+            .get_msg_causet(CAUSET_VIOLETABFT, &state_key)
             .unwrap()
             .unwrap();
         assert_eq!(state.get_state(), PeerState::Normal);
@@ -131,10 +131,10 @@ fn test_node_merge_respacelike() {
     cluster.shutdown();
     let engine = cluster.get_engine(leader.get_store_id());
     let state_key = tuplespaceInstanton::brane_state_key(left.get_id());
-    let state: BraneLocalState = engine.c().get_msg_causet(CAUSET_RAFT, &state_key).unwrap().unwrap();
+    let state: BraneLocalState = engine.c().get_msg_causet(CAUSET_VIOLETABFT, &state_key).unwrap().unwrap();
     assert_eq!(state.get_state(), PeerState::Merging, "{:?}", state);
     let state_key = tuplespaceInstanton::brane_state_key(right.get_id());
-    let state: BraneLocalState = engine.c().get_msg_causet(CAUSET_RAFT, &state_key).unwrap().unwrap();
+    let state: BraneLocalState = engine.c().get_msg_causet(CAUSET_VIOLETABFT, &state_key).unwrap().unwrap();
     assert_eq!(state.get_state(), PeerState::Normal, "{:?}", state);
     fail::remove(schedule_merge_fp);
     cluster.spacelike().unwrap();
@@ -150,7 +150,7 @@ fn test_node_merge_respacelike() {
         let state: BraneLocalState = cluster
             .get_engine(i)
             .c()
-            .get_msg_causet(CAUSET_RAFT, &state_key)
+            .get_msg_causet(CAUSET_VIOLETABFT, &state_key)
             .unwrap()
             .unwrap();
         assert_eq!(state.get_state(), PeerState::Tombstone, "{:?}", state);
@@ -158,7 +158,7 @@ fn test_node_merge_respacelike() {
         let state: BraneLocalState = cluster
             .get_engine(i)
             .c()
-            .get_msg_causet(CAUSET_RAFT, &state_key)
+            .get_msg_causet(CAUSET_VIOLETABFT, &state_key)
             .unwrap()
             .unwrap();
         assert_eq!(state.get_state(), PeerState::Normal, "{:?}", state);
@@ -178,7 +178,7 @@ fn test_node_merge_respacelike() {
     cluster.must_transfer_leader(left.get_id(), peer_on_store1);
     cluster.must_put(b"k11", b"v11");
     must_get_equal(&cluster.get_engine(3), b"k11", b"v11");
-    let skip_destroy_fp = "raft_store_skip_destroy_peer";
+    let skip_destroy_fp = "violetabft_store_skip_destroy_peer";
     fail::causetg(skip_destroy_fp, "return()").unwrap();
     cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
     fidel_client.must_merge(left.get_id(), right.get_id());
@@ -238,11 +238,11 @@ fn test_node_merge_catch_up_logs_respacelike() {
 fn test_node_merge_catch_up_logs_leader_election() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.raft_store.raft_base_tick_interval = ReadableDuration::millis(10);
-    cluster.causetg.raft_store.raft_election_timeout_ticks = 25;
-    cluster.causetg.raft_store.raft_log_gc_memory_barrier = 12;
-    cluster.causetg.raft_store.raft_log_gc_count_limit = 12;
-    cluster.causetg.raft_store.raft_log_gc_tick_interval = ReadableDuration::millis(100);
+    cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
+    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 25;
+    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 12;
+    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 12;
+    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(100);
     cluster.run();
 
     cluster.must_put(b"k1", b"v1");
@@ -298,11 +298,11 @@ fn test_node_merge_catch_up_logs_leader_election() {
 fn test_node_merge_catch_up_logs_no_need() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.raft_store.raft_base_tick_interval = ReadableDuration::millis(10);
-    cluster.causetg.raft_store.raft_election_timeout_ticks = 25;
-    cluster.causetg.raft_store.raft_log_gc_memory_barrier = 12;
-    cluster.causetg.raft_store.raft_log_gc_count_limit = 12;
-    cluster.causetg.raft_store.raft_log_gc_tick_interval = ReadableDuration::millis(100);
+    cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
+    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 25;
+    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 12;
+    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 12;
+    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(100);
     cluster.run();
 
     cluster.must_put(b"k1", b"v1");
@@ -367,8 +367,8 @@ fn test_node_merge_catch_up_logs_no_need() {
 fn test_node_merge_recover_snapshot() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.raft_store.raft_log_gc_memory_barrier = 12;
-    cluster.causetg.raft_store.raft_log_gc_count_limit = 12;
+    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 12;
+    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 12;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -427,10 +427,10 @@ fn test_node_merge_multiple_snapshots(together: bool) {
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
     // make it gc quickly to trigger snapshot easily
-    cluster.causetg.raft_store.raft_log_gc_tick_interval = ReadableDuration::millis(20);
-    cluster.causetg.raft_store.raft_base_tick_interval = ReadableDuration::millis(10);
-    cluster.causetg.raft_store.raft_log_gc_count_limit = 10;
-    cluster.causetg.raft_store.merge_max_log_gap = 9;
+    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
+    cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
+    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 10;
+    cluster.causetg.violetabft_store.merge_max_log_gap = 9;
     cluster.run();
 
     cluster.must_put(b"k1", b"v1");
@@ -496,7 +496,7 @@ fn test_node_merge_multiple_snapshots(together: bool) {
     // Let peer of right brane on store 3 to make applightlike response to trigger a new snapshot
     // one is snapshot before merge, the other is snapshot after merge.
     // Here blocks violetabftstore for a while to make it not to apply snapshot and receive new log now.
-    fail::causetg("on_raft_ready", "sleep(100)").unwrap();
+    fail::causetg("on_violetabft_ready", "sleep(100)").unwrap();
     cluster.clear_slightlike_filters();
     thread::sleep(Duration::from_millis(200));
     // Filter message again to make sure peer on store 3 can not catch up CommitMerge log
@@ -511,7 +511,7 @@ fn test_node_merge_multiple_snapshots(together: bool) {
             .msg_type(MessageType::MsgApplightlike),
     ));
     // Cause filter is added again, no need to block violetabftstore anymore
-    fail::causetg("on_raft_ready", "off").unwrap();
+    fail::causetg("on_violetabft_ready", "off").unwrap();
 
     // Wait some time to let already merged peer on store 1 or store 2 to notify
     // the peer of left brane on store 3 is stale.
@@ -630,19 +630,19 @@ fn test_node_request_snapshot_reject_merge() {
 fn test_node_merge_respacelike_after_apply_premerge_before_apply_compact_log() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.raft_store.merge_max_log_gap = 10;
-    cluster.causetg.raft_store.raft_log_gc_count_limit = 11;
+    cluster.causetg.violetabft_store.merge_max_log_gap = 10;
+    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 11;
     // Rely on this config to trigger a compact log
-    cluster.causetg.raft_store.raft_log_gc_size_limit = ReadableSize(1);
-    cluster.causetg.raft_store.raft_log_gc_tick_interval = ReadableDuration::millis(10);
+    cluster.causetg.violetabft_store.violetabft_log_gc_size_limit = ReadableSize(1);
+    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(10);
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
     cluster.run();
     // Prevent gc_log_tick to propose a compact log
-    let raft_gc_log_tick_fp = "on_raft_gc_log_tick";
-    fail::causetg(raft_gc_log_tick_fp, "return()").unwrap();
+    let violetabft_gc_log_tick_fp = "on_violetabft_gc_log_tick";
+    fail::causetg(violetabft_gc_log_tick_fp, "return()").unwrap();
     cluster.must_put(b"k1", b"v1");
     cluster.must_put(b"k3", b"v3");
 
@@ -672,7 +672,7 @@ fn test_node_merge_respacelike_after_apply_premerge_before_apply_compact_log() {
     fail::causetg(handle_apply_fp, "return()").unwrap();
 
     let state1 = cluster.truncated_state(left.get_id(), 1);
-    fail::remove(raft_gc_log_tick_fp);
+    fail::remove(violetabft_gc_log_tick_fp);
 
     // Wait for compact log to be proposed and committed maybe
     sleep_ms(30);
@@ -709,9 +709,9 @@ fn test_node_merge_respacelike_after_apply_premerge_before_apply_compact_log() {
 fn test_node_failed_merge_before_succeed_merge() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.raft_store.merge_max_log_gap = 30;
-    cluster.causetg.raft_store.store_batch_system.max_batch_size = 1;
-    cluster.causetg.raft_store.store_batch_system.pool_size = 2;
+    cluster.causetg.violetabft_store.merge_max_log_gap = 30;
+    cluster.causetg.violetabft_store.store_batch_system.max_batch_size = 1;
+    cluster.causetg.violetabft_store.store_batch_system.pool_size = 2;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -796,8 +796,8 @@ fn test_node_failed_merge_before_succeed_merge() {
 fn test_node_merge_transfer_leader() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.raft_store.store_batch_system.max_batch_size = 1;
-    cluster.causetg.raft_store.store_batch_system.pool_size = 2;
+    cluster.causetg.violetabft_store.store_batch_system.max_batch_size = 1;
+    cluster.causetg.violetabft_store.store_batch_system.pool_size = 2;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -823,8 +823,8 @@ fn test_node_merge_transfer_leader() {
     let left_peer_3 = find_peer(&left, 3).unwrap().to_owned();
     assert_eq!(left_peer_3.get_id(), 1003);
     // Prevent peer 1003 to handle ready when it's leader
-    let before_handle_raft_ready_1003 = "before_handle_raft_ready_1003";
-    fail::causetg(before_handle_raft_ready_1003, "pause").unwrap();
+    let before_handle_violetabft_ready_1003 = "before_handle_violetabft_ready_1003";
+    fail::causetg(before_handle_violetabft_ready_1003, "pause").unwrap();
 
     let epoch = cluster.get_brane_epoch(left.get_id());
     let mut transfer_leader_req =
@@ -839,7 +839,7 @@ fn test_node_merge_transfer_leader() {
 
     fidel_client.check_merged_timeout(left.get_id(), Duration::from_secs(5));
 
-    fail::remove(before_handle_raft_ready_1003);
+    fail::remove(before_handle_violetabft_ready_1003);
     sleep_ms(100);
     cluster.must_put(b"k4", b"v4");
     must_get_equal(&cluster.get_engine(3), b"k4", b"v4");
@@ -888,8 +888,8 @@ fn test_node_merge_cascade_merge_with_apply_yield() {
 fn test_node_multiple_rollback_merge() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.raft_store.right_derive_when_split = true;
-    cluster.causetg.raft_store.merge_check_tick_interval = ReadableDuration::millis(20);
+    cluster.causetg.violetabft_store.right_derive_when_split = true;
+    cluster.causetg.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(20);
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -972,12 +972,12 @@ fn test_node_multiple_rollback_merge() {
 #[test]
 fn test_node_merge_write_data_to_source_brane_after_merging() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.raft_store.merge_check_tick_interval = ReadableDuration::millis(100);
+    cluster.causetg.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(100);
     // For snapshot after merging
-    cluster.causetg.raft_store.merge_max_log_gap = 10;
-    cluster.causetg.raft_store.raft_log_gc_count_limit = 12;
-    cluster.causetg.raft_store.apply_batch_system.max_batch_size = 1;
-    cluster.causetg.raft_store.apply_batch_system.pool_size = 2;
+    cluster.causetg.violetabft_store.merge_max_log_gap = 10;
+    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 12;
+    cluster.causetg.violetabft_store.apply_batch_system.max_batch_size = 1;
+    cluster.causetg.violetabft_store.apply_batch_system.pool_size = 2;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -1077,22 +1077,22 @@ fn test_node_merge_write_data_to_source_brane_after_merging() {
 #[test]
 fn test_node_merge_crash_before_snapshot_then_catch_up_logs() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.raft_store.merge_max_log_gap = 10;
-    cluster.causetg.raft_store.raft_log_gc_count_limit = 11;
-    cluster.causetg.raft_store.raft_log_gc_tick_interval = ReadableDuration::millis(50);
+    cluster.causetg.violetabft_store.merge_max_log_gap = 10;
+    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 11;
+    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(50);
     // Make merge check resume quickly.
-    cluster.causetg.raft_store.raft_base_tick_interval = ReadableDuration::millis(10);
-    cluster.causetg.raft_store.raft_election_timeout_ticks = 10;
+    cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
+    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 10;
     // election timeout must be greater than lease
-    cluster.causetg.raft_store.raft_store_max_leader_lease = ReadableDuration::millis(99);
-    cluster.causetg.raft_store.merge_check_tick_interval = ReadableDuration::millis(100);
-    cluster.causetg.raft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
+    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration::millis(99);
+    cluster.causetg.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(100);
+    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
-    let on_raft_gc_log_tick_fp = "on_raft_gc_log_tick";
-    fail::causetg(on_raft_gc_log_tick_fp, "return()").unwrap();
+    let on_violetabft_gc_log_tick_fp = "on_violetabft_gc_log_tick";
+    fail::causetg(on_violetabft_gc_log_tick_fp, "return()").unwrap();
 
     cluster.run();
 
@@ -1114,7 +1114,7 @@ fn test_node_merge_crash_before_snapshot_then_catch_up_logs() {
     fidel_client.must_merge(left.get_id(), right.get_id());
 
     brane = fidel_client.get_brane(b"k1").unwrap();
-    // Write some logs and the logs' number is greater than `raft_log_gc_count_limit`
+    // Write some logs and the logs' number is greater than `violetabft_log_gc_count_limit`
     // for latter log compaction
     for i in 2..15 {
         cluster.must_put(format!("k{}", i).as_bytes(), b"v");
@@ -1139,7 +1139,7 @@ fn test_node_merge_crash_before_snapshot_then_catch_up_logs() {
 
     let state1 = cluster.truncated_state(brane.get_id(), 1);
     // Remove log compaction failpoint
-    fail::remove(on_raft_gc_log_tick_fp);
+    fail::remove(on_violetabft_gc_log_tick_fp);
     // Wait to trigger compact violetabft log
     let timer = Instant::now();
     loop {
@@ -1166,8 +1166,8 @@ fn test_node_merge_crash_before_snapshot_then_catch_up_logs() {
     // Source peer slightlikes msg to others to get target brane info until the election timeout.
     // The max election timeout is 2 * 10 * 10 = 200ms
     let election_timeout = 2
-        * cluster.causetg.raft_store.raft_base_tick_interval.as_millis()
-        * cluster.causetg.raft_store.raft_election_timeout_ticks as u64;
+        * cluster.causetg.violetabft_store.violetabft_base_tick_interval.as_millis()
+        * cluster.causetg.violetabft_store.violetabft_election_timeout_ticks as u64;
     sleep_ms(election_timeout + 100);
 
     cluster.stop_node(1);
@@ -1188,22 +1188,22 @@ fn test_node_merge_crash_before_snapshot_then_catch_up_logs() {
 #[test]
 fn test_node_merge_crash_when_snapshot() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.raft_store.merge_max_log_gap = 10;
-    cluster.causetg.raft_store.raft_log_gc_count_limit = 11;
-    cluster.causetg.raft_store.raft_log_gc_tick_interval = ReadableDuration::millis(50);
+    cluster.causetg.violetabft_store.merge_max_log_gap = 10;
+    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 11;
+    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(50);
     // Make merge check resume quickly.
-    cluster.causetg.raft_store.raft_base_tick_interval = ReadableDuration::millis(10);
-    cluster.causetg.raft_store.raft_election_timeout_ticks = 10;
+    cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
+    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 10;
     // election timeout must be greater than lease
-    cluster.causetg.raft_store.raft_store_max_leader_lease = ReadableDuration::millis(99);
-    cluster.causetg.raft_store.merge_check_tick_interval = ReadableDuration::millis(100);
-    cluster.causetg.raft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
+    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration::millis(99);
+    cluster.causetg.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(100);
+    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
-    let on_raft_gc_log_tick_fp = "on_raft_gc_log_tick";
-    fail::causetg(on_raft_gc_log_tick_fp, "return()").unwrap();
+    let on_violetabft_gc_log_tick_fp = "on_violetabft_gc_log_tick";
+    fail::causetg(on_violetabft_gc_log_tick_fp, "return()").unwrap();
 
     cluster.run();
 
@@ -1257,7 +1257,7 @@ fn test_node_merge_crash_when_snapshot() {
 
     let state1 = cluster.truncated_state(brane.get_id(), 1);
     // Remove log compaction failpoint
-    fail::remove(on_raft_gc_log_tick_fp);
+    fail::remove(on_violetabft_gc_log_tick_fp);
     // Wait to trigger compact violetabft log
     let timer = Instant::now();
     loop {

@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -11,7 +11,7 @@ use fidelpb::PrimaryCausetInfo;
 use fidelpb::{SelectResponse, StreamResponse};
 
 use einsteindb::interlock::Endpoint;
-use einsteindb::persistence::Engine;
+use einsteindb::causetStorage::Engine;
 
 static ID_GENERATOR: AtomicUsize = AtomicUsize::new(1);
 

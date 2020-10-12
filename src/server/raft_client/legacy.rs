@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::ffi::CString;
 use std::i64;
@@ -17,7 +17,7 @@ use futures::stream::{self, Stream, StreamExt};
 use futures::task::{Context, Poll};
 use futures::{FutureExt, SinkExt, TryFutureExt};
 use grpcio::{ChannelBuilder, Environment, Error as GrpcError, Result as GrpcResult, WriteFlags};
-use ekvproto::raft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use ekvproto::einsteindbpb::{BatchVioletaBftMessage, EINSTEINDBClient};
 use violetabftstore::router::VioletaBftStoreRouter;
 use security::SecurityManager;
@@ -29,8 +29,8 @@ use tokio_timer::timer::Handle;
 // When merge violetabft messages into a batch message, leave a buffer.
 const GRPC_SEND_MSG_BUF: usize = 64 * 1024;
 
-const RAFT_MSG_MAX_BATCH_SIZE: usize = 128;
-const RAFT_MSG_NOTIFY_SIZE: usize = 8;
+const VIOLETABFT_MSG_MAX_BATCH_SIZE: usize = 128;
+const VIOLETABFT_MSG_NOTIFY_SIZE: usize = 8;
 
 static CONN_ID: AtomicI32 = AtomicI32::new(0);
 
@@ -65,10 +65,10 @@ impl Conn {
         let client1 = EINSTEINDBClient::new(channel);
         let client2 = client1.clone();
 
-        let (tx, rx) = batch::unbounded::<VioletaBftMessage>(RAFT_MSG_NOTIFY_SIZE);
+        let (tx, rx) = batch::unbounded::<VioletaBftMessage>(VIOLETABFT_MSG_NOTIFY_SIZE);
         let rx = batch::BatchReceiver::new(
             rx,
-            RAFT_MSG_MAX_BATCH_SIZE,
+            VIOLETABFT_MSG_MAX_BATCH_SIZE,
             Vec::new,
             VioletaBftMsgCollector::new(causetg.max_grpc_slightlike_msg_len as usize),
         );
@@ -78,7 +78,7 @@ impl Conn {
         let rx2 = Arc::clone(&rx1);
         let (addr1, addr2) = (addr.to_owned(), addr.to_owned());
 
-        let (mut batch_sink, batch_receiver) = client1.batch_raft().unwrap();
+        let (mut batch_sink, batch_receiver) = client1.batch_violetabft().unwrap();
 
         let batch_slightlike_or_fallback = async move {
             let mut s = Reusable(rx1).map(move |v| {
@@ -93,7 +93,7 @@ impl Conn {
             }
             .await;
             let recv_res = batch_receiver.await;
-            let res = check_rpc_result("batch_raft", &addr1, slightlike_res.err(), recv_res.err());
+            let res = check_rpc_result("batch_violetabft", &addr1, slightlike_res.err(), recv_res.err());
             if res.is_ok() {
                 return Ok(());
             }
@@ -102,7 +102,7 @@ impl Conn {
                 return Err(false);
             }
             // Fallback to violetabft RPC.
-            warn!("batch_raft is unimplemented, fallback to violetabft");
+            warn!("batch_violetabft is unimplemented, fallback to violetabft");
             let (mut sink, receiver) = client2.violetabft().unwrap();
             let mut msgs = Reusable(rx2)
                 .map(|msgs| {
@@ -182,13 +182,13 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>> VioletaBftClient<T> {
     }
 
     fn get_conn(&mut self, addr: &str, brane_id: u64, store_id: u64) -> &mut Conn {
-        let index = brane_id as usize % self.causetg.grpc_raft_conn_num;
+        let index = brane_id as usize % self.causetg.grpc_violetabft_conn_num;
         match self.conns.entry((addr.to_owned(), index)) {
             HashMapEntry::Occupied(e) => e.into_mut(),
             HashMapEntry::Vacant(e) => {
                 let conn = Conn::new(
                     Arc::clone(&self.env),
-                    self.router.lock().unwrap().clone(),
+                    self.router.dagger().unwrap().clone(),
                     addr,
                     &self.causetg,
                     &self.security_mgr,
@@ -206,7 +206,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>> VioletaBftClient<T> {
             .slightlike(msg)
         {
             warn!("slightlike to {} fail, the gRPC connection could be broken", addr);
-            let index = msg.brane_id as usize % self.causetg.grpc_raft_conn_num;
+            let index = msg.brane_id as usize % self.causetg.grpc_violetabft_conn_num;
             self.conns.remove(&(addr.to_owned(), index));
 
             if let Some(current_addr) = self.addrs.remove(&store_id) {
@@ -242,8 +242,8 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>> VioletaBftClient<T> {
             }
             delay_counter += 1;
         }
-        RAFT_MESSAGE_FLUSH_COUNTER.inc_by(i64::from(counter));
-        RAFT_MESSAGE_DELAY_FLUSH_COUNTER.inc_by(i64::from(delay_counter));
+        VIOLETABFT_MESSAGE_FLUSH_COUNTER.inc_by(i64::from(counter));
+        VIOLETABFT_MESSAGE_DELAY_FLUSH_COUNTER.inc_by(i64::from(delay_counter));
     }
 }
 
@@ -275,12 +275,12 @@ impl BatchCollector<Vec<VioletaBftMessage>, VioletaBftMessage> for VioletaBftMsg
     }
 }
 
-// Reusable is for fallback batch_raft call to violetabft call.
+// Reusable is for fallback batch_violetabft call to violetabft call.
 struct Reusable<T>(Arc<Mutex<T>>);
 impl<T: Stream + Unpin> Stream for Reusable<T> {
     type Item = T::Item;
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let mut t = self.0.lock().unwrap();
+        let mut t = self.0.dagger().unwrap();
         Pin::new(&mut *t).poll_next(cx)
     }
 }

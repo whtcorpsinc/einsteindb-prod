@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::borrow::Cow;
 use std::collections::Bound::{Excluded, Included, Unbounded};
@@ -7,25 +7,25 @@ use std::time::Instant;
 use std::{cmp, u64};
 
 use batch_system::{BasicMailbox, Fsm};
-use engine_promises::CAUSET_RAFT;
+use engine_promises::CAUSET_VIOLETABFT;
 use engine_promises::{Engines, KvEngine, VioletaBftEngine, WriteBatchExt};
 use error_code::ErrorCodeExt;
 use ekvproto::errorpb;
 use ekvproto::import_sstpb::SstMeta;
 use ekvproto::metapb::{self, Brane, BraneEpoch};
 use ekvproto::fidelpb::CheckPolicy;
-use ekvproto::raft_cmdpb::{
+use ekvproto::violetabft_cmdpb::{
     AdminCmdType, AdminRequest, CmdType, VioletaBftCmdRequest, VioletaBftCmdResponse, Request, StatusCmdType,
     StatusResponse,
 };
-use ekvproto::raft_serverpb::{
+use ekvproto::violetabft_serverpb::{
     ExtraMessageType, MergeState, PeerState, VioletaBftMessage, VioletaBftSnapshotData, VioletaBftTruncatedState,
     BraneLocalState,
 };
 use ekvproto::replication_modepb::{DrAutoSyncState, ReplicationMode};
 use fidel_client::FidelClient;
 use protobuf::Message;
-use violetabft::eraftpb::{ConfChangeType, MessageType};
+use violetabft::evioletabftpb::{ConfChangeType, MessageType};
 use violetabft::{self, SnapshotStatus, INVALID_INDEX, NO_LIMIT};
 use violetabft::{Ready, StateRole};
 use einsteindb_util::collections::HashMap;
@@ -108,8 +108,8 @@ where
     skip_split_count: usize,
     /// Sometimes applied violetabft logs won't be compacted in time, because less compact means less
     /// sync-log in apply threads. Stale logs will be deleted if the skip time reaches this
-    /// `skip_gc_raft_log_ticks`.
-    skip_gc_raft_log_ticks: usize,
+    /// `skip_gc_violetabft_log_ticks`.
+    skip_gc_violetabft_log_ticks: usize,
 
     // Batch violetabft command which has the same header into an entry
     batch_req_builder: BatchVioletaBftCmdRequestBuilder<EK>,
@@ -119,7 +119,7 @@ pub struct BatchVioletaBftCmdRequestBuilder<E>
 where
     E: KvEngine,
 {
-    raft_entry_max_size: f64,
+    violetabft_entry_max_size: f64,
     batch_req_size: u32,
     request: Option<VioletaBftCmdRequest>,
     callbacks: Vec<(Callback<E::Snapshot>, usize)>,
@@ -196,9 +196,9 @@ where
                 mailbox: None,
                 receiver: rx,
                 skip_split_count: 0,
-                skip_gc_raft_log_ticks: 0,
+                skip_gc_violetabft_log_ticks: 0,
                 batch_req_builder: BatchVioletaBftCmdRequestBuilder::new(
-                    causetg.raft_entry_max_size.0 as f64,
+                    causetg.violetabft_entry_max_size.0 as f64,
                 ),
             }),
         ))
@@ -239,9 +239,9 @@ where
                 mailbox: None,
                 receiver: rx,
                 skip_split_count: 0,
-                skip_gc_raft_log_ticks: 0,
+                skip_gc_violetabft_log_ticks: 0,
                 batch_req_builder: BatchVioletaBftCmdRequestBuilder::new(
-                    causetg.raft_entry_max_size.0 as f64,
+                    causetg.violetabft_entry_max_size.0 as f64,
                 ),
             }),
         ))
@@ -280,9 +280,9 @@ impl<E> BatchVioletaBftCmdRequestBuilder<E>
 where
     E: KvEngine,
 {
-    fn new(raft_entry_max_size: f64) -> BatchVioletaBftCmdRequestBuilder<E> {
+    fn new(violetabft_entry_max_size: f64) -> BatchVioletaBftCmdRequestBuilder<E> {
         BatchVioletaBftCmdRequestBuilder {
-            raft_entry_max_size,
+            violetabft_entry_max_size,
             request: None,
             batch_req_size: 0,
             callbacks: vec![],
@@ -290,10 +290,10 @@ where
     }
 
     fn can_batch(&self, req: &VioletaBftCmdRequest, req_size: u32) -> bool {
-        // No batch request whose size exceed 20% of raft_entry_max_size,
-        // so total size of request in batch_raft_request would not exceed
-        // (40% + 20%) of raft_entry_max_size
-        if req.get_requests().is_empty() || f64::from(req_size) > self.raft_entry_max_size * 0.2 {
+        // No batch request whose size exceed 20% of violetabft_entry_max_size,
+        // so total size of request in batch_violetabft_request would not exceed
+        // (40% + 20%) of violetabft_entry_max_size
+        if req.get_requests().is_empty() || f64::from(req_size) > self.violetabft_entry_max_size * 0.2 {
             return false;
         }
         for r in req.get_requests() {
@@ -334,9 +334,9 @@ where
 
     fn should_finish(&self) -> bool {
         if let Some(batch_req) = self.request.as_ref() {
-            // Limit the size of batch request so that it will not exceed raft_entry_max_size after
+            // Limit the size of batch request so that it will not exceed violetabft_entry_max_size after
             // adding header.
-            if f64::from(self.batch_req_size) > self.raft_entry_max_size * 0.4 {
+            if f64::from(self.batch_req_size) > self.violetabft_entry_max_size * 0.4 {
                 return true;
             }
             if batch_req.get_requests().len() > <E as WriteBatchExt>::WRITE_BATCH_MAX_KEYS {
@@ -434,7 +434,7 @@ where
         for m in msgs.drain(..) {
             match m {
                 PeerMsg::VioletaBftMessage(msg) => {
-                    if let Err(e) = self.on_raft_message(msg) {
+                    if let Err(e) = self.on_violetabft_message(msg) {
                         error!(%e;
                             "handle violetabft message err";
                             "brane_id" => self.fsm.brane_id(),
@@ -444,7 +444,7 @@ where
                 }
                 PeerMsg::VioletaBftCommand(cmd) => {
                     self.ctx
-                        .raft_metrics
+                        .violetabft_metrics
                         .propose
                         .request_wait_time
                         .observe(duration_to_sec(cmd.slightlike_time.elapsed()) as f64);
@@ -452,11 +452,11 @@ where
                     if self.fsm.batch_req_builder.can_batch(&cmd.request, req_size) {
                         self.fsm.batch_req_builder.add(cmd, req_size);
                         if self.fsm.batch_req_builder.should_finish() {
-                            self.propose_batch_raft_command();
+                            self.propose_batch_violetabft_command();
                         }
                     } else {
-                        self.propose_batch_raft_command();
-                        self.propose_raft_command(cmd.request, cmd.callback)
+                        self.propose_batch_violetabft_command();
+                        self.propose_violetabft_command(cmd.request, cmd.callback)
                     }
                 }
                 PeerMsg::Tick(tick) => self.on_tick(tick),
@@ -476,16 +476,16 @@ where
             }
         }
         // Propose batch request which may be still waiting for more violetabft-command
-        self.propose_batch_raft_command();
+        self.propose_batch_violetabft_command();
     }
 
-    fn propose_batch_raft_command(&mut self) {
+    fn propose_batch_violetabft_command(&mut self) {
         if let Some(cmd) = self
             .fsm
             .batch_req_builder
-            .build(&mut self.ctx.raft_metrics.propose)
+            .build(&mut self.ctx.violetabft_metrics.propose)
         {
-            self.propose_raft_command(cmd.request, cmd.callback)
+            self.propose_violetabft_command(cmd.request, cmd.callback)
         }
     }
 
@@ -494,7 +494,7 @@ where
             .peer
             .switch_replication_mode(&self.ctx.global_replication_state);
         if self.fsm.peer.is_leader() {
-            self.reset_raft_tick(GroupState::Ordered);
+            self.reset_violetabft_tick(GroupState::Ordered);
             self.register_fidel_heartbeat_tick();
         }
     }
@@ -546,7 +546,7 @@ where
                 debug!("spacelike ticking for overlapped"; "brane_id" => self.brane_id(), "peer_id" => self.fsm.peer_id());
                 // Maybe do some safe check first?
                 self.fsm.group_state = GroupState::Chaos;
-                self.register_raft_base_tick();
+                self.register_violetabft_base_tick();
 
                 if is_learner(&self.fsm.peer.peer) {
                     // FIXME: should use `bcast_check_stale_peer_message` instead.
@@ -561,7 +561,7 @@ where
                 self.fsm.has_ready = true;
             }
             CasualMessage::ForceCompactVioletaBftLogs => {
-                self.on_raft_gc_log_tick(true);
+                self.on_violetabft_gc_log_tick(true);
             }
             CasualMessage::AccessPeer(cb) => cb(&mut self.fsm.peer as &mut dyn AbstractPeer),
         }
@@ -579,8 +579,8 @@ where
         );
         self.fsm.tick_registry.remove(tick);
         match tick {
-            PeerTicks::VIOLETABFT => self.on_raft_base_tick(),
-            PeerTicks::RAFT_LOG_GC => self.on_raft_gc_log_tick(false),
+            PeerTicks::VIOLETABFT => self.on_violetabft_base_tick(),
+            PeerTicks::VIOLETABFT_LOG_GC => self.on_violetabft_gc_log_tick(false),
             PeerTicks::FIDel_HEARTBEAT => self.on_fidel_heartbeat_tick(),
             PeerTicks::SPLIT_REGION_CHECK => self.on_split_brane_check_tick(),
             PeerTicks::CHECK_MERGE => self.on_check_merge(),
@@ -590,15 +590,15 @@ where
     }
 
     fn spacelike(&mut self) {
-        self.register_raft_base_tick();
-        self.register_raft_gc_log_tick();
+        self.register_violetabft_base_tick();
+        self.register_violetabft_gc_log_tick();
         self.register_fidel_heartbeat_tick();
         self.register_split_brane_check_tick();
         self.register_check_peer_stale_state_tick();
         self.on_check_merge();
         // Apply committed entries more quickly.
-        if self.fsm.peer.raft_group.store().committed_index()
-            > self.fsm.peer.raft_group.store().applied_index()
+        if self.fsm.peer.violetabft_group.store().committed_index()
+            > self.fsm.peer.violetabft_group.store().applied_index()
         {
             self.fsm.has_ready = true;
         }
@@ -695,12 +695,12 @@ where
         brane_epoch: BraneEpoch,
         cb: Callback<EK::Snapshot>,
     ) {
-        fail_point!("raft_on_capture_change");
+        fail_point!("violetabft_on_capture_change");
         let brane_id = self.brane_id();
         let msg =
             new_read_index_request(brane_id, brane_epoch.clone(), self.fsm.peer.peer.clone());
         let apply_router = self.ctx.apply_router.clone();
-        self.propose_raft_command(
+        self.propose_violetabft_command(
             msg,
             Callback::Read(Box::new(move |resp| {
                 // Return the error
@@ -730,20 +730,20 @@ where
             }
             SignificantMsg::Unreachable { to_peer_id, .. } => {
                 if self.fsm.peer.is_leader() {
-                    self.fsm.peer.raft_group.report_unreachable(to_peer_id);
+                    self.fsm.peer.violetabft_group.report_unreachable(to_peer_id);
                 } else if to_peer_id == self.fsm.peer.leader_id() {
                     self.fsm.group_state = GroupState::Chaos;
-                    self.register_raft_base_tick();
+                    self.register_violetabft_base_tick();
                 }
             }
             SignificantMsg::StoreUnreachable { store_id } => {
                 if let Some(peer_id) = util::find_peer(self.brane(), store_id).map(|p| p.get_id())
                 {
                     if self.fsm.peer.is_leader() {
-                        self.fsm.peer.raft_group.report_unreachable(peer_id);
+                        self.fsm.peer.violetabft_group.report_unreachable(peer_id);
                     } else if peer_id == self.fsm.peer.leader_id() {
                         self.fsm.group_state = GroupState::Chaos;
-                        self.register_raft_base_tick();
+                        self.register_violetabft_base_tick();
                     }
                 }
             }
@@ -758,7 +758,7 @@ where
                 self.on_catch_up_logs_for_merge(catch_up_logs);
             }
             SignificantMsg::StoreResolved { store_id, group_id } => {
-                let state = self.ctx.global_replication_state.lock().unwrap();
+                let state = self.ctx.global_replication_state.dagger().unwrap();
                 if state.status().get_mode() != ReplicationMode::DrAutoSync {
                     return;
                 }
@@ -768,7 +768,7 @@ where
                 drop(state);
                 self.fsm
                     .peer
-                    .raft_group
+                    .violetabft_group
                     .violetabft
                     .assign_commit_groups(&[(store_id, group_id)]);
             }
@@ -805,7 +805,7 @@ where
             "to" => ?to_peer,
             "status" => ?status,
         );
-        self.fsm.peer.raft_group.report_snapshot(to_peer_id, status)
+        self.fsm.peer.violetabft_group.report_snapshot(to_peer_id, status)
     }
 
     fn on_leader_callback(&mut self, cb: Callback<EK::Snapshot>) {
@@ -814,13 +814,13 @@ where
             self.brane().get_brane_epoch().clone(),
             self.fsm.peer.peer.clone(),
         );
-        self.propose_raft_command(msg, cb);
+        self.propose_violetabft_command(msg, cb);
     }
 
     fn on_role_changed(&mut self, ready: &Ready) {
         // Ufidelate leader lease when the VioletaBft state changes.
         if let Some(ss) = ready.ss() {
-            if StateRole::Leader == ss.raft_state {
+            if StateRole::Leader == ss.violetabft_state {
                 self.fsm.missing_ticks = 0;
                 self.register_split_brane_check_tick();
                 self.fsm.peer.heartbeat_fidel(&self.ctx);
@@ -837,11 +837,11 @@ where
         }
         self.ctx.plightlikeing_count += 1;
         self.ctx.has_ready = true;
-        let res = self.fsm.peer.handle_raft_ready_applightlike(self.ctx);
+        let res = self.fsm.peer.handle_violetabft_ready_applightlike(self.ctx);
         if let Some(r) = res {
             self.on_role_changed(&r.0);
             if !r.0.entries().is_empty() {
-                self.register_raft_gc_log_tick();
+                self.register_violetabft_gc_log_tick();
                 self.register_split_brane_check_tick();
             }
             self.ctx.ready_res.push(r);
@@ -849,7 +849,7 @@ where
     }
 
     #[inline]
-    pub fn handle_raft_ready_apply(&mut self, ready: &mut Ready, invoke_ctx: &InvokeContext) {
+    pub fn handle_violetabft_ready_apply(&mut self, ready: &mut Ready, invoke_ctx: &InvokeContext) {
         self.fsm.early_apply = ready
             .committed_entries
             .as_ref()
@@ -862,30 +862,30 @@ where
         }
         self.fsm
             .peer
-            .handle_raft_ready_apply(self.ctx, ready, invoke_ctx);
+            .handle_violetabft_ready_apply(self.ctx, ready, invoke_ctx);
     }
 
-    pub fn post_raft_ready_applightlike(&mut self, mut ready: Ready, invoke_ctx: InvokeContext) {
+    pub fn post_violetabft_ready_applightlike(&mut self, mut ready: Ready, invoke_ctx: InvokeContext) {
         let is_merging = self.fsm.peer.plightlikeing_merge_state.is_some();
         if !self.fsm.early_apply {
             self.fsm
                 .peer
-                .handle_raft_ready_apply(self.ctx, &mut ready, &invoke_ctx);
+                .handle_violetabft_ready_apply(self.ctx, &mut ready, &invoke_ctx);
         }
         let res = self
             .fsm
             .peer
-            .post_raft_ready_applightlike(self.ctx, &mut ready, invoke_ctx);
-        self.fsm.peer.handle_raft_ready_advance(ready);
+            .post_violetabft_ready_applightlike(self.ctx, &mut ready, invoke_ctx);
+        self.fsm.peer.handle_violetabft_ready_advance(ready);
         let mut has_snapshot = false;
         if let Some(apply_res) = res {
             self.on_ready_apply_snapshot(apply_res);
             has_snapshot = true;
-            self.register_raft_base_tick();
+            self.register_violetabft_base_tick();
         }
         if self.fsm.peer.leader_unreachable {
             self.fsm.group_state = GroupState::Chaos;
-            self.register_raft_base_tick();
+            self.register_violetabft_base_tick();
             self.fsm.peer.leader_unreachable = false;
         }
         if is_merging && has_snapshot {
@@ -959,13 +959,13 @@ where
         self.ctx.tick_batch[idx].ticks.push(cb);
     }
 
-    fn register_raft_base_tick(&mut self) {
+    fn register_violetabft_base_tick(&mut self) {
         // If we register violetabft base tick failed, the whole violetabft can't run correctly,
         // TODO: shutdown the store?
         self.schedule_tick(PeerTicks::VIOLETABFT)
     }
 
-    fn on_raft_base_tick(&mut self) {
+    fn on_violetabft_base_tick(&mut self) {
         if self.fsm.peer.plightlikeing_remove {
             self.fsm.peer.mut_store().flush_cache_metrics();
             return;
@@ -977,7 +977,7 @@ where
             // need to check if snapshot is applied.
             self.fsm.has_ready = true;
             self.fsm.missing_ticks = 0;
-            self.register_raft_base_tick();
+            self.register_violetabft_base_tick();
             return;
         }
 
@@ -988,21 +988,21 @@ where
             if self.fsm.group_state == GroupState::Idle {
                 // missing_ticks should be less than election timeout ticks otherwise
                 // follower may tick more than an election timeout in chaos state.
-                // Before stopping tick, `missing_tick` should be `raft_election_timeout_ticks` - 2
-                // - `raft_heartbeat_ticks` (default 10 - 2 - 2 = 6)
+                // Before stopping tick, `missing_tick` should be `violetabft_election_timeout_ticks` - 2
+                // - `violetabft_heartbeat_ticks` (default 10 - 2 - 2 = 6)
                 // and the follwer's `election_elapsed` in violetabft-rs is 1.
-                // After the group state becomes Chaos, the next tick will call `raft_group.tick`
+                // After the group state becomes Chaos, the next tick will call `violetabft_group.tick`
                 // `missing_tick` + 1 times(default 7).
                 // Then the follower's `election_elapsed` will be 1 + `missing_tick` + 1
                 // (default 1 + 6 + 1 = 8) which is less than the min election timeout.
                 // The reason is that we don't want let all followers become (pre)candidate if one
                 // follower may receive a request, then becomes (pre)candidate and slightlikes (pre)vote msg
-                // to others. As long as the leader can wake up and broadcast hearbeats in one `raft_heartbeat_ticks`
+                // to others. As long as the leader can wake up and broadcast hearbeats in one `violetabft_heartbeat_ticks`
                 // time(default 2s), no more followers will wake up and slightlikes vote msg again.
-                if self.fsm.missing_ticks + 2 + self.ctx.causetg.raft_heartbeat_ticks
-                    < self.ctx.causetg.raft_election_timeout_ticks
+                if self.fsm.missing_ticks + 2 + self.ctx.causetg.violetabft_heartbeat_ticks
+                    < self.ctx.causetg.violetabft_election_timeout_ticks
                 {
-                    self.register_raft_base_tick();
+                    self.register_violetabft_base_tick();
                     self.fsm.missing_ticks += 1;
                 }
                 return;
@@ -1010,14 +1010,14 @@ where
             res = Some(self.fsm.peer.check_before_tick(&self.ctx.causetg));
             if self.fsm.missing_ticks > 0 {
                 for _ in 0..self.fsm.missing_ticks {
-                    if self.fsm.peer.raft_group.tick() {
+                    if self.fsm.peer.violetabft_group.tick() {
                         self.fsm.has_ready = true;
                     }
                 }
                 self.fsm.missing_ticks = 0;
             }
         }
-        if self.fsm.peer.raft_group.tick() {
+        if self.fsm.peer.violetabft_group.tick() {
             self.fsm.has_ready = true;
         }
 
@@ -1028,7 +1028,7 @@ where
             !self.fsm.peer.check_after_tick(self.fsm.group_state, res.unwrap()) ||
             (self.fsm.peer.is_leader() && !self.ctx.is_hibernate_timeout())
         {
-            self.register_raft_base_tick();
+            self.register_violetabft_base_tick();
             return;
         }
 
@@ -1037,7 +1037,7 @@ where
         // Followers will stop ticking at L789. Keep ticking for followers
         // to allow it to campaign quickly when abnormal situation is detected.
         if !self.fsm.peer.is_leader() {
-            self.register_raft_base_tick();
+            self.register_violetabft_base_tick();
         } else {
             self.register_fidel_heartbeat_tick();
         }
@@ -1078,7 +1078,7 @@ where
                 } else {
                     // Wait for its target peer to apply snapshot and then slightlike `MergeResult` back
                     // to destroy itself
-                    let mut meta = self.ctx.store_meta.lock().unwrap();
+                    let mut meta = self.ctx.store_meta.dagger().unwrap();
                     // The `need_atomic` flag must be true
                     assert!(*meta.destroyed_brane_for_snap.get(&brane_id).unwrap());
 
@@ -1095,7 +1095,7 @@ where
         }
     }
 
-    fn on_raft_message(&mut self, mut msg: VioletaBftMessage) -> Result<()> {
+    fn on_violetabft_message(&mut self, mut msg: VioletaBftMessage) -> Result<()> {
         debug!(
             "handle violetabft message";
             "brane_id" => self.brane_id(),
@@ -1105,7 +1105,7 @@ where
             "to_peer_id" => msg.get_to_peer().get_id(),
         );
 
-        if !self.validate_raft_msg(&msg) {
+        if !self.validate_violetabft_msg(&msg) {
             return Ok(());
         }
         if self.fsm.peer.plightlikeing_remove || self.fsm.stopped {
@@ -1158,10 +1158,10 @@ where
         {
             if self.fsm.group_state != GroupState::Chaos {
                 self.fsm.group_state = GroupState::Chaos;
-                self.register_raft_base_tick();
+                self.register_violetabft_base_tick();
             }
         } else if msg.get_from_peer().get_id() == self.fsm.peer.leader_id() {
-            self.reset_raft_tick(GroupState::Ordered);
+            self.reset_violetabft_tick(GroupState::Ordered);
         }
 
         let from_peer_id = msg.get_from_peer().get_id();
@@ -1172,7 +1172,7 @@ where
         if is_snapshot {
             if !self.fsm.peer.has_plightlikeing_snapshot() {
                 // This snapshot is rejected by violetabft-rs.
-                let mut meta = self.ctx.store_meta.lock().unwrap();
+                let mut meta = self.ctx.store_meta.dagger().unwrap();
                 meta.plightlikeing_snapshot_branes
                     .retain(|r| self.fsm.brane_id() != r.get_id());
             } else {
@@ -1195,7 +1195,7 @@ where
         }
 
         if self.fsm.peer.should_wake_up {
-            self.reset_raft_tick(GroupState::Ordered);
+            self.reset_violetabft_tick(GroupState::Ordered);
         }
 
         self.fsm.has_ready = true;
@@ -1206,7 +1206,7 @@ where
         match msg.get_extra_msg().get_type() {
             ExtraMessageType::MsgBraneWakeUp | ExtraMessageType::MsgCheckStalePeer => {
                 if self.fsm.group_state == GroupState::Idle {
-                    self.reset_raft_tick(GroupState::Ordered);
+                    self.reset_violetabft_tick(GroupState::Ordered);
                 }
             }
             ExtraMessageType::MsgWantRollbackMerge => {
@@ -1224,15 +1224,15 @@ where
         }
     }
 
-    fn reset_raft_tick(&mut self, state: GroupState) {
+    fn reset_violetabft_tick(&mut self, state: GroupState) {
         self.fsm.group_state = state;
         self.fsm.missing_ticks = 0;
         self.fsm.peer.should_wake_up = false;
-        self.register_raft_base_tick();
+        self.register_violetabft_base_tick();
     }
 
     // return false means the message is invalid, and can be ignored.
-    fn validate_raft_msg(&mut self, msg: &VioletaBftMessage) -> bool {
+    fn validate_violetabft_msg(&mut self, msg: &VioletaBftMessage) -> bool {
         let brane_id = msg.get_brane_id();
         let to = msg.get_to_peer();
 
@@ -1243,7 +1243,7 @@ where
                 "to_store_id" => to.get_store_id(),
                 "my_store_id" => self.store_id(),
             );
-            self.ctx.raft_metrics.message_dropped.mismatch_store_id += 1;
+            self.ctx.violetabft_metrics.message_dropped.mismatch_store_id += 1;
             return false;
         }
 
@@ -1252,7 +1252,7 @@ where
                 "missing epoch in violetabft message, ignore it";
                 "brane_id" => brane_id,
             );
-            self.ctx.raft_metrics.message_dropped.mismatch_brane_epoch += 1;
+            self.ctx.violetabft_metrics.message_dropped.mismatch_brane_epoch += 1;
             return false;
         }
 
@@ -1315,7 +1315,7 @@ where
                     "peer_id" => self.fsm.peer_id(),
                     "target_peer" => ?target,
                 );
-                self.ctx.raft_metrics.message_dropped.stale_msg += 1;
+                self.ctx.violetabft_metrics.message_dropped.stale_msg += 1;
                 true
             }
             cmp::Ordering::Greater => {
@@ -1342,7 +1342,7 @@ where
                             }
                         }
                     }
-                    None => self.ctx.raft_metrics.message_dropped.applying_snap += 1,
+                    None => self.ctx.violetabft_metrics.message_dropped.applying_snap += 1,
                 }
                 true
             }
@@ -1369,7 +1369,7 @@ where
         // is the state of target peer at the time when source peer is merged. So here we record the
         // merge target epoch version to let the target peer on this store to decide whether to
         // destroy the source peer.
-        let mut meta = self.ctx.store_meta.lock().unwrap();
+        let mut meta = self.ctx.store_meta.dagger().unwrap();
         meta.targets_map.insert(self.brane_id(), target_brane_id);
         let v = meta
             .plightlikeing_merge_targets
@@ -1446,7 +1446,7 @@ where
                 "brane_id" => self.fsm.brane_id(),
                 "peer_id" => self.fsm.peer_id(),
             );
-            self.ctx.raft_metrics.message_dropped.stale_msg += 1;
+            self.ctx.violetabft_metrics.message_dropped.stale_msg += 1;
             return;
         }
         // TODO: ask fidel to guarantee we are stale now.
@@ -1457,7 +1457,7 @@ where
             "to_peer" => ?msg.get_to_peer(),
         );
         match self.fsm.peer.maybe_destroy(&self.ctx) {
-            None => self.ctx.raft_metrics.message_dropped.applying_snap += 1,
+            None => self.ctx.violetabft_metrics.message_dropped.applying_snap += 1,
             Some(job) => {
                 self.handle_destroy_peer(job);
             }
@@ -1503,11 +1503,11 @@ where
                 "snap" => ?snap_brane,
                 "to_peer" => ?msg.get_to_peer(),
             );
-            self.ctx.raft_metrics.message_dropped.brane_no_peer += 1;
+            self.ctx.violetabft_metrics.message_dropped.brane_no_peer += 1;
             return Ok(Either::Left(key));
         }
 
-        let mut meta = self.ctx.store_meta.lock().unwrap();
+        let mut meta = self.ctx.store_meta.dagger().unwrap();
         if meta.branes[&self.brane_id()] != *self.brane() {
             if !self.fsm.peer.is_initialized() {
                 info!(
@@ -1515,7 +1515,7 @@ where
                     "brane_id" => self.fsm.brane_id(),
                     "peer_id" => self.fsm.peer_id(),
                 );
-                self.ctx.raft_metrics.message_dropped.stale_msg += 1;
+                self.ctx.violetabft_metrics.message_dropped.stale_msg += 1;
                 return Ok(Either::Left(key));
             } else {
                 panic!(
@@ -1549,7 +1549,7 @@ where
                     "brane" => ?brane,
                     "snap" => ?snap_brane,
                 );
-                self.ctx.raft_metrics.message_dropped.brane_overlap += 1;
+                self.ctx.violetabft_metrics.message_dropped.brane_overlap += 1;
                 return Ok(Either::Left(key));
             }
         }
@@ -1611,7 +1611,7 @@ where
             }
         }
         if is_overlapped {
-            self.ctx.raft_metrics.message_dropped.brane_overlap += 1;
+            self.ctx.violetabft_metrics.message_dropped.brane_overlap += 1;
             return Ok(Either::Left(key));
         }
 
@@ -1630,7 +1630,7 @@ where
             //    parent peer. It means leader has applied merge and split at least one time. However,
             //    the prerequisite of merge includes the initialization of all target peers and source peers,
             //    which is conflict with 1.
-            let plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.lock().unwrap();
+            let plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.dagger().unwrap();
             let status = plightlikeing_create_peers.get(&brane_id).cloned();
             if status != Some((self.fsm.peer_id(), false)) {
                 drop(plightlikeing_create_peers);
@@ -1646,7 +1646,7 @@ where
         if branes_to_destroy.is_empty() {
             return;
         }
-        let mut meta = self.ctx.store_meta.lock().unwrap();
+        let mut meta = self.ctx.store_meta.dagger().unwrap();
         assert!(!meta.atomic_snap_branes.contains_key(&self.fsm.brane_id()));
         for (source_brane_id, merge_to_this_peer) in branes_to_destroy {
             if !meta.branes.contains_key(&source_brane_id) {
@@ -1678,7 +1678,7 @@ where
             } else {
                 MergeResultKind::Stale
             };
-            // Use `unwrap` is ok because the StoreMeta lock is held and these source peers still
+            // Use `unwrap` is ok because the StoreMeta dagger is held and these source peers still
             // exist in branes and brane_cones map.
             // It deplightlikes on the implementation of `destroy_peer`
             self.ctx
@@ -1738,7 +1738,7 @@ where
         // Mark itself as plightlikeing_remove
         self.fsm.peer.plightlikeing_remove = true;
 
-        let mut meta = self.ctx.store_meta.lock().unwrap();
+        let mut meta = self.ctx.store_meta.dagger().unwrap();
 
         if meta.atomic_snap_branes.contains_key(&self.brane_id()) {
             drop(meta);
@@ -1781,8 +1781,8 @@ where
             // data too.
             panic!("{} destroy err {:?}", self.fsm.peer.tag, e);
         }
-        // Some places use `force_slightlike().unwrap()` if the StoreMeta lock is held.
-        // So in here, it's necessary to held the StoreMeta lock when closing the router.
+        // Some places use `force_slightlike().unwrap()` if the StoreMeta dagger is held.
+        // So in here, it's necessary to held the StoreMeta dagger when closing the router.
         self.ctx.router.close(brane_id);
         self.fsm.stop();
 
@@ -1800,7 +1800,7 @@ where
         }
 
         if self.fsm.peer.local_first_replicate {
-            let mut plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.lock().unwrap();
+            let mut plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.dagger().unwrap();
             if is_initialized {
                 assert!(plightlikeing_create_peers.get(&brane_id).is_none());
             } else {
@@ -1858,8 +1858,8 @@ where
         }
 
         let change_type = cp.conf_change.get_change_type();
-        if cp.index >= self.fsm.peer.raft_group.violetabft.raft_log.first_index() {
-            match self.fsm.peer.raft_group.apply_conf_change(&cp.conf_change) {
+        if cp.index >= self.fsm.peer.violetabft_group.violetabft.violetabft_log.first_index() {
+            match self.fsm.peer.violetabft_group.apply_conf_change(&cp.conf_change) {
                 Ok(_) => {}
                 // FIDel could dispatch redundant conf changes.
                 Err(violetabft::Error::NotExists(_, _)) | Err(violetabft::Error::Exists(_, _)) => {}
@@ -1870,7 +1870,7 @@ where
         }
 
         {
-            let mut meta = self.ctx.store_meta.lock().unwrap();
+            let mut meta = self.ctx.store_meta.dagger().unwrap();
             meta.set_brane(&self.ctx.interlock_host, cp.brane, &mut self.fsm.peer);
         }
 
@@ -1882,7 +1882,7 @@ where
                 let group_id = self
                     .ctx
                     .global_replication_state
-                    .lock()
+                    .dagger()
                     .unwrap()
                     .group
                     .group_id(self.fsm.peer.replication_mode_version, peer.store_id);
@@ -1890,7 +1890,7 @@ where
                     info!("ufidelating group"; "peer_id" => peer.id, "group_id" => group_id.unwrap());
                     self.fsm
                         .peer
-                        .raft_group
+                        .violetabft_group
                         .violetabft
                         .assign_commit_groups(&[(peer.id, group_id.unwrap())]);
                 }
@@ -1958,8 +1958,8 @@ where
         let total_cnt = self.fsm.peer.last_applying_idx - first_index;
         // the size of current CompactLog command can be ignored.
         let remain_cnt = self.fsm.peer.last_applying_idx - state.get_index() - 1;
-        self.fsm.peer.raft_log_size_hint =
-            self.fsm.peer.raft_log_size_hint * remain_cnt / total_cnt;
+        self.fsm.peer.violetabft_log_size_hint =
+            self.fsm.peer.violetabft_log_size_hint * remain_cnt / total_cnt;
         let compact_to = state.get_index() + 1;
         let task = VioletaBftlogGcTask::gc(
             self.fsm.peer.get_store().get_brane_id(),
@@ -1968,7 +1968,7 @@ where
         );
         self.fsm.peer.last_compacted_idx = compact_to;
         self.fsm.peer.mut_store().compact_to(compact_to);
-        if let Err(e) = self.ctx.raftlog_gc_scheduler.schedule(task) {
+        if let Err(e) = self.ctx.violetabftlog_gc_scheduler.schedule(task) {
             error!(
                 "failed to schedule compact task";
                 "brane_id" => self.fsm.brane_id(),
@@ -1985,7 +1985,7 @@ where
         new_split_branes: HashMap<u64, apply::NewSplitPeer>,
     ) {
         self.register_split_brane_check_tick();
-        let mut meta = self.ctx.store_meta.lock().unwrap();
+        let mut meta = self.ctx.store_meta.dagger().unwrap();
         let brane_id = derived.get_id();
         meta.set_brane(&self.ctx.interlock_host, derived, &mut self.fsm.peer);
         self.fsm.peer.post_split();
@@ -2052,7 +2052,7 @@ where
             }
 
             {
-                let mut plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.lock().unwrap();
+                let mut plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.dagger().unwrap();
                 assert_eq!(
                     plightlikeing_create_peers.remove(&new_brane_id),
                     Some((new_split_peer.peer_id, true))
@@ -2095,7 +2095,7 @@ where
                     panic!("create new split brane {:?} err {:?}", new_brane, e);
                 }
             };
-            let mut replication_state = self.ctx.global_replication_state.lock().unwrap();
+            let mut replication_state = self.ctx.global_replication_state.dagger().unwrap();
             new_peer.peer.init_replication_mode(&mut *replication_state);
             drop(replication_state);
 
@@ -2170,7 +2170,7 @@ where
             .ctx
             .engines
             .kv
-            .get_msg_causet::<BraneLocalState>(CAUSET_RAFT, &state_key)?
+            .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &state_key)?
         {
             if util::is_epoch_stale(
                 target_brane.get_brane_epoch(),
@@ -2241,7 +2241,7 @@ where
     fn validate_merge_peer(&self, target_brane: &metapb::Brane) -> Result<bool> {
         let target_brane_id = target_brane.get_id();
         let exist_brane = {
-            let meta = self.ctx.store_meta.lock().unwrap();
+            let meta = self.ctx.store_meta.dagger().unwrap();
             meta.branes.get(&target_brane_id).cloned()
         };
         if let Some(r) = exist_brane {
@@ -2372,7 +2372,7 @@ where
             request.set_admin_request(admin);
             request
         };
-        self.propose_raft_command(req, Callback::None);
+        self.propose_violetabft_command(req, Callback::None);
     }
 
     fn on_check_merge(&mut self) {
@@ -2396,7 +2396,7 @@ where
                 if self
                     .fsm
                     .peer
-                    .raft_group
+                    .violetabft_group
                     .violetabft
                     .prs()
                     .has_quorum(&self.fsm.peer.want_rollback_merge_peers)
@@ -2436,7 +2436,7 @@ where
 
     fn on_ready_prepare_merge(&mut self, brane: metapb::Brane, state: MergeState) {
         {
-            let mut meta = self.ctx.store_meta.lock().unwrap();
+            let mut meta = self.ctx.store_meta.dagger().unwrap();
             meta.set_brane(&self.ctx.interlock_host, brane, &mut self.fsm.peer);
         }
 
@@ -2524,7 +2524,7 @@ where
 
     fn on_ready_commit_merge(&mut self, brane: metapb::Brane, source: metapb::Brane) {
         self.register_split_brane_check_tick();
-        let mut meta = self.ctx.store_meta.lock().unwrap();
+        let mut meta = self.ctx.store_meta.dagger().unwrap();
 
         let prev = meta.brane_cones.remove(&enc_lightlike_key(&source));
         assert_eq!(prev, Some(source.get_id()));
@@ -2612,7 +2612,7 @@ where
         self.fsm.peer.want_rollback_merge_peers.clear();
 
         if let Some(r) = brane {
-            let mut meta = self.ctx.store_meta.lock().unwrap();
+            let mut meta = self.ctx.store_meta.dagger().unwrap();
             meta.set_brane(&self.ctx.interlock_host, r, &mut self.fsm.peer);
         }
         if self.fsm.peer.is_leader() {
@@ -2649,7 +2649,7 @@ where
         // If the merge succeed, all source peers are impossible in apply snapshot state
         // and must be initialized.
         {
-            let meta = self.ctx.store_meta.lock().unwrap();
+            let meta = self.ctx.store_meta.dagger().unwrap();
             if meta.atomic_snap_branes.contains_key(&self.brane_id()) {
                 panic!(
                     "{} is applying atomic snapshot on getting merge result, target brane id {}, target peer {:?}, merge result type {:?}",
@@ -2737,14 +2737,14 @@ where
         );
 
         if prev_brane.get_peers() != brane.get_peers() {
-            let mut state = self.ctx.global_replication_state.lock().unwrap();
+            let mut state = self.ctx.global_replication_state.dagger().unwrap();
             let gb = state
                 .calculate_commit_group(self.fsm.peer.replication_mode_version, brane.get_peers());
-            self.fsm.peer.raft_group.violetabft.clear_commit_group();
-            self.fsm.peer.raft_group.violetabft.assign_commit_groups(gb);
+            self.fsm.peer.violetabft_group.violetabft.clear_commit_group();
+            self.fsm.peer.violetabft_group.violetabft.assign_commit_groups(gb);
         }
 
-        let mut meta = self.ctx.store_meta.lock().unwrap();
+        let mut meta = self.ctx.store_meta.dagger().unwrap();
         debug!(
             "check snapshot cone";
             "brane_id" => self.fsm.brane_id(),
@@ -2797,7 +2797,7 @@ where
         } else if self.fsm.peer.local_first_replicate {
             // This peer is uninitialized previously.
             // More accurately, the `BraneLocalState` has been persisted so the data can be removed from `plightlikeing_create_peers`.
-            let mut plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.lock().unwrap();
+            let mut plightlikeing_create_peers = self.ctx.plightlikeing_create_peers.dagger().unwrap();
             assert_eq!(
                 plightlikeing_create_peers.remove(&self.fsm.brane_id()),
                 Some((self.fsm.peer_id(), false))
@@ -2894,7 +2894,7 @@ where
         if msg.get_admin_request().has_prepare_merge() {
             let target_brane = msg.get_admin_request().get_prepare_merge().get_target();
             {
-                let meta = self.ctx.store_meta.lock().unwrap();
+                let meta = self.ctx.store_meta.dagger().unwrap();
                 match meta.branes.get(&target_brane.get_id()) {
                     Some(r) => {
                         if r != target_brane {
@@ -2948,13 +2948,13 @@ where
         Ok(())
     }
 
-    fn pre_propose_raft_command(
+    fn pre_propose_violetabft_command(
         &mut self,
         msg: &VioletaBftCmdRequest,
     ) -> Result<Option<VioletaBftCmdResponse>> {
         // Check store_id, make sure that the msg is dispatched to the right place.
         if let Err(e) = util::check_store_id(msg, self.store_id()) {
-            self.ctx.raft_metrics.invalid_proposal.mismatch_store_id += 1;
+            self.ctx.violetabft_metrics.invalid_proposal.mismatch_store_id += 1;
             return Err(e);
         }
         if msg.has_status_request() {
@@ -2980,21 +2980,21 @@ where
         }
         let allow_replica_read = read_only && msg.get_header().get_replica_read();
         if !(self.fsm.peer.is_leader() || is_read_index_request || allow_replica_read) {
-            self.ctx.raft_metrics.invalid_proposal.not_leader += 1;
+            self.ctx.violetabft_metrics.invalid_proposal.not_leader += 1;
             let leader = self.fsm.peer.get_peer_from_cache(leader_id);
             self.fsm.group_state = GroupState::Chaos;
-            self.register_raft_base_tick();
+            self.register_violetabft_base_tick();
             return Err(Error::NotLeader(brane_id, leader));
         }
         // peer_id must be the same as peer's.
         if let Err(e) = util::check_peer_id(msg, self.fsm.peer.peer_id()) {
-            self.ctx.raft_metrics.invalid_proposal.mismatch_peer_id += 1;
+            self.ctx.violetabft_metrics.invalid_proposal.mismatch_peer_id += 1;
             return Err(e);
         }
         // check whether the peer is initialized.
         if !self.fsm.peer.is_initialized() {
             self.ctx
-                .raft_metrics
+                .violetabft_metrics
                 .invalid_proposal
                 .brane_not_initialized += 1;
             return Err(Error::BraneNotInitialized(brane_id));
@@ -3002,7 +3002,7 @@ where
         // If the peer is applying snapshot, it may drop some slightlikeing messages, that could
         // make clients wait for response until timeout.
         if self.fsm.peer.is_applying_snapshot() {
-            self.ctx.raft_metrics.invalid_proposal.is_applying_snapshot += 1;
+            self.ctx.violetabft_metrics.invalid_proposal.is_applying_snapshot += 1;
             // TODO: replace to a more suitable error.
             return Err(Error::Other(box_err!(
                 "{} peer is applying snapshot",
@@ -3011,7 +3011,7 @@ where
         }
         // Check whether the term is stale.
         if let Err(e) = util::check_term(msg, self.fsm.peer.term()) {
-            self.ctx.raft_metrics.invalid_proposal.stale_command += 1;
+            self.ctx.violetabft_metrics.invalid_proposal.stale_command += 1;
             return Err(e);
         }
 
@@ -3025,7 +3025,7 @@ where
                 if let Some(sibling_brane) = sibling_brane {
                     new_branes.push(sibling_brane);
                 }
-                self.ctx.raft_metrics.invalid_proposal.epoch_not_match += 1;
+                self.ctx.violetabft_metrics.invalid_proposal.epoch_not_match += 1;
                 Err(Error::EpochNotMatch(msg, new_branes))
             }
             Err(e) => Err(e),
@@ -3033,8 +3033,8 @@ where
         }
     }
 
-    fn propose_raft_command(&mut self, mut msg: VioletaBftCmdRequest, cb: Callback<EK::Snapshot>) {
-        match self.pre_propose_raft_command(&msg) {
+    fn propose_violetabft_command(&mut self, mut msg: VioletaBftCmdRequest, cb: Callback<EK::Snapshot>) {
+        match self.pre_propose_violetabft_command(&msg) {
             Ok(Some(resp)) => {
                 cb.invoke_with_response(resp);
                 return;
@@ -3084,7 +3084,7 @@ where
         }
 
         if self.fsm.peer.should_wake_up {
-            self.reset_raft_tick(GroupState::Ordered);
+            self.reset_violetabft_tick(GroupState::Ordered);
         }
 
         self.register_fidel_heartbeat_tick();
@@ -3099,31 +3099,31 @@ where
         } else {
             Excluded(enc_lightlike_key(self.fsm.peer.brane()))
         };
-        let meta = self.ctx.store_meta.lock().unwrap();
+        let meta = self.ctx.store_meta.dagger().unwrap();
         meta.brane_cones
             .cone((spacelike, Unbounded::<Vec<u8>>))
             .next()
             .map(|(_, brane_id)| meta.branes[brane_id].to_owned())
     }
 
-    fn register_raft_gc_log_tick(&mut self) {
-        self.schedule_tick(PeerTicks::RAFT_LOG_GC)
+    fn register_violetabft_gc_log_tick(&mut self) {
+        self.schedule_tick(PeerTicks::VIOLETABFT_LOG_GC)
     }
 
     #[allow(clippy::if_same_then_else)]
-    fn on_raft_gc_log_tick(&mut self, force_compact: bool) {
+    fn on_violetabft_gc_log_tick(&mut self, force_compact: bool) {
         if !self.fsm.peer.get_store().is_cache_empty() || !self.ctx.causetg.hibernate_branes {
-            self.register_raft_gc_log_tick();
+            self.register_violetabft_gc_log_tick();
         }
-        fail_point!("on_raft_log_gc_tick_1", self.fsm.peer_id() == 1, |_| {});
-        fail_point!("on_raft_gc_log_tick", |_| {});
+        fail_point!("on_violetabft_log_gc_tick_1", self.fsm.peer_id() == 1, |_| {});
+        fail_point!("on_violetabft_gc_log_tick", |_| {});
         debug_assert!(!self.fsm.stopped);
 
         // As leader, we would not keep caches for the peers that didn't response heartbeat in the
         // last few seconds. That happens probably because another EinsteinDB is down. In this case if we
         // do not clean up the cache, it may keep growing.
         let drop_cache_duration =
-            self.ctx.causetg.raft_heartbeat_interval() + self.ctx.causetg.raft_entry_cache_life_time.0;
+            self.ctx.causetg.violetabft_heartbeat_interval() + self.ctx.causetg.violetabft_entry_cache_life_time.0;
         let cache_alive_limit = Instant::now() - drop_cache_duration;
 
         let mut total_gc_logs = 0;
@@ -3151,7 +3151,7 @@ where
         let truncated_idx = self.fsm.peer.get_store().truncated_index();
         let last_idx = self.fsm.peer.get_store().last_index();
         let (mut replicated_idx, mut alive_cache_idx) = (last_idx, last_idx);
-        for (peer_id, p) in self.fsm.peer.raft_group.violetabft.prs().iter() {
+        for (peer_id, p) in self.fsm.peer.violetabft_group.violetabft.prs().iter() {
             if replicated_idx > p.matched {
                 replicated_idx = p.matched;
             }
@@ -3183,9 +3183,9 @@ where
 
         let mut compact_idx = if force_compact
             // Too many logs between applied index and first index.
-            || (applied_idx > first_idx && applied_idx - first_idx >= self.ctx.causetg.raft_log_gc_count_limit)
+            || (applied_idx > first_idx && applied_idx - first_idx >= self.ctx.causetg.violetabft_log_gc_count_limit)
             // VioletaBft log size ecceeds the limit.
-            || (self.fsm.peer.raft_log_size_hint >= self.ctx.causetg.raft_log_gc_size_limit.0)
+            || (self.fsm.peer.violetabft_log_size_hint >= self.ctx.causetg.violetabft_log_gc_size_limit.0)
         {
             applied_idx
         } else if replicated_idx < first_idx || last_idx - first_idx < 3 {
@@ -3195,12 +3195,12 @@ where
             // [entries...][the entry at `compact_idx`][the last entry][new compaction entry]
             //             |-------------------- entries will be left ----------------------|
             return;
-        } else if replicated_idx - first_idx < self.ctx.causetg.raft_log_gc_memory_barrier
-            && self.fsm.skip_gc_raft_log_ticks < self.ctx.causetg.raft_log_reserve_max_ticks
+        } else if replicated_idx - first_idx < self.ctx.causetg.violetabft_log_gc_memory_barrier
+            && self.fsm.skip_gc_violetabft_log_ticks < self.ctx.causetg.violetabft_log_reserve_max_ticks
         {
-            // Logs will only be kept `max_ticks` * `raft_log_gc_tick_interval`.
-            self.fsm.skip_gc_raft_log_ticks += 1;
-            self.register_raft_gc_log_tick();
+            // Logs will only be kept `max_ticks` * `violetabft_log_gc_tick_interval`.
+            self.fsm.skip_gc_violetabft_log_ticks += 1;
+            self.register_violetabft_gc_log_tick();
             return;
         } else {
             replicated_idx
@@ -3219,11 +3219,11 @@ where
         let peer = self.fsm.peer.peer.clone();
         let term = self.fsm.peer.get_index_term(compact_idx);
         let request = new_compact_log_request(brane_id, peer, compact_idx, term);
-        self.propose_raft_command(request, Callback::None);
+        self.propose_violetabft_command(request, Callback::None);
 
-        self.fsm.skip_gc_raft_log_ticks = 0;
-        self.register_raft_gc_log_tick();
-        PEER_GC_RAFT_LOG_COUNTER.inc_by(total_gc_logs as i64);
+        self.fsm.skip_gc_violetabft_log_ticks = 0;
+        self.register_violetabft_gc_log_tick();
+        PEER_GC_VIOLETABFT_LOG_COUNTER.inc_by(total_gc_logs as i64);
     }
 
     fn register_split_brane_check_tick(&mut self) {
@@ -3497,7 +3497,7 @@ where
             } else if self.fsm.group_state == GroupState::Chaos {
                 // Register tick if it's not yet. Only when it fails to receive ping from leader
                 // after two stale check can a follower actually tick.
-                self.register_raft_base_tick();
+                self.register_violetabft_base_tick();
             }
         }
 
@@ -3528,9 +3528,9 @@ where
                     "expect" => %self.ctx.causetg.abnormal_leader_missing_duration,
                 );
                 self.ctx
-                    .raft_metrics
+                    .violetabft_metrics
                     .leader_missing
-                    .lock()
+                    .dagger()
                     .unwrap()
                     .insert(self.brane_id());
             }
@@ -3616,7 +3616,7 @@ where
             self.fsm.peer.peer.clone(),
             &self.fsm.peer.consistency_state,
         );
-        self.propose_raft_command(req, Callback::None);
+        self.propose_violetabft_command(req, Callback::None);
     }
 
     fn on_ingest_sst_result(&mut self, ssts: Vec<SstMeta>) {
@@ -3870,7 +3870,7 @@ mod tests {
     use crate::store::msg::{Callback, VioletaBftCommand};
 
     use engine_lmdb::LmdbEngine;
-    use ekvproto::raft_cmdpb::{
+    use ekvproto::violetabft_cmdpb::{
         AdminRequest, CmdType, PutRequest, VioletaBftCmdRequest, VioletaBftCmdResponse, Request, Response,
         StatusRequest,
     };
@@ -3879,7 +3879,7 @@ mod tests {
     use std::sync::Arc;
 
     #[test]
-    fn test_batch_raft_cmd_request_builder() {
+    fn test_batch_violetabft_cmd_request_builder() {
         let max_batch_size = 1000.0;
         let mut builder = BatchVioletaBftCmdRequestBuilder::<LmdbEngine>::new(max_batch_size);
         let mut q = Request::default();

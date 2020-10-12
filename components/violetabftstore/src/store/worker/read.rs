@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::cell::Cell;
 use std::fmt::{self, Display, Formatter};
@@ -11,7 +11,7 @@ use crossbeam::TrySlightlikeError;
 use ekvproto::errorpb;
 use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
 use ekvproto::metapb;
-use ekvproto::raft_cmdpb::{
+use ekvproto::violetabft_cmdpb::{
     CmdType, VioletaBftCmdRequest, VioletaBftCmdResponse, ReadIndexResponse, Request, Response,
 };
 use time::Timespec;
@@ -349,10 +349,10 @@ where
         cmd.callback.invoke_read(read_resp);
     }
 
-    fn pre_propose_raft_command(&mut self, req: &VioletaBftCmdRequest) -> Result<Option<ReadDelegate>> {
+    fn pre_propose_violetabft_command(&mut self, req: &VioletaBftCmdRequest) -> Result<Option<ReadDelegate>> {
         // Check store id.
         if self.store_id.get().is_none() {
-            let store_id = self.store_meta.lock().unwrap().store_id;
+            let store_id = self.store_meta.dagger().unwrap().store_id;
             self.store_id.set(store_id);
         }
         let store_id = self.store_id.get().unwrap();
@@ -421,7 +421,7 @@ where
         }
     }
 
-    pub fn propose_raft_command(
+    pub fn propose_violetabft_command(
         &mut self,
         mut read_id: Option<ThreadReadId>,
         req: VioletaBftCmdRequest,
@@ -429,7 +429,7 @@ where
     ) {
         let brane_id = req.get_header().get_brane_id();
         loop {
-            match self.pre_propose_raft_command(&req) {
+            match self.pre_propose_violetabft_command(&req) {
                 Ok(Some(delegate)) => {
                     let snapshot_ts = match read_id.as_mut() {
                         // If this peer became Leader not long ago and just after the cached
@@ -462,7 +462,7 @@ where
                     if self.delegates.get(&brane_id).is_some() {
                         break;
                     }
-                    let meta = self.store_meta.lock().unwrap();
+                    let meta = self.store_meta.dagger().unwrap();
                     match meta.readers.get(&brane_id).cloned() {
                         Some(reader) => {
                             self.delegates.insert(brane_id, Some(reader));
@@ -508,7 +508,7 @@ where
         req: VioletaBftCmdRequest,
         cb: Callback<E::Snapshot>,
     ) {
-        self.propose_raft_command(read_id, req, cb);
+        self.propose_violetabft_command(read_id, req, cb);
         self.metrics.maybe_flush();
     }
 
@@ -688,7 +688,7 @@ mod tests {
     use std::sync::mpsc::*;
     use std::thread;
 
-    use ekvproto::raft_cmdpb::*;
+    use ekvproto::violetabft_cmdpb::*;
     use tempfile::{Builder, TempDir};
     use time::Duration;
 
@@ -736,7 +736,7 @@ mod tests {
         rx: &Receiver<VioletaBftCommand<LmdbSnapshot>>,
         cmd: VioletaBftCmdRequest,
     ) {
-        reader.propose_raft_command(
+        reader.propose_violetabft_command(
             None,
             cmd.clone(),
             Callback::Read(Box::new(|resp| {
@@ -756,7 +756,7 @@ mod tests {
         rx: &Receiver<VioletaBftCommand<LmdbSnapshot>>,
         task: VioletaBftCommand<LmdbSnapshot>,
     ) {
-        reader.propose_raft_command(None, task.request, task.callback);
+        reader.propose_violetabft_command(None, task.request, task.callback);
         assert_eq!(rx.try_recv().unwrap_err(), TryRecvError::Empty);
     }
 
@@ -808,7 +808,7 @@ mod tests {
         let remote = lease.maybe_new_remote_lease(term6).unwrap();
         // But the applied_index_term is stale.
         {
-            let mut meta = store_meta.lock().unwrap();
+            let mut meta = store_meta.dagger().unwrap();
             let read_delegate = ReadDelegate {
                 tag: String::new(),
                 brane: Arc::new(brane1.clone()),
@@ -833,7 +833,7 @@ mod tests {
         // Make the applied_index_term matches current term.
         let pg = Progress::applied_index_term(term6);
         {
-            let mut meta = store_meta.lock().unwrap();
+            let mut meta = store_meta.dagger().unwrap();
             meta.readers.get_mut(&1).unwrap().ufidelate(pg);
         }
         let task =
@@ -866,7 +866,7 @@ mod tests {
             .mut_header()
             .mut_peer()
             .set_store_id(store_id + 1);
-        reader.propose_raft_command(
+        reader.propose_violetabft_command(
             None,
             cmd_store_id,
             Callback::Read(Box::new(move |resp: ReadResponse<LmdbSnapshot>| {
@@ -884,7 +884,7 @@ mod tests {
             .mut_header()
             .mut_peer()
             .set_id(leader2.get_id() + 1);
-        reader.propose_raft_command(
+        reader.propose_violetabft_command(
             None,
             cmd_peer_id,
             Callback::Read(Box::new(move |resp: ReadResponse<LmdbSnapshot>| {
@@ -908,7 +908,7 @@ mod tests {
         // Term mismatch.
         let mut cmd_term = cmd.clone();
         cmd_term.mut_header().set_term(term6 - 2);
-        reader.propose_raft_command(
+        reader.propose_violetabft_command(
             None,
             cmd_term,
             Callback::Read(Box::new(move |resp: ReadResponse<LmdbSnapshot>| {
@@ -941,8 +941,8 @@ mod tests {
         assert_eq!(reader.metrics.rejected_by_cache_miss, 8);
 
         // Channel full.
-        reader.propose_raft_command(None, cmd.clone(), Callback::None);
-        reader.propose_raft_command(
+        reader.propose_violetabft_command(None, cmd.clone(), Callback::None);
+        reader.propose_violetabft_command(
             None,
             cmd.clone(),
             Callback::Read(Box::new(move |resp: ReadResponse<LmdbSnapshot>| {
@@ -960,7 +960,7 @@ mod tests {
         let mut cmd9 = cmd;
         cmd9.mut_header().set_term(term6 + 3);
         {
-            let mut meta = store_meta.lock().unwrap();
+            let mut meta = store_meta.dagger().unwrap();
             meta.readers
                 .get_mut(&1)
                 .unwrap()
@@ -970,7 +970,7 @@ mod tests {
                 .unwrap()
                 .ufidelate(Progress::applied_index_term(term6 + 3));
         }
-        reader.propose_raft_command(
+        reader.propose_violetabft_command(
             None,
             cmd9.clone(),
             Callback::Read(Box::new(|resp| {

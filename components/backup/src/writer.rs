@@ -11,7 +11,7 @@ use external_causetStorage::ExternalStorage;
 use futures_util::io::AllowStdIo;
 use ekvproto::backup::File;
 use einsteindb::interlock::checksum_crc64_xor;
-use einsteindb::persistence::txn::TxnEntry;
+use einsteindb::causetStorage::txn::TxnEntry;
 use einsteindb_util::{self, box_err, file::Sha256Reader, time::Limiter};
 use txn_types::KvPair;
 
@@ -72,7 +72,7 @@ impl Writer {
         name: &str,
         causet: &'static str,
         limiter: Limiter,
-        persistence: &dyn ExternalStorage,
+        causetStorage: &dyn ExternalStorage,
     ) -> Result<File> {
         let (sst_info, sst_reader) = self.writer.finish_read()?;
         BACKUP_RANGE_SIZE_HISTOGRAM_VEC
@@ -82,13 +82,13 @@ impl Writer {
 
         let (reader, hasher) = Sha256Reader::new(sst_reader)
             .map_err(|e| Error::Other(box_err!("Sha256 error: {:?}", e)))?;
-        persistence.write(
+        causetStorage.write(
             &file_name,
             Box::new(limiter.limit(AllowStdIo::new(reader))),
             sst_info.file_size(),
         )?;
         let sha256 = hasher
-            .lock()
+            .dagger()
             .unwrap()
             .finish()
             .map(|digest| digest.to_vec())
@@ -180,8 +180,8 @@ impl BackupWriter {
         Ok(())
     }
 
-    /// Save buffered SST files to the given external persistence.
-    pub fn save(self, persistence: &dyn ExternalStorage) -> Result<Vec<File>> {
+    /// Save buffered SST files to the given external causetStorage.
+    pub fn save(self, causetStorage: &dyn ExternalStorage) -> Result<Vec<File>> {
         let spacelike = Instant::now();
         let mut files = Vec::with_capacity(2);
         let write_written = !self.write.is_empty() || !self.default.is_empty();
@@ -191,7 +191,7 @@ impl BackupWriter {
                 &self.name,
                 CAUSET_DEFAULT,
                 self.limiter.clone(),
-                persistence,
+                causetStorage,
             )?;
             files.push(default);
         }
@@ -201,7 +201,7 @@ impl BackupWriter {
                 &self.name,
                 CAUSET_WRITE,
                 self.limiter.clone(),
-                persistence,
+                causetStorage,
             )?;
             files.push(write);
         }
@@ -266,8 +266,8 @@ impl BackupRawKVWriter {
         Ok(())
     }
 
-    /// Save buffered SST files to the given external persistence.
-    pub fn save(self, persistence: &dyn ExternalStorage) -> Result<Vec<File>> {
+    /// Save buffered SST files to the given external causetStorage.
+    pub fn save(self, causetStorage: &dyn ExternalStorage) -> Result<Vec<File>> {
         let spacelike = Instant::now();
         let mut files = Vec::with_capacity(1);
         if !self.writer.is_empty() {
@@ -275,7 +275,7 @@ impl BackupRawKVWriter {
                 &self.name,
                 self.causet,
                 self.limiter.clone(),
-                persistence,
+                causetStorage,
             )?;
             files.push(file);
         }
@@ -294,7 +294,7 @@ mod tests {
     use std::f64::INFINITY;
     use std::path::Path;
     use tempfile::TempDir;
-    use einsteindb::persistence::TestEngineBuilder;
+    use einsteindb::causetStorage::TestEngineBuilder;
 
     type CfKvs<'a> = (engine_promises::CfName, &'a [(&'a [u8], &'a [u8])]);
 
@@ -348,13 +348,13 @@ mod tests {
             .unwrap();
         let db = rocks.get_lmdb();
         let backlightlike = external_causetStorage::make_local_backlightlike(temp.path());
-        let persistence = external_causetStorage::create_causetStorage(&backlightlike).unwrap();
+        let causetStorage = external_causetStorage::create_causetStorage(&backlightlike).unwrap();
 
         // Test empty file.
         let mut writer =
             BackupWriter::new(db.get_sync_db(), "foo", Limiter::new(INFINITY), None, 0).unwrap();
         writer.write(vec![].into_iter(), false).unwrap();
-        assert!(writer.save(&persistence).unwrap().is_empty());
+        assert!(writer.save(&causetStorage).unwrap().is_empty());
 
         // Test write only txn.
         let mut writer =
@@ -370,7 +370,7 @@ mod tests {
                 false,
             )
             .unwrap();
-        let files = writer.save(&persistence).unwrap();
+        let files = writer.save(&causetStorage).unwrap();
         assert_eq!(files.len(), 1);
         check_sst(
             &[(
@@ -404,7 +404,7 @@ mod tests {
                 false,
             )
             .unwrap();
-        let files = writer.save(&persistence).unwrap();
+        let files = writer.save(&causetStorage).unwrap();
         assert_eq!(files.len(), 2);
         check_sst(
             &[

@@ -1,11 +1,11 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::*;
 use std::{fs, io, mem, thread};
 
-use violetabft::eraftpb::MessageType;
+use violetabft::evioletabftpb::MessageType;
 
 use violetabftstore::store::*;
 use test_violetabftstore::*;
@@ -16,7 +16,7 @@ use einsteindb_util::HandyRwLock;
 fn test_overlap_cleanup() {
     let mut cluster = new_node_cluster(0, 3);
     // Disable violetabft log gc in this test case.
-    cluster.causetg.raft_store.raft_log_gc_tick_interval = ReadableDuration::secs(60);
+    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::secs(60);
 
     let gen_snapshot_fp = "brane_gen_snap";
 
@@ -131,9 +131,9 @@ fn test_server_snapshot_on_resolve_failure() {
 #[test]
 fn test_generate_snapshot() {
     let mut cluster = new_server_cluster(1, 5);
-    cluster.causetg.raft_store.raft_log_gc_tick_interval = ReadableDuration::millis(20);
-    cluster.causetg.raft_store.raft_log_gc_count_limit = 8;
-    cluster.causetg.raft_store.merge_max_log_gap = 3;
+    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
+    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 8;
+    cluster.causetg.violetabft_store.merge_max_log_gap = 3;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -339,8 +339,8 @@ fn test_destroy_peer_on_plightlikeing_snapshot() {
 fn test_shutdown_when_snap_gc() {
     let mut cluster = new_node_cluster(0, 2);
     // So that batch system can handle a snap_gc event before shutting down.
-    cluster.causetg.raft_store.store_batch_system.max_batch_size = 1;
-    cluster.causetg.raft_store.snap_mgr_gc_tick_interval = ReadableDuration::millis(20);
+    cluster.causetg.violetabft_store.store_batch_system.max_batch_size = 1;
+    cluster.causetg.violetabft_store.snap_mgr_gc_tick_interval = ReadableDuration::millis(20);
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
     let r1 = cluster.run_conf_change();
@@ -384,7 +384,7 @@ fn test_shutdown_when_snap_gc() {
 fn test_receive_old_snapshot() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_snapshot(&mut cluster);
-    cluster.causetg.raft_store.right_derive_when_split = true;
+    cluster.causetg.violetabft_store.right_derive_when_split = true;
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
@@ -421,7 +421,7 @@ fn test_receive_old_snapshot() {
     cluster.clear_slightlike_filters();
 
     for _ in 0..20 {
-        let guard = dropped_msgs.lock().unwrap();
+        let guard = dropped_msgs.dagger().unwrap();
         if !guard.is_empty() {
             break;
         }
@@ -429,7 +429,7 @@ fn test_receive_old_snapshot() {
         sleep_ms(10);
     }
     let msgs = {
-        let mut guard = dropped_msgs.lock().unwrap();
+        let mut guard = dropped_msgs.dagger().unwrap();
         if guard.is_empty() {
             drop(guard);
             panic!("do not receive snapshot msg in 200ms");
@@ -446,8 +446,8 @@ fn test_receive_old_snapshot() {
 
     let router = cluster.sim.wl().get_router(2).unwrap();
     // Slightlike the old snapshot
-    for raft_msg in msgs {
-        router.slightlike_raft_message(raft_msg).unwrap();
+    for violetabft_msg in msgs {
+        router.slightlike_violetabft_message(violetabft_msg).unwrap();
     }
 
     cluster.must_put(b"k40", b"v1");

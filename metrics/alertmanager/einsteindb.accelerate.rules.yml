@@ -9,8 +9,8 @@ groups:
       expr: sum(rate(einsteindb_thread_cpu_seconds_total{instance=~".*"}[1m])) by (instance)
     - record: einsteindb_violetabftstore_applightlike_log_duration_seconds:p99:1m
       expr: histogram_quantile(0.99, sum(rate(einsteindb_violetabftstore_applightlike_log_duration_seconds_bucket{instance=~".*"}[1m])) by (le, instance))
-    - record: einsteindb_violetabftstore_raft_process_duration_secs:p99:1m
-      expr: histogram_quantile(0.99, sum(rate(einsteindb_violetabftstore_raft_process_duration_secs_bucket{instance=~".*", type='ready'}[1m])) by (le, instance))
+    - record: einsteindb_violetabftstore_violetabft_process_duration_secs:p99:1m
+      expr: histogram_quantile(0.99, sum(rate(einsteindb_violetabftstore_violetabft_process_duration_secs_bucket{instance=~".*", type='ready'}[1m])) by (le, instance))
     - record: einsteindb_violetabftstore_request_wait_time_duration_secs:byins:p99:1m
       expr: histogram_quantile(0.99, sum(rate(einsteindb_violetabftstore_request_wait_time_duration_secs_bucket{instance=~".*"}[1m])) by (le, instance))
     - record: einsteindb_violetabftstore_applightlike_log_duration_seconds:p95:1m

@@ -15,7 +15,7 @@ use crate::interface::*;
 use crate::util::aggr_executor::*;
 use crate::util::hash_aggr_helper::HashAggregationHelper;
 use crate::util::*;
-use milevadb_query_common::persistence::IntervalCone;
+use milevadb_query_common::causetStorage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext};

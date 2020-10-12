@@ -54,7 +54,7 @@ impl Default for Config {
 impl Config {
     pub fn validate(&self) -> Result<(), Box<dyn Error>> {
         if self.wait_for_lock_timeout.as_millis() == 0 {
-            return Err("pessimistic-txn.wait-for-lock-timeout can not be 0".into());
+            return Err("pessimistic-txn.wait-for-dagger-timeout can not be 0".into());
         }
         Ok(())
     }
@@ -102,7 +102,7 @@ mod tests {
     fn test_config_deserialize() {
         let conf = r#"
         enabled = false
-        wait-for-lock-timeout = "10ms"
+        wait-for-dagger-timeout = "10ms"
         wake-up-delay-duration = 100
         pipelined = true
         "#;

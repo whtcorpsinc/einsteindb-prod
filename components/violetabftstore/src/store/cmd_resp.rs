@@ -1,9 +1,9 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::error;
 
 use crate::Error;
-use ekvproto::raft_cmdpb::VioletaBftCmdResponse;
+use ekvproto::violetabft_cmdpb::VioletaBftCmdResponse;
 
 pub fn bind_term(resp: &mut VioletaBftCmdResponse, term: u64) {
     if term == 0 {

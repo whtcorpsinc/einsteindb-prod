@@ -5,11 +5,11 @@ use engine_promises::{
     Iterable, KvEngine, MiscExt, Mutable, Peekable, SyncMutable, WriteBatchExt, WriteOptions,
     CAUSET_DEFAULT, MAX_DELETE_BATCH_COUNT,
 };
-use ekvproto::raft_serverpb::VioletaBftLocalState;
+use ekvproto::violetabft_serverpb::VioletaBftLocalState;
 use protobuf::Message;
-use violetabft::eraftpb::Entry;
+use violetabft::evioletabftpb::Entry;
 
-const RAFT_LOG_MULTI_GET_CNT: u64 = 8;
+const VIOLETABFT_LOG_MULTI_GET_CNT: u64 = 8;
 
 impl VioletaBftEngine for LmdbEngine {
     type LogBatch = LmdbWriteBatch;
@@ -22,13 +22,13 @@ impl VioletaBftEngine for LmdbEngine {
         self.sync_wal()
     }
 
-    fn get_raft_state(&self, raft_group_id: u64) -> Result<Option<VioletaBftLocalState>> {
-        let key = tuplespaceInstanton::raft_state_key(raft_group_id);
+    fn get_violetabft_state(&self, violetabft_group_id: u64) -> Result<Option<VioletaBftLocalState>> {
+        let key = tuplespaceInstanton::violetabft_state_key(violetabft_group_id);
         self.get_msg_causet(CAUSET_DEFAULT, &key)
     }
 
-    fn get_entry(&self, raft_group_id: u64, index: u64) -> Result<Option<Entry>> {
-        let key = tuplespaceInstanton::raft_log_key(raft_group_id, index);
+    fn get_entry(&self, violetabft_group_id: u64, index: u64) -> Result<Option<Entry>> {
+        let key = tuplespaceInstanton::violetabft_log_key(violetabft_group_id, index);
         self.get_msg_causet(CAUSET_DEFAULT, &key)
     }
 
@@ -42,13 +42,13 @@ impl VioletaBftEngine for LmdbEngine {
     ) -> Result<usize> {
         let (max_size, mut total_size, mut count) = (max_size.unwrap_or(usize::MAX), 0, 0);
 
-        if high - low <= RAFT_LOG_MULTI_GET_CNT {
+        if high - low <= VIOLETABFT_LOG_MULTI_GET_CNT {
             // If election happens in inactive branes, they will just try to fetch one empty log.
             for i in low..high {
                 if total_size > 0 && total_size >= max_size {
                     break;
                 }
-                let key = tuplespaceInstanton::raft_log_key(brane_id, i);
+                let key = tuplespaceInstanton::violetabft_log_key(brane_id, i);
                 match self.get_value(&key) {
                     Ok(None) => return Err(Error::EntriesCompacted),
                     Ok(Some(v)) => {
@@ -66,8 +66,8 @@ impl VioletaBftEngine for LmdbEngine {
         }
 
         let (mut check_compacted, mut next_index) = (true, low);
-        let spacelike_key = tuplespaceInstanton::raft_log_key(brane_id, low);
-        let lightlike_key = tuplespaceInstanton::raft_log_key(brane_id, high);
+        let spacelike_key = tuplespaceInstanton::violetabft_log_key(brane_id, low);
+        let lightlike_key = tuplespaceInstanton::violetabft_log_key(brane_id, high);
         self.scan(
             &spacelike_key,
             &lightlike_key,
@@ -129,72 +129,72 @@ impl VioletaBftEngine for LmdbEngine {
 
     fn clean(
         &self,
-        raft_group_id: u64,
+        violetabft_group_id: u64,
         state: &VioletaBftLocalState,
         batch: &mut LmdbWriteBatch,
     ) -> Result<()> {
-        batch.delete(&tuplespaceInstanton::raft_state_key(raft_group_id))?;
-        let seek_key = tuplespaceInstanton::raft_log_key(raft_group_id, 0);
-        let prefix = tuplespaceInstanton::raft_log_prefix(raft_group_id);
+        batch.delete(&tuplespaceInstanton::violetabft_state_key(violetabft_group_id))?;
+        let seek_key = tuplespaceInstanton::violetabft_log_key(violetabft_group_id, 0);
+        let prefix = tuplespaceInstanton::violetabft_log_prefix(violetabft_group_id);
         if let Some((key, _)) = self.seek(&seek_key)? {
             if !key.spacelikes_with(&prefix) {
                 // No violetabft logs for the violetabft group.
                 return Ok(());
             }
-            let first_index = match tuplespaceInstanton::raft_log_index(&key) {
+            let first_index = match tuplespaceInstanton::violetabft_log_index(&key) {
                 Ok(index) => index,
                 Err(_) => return Ok(()),
             };
             for index in first_index..=state.last_index {
-                let key = tuplespaceInstanton::raft_log_key(raft_group_id, index);
+                let key = tuplespaceInstanton::violetabft_log_key(violetabft_group_id, index);
                 batch.delete(&key)?;
             }
         }
         Ok(())
     }
 
-    fn applightlike(&self, raft_group_id: u64, entries: Vec<Entry>) -> Result<usize> {
-        self.applightlike_slice(raft_group_id, &entries)
+    fn applightlike(&self, violetabft_group_id: u64, entries: Vec<Entry>) -> Result<usize> {
+        self.applightlike_slice(violetabft_group_id, &entries)
     }
 
-    fn applightlike_slice(&self, raft_group_id: u64, entries: &[Entry]) -> Result<usize> {
+    fn applightlike_slice(&self, violetabft_group_id: u64, entries: &[Entry]) -> Result<usize> {
         let mut wb = LmdbWriteBatch::new(self.as_inner().clone());
         let buf = Vec::with_capacity(1024);
-        wb.applightlike_impl(raft_group_id, entries, buf)?;
+        wb.applightlike_impl(violetabft_group_id, entries, buf)?;
         self.consume(&mut wb, false)
     }
 
-    fn put_raft_state(&self, raft_group_id: u64, state: &VioletaBftLocalState) -> Result<()> {
-        self.put_msg(&tuplespaceInstanton::raft_state_key(raft_group_id), state)
+    fn put_violetabft_state(&self, violetabft_group_id: u64, state: &VioletaBftLocalState) -> Result<()> {
+        self.put_msg(&tuplespaceInstanton::violetabft_state_key(violetabft_group_id), state)
     }
 
-    fn gc(&self, raft_group_id: u64, mut from: u64, to: u64) -> Result<usize> {
+    fn gc(&self, violetabft_group_id: u64, mut from: u64, to: u64) -> Result<usize> {
         if from >= to {
             return Ok(0);
         }
         if from == 0 {
-            let spacelike_key = tuplespaceInstanton::raft_log_key(raft_group_id, 0);
-            let prefix = tuplespaceInstanton::raft_log_prefix(raft_group_id);
+            let spacelike_key = tuplespaceInstanton::violetabft_log_key(violetabft_group_id, 0);
+            let prefix = tuplespaceInstanton::violetabft_log_prefix(violetabft_group_id);
             match self.seek(&spacelike_key)? {
-                Some((k, _)) if k.spacelikes_with(&prefix) => from = box_try!(tuplespaceInstanton::raft_log_index(&k)),
+                Some((k, _)) if k.spacelikes_with(&prefix) => from = box_try!(tuplespaceInstanton::violetabft_log_index(&k)),
                 // No need to gc.
                 _ => return Ok(0),
             }
         }
 
-        let mut raft_wb = self.write_batch_with_cap(4 * 1024);
+        let mut violetabft_wb = self.write_batch_with_cap(4 * 1024);
         for idx in from..to {
-            let key = tuplespaceInstanton::raft_log_key(raft_group_id, idx);
-            raft_wb.delete(&key)?;
-            if raft_wb.count() >= MAX_DELETE_BATCH_COUNT {
-                self.write(&raft_wb)?;
-                raft_wb.clear();
+            let key = tuplespaceInstanton::violetabft_log_key(violetabft_group_id, idx);
+            violetabft_wb.delete(&key)?;
+            if violetabft_wb.count() >= MAX_DELETE_BATCH_COUNT {
+                self.write(&violetabft_wb)?;
+                violetabft_wb.clear();
             }
         }
 
         // TODO: disable WAL here.
-        if !Mutable::is_empty(&raft_wb) {
-            self.write(&raft_wb)?;
+        if !Mutable::is_empty(&violetabft_wb) {
+            self.write(&violetabft_wb)?;
         }
         Ok((to - from) as usize)
     }
@@ -220,27 +220,27 @@ impl VioletaBftEngine for LmdbEngine {
 }
 
 impl VioletaBftLogBatch for LmdbWriteBatch {
-    fn applightlike(&mut self, raft_group_id: u64, entries: Vec<Entry>) -> Result<()> {
-        self.applightlike_slice(raft_group_id, &entries)
+    fn applightlike(&mut self, violetabft_group_id: u64, entries: Vec<Entry>) -> Result<()> {
+        self.applightlike_slice(violetabft_group_id, &entries)
     }
 
-    fn applightlike_slice(&mut self, raft_group_id: u64, entries: &[Entry]) -> Result<()> {
+    fn applightlike_slice(&mut self, violetabft_group_id: u64, entries: &[Entry]) -> Result<()> {
         if let Some(max_size) = entries.iter().map(|e| e.compute_size()).max() {
             let ser_buf = Vec::with_capacity(max_size as usize);
-            return self.applightlike_impl(raft_group_id, entries, ser_buf);
+            return self.applightlike_impl(violetabft_group_id, entries, ser_buf);
         }
         Ok(())
     }
 
-    fn cut_logs(&mut self, raft_group_id: u64, from: u64, to: u64) {
+    fn cut_logs(&mut self, violetabft_group_id: u64, from: u64, to: u64) {
         for index in from..to {
-            let key = tuplespaceInstanton::raft_log_key(raft_group_id, index);
+            let key = tuplespaceInstanton::violetabft_log_key(violetabft_group_id, index);
             self.delete(&key).unwrap();
         }
     }
 
-    fn put_raft_state(&mut self, raft_group_id: u64, state: &VioletaBftLocalState) -> Result<()> {
-        self.put_msg(&tuplespaceInstanton::raft_state_key(raft_group_id), state)
+    fn put_violetabft_state(&mut self, violetabft_group_id: u64, state: &VioletaBftLocalState) -> Result<()> {
+        self.put_msg(&tuplespaceInstanton::violetabft_state_key(violetabft_group_id), state)
     }
 
     fn is_empty(&self) -> bool {
@@ -251,12 +251,12 @@ impl VioletaBftLogBatch for LmdbWriteBatch {
 impl LmdbWriteBatch {
     fn applightlike_impl(
         &mut self,
-        raft_group_id: u64,
+        violetabft_group_id: u64,
         entries: &[Entry],
         mut ser_buf: Vec<u8>,
     ) -> Result<()> {
         for entry in entries {
-            let key = tuplespaceInstanton::raft_log_key(raft_group_id, entry.get_index());
+            let key = tuplespaceInstanton::violetabft_log_key(violetabft_group_id, entry.get_index());
             ser_buf.clear();
             entry.write_to_vec(&mut ser_buf).unwrap();
             self.put(&key, &ser_buf)?;

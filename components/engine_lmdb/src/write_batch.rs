@@ -165,7 +165,7 @@ impl Mutable for LmdbWriteBatch {
 /// is calling `AwaitState` and wait to become leader of WriteGroup. `multi_batch_write` will perform
 /// much better than traditional `pipelined_write` when EinsteinDB writes very large data into Lmdb. We
 /// will remove this feature when `unordered_write` of Lmdb becomes more stable and becomes compatible
-/// with Titan.
+/// with Noether.
 pub struct LmdbWriteBatchVec {
     db: Arc<DB>,
     wbs: Vec<RawWriteBatch>,

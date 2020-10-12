@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 //! This is the core implementation of a batch system. Generally there will be two
 //! different kind of FSMs in EinsteinDB's FSM system. One is normal FSM, which usually

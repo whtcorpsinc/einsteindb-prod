@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::collections::VecDeque;
 use std::{cmp, u64, usize};
@@ -8,7 +8,7 @@ use crate::store::metrics::*;
 use crate::store::{Callback, Config};
 
 use engine_promises::Snapshot;
-use ekvproto::raft_cmdpb::VioletaBftCmdRequest;
+use ekvproto::violetabft_cmdpb::VioletaBftCmdRequest;
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::time::{duration_to_sec, monotonic_raw_now};
 use einsteindb_util::MustConsumeVec;
@@ -34,7 +34,7 @@ where
     S: Snapshot,
 {
     pub fn push_command(&mut self, req: VioletaBftCmdRequest, cb: Callback<S>, read_index: u64) {
-        RAFT_READ_INDEX_PENDING_COUNT.inc();
+        VIOLETABFT_READ_INDEX_PENDING_COUNT.inc();
         self.cmds.push((req, cb, Some(read_index)));
     }
 
@@ -44,7 +44,7 @@ where
         cb: Callback<S>,
         renew_lease_time: Timespec,
     ) -> Self {
-        RAFT_READ_INDEX_PENDING_COUNT.inc();
+        VIOLETABFT_READ_INDEX_PENDING_COUNT.inc();
         let mut cmds = MustConsumeVec::with_capacity("callback of index read", 1);
         cmds.push((req, cb, None));
         ReadIndexRequest {
@@ -65,7 +65,7 @@ where
         let dur = (monotonic_raw_now() - self.renew_lease_time)
             .to_std()
             .unwrap();
-        RAFT_READ_INDEX_PENDING_DURATION.observe(duration_to_sec(dur));
+        VIOLETABFT_READ_INDEX_PENDING_DURATION.observe(duration_to_sec(dur));
     }
 }
 
@@ -113,7 +113,7 @@ where
         }
 
         if self.retry_countdown == usize::MAX {
-            self.retry_countdown = causetg.raft_election_timeout_ticks - 1;
+            self.retry_countdown = causetg.violetabft_election_timeout_ticks - 1;
             return false;
         }
 
@@ -122,7 +122,7 @@ where
             return false;
         }
 
-        self.retry_countdown = causetg.raft_election_timeout_ticks;
+        self.retry_countdown = causetg.violetabft_election_timeout_ticks;
         true
     }
 
@@ -144,7 +144,7 @@ where
                 read.cmds.clear();
             }
         }
-        RAFT_READ_INDEX_PENDING_COUNT.sub(removed as i64);
+        VIOLETABFT_READ_INDEX_PENDING_COUNT.sub(removed as i64);
         self.contexts.clear();
         self.ready_cnt = 0;
         self.handled_cnt = 0;
@@ -158,7 +158,7 @@ where
                 apply::notify_stale_req(term, cb);
             }
         }
-        RAFT_READ_INDEX_PENDING_COUNT.sub(removed as i64);
+        VIOLETABFT_READ_INDEX_PENDING_COUNT.sub(removed as i64);
         // For a follower changes to leader, and then changes to followr again.
         self.contexts.clear();
     }

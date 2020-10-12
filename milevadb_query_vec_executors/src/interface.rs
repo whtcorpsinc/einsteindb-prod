@@ -11,7 +11,7 @@ pub use milevadb_query_common::execute_stats::{
 use fidelpb::FieldType;
 
 use milevadb_query_common::execute_stats::ExecSummaryCollectorEnabled;
-use milevadb_query_common::persistence::IntervalCone;
+use milevadb_query_common::causetStorage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::LazyBatchPrimaryCausetVec;
 use milevadb_query_datatype::expr::EvalWarnings;
@@ -41,7 +41,7 @@ pub trait BatchFreeDaemon: Slightlike {
     /// this function is less than `next_batch()`.
     fn collect_exec_stats(&mut self, dest: &mut ExecuteStats);
 
-    /// Collects underlying persistence statistics accumulated during execution and prepares for
+    /// Collects underlying causetStorage statistics accumulated during execution and prepares for
     /// next collection.
     ///
     /// Similar to `collect_exec_stats()`, the implementation must invoke this function for each

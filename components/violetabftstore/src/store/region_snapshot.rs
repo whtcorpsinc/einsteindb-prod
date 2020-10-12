@@ -1,10 +1,10 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use engine_promises::{
     IterOptions, KvEngine, Peekable, ReadOptions, Result as EngineResult, Snapshot,
 };
 use ekvproto::metapb::Brane;
-use ekvproto::raft_serverpb::VioletaBftApplyState;
+use ekvproto::violetabft_serverpb::VioletaBftApplyState;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ use crate::store::{util, PeerStorage};
 use crate::{Error, Result};
 use engine_promises::util::check_key_in_cone;
 use engine_promises::VioletaBftEngine;
-use engine_promises::CAUSET_RAFT;
+use engine_promises::CAUSET_VIOLETABFT;
 use engine_promises::{Error as EngineError, Iterable, Iteron};
 use tuplespaceInstanton::DATA_PREFIX_KEY;
 use einsteindb_util::keybuilder::KeyBuilder;
@@ -55,7 +55,7 @@ where
             snap,
             brane,
             // Use 0 to indicate that the apply index is missing and we need to KvGet it,
-            // since apply index must be >= RAFT_INIT_LOG_INDEX.
+            // since apply index must be >= VIOLETABFT_INIT_LOG_INDEX.
             apply_index: Arc::new(AtomicU64::new(0)),
             max_ts_sync_status: None,
         }
@@ -84,7 +84,7 @@ where
     fn get_apply_index_from_causetStorage(&self) -> Result<u64> {
         let apply_state: Option<VioletaBftApplyState> = self
             .snap
-            .get_msg_causet(CAUSET_RAFT, &tuplespaceInstanton::apply_state_key(self.brane.get_id()))?;
+            .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(self.brane.get_id()))?;
         match apply_state {
             Some(s) => {
                 let apply_index = s.get_applied_index();

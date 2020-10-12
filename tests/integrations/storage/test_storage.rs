@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -13,9 +13,9 @@ use ekvproto::kvrpcpb::{Context, LockInfo};
 use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER};
 use test_causetStorage::*;
 use einsteindb::server::gc_worker::DEFAULT_GC_BATCH_KEYS;
-use einsteindb::persistence::mvcc::MAX_TXN_WRITE_SIZE;
-use einsteindb::persistence::txn::RESOLVE_LOCK_BATCH_SIZE;
-use einsteindb::persistence::Engine;
+use einsteindb::causetStorage::mvcc::MAX_TXN_WRITE_SIZE;
+use einsteindb::causetStorage::txn::RESOLVE_LOCK_BATCH_SIZE;
+use einsteindb::causetStorage::Engine;
 use txn_types::{Key, Mutation, TimeStamp};
 
 #[test]
@@ -34,7 +34,7 @@ fn test_txn_store_get() {
 fn test_txn_store_get_with_type_lock() {
     let store = AssertionStorage::default();
     store.put_ok(b"k1", b"v1", 1, 2);
-    store.prewrite_ok(vec![Mutation::Lock(Key::from_raw(b"k1"))], b"k1", 5);
+    store.prewrite_ok(vec![Mutation::Dagger(Key::from_raw(b"k1"))], b"k1", 5);
     store.get_ok(b"k1", 20, b"v1");
 }
 
@@ -432,12 +432,12 @@ fn test_txn_store_scan_key_only() {
     store.scan_key_only_ok(b"AA", 2, 10, vec![Some(b"B"), Some(b"C")]);
 }
 
-fn lock(key: &[u8], primary: &[u8], ts: u64) -> LockInfo {
-    let mut lock = LockInfo::default();
-    lock.set_key(key.to_vec());
-    lock.set_primary_lock(primary.to_vec());
-    lock.set_lock_version(ts);
-    lock
+fn dagger(key: &[u8], primary: &[u8], ts: u64) -> LockInfo {
+    let mut dagger = LockInfo::default();
+    dagger.set_key(key.to_vec());
+    dagger.set_primary_lock(primary.to_vec());
+    dagger.set_lock_version(ts);
+    dagger
 }
 
 #[test]
@@ -477,13 +477,13 @@ fn test_txn_store_scan_lock() {
         vec![Some((b"k1", b"v1")), None, None, None, None],
     );
 
-    store.scan_locks_ok(10, b"", 1, vec![lock(b"p1", b"p1", 5)]);
+    store.scan_locks_ok(10, b"", 1, vec![dagger(b"p1", b"p1", 5)]);
 
     store.scan_locks_ok(
         10,
         b"s",
         2,
-        vec![lock(b"s1", b"p1", 5), lock(b"s2", b"p2", 10)],
+        vec![dagger(b"s1", b"p1", 5), dagger(b"s2", b"p2", 10)],
     );
 
     store.scan_locks_ok(
@@ -491,10 +491,10 @@ fn test_txn_store_scan_lock() {
         b"",
         0,
         vec![
-            lock(b"p1", b"p1", 5),
-            lock(b"p2", b"p2", 10),
-            lock(b"s1", b"p1", 5),
-            lock(b"s2", b"p2", 10),
+            dagger(b"p1", b"p1", 5),
+            dagger(b"p2", b"p2", 10),
+            dagger(b"s1", b"p1", 5),
+            dagger(b"s2", b"p2", 10),
         ],
     );
 
@@ -503,10 +503,10 @@ fn test_txn_store_scan_lock() {
         b"",
         100,
         vec![
-            lock(b"p1", b"p1", 5),
-            lock(b"p2", b"p2", 10),
-            lock(b"s1", b"p1", 5),
-            lock(b"s2", b"p2", 10),
+            dagger(b"p1", b"p1", 5),
+            dagger(b"p2", b"p2", 10),
+            dagger(b"s1", b"p1", 5),
+            dagger(b"s2", b"p2", 10),
         ],
     );
 }
@@ -642,9 +642,9 @@ fn test_store_resolve_with_illegal_tso() {
 fn test_txn_store_gc() {
     let key = "k";
     let store = AssertionStorage::default();
-    let (_cluster, raft_store) = AssertionStorage::new_raft_causetStorage_with_store_count(3, key);
+    let (_cluster, violetabft_store) = AssertionStorage::new_violetabft_causetStorage_with_store_count(3, key);
     store.test_txn_store_gc(key);
-    raft_store.test_txn_store_gc(key);
+    violetabft_store.test_txn_store_gc(key);
 }
 
 fn test_txn_store_gc_multiple_tuplespaceInstanton(key_prefix_len: usize, n: usize) {
@@ -668,7 +668,7 @@ pub fn test_txn_store_gc_multiple_tuplespaceInstanton_single_causetStorage(n: us
 
 pub fn test_txn_store_gc_multiple_tuplespaceInstanton_cluster_causetStorage(n: usize, prefix: String) {
     let (mut cluster, mut store) =
-        AssertionStorage::new_raft_causetStorage_with_store_count(3, prefix.clone().as_str());
+        AssertionStorage::new_violetabft_causetStorage_with_store_count(3, prefix.clone().as_str());
     let tuplespaceInstanton: Vec<String> = (0..n).map(|i| format!("{}{}", prefix, i)).collect();
     for k in &tuplespaceInstanton {
         store.put_ok_for_cluster(&mut cluster, k.as_bytes(), b"v1", 5, 10);
@@ -710,8 +710,8 @@ fn test_txn_store_gc3() {
     let key = "k";
     let store = AssertionStorage::default();
     store.test_txn_store_gc3(key.as_bytes()[0]);
-    let (mut cluster, mut raft_store) = AssertionStorage::new_raft_causetStorage_with_store_count(3, key);
-    raft_store.test_txn_store_gc3_for_cluster(&mut cluster, key.as_bytes()[0]);
+    let (mut cluster, mut violetabft_store) = AssertionStorage::new_violetabft_causetStorage_with_store_count(3, key);
+    violetabft_store.test_txn_store_gc3_for_cluster(&mut cluster, key.as_bytes()[0]);
 }
 
 #[test]
@@ -810,7 +810,7 @@ fn test_txn_store_lock_primary() {
         2,
         vec![(b"p", b"p", 1.into())],
     );
-    // txn2 cleanups txn1's lock.
+    // txn2 cleanups txn1's dagger.
     store.rollback_ok(vec![b"p"], 1);
     store.resolve_lock_ok(1, None::<TimeStamp>);
 
@@ -923,7 +923,7 @@ fn test_isolation_inc() {
         threads.push(thread::spawn(move || {
             for _ in 0..INC_PER_THREAD {
                 let number = inc(&store.store, &oracle, b"key").unwrap() as usize;
-                let mut punch = punch_card.lock().unwrap();
+                let mut punch = punch_card.dagger().unwrap();
                 assert_eq!(punch[number], false);
                 punch[number] = true;
             }

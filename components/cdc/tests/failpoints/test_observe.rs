@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 use crate::{new_event_feed, TestSuite};
 use futures::executor::block_on;
 use futures::sink::SinkExt;
@@ -8,9 +8,9 @@ use ekvproto::cdcpb::event::{Event as Event_oneof_event, LogType as EventLogType
 #[causetg(not(feature = "prost-codec"))]
 use ekvproto::cdcpb::*;
 use ekvproto::kvrpcpb::*;
-use ekvproto::raft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use fidel_client::FidelClient;
-use violetabft::eraftpb::MessageType;
+use violetabft::evioletabftpb::MessageType;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::sync::Arc;
@@ -123,7 +123,7 @@ fn test_observe_duplicate_cmd() {
 fn test_delayed_change_cmd() {
     let mut cluster = new_server_cluster(1, 3);
     configure_for_lease_read(&mut cluster, Some(50), Some(20));
-    cluster.causetg.raft_store.raft_store_max_leader_lease = ReadableDuration::millis(100);
+    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration::millis(100);
     cluster.fidel_client.disable_default_operator();
     let mut suite = TestSuite::with_cluster(3, cluster);
     suite.cluster.must_put(b"k1", b"v1");

@@ -1,7 +1,7 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
-mod test_raft_causetStorage;
-mod test_raftkv;
+mod test_violetabft_causetStorage;
+mod test_violetabftkv;
 mod test_seek_brane;
 mod test_causetStorage;
 mod test_titan;

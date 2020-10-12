@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::fmt::{self, Display, Formatter};
 
@@ -134,7 +134,7 @@ mod tests {
     use byteorder::{BigEndian, WriteBytesExt};
     use engine_lmdb::util::new_engine;
     use engine_lmdb::{LmdbEngine, LmdbSnapshot};
-    use engine_promises::{KvEngine, SyncMutable, CAUSET_DEFAULT, CAUSET_RAFT};
+    use engine_promises::{KvEngine, SyncMutable, CAUSET_DEFAULT, CAUSET_VIOLETABFT};
     use ekvproto::metapb::*;
     use std::sync::mpsc;
     use std::time::Duration;
@@ -147,7 +147,7 @@ mod tests {
         let db = new_engine(
             path.path().to_str().unwrap(),
             None,
-            &[CAUSET_DEFAULT, CAUSET_RAFT],
+            &[CAUSET_DEFAULT, CAUSET_VIOLETABFT],
             None,
         )
         .unwrap();

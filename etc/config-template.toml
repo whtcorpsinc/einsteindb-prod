@@ -50,8 +50,8 @@
 ## Max running tasks of each worker, reject if exceeded.
 # max-tasks-per-worker = 2000
 
-[readpool.persistence]
-## Whether to use the unified read pool to handle persistence requests.
+[readpool.causetStorage]
+## Whether to use the unified read pool to handle causetStorage requests.
 # use-unified-pool = false
 
 ## The following configurations only take effect when `use-unified-pool` is false.
@@ -178,7 +178,7 @@
 ## Attributes about this server, e.g. `{ zone = "us-west-1", disk = "ssd" }`.
 # labels = {}
 
-[persistence]
+[causetStorage]
 ## The path to Lmdb directory.
 # data-dir = "/tmp/einsteindb/store"
 
@@ -200,7 +200,7 @@
 ## DO NOT use it in production. This option may be removed in the future.
 # enable-async-commit = true
 
-[persistence.block-cache]
+[causetStorage.block-cache]
 ## Whether to create a shared block cache for all Lmdb PrimaryCauset families.
 ##
 ## Block cache is used by Lmdb to cache uncompressed blocks. Big block cache can speed up read.
@@ -208,7 +208,7 @@
 ## set, it is easier to config. In most cases it should be able to auto-balance cache usage
 ## between PrimaryCauset families with standard LRU algorithm.
 ##
-## The rest of config in the persistence.block-cache session is effective only when shared block cache
+## The rest of config in the causetStorage.block-cache session is effective only when shared block cache
 ## is on.
 # shared = true
 
@@ -218,7 +218,7 @@
 ##   * lmdb.defaultcauset.block-cache-size or 25% of system's total memory
 ##   * lmdb.writecauset.block-cache-size   or 15% of system's total memory
 ##   * lmdb.lockcauset.block-cache-size    or  2% of system's total memory
-##   * raftdb.defaultcauset.block-cache-size  or  2% of system's total memory
+##   * violetabftdb.defaultcauset.block-cache-size  or  2% of system's total memory
 ##
 ## To deploy multiple EinsteinDB nodes on a single physical machine, configure this parameter explicitly.
 ## Otherwise, the OOM problem might occur in EinsteinDB.
@@ -252,7 +252,7 @@
 ## If not set, it will be `{data-dir}/violetabft`.
 ## If there are multiple disks on the machine, storing the data of VioletaBft Lmdb on differen disks
 ## can improve EinsteinDB performance.
-# raftdb-path = ""
+# violetabftdb-path = ""
 
 ## CausetStore capacity, i.e. max data size allowed.
 ## If it is not set, disk capacity is used.
@@ -319,11 +319,11 @@
 ## exceeds `brane-compact-tombstones-percent`.
 # brane-compact-tombstones-percent = 30
 
-## Interval to check whether to spacelike a manual compaction for Lock PrimaryCauset Network.
-## If written bytes reach `lock-causet-compact-bytes-memory_barrier` for Lock PrimaryCauset Network, EinsteinDB will
-## trigger a manual compaction for Lock PrimaryCauset Network.
-# lock-causet-compact-interval = "10m"
-# lock-causet-compact-bytes-memory_barrier = "256MB"
+## Interval to check whether to spacelike a manual compaction for Dagger PrimaryCauset Network.
+## If written bytes reach `dagger-causet-compact-bytes-memory_barrier` for Dagger PrimaryCauset Network, EinsteinDB will
+## trigger a manual compaction for Dagger PrimaryCauset Network.
+# dagger-causet-compact-interval = "10m"
+# dagger-causet-compact-bytes-memory_barrier = "256MB"
 
 ## Interval (s) to check Brane whether the data are consistent.
 # consistency-check-interval = 0
@@ -407,7 +407,7 @@
 ## This config specifies the absolute directory path for WAL.
 ## If it is not set, the log files will be in the same directory as data. When you set the path to
 ## Lmdb directory in memory like in `/dev/shm`, you may want to set`wal-dir` to a directory on a
-## persistent persistence. See https://github.com/facebook/lmdb/wiki/How-to-persist-in-memory-Lmdb-database .
+## persistent causetStorage. See https://github.com/facebook/lmdb/wiki/How-to-persist-in-memory-Lmdb-database .
 ## If there are two disks on the machine, storing Lmdb data and WAL logs on different disks can
 ## improve performance.
 # wal-dir = "/tmp/einsteindb/store"
@@ -502,14 +502,14 @@
 # Lmdb log levels
 # info-log-level = "info"
 
-## Options for `Titan`.
+## Options for `Noether`.
 [lmdb.titan]
-## Enables or disables `Titan`. Note that Titan is still an experimental feature. Once
+## Enables or disables `Noether`. Note that Noether is still an experimental feature. Once
 ## enabled, it can't fall back. Forced fallback may result in data loss.
 ## default: false
 # enabled = false
 
-## Maximum number of threads of `Titan` background gc jobs.
+## Maximum number of threads of `Noether` background gc jobs.
 # default: 4
 # max-background-gc = 4
 
@@ -524,7 +524,7 @@
 ##   lz4hc:  kLZ4HCCompression
 ##   zstd:   kZSTD
 ## `lz4` is a compression algorithm with moderate speed and compression ratio. The compression
-## ratio of `zlib` is high. It is frilightlikely to the persistence space, but its compression speed is
+## ratio of `zlib` is high. It is frilightlikely to the causetStorage space, but its compression speed is
 ## slow. This compression occupies many CPU resources.
 
 ## Per level compression.
@@ -584,7 +584,7 @@
 ## `max-write-buffer-number` value higher, like 10.
 # max-write-buffer-number = 5
 
-## The minimum number of write buffers that will be merged together before writing to persistence.
+## The minimum number of write buffers that will be merged together before writing to causetStorage.
 # min-write-buffer-number-to-merge = 1
 
 ## Control maximum total data size for base level (level 1).
@@ -644,7 +644,7 @@
 ## while using `Raw` mode.
 # optimize-filters-for-hits = true
 
-## Options for "Default" PrimaryCauset Network for `Titan`.
+## Options for "Default" PrimaryCauset Network for `Noether`.
 [lmdb.defaultcauset.titan]
 ## The smallest value to store in blob files. Value smaller than
 ## this memory_barrier will be inlined in base DB.
@@ -672,10 +672,10 @@
 # default: 0.5
 # discardable-ratio = 0.5
 
-## The mode used to process blob files. In read-only mode Titan
-## stops writing value into blob log. In fallback mode Titan
+## The mode used to process blob files. In read-only mode Noether
+## stops writing value into blob log. In fallback mode Noether
 ## converts blob index into real value on flush and compaction.
-## This option is especially useful for downgrading Titan.
+## This option is especially useful for downgrading Noether.
 ##   default:   kNormal
 ##   read-only: kReadOnly
 ##   fallback:  kFallback
@@ -685,7 +685,7 @@
 ## If set true, values in blob file will be merged to a new blob file while
 ## their corresponding tuplespaceInstanton are compacted to last two level in LSM-Tree.
 ##
-## With this feature enabled, Titan could get better scan performance, and
+## With this feature enabled, Noether could get better scan performance, and
 ## better write performance during GC, but will suffer around 1.1 space
 ## amplification and 3 more write amplification if no GC needed (eg. uniformly
 ## distributed tuplespaceInstanton) under default lmdb setting.
@@ -741,7 +741,7 @@
 # dynamic-level-bytes = true
 # optimize-filters-for-hits = false
 
-[raftdb]
+[violetabftdb]
 # max-background-jobs = 4
 # max-sub-compactions = 2
 # max-open-files = 40960
@@ -766,7 +766,7 @@
 # info-log-level = "info"
 # optimize-filters-for-hits = true
 
-[raftdb.defaultcauset]
+[violetabftdb.defaultcauset]
 ## Recommlightlike to set it the same as `lmdb.defaultcauset.compression-per-level`.
 # compression-per-level = ["no", "no", "lz4", "lz4", "lz4", "zstd", "zstd"]
 # block-size = "64KB"
@@ -791,7 +791,7 @@
 # optimize-filters-for-hits = true
 
 [violetabft-engine]
-## Enable violetabft-engine will ignore all settings about `raftdb`.
+## Enable violetabft-engine will ignore all settings about `violetabftdb`.
 # enable = false
 ## Recovery mode. Candidates are `tolerate-corrupted-tail-records` and `absolute-consistency`.
 # recovery_mode = "tolerate-corrupted-tail-records"
@@ -883,15 +883,15 @@
 
 ## The default and maximum delay before responding to MilevaDB when pessimistic
 ## transactions encounter locks
-# wait-for-lock-timeout = "1s"
+# wait-for-dagger-timeout = "1s"
 
-## If more than one transaction is waiting for the same lock, only the one with smallest
-## spacelike timestamp will be waked up immediately when the lock is released. Others will
+## If more than one transaction is waiting for the same dagger, only the one with smallest
+## spacelike timestamp will be waked up immediately when the dagger is released. Others will
 ## be waked up after `wake_up_delay_duration` to reduce contention and make the oldest
-## one more likely acquires the lock.
+## one more likely acquires the dagger.
 # wake-up-delay-duration = "20ms"
 
-## Enable pipelined pessimistic lock, only effect when processing perssimistic transactions
+## Enable pipelined pessimistic dagger, only effect when processing perssimistic transactions
 ## Enabled this will improve performance, but slightly increase the transcation failure rate
 # pipelined = false
 

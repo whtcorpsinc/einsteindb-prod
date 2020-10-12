@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use crate::server::metrics::*;
 use crate::server::snap::Task as SnapTask;
@@ -10,7 +10,7 @@ use futures::{Async, AsyncSink, Future, Poll, Sink};
 use futures03::compat::Future01CompatExt;
 use futures03::{Future as Future03, TryFutureExt};
 use grpcio::{ChannelBuilder, ClientCStreamReceiver, ClientCStreamSlightlikeer, Environment, WriteFlags};
-use ekvproto::raft_serverpb::{Done, VioletaBftMessage};
+use ekvproto::violetabft_serverpb::{Done, VioletaBftMessage};
 use ekvproto::einsteindbpb::{BatchVioletaBftMessage, EINSTEINDBClient};
 use violetabft::SnapshotStatus;
 use violetabftstore::errors::DiscardReason;
@@ -32,7 +32,7 @@ use einsteindb_util::worker::Scheduler;
 const GRPC_SEND_MSG_BUF: usize = 64 * 1024;
 const QUEUE_CAPACITY: usize = 4096;
 
-const RAFT_MSG_MAX_BATCH_SIZE: usize = 128;
+const VIOLETABFT_MSG_MAX_BATCH_SIZE: usize = 128;
 
 static CONN_ID: AtomicI32 = AtomicI32::new(0);
 
@@ -85,7 +85,7 @@ impl Queue {
     /// Wakes up consumer to retrive message.
     fn notify(&self) {
         if !self.buf.is_empty() {
-            let t = self.task.lock().unwrap().take();
+            let t = self.task.dagger().unwrap().take();
             if let Some(t) = t {
                 t.notify();
             }
@@ -108,7 +108,7 @@ impl Queue {
             Ok(msg) => Some(msg),
             Err(_) => {
                 {
-                    let mut task = self.task.lock().unwrap();
+                    let mut task = self.task.dagger().unwrap();
                     *task = Some(task::current());
                 }
                 match self.buf.pop() {
@@ -179,7 +179,7 @@ impl Buffer for BatchMessageBuffer {
         // is estimated, `GRPC_SEND_MSG_BUF` is reserved for errors.
         if self.size > 0
             && (self.size + msg_size + GRPC_SEND_MSG_BUF >= self.causetg.max_grpc_slightlike_msg_len as usize
-                || self.batch.get_msgs().len() >= RAFT_MSG_MAX_BATCH_SIZE)
+                || self.batch.get_msgs().len() >= VIOLETABFT_MSG_MAX_BATCH_SIZE)
         {
             self.size += msg_size;
             self.overflowing = Some(msg);
@@ -292,7 +292,7 @@ impl Buffer for MessageBuffer {
 
 /// Reporter reports whether a snapshot is sent successfully.
 struct SnapshotReporter<T> {
-    raft_router: T,
+    violetabft_router: T,
     brane_id: u64,
     to_peer_id: u64,
     to_store_id: u64,
@@ -315,7 +315,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static> SnapshotReporter<T> {
         };
 
         if let Err(e) =
-            self.raft_router
+            self.violetabft_router
                 .report_snapshot_status(self.brane_id, self.to_peer_id, status)
         {
             error!(?e;
@@ -328,7 +328,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static> SnapshotReporter<T> {
     }
 }
 
-/// Struct tracks the lifetime of a `violetabft` or `batch_raft` RPC.
+/// Struct tracks the lifetime of a `violetabft` or `batch_violetabft` RPC.
 struct VioletaBftCall<R, M, B> {
     slightlikeer: ClientCStreamSlightlikeer<M>,
     receiver: ClientCStreamReceiver<Done>,
@@ -352,7 +352,7 @@ where
         let to_store_id = msg.get_to_peer().get_store_id();
 
         SnapshotReporter {
-            raft_router: self.router.clone(),
+            violetabft_router: self.router.clone(),
             brane_id,
             to_peer_id,
             to_store_id,
@@ -571,7 +571,7 @@ where
         client: &EINSTEINDBClient,
         addr: String,
     ) -> futures03::channel::oneshot::Receiver<()> {
-        let (batch_sink, batch_stream) = client.batch_raft().unwrap();
+        let (batch_sink, batch_stream) = client.batch_violetabft().unwrap();
         let (tx, rx) = futures03::channel::oneshot::channel();
         let call = VioletaBftCall {
             slightlikeer: batch_sink,
@@ -660,7 +660,7 @@ async fn spacelike<S, R>(
                 back_lightlike.clear_plightlikeing_message();
                 // TOMBSTONE
                 if format!("{}", e).contains("has been removed") {
-                    let mut pool = pool.lock().unwrap();
+                    let mut pool = pool.dagger().unwrap();
                     if let Some(s) = pool.connections.remove(&(back_lightlike.store_id, conn_id)) {
                         s.disconnect();
                     }
@@ -720,11 +720,11 @@ struct CachedQueue {
 ///
 /// ```text
 /// for m in msgs {
-///     if !raft_client.slightlike(m) {
+///     if !violetabft_client.slightlike(m) {
 ///         // handle error.   
 ///     }
 /// }
-/// raft_client.flush();
+/// violetabft_client.flush();
 /// ```
 pub struct VioletaBftClient<S, R> {
     pool: Arc<Mutex<ConnectionPool>>,
@@ -761,7 +761,7 @@ where
     /// can't be established.
     fn load_stream(&mut self, store_id: u64, conn_id: usize) -> bool {
         let (s, pool_len) = {
-            let mut pool = self.pool.lock().unwrap();
+            let mut pool = self.pool.dagger().unwrap();
             if pool.tombstone_stores.contains(&store_id) {
                 return false;
             }
@@ -802,7 +802,7 @@ where
     #[allow(unused)]
     pub fn slightlike(&mut self, msg: VioletaBftMessage) -> bool {
         let store_id = msg.get_to_peer().store_id;
-        let conn_id = (msg.brane_id % self.builder.causetg.grpc_raft_conn_num as u64) as usize;
+        let conn_id = (msg.brane_id % self.builder.causetg.grpc_violetabft_conn_num as u64) as usize;
         loop {
             if let Some(s) = self.cache.get_mut(&(store_id, conn_id)) {
                 match s.queue.push(msg) {
@@ -844,7 +844,7 @@ where
                 }
                 continue;
             }
-            let l = self.pool.lock().unwrap();
+            let l = self.pool.dagger().unwrap();
             if let Some(q) = l.connections.get(id) {
                 q.notify();
             }

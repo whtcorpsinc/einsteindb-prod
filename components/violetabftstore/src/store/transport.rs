@@ -1,10 +1,10 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use crate::store::{CasualMessage, PeerMsg, VioletaBftCommand, VioletaBftRouter, StoreMsg};
 use crate::{DiscardReason, Error, Result};
 use crossbeam::TrySlightlikeError;
 use engine_promises::{KvEngine, VioletaBftEngine, Snapshot};
-use ekvproto::raft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use std::sync::mpsc;
 
 /// Transports messages between different VioletaBft peers.
@@ -67,7 +67,7 @@ where
         &self,
         cmd: VioletaBftCommand<EK::Snapshot>,
     ) -> std::result::Result<(), TrySlightlikeError<VioletaBftCommand<EK::Snapshot>>> {
-        self.slightlike_raft_command(cmd)
+        self.slightlike_violetabft_command(cmd)
     }
 }
 

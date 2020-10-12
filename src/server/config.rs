@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::{cmp, i32, isize};
 
@@ -9,7 +9,7 @@ use einsteindb_util::collections::HashMap;
 use einsteindb_util::config::{self, ReadableDuration, ReadableSize};
 use einsteindb_util::sys::sys_quota::SysQuota;
 
-pub use crate::persistence::config::Config as StorageConfig;
+pub use crate::causetStorage::config::Config as StorageConfig;
 pub use violetabftstore::store::Config as VioletaBftStoreConfig;
 
 pub const DEFAULT_CLUSTER_ID: u64 = 0;
@@ -18,7 +18,7 @@ const DEFAULT_ADVERTISE_LISTENING_ADDR: &str = "";
 const DEFAULT_STATUS_ADDR: &str = "127.0.0.1:20180";
 const DEFAULT_GRPC_CONCURRENCY: usize = 4;
 const DEFAULT_GRPC_CONCURRENT_STREAM: i32 = 1024;
-const DEFAULT_GRPC_RAFT_CONN_NUM: usize = 1;
+const DEFAULT_GRPC_VIOLETABFT_CONN_NUM: usize = 1;
 const DEFAULT_GRPC_MEMORY_POOL_QUOTA: u64 = isize::MAX as u64;
 const DEFAULT_GRPC_STREAM_INITIAL_WINDOW_SIZE: u64 = 2 * 1024 * 1024;
 
@@ -78,7 +78,7 @@ pub struct Config {
     pub grpc_compression_type: GrpcCompressionType,
     pub grpc_concurrency: usize,
     pub grpc_concurrent_stream: i32,
-    pub grpc_raft_conn_num: usize,
+    pub grpc_violetabft_conn_num: usize,
     pub grpc_memory_pool_quota: ReadableSize,
     pub grpc_stream_initial_window_size: ReadableSize,
     pub grpc_keepalive_time: ReadableDuration,
@@ -95,7 +95,7 @@ pub struct Config {
     pub lightlike_point_request_max_handle_duration: ReadableDuration,
     pub lightlike_point_max_concurrency: usize,
     // Memory locks must be checked if async commit is enabled.
-    // CAUTION: The current lock table implementation doesn't have good performance. Enabling
+    // CAUTION: The current dagger table implementation doesn't have good performance. Enabling
     // it may slow down EinsteinDB. This option may be removed in the future.
     pub lightlike_point_check_memory_locks: bool,
     pub snap_max_write_bytes_per_sec: ReadableSize,
@@ -139,7 +139,7 @@ impl Default for Config {
             grpc_compression_type: GrpcCompressionType::None,
             grpc_concurrency: DEFAULT_GRPC_CONCURRENCY,
             grpc_concurrent_stream: DEFAULT_GRPC_CONCURRENT_STREAM,
-            grpc_raft_conn_num: DEFAULT_GRPC_RAFT_CONN_NUM,
+            grpc_violetabft_conn_num: DEFAULT_GRPC_VIOLETABFT_CONN_NUM,
             grpc_stream_initial_window_size: ReadableSize(DEFAULT_GRPC_STREAM_INITIAL_WINDOW_SIZE),
             grpc_memory_pool_quota: ReadableSize(DEFAULT_GRPC_MEMORY_POOL_QUOTA),
             // There will be a heartbeat every secs, it's weird a connection will be idle for more

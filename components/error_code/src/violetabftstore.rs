@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use super::ErrorCodeExt;
 use ekvproto::errorpb;
@@ -44,7 +44,7 @@ impl ErrorCodeExt for errorpb::Error {
             STALE_COMMAND
         } else if self.has_store_not_match() {
             STORE_NOT_MATCH
-        } else if self.has_raft_entry_too_large() {
+        } else if self.has_violetabft_entry_too_large() {
             ENTRY_TOO_LARGE
         } else {
             UNKNOWN

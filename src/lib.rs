@@ -1,8 +1,8 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 //! EinsteinDB - A distributed key/value database
 //!
-//! EinsteinDB ("Ti" stands for Titanium) is an open source distributed
+//! EinsteinDB ("Ti" stands for Noetherium) is an open source distributed
 //! transactional key-value database. Unlike other traditional NoSQL
 //! systems, EinsteinDB not only provides classical key-value APIs, but also
 //! transactional APIs with ACID compliance. EinsteinDB was originally
@@ -59,7 +59,7 @@ pub mod interlock;
 pub mod import;
 pub mod read_pool;
 pub mod server;
-pub mod persistence;
+pub mod causetStorage;
 
 /// Returns the einsteindb version information.
 pub fn einsteindb_version_info() -> String {

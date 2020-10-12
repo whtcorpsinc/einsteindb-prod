@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io::Error as IoError;
@@ -10,7 +10,7 @@ use engine_promises::CfName;
 use engine_promises::CAUSET_DEFAULT;
 use engine_promises::{IterOptions, Peekable, ReadOptions, Snapshot, TablePropertiesExt};
 use ekvproto::kvrpcpb::Context;
-use ekvproto::raft_cmdpb::{
+use ekvproto::violetabft_cmdpb::{
     CmdType, DeleteConeRequest, DeleteRequest, PutRequest, VioletaBftCmdRequest, VioletaBftCmdResponse,
     VioletaBftRequestHeader, Request, Response,
 };
@@ -18,12 +18,12 @@ use ekvproto::{errorpb, metapb};
 use txn_types::{Key, TxnExtraScheduler, Value};
 
 use super::metrics::*;
-use crate::persistence::kv::{
+use crate::causetStorage::kv::{
     write_modifies, Callback, CbContext, Cursor, Engine, Error as KvError,
     ErrorInner as KvErrorInner, Iteron as EngineIterator, Modify, ScanMode,
     Snapshot as EngineSnapshot, WriteData,
 };
-use crate::persistence::{self, kv};
+use crate::causetStorage::{self, kv};
 use violetabftstore::errors::Error as VioletaBftServerError;
 use violetabftstore::router::{LocalReadRouter, VioletaBftStoreRouter};
 use violetabftstore::store::{Callback as StoreCallback, ReadResponse, WriteResponse};
@@ -64,7 +64,7 @@ quick_error! {
 fn get_status_kind_from_error(e: &Error) -> RequestStatusKind {
     match *e {
         Error::RequestFailed(ref header) => {
-            RequestStatusKind::from(persistence::get_error_kind_from_header(header))
+            RequestStatusKind::from(causetStorage::get_error_kind_from_header(header))
         }
         Error::Io(_) => RequestStatusKind::err_io,
         Error::Server(_) => RequestStatusKind::err_server,
@@ -77,7 +77,7 @@ fn get_status_kind_from_error(e: &Error) -> RequestStatusKind {
 fn get_status_kind_from_engine_error(e: &kv::Error) -> RequestStatusKind {
     match *e {
         KvError(box KvErrorInner::Request(ref header)) => {
-            RequestStatusKind::from(persistence::get_error_kind_from_header(header))
+            RequestStatusKind::from(causetStorage::get_error_kind_from_header(header))
         }
 
         KvError(box KvErrorInner::Timeout(_)) => RequestStatusKind::err_timeout,
@@ -104,7 +104,7 @@ impl From<VioletaBftServerError> for KvError {
     }
 }
 
-/// `VioletaBftKv` is a persistence engine base on `VioletaBftStore`.
+/// `VioletaBftKv` is a causetStorage engine base on `VioletaBftStore`.
 #[derive(Clone)]
 pub struct VioletaBftKv<S>
 where
@@ -126,7 +126,7 @@ fn new_ctx(resp: &VioletaBftCmdResponse) -> CbContext {
     cb_ctx
 }
 
-fn check_raft_cmd_response(resp: &mut VioletaBftCmdResponse, req_cnt: usize) -> Result<()> {
+fn check_violetabft_cmd_response(resp: &mut VioletaBftCmdResponse, req_cnt: usize) -> Result<()> {
     if resp.get_header().has_error() {
         return Err(Error::RequestFailed(resp.take_header().take_error()));
     }
@@ -143,7 +143,7 @@ fn check_raft_cmd_response(resp: &mut VioletaBftCmdResponse, req_cnt: usize) -> 
 
 fn on_write_result(mut write_resp: WriteResponse, req_cnt: usize) -> (CbContext, Result<CmdRes>) {
     let cb_ctx = new_ctx(&write_resp.response);
-    if let Err(e) = check_raft_cmd_response(&mut write_resp.response, req_cnt) {
+    if let Err(e) = check_violetabft_cmd_response(&mut write_resp.response, req_cnt) {
         return (cb_ctx, Err(e));
     }
     let resps = write_resp.response.take_responses();
@@ -156,7 +156,7 @@ fn on_read_result(
 ) -> (CbContext, Result<CmdRes>) {
     let mut cb_ctx = new_ctx(&read_resp.response);
     cb_ctx.txn_extra_op = read_resp.txn_extra_op;
-    if let Err(e) = check_raft_cmd_response(&mut read_resp.response, req_cnt) {
+    if let Err(e) = check_violetabft_cmd_response(&mut read_resp.response, req_cnt) {
         return (cb_ctx, Err(e));
     }
     let resps = read_resp.response.take_responses();
@@ -230,8 +230,8 @@ where
         {
             // If rid is some, only the specified brane reports error.
             // If rid is None, all branes report error.
-            let raftkv_early_error_report_fp = || -> Result<()> {
-                fail_point!("raftkv_early_error_report", |rid| {
+            let violetabftkv_early_error_report_fp = || -> Result<()> {
+                fail_point!("violetabftkv_early_error_report", |rid| {
                     let brane_id = ctx.get_brane_id();
                     rid.and_then(|rid| {
                         let rid: u64 = rid.parse().unwrap();
@@ -245,7 +245,7 @@ where
                 });
                 Ok(())
             };
-            raftkv_early_error_report_fp()?;
+            violetabftkv_early_error_report_fp()?;
         }
 
         let len = reqs.len();
@@ -337,7 +337,7 @@ where
     }
 
     fn async_write(&self, ctx: &Context, batch: WriteData, cb: Callback<()>) -> kv::Result<()> {
-        fail_point!("raftkv_async_write");
+        fail_point!("violetabftkv_async_write");
         if batch.modifies.is_empty() {
             return Err(KvError::from(KvErrorInner::EmptyRequest));
         }
@@ -396,7 +396,7 @@ where
                     ASYNC_REQUESTS_DURATIONS_VEC
                         .write
                         .observe(begin_instant.elapsed_secs());
-                    fail_point!("raftkv_async_write_finish");
+                    fail_point!("violetabftkv_async_write_finish");
                     cb((cb_ctx, Ok(())))
                 }
                 Ok(CmdRes::Snap(_)) => cb((
@@ -479,7 +479,7 @@ impl<S: Snapshot> EngineSnapshot for BraneSnapshot<S> {
     type Iter = BraneIterator<S>;
 
     fn get(&self, key: &Key) -> kv::Result<Option<Value>> {
-        fail_point!("raftkv_snapshot_get", |_| Err(box_err!(
+        fail_point!("violetabftkv_snapshot_get", |_| Err(box_err!(
             "injected error for get"
         )));
         let v = box_try!(self.get_value(key.as_encoded()));
@@ -487,7 +487,7 @@ impl<S: Snapshot> EngineSnapshot for BraneSnapshot<S> {
     }
 
     fn get_causet(&self, causet: CfName, key: &Key) -> kv::Result<Option<Value>> {
-        fail_point!("raftkv_snapshot_get_causet", |_| Err(box_err!(
+        fail_point!("violetabftkv_snapshot_get_causet", |_| Err(box_err!(
             "injected error for get_causet"
         )));
         let v = box_try!(self.get_value_causet(causet, key.as_encoded()));
@@ -495,7 +495,7 @@ impl<S: Snapshot> EngineSnapshot for BraneSnapshot<S> {
     }
 
     fn get_causet_opt(&self, opts: ReadOptions, causet: CfName, key: &Key) -> kv::Result<Option<Value>> {
-        fail_point!("raftkv_snapshot_get_causet", |_| Err(box_err!(
+        fail_point!("violetabftkv_snapshot_get_causet", |_| Err(box_err!(
             "injected error for get_causet"
         )));
         let v = box_try!(self.get_value_causet_opt(&opts, causet, key.as_encoded()));
@@ -503,7 +503,7 @@ impl<S: Snapshot> EngineSnapshot for BraneSnapshot<S> {
     }
 
     fn iter(&self, iter_opt: IterOptions, mode: ScanMode) -> kv::Result<Cursor<Self::Iter>> {
-        fail_point!("raftkv_snapshot_iter", |_| Err(box_err!(
+        fail_point!("violetabftkv_snapshot_iter", |_| Err(box_err!(
             "injected error for iter"
         )));
         Ok(Cursor::new(BraneSnapshot::iter(self, iter_opt), mode))
@@ -515,7 +515,7 @@ impl<S: Snapshot> EngineSnapshot for BraneSnapshot<S> {
         iter_opt: IterOptions,
         mode: ScanMode,
     ) -> kv::Result<Cursor<Self::Iter>> {
-        fail_point!("raftkv_snapshot_iter_causet", |_| Err(box_err!(
+        fail_point!("violetabftkv_snapshot_iter_causet", |_| Err(box_err!(
             "injected error for iter_causet"
         )));
         Ok(Cursor::new(
@@ -557,14 +557,14 @@ impl<S: Snapshot> EngineIterator for BraneIterator<S> {
     }
 
     fn seek(&mut self, key: &Key) -> kv::Result<bool> {
-        fail_point!("raftkv_iter_seek", |_| Err(box_err!(
+        fail_point!("violetabftkv_iter_seek", |_| Err(box_err!(
             "injected error for iter_seek"
         )));
         BraneIterator::seek(self, key.as_encoded()).map_err(From::from)
     }
 
     fn seek_for_prev(&mut self, key: &Key) -> kv::Result<bool> {
-        fail_point!("raftkv_iter_seek_for_prev", |_| Err(box_err!(
+        fail_point!("violetabftkv_iter_seek_for_prev", |_| Err(box_err!(
             "injected error for iter_seek_for_prev"
         )));
         BraneIterator::seek_for_prev(self, key.as_encoded()).map_err(From::from)

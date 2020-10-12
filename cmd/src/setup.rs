@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::borrow::ToOwned;
 use std::io;
@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use chrono::Local;
 use clap::ArgMatches;
 use einsteindb::config::{check_critical_config, persist_config, MetricConfig, EINSTEINDBConfig};
-use einsteindb::persistence::config::DEFAULT_LMDB_SUB_DIR;
+use einsteindb::causetStorage::config::DEFAULT_LMDB_SUB_DIR;
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::{self, config, logger};
 
@@ -17,7 +17,7 @@ pub static LOG_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 // The info log file names does not lightlike with ".log" since it conflict with lmdb WAL files.
 pub const DEFAULT_LMDB_LOG_FILE: &str = "lmdb.info";
-pub const DEFAULT_RAFTDB_LOG_FILE: &str = "raftdb.info";
+pub const DEFAULT_VIOLETABFTDB_LOG_FILE: &str = "violetabftdb.info";
 
 #[macro_export]
 macro_rules! fatal {
@@ -129,22 +129,22 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
             make_engine_log_path(&config.lmdb.info_log_dir, "", DEFAULT_LMDB_LOG_FILE)
         } else {
             make_engine_log_path(
-                &config.persistence.data_dir,
+                &config.causetStorage.data_dir,
                 DEFAULT_LMDB_SUB_DIR,
                 DEFAULT_LMDB_LOG_FILE,
             )
         };
-        let raftdb_info_log_path = if !config.raftdb.info_log_dir.is_empty() {
-            make_engine_log_path(&config.raftdb.info_log_dir, "", DEFAULT_RAFTDB_LOG_FILE)
+        let violetabftdb_info_log_path = if !config.violetabftdb.info_log_dir.is_empty() {
+            make_engine_log_path(&config.violetabftdb.info_log_dir, "", DEFAULT_VIOLETABFTDB_LOG_FILE)
         } else {
-            if !config.raft_store.raftdb_path.is_empty() {
+            if !config.violetabft_store.violetabftdb_path.is_empty() {
                 make_engine_log_path(
-                    &config.raft_store.raftdb_path.clone(),
+                    &config.violetabft_store.violetabftdb_path.clone(),
                     "",
-                    DEFAULT_RAFTDB_LOG_FILE,
+                    DEFAULT_VIOLETABFTDB_LOG_FILE,
                 )
             } else {
-                make_engine_log_path(&config.persistence.data_dir, "violetabft", DEFAULT_RAFTDB_LOG_FILE)
+                make_engine_log_path(&config.causetStorage.data_dir, "violetabft", DEFAULT_VIOLETABFTDB_LOG_FILE)
             }
         };
         let lmdb_log_writer = logger::file_writer(
@@ -161,16 +161,16 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
             );
         });
 
-        let raftdb_log_writer = logger::file_writer(
-            &raftdb_info_log_path,
+        let violetabftdb_log_writer = logger::file_writer(
+            &violetabftdb_info_log_path,
             config.log_rotation_timespan,
             config.log_rotation_size,
             rename_by_timestamp,
         )
         .unwrap_or_else(|e| {
             fatal!(
-                "failed to initialize raftdb log with file {}: {}",
-                raftdb_info_log_path,
+                "failed to initialize violetabftdb log with file {}: {}",
+                violetabftdb_info_log_path,
                 e
             );
         });
@@ -179,14 +179,14 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
             config::LogFormat::Text => build_logger_with_slow_log(
                 logger::text_format(writer),
                 logger::rocks_text_format(lmdb_log_writer),
-                logger::text_format(raftdb_log_writer),
+                logger::text_format(violetabftdb_log_writer),
                 slow_log_writer.map(logger::text_format),
                 config,
             ),
             config::LogFormat::Json => build_logger_with_slow_log(
                 logger::json_format(writer),
                 logger::json_format(lmdb_log_writer),
-                logger::json_format(raftdb_log_writer),
+                logger::json_format(violetabftdb_log_writer),
                 slow_log_writer.map(logger::json_format),
                 config,
             ),
@@ -195,7 +195,7 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
         fn build_logger_with_slow_log<N, R, S, T>(
             normal: N,
             lmdb: R,
-            raftdb: T,
+            violetabftdb: T,
             slow: Option<S>,
             config: &EINSTEINDBConfig,
         ) where
@@ -204,7 +204,7 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
             S: slog::Drain<Ok = (), Err = io::Error> + Slightlike + 'static,
             T: slog::Drain<Ok = (), Err = io::Error> + Slightlike + 'static,
         {
-            let drainer = logger::LogDispatcher::new(normal, lmdb, raftdb, slow);
+            let drainer = logger::LogDispatcher::new(normal, lmdb, violetabftdb, slow);
 
             // use async drainer and init std log.
             logger::init_log(
@@ -272,7 +272,7 @@ pub fn overwrite_config_with_cmd_args(config: &mut EINSTEINDBConfig, matches: &A
     }
 
     if let Some(data_dir) = matches.value_of("data-dir") {
-        config.persistence.data_dir = data_dir.to_owned();
+        config.causetStorage.data_dir = data_dir.to_owned();
     }
 
     if let Some(lightlikepoints) = matches.values_of("fidel-lightlikepoints") {
@@ -300,7 +300,7 @@ pub fn overwrite_config_with_cmd_args(config: &mut EINSTEINDBConfig, matches: &A
         let capacity = capacity_str.parse().unwrap_or_else(|e| {
             fatal!("invalid capacity: {}", e);
         });
-        config.raft_store.capacity = capacity;
+        config.violetabft_store.capacity = capacity;
     }
 
     if let Some(metrics_addr) = matches.value_of("metrics-addr") {

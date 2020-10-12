@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::mem;
 use std::sync::Arc;
@@ -9,8 +9,8 @@ use ekvproto::interlock::{KeyCone, Response};
 use protobuf::Message;
 use rand::rngs::StdRng;
 use rand::Rng;
-use milevadb_query_common::persistence::scanner::{ConesScanner, ConesScannerOptions};
-use milevadb_query_common::persistence::Cone;
+use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
+use milevadb_query_common::causetStorage::Cone;
 use milevadb_query_datatype::codec::datum::{encode_value, split_datum, Datum, NIL_FLAG};
 use milevadb_query_datatype::codec::table;
 use milevadb_query_datatype::def::Collation;
@@ -26,14 +26,14 @@ use yatp::task::future::reschedule;
 use super::cmsketch::CmSketch;
 use super::fmsketch::FmSketch;
 use super::histogram::Histogram;
-use crate::interlock::dag::EinsteinDBStorage;
+use crate::interlock::posetdag::EinsteinDBStorage;
 use crate::interlock::*;
-use crate::persistence::{Snapshot, SnapshotStore, Statistics};
+use crate::causetStorage::{Snapshot, SnapshotStore, Statistics};
 
 // `AnalyzeContext` is used to handle `AnalyzeReq`
 pub struct AnalyzeContext<S: Snapshot> {
     req: AnalyzeReq,
-    persistence: Option<EinsteinDBStorage<SnapshotStore<S>>>,
+    causetStorage: Option<EinsteinDBStorage<SnapshotStore<S>>>,
     cones: Vec<KeyCone>,
     causetStorage_stats: Statistics,
 }
@@ -56,7 +56,7 @@ impl<S: Snapshot> AnalyzeContext<S> {
         );
         Ok(Self {
             req,
-            persistence: Some(EinsteinDBStorage::new(store, false)),
+            causetStorage: Some(EinsteinDBStorage::new(store, false)),
             cones,
             causetStorage_stats: Statistics::default(),
         })
@@ -152,7 +152,7 @@ impl<S: Snapshot> RequestHandler for AnalyzeContext<S> {
                 let cones = mem::replace(&mut self.cones, vec![]);
                 table::check_table_cones(&cones)?;
                 let mut scanner = ConesScanner::new(ConesScannerOptions {
-                    persistence: self.persistence.take().unwrap(),
+                    causetStorage: self.causetStorage.take().unwrap(),
                     cones: cones
                         .into_iter()
                         .map(|r| Cone::from_pb_cone(r, false))
@@ -173,9 +173,9 @@ impl<S: Snapshot> RequestHandler for AnalyzeContext<S> {
 
             AnalyzeType::TypePrimaryCauset => {
                 let col_req = self.req.take_col_req();
-                let persistence = self.persistence.take().unwrap();
+                let causetStorage = self.causetStorage.take().unwrap();
                 let cones = mem::replace(&mut self.cones, Vec::new());
-                let mut builder = SampleBuilder::new(col_req, persistence, cones)?;
+                let mut builder = SampleBuilder::new(col_req, causetStorage, cones)?;
                 let res = AnalyzeContext::handle_PrimaryCauset(&mut builder).await;
                 builder.data.collect_causetStorage_stats(&mut self.causetStorage_stats);
                 res
@@ -219,7 +219,7 @@ struct SampleBuilder<S: Snapshot> {
 impl<S: Snapshot> SampleBuilder<S> {
     fn new(
         mut req: AnalyzePrimaryCausetsReq,
-        persistence: EinsteinDBStorage<SnapshotStore<S>>,
+        causetStorage: EinsteinDBStorage<SnapshotStore<S>>,
         cones: Vec<KeyCone>,
     ) -> Result<Self> {
         let PrimaryCausets_info: Vec<_> = req.take_PrimaryCausets_info().into();
@@ -228,7 +228,7 @@ impl<S: Snapshot> SampleBuilder<S> {
         }
 
         let table_scanner = BatchTableScanFreeDaemon::new(
-            persistence,
+            causetStorage,
             Arc::new(EvalConfig::default()),
             PrimaryCausets_info.clone(),
             cones,

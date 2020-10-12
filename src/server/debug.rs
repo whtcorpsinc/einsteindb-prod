@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::cmp::Ordering;
 use std::iter::FromIterator;
@@ -15,22 +15,22 @@ use engine_promises::{
     ConePropertiesExt, SeekKey, TableProperties, TablePropertiesCollection, TablePropertiesExt,
     WriteOptions,
 };
-use engine_promises::{Cone, WriteBatchExt, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_RAFT, CAUSET_WRITE};
+use engine_promises::{Cone, WriteBatchExt, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
 use ekvproto::debugpb::{self, Db as DBType};
 use ekvproto::kvrpcpb::{MvccInfo, MvccLock, MvccValue, MvccWrite, Op};
 use ekvproto::metapb::Brane;
-use ekvproto::raft_serverpb::*;
+use ekvproto::violetabft_serverpb::*;
 use protobuf::Message;
-use violetabft::eraftpb::Entry;
+use violetabft::evioletabftpb::Entry;
 use violetabft::{self, RawNode};
 
 use crate::config::ConfigController;
-use crate::persistence::mvcc::{Lock, LockType, TimeStamp, Write, WriteRef, WriteType};
+use crate::causetStorage::mvcc::{Dagger, LockType, TimeStamp, Write, WriteRef, WriteType};
 use engine_lmdb::properties::MvccProperties;
 use violetabftstore::interlock::get_brane_approximate_middle;
 use violetabftstore::store::util as violetabftstore_util;
 use violetabftstore::store::PeerStorage;
-use violetabftstore::store::{write_initial_apply_state, write_initial_raft_state, write_peer_state};
+use violetabftstore::store::{write_initial_apply_state, write_initial_violetabft_state, write_peer_state};
 use einsteindb_util::codec::bytes;
 use einsteindb_util::collections::HashSet;
 use einsteindb_util::config::ReadableSize;
@@ -60,20 +60,20 @@ quick_error! {
 /// Describes the meta information of a Brane.
 #[derive(PartialEq, Debug, Default)]
 pub struct BraneInfo {
-    pub raft_local_state: Option<VioletaBftLocalState>,
-    pub raft_apply_state: Option<VioletaBftApplyState>,
+    pub violetabft_local_state: Option<VioletaBftLocalState>,
+    pub violetabft_apply_state: Option<VioletaBftApplyState>,
     pub brane_local_state: Option<BraneLocalState>,
 }
 
 impl BraneInfo {
     fn new(
-        raft_local: Option<VioletaBftLocalState>,
-        raft_apply: Option<VioletaBftApplyState>,
+        violetabft_local: Option<VioletaBftLocalState>,
+        violetabft_apply: Option<VioletaBftApplyState>,
         brane_local: Option<BraneLocalState>,
     ) -> Self {
         BraneInfo {
-            raft_local_state: raft_local,
-            raft_apply_state: raft_apply,
+            violetabft_local_state: violetabft_local,
+            violetabft_apply_state: violetabft_apply,
             brane_local_state: brane_local,
         }
     }
@@ -140,10 +140,10 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
         &self.engines
     }
 
-    /// Get all branes holding brane meta data from violetabft CAUSET in KV persistence.
+    /// Get all branes holding brane meta data from violetabft CAUSET in KV causetStorage.
     pub fn get_all_meta_branes(&self) -> Result<Vec<u64>> {
         let db = &self.engines.kv;
-        let causet = CAUSET_RAFT;
+        let causet = CAUSET_VIOLETABFT;
         let spacelike_key = tuplespaceInstanton::REGION_META_MIN_KEY;
         let lightlike_key = tuplespaceInstanton::REGION_META_MAX_KEY;
         let mut branes = Vec::with_capacity(128);
@@ -179,7 +179,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
         }
     }
 
-    pub fn raft_log(&self, brane_id: u64, log_index: u64) -> Result<Entry> {
+    pub fn violetabft_log(&self, brane_id: u64, log_index: u64) -> Result<Entry> {
         if let Some(e) = box_try!(self.engines.violetabft.get_entry(brane_id, log_index)) {
             return Ok(e);
         }
@@ -190,24 +190,24 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
     }
 
     pub fn brane_info(&self, brane_id: u64) -> Result<BraneInfo> {
-        let raft_state = box_try!(self.engines.violetabft.get_raft_state(brane_id));
+        let violetabft_state = box_try!(self.engines.violetabft.get_violetabft_state(brane_id));
 
         let apply_state_key = tuplespaceInstanton::apply_state_key(brane_id);
         let apply_state = box_try!(self
             .engines
             .kv
-            .get_msg_causet::<VioletaBftApplyState>(CAUSET_RAFT, &apply_state_key));
+            .get_msg_causet::<VioletaBftApplyState>(CAUSET_VIOLETABFT, &apply_state_key));
 
         let brane_state_key = tuplespaceInstanton::brane_state_key(brane_id);
         let brane_state = box_try!(self
             .engines
             .kv
-            .get_msg_causet::<BraneLocalState>(CAUSET_RAFT, &brane_state_key));
+            .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &brane_state_key));
 
-        match (raft_state, apply_state, brane_state) {
+        match (violetabft_state, apply_state, brane_state) {
             (None, None, None) => Err(Error::NotFound(format!("info for brane {}", brane_id))),
-            (raft_state, apply_state, brane_state) => {
-                Ok(BraneInfo::new(raft_state, apply_state, brane_state))
+            (violetabft_state, apply_state, brane_state) => {
+                Ok(BraneInfo::new(violetabft_state, apply_state, brane_state))
             }
         }
     }
@@ -221,7 +221,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
         match self
             .engines
             .kv
-            .get_msg_causet::<BraneLocalState>(CAUSET_RAFT, &brane_state_key)
+            .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &brane_state_key)
         {
             Ok(Some(brane_state)) => {
                 let brane = brane_state.get_brane();
@@ -345,7 +345,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
         let mut errors = Vec::with_capacity(branes.len());
         for brane_id in branes {
             let key = tuplespaceInstanton::brane_state_key(brane_id);
-            let brane_state = match db.get_msg_causet::<BraneLocalState>(CAUSET_RAFT, &key) {
+            let brane_state = match db.get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &key) {
                 Ok(Some(state)) => state,
                 Ok(None) => {
                     let error = box_err!("{} brane local state not exists", brane_id);
@@ -474,7 +474,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
             Some(KeyBuilder::from_vec(to, 0, 0)),
             false,
         );
-        let mut iter = box_try!(self.engines.kv.Iteron_causet_opt(CAUSET_RAFT, readopts));
+        let mut iter = box_try!(self.engines.kv.Iteron_causet_opt(CAUSET_VIOLETABFT, readopts));
         iter.seek(SeekKey::from(from.as_ref())).unwrap();
 
         let fake_snap_worker = Worker::new("fake-snap-worker");
@@ -506,7 +506,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
                 tag,
             ));
 
-            let raft_causetg = violetabft::Config {
+            let violetabft_causetg = violetabft::Config {
                 id: peer_id,
                 election_tick: 10,
                 heartbeat_tick: 2,
@@ -518,7 +518,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
             };
 
             box_try!(RawNode::new(
-                &raft_causetg,
+                &violetabft_causetg,
                 peer_causetStorage,
                 &slog_global::get_global()
             ));
@@ -580,7 +580,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
                 );
                 // We need to leave epoch untouched to avoid inconsistency.
                 brane_state.mut_brane().set_peers(new_peers.into());
-                box_try!(kv_wb.put_msg_causet(CAUSET_RAFT, key, &brane_state));
+                box_try!(kv_wb.put_msg_causet(CAUSET_VIOLETABFT, key, &brane_state));
                 Ok(())
             };
 
@@ -588,7 +588,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
                 let kv = &self.engines.kv;
                 for brane_id in brane_ids {
                     let key = tuplespaceInstanton::brane_state_key(brane_id);
-                    if let Some(value) = box_try!(kv.get_value_causet(CAUSET_RAFT, &key)) {
+                    if let Some(value) = box_try!(kv.get_value_causet(CAUSET_VIOLETABFT, &key)) {
                         box_try!(remove_stores(&key, &value, &mut wb));
                     } else {
                         let msg = format!("No such brane {} on the store", brane_id);
@@ -597,7 +597,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
                 }
             } else {
                 box_try!(self.engines.kv.scan_causet(
-                    CAUSET_RAFT,
+                    CAUSET_VIOLETABFT,
                     tuplespaceInstanton::REGION_META_MIN_KEY,
                     tuplespaceInstanton::REGION_META_MAX_KEY,
                     false,
@@ -618,14 +618,14 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
         let violetabft = &self.engines.violetabft;
 
         let mut kv_wb = self.engines.kv.write_batch();
-        let mut raft_wb = self.engines.violetabft.log_batch(0);
+        let mut violetabft_wb = self.engines.violetabft.log_batch(0);
 
         if brane.get_spacelike_key() >= brane.get_lightlike_key() && !brane.get_lightlike_key().is_empty() {
             return Err(box_err!("Bad brane: {:?}", brane));
         }
 
         box_try!(self.engines.kv.scan_causet(
-            CAUSET_RAFT,
+            CAUSET_VIOLETABFT,
             tuplespaceInstanton::REGION_META_MIN_KEY,
             tuplespaceInstanton::REGION_META_MAX_KEY,
             false,
@@ -661,30 +661,30 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
         brane_state.set_state(PeerState::Normal);
         brane_state.set_brane(brane);
         let key = tuplespaceInstanton::brane_state_key(brane_id);
-        if box_try!(kv.get_msg_causet::<BraneLocalState>(CAUSET_RAFT, &key)).is_some() {
+        if box_try!(kv.get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &key)).is_some() {
             return Err(Error::Other(
                 "CausetStore already has the BraneLocalState".into(),
             ));
         }
-        box_try!(kv_wb.put_msg_causet(CAUSET_RAFT, &key, &brane_state));
+        box_try!(kv_wb.put_msg_causet(CAUSET_VIOLETABFT, &key, &brane_state));
 
         // VioletaBftApplyState.
         let key = tuplespaceInstanton::apply_state_key(brane_id);
-        if box_try!(kv.get_msg_causet::<VioletaBftApplyState>(CAUSET_RAFT, &key)).is_some() {
+        if box_try!(kv.get_msg_causet::<VioletaBftApplyState>(CAUSET_VIOLETABFT, &key)).is_some() {
             return Err(Error::Other("CausetStore already has the VioletaBftApplyState".into()));
         }
         box_try!(write_initial_apply_state(&mut kv_wb, brane_id));
 
         // VioletaBftLocalState.
-        if box_try!(violetabft.get_raft_state(brane_id)).is_some() {
+        if box_try!(violetabft.get_violetabft_state(brane_id)).is_some() {
             return Err(Error::Other("CausetStore already has the VioletaBftLocalState".into()));
         }
-        box_try!(write_initial_raft_state(&mut raft_wb, brane_id));
+        box_try!(write_initial_violetabft_state(&mut violetabft_wb, brane_id));
 
         let mut write_opts = WriteOptions::new();
         write_opts.set_sync(true);
         box_try!(self.engines.kv.write_opt(&kv_wb, &write_opts));
-        box_try!(self.engines.violetabft.consume(&mut raft_wb, true));
+        box_try!(self.engines.violetabft.consume(&mut violetabft_wb, true));
         Ok(())
     }
 
@@ -722,7 +722,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
         let brane_state = box_try!(self
             .engines
             .kv
-            .get_msg_causet::<BraneLocalState>(CAUSET_RAFT, &brane_state_key));
+            .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &brane_state_key));
         match brane_state {
             Some(v) => Ok(v),
             None => Err(Error::NotFound(format!("brane {}", brane_id))),
@@ -840,7 +840,7 @@ fn recover_mvcc_for_cone(
         }
 
         v1!(
-            "thread {}: total fix default: {}, lock: {}, write: {}",
+            "thread {}: total fix default: {}, dagger: {}, write: {}",
             thread_index,
             mvcc_checker.default_fix_count,
             mvcc_checker.lock_fix_count,
@@ -950,7 +950,7 @@ impl MvccChecker {
             );
         }
 
-        let (mut default, mut write, mut lock) = (None, None, None);
+        let (mut default, mut write, mut dagger) = (None, None, None);
         let (mut next_default, mut next_write, mut next_lock) = (true, true, true);
         loop {
             if next_default {
@@ -962,15 +962,15 @@ impl MvccChecker {
                 next_write = false;
             }
             if next_lock {
-                lock = self.next_lock(key)?;
+                dagger = self.next_lock(key)?;
                 next_lock = false;
             }
 
-            // If lock exists, check whether the records in DEFAULT and WRITE
+            // If dagger exists, check whether the records in DEFAULT and WRITE
             // match it.
-            if let Some(ref l) = lock {
+            if let Some(ref l) = dagger {
                 // All write records's ts should be less than the for_ufidelate_ts (if the
-                // lock is from a pessimistic transaction) or the ts of the lock.
+                // dagger is from a pessimistic transaction) or the ts of the dagger.
                 let (kind, check_ts) = if l.for_ufidelate_ts >= l.ts {
                     ("for_ufidelate_ts", l.for_ufidelate_ts)
                 } else {
@@ -995,7 +995,7 @@ impl MvccChecker {
                     }
                 }
 
-                // If the lock's type is PUT and contains no short value, there
+                // If the dagger's type is PUT and contains no short value, there
                 // should be a corresponding default record.
                 if l.lock_type == LockType::Put && l.short_value.is_none() {
                     match default {
@@ -1069,11 +1069,11 @@ impl MvccChecker {
         }
     }
 
-    fn next_lock(&mut self, key: &[u8]) -> Result<Option<Lock>> {
+    fn next_lock(&mut self, key: &[u8]) -> Result<Option<Dagger>> {
         if self.lock_iter.valid().unwrap() && tuplespaceInstanton::origin_key(self.lock_iter.key()) == key {
-            let lock = box_try!(Lock::parse(self.lock_iter.value()));
+            let dagger = box_try!(Dagger::parse(self.lock_iter.value()));
             self.lock_iter.next().unwrap();
-            return Ok(Some(lock));
+            return Ok(Some(dagger));
         }
         Ok(None)
     }
@@ -1175,17 +1175,17 @@ impl MvccInfoIterator {
         let iter = &mut self.lock_iter;
         if box_try!(iter.valid()) {
             let (key, value) = (iter.key().to_owned(), iter.value());
-            let lock = box_try!(Lock::parse(&value));
+            let dagger = box_try!(Dagger::parse(&value));
             let mut lock_info = MvccLock::default();
-            match lock.lock_type {
+            match dagger.lock_type {
                 LockType::Put => lock_info.set_type(Op::Put),
                 LockType::Delete => lock_info.set_type(Op::Del),
-                LockType::Lock => lock_info.set_type(Op::Lock),
+                LockType::Dagger => lock_info.set_type(Op::Dagger),
                 LockType::Pessimistic => lock_info.set_type(Op::PessimisticLock),
             }
-            lock_info.set_spacelike_ts(lock.ts.into_inner());
-            lock_info.set_primary(lock.primary);
-            lock_info.set_short_value(lock.short_value.unwrap_or_default());
+            lock_info.set_spacelike_ts(dagger.ts.into_inner());
+            lock_info.set_primary(dagger.primary);
+            lock_info.set_short_value(dagger.short_value.unwrap_or_default());
             box_try!(iter.next());
             return Ok(Some((key, lock_info)));
         };
@@ -1216,7 +1216,7 @@ impl MvccInfoIterator {
                 match write.write_type {
                     WriteType::Put => write_info.set_type(Op::Put),
                     WriteType::Delete => write_info.set_type(Op::Del),
-                    WriteType::Lock => write_info.set_type(Op::Lock),
+                    WriteType::Dagger => write_info.set_type(Op::Dagger),
                     WriteType::Rollback => write_info.set_type(Op::Rollback),
                 }
                 write_info.set_spacelike_ts(write.spacelike_ts.into_inner());
@@ -1268,8 +1268,8 @@ impl MvccInfoIterator {
         };
 
         if lock_ok {
-            if let Some((prefix, lock)) = self.next_lock()? {
-                mvcc_info.set_lock(lock);
+            if let Some((prefix, dagger)) = self.next_lock()? {
+                mvcc_info.set_lock(dagger);
                 min_prefix = prefix;
             }
         }
@@ -1319,7 +1319,7 @@ fn validate_db_and_causet(db: DBType, causet: &str) -> Result<()> {
         (DBType::Kv, CAUSET_DEFAULT)
         | (DBType::Kv, CAUSET_WRITE)
         | (DBType::Kv, CAUSET_DAGGER)
-        | (DBType::Kv, CAUSET_RAFT)
+        | (DBType::Kv, CAUSET_VIOLETABFT)
         | (DBType::VioletaBft, CAUSET_DEFAULT) => Ok(()),
         _ => Err(Error::InvalidArgument(format!(
             "invalid causet {:?} for db {:?}",
@@ -1339,7 +1339,7 @@ fn set_brane_tombstone(
 
     let brane_state = db
         .c()
-        .get_msg_causet::<BraneLocalState>(CAUSET_RAFT, &key)
+        .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &key)
         .map_err(|e| box_err!(e))
         .and_then(|s| s.ok_or_else(|| Error::Other("Can't find BraneLocalState".into())))?;
     if brane_state.get_state() == PeerState::Tombstone {
@@ -1394,15 +1394,15 @@ mod tests {
 
     use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions, Writable};
     use ekvproto::metapb::{Peer, Brane};
-    use violetabft::eraftpb::EntryType;
+    use violetabft::evioletabftpb::EntryType;
     use tempfile::Builder;
 
     use super::*;
-    use crate::persistence::mvcc::{Lock, LockType};
+    use crate::causetStorage::mvcc::{Dagger, LockType};
     use engine_lmdb::raw_util::{new_engine_opt, CAUSETOptions};
     use engine_lmdb::LmdbEngine;
     use engine_promises::{CAUSETHandleExt, Mutable, SyncMutable};
-    use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_RAFT, CAUSET_WRITE};
+    use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
 
     fn init_brane_state(engine: &Arc<DB>, brane_id: u64, stores: &[u64]) -> Brane {
         let mut brane = Brane::default();
@@ -1417,7 +1417,7 @@ mod tests {
         brane_state.set_state(PeerState::Normal);
         brane_state.set_brane(brane.clone());
         let key = tuplespaceInstanton::brane_state_key(brane_id);
-        engine.c().put_msg_causet(CAUSET_RAFT, &key, &brane_state).unwrap();
+        engine.c().put_msg_causet(CAUSET_VIOLETABFT, &key, &brane_state).unwrap();
         brane
     }
 
@@ -1425,7 +1425,7 @@ mod tests {
         let key = tuplespaceInstanton::brane_state_key(brane_id);
         engine
             .c()
-            .get_msg_causet::<BraneLocalState>(CAUSET_RAFT, &key)
+            .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &key)
             .unwrap()
             .unwrap()
     }
@@ -1478,7 +1478,7 @@ mod tests {
             (DBType::Kv, CAUSET_DEFAULT),
             (DBType::Kv, CAUSET_WRITE),
             (DBType::Kv, CAUSET_DAGGER),
-            (DBType::Kv, CAUSET_RAFT),
+            (DBType::Kv, CAUSET_VIOLETABFT),
             (DBType::VioletaBft, CAUSET_DEFAULT),
         ];
         for (db, causet) in valid_cases {
@@ -1488,7 +1488,7 @@ mod tests {
         let invalid_cases = vec![
             (DBType::VioletaBft, CAUSET_WRITE),
             (DBType::VioletaBft, CAUSET_DAGGER),
-            (DBType::VioletaBft, CAUSET_RAFT),
+            (DBType::VioletaBft, CAUSET_VIOLETABFT),
             (DBType::Invalid, CAUSET_DEFAULT),
             (DBType::Invalid, "BAD_CAUSET"),
         ];
@@ -1508,7 +1508,7 @@ mod tests {
                     CAUSETOptions::new(CAUSET_DEFAULT, PrimaryCausetNetworkOptions::new()),
                     CAUSETOptions::new(CAUSET_WRITE, PrimaryCausetNetworkOptions::new()),
                     CAUSETOptions::new(CAUSET_DAGGER, PrimaryCausetNetworkOptions::new()),
-                    CAUSETOptions::new(CAUSET_RAFT, PrimaryCausetNetworkOptions::new()),
+                    CAUSETOptions::new(CAUSET_VIOLETABFT, PrimaryCausetNetworkOptions::new()),
                 ],
             )
             .unwrap(),
@@ -1567,11 +1567,11 @@ mod tests {
     }
 
     #[test]
-    fn test_raft_log() {
+    fn test_violetabft_log() {
         let debugger = new_debugger();
         let engine = &debugger.engines.violetabft;
         let (brane_id, log_index) = (1, 1);
-        let key = tuplespaceInstanton::raft_log_key(brane_id, log_index);
+        let key = tuplespaceInstanton::violetabft_log_key(brane_id, log_index);
         let mut entry = Entry::default();
         entry.set_term(1);
         entry.set_index(1);
@@ -1580,8 +1580,8 @@ mod tests {
         engine.put_msg(&key, &entry).unwrap();
         assert_eq!(engine.get_msg::<Entry>(&key).unwrap().unwrap(), entry);
 
-        assert_eq!(debugger.raft_log(brane_id, log_index).unwrap(), entry);
-        match debugger.raft_log(brane_id + 1, log_index + 1) {
+        assert_eq!(debugger.violetabft_log(brane_id, log_index).unwrap(), entry);
+        match debugger.violetabft_log(brane_id + 1, log_index + 1) {
             Err(Error::NotFound(_)) => (),
             _ => panic!("expect Error::NotFound(_)"),
         }
@@ -1590,31 +1590,31 @@ mod tests {
     #[test]
     fn test_brane_info() {
         let debugger = new_debugger();
-        let raft_engine = &debugger.engines.violetabft;
+        let violetabft_engine = &debugger.engines.violetabft;
         let kv_engine = &debugger.engines.kv;
         let brane_id = 1;
 
-        let raft_state_key = tuplespaceInstanton::raft_state_key(brane_id);
-        let mut raft_state = VioletaBftLocalState::default();
-        raft_state.set_last_index(42);
-        raft_engine.put_msg(&raft_state_key, &raft_state).unwrap();
+        let violetabft_state_key = tuplespaceInstanton::violetabft_state_key(brane_id);
+        let mut violetabft_state = VioletaBftLocalState::default();
+        violetabft_state.set_last_index(42);
+        violetabft_engine.put_msg(&violetabft_state_key, &violetabft_state).unwrap();
         assert_eq!(
-            raft_engine
-                .get_msg::<VioletaBftLocalState>(&raft_state_key)
+            violetabft_engine
+                .get_msg::<VioletaBftLocalState>(&violetabft_state_key)
                 .unwrap()
                 .unwrap(),
-            raft_state
+            violetabft_state
         );
 
         let apply_state_key = tuplespaceInstanton::apply_state_key(brane_id);
         let mut apply_state = VioletaBftApplyState::default();
         apply_state.set_applied_index(42);
         kv_engine
-            .put_msg_causet(CAUSET_RAFT, &apply_state_key, &apply_state)
+            .put_msg_causet(CAUSET_VIOLETABFT, &apply_state_key, &apply_state)
             .unwrap();
         assert_eq!(
             kv_engine
-                .get_msg_causet::<VioletaBftApplyState>(CAUSET_RAFT, &apply_state_key)
+                .get_msg_causet::<VioletaBftApplyState>(CAUSET_VIOLETABFT, &apply_state_key)
                 .unwrap()
                 .unwrap(),
             apply_state
@@ -1624,11 +1624,11 @@ mod tests {
         let mut brane_state = BraneLocalState::default();
         brane_state.set_state(PeerState::Tombstone);
         kv_engine
-            .put_msg_causet(CAUSET_RAFT, &brane_state_key, &brane_state)
+            .put_msg_causet(CAUSET_VIOLETABFT, &brane_state_key, &brane_state)
             .unwrap();
         assert_eq!(
             kv_engine
-                .get_msg_causet::<BraneLocalState>(CAUSET_RAFT, &brane_state_key)
+                .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &brane_state_key)
                 .unwrap()
                 .unwrap(),
             brane_state
@@ -1636,7 +1636,7 @@ mod tests {
 
         assert_eq!(
             debugger.brane_info(brane_id).unwrap(),
-            BraneInfo::new(Some(raft_state), Some(apply_state), Some(brane_state))
+            BraneInfo::new(Some(violetabft_state), Some(apply_state), Some(brane_state))
         );
         match debugger.brane_info(brane_id + 1) {
             Err(Error::NotFound(_)) => (),
@@ -1658,10 +1658,10 @@ mod tests {
         let mut state = BraneLocalState::default();
         state.set_brane(brane);
         engine
-            .put_msg_causet(CAUSET_RAFT, &brane_state_key, &state)
+            .put_msg_causet(CAUSET_VIOLETABFT, &brane_state_key, &state)
             .unwrap();
 
-        let causets = vec![CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_RAFT, CAUSET_WRITE];
+        let causets = vec![CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE];
         let (k, v) = (tuplespaceInstanton::data_key(b"k"), b"v");
         for causet in &causets {
             engine.put_causet(causet, k.as_slice(), v).unwrap();
@@ -1693,13 +1693,13 @@ mod tests {
 
         let causet_lock_data = vec![
             (b"k1", LockType::Put, b"v", 5.into()),
-            (b"k4", LockType::Lock, b"x", 10.into()),
+            (b"k4", LockType::Dagger, b"x", 10.into()),
             (b"k5", LockType::Delete, b"y", 15.into()),
         ];
         for &(prefix, tp, value, version) in &causet_lock_data {
             let encoded_key = Key::from_raw(prefix);
             let key = tuplespaceInstanton::data_key(encoded_key.as_encoded().as_slice());
-            let lock = Lock::new(
+            let dagger = Dagger::new(
                 tp,
                 value.to_vec(),
                 version,
@@ -1709,7 +1709,7 @@ mod tests {
                 0,
                 TimeStamp::zero(),
             );
-            let value = lock.to_bytes();
+            let value = dagger.to_bytes();
             engine
                 .put_causet(CAUSET_DAGGER, key.as_slice(), value.as_slice())
                 .unwrap();
@@ -1718,7 +1718,7 @@ mod tests {
         let causet_write_data = vec![
             (b"k2", WriteType::Put, 5.into(), 10.into()),
             (b"k3", WriteType::Put, 15.into(), 20.into()),
-            (b"k6", WriteType::Lock, 25.into(), 30.into()),
+            (b"k6", WriteType::Dagger, 25.into(), 30.into()),
             (b"k7", WriteType::Rollback, 35.into(), 40.into()),
         ];
         for &(prefix, tp, spacelike_ts, commit_ts) in &causet_write_data {
@@ -1868,14 +1868,14 @@ mod tests {
     fn test_bad_branes() {
         let debugger = new_debugger();
         let kv_engine = &debugger.engines.kv;
-        let raft_engine = &debugger.engines.violetabft;
+        let violetabft_engine = &debugger.engines.violetabft;
         let store_id = 1; // It's a fake id.
 
-        let mut wb1 = raft_engine.write_batch();
+        let mut wb1 = violetabft_engine.write_batch();
         let causet1 = CAUSET_DEFAULT;
 
         let mut wb2 = kv_engine.write_batch();
-        let causet2 = CAUSET_RAFT;
+        let causet2 = CAUSET_VIOLETABFT;
 
         {
             let mock_brane_state = |wb: &mut LmdbWriteBatch, brane_id: u64, peers: &[u64]| {
@@ -1900,19 +1900,19 @@ mod tests {
                 wb.put_msg_causet(causet2, &brane_state_key, &brane_state)
                     .unwrap();
             };
-            let mock_raft_state =
+            let mock_violetabft_state =
                 |wb: &mut LmdbWriteBatch, brane_id: u64, last_index: u64, commit_index: u64| {
-                    let raft_state_key = tuplespaceInstanton::raft_state_key(brane_id);
-                    let mut raft_state = VioletaBftLocalState::default();
-                    raft_state.set_last_index(last_index);
-                    raft_state.mut_hard_state().set_commit(commit_index);
-                    wb.put_msg_causet(causet1, &raft_state_key, &raft_state).unwrap();
+                    let violetabft_state_key = tuplespaceInstanton::violetabft_state_key(brane_id);
+                    let mut violetabft_state = VioletaBftLocalState::default();
+                    violetabft_state.set_last_index(last_index);
+                    violetabft_state.mut_hard_state().set_commit(commit_index);
+                    wb.put_msg_causet(causet1, &violetabft_state_key, &violetabft_state).unwrap();
                 };
             let mock_apply_state = |wb: &mut LmdbWriteBatch, brane_id: u64, apply_index: u64| {
-                let raft_apply_key = tuplespaceInstanton::apply_state_key(brane_id);
+                let violetabft_apply_key = tuplespaceInstanton::apply_state_key(brane_id);
                 let mut apply_state = VioletaBftApplyState::default();
                 apply_state.set_applied_index(apply_index);
-                wb.put_msg_causet(causet2, &raft_apply_key, &apply_state).unwrap();
+                wb.put_msg_causet(causet2, &violetabft_apply_key, &apply_state).unwrap();
             };
 
             for &brane_id in &[10, 11, 12] {
@@ -1920,19 +1920,19 @@ mod tests {
             }
 
             // last index < commit index
-            mock_raft_state(&mut wb1, 10, 100, 110);
+            mock_violetabft_state(&mut wb1, 10, 100, 110);
 
             // commit index < last index < apply index, or commit index < apply index < last index.
-            mock_raft_state(&mut wb1, 11, 100, 90);
+            mock_violetabft_state(&mut wb1, 11, 100, 90);
             mock_apply_state(&mut wb2, 11, 110);
-            mock_raft_state(&mut wb1, 12, 100, 90);
+            mock_violetabft_state(&mut wb1, 12, 100, 90);
             mock_apply_state(&mut wb2, 12, 95);
 
             // brane state doesn't contains the peer itself.
             mock_brane_state(&mut wb2, 13, &[]);
         }
 
-        raft_engine.write_opt(&wb1, &WriteOptions::new()).unwrap();
+        violetabft_engine.write_opt(&wb1, &WriteOptions::new()).unwrap();
         kv_engine.write_opt(&wb2, &WriteOptions::new()).unwrap();
 
         let bad_branes = debugger.bad_branes().unwrap();
@@ -1960,15 +1960,15 @@ mod tests {
             brane_state.set_state(PeerState::Normal);
             brane_state.set_brane(brane);
             let key = tuplespaceInstanton::brane_state_key(brane_id);
-            engine.put_msg_causet(CAUSET_RAFT, &key, &brane_state).unwrap();
+            engine.put_msg_causet(CAUSET_VIOLETABFT, &key, &brane_state).unwrap();
         }
 
         let remove_brane_state = |brane_id: u64| {
             let key = tuplespaceInstanton::brane_state_key(brane_id);
-            let causet_raft = engine.causet_handle(CAUSET_RAFT).unwrap();
+            let causet_violetabft = engine.causet_handle(CAUSET_VIOLETABFT).unwrap();
             engine
                 .as_inner()
-                .delete_causet(causet_raft.as_inner(), &key)
+                .delete_causet(causet_violetabft.as_inner(), &key)
                 .unwrap();
         };
 
@@ -1994,7 +1994,7 @@ mod tests {
 
     #[test]
     fn test_mvcc_checker() {
-        let (mut default, mut lock, mut write) = (vec![], vec![], vec![]);
+        let (mut default, mut dagger, mut write) = (vec![], vec![], vec![]);
         enum Expect {
             Keep,
             Remove,
@@ -2005,13 +2005,13 @@ mod tests {
             (b"k4", 100, Expect::Keep),
             (b"k5", 100, Expect::Keep),
         ]);
-        lock.extlightlike(vec![
+        dagger.extlightlike(vec![
             // key, spacelike_ts, for_ufidelate_ts, lock_type, short_value, check
-            (b"k1", 100, 0, LockType::Put, false, Expect::Remove), // k1: remove orphan lock.
+            (b"k1", 100, 0, LockType::Put, false, Expect::Remove), // k1: remove orphan dagger.
             (b"k2", 100, 0, LockType::Delete, false, Expect::Keep), // k2: Delete doesn't need default.
             (b"k3", 100, 0, LockType::Put, true, Expect::Keep), // k3: short value doesn't need default.
             (b"k4", 100, 0, LockType::Put, false, Expect::Keep), // k4: corresponding default exists.
-            (b"k5", 100, 0, LockType::Put, false, Expect::Remove), // k5: duplicated lock and write.
+            (b"k5", 100, 0, LockType::Put, false, Expect::Remove), // k5: duplicated dagger and write.
         ]);
         write.extlightlike(vec![
             // key, spacelike_ts, commit_ts, write_type, short_value, check
@@ -2040,12 +2040,12 @@ mod tests {
         // Combine problems together.
         default.extlightlike(vec![
             // key, spacelike_ts
-            (b"k7", 98, Expect::Remove), // default without lock or write.
+            (b"k7", 98, Expect::Remove), // default without dagger or write.
             (b"k7", 90, Expect::Remove), // orphan default.
         ]);
-        lock.extlightlike(vec![
+        dagger.extlightlike(vec![
             // key, spacelike_ts, for_ufidelate_ts, lock_type, short_value, check
-            (b"k7", 100, 0, LockType::Put, false, Expect::Remove), // duplicated lock and write.
+            (b"k7", 100, 0, LockType::Put, false, Expect::Remove), // duplicated dagger and write.
         ]);
         write.extlightlike(vec![
             // key, spacelike_ts, commit_ts, write_type, short_value
@@ -2059,10 +2059,10 @@ mod tests {
             (b"k8", 100, Expect::Keep),
             (b"k9", 100, Expect::Keep),
         ]);
-        lock.extlightlike(vec![
+        dagger.extlightlike(vec![
             // key, spacelike_ts, for_ufidelate_ts, lock_type, short_value, check
             (b"k8", 90, 105, LockType::Pessimistic, false, Expect::Remove), // newer writes exist
-            (b"k9", 90, 115, LockType::Put, true, Expect::Keep), // prewritten lock from a pessimistic txn
+            (b"k9", 90, 115, LockType::Put, true, Expect::Keep), // prewritten dagger from a pessimistic txn
         ]);
         write.extlightlike(vec![
             // key, spacelike_ts, commit_ts, write_type, short_value
@@ -2075,7 +2075,7 @@ mod tests {
             // key, spacelike_ts
             (b"l0", 100, Expect::Keep),
         ]);
-        lock.extlightlike(vec![
+        dagger.extlightlike(vec![
             // key, spacelike_ts, for_ufidelate_ts, lock_type, short_value, check
             (b"l0", 101, 0, LockType::Put, false, Expect::Keep),
         ]);
@@ -2093,13 +2093,13 @@ mod tests {
                 expect,
             ));
         }
-        for (key, ts, for_ufidelate_ts, tp, short_value, expect) in lock {
+        for (key, ts, for_ufidelate_ts, tp, short_value, expect) in dagger {
             let v = if short_value {
                 Some(b"v".to_vec())
             } else {
                 None
             };
-            let lock = Lock::new(
+            let dagger = Dagger::new(
                 tp,
                 vec![],
                 ts.into(),
@@ -2109,7 +2109,7 @@ mod tests {
                 0,
                 TimeStamp::zero(),
             );
-            kv.push((CAUSET_DAGGER, Key::from_raw(key), lock.to_bytes(), expect));
+            kv.push((CAUSET_DAGGER, Key::from_raw(key), dagger.to_bytes(), expect));
         }
         for (key, spacelike_ts, commit_ts, tp, short_value, expect) in write {
             let v = if short_value {

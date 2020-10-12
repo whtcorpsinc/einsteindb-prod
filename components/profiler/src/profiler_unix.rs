@@ -27,7 +27,7 @@ lazy_static::lazy_static! {
 // TODO: Better multi-thread support.
 #[inline]
 pub fn spacelike(name: impl AsRef<str>) -> bool {
-    let mut profiler = ACTIVE_PROFILER.lock().unwrap();
+    let mut profiler = ACTIVE_PROFILER.dagger().unwrap();
 
     // Profiling in progress.
     if *profiler != Profiler::None {
@@ -40,7 +40,7 @@ pub fn spacelike(name: impl AsRef<str>) -> bool {
     } else {
         *profiler = Profiler::GPerfTools;
         gperftools::PROFILER
-            .lock()
+            .dagger()
             .unwrap()
             .spacelike(name.as_ref())
             .unwrap();
@@ -55,7 +55,7 @@ pub fn spacelike(name: impl AsRef<str>) -> bool {
 /// zero cost.
 #[inline]
 pub fn stop() -> bool {
-    let mut profiler = ACTIVE_PROFILER.lock().unwrap();
+    let mut profiler = ACTIVE_PROFILER.dagger().unwrap();
     match *profiler {
         Profiler::None => false,
         Profiler::CallGrind => {
@@ -64,7 +64,7 @@ pub fn stop() -> bool {
             true
         }
         Profiler::GPerfTools => {
-            gperftools::PROFILER.lock().unwrap().stop().unwrap();
+            gperftools::PROFILER.dagger().unwrap().stop().unwrap();
             *profiler = Profiler::None;
             true
         }

@@ -1,15 +1,15 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use super::peer_causetStorage::{
-    write_initial_apply_state, write_initial_raft_state, INIT_EPOCH_CONF_VER, INIT_EPOCH_VER,
+    write_initial_apply_state, write_initial_violetabft_state, INIT_EPOCH_CONF_VER, INIT_EPOCH_VER,
 };
 use super::util::new_peer;
 use crate::Result;
 use engine_promises::{Engines, KvEngine, Mutable, VioletaBftEngine};
-use engine_promises::{CAUSET_DEFAULT, CAUSET_RAFT};
+use engine_promises::{CAUSET_DEFAULT, CAUSET_VIOLETABFT};
 
 use ekvproto::metapb;
-use ekvproto::raft_serverpb::{VioletaBftLocalState, BraneLocalState, StoreIdent};
+use ekvproto::violetabft_serverpb::{VioletaBftLocalState, BraneLocalState, StoreIdent};
 
 pub fn initial_brane(store_id: u64, brane_id: u64, peer_id: u64) -> metapb::Brane {
     let mut brane = metapb::Brane::default();
@@ -76,14 +76,14 @@ pub fn prepare_bootstrap_cluster(
 
     let mut wb = engines.kv.write_batch();
     box_try!(wb.put_msg(tuplespaceInstanton::PREPARE_BOOTSTRAP_KEY, brane));
-    box_try!(wb.put_msg_causet(CAUSET_RAFT, &tuplespaceInstanton::brane_state_key(brane.get_id()), &state));
+    box_try!(wb.put_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane.get_id()), &state));
     write_initial_apply_state(&mut wb, brane.get_id())?;
     engines.kv.write(&wb)?;
     engines.sync_kv()?;
 
-    let mut raft_wb = engines.violetabft.log_batch(1024);
-    write_initial_raft_state(&mut raft_wb, brane.get_id())?;
-    box_try!(engines.violetabft.consume(&mut raft_wb, true));
+    let mut violetabft_wb = engines.violetabft.log_batch(1024);
+    write_initial_violetabft_state(&mut violetabft_wb, brane.get_id())?;
+    box_try!(engines.violetabft.consume(&mut violetabft_wb, true));
     Ok(())
 }
 
@@ -101,8 +101,8 @@ pub fn clear_prepare_bootstrap_cluster(
     let mut wb = engines.kv.write_batch();
     box_try!(wb.delete(tuplespaceInstanton::PREPARE_BOOTSTRAP_KEY));
     // should clear violetabft initial state too.
-    box_try!(wb.delete_causet(CAUSET_RAFT, &tuplespaceInstanton::brane_state_key(brane_id)));
-    box_try!(wb.delete_causet(CAUSET_RAFT, &tuplespaceInstanton::apply_state_key(brane_id)));
+    box_try!(wb.delete_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id)));
+    box_try!(wb.delete_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id)));
     engines.kv.write(&wb)?;
     engines.sync_kv()?;
     Ok(())
@@ -128,18 +128,18 @@ mod tests {
     #[test]
     fn test_bootstrap() {
         let path = Builder::new().prefix("var").temfidelir().unwrap();
-        let raft_path = path.path().join("violetabft");
+        let violetabft_path = path.path().join("violetabft");
         let kv_engine = engine_lmdb::util::new_engine(
             path.path().to_str().unwrap(),
             None,
-            &[CAUSET_DEFAULT, CAUSET_RAFT],
+            &[CAUSET_DEFAULT, CAUSET_VIOLETABFT],
             None,
         )
         .unwrap();
-        let raft_engine =
-            engine_lmdb::util::new_engine(raft_path.to_str().unwrap(), None, &[CAUSET_DEFAULT], None)
+        let violetabft_engine =
+            engine_lmdb::util::new_engine(violetabft_path.to_str().unwrap(), None, &[CAUSET_DEFAULT], None)
                 .unwrap();
-        let engines = Engines::new(kv_engine.clone(), raft_engine.clone());
+        let engines = Engines::new(kv_engine.clone(), violetabft_engine.clone());
         let brane = initial_brane(1, 1, 1);
 
         assert!(bootstrap_store(&engines, 1, 1).is_ok());
@@ -151,15 +151,15 @@ mod tests {
             .unwrap()
             .is_some());
         assert!(kv_engine
-            .get_value_causet(CAUSET_RAFT, &tuplespaceInstanton::brane_state_key(1))
+            .get_value_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(1))
             .unwrap()
             .is_some());
         assert!(kv_engine
-            .get_value_causet(CAUSET_RAFT, &tuplespaceInstanton::apply_state_key(1))
+            .get_value_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(1))
             .unwrap()
             .is_some());
-        assert!(raft_engine
-            .get_value(&tuplespaceInstanton::raft_state_key(1))
+        assert!(violetabft_engine
+            .get_value(&tuplespaceInstanton::violetabft_state_key(1))
             .unwrap()
             .is_some());
 
@@ -167,16 +167,16 @@ mod tests {
         assert!(clear_prepare_bootstrap_cluster(&engines, 1).is_ok());
         assert!(is_cone_empty(
             &kv_engine,
-            CAUSET_RAFT,
+            CAUSET_VIOLETABFT,
             &tuplespaceInstanton::brane_meta_prefix(1),
             &tuplespaceInstanton::brane_meta_prefix(2)
         )
         .unwrap());
         assert!(is_cone_empty(
-            &raft_engine,
+            &violetabft_engine,
             CAUSET_DEFAULT,
-            &tuplespaceInstanton::brane_raft_prefix(1),
-            &tuplespaceInstanton::brane_raft_prefix(2)
+            &tuplespaceInstanton::brane_violetabft_prefix(1),
+            &tuplespaceInstanton::brane_violetabft_prefix(2)
         )
         .unwrap());
     }

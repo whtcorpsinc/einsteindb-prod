@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 //! This crate implements normal executors of milevadb_query
 
@@ -45,7 +45,7 @@ use fidelpb::PrimaryCausetInfo;
 use fidelpb::{Expr, ExprType};
 
 use milevadb_query_common::execute_stats::*;
-use milevadb_query_common::persistence::IntervalCone;
+use milevadb_query_common::causetStorage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::datum::{self, Datum, DatumEncoder};
 use milevadb_query_datatype::codec::table::{self, RowColsDict};
@@ -390,7 +390,7 @@ pub mod tests {
     use super::{FreeDaemon, TableScanFreeDaemon};
     use codec::prelude::NumberEncoder;
     use ekvproto::interlock::KeyCone;
-    use milevadb_query_common::persistence::test_fixture::FixtureStorage;
+    use milevadb_query_common::causetStorage::test_fixture::FixtureStorage;
     use milevadb_query_datatype::codec::{datum, table, Datum};
     use milevadb_query_datatype::expr::EvalContext;
     use milevadb_query_datatype::{FieldTypeAccessor, FieldTypeTp};
@@ -523,7 +523,7 @@ pub mod tests {
         key_cones: Option<Vec<KeyCone>>,
     ) -> Box<dyn FreeDaemon<StorageStats = ()> + Slightlike> {
         let table_data = gen_table_data(tid, &cis, raw_data);
-        let persistence = FixtureStorage::from(table_data);
+        let causetStorage = FixtureStorage::from(table_data);
 
         let mut table_scan = TableScan::default();
         table_scan.set_table_id(tid);
@@ -535,7 +535,7 @@ pub mod tests {
                 table_scan,
                 EvalContext::default(),
                 key_cones,
-                persistence,
+                causetStorage,
                 false,
             )
             .unwrap(),

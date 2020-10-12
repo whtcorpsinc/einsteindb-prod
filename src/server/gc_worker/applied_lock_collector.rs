@@ -10,16 +10,16 @@ use txn_types::Key;
 use engine_lmdb::LmdbEngine;
 use engine_promises::{CfName, CAUSET_DAGGER};
 use ekvproto::kvrpcpb::LockInfo;
-use ekvproto::raft_cmdpb::CmdType;
+use ekvproto::violetabft_cmdpb::CmdType;
 use einsteindb_util::worker::{Builder as WorkerBuilder, Runnable, ScheduleError, Scheduler, Worker};
 
-use crate::persistence::mvcc::{Error as MvccError, Lock, TimeStamp};
+use crate::causetStorage::mvcc::{Error as MvccError, Dagger, TimeStamp};
 use violetabftstore::interlock::{
     ApplySnapshotObserver, BoxApplySnapshotObserver, BoxQueryObserver, Cmd, Interlock,
     InterlockHost, ObserverContext, QueryObserver,
 };
 
-// TODO: Use new error type for GCWorker instead of persistence::Error.
+// TODO: Use new error type for GCWorker instead of causetStorage::Error.
 use super::{Error, ErrorInner, Result};
 
 const MAX_COLLECT_SIZE: usize = 1024;
@@ -61,7 +61,7 @@ pub type Callback<T> = Box<dyn FnOnce(Result<T>) + Slightlike>;
 
 enum LockCollectorTask {
     // Messages from observer
-    ObservedLocks(Vec<(Key, Lock)>),
+    ObservedLocks(Vec<(Key, Dagger)>),
 
     // Messages from client
     StartCollecting {
@@ -108,8 +108,8 @@ impl Display for LockCollectorTask {
 }
 
 /// `LockObserver` observes apply events and apply snapshot events. If it happens in CAUSET_DAGGER, it
-/// checks the `spacelike_ts`s of the locks being written. If a lock's `spacelike_ts` <= specified `max_ts`
-/// in the `state`, it will slightlike the lock to through the `slightlikeer`, so the receiver can collect it.
+/// checks the `spacelike_ts`s of the locks being written. If a dagger's `spacelike_ts` <= specified `max_ts`
+/// in the `state`, it will slightlike the dagger to through the `slightlikeer`, so the receiver can collect it.
 #[derive(Clone)]
 struct LockObserver {
     state: Arc<LockObserverState>,
@@ -130,7 +130,7 @@ impl LockObserver {
             .register_query_observer(1, BoxQueryObserver::new(self));
     }
 
-    fn slightlike(&self, locks: Vec<(Key, Lock)>) {
+    fn slightlike(&self, locks: Vec<(Key, Dagger)>) {
         let res = &mut self
             .slightlikeer
             .schedule(LockCollectorTask::ObservedLocks(locks));
@@ -150,11 +150,11 @@ impl LockObserver {
         match res {
             Ok(()) => (),
             Err(ScheduleError::Stopped(_)) => {
-                error!("lock observer failed to slightlike locks because collector is stopped");
+                error!("dagger observer failed to slightlike locks because collector is stopped");
             }
             Err(ScheduleError::Full(_)) => {
                 self.state.mark_dirty();
-                warn!("cannot collect all applied lock because channel is full");
+                warn!("cannot collect all applied dagger because channel is full");
             }
         }
     }
@@ -185,11 +185,11 @@ impl QueryObserver for LockObserver {
                 continue;
             }
 
-            let lock = match Lock::parse(put_request.get_value()) {
+            let dagger = match Dagger::parse(put_request.get_value()) {
                 Ok(l) => l,
                 Err(e) => {
                     error!(?e;
-                        "cannot parse lock";
+                        "cannot parse dagger";
                         "value" => hex::encode_upper(put_request.get_value()),
                     );
                     self.state.mark_dirty();
@@ -197,9 +197,9 @@ impl QueryObserver for LockObserver {
                 }
             };
 
-            if lock.ts <= max_ts {
+            if dagger.ts <= max_ts {
                 let key = Key::from_encoded_slice(put_request.get_key());
-                locks.push((key, lock));
+                locks.push((key, dagger));
             }
         }
         if !locks.is_empty() {
@@ -232,21 +232,21 @@ impl ApplySnapshotObserver for LockObserver {
         let locks: Result<Vec<_>> = kv_pairs
             .iter()
             .map(|(key, value)| {
-                Lock::parse(value)
-                    .map(|lock| (key, lock))
+                Dagger::parse(value)
+                    .map(|dagger| (key, dagger))
                     .map_err(|e| ErrorInner::Mvcc(e.into()).into())
             })
             .filter(|result| result.is_err() || result.as_ref().unwrap().1.ts <= max_ts)
             .map(|result| {
                 // `apply_plain_tuplespaceInstanton` will be invoked with the data_key in Lmdb layer. So we
                 // need to remove the `z` prefix.
-                result.map(|(key, lock)| (Key::from_encoded_slice(origin_key(key)), lock))
+                result.map(|(key, dagger)| (Key::from_encoded_slice(origin_key(key)), dagger))
             })
             .collect();
 
         match locks {
             Err(e) => {
-                error!(?e; "cannot parse lock");
+                error!(?e; "cannot parse dagger");
                 self.state.mark_dirty()
             }
             Ok(l) => self.slightlike(l),
@@ -255,7 +255,7 @@ impl ApplySnapshotObserver for LockObserver {
 
     fn apply_sst(&self, _: &mut ObserverContext<'_>, causet: CfName, _path: &str) {
         if causet == CAUSET_DAGGER {
-            error!("cannot collect all applied lock: snapshot of lock causet applied from sst file");
+            error!("cannot collect all applied dagger: snapshot of dagger causet applied from sst file");
             self.state.mark_dirty();
         }
     }
@@ -264,7 +264,7 @@ impl ApplySnapshotObserver for LockObserver {
 struct LockCollectorRunner {
     observer_state: Arc<LockObserverState>,
 
-    collected_locks: Vec<(Key, Lock)>,
+    collected_locks: Vec<(Key, Dagger)>,
 }
 
 impl LockCollectorRunner {
@@ -275,14 +275,14 @@ impl LockCollectorRunner {
         }
     }
 
-    fn handle_observed_locks(&mut self, mut locks: Vec<(Key, Lock)>) {
+    fn handle_observed_locks(&mut self, mut locks: Vec<(Key, Dagger)>) {
         if self.collected_locks.len() >= MAX_COLLECT_SIZE {
             return;
         }
 
         if locks.len() + self.collected_locks.len() >= MAX_COLLECT_SIZE {
             self.observer_state.mark_dirty();
-            info!("lock collector marked dirty because received too many locks");
+            info!("dagger collector marked dirty because received too many locks");
             locks.truncate(MAX_COLLECT_SIZE - self.collected_locks.len());
         }
         self.collected_locks.extlightlike(locks);
@@ -386,9 +386,9 @@ pub struct AppliedLockCollector {
 
 impl AppliedLockCollector {
     pub fn new(interlock_host: &mut InterlockHost<LmdbEngine>) -> Result<Self> {
-        let worker = Mutex::new(WorkerBuilder::new("lock-collector").create());
+        let worker = Mutex::new(WorkerBuilder::new("dagger-collector").create());
 
-        let scheduler = worker.lock().unwrap().scheduler();
+        let scheduler = worker.dagger().unwrap().scheduler();
 
         let state = Arc::new(LockObserverState::default());
         let runner = LockCollectorRunner::new(Arc::clone(&state));
@@ -397,13 +397,13 @@ impl AppliedLockCollector {
         observer.register(interlock_host);
 
         // Start the worker
-        worker.lock().unwrap().spacelike(runner)?;
+        worker.dagger().unwrap().spacelike(runner)?;
 
         Ok(Self { worker, scheduler })
     }
 
     pub fn stop(&self) -> Result<()> {
-        if let Some(h) = self.worker.lock().unwrap().stop() {
+        if let Some(h) = self.worker.dagger().unwrap().stop() {
             if let Err(e) = h.join() {
                 return Err(box_err!(
                     "failed to join applied_lock_collector handle, err: {:?}",
@@ -461,7 +461,7 @@ mod tests {
     use engine_promises::CAUSET_DEFAULT;
     use ekvproto::kvrpcpb::Op;
     use ekvproto::metapb::Brane;
-    use ekvproto::raft_cmdpb::{
+    use ekvproto::violetabft_cmdpb::{
         PutRequest, VioletaBftCmdRequest, VioletaBftCmdResponse, Request as VioletaBftRequest,
     };
     use std::sync::mpsc::channel;
@@ -469,11 +469,11 @@ mod tests {
 
     fn lock_info_to_kv(mut lock_info: LockInfo) -> (Vec<u8>, Vec<u8>) {
         let key = Key::from_raw(lock_info.get_key()).into_encoded();
-        let lock = Lock::new(
+        let dagger = Dagger::new(
             match lock_info.get_lock_type() {
                 Op::Put => LockType::Put,
                 Op::Del => LockType::Delete,
-                Op::Lock => LockType::Lock,
+                Op::Dagger => LockType::Dagger,
                 Op::PessimisticLock => LockType::Pessimistic,
                 _ => unreachable!(),
             },
@@ -485,7 +485,7 @@ mod tests {
             lock_info.get_txn_size(),
             0.into(),
         );
-        let value = lock.to_bytes();
+        let value = dagger.to_bytes();
         (key, value)
     }
 
@@ -506,7 +506,7 @@ mod tests {
         req
     }
 
-    fn make_raft_cmd(requests: Vec<VioletaBftRequest>) -> Cmd {
+    fn make_violetabft_cmd(requests: Vec<VioletaBftRequest>) -> Cmd {
         let mut req = VioletaBftCmdRequest::default();
         req.set_requests(requests.into());
         Cmd::new(0, req, VioletaBftCmdResponse::default())
@@ -594,7 +594,7 @@ mod tests {
         .collect();
         let lock_kvs: Vec<_> = locks
             .iter()
-            .map(|lock| lock_info_to_kv(lock.clone()))
+            .map(|dagger| lock_info_to_kv(dagger.clone()))
             .collect();
 
         let (c, interlock_host) = new_test_collector();
@@ -603,7 +603,7 @@ mod tests {
         spacelike_collecting(&c, 100).unwrap();
         assert_eq!(get_collected_locks(&c, 100).unwrap(), (vec![], true));
 
-        // Only puts in lock causet will be monitered.
+        // Only puts in dagger causet will be monitered.
         let req = vec![
             make_apply_request(
                 lock_kvs[0].0.clone(),
@@ -614,7 +614,7 @@ mod tests {
             make_apply_request(b"1".to_vec(), b"1".to_vec(), CAUSET_DEFAULT, CmdType::Put),
             make_apply_request(b"2".to_vec(), b"2".to_vec(), CAUSET_DAGGER, CmdType::Delete),
         ];
-        interlock_host.post_apply(&Brane::default(), &mut make_raft_cmd(req));
+        interlock_host.post_apply(&Brane::default(), &mut make_violetabft_cmd(req));
         expected_result.push(locks[0].clone());
         assert_eq!(
             get_collected_locks(&c, 100).unwrap(),
@@ -639,7 +639,7 @@ mod tests {
                 .filter(|l| l.get_lock_version() <= 100)
                 .cloned(),
         );
-        interlock_host.post_apply(&Brane::default(), &mut make_raft_cmd(req.clone()));
+        interlock_host.post_apply(&Brane::default(), &mut make_violetabft_cmd(req.clone()));
         assert_eq!(
             get_collected_locks(&c, 100).unwrap(),
             (expected_result, true)
@@ -649,7 +649,7 @@ mod tests {
         // dropped.
         spacelike_collecting(&c, 110).unwrap();
         assert_eq!(get_collected_locks(&c, 110).unwrap(), (vec![], true));
-        interlock_host.post_apply(&Brane::default(), &mut make_raft_cmd(req));
+        interlock_host.post_apply(&Brane::default(), &mut make_violetabft_cmd(req));
         assert_eq!(get_collected_locks(&c, 110).unwrap(), (locks, true));
     }
 
@@ -675,7 +675,7 @@ mod tests {
         .collect();
         let lock_kvs: Vec<_> = locks
             .iter()
-            .map(|lock| lock_info_to_kv(lock.clone()))
+            .map(|dagger| lock_info_to_kv(dagger.clone()))
             .map(|(k, v)| (tuplespaceInstanton::data_key(&k), v))
             .collect();
 
@@ -690,7 +690,7 @@ mod tests {
         );
         assert_eq!(get_collected_locks(&c, 100).unwrap(), (vec![], true));
 
-        // Apply plain file to lock causet. Locks with ts before 100 will be collected.
+        // Apply plain file to dagger causet. Locks with ts before 100 will be collected.
         let expected_locks: Vec<_> = locks
             .iter()
             .filter(|l| l.get_lock_version() <= 100)
@@ -731,7 +731,7 @@ mod tests {
         interlock_host.post_apply_sst_from_snapshot(&Brane::default(), CAUSET_DEFAULT, "");
         assert_eq!(get_collected_locks(&c, 110).unwrap(), (locks.clone(), true));
 
-        // Apply SST file to lock causet is not supported. This will cause error and therefore
+        // Apply SST file to dagger causet is not supported. This will cause error and therefore
         // `is_clean` will be set to false.
         interlock_host.post_apply_sst_from_snapshot(&Brane::default(), CAUSET_DAGGER, "");
         assert_eq!(get_collected_locks(&c, 110).unwrap(), (locks, false));
@@ -742,10 +742,10 @@ mod tests {
         let (c, interlock_host) = new_test_collector();
         spacelike_collecting(&c, 1).unwrap();
         // When error happens, `is_clean` should be set to false.
-        // The value is not a valid lock.
+        // The value is not a valid dagger.
         let (k, v) = (Key::from_raw(b"k1").into_encoded(), b"v1".to_vec());
         let req = make_apply_request(k.clone(), v.clone(), CAUSET_DAGGER, CmdType::Put);
-        interlock_host.post_apply(&Brane::default(), &mut make_raft_cmd(vec![req]));
+        interlock_host.post_apply(&Brane::default(), &mut make_violetabft_cmd(vec![req]));
         assert_eq!(get_collected_locks(&c, 1).unwrap(), (vec![], false));
 
         // `is_clean` should be reset after invoking `spacelike_collecting`.
@@ -762,17 +762,17 @@ mod tests {
         assert_eq!(get_collected_locks(&c, 3).unwrap(), (vec![], true));
 
         // If there are too many locks, `is_clean` should be set to false.
-        let mut lock = LockInfo::default();
-        lock.set_key(b"k2".to_vec());
-        lock.set_primary_lock(b"k2".to_vec());
-        lock.set_lock_type(Op::Put);
-        lock.set_lock_version(1);
+        let mut dagger = LockInfo::default();
+        dagger.set_key(b"k2".to_vec());
+        dagger.set_primary_lock(b"k2".to_vec());
+        dagger.set_lock_type(Op::Put);
+        dagger.set_lock_version(1);
 
         let batch_generate_locks = |count| {
-            let (k, v) = lock_info_to_kv(lock.clone());
+            let (k, v) = lock_info_to_kv(dagger.clone());
             let req = make_apply_request(k, v, CAUSET_DAGGER, CmdType::Put);
-            let mut raft_cmd = make_raft_cmd(vec![req; count]);
-            interlock_host.post_apply(&Brane::default(), &mut raft_cmd);
+            let mut violetabft_cmd = make_violetabft_cmd(vec![req; count]);
+            interlock_host.post_apply(&Brane::default(), &mut violetabft_cmd);
         };
 
         batch_generate_locks(MAX_COLLECT_SIZE - 1);

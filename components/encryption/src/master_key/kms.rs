@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::future::Future;
 use std::marker::PhantomData;
@@ -214,7 +214,7 @@ impl KmsBacklightlike {
     }
 
     fn encrypt_content(&self, plaintext: &[u8], iv: Iv) -> Result<EncryptedContent> {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.dagger().unwrap();
         inner.maybe_ufidelate_backlightlike(None)?;
         let mut content = inner
             .backlightlike
@@ -262,7 +262,7 @@ impl KmsBacklightlike {
             }
         }
 
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.dagger().unwrap();
         let ciphertext_key = content.metadata.get(MetadataKey::KmsCiphertextKey.as_str());
         if ciphertext_key.is_none() {
             return Err(box_err!("KMS ciphertext key not found"));

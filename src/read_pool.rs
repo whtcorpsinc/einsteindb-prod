@@ -1,8 +1,8 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use self::metrics::*;
 use crate::config::UnifiedReadPoolConfig;
-use crate::persistence::kv::{destroy_tls_engine, set_tls_engine, Engine, FlowStatsReporter};
+use crate::causetStorage::kv::{destroy_tls_engine, set_tls_engine, Engine, FlowStatsReporter};
 use futures::channel::oneshot;
 use futures::future::TryFutureExt;
 use ekvproto::kvrpcpb::CommandPri;
@@ -158,7 +158,7 @@ impl<R: FlowStatsReporter> PoolTicker for ReporterTicker<R> {
 
 impl<R: FlowStatsReporter> ReporterTicker<R> {
     fn flush_metrics_on_tick(&mut self) {
-        crate::persistence::metrics::tls_flush(&self.reporter);
+        crate::causetStorage::metrics::tls_flush(&self.reporter);
         crate::interlock::metrics::tls_flush(&self.reporter);
     }
 }
@@ -186,13 +186,13 @@ pub fn build_yatp_read_pool<E: Engine, R: FlowStatsReporter>(
 ) -> ReadPool {
     let unified_read_pool_name = get_unified_read_pool_name();
     let mut builder = YatpPoolBuilder::new(ReporterTicker { reporter });
-    let raftkv = Arc::new(Mutex::new(engine));
+    let violetabftkv = Arc::new(Mutex::new(engine));
     let pool = builder
         .name_prefix(&unified_read_pool_name)
         .stack_size(config.stack_size.0 as usize)
         .thread_count(config.min_thread_count, config.max_thread_count)
         .after_spacelike(move || {
-            let engine = raftkv.lock().unwrap().clone();
+            let engine = violetabftkv.dagger().unwrap().clone();
             set_tls_engine(engine);
         })
         .before_stop(|| unsafe {
@@ -258,7 +258,7 @@ mod metrics {
 #[causetg(test)]
 mod tests {
     use super::*;
-    use crate::persistence::TestEngineBuilder;
+    use crate::causetStorage::TestEngineBuilder;
     use futures::channel::oneshot;
     use violetabftstore::store::ReadStats;
     use std::thread;

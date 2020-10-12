@@ -4,9 +4,9 @@ use crate::engine::LmdbEngine;
 use engine_promises::DBOptions;
 use engine_promises::DBOptionsExt;
 use engine_promises::Result;
-use engine_promises::TitanDBOptions;
+use engine_promises::NoetherDBOptions;
 use lmdb::DBOptions as RawDBOptions;
-use lmdb::TitanDBOptions as RawTitanDBOptions;
+use lmdb::NoetherDBOptions as RawNoetherDBOptions;
 
 impl DBOptionsExt for LmdbEngine {
     type DBOptions = LmdbDBOptions;
@@ -34,7 +34,7 @@ impl LmdbDBOptions {
 }
 
 impl DBOptions for LmdbDBOptions {
-    type TitanDBOptions = LmdbTitanDBOptions;
+    type NoetherDBOptions = LmdbNoetherDBOptions;
 
     fn new() -> Self {
         LmdbDBOptions::from_raw(RawDBOptions::new())
@@ -54,26 +54,26 @@ impl DBOptions for LmdbDBOptions {
             .map_err(|e| box_err!(e))
     }
 
-    fn set_titandb_options(&mut self, opts: &Self::TitanDBOptions) {
+    fn set_titandb_options(&mut self, opts: &Self::NoetherDBOptions) {
         self.0.set_titandb_options(opts.as_raw())
     }
 }
 
-pub struct LmdbTitanDBOptions(RawTitanDBOptions);
+pub struct LmdbNoetherDBOptions(RawNoetherDBOptions);
 
-impl LmdbTitanDBOptions {
-    pub fn from_raw(raw: RawTitanDBOptions) -> LmdbTitanDBOptions {
-        LmdbTitanDBOptions(raw)
+impl LmdbNoetherDBOptions {
+    pub fn from_raw(raw: RawNoetherDBOptions) -> LmdbNoetherDBOptions {
+        LmdbNoetherDBOptions(raw)
     }
 
-    pub fn as_raw(&self) -> &RawTitanDBOptions {
+    pub fn as_raw(&self) -> &RawNoetherDBOptions {
         &self.0
     }
 }
 
-impl TitanDBOptions for LmdbTitanDBOptions {
+impl NoetherDBOptions for LmdbNoetherDBOptions {
     fn new() -> Self {
-        LmdbTitanDBOptions::from_raw(RawTitanDBOptions::new())
+        LmdbNoetherDBOptions::from_raw(RawNoetherDBOptions::new())
     }
 
     fn set_min_blob_size(&mut self, size: u64) {

@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::fmt;
 use std::time::Instant;
@@ -9,8 +9,8 @@ use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
 use ekvproto::metapb;
 use ekvproto::metapb::BraneEpoch;
 use ekvproto::fidelpb::CheckPolicy;
-use ekvproto::raft_cmdpb::{VioletaBftCmdRequest, VioletaBftCmdResponse};
-use ekvproto::raft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_cmdpb::{VioletaBftCmdRequest, VioletaBftCmdResponse};
+use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use ekvproto::replication_modepb::ReplicationStatus;
 use violetabft::SnapshotStatus;
 
@@ -121,7 +121,7 @@ where
 bitflags! {
     pub struct PeerTicks: u8 {
         const VIOLETABFT                   = 0b00000001;
-        const RAFT_LOG_GC            = 0b00000010;
+        const VIOLETABFT_LOG_GC            = 0b00000010;
         const SPLIT_REGION_CHECK     = 0b00000100;
         const FIDel_HEARTBEAT           = 0b00001000;
         const CHECK_MERGE            = 0b00010000;
@@ -134,7 +134,7 @@ impl PeerTicks {
     pub fn tag(self) -> &'static str {
         match self {
             PeerTicks::VIOLETABFT => "violetabft",
-            PeerTicks::RAFT_LOG_GC => "raft_log_gc",
+            PeerTicks::VIOLETABFT_LOG_GC => "violetabft_log_gc",
             PeerTicks::SPLIT_REGION_CHECK => "split_brane_check",
             PeerTicks::FIDel_HEARTBEAT => "fidel_heartbeat",
             PeerTicks::CHECK_MERGE => "check_merge",
@@ -145,7 +145,7 @@ impl PeerTicks {
     pub fn get_all_ticks() -> &'static [PeerTicks] {
         const TICKS: &[PeerTicks] = &[
             PeerTicks::VIOLETABFT,
-            PeerTicks::RAFT_LOG_GC,
+            PeerTicks::VIOLETABFT_LOG_GC,
             PeerTicks::SPLIT_REGION_CHECK,
             PeerTicks::FIDel_HEARTBEAT,
             PeerTicks::CHECK_MERGE,
@@ -176,7 +176,7 @@ impl StoreTick {
             StoreTick::CompactLockCf => VioletaBftEventDurationType::compact_lock_causet,
             StoreTick::ConsistencyCheck => VioletaBftEventDurationType::consistency_check,
             StoreTick::CleanupImportSST => VioletaBftEventDurationType::cleanup_import_sst,
-            StoreTick::VioletaBftEnginePurge => VioletaBftEventDurationType::raft_engine_purge,
+            StoreTick::VioletaBftEnginePurge => VioletaBftEventDurationType::violetabft_engine_purge,
         }
     }
 }

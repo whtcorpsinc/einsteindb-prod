@@ -1,11 +1,11 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use super::{AdminObserver, Interlock, ObserverContext, Result as CopResult};
 use einsteindb_util::codec::bytes::{self, encode_bytes};
 
 use crate::store::util;
 use ekvproto::metapb::Brane;
-use ekvproto::raft_cmdpb::{AdminCmdType, AdminRequest, SplitRequest};
+use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, SplitRequest};
 use std::result::Result as StdResult;
 
 /// `SplitObserver` adjusts the split key so that it won't separate
@@ -155,7 +155,7 @@ mod tests {
     use crate::interlock::ObserverContext;
     use byteorder::{BigEndian, WriteBytesExt};
     use ekvproto::metapb::Brane;
-    use ekvproto::raft_cmdpb::{AdminCmdType, AdminRequest, SplitRequest};
+    use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, SplitRequest};
     use milevadb_query_datatype::codec::{datum, table, Datum};
     use milevadb_query_datatype::expr::EvalContext;
     use einsteindb_util::codec::bytes::encode_bytes;

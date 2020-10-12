@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::marker::PhantomData;
 use std::sync::atomic::*;
@@ -9,9 +9,9 @@ use std::{mem, thread, time, usize};
 
 use crossbeam::channel::TrySlightlikeError;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
-use ekvproto::raft_cmdpb::VioletaBftCmdRequest;
-use ekvproto::raft_serverpb::VioletaBftMessage;
-use violetabft::eraftpb::MessageType;
+use ekvproto::violetabft_cmdpb::VioletaBftCmdRequest;
+use ekvproto::violetabft_serverpb::VioletaBftMessage;
+use violetabft::evioletabftpb::MessageType;
 use violetabftstore::router::{LocalReadRouter, VioletaBftStoreRouter};
 use violetabftstore::store::{
     Callback, CasualMessage, CasualRouter, PeerMsg, ProposalRouter, VioletaBftCommand, SignificantMsg,
@@ -82,7 +82,7 @@ impl Filter for MessageTypeNotifier {
         while self.plightlikeing_notify.load(Ordering::SeqCst) > 0 {
             debug!("notify {:?}", self.message_type);
             self.plightlikeing_notify.fetch_sub(1, Ordering::SeqCst);
-            let _ = self.notifier.lock().unwrap().slightlike(());
+            let _ = self.notifier.dagger().unwrap().slightlike(());
         }
         Ok(())
     }
@@ -213,8 +213,8 @@ impl<C: VioletaBftStoreRouter<LmdbEngine>> CasualRouter<LmdbEngine> for Simulate
 }
 
 impl<C: VioletaBftStoreRouter<LmdbEngine>> VioletaBftStoreRouter<LmdbEngine> for SimulateTransport<C> {
-    fn slightlike_raft_msg(&self, msg: VioletaBftMessage) -> Result<()> {
-        filter_slightlike(&self.filters, msg, |m| self.ch.slightlike_raft_msg(m))
+    fn slightlike_violetabft_msg(&self, msg: VioletaBftMessage) -> Result<()> {
+        filter_slightlike(&self.filters, msg, |m| self.ch.slightlike_violetabft_msg(m))
     }
 
     fn significant_slightlike(&self, brane_id: u64, msg: SignificantMsg<LmdbSnapshot>) -> Result<()> {
@@ -391,7 +391,7 @@ impl Filter for BranePacketFilter {
         let (retained, dropped) = origin_msgs.into_iter().partition(retain);
         *msgs = retained;
         if let Some(dropped_messages) = self.dropped_messages.as_ref() {
-            dropped_messages.lock().unwrap().extlightlike_from_slice(&dropped);
+            dropped_messages.dagger().unwrap().extlightlike_from_slice(&dropped);
         }
         check_messages(msgs)
     }
@@ -500,7 +500,7 @@ impl Filter for CollectSnapshotFilter {
             return Ok(());
         }
         let mut to_slightlike = vec![];
-        let mut plightlikeing_msg = self.plightlikeing_msg.lock().unwrap();
+        let mut plightlikeing_msg = self.plightlikeing_msg.dagger().unwrap();
         for msg in msgs.drain(..) {
             let (is_plightlikeing, from_peer_id) = {
                 if msg.get_message().get_msg_type() == MessageType::MsgSnapshot {
@@ -520,7 +520,7 @@ impl Filter for CollectSnapshotFilter {
                 self.dropped
                     .compare_and_swap(false, true, Ordering::Relaxed);
                 plightlikeing_msg.insert(from_peer_id, msg);
-                let slightlikeer = self.plightlikeing_count_slightlikeer.lock().unwrap();
+                let slightlikeer = self.plightlikeing_count_slightlikeer.dagger().unwrap();
                 slightlikeer.slightlike(plightlikeing_msg.len()).unwrap();
             } else {
                 to_slightlike.push(msg);
@@ -562,7 +562,7 @@ impl DropSnapshotFilter {
 
 impl Filter for DropSnapshotFilter {
     fn before(&self, msgs: &mut Vec<VioletaBftMessage>) -> Result<()> {
-        let notifier = self.notifier.lock().unwrap();
+        let notifier = self.notifier.dagger().unwrap();
         msgs.retain(|msg| {
             if msg.get_message().get_msg_type() != MessageType::MsgSnapshot {
                 true
@@ -590,7 +590,7 @@ impl Filter for RecvSnapshotFilter {
             if msg.get_message().get_msg_type() == MessageType::MsgSnapshot
                 && msg.get_brane_id() == self.brane_id
             {
-                let tx = self.notifier.lock().unwrap().take().unwrap();
+                let tx = self.notifier.dagger().unwrap().take().unwrap();
                 tx.slightlike(msg.clone()).unwrap();
             }
         }
@@ -619,7 +619,7 @@ impl LeadingFilter {
 
 impl Filter for LeadingFilter {
     fn before(&self, msgs: &mut Vec<VioletaBftMessage>) -> Result<()> {
-        let mut filtered_msg = self.first_filtered_msg.lock().unwrap();
+        let mut filtered_msg = self.first_filtered_msg.dagger().unwrap();
         let mut to_slightlike = vec![];
         for msg in msgs.drain(..) {
             if msg.get_message().get_msg_type() == self.filter_type {
@@ -667,7 +667,7 @@ impl LeadingDuplicatedSnapshotFilter {
 
 impl Filter for LeadingDuplicatedSnapshotFilter {
     fn before(&self, msgs: &mut Vec<VioletaBftMessage>) -> Result<()> {
-        let mut last_msg = self.last_msg.lock().unwrap();
+        let mut last_msg = self.last_msg.dagger().unwrap();
         let mut stale = self.stale.load(Ordering::Relaxed);
         if stale {
             if last_msg.is_some() {
@@ -739,7 +739,7 @@ impl Filter for RandomLatencyFilter {
     fn before(&self, msgs: &mut Vec<VioletaBftMessage>) -> Result<()> {
         let mut to_slightlike = vec![];
         let mut to_delay = vec![];
-        let mut delayed_msgs = self.delayed_msgs.lock().unwrap();
+        let mut delayed_msgs = self.delayed_msgs.dagger().unwrap();
         // check whether to slightlike those messages which are delayed previouly
         // and check whether to slightlike any newly incoming message if they are not delayed
         for m in delayed_msgs.drain(..).chain(msgs.drain(..)) {
@@ -757,7 +757,7 @@ impl Filter for RandomLatencyFilter {
 
 impl Clone for RandomLatencyFilter {
     fn clone(&self) -> RandomLatencyFilter {
-        let delayed_msgs = self.delayed_msgs.lock().unwrap();
+        let delayed_msgs = self.delayed_msgs.dagger().unwrap();
         RandomLatencyFilter {
             delay_rate: self.delay_rate,
             delayed_msgs: Mutex::new(delayed_msgs.clone()),

@@ -1,11 +1,11 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::thread;
 use std::time::*;
 
 use engine_lmdb::Compat;
 use engine_promises::Peekable;
-use ekvproto::raft_serverpb::VioletaBftLocalState;
+use ekvproto::violetabft_serverpb::VioletaBftLocalState;
 use test_violetabftstore::*;
 use einsteindb_util::config::ReadableDuration;
 
@@ -14,17 +14,17 @@ fn test_one_node_leader_missing() {
     let mut cluster = new_server_cluster(0, 1);
 
     // 50ms election timeout.
-    cluster.causetg.raft_store.raft_base_tick_interval = ReadableDuration::millis(10);
-    cluster.causetg.raft_store.raft_election_timeout_ticks = 5;
-    let base_tick_interval = cluster.causetg.raft_store.raft_base_tick_interval.0;
+    cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
+    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 5;
+    let base_tick_interval = cluster.causetg.violetabft_store.violetabft_base_tick_interval.0;
     let election_timeout = base_tick_interval * 5;
-    cluster.causetg.raft_store.raft_store_max_leader_lease = ReadableDuration(election_timeout);
+    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(election_timeout);
     // Use large peer check interval, abnormal and max leader missing duration to make a valid config,
     // that is election timeout x 2 < peer stale state check < abnormal < max leader missing duration.
-    cluster.causetg.raft_store.peer_stale_state_check_interval = ReadableDuration(election_timeout * 3);
-    cluster.causetg.raft_store.abnormal_leader_missing_duration =
+    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration(election_timeout * 3);
+    cluster.causetg.violetabft_store.abnormal_leader_missing_duration =
         ReadableDuration(election_timeout * 4);
-    cluster.causetg.raft_store.max_leader_missing_duration = ReadableDuration(election_timeout * 7);
+    cluster.causetg.violetabft_store.max_leader_missing_duration = ReadableDuration(election_timeout * 7);
 
     // Panic if the cluster does not has a valid stale state.
     let check_stale_state = "peer_check_stale_state";
@@ -33,7 +33,7 @@ fn test_one_node_leader_missing() {
     cluster.spacelike().unwrap();
 
     // Check stale state 3 times,
-    thread::sleep(cluster.causetg.raft_store.peer_stale_state_check_interval.0 * 3);
+    thread::sleep(cluster.causetg.violetabft_store.peer_stale_state_check_interval.0 * 3);
     fail::remove(check_stale_state);
 }
 
@@ -73,7 +73,7 @@ fn test_node_ufidelate_localreader_after_removed() {
     // Remove peer 2, so it will receive a gc msssage
     // after max_leader_missing_duration timeout.
     fidel_client.must_remove_peer(r1, new_peer(2, 2));
-    thread::sleep(cluster.causetg.raft_store.max_leader_missing_duration.0 * 2);
+    thread::sleep(cluster.causetg.violetabft_store.max_leader_missing_duration.0 * 2);
 
     // Continue peer 2 apply worker, so that peer 2 tries to
     // ufidelate brane to its read delegate.
@@ -87,7 +87,7 @@ fn test_node_ufidelate_localreader_after_removed() {
 fn test_stale_learner_respacelike() {
     let mut cluster = new_node_cluster(0, 2);
     cluster.fidel_client.disable_default_operator();
-    cluster.causetg.raft_store.raft_log_gc_memory_barrier = 10;
+    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 10;
     let r = cluster.run_conf_change();
     cluster
         .fidel_client
@@ -98,9 +98,9 @@ fn test_stale_learner_respacelike() {
     fail::causetg("on_handle_apply_1003", "return").unwrap();
     cluster.must_put(b"k2", b"v2");
     must_get_equal(&cluster.get_engine(1), b"k2", b"v2");
-    let state_key = tuplespaceInstanton::raft_state_key(r);
+    let state_key = tuplespaceInstanton::violetabft_state_key(r);
     let mut state: VioletaBftLocalState = cluster
-        .get_raft_engine(1)
+        .get_violetabft_engine(1)
         .c()
         .get_msg(&state_key)
         .unwrap()
@@ -109,7 +109,7 @@ fn test_stale_learner_respacelike() {
     let timer = Instant::now();
     while timer.elapsed() < Duration::from_secs(5) {
         state = cluster
-            .get_raft_engine(2)
+            .get_violetabft_engine(2)
             .c()
             .get_msg(&state_key)
             .unwrap()

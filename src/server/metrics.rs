@@ -1,9 +1,9 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use prometheus::*;
 use prometheus_static_metric::*;
 
-use crate::persistence::ErrorHeaderKind;
+use crate::causetStorage::ErrorHeaderKind;
 use prometheus::exponential_buckets;
 
 make_auto_flush_static_metric! {
@@ -77,7 +77,7 @@ make_auto_flush_static_metric! {
 
     pub label_enum GcTuplespaceInstantonCAUSET {
         default,
-        lock,
+        dagger,
         write,
     }
 
@@ -284,13 +284,13 @@ lazy_static! {
         &["type"]
     )
     .unwrap();
-    pub static ref RAFT_MESSAGE_RECV_COUNTER: IntCounter = register_int_counter!(
-        "einsteindb_server_raft_message_recv_total",
+    pub static ref VIOLETABFT_MESSAGE_RECV_COUNTER: IntCounter = register_int_counter!(
+        "einsteindb_server_violetabft_message_recv_total",
         "Total number of violetabft messages received"
     )
     .unwrap();
-    pub static ref RAFT_MESSAGE_BATCH_SIZE: Histogram = register_histogram!(
-        "einsteindb_server_raft_message_batch_size",
+    pub static ref VIOLETABFT_MESSAGE_BATCH_SIZE: Histogram = register_histogram!(
+        "einsteindb_server_violetabft_message_batch_size",
         "VioletaBft messages batch size",
         exponential_buckets(1f64, 2f64, 10).unwrap()
     )
@@ -301,13 +301,13 @@ lazy_static! {
         &["type", "store_id"]
     )
     .unwrap();
-    pub static ref RAFT_MESSAGE_FLUSH_COUNTER: IntCounter = register_int_counter!(
-        "einsteindb_server_raft_message_flush_total",
+    pub static ref VIOLETABFT_MESSAGE_FLUSH_COUNTER: IntCounter = register_int_counter!(
+        "einsteindb_server_violetabft_message_flush_total",
         "Total number of violetabft messages flushed immediately"
     )
     .unwrap();
-    pub static ref RAFT_MESSAGE_DELAY_FLUSH_COUNTER: IntCounter = register_int_counter!(
-        "einsteindb_server_raft_message_delay_flush_total",
+    pub static ref VIOLETABFT_MESSAGE_DELAY_FLUSH_COUNTER: IntCounter = register_int_counter!(
+        "einsteindb_server_violetabft_message_delay_flush_total",
         "Total number of violetabft messages flushed delay"
     )
     .unwrap();
@@ -360,7 +360,7 @@ make_auto_flush_static_metric! {
         err_server_is_busy,
         err_stale_command,
         err_store_not_match,
-        err_raft_entry_too_large,
+        err_violetabft_entry_too_large,
     }
 
     pub label_enum RequestTypeKind {
@@ -388,7 +388,7 @@ impl From<ErrorHeaderKind> for RequestStatusKind {
             ErrorHeaderKind::ServerIsBusy => RequestStatusKind::err_server_is_busy,
             ErrorHeaderKind::StaleCommand => RequestStatusKind::err_stale_command,
             ErrorHeaderKind::StoreNotMatch => RequestStatusKind::err_store_not_match,
-            ErrorHeaderKind::VioletaBftEntryTooLarge => RequestStatusKind::err_raft_entry_too_large,
+            ErrorHeaderKind::VioletaBftEntryTooLarge => RequestStatusKind::err_violetabft_entry_too_large,
             ErrorHeaderKind::Other => RequestStatusKind::err_other,
         }
     }

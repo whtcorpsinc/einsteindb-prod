@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 pub mod cmd_resp;
 pub mod config;
@@ -34,9 +34,9 @@ pub use self::peer::{
     AbstractPeer, Peer, PeerStat, ProposalContext, RequestInspector, RequestPolicy,
 };
 pub use self::peer_causetStorage::{
-    clear_meta, do_snapshot, write_initial_apply_state, write_initial_raft_state, write_peer_state,
-    PeerStorage, SnapState, INIT_EPOCH_CONF_VER, INIT_EPOCH_VER, RAFT_INIT_LOG_INDEX,
-    RAFT_INIT_LOG_TERM,
+    clear_meta, do_snapshot, write_initial_apply_state, write_initial_violetabft_state, write_peer_state,
+    PeerStorage, SnapState, INIT_EPOCH_CONF_VER, INIT_EPOCH_VER, VIOLETABFT_INIT_LOG_INDEX,
+    VIOLETABFT_INIT_LOG_TERM,
 };
 pub use self::brane_snapshot::{BraneIterator, BraneSnapshot};
 pub use self::replication_mode::{GlobalReplicationState, StoreGroup};

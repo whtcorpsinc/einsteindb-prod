@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::path::Path;
 use std::sync::{Arc, Mutex, RwLock};
@@ -6,9 +6,9 @@ use std::sync::{Arc, Mutex, RwLock};
 use tempfile::{Builder, TempDir};
 
 use ekvproto::metapb;
-use ekvproto::raft_cmdpb::*;
-use ekvproto::raft_serverpb::{self, VioletaBftMessage};
-use violetabft::eraftpb::MessageType;
+use ekvproto::violetabft_cmdpb::*;
+use ekvproto::violetabft_serverpb::{self, VioletaBftMessage};
+use violetabft::evioletabftpb::MessageType;
 use violetabft::SnapshotStatus;
 
 use super::*;
@@ -67,14 +67,14 @@ impl Transport for ChannelTransport {
         if is_snapshot {
             let snap = msg.get_message().get_snapshot();
             let key = SnapKey::from_snap(snap).unwrap();
-            let from = match self.core.lock().unwrap().snap_paths.get(&from_store) {
+            let from = match self.core.dagger().unwrap().snap_paths.get(&from_store) {
                 Some(p) => {
                     p.0.register(key.clone(), SnapEntry::Slightlikeing);
                     p.0.get_snapshot_for_slightlikeing(&key).unwrap()
                 }
                 None => return Err(box_err!("missing temp dir for store {}", from_store)),
             };
-            let to = match self.core.lock().unwrap().snap_paths.get(&to_store) {
+            let to = match self.core.dagger().unwrap().snap_paths.get(&to_store) {
                 Some(p) => {
                     p.0.register(key.clone(), SnapEntry::Receiving);
                     let data = msg.get_message().get_snapshot().get_data();
@@ -84,7 +84,7 @@ impl Transport for ChannelTransport {
             };
 
             defer!({
-                let core = self.core.lock().unwrap();
+                let core = self.core.dagger().unwrap();
                 core.snap_paths[&from_store]
                     .0
                     .deregister(&key, &SnapEntry::Slightlikeing);
@@ -96,11 +96,11 @@ impl Transport for ChannelTransport {
             copy_snapshot(from, to)?;
         }
 
-        let core = self.core.lock().unwrap();
+        let core = self.core.dagger().unwrap();
 
         match core.routers.get(&to_store) {
             Some(h) => {
-                h.slightlike_raft_msg(msg)?;
+                h.slightlike_violetabft_msg(msg)?;
                 if is_snapshot {
                     // should report snapshot finish.
                     let _ = core.routers[&from_store].report_snapshot_status(
@@ -149,7 +149,7 @@ impl NodeCluster {
     ) -> SimulateTransport<ServerVioletaBftStoreRouter<LmdbEngine, LmdbEngine>> {
         self.trans
             .core
-            .lock()
+            .dagger()
             .unwrap()
             .routers
             .get(&node_id)
@@ -188,12 +188,12 @@ impl Simulator for NodeCluster {
         let fidel_worker = FutureWorker::new("test-fidel-worker");
 
         let simulate_trans = SimulateTransport::new(self.trans.clone());
-        let mut raft_store = causetg.raft_store.clone();
-        raft_store.validate().unwrap();
+        let mut violetabft_store = causetg.violetabft_store.clone();
+        violetabft_store.validate().unwrap();
         let mut node = Node::new(
             system,
             &causetg.server,
-            Arc::new(VersionTrack::new(raft_store)),
+            Arc::new(VersionTrack::new(violetabft_store)),
             Arc::clone(&self.fidel_client),
             Arc::default(),
         );
@@ -202,7 +202,7 @@ impl Simulator for NodeCluster {
             || !self
                 .trans
                 .core
-                .lock()
+                .dagger()
                 .unwrap()
                 .snap_paths
                 .contains_key(&node_id)
@@ -213,7 +213,7 @@ impl Simulator for NodeCluster {
                 .build(tmp.path().to_str().unwrap());
             (snap_mgr, Some(tmp))
         } else {
-            let trans = self.trans.core.lock().unwrap();
+            let trans = self.trans.core.dagger().unwrap();
             let &(ref snap_mgr, _) = &trans.snap_paths[&node_id];
             (snap_mgr.clone(), None)
         };
@@ -246,12 +246,12 @@ impl Simulator for NodeCluster {
             Box::new(SplitCheckConfigManager(split_check_worker.scheduler())),
         );
 
-        let mut violetabftstore_causetg = causetg.raft_store;
+        let mut violetabftstore_causetg = causetg.violetabft_store;
         violetabftstore_causetg.validate().unwrap();
-        let raft_store = Arc::new(VersionTrack::new(violetabftstore_causetg));
+        let violetabft_store = Arc::new(VersionTrack::new(violetabftstore_causetg));
         causetg_controller.register(
             Module::VioletaBftstore,
-            Box::new(VioletaBftstoreConfigManager(raft_store)),
+            Box::new(VioletaBftstoreConfigManager(violetabft_store)),
         );
 
         node.spacelike(
@@ -284,7 +284,7 @@ impl Simulator for NodeCluster {
         if let Some(tmp) = snap_mgr_path {
             self.trans
                 .core
-                .lock()
+                .dagger()
                 .unwrap()
                 .snap_paths
                 .insert(node_id, (snap_mgr, tmp));
@@ -293,7 +293,7 @@ impl Simulator for NodeCluster {
         let router = ServerVioletaBftStoreRouter::new(router, local_reader);
         self.trans
             .core
-            .lock()
+            .dagger()
             .unwrap()
             .routers
             .insert(node_id, SimulateTransport::new(router));
@@ -304,7 +304,7 @@ impl Simulator for NodeCluster {
     }
 
     fn get_snap_dir(&self, node_id: u64) -> String {
-        self.trans.core.lock().unwrap().snap_paths[&node_id]
+        self.trans.core.dagger().unwrap().snap_paths[&node_id]
             .1
             .path()
             .to_str()
@@ -318,7 +318,7 @@ impl Simulator for NodeCluster {
         }
         self.trans
             .core
-            .lock()
+            .dagger()
             .unwrap()
             .routers
             .remove(&node_id)
@@ -338,7 +338,7 @@ impl Simulator for NodeCluster {
         if !self
             .trans
             .core
-            .lock()
+            .dagger()
             .unwrap()
             .routers
             .contains_key(&node_id)
@@ -349,7 +349,7 @@ impl Simulator for NodeCluster {
         let router = self
             .trans
             .core
-            .lock()
+            .dagger()
             .unwrap()
             .routers
             .get(&node_id)
@@ -368,7 +368,7 @@ impl Simulator for NodeCluster {
         if !self
             .trans
             .core
-            .lock()
+            .dagger()
             .unwrap()
             .routers
             .contains_key(&node_id)
@@ -379,12 +379,12 @@ impl Simulator for NodeCluster {
             cb.invoke_with_response(resp);
             return;
         }
-        let mut guard = self.trans.core.lock().unwrap();
+        let mut guard = self.trans.core.dagger().unwrap();
         let router = guard.routers.get_mut(&node_id).unwrap();
         router.read(batch_id, request, cb).unwrap();
     }
 
-    fn slightlike_raft_msg(&mut self, msg: raft_serverpb::VioletaBftMessage) -> Result<()> {
+    fn slightlike_violetabft_msg(&mut self, msg: violetabft_serverpb::VioletaBftMessage) -> Result<()> {
         self.trans.slightlike(msg)
     }
 
@@ -403,12 +403,12 @@ impl Simulator for NodeCluster {
     }
 
     fn add_recv_filter(&mut self, node_id: u64, filter: Box<dyn Filter>) {
-        let mut trans = self.trans.core.lock().unwrap();
+        let mut trans = self.trans.core.dagger().unwrap();
         trans.routers.get_mut(&node_id).unwrap().add_filter(filter);
     }
 
     fn clear_recv_filters(&mut self, node_id: u64) {
-        let mut trans = self.trans.core.lock().unwrap();
+        let mut trans = self.trans.core.dagger().unwrap();
         trans.routers.get_mut(&node_id).unwrap().clear_filters();
     }
 

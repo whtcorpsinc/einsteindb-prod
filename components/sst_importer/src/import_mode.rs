@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -92,7 +92,7 @@ impl<E: KvEngine> ImportModeSwitcher<E> {
             // loop until the switcher has been dropped
             while let Some(switcher) = switcher.upgrade() {
                 let next_check = {
-                    let mut switcher = switcher.lock().unwrap();
+                    let mut switcher = switcher.dagger().unwrap();
                     let now = Instant::now();
                     if now >= switcher.next_check {
                         if switcher.mode == SwitchMode::Import {
@@ -119,11 +119,11 @@ impl<E: KvEngine> ImportModeSwitcher<E> {
     }
 
     pub fn enter_normal_mode(&mut self, mf: LmdbDBMetricsFn) -> Result<()> {
-        self.inner.lock().unwrap().enter_normal_mode(mf)
+        self.inner.dagger().unwrap().enter_normal_mode(mf)
     }
 
     pub fn enter_import_mode(&mut self, mf: LmdbDBMetricsFn) -> Result<()> {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.dagger().unwrap();
         inner.enter_import_mode(mf)?;
         inner.next_check = Instant::now() + inner.timeout;
         inner.metrics_fn = mf;
@@ -131,7 +131,7 @@ impl<E: KvEngine> ImportModeSwitcher<E> {
     }
 
     pub fn get_mode(&self) -> SwitchMode {
-        self.inner.lock().unwrap().get_mode()
+        self.inner.dagger().unwrap().get_mode()
     }
 }
 

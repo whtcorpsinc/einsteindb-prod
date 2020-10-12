@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::cmp::{Ordering as CmpOrdering, Reverse};
 use std::f64::INFINITY;
@@ -21,10 +21,10 @@ use futures::executor::block_on;
 use futures_util::io::{AllowStdIo, AsyncWriteExt};
 use ekvproto::encryptionpb::EncryptionMethod;
 use ekvproto::metapb::Brane;
-use ekvproto::raft_serverpb::VioletaBftSnapshotData;
-use ekvproto::raft_serverpb::{SnapshotCfFile, SnapshotMeta};
+use ekvproto::violetabft_serverpb::VioletaBftSnapshotData;
+use ekvproto::violetabft_serverpb::{SnapshotCfFile, SnapshotMeta};
 use protobuf::Message;
-use violetabft::eraftpb::Snapshot as VioletaBftSnapshot;
+use violetabft::evioletabftpb::Snapshot as VioletaBftSnapshot;
 
 use error_code::{self, ErrorCode, ErrorCodeExt};
 use tuplespaceInstanton::{enc_lightlike_key, enc_spacelike_key};
@@ -47,11 +47,11 @@ use crate::{Error as VioletaBftStoreError, Result as VioletaBftStoreResult};
 #[path = "snap/io.rs"]
 pub mod snap_io;
 
-// Data in CAUSET_RAFT should be excluded for a snapshot.
+// Data in CAUSET_VIOLETABFT should be excluded for a snapshot.
 pub const SNAPSHOT_CAUSETS: &[CfName] = &[CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_WRITE];
 pub const SNAPSHOT_CAUSETS_ENUM_PAIR: &[(CfNames, CfName)] = &[
     (CfNames::default, CAUSET_DEFAULT),
-    (CfNames::lock, CAUSET_DAGGER),
+    (CfNames::dagger, CAUSET_DAGGER),
     (CfNames::write, CAUSET_WRITE),
 ];
 pub const SNAPSHOT_VERSION: u64 = 2;
@@ -183,7 +183,7 @@ where
 /// It's used in these scenarios:
 ///   1. build local snapshot
 ///   2. read local snapshot and then replicate it to remote violetabftstores
-///   3. receive snapshot from remote violetabftstore and write it to local persistence
+///   3. receive snapshot from remote violetabftstore and write it to local causetStorage
 ///   4. apply snapshot
 ///   5. snapshot gc
 pub trait Snapshot<EK: KvEngine>: GenericSnapshot {
@@ -862,7 +862,7 @@ impl GenericSnapshot for Snap {
             && file_exists(&self.meta_file.path)
     }
 
-    // TODO: It's very hard to handle key manager correctly without lock `SnapManager`.
+    // TODO: It's very hard to handle key manager correctly without dagger `SnapManager`.
     // Let's do it later.
     fn delete(&self) {
         debug!(
@@ -1132,7 +1132,7 @@ impl SnapManager {
             enc_enabled
         );
 
-        // Use write lock so only one thread initialize the directory at a time.
+        // Use write dagger so only one thread initialize the directory at a time.
         let _lock = self.core.registry.wl();
         let path = Path::new(&self.core.base);
         if !path.exists() {
@@ -1163,7 +1163,7 @@ impl SnapManager {
 
     // Return all snapshots which is idle not being used.
     pub fn list_idle_snap(&self) -> io::Result<Vec<(SnapKey, bool)>> {
-        // Use a lock to protect the directory when scanning.
+        // Use a dagger to protect the directory when scanning.
         let registry = self.core.registry.rl();
         let read_dir = fs::read_dir(Path::new(&self.core.base))?;
         // Remove the duplicate snap tuplespaceInstanton.
@@ -1525,12 +1525,12 @@ pub mod tests {
     use engine_lmdb::{Compat, LmdbEngine, LmdbSnapshot};
     use engine_promises::Engines;
     use engine_promises::{Iterable, Peekable, SyncMutable};
-    use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_RAFT, CAUSET_WRITE};
+    use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
     use ekvproto::metapb::{Peer, Brane};
-    use ekvproto::raft_serverpb::{
+    use ekvproto::violetabft_serverpb::{
         VioletaBftApplyState, VioletaBftSnapshotData, BraneLocalState, SnapshotMeta,
     };
-    use violetabft::eraftpb::Entry;
+    use violetabft::evioletabftpb::Entry;
 
     use protobuf::Message;
     use tempfile::{Builder, TempDir};
@@ -1590,8 +1590,8 @@ pub mod tests {
 
     pub fn get_test_db_for_branes(
         path: &TempDir,
-        raft_db_opt: Option<DBOptions>,
-        raft_causet_opt: Option<CAUSETOptions<'_>>,
+        violetabft_db_opt: Option<DBOptions>,
+        violetabft_causet_opt: Option<CAUSETOptions<'_>>,
         kv_db_opt: Option<DBOptions>,
         kv_causet_opts: Option<Vec<CAUSETOptions<'_>>>,
         branes: &[u64],
@@ -1600,8 +1600,8 @@ pub mod tests {
         let kv = open_test_db(p.join("kv").as_path(), kv_db_opt, kv_causet_opts)?;
         let violetabft = open_test_db(
             p.join("violetabft").as_path(),
-            raft_db_opt,
-            raft_causet_opt.map(|opt| vec![opt]),
+            violetabft_db_opt,
+            violetabft_causet_opt.map(|opt| vec![opt]),
         )?;
         for &brane_id in branes {
             // Put apply state into kv engine.
@@ -1612,16 +1612,16 @@ pub mod tests {
             apply_entry.set_term(0);
             apply_state.mut_truncated_state().set_index(10);
             kv.c()
-                .put_msg_causet(CAUSET_RAFT, &tuplespaceInstanton::apply_state_key(brane_id), &apply_state)?;
+                .put_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id), &apply_state)?;
             violetabft.c()
-                .put_msg(&tuplespaceInstanton::raft_log_key(brane_id, 10), &apply_entry)?;
+                .put_msg(&tuplespaceInstanton::violetabft_log_key(brane_id, 10), &apply_entry)?;
 
             // Put brane info into kv engine.
             let brane = gen_test_brane(brane_id, 1, 1);
             let mut brane_state = BraneLocalState::default();
             brane_state.set_brane(brane);
             kv.c()
-                .put_msg_causet(CAUSET_RAFT, &tuplespaceInstanton::brane_state_key(brane_id), &brane_state)?;
+                .put_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id), &brane_state)?;
         }
         Ok(Engines {
             kv: kv.c().clone(),
@@ -1853,7 +1853,7 @@ pub mod tests {
             .unwrap();
         let dst_db_path = dst_db_dir.path().to_str().unwrap();
         // Change arbitrarily the causet order of ALL_CAUSETS at destination db.
-        let dst_causets = [CAUSET_WRITE, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_RAFT];
+        let dst_causets = [CAUSET_WRITE, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT];
         let dst_db = Arc::new(
             engine_lmdb::raw_util::new_engine(dst_db_path, db_opt, &dst_causets, None).unwrap(),
         );

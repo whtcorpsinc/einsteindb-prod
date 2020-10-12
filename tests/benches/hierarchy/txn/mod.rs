@@ -1,15 +1,15 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use concurrency_manager::ConcurrencyManager;
 use criterion::{black_box, BatchSize, Bencher, Criterion};
 use ekvproto::kvrpcpb::Context;
 use test_util::KvGenerator;
-use einsteindb::persistence::kv::{Engine, WriteData};
-use einsteindb::persistence::mvcc::{self, MvccTxn};
+use einsteindb::causetStorage::kv::{Engine, WriteData};
+use einsteindb::causetStorage::mvcc::{self, MvccTxn};
 use txn_types::{Key, Mutation, TimeStamp};
 
 use super::{BenchConfig, EngineFactory, DEFAULT_ITERATIONS};
-use einsteindb::persistence::txn::commit;
+use einsteindb::causetStorage::txn::commit;
 
 fn setup_prewrite<E, F>(
     engine: &E,

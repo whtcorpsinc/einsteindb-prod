@@ -24,7 +24,7 @@ fn test_ufidelate_config() {
     causetg_controller
         .ufidelate(change("violetabftstore.violetabft-log-gc-memory_barrier", "2000"))
         .unwrap();
-    causetg.raft_store.raft_log_gc_memory_barrier = 2000;
+    causetg.violetabft_store.violetabft_log_gc_memory_barrier = 2000;
     assert_eq!(causetg_controller.get_current(), causetg);
 
     // ufidelate not support config
@@ -60,7 +60,7 @@ fn test_dispatch_change() {
 
     impl ConfigManager for CfgManager {
         fn dispatch(&mut self, c: ConfigChange) -> Result<(), Box<dyn Error>> {
-            self.0.lock().unwrap().ufidelate(c);
+            self.0.dagger().unwrap().ufidelate(c);
             Ok(())
         }
     }
@@ -68,7 +68,7 @@ fn test_dispatch_change() {
     let (causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
     let causetg_controller = ConfigController::new(causetg);
     let mut causetg = causetg_controller.get_current().clone();
-    let mgr = CfgManager(Arc::new(Mutex::new(causetg.raft_store.clone())));
+    let mgr = CfgManager(Arc::new(Mutex::new(causetg.violetabft_store.clone())));
     causetg_controller.register(Module::VioletaBftstore, Box::new(mgr.clone()));
 
     causetg_controller
@@ -76,11 +76,11 @@ fn test_dispatch_change() {
         .unwrap();
 
     // config ufidelate
-    causetg.raft_store.raft_log_gc_memory_barrier = 2000;
+    causetg.violetabft_store.violetabft_log_gc_memory_barrier = 2000;
     assert_eq!(causetg_controller.get_current(), causetg);
 
     // config change should also dispatch to violetabftstore config manager
-    assert_eq!(mgr.0.lock().unwrap().raft_log_gc_memory_barrier, 2000);
+    assert_eq!(mgr.0.dagger().unwrap().violetabft_log_gc_memory_barrier, 2000);
 }
 
 #[test]

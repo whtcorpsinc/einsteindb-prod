@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use crate::timestamp::{TimeStamp, TsSet};
 use crate::types::{Key, Mutation, Value, SHORT_VALUE_PREFIX};
@@ -13,7 +13,7 @@ use einsteindb_util::codec::number::{self, NumberEncoder, MAX_VAR_I64_LEN, MAX_V
 pub enum LockType {
     Put,
     Delete,
-    Lock,
+    Dagger,
     Pessimistic,
 }
 
@@ -33,7 +33,7 @@ impl LockType {
         match *mutation {
             Mutation::Put(_) | Mutation::Insert(_) => Some(LockType::Put),
             Mutation::Delete(_) => Some(LockType::Delete),
-            Mutation::Lock(_) => Some(LockType::Lock),
+            Mutation::Dagger(_) => Some(LockType::Dagger),
             Mutation::CheckNotExists(_) => None,
         }
     }
@@ -42,7 +42,7 @@ impl LockType {
         match b {
             FLAG_PUT => Some(LockType::Put),
             FLAG_DELETE => Some(LockType::Delete),
-            FLAG_LOCK => Some(LockType::Lock),
+            FLAG_LOCK => Some(LockType::Dagger),
             FLAG_PESSIMISTIC => Some(LockType::Pessimistic),
             _ => None,
         }
@@ -52,36 +52,36 @@ impl LockType {
         match self {
             LockType::Put => FLAG_PUT,
             LockType::Delete => FLAG_DELETE,
-            LockType::Lock => FLAG_LOCK,
+            LockType::Dagger => FLAG_LOCK,
             LockType::Pessimistic => FLAG_PESSIMISTIC,
         }
     }
 }
 
 #[derive(PartialEq, Clone, Debug)]
-pub struct Lock {
+pub struct Dagger {
     pub lock_type: LockType,
     pub primary: Vec<u8>,
     pub ts: TimeStamp,
     pub ttl: u64,
     pub short_value: Option<Value>,
-    // If for_ufidelate_ts != 0, this lock belongs to a pessimistic transaction
+    // If for_ufidelate_ts != 0, this dagger belongs to a pessimistic transaction
     pub for_ufidelate_ts: TimeStamp,
     pub txn_size: u64,
     pub min_commit_ts: TimeStamp,
     pub use_async_commit: bool,
-    // Only valid when `use_async_commit` is true, and the lock is primary. Do not set
+    // Only valid when `use_async_commit` is true, and the dagger is primary. Do not set
     // `secondaries` for secondaries.
     pub secondaries: Vec<Vec<u8>>,
     // In some rare cases, a protected rollback may happen when there's already another
-    // transaction's lock on the key. In this case, if the other transaction uses calculated
+    // transaction's dagger on the key. In this case, if the other transaction uses calculated
     // timestamp as commit_ts, the protected rollback record may be overwritten. Checking Write CAUSET
     // while committing is relatively expensive. So the solution is putting the ts of the rollback
-    // to the lock.
+    // to the dagger.
     pub rollback_ts: Vec<TimeStamp>,
 }
 
-impl Lock {
+impl Dagger {
     pub fn new(
         lock_type: LockType,
         primary: Vec<u8>,
@@ -187,7 +187,7 @@ impl Lock {
         size
     }
 
-    pub fn parse(mut b: &[u8]) -> Result<Lock> {
+    pub fn parse(mut b: &[u8]) -> Result<Dagger> {
         if b.is_empty() {
             return Err(Error::from(ErrorInner::BadFormatLock));
         }
@@ -201,7 +201,7 @@ impl Lock {
         };
 
         if b.is_empty() {
-            return Ok(Lock::new(
+            return Ok(Dagger::new(
                 lock_type,
                 primary,
                 ts,
@@ -253,10 +253,10 @@ impl Lock {
                         rollback_ts.push(number::decode_u64(&mut b)?.into());
                     }
                 }
-                flag => panic!("invalid flag [{}] in lock", flag),
+                flag => panic!("invalid flag [{}] in dagger", flag),
             }
         }
-        let mut lock = Lock::new(
+        let mut dagger = Dagger::new(
             lock_type,
             primary,
             ts,
@@ -267,10 +267,10 @@ impl Lock {
             min_commit_ts,
         );
         if use_async_commit {
-            lock = lock.use_async_commit(secondaries);
+            dagger = dagger.use_async_commit(secondaries);
         }
-        lock.rollback_ts = rollback_ts;
-        Ok(lock)
+        dagger.rollback_ts = rollback_ts;
+        Ok(dagger)
     }
 
     pub fn into_lock_info(self, raw_key: Vec<u8>) -> LockInfo {
@@ -283,7 +283,7 @@ impl Lock {
         let lock_type = match self.lock_type {
             LockType::Put => Op::Put,
             LockType::Delete => Op::Del,
-            LockType::Lock => Op::Lock,
+            LockType::Dagger => Op::Dagger,
             LockType::Pessimistic => Op::PessimisticLock,
         };
         info.set_lock_type(lock_type);
@@ -294,41 +294,41 @@ impl Lock {
         info
     }
 
-    /// Checks whether the lock conflicts with the given `ts`. If `ts == TimeStamp::max()`, the primary lock will be ignored.
+    /// Checks whether the dagger conflicts with the given `ts`. If `ts == TimeStamp::max()`, the primary dagger will be ignored.
     pub fn check_ts_conflict(
-        lock: Cow<Self>,
+        dagger: Cow<Self>,
         key: &Key,
         ts: TimeStamp,
         bypass_locks: &TsSet,
     ) -> Result<()> {
-        if lock.ts > ts
-            || lock.lock_type == LockType::Lock
-            || lock.lock_type == LockType::Pessimistic
+        if dagger.ts > ts
+            || dagger.lock_type == LockType::Dagger
+            || dagger.lock_type == LockType::Pessimistic
         {
-            // Ignore lock when lock.ts > ts or lock's type is Lock or Pessimistic
+            // Ignore dagger when dagger.ts > ts or dagger's type is Dagger or Pessimistic
             return Ok(());
         }
 
-        if lock.min_commit_ts > ts {
-            // Ignore lock when min_commit_ts > ts
+        if dagger.min_commit_ts > ts {
+            // Ignore dagger when min_commit_ts > ts
             return Ok(());
         }
 
-        if bypass_locks.contains(lock.ts) {
+        if bypass_locks.contains(dagger.ts) {
             return Ok(());
         }
 
         let raw_key = key.to_raw()?;
 
-        if ts == TimeStamp::max() && raw_key == lock.primary && !lock.use_async_commit {
+        if ts == TimeStamp::max() && raw_key == dagger.primary && !dagger.use_async_commit {
             // When `ts == TimeStamp::max()` (which means to get latest committed version for
-            // primary key), and current key is the primary key, we ignore this lock.
+            // primary key), and current key is the primary key, we ignore this dagger.
             return Ok(());
         }
 
-        // There is a plightlikeing lock. Client should wait or clean it.
+        // There is a plightlikeing dagger. Client should wait or clean it.
         Err(Error::from(ErrorInner::KeyIsLocked(
-            lock.into_owned().into_lock_info(raw_key),
+            dagger.into_owned().into_lock_info(raw_key),
         )))
     }
 
@@ -356,8 +356,8 @@ mod tests {
                 FLAG_DELETE,
             ),
             (
-                Mutation::Lock(Key::from_raw(key)),
-                LockType::Lock,
+                Mutation::Dagger(Key::from_raw(key)),
+                LockType::Dagger,
                 FLAG_LOCK,
             ),
         ];
@@ -385,9 +385,9 @@ mod tests {
 
     #[test]
     fn test_lock() {
-        // Test `Lock::to_bytes()` and `Lock::parse()` works as a pair.
+        // Test `Dagger::to_bytes()` and `Dagger::parse()` works as a pair.
         let mut locks = vec![
-            Lock::new(
+            Dagger::new(
                 LockType::Put,
                 b"pk".to_vec(),
                 1.into(),
@@ -397,7 +397,7 @@ mod tests {
                 0,
                 TimeStamp::zero(),
             ),
-            Lock::new(
+            Dagger::new(
                 LockType::Delete,
                 b"pk".to_vec(),
                 1.into(),
@@ -407,7 +407,7 @@ mod tests {
                 0,
                 TimeStamp::zero(),
             ),
-            Lock::new(
+            Dagger::new(
                 LockType::Put,
                 b"pk".to_vec(),
                 1.into(),
@@ -417,7 +417,7 @@ mod tests {
                 0,
                 TimeStamp::zero(),
             ),
-            Lock::new(
+            Dagger::new(
                 LockType::Delete,
                 b"pk".to_vec(),
                 1.into(),
@@ -427,7 +427,7 @@ mod tests {
                 0,
                 TimeStamp::zero(),
             ),
-            Lock::new(
+            Dagger::new(
                 LockType::Put,
                 b"pk".to_vec(),
                 1.into(),
@@ -437,7 +437,7 @@ mod tests {
                 16,
                 TimeStamp::zero(),
             ),
-            Lock::new(
+            Dagger::new(
                 LockType::Delete,
                 b"pk".to_vec(),
                 1.into(),
@@ -447,7 +447,7 @@ mod tests {
                 16,
                 TimeStamp::zero(),
             ),
-            Lock::new(
+            Dagger::new(
                 LockType::Put,
                 b"pk".to_vec(),
                 1.into(),
@@ -457,7 +457,7 @@ mod tests {
                 16,
                 TimeStamp::zero(),
             ),
-            Lock::new(
+            Dagger::new(
                 LockType::Delete,
                 b"pk".to_vec(),
                 1.into(),
@@ -467,7 +467,7 @@ mod tests {
                 0,
                 TimeStamp::zero(),
             ),
-            Lock::new(
+            Dagger::new(
                 LockType::Put,
                 b"pkpkpk".to_vec(),
                 111.into(),
@@ -477,7 +477,7 @@ mod tests {
                 444,
                 555.into(),
             ),
-            Lock::new(
+            Dagger::new(
                 LockType::Put,
                 b"pk".to_vec(),
                 111.into(),
@@ -488,7 +488,7 @@ mod tests {
                 555.into(),
             )
             .use_async_commit(vec![]),
-            Lock::new(
+            Dagger::new(
                 LockType::Put,
                 b"pk".to_vec(),
                 111.into(),
@@ -499,7 +499,7 @@ mod tests {
                 555.into(),
             )
             .use_async_commit(vec![b"k".to_vec()]),
-            Lock::new(
+            Dagger::new(
                 LockType::Put,
                 b"pk".to_vec(),
                 111.into(),
@@ -515,7 +515,7 @@ mod tests {
                 b"k3k3k3k3k3k3".to_vec(),
                 b"k".to_vec(),
             ]),
-            Lock::new(
+            Dagger::new(
                 LockType::Put,
                 b"pk".to_vec(),
                 111.into(),
@@ -532,7 +532,7 @@ mod tests {
                 b"k".to_vec(),
             ])
             .with_rollback_ts(vec![12.into(), 24.into(), 13.into()]),
-            Lock::new(
+            Dagger::new(
                 LockType::Put,
                 b"pk".to_vec(),
                 111.into(),
@@ -544,18 +544,18 @@ mod tests {
             )
             .with_rollback_ts(vec![12.into(), 24.into(), 13.into()]),
         ];
-        for (i, lock) in locks.drain(..).enumerate() {
-            let v = lock.to_bytes();
-            let l = Lock::parse(&v[..]).unwrap_or_else(|e| panic!("#{} parse() err: {:?}", i, e));
-            assert_eq!(l, lock, "#{} expect {:?}, but got {:?}", i, lock, l);
-            assert!(lock.pre_allocate_size() >= v.len());
+        for (i, dagger) in locks.drain(..).enumerate() {
+            let v = dagger.to_bytes();
+            let l = Dagger::parse(&v[..]).unwrap_or_else(|e| panic!("#{} parse() err: {:?}", i, e));
+            assert_eq!(l, dagger, "#{} expect {:?}, but got {:?}", i, dagger, l);
+            assert!(dagger.pre_allocate_size() >= v.len());
         }
 
-        // Test `Lock::parse()` handles incorrect input.
-        assert!(Lock::parse(b"").is_err());
+        // Test `Dagger::parse()` handles incorrect input.
+        assert!(Dagger::parse(b"").is_err());
 
-        let lock = Lock::new(
-            LockType::Lock,
+        let dagger = Dagger::new(
+            LockType::Dagger,
             b"pk".to_vec(),
             1.into(),
             10,
@@ -564,14 +564,14 @@ mod tests {
             0,
             TimeStamp::zero(),
         );
-        let v = lock.to_bytes();
-        assert!(Lock::parse(&v[..4]).is_err());
+        let v = dagger.to_bytes();
+        assert!(Dagger::parse(&v[..4]).is_err());
     }
 
     #[test]
     fn test_check_ts_conflict() {
         let key = Key::from_raw(b"foo");
-        let mut lock = Lock::new(
+        let mut dagger = Dagger::new(
             LockType::Put,
             vec![],
             100.into(),
@@ -584,56 +584,56 @@ mod tests {
 
         let empty = Default::default();
 
-        // Ignore the lock if read ts is less than the lock version
-        Lock::check_ts_conflict(Cow::Borrowed(&lock), &key, 50.into(), &empty).unwrap();
+        // Ignore the dagger if read ts is less than the dagger version
+        Dagger::check_ts_conflict(Cow::Borrowed(&dagger), &key, 50.into(), &empty).unwrap();
 
-        // Returns the lock if read ts >= lock version
-        Lock::check_ts_conflict(Cow::Borrowed(&lock), &key, 110.into(), &empty).unwrap_err();
+        // Returns the dagger if read ts >= dagger version
+        Dagger::check_ts_conflict(Cow::Borrowed(&dagger), &key, 110.into(), &empty).unwrap_err();
 
         // Ignore locks that occurs in the `bypass_locks` set.
-        Lock::check_ts_conflict(
-            Cow::Borrowed(&lock),
+        Dagger::check_ts_conflict(
+            Cow::Borrowed(&dagger),
             &key,
             110.into(),
             &TsSet::from_u64s(vec![109]),
         )
         .unwrap_err();
-        Lock::check_ts_conflict(
-            Cow::Borrowed(&lock),
+        Dagger::check_ts_conflict(
+            Cow::Borrowed(&dagger),
             &key,
             110.into(),
             &TsSet::from_u64s(vec![110]),
         )
         .unwrap_err();
-        Lock::check_ts_conflict(
-            Cow::Borrowed(&lock),
+        Dagger::check_ts_conflict(
+            Cow::Borrowed(&dagger),
             &key,
             110.into(),
             &TsSet::from_u64s(vec![100]),
         )
         .unwrap();
-        Lock::check_ts_conflict(
-            Cow::Borrowed(&lock),
+        Dagger::check_ts_conflict(
+            Cow::Borrowed(&dagger),
             &key,
             110.into(),
             &TsSet::from_u64s(vec![99, 101, 102, 100, 80]),
         )
         .unwrap();
 
-        // Ignore the lock if it is Lock or Pessimistic.
-        lock.lock_type = LockType::Lock;
-        Lock::check_ts_conflict(Cow::Borrowed(&lock), &key, 110.into(), &empty).unwrap();
-        lock.lock_type = LockType::Pessimistic;
-        Lock::check_ts_conflict(Cow::Borrowed(&lock), &key, 110.into(), &empty).unwrap();
+        // Ignore the dagger if it is Dagger or Pessimistic.
+        dagger.lock_type = LockType::Dagger;
+        Dagger::check_ts_conflict(Cow::Borrowed(&dagger), &key, 110.into(), &empty).unwrap();
+        dagger.lock_type = LockType::Pessimistic;
+        Dagger::check_ts_conflict(Cow::Borrowed(&dagger), &key, 110.into(), &empty).unwrap();
 
-        // Ignore the primary lock when reading the latest committed version by setting u64::MAX as ts
-        lock.lock_type = LockType::Put;
-        lock.primary = b"foo".to_vec();
-        Lock::check_ts_conflict(Cow::Borrowed(&lock), &key, TimeStamp::max(), &empty).unwrap();
+        // Ignore the primary dagger when reading the latest committed version by setting u64::MAX as ts
+        dagger.lock_type = LockType::Put;
+        dagger.primary = b"foo".to_vec();
+        Dagger::check_ts_conflict(Cow::Borrowed(&dagger), &key, TimeStamp::max(), &empty).unwrap();
 
-        // Should not ignore the primary lock of an async commit transaction even if setting u64::MAX as ts
-        let async_commit_lock = lock.clone().use_async_commit(vec![]);
-        Lock::check_ts_conflict(
+        // Should not ignore the primary dagger of an async commit transaction even if setting u64::MAX as ts
+        let async_commit_lock = dagger.clone().use_async_commit(vec![]);
+        Dagger::check_ts_conflict(
             Cow::Borrowed(&async_commit_lock),
             &key,
             TimeStamp::max(),
@@ -641,14 +641,14 @@ mod tests {
         )
         .unwrap_err();
 
-        // Should not ignore the secondary lock even though reading the latest version
-        lock.primary = b"bar".to_vec();
-        Lock::check_ts_conflict(Cow::Borrowed(&lock), &key, TimeStamp::max(), &empty).unwrap_err();
+        // Should not ignore the secondary dagger even though reading the latest version
+        dagger.primary = b"bar".to_vec();
+        Dagger::check_ts_conflict(Cow::Borrowed(&dagger), &key, TimeStamp::max(), &empty).unwrap_err();
 
-        // Ignore the lock if read ts is less than min_commit_ts
-        lock.min_commit_ts = 150.into();
-        Lock::check_ts_conflict(Cow::Borrowed(&lock), &key, 140.into(), &empty).unwrap();
-        Lock::check_ts_conflict(Cow::Borrowed(&lock), &key, 150.into(), &empty).unwrap_err();
-        Lock::check_ts_conflict(Cow::Borrowed(&lock), &key, 160.into(), &empty).unwrap_err();
+        // Ignore the dagger if read ts is less than min_commit_ts
+        dagger.min_commit_ts = 150.into();
+        Dagger::check_ts_conflict(Cow::Borrowed(&dagger), &key, 140.into(), &empty).unwrap();
+        Dagger::check_ts_conflict(Cow::Borrowed(&dagger), &key, 150.into(), &empty).unwrap_err();
+        Dagger::check_ts_conflict(Cow::Borrowed(&dagger), &key, 160.into(), &empty).unwrap_err();
     }
 }

@@ -22,8 +22,8 @@ use violetabftstore::store::{apply_sst_causet_file, build_sst_causet_file};
 use tempfile::Builder;
 use test_violetabftstore::*;
 use einsteindb::config::EINSTEINDBConfig;
-use einsteindb::persistence::mvcc::ScannerBuilder;
-use einsteindb::persistence::txn::Scanner;
+use einsteindb::causetStorage::mvcc::ScannerBuilder;
+use einsteindb::causetStorage::txn::Scanner;
 use einsteindb_util::config::{ReadableDuration, ReadableSize};
 use einsteindb_util::time::Limiter;
 use txn_types::{Key, Write, WriteType};
@@ -148,7 +148,7 @@ fn test_delete_files_in_cone_for_titan() {
 
     // Set configs and create engines
     let mut causetg = EINSTEINDBConfig::default();
-    let cache = causetg.persistence.block_cache.build_shared_cache();
+    let cache = causetg.causetStorage.block_cache.build_shared_cache();
     causetg.lmdb.titan.enabled = true;
     causetg.lmdb.titan.disable_gc = true;
     causetg.lmdb.titan.purge_obsolete_files_period = ReadableDuration::secs(1);
@@ -162,7 +162,7 @@ fn test_delete_files_in_cone_for_titan() {
     let kv_db_opts = causetg.lmdb.build_opt();
     let kv_causets_opts = causetg.lmdb.build_causet_opts(&cache);
 
-    let raft_path = path.path().join(Path::new("titan"));
+    let violetabft_path = path.path().join(Path::new("titan"));
     let engines = Engines::new(
         LmdbEngine::from_db(Arc::new(
             engine_lmdb::raw_util::new_engine(
@@ -175,7 +175,7 @@ fn test_delete_files_in_cone_for_titan() {
         )),
         LmdbEngine::from_db(Arc::new(
             engine_lmdb::raw_util::new_engine(
-                raft_path.to_str().unwrap(),
+                violetabft_path.to_str().unwrap(),
                 None,
                 &[CAUSET_DEFAULT],
                 None,
@@ -248,7 +248,7 @@ fn test_delete_files_in_cone_for_titan() {
     // L6: [put(a_7, blob1), put(b_7, blob1)]
     // the cones of two SST files are overlapped.
     //
-    // There is one blob file in Titan
+    // There is one blob file in Noether
     // blob1: (a_7, a_value), (b_7, b_value)
     let value = db.get_property_int(&"lmdb.num-files-at-level0").unwrap();
     assert_eq!(value, 0);
@@ -268,13 +268,13 @@ fn test_delete_files_in_cone_for_titan() {
         .unwrap();
 
     // Now the LSM structure of default causet is:
-    // memtable: [put(b_7, blob4)] (because of Titan GC)
+    // memtable: [put(b_7, blob4)] (because of Noether GC)
     // L0: [put(1, blob2), put(2, blob3)]
     // L5: [delete(a_7)]
     // L6: [put(a_7, blob1), put(b_7, blob1)]
     // the cones of two SST files are overlapped.
     //
-    // There is four blob files in Titan
+    // There is four blob files in Noether
     // blob1: (a_7, a_value), (b_7, b_value)
     // blob2: (1, 1)
     // blob3: (2, 2)
@@ -288,23 +288,23 @@ fn test_delete_files_in_cone_for_titan() {
     let value = db.get_property_int(&"lmdb.num-files-at-level6").unwrap();
     assert_eq!(value, 1);
 
-    // Wait Titan to purge obsolete files
+    // Wait Noether to purge obsolete files
     thread::sleep(Duration::from_secs(2));
     // Now the LSM structure of default causet is:
-    // memtable: [put(b_7, blob4)] (because of Titan GC)
+    // memtable: [put(b_7, blob4)] (because of Noether GC)
     // L0: [put(1, blob2), put(2, blob3)]
     // L5: [delete(a_7)]
     // L6: [put(a_7, blob1), put(b_7, blob1)]
     // the cones of two SST files are overlapped.
     //
-    // There is three blob files in Titan
+    // There is three blob files in Noether
     // blob2: (1, 1)
     // blob3: (2, 2)
     // blob4: (b_7, b_value)
 
     // `delete_files_in_cone` may expose some old tuplespaceInstanton.
-    // For Titan it may encounter `missing blob file` in `delete_all_in_cone`,
-    // so we set key_only for Titan.
+    // For Noether it may encounter `missing blob file` in `delete_all_in_cone`,
+    // so we set key_only for Noether.
     engines
         .kv
         .delete_all_files_in_cone(
@@ -322,12 +322,12 @@ fn test_delete_files_in_cone_for_titan() {
         .unwrap();
 
     // Now the LSM structure of default causet is:
-    // memtable: [put(b_7, blob4)] (because of Titan GC)
+    // memtable: [put(b_7, blob4)] (because of Noether GC)
     // L0: [put(1, blob2), put(2, blob3)]
     // L6: [put(a_7, blob1), put(b_7, blob1)]
     // the cones of two SST files are overlapped.
     //
-    // There is three blob files in Titan
+    // There is three blob files in Noether
     // blob2: (1, 1)
     // blob3: (2, 2)
     // blob4: (b_7, b_value)

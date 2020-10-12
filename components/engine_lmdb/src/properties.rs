@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use engine_promises::{DecodeProperties, IndexHandles};
 use std::cmp;
@@ -11,7 +11,7 @@ use engine_promises::KvEngine;
 use engine_promises::Cone;
 use engine_promises::{IndexHandle, TableProperties, TablePropertiesCollection};
 use lmdb::{
-    DBEntryType, TablePropertiesCollector, TablePropertiesCollectorFactory, TitanBlobIndex,
+    DBEntryType, TablePropertiesCollector, TablePropertiesCollectorFactory, NoetherBlobIndex,
     UserCollectedProperties,
 };
 use einsteindb_util::codec::number::{self, NumberEncoder};
@@ -27,7 +27,7 @@ pub const DEFAULT_PROP_KEYS_INDEX_DISTANCE: u64 = 40 * 1024;
 fn get_entry_size(value: &[u8], entry_type: DBEntryType) -> std::result::Result<u64, ()> {
     match entry_type {
         DBEntryType::Put => Ok(value.len() as u64),
-        DBEntryType::BlobIndex => match TitanBlobIndex::decode(value) {
+        DBEntryType::BlobIndex => match NoetherBlobIndex::decode(value) {
             Ok(index) => Ok(index.blob_size + value.len() as u64),
             Err(_) => Err(()),
         },
@@ -770,7 +770,7 @@ mod tests {
                 extra_value_size = 0;
                 collector.add(k.as_bytes(), &v, DBEntryType::Put, 0, 0);
             } else {
-                let mut blob_index = TitanBlobIndex::default();
+                let mut blob_index = NoetherBlobIndex::default();
                 blob_index.blob_size = vlen - extra_value_size;
                 let v = blob_index.encode();
                 extra_value_size = v.len() as u64;

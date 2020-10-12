@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use prometheus::local::LocalHistogram;
 use std::sync::{Arc, Mutex};
@@ -23,31 +23,31 @@ impl VioletaBftReadyMetrics {
     fn flush(&mut self) {
         // reset all buffered metrics once they have been added
         if self.message > 0 {
-            STORE_RAFT_READY_COUNTER.message.inc_by(self.message as i64);
+            STORE_VIOLETABFT_READY_COUNTER.message.inc_by(self.message as i64);
             self.message = 0;
         }
         if self.commit > 0 {
-            STORE_RAFT_READY_COUNTER.commit.inc_by(self.commit as i64);
+            STORE_VIOLETABFT_READY_COUNTER.commit.inc_by(self.commit as i64);
             self.commit = 0;
         }
         if self.applightlike > 0 {
-            STORE_RAFT_READY_COUNTER.applightlike.inc_by(self.applightlike as i64);
+            STORE_VIOLETABFT_READY_COUNTER.applightlike.inc_by(self.applightlike as i64);
             self.applightlike = 0;
         }
         if self.snapshot > 0 {
-            STORE_RAFT_READY_COUNTER
+            STORE_VIOLETABFT_READY_COUNTER
                 .snapshot
                 .inc_by(self.snapshot as i64);
             self.snapshot = 0;
         }
         if self.plightlikeing_brane > 0 {
-            STORE_RAFT_READY_COUNTER
+            STORE_VIOLETABFT_READY_COUNTER
                 .plightlikeing_brane
                 .inc_by(self.plightlikeing_brane as i64);
             self.plightlikeing_brane = 0;
         }
         if self.has_ready_brane > 0 {
-            STORE_RAFT_READY_COUNTER
+            STORE_VIOLETABFT_READY_COUNTER
                 .has_ready_brane
                 .inc_by(self.has_ready_brane as i64);
             self.has_ready_brane = 0;
@@ -79,85 +79,85 @@ impl VioletaBftMessageMetrics {
     fn flush(&mut self) {
         // reset all buffered metrics once they have been added
         if self.applightlike > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .applightlike
                 .inc_by(self.applightlike as i64);
             self.applightlike = 0;
         }
         if self.applightlike_resp > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .applightlike_resp
                 .inc_by(self.applightlike_resp as i64);
             self.applightlike_resp = 0;
         }
         if self.prevote > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .prevote
                 .inc_by(self.prevote as i64);
             self.prevote = 0;
         }
         if self.prevote_resp > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .prevote_resp
                 .inc_by(self.prevote_resp as i64);
             self.prevote_resp = 0;
         }
         if self.vote > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .vote
                 .inc_by(self.vote as i64);
             self.vote = 0;
         }
         if self.vote_resp > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .vote_resp
                 .inc_by(self.vote_resp as i64);
             self.vote_resp = 0;
         }
         if self.snapshot > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .snapshot
                 .inc_by(self.snapshot as i64);
             self.snapshot = 0;
         }
         if self.request_snapshot > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .request_snapshot
                 .inc_by(self.request_snapshot as i64);
             self.request_snapshot = 0;
         }
         if self.heartbeat > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .heartbeat
                 .inc_by(self.heartbeat as i64);
             self.heartbeat = 0;
         }
         if self.heartbeat_resp > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .heartbeat_resp
                 .inc_by(self.heartbeat_resp as i64);
             self.heartbeat_resp = 0;
         }
         if self.transfer_leader > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .transfer_leader
                 .inc_by(self.transfer_leader as i64);
             self.transfer_leader = 0;
         }
         if self.timeout_now > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .timeout_now
                 .inc_by(self.timeout_now as i64);
             self.timeout_now = 0;
         }
         if self.read_index > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .read_index
                 .inc_by(self.read_index as i64);
             self.read_index = 0;
         }
         if self.read_index_resp > 0 {
-            STORE_RAFT_SENT_MESSAGE_COUNTER
+            STORE_VIOLETABFT_SENT_MESSAGE_COUNTER
                 .read_index_resp
                 .inc_by(self.read_index_resp as i64);
             self.read_index_resp = 0;
@@ -180,49 +180,49 @@ pub struct VioletaBftMessageDropMetrics {
 impl VioletaBftMessageDropMetrics {
     fn flush(&mut self) {
         if self.mismatch_store_id > 0 {
-            STORE_RAFT_DROPPED_MESSAGE_COUNTER
+            STORE_VIOLETABFT_DROPPED_MESSAGE_COUNTER
                 .mismatch_store_id
                 .inc_by(self.mismatch_store_id as i64);
             self.mismatch_store_id = 0;
         }
         if self.mismatch_brane_epoch > 0 {
-            STORE_RAFT_DROPPED_MESSAGE_COUNTER
+            STORE_VIOLETABFT_DROPPED_MESSAGE_COUNTER
                 .mismatch_brane_epoch
                 .inc_by(self.mismatch_brane_epoch as i64);
             self.mismatch_brane_epoch = 0;
         }
         if self.stale_msg > 0 {
-            STORE_RAFT_DROPPED_MESSAGE_COUNTER
+            STORE_VIOLETABFT_DROPPED_MESSAGE_COUNTER
                 .stale_msg
                 .inc_by(self.stale_msg as i64);
             self.stale_msg = 0;
         }
         if self.brane_overlap > 0 {
-            STORE_RAFT_DROPPED_MESSAGE_COUNTER
+            STORE_VIOLETABFT_DROPPED_MESSAGE_COUNTER
                 .brane_overlap
                 .inc_by(self.brane_overlap as i64);
             self.brane_overlap = 0;
         }
         if self.brane_no_peer > 0 {
-            STORE_RAFT_DROPPED_MESSAGE_COUNTER
+            STORE_VIOLETABFT_DROPPED_MESSAGE_COUNTER
                 .brane_no_peer
                 .inc_by(self.brane_no_peer as i64);
             self.brane_no_peer = 0;
         }
         if self.brane_tombstone_peer > 0 {
-            STORE_RAFT_DROPPED_MESSAGE_COUNTER
+            STORE_VIOLETABFT_DROPPED_MESSAGE_COUNTER
                 .brane_tombstone_peer
                 .inc_by(self.brane_tombstone_peer as i64);
             self.brane_tombstone_peer = 0;
         }
         if self.brane_nonexistent > 0 {
-            STORE_RAFT_DROPPED_MESSAGE_COUNTER
+            STORE_VIOLETABFT_DROPPED_MESSAGE_COUNTER
                 .brane_nonexistent
                 .inc_by(self.brane_nonexistent as i64);
             self.brane_nonexistent = 0;
         }
         if self.applying_snap > 0 {
-            STORE_RAFT_DROPPED_MESSAGE_COUNTER
+            STORE_VIOLETABFT_DROPPED_MESSAGE_COUNTER
                 .applying_snap
                 .inc_by(self.applying_snap as i64);
             self.applying_snap = 0;
@@ -343,55 +343,55 @@ impl Default for VioletaBftInvalidProposeMetrics {
 impl VioletaBftInvalidProposeMetrics {
     fn flush(&mut self) {
         if self.mismatch_store_id > 0 {
-            RAFT_INVALID_PROPOSAL_COUNTER
+            VIOLETABFT_INVALID_PROPOSAL_COUNTER
                 .mismatch_store_id
                 .inc_by(self.mismatch_store_id as i64);
             self.mismatch_store_id = 0;
         }
         if self.brane_not_found > 0 {
-            RAFT_INVALID_PROPOSAL_COUNTER
+            VIOLETABFT_INVALID_PROPOSAL_COUNTER
                 .brane_not_found
                 .inc_by(self.brane_not_found as i64);
             self.brane_not_found = 0;
         }
         if self.not_leader > 0 {
-            RAFT_INVALID_PROPOSAL_COUNTER
+            VIOLETABFT_INVALID_PROPOSAL_COUNTER
                 .not_leader
                 .inc_by(self.not_leader as i64);
             self.not_leader = 0;
         }
         if self.mismatch_peer_id > 0 {
-            RAFT_INVALID_PROPOSAL_COUNTER
+            VIOLETABFT_INVALID_PROPOSAL_COUNTER
                 .mismatch_peer_id
                 .inc_by(self.mismatch_peer_id as i64);
             self.mismatch_peer_id = 0;
         }
         if self.stale_command > 0 {
-            RAFT_INVALID_PROPOSAL_COUNTER
+            VIOLETABFT_INVALID_PROPOSAL_COUNTER
                 .stale_command
                 .inc_by(self.stale_command as i64);
             self.stale_command = 0;
         }
         if self.epoch_not_match > 0 {
-            RAFT_INVALID_PROPOSAL_COUNTER
+            VIOLETABFT_INVALID_PROPOSAL_COUNTER
                 .epoch_not_match
                 .inc_by(self.epoch_not_match as i64);
             self.epoch_not_match = 0;
         }
         if self.read_index_no_leader > 0 {
-            RAFT_INVALID_PROPOSAL_COUNTER
+            VIOLETABFT_INVALID_PROPOSAL_COUNTER
                 .read_index_no_leader
                 .inc_by(self.read_index_no_leader as i64);
             self.read_index_no_leader = 0;
         }
         if self.brane_not_initialized > 0 {
-            RAFT_INVALID_PROPOSAL_COUNTER
+            VIOLETABFT_INVALID_PROPOSAL_COUNTER
                 .brane_not_initialized
                 .inc_by(self.brane_not_initialized as i64);
             self.brane_not_initialized = 0;
         }
         if self.is_applying_snapshot > 0 {
-            RAFT_INVALID_PROPOSAL_COUNTER
+            VIOLETABFT_INVALID_PROPOSAL_COUNTER
                 .is_applying_snapshot
                 .inc_by(self.is_applying_snapshot as i64);
             self.is_applying_snapshot = 0;
@@ -419,7 +419,7 @@ impl Default for VioletaBftMetrics {
             message: Default::default(),
             message_dropped: Default::default(),
             propose: Default::default(),
-            process_ready: PEER_RAFT_PROCESS_DURATION
+            process_ready: PEER_VIOLETABFT_PROCESS_DURATION
                 .with_label_values(&["ready"])
                 .local(),
             applightlike_log: PEER_APPEND_LOG_HISTOGRAM.local(),
@@ -441,7 +441,7 @@ impl VioletaBftMetrics {
         self.commit_log.flush();
         self.message_dropped.flush();
         self.invalid_proposal.flush();
-        let mut missing = self.leader_missing.lock().unwrap();
+        let mut missing = self.leader_missing.dagger().unwrap();
         LEADER_MISSING.set(missing.len() as i64);
         missing.clear();
     }

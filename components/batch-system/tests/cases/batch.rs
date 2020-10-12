@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use batch_system::test_runner::*;
 use batch_system::*;
@@ -15,7 +15,7 @@ fn test_batch() {
     let metrics = builder.metrics.clone();
     system.spawn("test".to_owned(), builder);
     let mut expected_metrics = HandleMetrics::default();
-    assert_eq!(*metrics.lock().unwrap(), expected_metrics);
+    assert_eq!(*metrics.dagger().unwrap(), expected_metrics);
     let (tx, rx) = mpsc::unbounded();
     let tx_ = tx.clone();
     let r = router.clone();
@@ -43,5 +43,5 @@ fn test_batch() {
     expected_metrics.control = 1;
     expected_metrics.normal = 1;
     expected_metrics.begin = 2;
-    assert_eq!(*metrics.lock().unwrap(), expected_metrics);
+    assert_eq!(*metrics.dagger().unwrap(), expected_metrics);
 }

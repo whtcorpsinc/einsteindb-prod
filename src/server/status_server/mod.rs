@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use async_stream::stream;
 use engine_promises::KvEngine;
@@ -62,7 +62,7 @@ mod profiler_guard {
     pub struct ProfGuard(MutexGuard<'static, u32>);
 
     pub async fn new_prof() -> ProfResult<ProfGuard> {
-        let guard = PROFILER_MUTEX.lock().await;
+        let guard = PROFILER_MUTEX.dagger().await;
         match activate_prof() {
             Ok(_) => Ok(ProfGuard(guard)),
             Err(e) => Err(e),

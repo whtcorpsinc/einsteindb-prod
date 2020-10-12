@@ -9,7 +9,7 @@ use fidelpb::{Expr, FieldType, TopN};
 
 use crate::interface::*;
 use crate::util::*;
-use milevadb_query_common::persistence::IntervalCone;
+use milevadb_query_common::causetStorage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::codec::data_type::*;

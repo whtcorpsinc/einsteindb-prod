@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::{
     fs::{self, File},
@@ -84,11 +84,11 @@ mod tests {
     use engine_lmdb::{
         util::{new_engine, LmdbCAUSETOptions},
         LmdbPrimaryCausetNetworkOptions, LmdbDBOptions, LmdbEngine, LmdbIngestExternalFileOptions,
-        LmdbSstWriterBuilder, LmdbTitanDBOptions,
+        LmdbSstWriterBuilder, LmdbNoetherDBOptions,
     };
     use engine_promises::{
         CAUSETHandleExt, CfName, PrimaryCausetNetworkOptions, DBOptions, EncryptionKeyManager, ImportExt,
-        IngestExternalFileOptions, Peekable, SstWriter, SstWriterBuilder, TitanDBOptions,
+        IngestExternalFileOptions, Peekable, SstWriter, SstWriterBuilder, NoetherDBOptions,
     };
     use std::{fs, path::Path, sync::Arc};
     use tempfile::Builder;
@@ -212,7 +212,7 @@ mod tests {
     #[test]
     fn test_prepare_sst_for_ingestion_titan() {
         let mut db_opts = LmdbDBOptions::new();
-        let mut titan_opts = LmdbTitanDBOptions::new();
+        let mut titan_opts = LmdbNoetherDBOptions::new();
         // Force all values write out to blob files.
         titan_opts.set_min_blob_size(0);
         db_opts.set_titandb_options(&titan_opts);

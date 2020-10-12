@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::Arc;
 
@@ -7,7 +7,7 @@ use fidelpb::PrimaryCausetInfo;
 use fidelpb::IndexScan;
 
 use super::{scan::InnerFreeDaemon, Row, ScanFreeDaemon, ScanFreeDaemonOptions};
-use milevadb_query_common::persistence::CausetStorage;
+use milevadb_query_common::causetStorage::CausetStorage;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::table::{self, check_index_key};
 use milevadb_query_datatype::expr::EvalContext;
@@ -74,7 +74,7 @@ impl<S: CausetStorage> IndexScanFreeDaemon<S> {
         mut meta: IndexScan,
         context: EvalContext,
         key_cones: Vec<KeyCone>,
-        persistence: S,
+        causetStorage: S,
         unique: bool,
         is_scanned_cone_aware: bool,
     ) -> Result<Self> {
@@ -85,7 +85,7 @@ impl<S: CausetStorage> IndexScanFreeDaemon<S> {
             context,
             PrimaryCausets,
             key_cones,
-            persistence,
+            causetStorage,
             is_backward: meta.get_desc(),
             is_key_only: false,
             accept_point_cone: unique,
@@ -97,7 +97,7 @@ impl<S: CausetStorage> IndexScanFreeDaemon<S> {
         context: EvalContext,
         cols: i64,
         key_cones: Vec<KeyCone>,
-        persistence: S,
+        causetStorage: S,
     ) -> Result<Self> {
         let col_ids: Vec<i64> = (0..cols).collect();
         let inner = IndexInnerFreeDaemon {
@@ -109,7 +109,7 @@ impl<S: CausetStorage> IndexScanFreeDaemon<S> {
             context,
             PrimaryCausets: vec![],
             key_cones,
-            persistence,
+            causetStorage,
             is_backward: false,
             is_key_only: false,
             accept_point_cone: false,
@@ -131,7 +131,7 @@ pub mod tests {
     use super::*;
     use milevadb_query_common::execute_stats::ExecuteStats;
 
-    use milevadb_query_common::persistence::test_fixture::FixtureStorage;
+    use milevadb_query_common::causetStorage::test_fixture::FixtureStorage;
     use milevadb_query_datatype::codec::datum::{self, Datum};
     use milevadb_query_datatype::codec::table::generate_index_data_for_test;
 

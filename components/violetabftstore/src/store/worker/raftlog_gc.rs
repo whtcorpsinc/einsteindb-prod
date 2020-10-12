@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::error;
 use std::fmt::{self, Display, Formatter};
@@ -56,7 +56,7 @@ quick_error! {
         Other(err: Box<dyn error::Error + Sync + Slightlike>) {
             from()
             cause(err.as_ref())
-            display("raftlog gc failed {:?}", err)
+            display("violetabftlog gc failed {:?}", err)
         }
     }
 }
@@ -79,7 +79,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, R: CasualRouter<EK>> Runner<EK, ER, R> 
     }
 
     /// Does the GC job and returns the count of logs collected.
-    fn gc_raft_log(
+    fn gc_violetabft_log(
         &mut self,
         brane_id: u64,
         spacelike_idx: u64,
@@ -98,7 +98,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, R: CasualRouter<EK>> Runner<EK, ER, R> 
     fn flush(&mut self) {
         // Sync wal of kv_db to make sure the data before apply_index has been persisted to disk.
         self.engines.kv.sync().unwrap_or_else(|e| {
-            panic!("failed to sync kv_engine in raft_log_gc: {:?}", e);
+            panic!("failed to sync kv_engine in violetabft_log_gc: {:?}", e);
         });
         let tasks = std::mem::replace(&mut self.tasks, vec![]);
         for t in tasks {
@@ -109,7 +109,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, R: CasualRouter<EK>> Runner<EK, ER, R> 
                     lightlike_idx,
                 } => {
                     debug!("gc violetabft log"; "brane_id" => brane_id, "lightlike_index" => lightlike_idx);
-                    match self.gc_raft_log(brane_id, spacelike_idx, lightlike_idx) {
+                    match self.gc_violetabft_log(brane_id, spacelike_idx, lightlike_idx) {
                         Err(e) => {
                             error!("failed to gc"; "brane_id" => brane_id, "err" => %e);
                             self.report_collected(0);
@@ -187,13 +187,13 @@ mod tests {
     use tempfile::Builder;
 
     #[test]
-    fn test_gc_raft_log() {
+    fn test_gc_violetabft_log() {
         let dir = Builder::new().prefix("gc-violetabft-log-test").temfidelir().unwrap();
-        let path_raft = dir.path().join("violetabft");
+        let path_violetabft = dir.path().join("violetabft");
         let path_kv = dir.path().join("kv");
-        let raft_db = new_engine(path_kv.to_str().unwrap(), None, &[CAUSET_DEFAULT], None).unwrap();
-        let kv_db = new_engine(path_raft.to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();
-        let engines = Engines::new(kv_db, raft_db.clone());
+        let violetabft_db = new_engine(path_kv.to_str().unwrap(), None, &[CAUSET_DEFAULT], None).unwrap();
+        let kv_db = new_engine(path_violetabft.to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();
+        let engines = Engines::new(kv_db, violetabft_db.clone());
 
         let (tx, rx) = mpsc::channel();
         let (r, _) = mpsc::sync_channel(1);
@@ -206,12 +206,12 @@ mod tests {
 
         // generate violetabft logs
         let brane_id = 1;
-        let mut raft_wb = raft_db.write_batch();
+        let mut violetabft_wb = violetabft_db.write_batch();
         for i in 0..100 {
-            let k = tuplespaceInstanton::raft_log_key(brane_id, i);
-            raft_wb.put(&k, b"entry").unwrap();
+            let k = tuplespaceInstanton::violetabft_log_key(brane_id, i);
+            violetabft_wb.put(&k, b"entry").unwrap();
         }
-        raft_db.write(&raft_wb).unwrap();
+        violetabft_db.write(&violetabft_wb).unwrap();
 
         let tbls = vec![
             (Task::gc(brane_id, 0, 10), 10, (0, 10), (10, 100)),
@@ -225,32 +225,32 @@ mod tests {
             runner.flush();
             let res = rx.recv_timeout(Duration::from_secs(3)).unwrap();
             assert_eq!(res, expected_collectd);
-            raft_log_must_not_exist(&raft_db, 1, not_exist_cone.0, not_exist_cone.1);
-            raft_log_must_exist(&raft_db, 1, exist_cone.0, exist_cone.1);
+            violetabft_log_must_not_exist(&violetabft_db, 1, not_exist_cone.0, not_exist_cone.1);
+            violetabft_log_must_exist(&violetabft_db, 1, exist_cone.0, exist_cone.1);
         }
     }
 
-    fn raft_log_must_not_exist(
-        raft_engine: &impl KvEngine,
+    fn violetabft_log_must_not_exist(
+        violetabft_engine: &impl KvEngine,
         brane_id: u64,
         spacelike_idx: u64,
         lightlike_idx: u64,
     ) {
         for i in spacelike_idx..lightlike_idx {
-            let k = tuplespaceInstanton::raft_log_key(brane_id, i);
-            assert!(raft_engine.get_value(&k).unwrap().is_none());
+            let k = tuplespaceInstanton::violetabft_log_key(brane_id, i);
+            assert!(violetabft_engine.get_value(&k).unwrap().is_none());
         }
     }
 
-    fn raft_log_must_exist(
-        raft_engine: &impl KvEngine,
+    fn violetabft_log_must_exist(
+        violetabft_engine: &impl KvEngine,
         brane_id: u64,
         spacelike_idx: u64,
         lightlike_idx: u64,
     ) {
         for i in spacelike_idx..lightlike_idx {
-            let k = tuplespaceInstanton::raft_log_key(brane_id, i);
-            assert!(raft_engine.get_value(&k).unwrap().is_some());
+            let k = tuplespaceInstanton::violetabft_log_key(brane_id, i);
+            assert!(violetabft_engine.get_value(&k).unwrap().is_some());
         }
     }
 }

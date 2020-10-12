@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::i32;
 use std::net::{IpAddr, SocketAddr};
@@ -17,8 +17,8 @@ use tokio_timer::timer::Handle;
 
 use crate::interlock::Endpoint;
 use crate::server::gc_worker::GcWorker;
-use crate::persistence::lock_manager::LockManager;
-use crate::persistence::{Engine, CausetStorage};
+use crate::causetStorage::lock_manager::LockManager;
+use crate::causetStorage::{Engine, CausetStorage};
 use engine_lmdb::LmdbEngine;
 use violetabftstore::router::VioletaBftStoreRouter;
 use violetabftstore::store::SnapManager;
@@ -28,7 +28,7 @@ use einsteindb_util::worker::Worker;
 use einsteindb_util::Either;
 
 use super::load_statistics::*;
-use super::raft_client::VioletaBftClient;
+use super::violetabft_client::VioletaBftClient;
 use super::resolve::StoreAddrResolver;
 use super::service::*;
 use super::snap::{Runner as SnapHandler, Task as SnapTask};
@@ -55,7 +55,7 @@ pub struct Server<T: VioletaBftStoreRouter<LmdbEngine> + 'static, S: StoreAddrRe
     local_addr: SocketAddr,
     // Transport.
     trans: ServerTransport<T, S>,
-    raft_router: T,
+    violetabft_router: T,
     // For slightlikeing/receiving snapshots.
     snap_mgr: SnapManager,
     snap_worker: Worker<SnapTask>,
@@ -74,9 +74,9 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
     pub fn new<E: Engine, L: LockManager>(
         causetg: &Arc<Config>,
         security_mgr: &Arc<SecurityManager>,
-        persistence: CausetStorage<E, L>,
+        causetStorage: CausetStorage<E, L>,
         causet: Endpoint<E>,
-        raft_router: T,
+        violetabft_router: T,
         resolver: S,
         snap_mgr: SnapManager,
         gc_worker: GcWorker<E, T>,
@@ -109,10 +109,10 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
         let snap_worker = Worker::new("snap-handler");
 
         let kv_service = KvService::new(
-            persistence,
+            causetStorage,
             gc_worker,
             causet,
-            raft_router.clone(),
+            violetabft_router.clone(),
             snap_worker.scheduler(),
             Arc::clone(&grpc_thread_load),
             Arc::clone(&readpool_normal_thread_load),
@@ -142,19 +142,19 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
             Either::Left(sb)
         };
 
-        let raft_client = Arc::new(RwLock::new(VioletaBftClient::new(
+        let violetabft_client = Arc::new(RwLock::new(VioletaBftClient::new(
             Arc::clone(&env),
             Arc::clone(causetg),
             Arc::clone(security_mgr),
-            raft_router.clone(),
+            violetabft_router.clone(),
             Arc::clone(&grpc_thread_load),
             stats_pool.as_ref().map(|p| p.handle().clone()),
         )));
 
         let trans = ServerTransport::new(
-            raft_client,
+            violetabft_client,
             snap_worker.scheduler(),
-            raft_router.clone(),
+            violetabft_router.clone(),
             resolver,
         );
 
@@ -163,7 +163,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
             builder_or_server: Some(builder),
             local_addr: addr,
             trans,
-            raft_router,
+            violetabft_router,
             snap_mgr,
             snap_worker,
             stats_pool,
@@ -219,7 +219,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
         let snap_runner = SnapHandler::new(
             Arc::clone(&self.env),
             self.snap_mgr.clone(),
-            self.raft_router.clone(),
+            self.violetabft_router.clone(),
             security_mgr,
             Arc::clone(&causetg),
         );
@@ -286,8 +286,8 @@ mod tests {
     use crossbeam::channel::TrySlightlikeError;
     use engine_lmdb::LmdbSnapshot;
     use engine_promises::{KvEngine, Snapshot};
-    use ekvproto::raft_cmdpb::VioletaBftCmdRequest;
-    use ekvproto::raft_serverpb::VioletaBftMessage;
+    use ekvproto::violetabft_cmdpb::VioletaBftCmdRequest;
+    use ekvproto::violetabft_serverpb::VioletaBftMessage;
     use violetabftstore::store::transport::{CasualRouter, ProposalRouter, StoreRouter, Transport};
     use violetabftstore::store::PeerMsg;
     use violetabftstore::store::*;
@@ -300,8 +300,8 @@ mod tests {
     use crate::interlock::{self, readpool_impl};
     use crate::server::resolve::{Callback as ResolveCallback, StoreAddrResolver};
     use crate::server::{Config, Result};
-    use crate::persistence::lock_manager::DummyLockManager;
-    use crate::persistence::TestStorageBuilder;
+    use crate::causetStorage::lock_manager::DummyLockManager;
+    use crate::causetStorage::TestStorageBuilder;
 
     #[derive(Clone)]
     struct MockResolver {
@@ -314,7 +314,7 @@ mod tests {
             if self.quick_fail.load(Ordering::SeqCst) {
                 return Err(box_err!("quick fail"));
             }
-            let addr = self.addr.lock().unwrap();
+            let addr = self.addr.dagger().unwrap();
             cb(addr
                 .as_ref()
                 .map(|s| s.to_owned())
@@ -348,7 +348,7 @@ mod tests {
     }
 
     impl VioletaBftStoreRouter<LmdbEngine> for TestVioletaBftStoreRouter {
-        fn slightlike_raft_msg(&self, _: VioletaBftMessage) -> VioletaBftStoreResult<()> {
+        fn slightlike_violetabft_msg(&self, _: VioletaBftMessage) -> VioletaBftStoreResult<()> {
             self.tx.slightlike(1).unwrap();
             Ok(())
         }
@@ -410,7 +410,7 @@ mod tests {
         let mut causetg = Config::default();
         causetg.addr = "127.0.0.1:0".to_owned();
 
-        let persistence = TestStorageBuilder::new(DummyLockManager {})
+        let causetStorage = TestStorageBuilder::new(DummyLockManager {})
             .build()
             .unwrap();
 
@@ -422,7 +422,7 @@ mod tests {
         };
 
         let mut gc_worker = GcWorker::new(
-            persistence.get_engine(),
+            causetStorage.get_engine(),
             router.clone(),
             Default::default(),
             Default::default(),
@@ -435,12 +435,12 @@ mod tests {
 
         let cop_read_pool = ReadPool::from(readpool_impl::build_read_pool_for_test(
             &CoprReadPoolConfig::default_for_test(),
-            persistence.get_engine(),
+            causetStorage.get_engine(),
         ));
         let causet = interlock::Endpoint::new(
             &causetg,
             cop_read_pool.handle(),
-            persistence.get_concurrency_manager(),
+            causetStorage.get_concurrency_manager(),
         );
         let debug_thread_pool = Arc::new(
             TokioBuilder::new()
@@ -454,7 +454,7 @@ mod tests {
         let mut server = Server::new(
             &causetg,
             &security_mgr,
-            persistence,
+            causetStorage,
             causet,
             router,
             MockResolver {
@@ -483,7 +483,7 @@ mod tests {
         resp = significant_msg_receiver.try_recv().unwrap();
         assert!(is_unreachable_to(&resp, 1, 0), "{:?}", resp);
 
-        *addr.lock().unwrap() = Some(format!("{}", server.listening_addr()));
+        *addr.dagger().unwrap() = Some(format!("{}", server.listening_addr()));
 
         trans.slightlike(msg.clone()).unwrap();
         trans.flush();

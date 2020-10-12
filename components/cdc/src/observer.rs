@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::cell::RefCell;
 use std::ops::Deref;
@@ -12,10 +12,10 @@ use violetabftstore::interlock::*;
 use violetabftstore::store::fsm::ObserveID;
 use violetabftstore::store::BraneSnapshot;
 use violetabftstore::Error as VioletaBftStoreError;
-use einsteindb::persistence::{Cursor, ScanMode, Snapshot as EngineSnapshot, Statistics};
+use einsteindb::causetStorage::{Cursor, ScanMode, Snapshot as EngineSnapshot, Statistics};
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::worker::Scheduler;
-use txn_types::{Key, Lock, MutationType, Value, WriteRef, WriteType};
+use txn_types::{Key, Dagger, MutationType, Value, WriteRef, WriteType};
 
 use crate::lightlikepoint::{Deregister, OldValueCache, Task};
 use crate::{Error as CdcError, Result};
@@ -237,7 +237,7 @@ impl<S: EngineSnapshot> OldValueReader<S> {
     }
 
     fn check_lock(&mut self, key: &Key) -> bool {
-        self.statistics.lock.get += 1;
+        self.statistics.dagger.get += 1;
         let mut opts = ReadOptions::new();
         opts.set_fill_cache(false);
         let key_slice = key.as_encoded();
@@ -245,8 +245,8 @@ impl<S: EngineSnapshot> OldValueReader<S> {
 
         match self.snapshot.get_causet_opt(opts, CAUSET_DAGGER, &user_key).unwrap() {
             Some(v) => {
-                let lock = Lock::parse(v.deref()).unwrap();
-                lock.ts == Key::decode_ts_from(key_slice).unwrap()
+                let dagger = Dagger::parse(v.deref()).unwrap();
+                dagger.ts == Key::decode_ts_from(key_slice).unwrap()
             }
             None => false,
         }
@@ -271,7 +271,7 @@ impl<S: EngineSnapshot> OldValueReader<S> {
                 return Ok(None);
             }
 
-            // Key was not committed, check if the lock is corresponding to the key.
+            // Key was not committed, check if the dagger is corresponding to the key.
             let mut old_value = Some(Vec::default());
             while Key::is_user_key_eq(self.write_cursor.key(&mut self.statistics.write), user_key) {
                 let write =
@@ -285,7 +285,7 @@ impl<S: EngineSnapshot> OldValueReader<S> {
                         }
                     },
                     WriteType::Delete => Some(Vec::default()),
-                    WriteType::Rollback | WriteType::Lock => {
+                    WriteType::Rollback | WriteType::Dagger => {
                         if !self.write_cursor.next(&mut self.statistics.write) {
                             Some(Vec::default())
                         } else {
@@ -309,11 +309,11 @@ mod tests {
     use super::*;
     use engine_lmdb::LmdbEngine;
     use ekvproto::metapb::Brane;
-    use ekvproto::raft_cmdpb::*;
+    use ekvproto::violetabft_cmdpb::*;
     use std::time::Duration;
-    use einsteindb::persistence::kv::TestEngineBuilder;
-    use einsteindb::persistence::mvcc::tests::*;
-    use einsteindb::persistence::txn::tests::*;
+    use einsteindb::causetStorage::kv::TestEngineBuilder;
+    use einsteindb::causetStorage::mvcc::tests::*;
+    use einsteindb::causetStorage::txn::tests::*;
 
     #[test]
     fn test_register_and_deregister() {

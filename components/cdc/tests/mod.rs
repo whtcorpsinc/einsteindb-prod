@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -111,14 +111,14 @@ impl TestSuite {
         cluster.run();
         for (id, worker) in &mut lightlikepoints {
             let sim = cluster.sim.wl();
-            let raft_router = sim.get_server_router(*id);
+            let violetabft_router = sim.get_server_router(*id);
             let cdc_ob = obs.get(&id).unwrap().clone();
             let cm = ConcurrencyManager::new(1.into());
             let mut cdc_lightlikepoint = cdc::Endpoint::new(
                 &CdcConfig::default(),
                 fidel_cli.clone(),
                 worker.scheduler(),
-                raft_router,
+                violetabft_router,
                 cdc_ob,
                 cluster.store_metas[id].clone(),
                 cm.clone(),

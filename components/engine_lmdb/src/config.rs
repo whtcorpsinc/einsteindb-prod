@@ -2,7 +2,7 @@
 
 use configuration::ConfigValue;
 pub use lmdb::PerfLevel;
-use lmdb::{DBCompressionType, DBInfoLogLevel, DBTitanDBBlobRunMode};
+use lmdb::{DBCompressionType, DBInfoLogLevel, DBNoetherDBBlobRunMode};
 use std::str::FromStr;
 
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -185,12 +185,12 @@ impl FromStr for BlobRunMode {
     }
 }
 
-impl Into<DBTitanDBBlobRunMode> for BlobRunMode {
-    fn into(self) -> DBTitanDBBlobRunMode {
+impl Into<DBNoetherDBBlobRunMode> for BlobRunMode {
+    fn into(self) -> DBNoetherDBBlobRunMode {
         match self {
-            BlobRunMode::Normal => DBTitanDBBlobRunMode::Normal,
-            BlobRunMode::ReadOnly => DBTitanDBBlobRunMode::ReadOnly,
-            BlobRunMode::Fallback => DBTitanDBBlobRunMode::Fallback,
+            BlobRunMode::Normal => DBNoetherDBBlobRunMode::Normal,
+            BlobRunMode::ReadOnly => DBNoetherDBBlobRunMode::ReadOnly,
+            BlobRunMode::Fallback => DBNoetherDBBlobRunMode::Fallback,
         }
     }
 }

@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use crate::store::{CasualMessage, CasualRouter};
 use engine_promises::{KvEngine, Cone};
@@ -140,7 +140,7 @@ where
         };
 
         let res = CasualMessage::BraneApproximateTuplespaceInstanton { tuplespaceInstanton: brane_tuplespaceInstanton };
-        if let Err(e) = self.router.lock().unwrap().slightlike(brane_id, res) {
+        if let Err(e) = self.router.dagger().unwrap().slightlike(brane_id, res) {
             warn!(
                 "failed to slightlike approximate brane tuplespaceInstanton";
                 "brane_id" => brane_id,

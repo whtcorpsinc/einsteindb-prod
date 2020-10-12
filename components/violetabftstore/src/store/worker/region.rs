@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::collections::Bound::{Excluded, Included, Unbounded};
 use std::collections::{BTreeMap, VecDeque};
@@ -9,10 +9,10 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::u64;
 
-use engine_promises::CAUSET_RAFT;
+use engine_promises::CAUSET_VIOLETABFT;
 use engine_promises::{Engines, KvEngine, Mutable, VioletaBftEngine};
-use ekvproto::raft_serverpb::{PeerState, VioletaBftApplyState, BraneLocalState};
-use violetabft::eraftpb::Snapshot as VioletaBftSnapshot;
+use ekvproto::violetabft_serverpb::{PeerState, VioletaBftApplyState, BraneLocalState};
+use violetabft::evioletabftpb::Snapshot as VioletaBftSnapshot;
 
 use crate::interlock::InterlockHost;
 use crate::store::peer_causetStorage::{
@@ -301,7 +301,7 @@ where
         check_abort(&abort)?;
         let brane_key = tuplespaceInstanton::brane_state_key(brane_id);
         let mut brane_state: BraneLocalState =
-            match box_try!(self.engines.kv.get_msg_causet(CAUSET_RAFT, &brane_key)) {
+            match box_try!(self.engines.kv.get_msg_causet(CAUSET_VIOLETABFT, &brane_key)) {
                 Some(state) => state,
                 None => {
                     return Err(box_err!(
@@ -326,11 +326,11 @@ where
 
         let state_key = tuplespaceInstanton::apply_state_key(brane_id);
         let apply_state: VioletaBftApplyState =
-            match box_try!(self.engines.kv.get_msg_causet(CAUSET_RAFT, &state_key)) {
+            match box_try!(self.engines.kv.get_msg_causet(CAUSET_VIOLETABFT, &state_key)) {
                 Some(state) => state,
                 None => {
                     return Err(box_err!(
-                        "failed to get raftstate from {}",
+                        "failed to get violetabftstate from {}",
                         hex::encode_upper(&state_key)
                     ));
                 }
@@ -359,8 +359,8 @@ where
 
         let mut wb = self.engines.kv.write_batch();
         brane_state.set_state(PeerState::Normal);
-        box_try!(wb.put_msg_causet(CAUSET_RAFT, &brane_key, &brane_state));
-        box_try!(wb.delete_causet(CAUSET_RAFT, &tuplespaceInstanton::snapshot_raft_state_key(brane_id)));
+        box_try!(wb.put_msg_causet(CAUSET_VIOLETABFT, &brane_key, &brane_state));
+        box_try!(wb.delete_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::snapshot_violetabft_state_key(brane_id)));
         self.engines.kv.write(&wb).unwrap_or_else(|e| {
             panic!("{} failed to save apply_snap result: {:?}", brane_id, e);
         });
@@ -534,7 +534,7 @@ where
     /// Returns true if the ingestion causes write stall.
     fn ingest_maybe_stall(&self) -> bool {
         for causet in SNAPSHOT_CAUSETS {
-            // no need to check lock causet
+            // no need to check dagger causet
             if plain_file_used(causet) {
                 continue;
             }
@@ -742,9 +742,9 @@ mod tests {
         CAUSETHandleExt, CAUSETNamesExt, CompactExt, MiscExt, Mutable, Peekable, SyncMutable, WriteBatchExt,
     };
     use engine_promises::{Engines, KvEngine};
-    use engine_promises::{CAUSET_DEFAULT, CAUSET_RAFT};
-    use ekvproto::raft_serverpb::{PeerState, VioletaBftApplyState, BraneLocalState};
-    use violetabft::eraftpb::Entry;
+    use engine_promises::{CAUSET_DEFAULT, CAUSET_VIOLETABFT};
+    use ekvproto::violetabft_serverpb::{PeerState, VioletaBftApplyState, BraneLocalState};
+    use violetabft::evioletabftpb::Entry;
     use tempfile::Builder;
     use einsteindb_util::timer::Timer;
     use einsteindb_util::worker::Worker;
@@ -886,14 +886,14 @@ mod tests {
         let kv_causets_opts = vec![
             engine_lmdb::raw_util::CAUSETOptions::new("default", causet_opts.clone()),
             engine_lmdb::raw_util::CAUSETOptions::new("write", causet_opts.clone()),
-            engine_lmdb::raw_util::CAUSETOptions::new("lock", causet_opts.clone()),
+            engine_lmdb::raw_util::CAUSETOptions::new("dagger", causet_opts.clone()),
             engine_lmdb::raw_util::CAUSETOptions::new("violetabft", causet_opts.clone()),
         ];
-        let raft_causets_opt = engine_lmdb::raw_util::CAUSETOptions::new(CAUSET_DEFAULT, causet_opts);
+        let violetabft_causets_opt = engine_lmdb::raw_util::CAUSETOptions::new(CAUSET_DEFAULT, causet_opts);
         let engine = get_test_db_for_branes(
             &temp_dir,
             None,
-            Some(raft_causets_opt),
+            Some(violetabft_causets_opt),
             None,
             Some(kv_causets_opts),
             &[1, 2, 3, 4, 5, 6],
@@ -942,13 +942,13 @@ mod tests {
             let (tx, rx) = mpsc::sync_channel(1);
             let apply_state: VioletaBftApplyState = engines
                 .kv
-                .get_msg_causet(CAUSET_RAFT, &tuplespaceInstanton::apply_state_key(id))
+                .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(id))
                 .unwrap()
                 .unwrap();
             let idx = apply_state.get_applied_index();
             let entry = engines
                 .violetabft
-                .get_msg::<Entry>(&tuplespaceInstanton::raft_log_key(id, idx))
+                .get_msg::<Entry>(&tuplespaceInstanton::violetabft_log_key(id, idx))
                 .unwrap()
                 .unwrap();
             sched
@@ -980,11 +980,11 @@ mod tests {
             let brane_key = tuplespaceInstanton::brane_state_key(id);
             let mut brane_state = engine
                 .kv
-                .get_msg_causet::<BraneLocalState>(CAUSET_RAFT, &brane_key)
+                .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &brane_key)
                 .unwrap()
                 .unwrap();
             brane_state.set_state(PeerState::Applying);
-            wb.put_msg_causet(CAUSET_RAFT, &brane_key, &brane_state).unwrap();
+            wb.put_msg_causet(CAUSET_VIOLETABFT, &brane_key, &brane_state).unwrap();
             engine.kv.write(&wb).unwrap();
 
             // apply snapshot
@@ -1002,7 +1002,7 @@ mod tests {
                 thread::sleep(Duration::from_millis(100));
                 if engine
                     .kv
-                    .get_msg_causet::<BraneLocalState>(CAUSET_RAFT, &brane_key)
+                    .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &brane_key)
                     .unwrap()
                     .unwrap()
                     .get_state()

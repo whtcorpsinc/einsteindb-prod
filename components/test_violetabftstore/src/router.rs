@@ -1,10 +1,10 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::sync::{Arc, Mutex};
 
 use crossbeam::channel::TrySlightlikeError;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
-use ekvproto::raft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use violetabftstore::errors::{Error as VioletaBftStoreError, Result as VioletaBftStoreResult};
 use violetabftstore::router::{handle_slightlike_error, VioletaBftStoreRouter};
 use violetabftstore::store::msg::{CasualMessage, PeerMsg, SignificantMsg};
@@ -26,7 +26,7 @@ impl MockVioletaBftStoreRouter {
     }
     pub fn add_brane(&self, brane_id: u64, cap: usize) -> Receiver<PeerMsg<LmdbEngine>> {
         let (tx, rx) = loose_bounded(cap);
-        self.slightlikeers.lock().unwrap().insert(brane_id, tx);
+        self.slightlikeers.dagger().unwrap().insert(brane_id, tx);
         rx
     }
 }
@@ -48,7 +48,7 @@ impl ProposalRouter<LmdbSnapshot> for MockVioletaBftStoreRouter {
 
 impl CasualRouter<LmdbEngine> for MockVioletaBftStoreRouter {
     fn slightlike(&self, brane_id: u64, msg: CasualMessage<LmdbEngine>) -> VioletaBftStoreResult<()> {
-        let mut slightlikeers = self.slightlikeers.lock().unwrap();
+        let mut slightlikeers = self.slightlikeers.dagger().unwrap();
         if let Some(tx) = slightlikeers.get_mut(&brane_id) {
             tx.try_slightlike(PeerMsg::CasualMessage(msg))
                 .map_err(|e| handle_slightlike_error(brane_id, e))
@@ -59,7 +59,7 @@ impl CasualRouter<LmdbEngine> for MockVioletaBftStoreRouter {
 }
 
 impl VioletaBftStoreRouter<LmdbEngine> for MockVioletaBftStoreRouter {
-    fn slightlike_raft_msg(&self, _: VioletaBftMessage) -> VioletaBftStoreResult<()> {
+    fn slightlike_violetabft_msg(&self, _: VioletaBftMessage) -> VioletaBftStoreResult<()> {
         unimplemented!()
     }
 
@@ -68,7 +68,7 @@ impl VioletaBftStoreRouter<LmdbEngine> for MockVioletaBftStoreRouter {
         brane_id: u64,
         msg: SignificantMsg<LmdbSnapshot>,
     ) -> VioletaBftStoreResult<()> {
-        let mut slightlikeers = self.slightlikeers.lock().unwrap();
+        let mut slightlikeers = self.slightlikeers.dagger().unwrap();
         if let Some(tx) = slightlikeers.get_mut(&brane_id) {
             tx.force_slightlike(PeerMsg::SignificantMsg(msg)).unwrap();
             Ok(())

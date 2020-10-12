@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 #[macro_use]
 extern crate clap;
@@ -34,12 +34,12 @@ use ekvproto::debugpb::{Db as DBType, *};
 use ekvproto::encryptionpb::EncryptionMethod;
 use ekvproto::kvrpcpb::{MvccInfo, SplitBraneRequest};
 use ekvproto::metapb::{Peer, Brane};
-use ekvproto::raft_cmdpb::VioletaBftCmdRequest;
-use ekvproto::raft_serverpb::{PeerState, SnapshotMeta};
+use ekvproto::violetabft_cmdpb::VioletaBftCmdRequest;
+use ekvproto::violetabft_serverpb::{PeerState, SnapshotMeta};
 use ekvproto::einsteindbpb::EINSTEINDBClient;
 use fidel_client::{Config as FidelConfig, FidelClient, RpcClient};
-use violetabft::eraftpb::{ConfChange, Entry, EntryType};
-use raft_log_engine::VioletaBftLogEngine;
+use violetabft::evioletabftpb::{ConfChange, Entry, EntryType};
+use violetabft_log_engine::VioletaBftLogEngine;
 use violetabftstore::store::INIT_EPOCH_CONF_VER;
 use security::{SecurityConfig, SecurityManager};
 use std::pin::Pin;
@@ -50,7 +50,7 @@ use txn_types::Key;
 
 const METRICS_PROMETHEUS: &str = "prometheus";
 const METRICS_LMDB_KV: &str = "lmdb_kv";
-const METRICS_LMDB_RAFT: &str = "lmdb_raft";
+const METRICS_LMDB_VIOLETABFT: &str = "lmdb_violetabft";
 const METRICS_JEMALLOC: &str = "jemalloc";
 
 type MvccInfoStream = Pin<Box<dyn Stream<Item = Result<(Vec<u8>, MvccInfo), String>>>>;
@@ -62,7 +62,7 @@ fn perror_and_exit<E: Error>(prefix: &str, e: E) -> ! {
 
 fn new_debug_executor(
     db: Option<&str>,
-    raft_db: Option<&str>,
+    violetabft_db: Option<&str>,
     skip_paranoid_checks: bool,
     host: Option<&str>,
     causetg: &EINSTEINDBConfig,
@@ -71,10 +71,10 @@ fn new_debug_executor(
     match (host, db) {
         (None, Some(kv_path)) => {
             let key_manager =
-                DataKeyManager::from_config(&causetg.security.encryption, &causetg.persistence.data_dir)
+                DataKeyManager::from_config(&causetg.security.encryption, &causetg.causetStorage.data_dir)
                     .unwrap()
                     .map(|key_manager| Arc::new(key_manager));
-            let cache = causetg.persistence.block_cache.build_shared_cache();
+            let cache = causetg.causetStorage.block_cache.build_shared_cache();
             let shared_block_cache = cache.is_some();
             let env = get_env(key_manager, None).unwrap();
 
@@ -89,10 +89,10 @@ fn new_debug_executor(
             let mut kv_db = LmdbEngine::from_db(Arc::new(kv_db));
             kv_db.set_shared_block_cache(shared_block_cache);
 
-            let mut raft_path = raft_db
+            let mut violetabft_path = violetabft_db
                 .map(ToString::to_string)
                 .unwrap_or_else(|| format!("{}/../violetabft", kv_path));
-            raft_path = PathBuf::from(raft_path)
+            violetabft_path = PathBuf::from(violetabft_path)
                 .canonicalize()
                 .unwrap()
                 .to_str()
@@ -100,24 +100,24 @@ fn new_debug_executor(
                 .unwrap();
 
             let causetg_controller = ConfigController::default();
-            if !causetg.raft_engine.enable {
-                let mut raft_db_opts = causetg.raftdb.build_opt();
-                raft_db_opts.set_env(env);
-                let raft_db_causet_opts = causetg.raftdb.build_causet_opts(&cache);
-                let raft_db = engine_lmdb::raw_util::new_engine_opt(
-                    &raft_path,
-                    raft_db_opts,
-                    raft_db_causet_opts,
+            if !causetg.violetabft_engine.enable {
+                let mut violetabft_db_opts = causetg.violetabftdb.build_opt();
+                violetabft_db_opts.set_env(env);
+                let violetabft_db_causet_opts = causetg.violetabftdb.build_causet_opts(&cache);
+                let violetabft_db = engine_lmdb::raw_util::new_engine_opt(
+                    &violetabft_path,
+                    violetabft_db_opts,
+                    violetabft_db_causet_opts,
                 )
                 .unwrap();
-                let mut raft_db = LmdbEngine::from_db(Arc::new(raft_db));
-                raft_db.set_shared_block_cache(shared_block_cache);
-                let debugger = Debugger::new(Engines::new(kv_db, raft_db), causetg_controller);
+                let mut violetabft_db = LmdbEngine::from_db(Arc::new(violetabft_db));
+                violetabft_db.set_shared_block_cache(shared_block_cache);
+                let debugger = Debugger::new(Engines::new(kv_db, violetabft_db), causetg_controller);
                 Box::new(debugger) as Box<dyn DebugFreeDaemon>
             } else {
-                let config = causetg.raft_engine.config();
-                let raft_db = VioletaBftLogEngine::new(config);
-                let debugger = Debugger::new(Engines::new(kv_db, raft_db), causetg_controller);
+                let config = causetg.violetabft_engine.config();
+                let violetabft_db = VioletaBftLogEngine::new(config);
+                let debugger = Debugger::new(Engines::new(kv_db, violetabft_db), causetg_controller);
                 Box::new(debugger) as Box<dyn DebugFreeDaemon>
             }
         }
@@ -175,15 +175,15 @@ trait DebugFreeDaemon {
             }
         }
         let brane_state_key = tuplespaceInstanton::brane_state_key(brane);
-        let raft_state_key = tuplespaceInstanton::raft_state_key(brane);
+        let violetabft_state_key = tuplespaceInstanton::violetabft_state_key(brane);
         let apply_state_key = tuplespaceInstanton::apply_state_key(brane);
         v1!("brane id: {}", brane);
         v1!("brane state key: {}", escape(&brane_state_key));
         v1!("brane state: {:?}", r.brane_local_state);
-        v1!("violetabft state key: {}", escape(&raft_state_key));
-        v1!("violetabft state: {:?}", r.raft_local_state);
+        v1!("violetabft state key: {}", escape(&violetabft_state_key));
+        v1!("violetabft state: {:?}", r.violetabft_local_state);
         v1!("apply state key: {}", escape(&apply_state_key));
-        v1!("apply state: {:?}", r.raft_apply_state);
+        v1!("apply state: {:?}", r.violetabft_apply_state);
     }
 
     fn dump_all_brane_info(&self, skip_tombstone: bool) {
@@ -192,13 +192,13 @@ trait DebugFreeDaemon {
         }
     }
 
-    fn dump_raft_log(&self, brane: u64, index: u64) {
-        let idx_key = tuplespaceInstanton::raft_log_key(brane, index);
+    fn dump_violetabft_log(&self, brane: u64, index: u64) {
+        let idx_key = tuplespaceInstanton::violetabft_log_key(brane, index);
         v1!("idx_key: {}", escape(&idx_key));
         v1!("brane: {}", brane);
         v1!("log index: {}", index);
 
-        let mut entry = self.get_raft_log(brane, index);
+        let mut entry = self.get_violetabft_log(brane, index);
         let data = entry.take_data();
         v1!("entry {:?}", entry);
         v1!("msg len: {}", data.len());
@@ -264,7 +264,7 @@ trait DebugFreeDaemon {
                     if causets.contains(&CAUSET_DAGGER) && mvcc.has_lock() {
                         let lock_info = mvcc.get_lock();
                         if spacelike_ts.map_or(true, |ts| lock_info.get_spacelike_ts() == ts) {
-                            v1!("\tlock causet value: {:?}", lock_info);
+                            v1!("\tdagger causet value: {:?}", lock_info);
                         }
                     }
                     if causets.contains(&CAUSET_DEFAULT) {
@@ -317,20 +317,20 @@ trait DebugFreeDaemon {
         &self,
         brane: u64,
         db: Option<&str>,
-        raft_db: Option<&str>,
+        violetabft_db: Option<&str>,
         host: Option<&str>,
         causetg: &EINSTEINDBConfig,
         mgr: Arc<SecurityManager>,
     ) {
-        let rhs_debug_executor = new_debug_executor(db, raft_db, false, host, causetg, mgr);
+        let rhs_debug_executor = new_debug_executor(db, violetabft_db, false, host, causetg, mgr);
 
         let r1 = self.get_brane_info(brane);
         let r2 = rhs_debug_executor.get_brane_info(brane);
         v1!("brane id: {}", brane);
         v1!("db1 brane state: {:?}", r1.brane_local_state);
         v1!("db2 brane state: {:?}", r2.brane_local_state);
-        v1!("db1 apply state: {:?}", r1.raft_apply_state);
-        v1!("db2 apply state: {:?}", r2.raft_apply_state);
+        v1!("db1 apply state: {:?}", r1.violetabft_apply_state);
+        v1!("db2 apply state: {:?}", r2.violetabft_apply_state);
 
         match (r1.brane_local_state, r2.brane_local_state) {
             (None, None) => {}
@@ -550,7 +550,7 @@ trait DebugFreeDaemon {
 
     fn get_brane_info(&self, brane: u64) -> BraneInfo;
 
-    fn get_raft_log(&self, brane: u64, index: u64) -> Entry;
+    fn get_violetabft_log(&self, brane: u64, index: u64) -> Entry;
 
     fn get_mvcc_infos(&self, from: Vec<u8>, to: Vec<u8>, limit: u64) -> MvccInfoStream;
 
@@ -628,11 +628,11 @@ impl DebugFreeDaemon for DebugClient {
             .unwrap_or_else(|e| perror_and_exit("DebugClient::brane_info", e));
 
         let mut brane_info = BraneInfo::default();
-        if resp.has_raft_local_state() {
-            brane_info.raft_local_state = Some(resp.take_raft_local_state());
+        if resp.has_violetabft_local_state() {
+            brane_info.violetabft_local_state = Some(resp.take_violetabft_local_state());
         }
-        if resp.has_raft_apply_state() {
-            brane_info.raft_apply_state = Some(resp.take_raft_apply_state());
+        if resp.has_violetabft_apply_state() {
+            brane_info.violetabft_apply_state = Some(resp.take_violetabft_apply_state());
         }
         if resp.has_brane_local_state() {
             brane_info.brane_local_state = Some(resp.take_brane_local_state());
@@ -640,12 +640,12 @@ impl DebugFreeDaemon for DebugClient {
         brane_info
     }
 
-    fn get_raft_log(&self, brane: u64, index: u64) -> Entry {
+    fn get_violetabft_log(&self, brane: u64, index: u64) -> Entry {
         let mut req = VioletaBftLogRequest::default();
         req.set_brane_id(brane);
         req.set_log_index(index);
-        self.raft_log(&req)
-            .unwrap_or_else(|e| perror_and_exit("DebugClient::raft_log", e))
+        self.violetabft_log(&req)
+            .unwrap_or_else(|e| perror_and_exit("DebugClient::violetabft_log", e))
             .take_entry()
     }
 
@@ -699,11 +699,11 @@ impl DebugFreeDaemon for DebugClient {
             v1!("tag:{}", tag);
             let metrics = match tag {
                 METRICS_LMDB_KV => resp.take_lmdb_kv(),
-                METRICS_LMDB_RAFT => resp.take_lmdb_raft(),
+                METRICS_LMDB_VIOLETABFT => resp.take_lmdb_violetabft(),
                 METRICS_JEMALLOC => resp.take_jemalloc(),
                 METRICS_PROMETHEUS => resp.take_prometheus(),
                 _ => String::from(
-                    "unsupported tag, should be one of prometheus/jemalloc/lmdb_raft/lmdb_kv",
+                    "unsupported tag, should be one of prometheus/jemalloc/lmdb_violetabft/lmdb_kv",
                 ),
             };
             v1!("{}", metrics);
@@ -813,9 +813,9 @@ impl<ER: VioletaBftEngine> DebugFreeDaemon for Debugger<ER> {
             .unwrap_or_else(|e| perror_and_exit("Debugger::brane_info", e))
     }
 
-    fn get_raft_log(&self, brane: u64, index: u64) -> Entry {
-        self.raft_log(brane, index)
-            .unwrap_or_else(|e| perror_and_exit("Debugger::raft_log", e))
+    fn get_violetabft_log(&self, brane: u64, index: u64) -> Entry {
+        self.violetabft_log(brane, index)
+            .unwrap_or_else(|e| perror_and_exit("Debugger::violetabft_log", e))
     }
 
     fn get_mvcc_infos(&self, from: Vec<u8>, to: Vec<u8>, limit: u64) -> MvccInfoStream {
@@ -1040,8 +1040,8 @@ fn main() {
                 .help("Set the lmdb path"),
         )
         .arg(
-            Arg::with_name("raftdb")
-                .long("raftdb")
+            Arg::with_name("violetabftdb")
+                .long("violetabftdb")
                 .takes_value(true)
                 .help("Set the violetabft lmdb path"),
         )
@@ -1184,7 +1184,7 @@ fn main() {
                         .use_delimiter(true)
                         .require_delimiter(true)
                         .value_delimiter(",")
-                        .default_value("default,write,lock")
+                        .default_value("default,write,dagger")
                         .help("Set the causet name, if not specified, print all causet"),
                 ),
         )
@@ -1233,7 +1233,7 @@ fn main() {
                         .require_delimiter(true)
                         .value_delimiter(",")
                         .default_value(CAUSET_DEFAULT)
-                        .help("PrimaryCauset family names, combined from default/lock/write"),
+                        .help("PrimaryCauset family names, combined from default/dagger/write"),
                 ),
         )
         .subcommand(
@@ -1268,7 +1268,7 @@ fn main() {
                         .takes_value(true)
                         .default_value("default")
                         .possible_values(&[
-                            "default", "lock", "write"
+                            "default", "dagger", "write"
                         ])
                         .help("The PrimaryCauset family name.")
                 )
@@ -1282,7 +1282,7 @@ fn main() {
                         .takes_value(true)
                         .default_value(CAUSET_DEFAULT)
                         .possible_values(&[
-                            "default", "lock", "write"
+                            "default", "dagger", "write"
                         ])
                         .help("The PrimaryCauset family name.")
                 )
@@ -1313,7 +1313,7 @@ fn main() {
                         .require_delimiter(true)
                         .value_delimiter(",")
                         .default_value(CAUSET_DEFAULT)
-                        .help("PrimaryCauset family names, combined from default/lock/write"),
+                        .help("PrimaryCauset family names, combined from default/dagger/write"),
                 )
                 .arg(
                     Arg::with_name("spacelike_ts")
@@ -1375,7 +1375,7 @@ fn main() {
                         .takes_value(true)
                         .default_value(CAUSET_DEFAULT)
                         .possible_values(&[
-                            "default", "lock", "write"
+                            "default", "dagger", "write"
                         ])
                         .help("The PrimaryCauset family name"),
                 )
@@ -1571,10 +1571,10 @@ fn main() {
                         .value_delimiter(",")
                         .default_value(METRICS_PROMETHEUS)
                         .possible_values(&[
-                            "prometheus", "jemalloc", "lmdb_raft", "lmdb_kv",
+                            "prometheus", "jemalloc", "lmdb_violetabft", "lmdb_kv",
                         ])
                         .help(
-                            "Set the metrics tag, one of prometheus/jemalloc/lmdb_raft/lmdb_kv, if not specified, print prometheus",
+                            "Set the metrics tag, one of prometheus/jemalloc/lmdb_violetabft/lmdb_kv, if not specified, print prometheus",
                         ),
                 ),
         )
@@ -1598,7 +1598,7 @@ fn main() {
                         .required(true)
                         .short("n")
                         .takes_value(true)
-                        .help("The config name are same as the name used on config file, eg. violetabftstore.messages-per-tick, raftdb.max-background-jobs"),
+                        .help("The config name are same as the name used on config file, eg. violetabftstore.messages-per-tick, violetabftdb.max-background-jobs"),
                 )
                 .arg(
                     Arg::with_name("config_value")
@@ -1640,8 +1640,8 @@ fn main() {
                         .require_delimiter(true)
                         .value_delimiter(",")
                         .default_value(CAUSET_DEFAULT)
-                        .possible_values(&["default", "lock", "write"])
-                        .help("PrimaryCauset family names, for kv db, combine from default/lock/write; for violetabft db, can only be default"),
+                        .possible_values(&["default", "dagger", "write"])
+                        .help("PrimaryCauset family names, for kv db, combine from default/dagger/write; for violetabft db, can only be default"),
                 )
                 .arg(
                     Arg::with_name("from")
@@ -1864,7 +1864,7 @@ fn main() {
     }
 
     if let Some(matches) = matches.subcommand_matches("decrypt-file") {
-        let message = "This action will expose sensitive data as plaintext on persistent persistence";
+        let message = "This action will expose sensitive data as plaintext on persistent causetStorage";
         if !warning_prompt(message) {
             return;
         }
@@ -1873,7 +1873,7 @@ fn main() {
         v1!("infile: {}, outfile: {}", infile, outfile);
 
         let key_manager =
-            match DataKeyManager::from_config(&causetg.security.encryption, &causetg.persistence.data_dir)
+            match DataKeyManager::from_config(&causetg.security.encryption, &causetg.causetStorage.data_dir)
                 .expect("DataKeyManager::from_config should success")
             {
                 Some(mgr) => mgr,
@@ -1925,7 +1925,7 @@ fn main() {
                 }
                 DataKeyManager::dump_key_dict(
                     &causetg.security.encryption,
-                    &causetg.persistence.data_dir,
+                    &causetg.causetStorage.data_dir,
                     matches
                         .values_of("ids")
                         .map(|ids| ids.map(|id| id.parse::<u64>().unwrap()).collect()),
@@ -1936,7 +1936,7 @@ fn main() {
                 let path = matches
                     .value_of("path")
                     .map(|path| fs::canonicalize(path).unwrap().to_str().unwrap().to_owned());
-                DataKeyManager::dump_file_dict(&causetg.persistence.data_dir, path.as_deref()).unwrap();
+                DataKeyManager::dump_file_dict(&causetg.causetStorage.data_dir, path.as_deref()).unwrap();
             }
             _ => ve1!("{}", matches.usage()),
         }
@@ -1971,12 +1971,12 @@ fn main() {
     // Deal with all subcommands about db or host.
     let db = matches.value_of("db");
     let skip_paranoid_checks = matches.is_present("skip-paranoid-checks");
-    let raft_db = matches.value_of("raftdb");
+    let violetabft_db = matches.value_of("violetabftdb");
     let host = matches.value_of("host");
 
     let debug_executor = new_debug_executor(
         db,
-        raft_db,
+        violetabft_db,
         skip_paranoid_checks,
         host,
         &causetg,
@@ -1990,13 +1990,13 @@ fn main() {
     } else if let Some(matches) = matches.subcommand_matches("violetabft") {
         if let Some(matches) = matches.subcommand_matches("log") {
             let (id, index) = if let Some(key) = matches.value_of("key") {
-                tuplespaceInstanton::decode_raft_log_key(&unescape(key)).unwrap()
+                tuplespaceInstanton::decode_violetabft_log_key(&unescape(key)).unwrap()
             } else {
                 let id = matches.value_of("brane").unwrap().parse().unwrap();
                 let index = matches.value_of("index").unwrap().parse().unwrap();
                 (id, index)
             };
-            debug_executor.dump_raft_log(id, index);
+            debug_executor.dump_violetabft_log(id, index);
         } else if let Some(matches) = matches.subcommand_matches("brane") {
             let skip_tombstone = matches.is_present("skip-tombstone");
             if let Some(id) = matches.value_of("brane") {
@@ -2405,7 +2405,7 @@ fn run_ldb_command(cmd: &ArgMatches<'_>, causetg: &EINSTEINDBConfig) {
         None => Vec::new(),
     };
     args.insert(0, "ldb".to_owned());
-    let key_manager = DataKeyManager::from_config(&causetg.security.encryption, &causetg.persistence.data_dir)
+    let key_manager = DataKeyManager::from_config(&causetg.security.encryption, &causetg.causetStorage.data_dir)
         .unwrap()
         .map(|key_manager| Arc::new(key_manager));
     let env = get_env(key_manager, None).unwrap();

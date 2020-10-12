@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::option::Option;
 use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
@@ -8,11 +8,11 @@ use std::{fmt, u64};
 use engine_lmdb::{set_perf_level, PerfContext, PerfLevel};
 use ekvproto::kvrpcpb::KeyCone;
 use ekvproto::metapb::{self, PeerRole};
-use ekvproto::raft_cmdpb::{AdminCmdType, ChangePeerRequest, ChangePeerV2Request, VioletaBftCmdRequest};
+use ekvproto::violetabft_cmdpb::{AdminCmdType, ChangePeerRequest, ChangePeerV2Request, VioletaBftCmdRequest};
 use protobuf::{self, Message};
-use violetabft::eraftpb::{self, ConfChangeType, ConfState, MessageType};
+use violetabft::evioletabftpb::{self, ConfChangeType, ConfState, MessageType};
 use violetabft::INVALID_INDEX;
-use raft_proto::ConfChangeI;
+use violetabft_proto::ConfChangeI;
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::time::monotonic_raw_now;
 use time::{Duration, Timespec};
@@ -99,17 +99,17 @@ pub fn check_key_in_brane(key: &[u8], brane: &metapb::Brane) -> Result<()> {
 /// brane overlaps with others. In this case we should put `msg` into `plightlikeing_votes` instead of
 /// create the peer.
 #[inline]
-pub fn is_first_vote_msg(msg: &eraftpb::Message) -> bool {
+pub fn is_first_vote_msg(msg: &evioletabftpb::Message) -> bool {
     match msg.get_msg_type() {
         MessageType::MsgRequestVote | MessageType::MsgRequestPreVote => {
-            msg.get_term() == peer_causetStorage::RAFT_INIT_LOG_TERM + 1
+            msg.get_term() == peer_causetStorage::VIOLETABFT_INIT_LOG_TERM + 1
         }
         _ => false,
     }
 }
 
 #[inline]
-pub fn is_vote_msg(msg: &eraftpb::Message) -> bool {
+pub fn is_vote_msg(msg: &evioletabftpb::Message) -> bool {
     let msg_type = msg.get_msg_type();
     msg_type == MessageType::MsgRequestVote || msg_type == MessageType::MsgRequestPreVote
 }
@@ -124,7 +124,7 @@ pub fn is_vote_msg(msg: &eraftpb::Message) -> bool {
 // when receiving these messages, or just to wait for a plightlikeing brane split to perform
 // later.
 #[inline]
-pub fn is_initial_msg(msg: &eraftpb::Message) -> bool {
+pub fn is_initial_msg(msg: &evioletabftpb::Message) -> bool {
     let msg_type = msg.get_msg_type();
     msg_type == MessageType::MsgRequestVote
         || msg_type == MessageType::MsgRequestPreVote
@@ -136,7 +136,7 @@ const STR_CONF_CHANGE_ADD_NODE: &str = "AddNode";
 const STR_CONF_CHANGE_REMOVE_NODE: &str = "RemoveNode";
 const STR_CONF_CHANGE_ADDLEARNER_NODE: &str = "AddLearner";
 
-pub fn conf_change_type_str(conf_type: eraftpb::ConfChangeType) -> &'static str {
+pub fn conf_change_type_str(conf_type: evioletabftpb::ConfChangeType) -> &'static str {
     match conf_type {
         ConfChangeType::AddNode => STR_CONF_CHANGE_ADD_NODE,
         ConfChangeType::RemoveNode => STR_CONF_CHANGE_REMOVE_NODE,
@@ -832,15 +832,15 @@ pub trait ChangePeerI {
 }
 
 impl<'a> ChangePeerI for &'a ChangePeerRequest {
-    type CC = eraftpb::ConfChange;
+    type CC = evioletabftpb::ConfChange;
     type CP = Vec<ChangePeerRequest>;
 
     fn get_change_peers(&self) -> Vec<ChangePeerRequest> {
         vec![ChangePeerRequest::clone(self)]
     }
 
-    fn to_confchange(&self, ctx: Vec<u8>) -> eraftpb::ConfChange {
-        let mut cc = eraftpb::ConfChange::default();
+    fn to_confchange(&self, ctx: Vec<u8>) -> evioletabftpb::ConfChange {
+        let mut cc = evioletabftpb::ConfChange::default();
         cc.set_change_type(self.get_change_type());
         cc.set_node_id(self.get_peer().get_id());
         cc.set_context(ctx);
@@ -849,20 +849,20 @@ impl<'a> ChangePeerI for &'a ChangePeerRequest {
 }
 
 impl<'a> ChangePeerI for &'a ChangePeerV2Request {
-    type CC = eraftpb::ConfChangeV2;
+    type CC = evioletabftpb::ConfChangeV2;
     type CP = &'a [ChangePeerRequest];
 
     fn get_change_peers(&self) -> &'a [ChangePeerRequest] {
         self.get_changes()
     }
 
-    fn to_confchange(&self, ctx: Vec<u8>) -> eraftpb::ConfChangeV2 {
-        let mut cc = eraftpb::ConfChangeV2::default();
+    fn to_confchange(&self, ctx: Vec<u8>) -> evioletabftpb::ConfChangeV2 {
+        let mut cc = evioletabftpb::ConfChangeV2::default();
         let changes: Vec<_> = self
             .get_changes()
             .iter()
             .map(|c| {
-                let mut ccs = eraftpb::ConfChangeSingle::default();
+                let mut ccs = evioletabftpb::ConfChangeSingle::default();
                 ccs.set_change_type(c.get_change_type());
                 ccs.set_node_id(c.get_peer().get_id());
                 ccs
@@ -871,10 +871,10 @@ impl<'a> ChangePeerI for &'a ChangePeerV2Request {
 
         if changes.len() <= 1 {
             // Leave joint or simple confchange
-            cc.set_transition(eraftpb::ConfChangeTransition::Auto);
+            cc.set_transition(evioletabftpb::ConfChangeTransition::Auto);
         } else {
             // Enter joint
-            cc.set_transition(eraftpb::ConfChangeTransition::Explicit);
+            cc.set_transition(evioletabftpb::ConfChangeTransition::Explicit);
         }
         cc.set_changes(changes.into());
         cc.set_context(ctx);
@@ -887,8 +887,8 @@ mod tests {
     use std::thread;
 
     use ekvproto::metapb::{self, BraneEpoch};
-    use ekvproto::raft_cmdpb::AdminRequest;
-    use violetabft::eraftpb::{ConfChangeType, Message, MessageType};
+    use ekvproto::violetabft_cmdpb::AdminRequest;
+    use violetabft::evioletabftpb::{ConfChangeType, Message, MessageType};
     use time::Duration as TimeDuration;
 
     use crate::store::peer_causetStorage;
@@ -1126,26 +1126,26 @@ mod tests {
         // Zore change for leave joint
         assert_eq!(
             (&req).to_confchange(vec![]).get_transition(),
-            eraftpb::ConfChangeTransition::Auto
+            evioletabftpb::ConfChangeTransition::Auto
         );
 
         // One change for simple confchange
         req.mut_changes().push(ChangePeerRequest::default());
         assert_eq!(
             (&req).to_confchange(vec![]).get_transition(),
-            eraftpb::ConfChangeTransition::Auto
+            evioletabftpb::ConfChangeTransition::Auto
         );
 
         // More than one change for enter joint
         req.mut_changes().push(ChangePeerRequest::default());
         assert_eq!(
             (&req).to_confchange(vec![]).get_transition(),
-            eraftpb::ConfChangeTransition::Explicit
+            evioletabftpb::ConfChangeTransition::Explicit
         );
         req.mut_changes().push(ChangePeerRequest::default());
         assert_eq!(
             (&req).to_confchange(vec![]).get_transition(),
-            eraftpb::ConfChangeTransition::Explicit
+            evioletabftpb::ConfChangeTransition::Explicit
         );
     }
 
@@ -1169,27 +1169,27 @@ mod tests {
         let tbl = vec![
             (
                 MessageType::MsgRequestVote,
-                peer_causetStorage::RAFT_INIT_LOG_TERM + 1,
+                peer_causetStorage::VIOLETABFT_INIT_LOG_TERM + 1,
                 true,
             ),
             (
                 MessageType::MsgRequestPreVote,
-                peer_causetStorage::RAFT_INIT_LOG_TERM + 1,
+                peer_causetStorage::VIOLETABFT_INIT_LOG_TERM + 1,
                 true,
             ),
             (
                 MessageType::MsgRequestVote,
-                peer_causetStorage::RAFT_INIT_LOG_TERM,
+                peer_causetStorage::VIOLETABFT_INIT_LOG_TERM,
                 false,
             ),
             (
                 MessageType::MsgRequestPreVote,
-                peer_causetStorage::RAFT_INIT_LOG_TERM,
+                peer_causetStorage::VIOLETABFT_INIT_LOG_TERM,
                 false,
             ),
             (
                 MessageType::MsgHup,
-                peer_causetStorage::RAFT_INIT_LOG_TERM + 1,
+                peer_causetStorage::VIOLETABFT_INIT_LOG_TERM + 1,
                 false,
             ),
         ];

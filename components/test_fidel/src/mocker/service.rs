@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Mutex;
@@ -42,11 +42,11 @@ impl Service {
     /// Add an arbitrary store.
     pub fn add_store(&self, store: CausetStore) {
         let store_id = store.get_id();
-        self.stores.lock().unwrap().insert(store_id, store);
+        self.stores.dagger().unwrap().insert(store_id, store);
     }
 
     pub fn set_cluster_version(&self, version: String) {
-        *self.cluster_version.lock().unwrap() = version;
+        *self.cluster_version.dagger().unwrap() = version;
     }
 }
 
@@ -73,7 +73,7 @@ fn make_members_response(eps: Vec<String>) -> GetMembersResponse {
 // TODO: Support more rpc.
 impl FidelMocker for Service {
     fn get_members(&self, _: &GetMembersRequest) -> Option<Result<GetMembersResponse>> {
-        Some(Ok(self.members_resp.lock().unwrap().clone().unwrap()))
+        Some(Ok(self.members_resp.dagger().unwrap().clone().unwrap()))
     }
 
     fn bootstrap(&self, req: &BootstrapRequest) -> Option<Result<BootstrapResponse>> {
@@ -94,11 +94,11 @@ impl FidelMocker for Service {
 
         self.is_bootstrapped.store(true, Ordering::SeqCst);
         self.stores
-            .lock()
+            .dagger()
             .unwrap()
             .insert(store.get_id(), store.clone());
         self.branes
-            .lock()
+            .dagger()
             .unwrap()
             .insert(brane.get_id(), brane.clone());
         Some(Ok(resp))
@@ -124,7 +124,7 @@ impl FidelMocker for Service {
     // TODO: not bootstrapped error.
     fn get_store(&self, req: &GetStoreRequest) -> Option<Result<GetStoreResponse>> {
         let mut resp = GetStoreResponse::default();
-        let stores = self.stores.lock().unwrap();
+        let stores = self.stores.dagger().unwrap();
         match stores.get(&req.get_store_id()) {
             Some(store) => {
                 resp.set_header(Service::header());
@@ -147,7 +147,7 @@ impl FidelMocker for Service {
         let mut resp = GetAllStoresResponse::default();
         resp.set_header(Service::header());
         let exclude_tombstone = req.get_exclude_tombstone_stores();
-        let stores = self.stores.lock().unwrap();
+        let stores = self.stores.dagger().unwrap();
         for store in stores.values() {
             if exclude_tombstone && store.get_state() == StoreState::Tombstone {
                 continue;
@@ -160,8 +160,8 @@ impl FidelMocker for Service {
     fn get_brane(&self, req: &GetBraneRequest) -> Option<Result<GetBraneResponse>> {
         let mut resp = GetBraneResponse::default();
         let key = req.get_brane_key();
-        let branes = self.branes.lock().unwrap();
-        let leaders = self.leaders.lock().unwrap();
+        let branes = self.branes.dagger().unwrap();
+        let leaders = self.leaders.dagger().unwrap();
 
         for brane in branes.values() {
             if key >= brane.get_spacelike_key()
@@ -187,8 +187,8 @@ impl FidelMocker for Service {
 
     fn get_brane_by_id(&self, req: &GetBraneByIdRequest) -> Option<Result<GetBraneResponse>> {
         let mut resp = GetBraneResponse::default();
-        let branes = self.branes.lock().unwrap();
-        let leaders = self.leaders.lock().unwrap();
+        let branes = self.branes.dagger().unwrap();
+        let leaders = self.leaders.dagger().unwrap();
 
         match branes.get(&req.get_brane_id()) {
             Some(brane) => {
@@ -217,11 +217,11 @@ impl FidelMocker for Service {
     ) -> Option<Result<BraneHeartbeatResponse>> {
         let brane_id = req.get_brane().get_id();
         self.branes
-            .lock()
+            .dagger()
             .unwrap()
             .insert(brane_id, req.get_brane().clone());
         self.leaders
-            .lock()
+            .dagger()
             .unwrap()
             .insert(brane_id, req.get_leader().clone());
 
@@ -235,7 +235,7 @@ impl FidelMocker for Service {
         let mut resp = StoreHeartbeatResponse::default();
         let header = Service::header();
         resp.set_header(header);
-        resp.set_cluster_version(self.cluster_version.lock().unwrap().to_owned());
+        resp.set_cluster_version(self.cluster_version.dagger().unwrap().to_owned());
         Some(Ok(resp))
     }
 
@@ -273,7 +273,7 @@ impl FidelMocker for Service {
     fn set_lightlikepoints(&self, eps: Vec<String>) {
         let members_resp = make_members_response(eps);
         info!("[Service] members_resp {:?}", members_resp);
-        let mut resp = self.members_resp.lock().unwrap();
+        let mut resp = self.members_resp.dagger().unwrap();
         *resp = Some(members_resp);
     }
 

@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use crate::rocks_metrics_defs::*;
 use engine_promises::CAUSET_DEFAULT;
@@ -437,134 +437,134 @@ pub fn flush_engine_ticker_metrics(t: TickerType, value: u64, name: &str) {
                 .read_amp_total_read_bytes
                 .inc_by(v);
         }
-        TickerType::TitanNumGet => {
+        TickerType::NoetherNumGet => {
             STORE_ENGINE_BLOB_LOCATE
                 .get(name_enum)
                 .number_blob_get
                 .inc_by(v);
         }
-        TickerType::TitanNumSeek => {
+        TickerType::NoetherNumSeek => {
             STORE_ENGINE_BLOB_LOCATE
                 .get(name_enum)
                 .number_blob_seek
                 .inc_by(v);
         }
-        TickerType::TitanNumNext => {
+        TickerType::NoetherNumNext => {
             STORE_ENGINE_BLOB_LOCATE
                 .get(name_enum)
                 .number_blob_next
                 .inc_by(v);
         }
-        TickerType::TitanNumPrev => {
+        TickerType::NoetherNumPrev => {
             STORE_ENGINE_BLOB_LOCATE
                 .get(name_enum)
                 .number_blob_prev
                 .inc_by(v);
         }
-        TickerType::TitanBlobFileNumTuplespaceInstantonWritten => {
+        TickerType::NoetherBlobFileNumTuplespaceInstantonWritten => {
             STORE_ENGINE_BLOB_FLOW.get(name_enum).tuplespaceInstanton_written.inc_by(v);
         }
-        TickerType::TitanBlobFileNumTuplespaceInstantonRead => {
+        TickerType::NoetherBlobFileNumTuplespaceInstantonRead => {
             STORE_ENGINE_BLOB_FLOW.get(name_enum).tuplespaceInstanton_read.inc_by(v);
         }
-        TickerType::TitanBlobFileBytesWritten => {
+        TickerType::NoetherBlobFileBytesWritten => {
             STORE_ENGINE_BLOB_FLOW
                 .get(name_enum)
                 .bytes_written
                 .inc_by(v);
         }
-        TickerType::TitanBlobFileBytesRead => {
+        TickerType::NoetherBlobFileBytesRead => {
             STORE_ENGINE_BLOB_FLOW.get(name_enum).bytes_read.inc_by(v);
         }
-        TickerType::TitanBlobFileSynced => STORE_ENGINE_BLOB_FILE_SYNCED.get(name_enum).inc_by(v),
-        TickerType::TitanGcNumFiles => {
+        TickerType::NoetherBlobFileSynced => STORE_ENGINE_BLOB_FILE_SYNCED.get(name_enum).inc_by(v),
+        TickerType::NoetherGcNumFiles => {
             STORE_ENGINE_BLOB_GC_FILE
                 .get(name_enum)
                 .gc_input_files_count
                 .inc_by(v);
         }
-        TickerType::TitanGcNumNewFiles => {
+        TickerType::NoetherGcNumNewFiles => {
             STORE_ENGINE_BLOB_GC_FILE
                 .get(name_enum)
                 .gc_output_files_count
                 .inc_by(v);
         }
-        TickerType::TitanGcNumTuplespaceInstantonOverwritten => {
+        TickerType::NoetherGcNumTuplespaceInstantonOverwritten => {
             STORE_ENGINE_BLOB_GC_FLOW
                 .get(name_enum)
                 .tuplespaceInstanton_overwritten
                 .inc_by(v);
         }
-        TickerType::TitanGcNumTuplespaceInstantonRelocated => {
+        TickerType::NoetherGcNumTuplespaceInstantonRelocated => {
             STORE_ENGINE_BLOB_GC_FLOW
                 .get(name_enum)
                 .tuplespaceInstanton_relocated
                 .inc_by(v);
         }
-        TickerType::TitanGcBytesOverwritten => {
+        TickerType::NoetherGcBytesOverwritten => {
             STORE_ENGINE_BLOB_GC_FLOW
                 .get(name_enum)
                 .bytes_overwritten
                 .inc_by(v);
         }
-        TickerType::TitanGcBytesRelocated => {
+        TickerType::NoetherGcBytesRelocated => {
             STORE_ENGINE_BLOB_GC_FLOW
                 .get(name_enum)
                 .bytes_relocated
                 .inc_by(v);
         }
-        TickerType::TitanGcBytesWritten => {
+        TickerType::NoetherGcBytesWritten => {
             STORE_ENGINE_BLOB_GC_FLOW
                 .get(name_enum)
                 .bytes_written
                 .inc_by(v);
         }
-        TickerType::TitanGcBytesRead => {
+        TickerType::NoetherGcBytesRead => {
             STORE_ENGINE_BLOB_GC_FLOW
                 .get(name_enum)
                 .bytes_read
                 .inc_by(v);
         }
-        TickerType::TitanBlobCacheHit => {
+        TickerType::NoetherBlobCacheHit => {
             STORE_ENGINE_BLOB_CACHE_EFFICIENCY
                 .get(name_enum)
                 .blob_cache_hit
                 .inc_by(v);
         }
-        TickerType::TitanBlobCacheMiss => {
+        TickerType::NoetherBlobCacheMiss => {
             STORE_ENGINE_BLOB_CACHE_EFFICIENCY
                 .get(name_enum)
                 .blob_cache_miss
                 .inc_by(v);
         }
-        TickerType::TitanGcNoNeed => {
+        TickerType::NoetherGcNoNeed => {
             STORE_ENGINE_BLOB_GC_ACTION.get(name_enum).no_need.inc_by(v);
         }
-        TickerType::TitanGcRemain => {
+        TickerType::NoetherGcRemain => {
             STORE_ENGINE_BLOB_GC_ACTION.get(name_enum).remain.inc_by(v);
         }
-        TickerType::TitanGcDiscardable => {
+        TickerType::NoetherGcDiscardable => {
             STORE_ENGINE_BLOB_GC_ACTION
                 .get(name_enum)
                 .discardable
                 .inc_by(v);
         }
-        TickerType::TitanGcSample => {
+        TickerType::NoetherGcSample => {
             STORE_ENGINE_BLOB_GC_ACTION.get(name_enum).sample.inc_by(v);
         }
-        TickerType::TitanGcSmallFile => {
+        TickerType::NoetherGcSmallFile => {
             STORE_ENGINE_BLOB_GC_ACTION
                 .get(name_enum)
                 .small_file
                 .inc_by(v);
         }
-        TickerType::TitanGcFailure => {
+        TickerType::NoetherGcFailure => {
             STORE_ENGINE_BLOB_GC_ACTION.get(name_enum).failure.inc_by(v);
         }
-        TickerType::TitanGcSuccess => {
+        TickerType::NoetherGcSuccess => {
             STORE_ENGINE_BLOB_GC_ACTION.get(name_enum).success.inc_by(v);
         }
-        TickerType::TitanGcTriggerNext => {
+        TickerType::NoetherGcTriggerNext => {
             STORE_ENGINE_BLOB_GC_ACTION
                 .get(name_enum)
                 .trigger_next
@@ -766,10 +766,10 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::TitanKeySize => {
+        HistType::NoetherKeySize => {
             engine_histogram_metrics!(STORE_ENGINE_BLOB_KEY_SIZE_VEC, "blob_key_size", name, value);
         }
-        HistType::TitanValueSize => {
+        HistType::NoetherValueSize => {
             engine_histogram_metrics!(
                 STORE_ENGINE_BLOB_VALUE_SIZE_VEC,
                 "blob_value_size",
@@ -777,7 +777,7 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::TitanGetMicros => {
+        HistType::NoetherGetMicros => {
             engine_histogram_metrics!(
                 STORE_ENGINE_BLOB_GET_MICROS_VEC,
                 "blob_get_micros",
@@ -785,7 +785,7 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::TitanSeekMicros => {
+        HistType::NoetherSeekMicros => {
             engine_histogram_metrics!(
                 STORE_ENGINE_BLOB_SEEK_MICROS_VEC,
                 "blob_seek_micros",
@@ -793,7 +793,7 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::TitanNextMicros => {
+        HistType::NoetherNextMicros => {
             engine_histogram_metrics!(
                 STORE_ENGINE_BLOB_NEXT_MICROS_VEC,
                 "blob_next_micros",
@@ -801,7 +801,7 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::TitanPrevMicros => {
+        HistType::NoetherPrevMicros => {
             engine_histogram_metrics!(
                 STORE_ENGINE_BLOB_PREV_MICROS_VEC,
                 "blob_prev_micros",
@@ -809,7 +809,7 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::TitanBlobFileWriteMicros => {
+        HistType::NoetherBlobFileWriteMicros => {
             engine_histogram_metrics!(
                 STORE_ENGINE_BLOB_FILE_WRITE_MICROS_VEC,
                 "blob_file_write_micros",
@@ -817,7 +817,7 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::TitanBlobFileReadMicros => {
+        HistType::NoetherBlobFileReadMicros => {
             engine_histogram_metrics!(
                 STORE_ENGINE_BLOB_FILE_READ_MICROS_VEC,
                 "blob_file_read_micros",
@@ -825,7 +825,7 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::TitanBlobFileSyncMicros => {
+        HistType::NoetherBlobFileSyncMicros => {
             engine_histogram_metrics!(
                 STORE_ENGINE_BLOB_FILE_SYNC_MICROS_VEC,
                 "blob_file_sync_micros",
@@ -833,7 +833,7 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::TitanGcMicros => {
+        HistType::NoetherGcMicros => {
             engine_histogram_metrics!(
                 STORE_ENGINE_BLOB_GC_MICROS_VEC,
                 "blob_gc_micros",
@@ -841,7 +841,7 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::TitanGcInputFileSize => {
+        HistType::NoetherGcInputFileSize => {
             engine_histogram_metrics!(
                 STORE_ENGINE_GC_INPUT_BLOB_FILE_SIZE_VEC,
                 "blob_gc_input_file",
@@ -849,7 +849,7 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::TitanGcOutputFileSize => {
+        HistType::NoetherGcOutputFileSize => {
             engine_histogram_metrics!(
                 STORE_ENGINE_GC_OUTPUT_BLOB_FILE_SIZE_VEC,
                 "blob_gc_output_file",
@@ -857,7 +857,7 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::TitanIterTouchBlobFileCount => {
+        HistType::NoetherIterTouchBlobFileCount => {
             engine_histogram_metrics!(
                 STORE_ENGINE_ITER_TOUCH_BLOB_FILE_COUNT_VEC,
                 "blob_iter_touch_blob_file_count",
@@ -893,7 +893,7 @@ pub fn flush_engine_iostall_properties(engine: &DB, name: &str) {
 pub fn flush_engine_properties(engine: &DB, name: &str, shared_block_cache: bool) {
     for causet in engine.causet_names() {
         let handle = crate::util::get_causet_handle(engine, causet).unwrap();
-        // It is important to monitor each causet's size, especially the "violetabft" and "lock" PrimaryCauset
+        // It is important to monitor each causet's size, especially the "violetabft" and "dagger" PrimaryCauset
         // families.
         let causet_used_size = crate::util::get_engine_causet_used_size(engine, handle);
         STORE_ENGINE_SIZE_GAUGE_VEC
@@ -964,7 +964,7 @@ pub fn flush_engine_properties(engine: &DB, name: &str, shared_block_cache: bool
                     .set(v as i64);
             }
 
-            // Titan Num blob files at levels
+            // Noether Num blob files at levels
             if let Some(v) = crate::util::get_causet_num_blob_files_at_level(engine, handle, level) {
                 STORE_ENGINE_TITANDB_NUM_BLOB_FILES_AT_LEVEL_VEC
                     .with_label_values(&[name, causet, &level.to_string()])
@@ -979,21 +979,21 @@ pub fn flush_engine_properties(engine: &DB, name: &str, shared_block_cache: bool
                 .set(v as i64);
         }
 
-        // Titan live blob size
+        // Noether live blob size
         if let Some(v) = engine.get_property_int_causet(handle, LMDB_TITANDB_LIVE_BLOB_SIZE) {
             STORE_ENGINE_TITANDB_LIVE_BLOB_SIZE_VEC
                 .with_label_values(&[name, causet])
                 .set(v as i64);
         }
 
-        // Titan num live blob file
+        // Noether num live blob file
         if let Some(v) = engine.get_property_int_causet(handle, LMDB_TITANDB_NUM_LIVE_BLOB_FILE) {
             STORE_ENGINE_TITANDB_NUM_LIVE_BLOB_FILE_VEC
                 .with_label_values(&[name, causet])
                 .set(v as i64);
         }
 
-        // Titan num obsolete blob file
+        // Noether num obsolete blob file
         if let Some(v) = engine.get_property_int_causet(handle, LMDB_TITANDB_NUM_OBSOLETE_BLOB_FILE)
         {
             STORE_ENGINE_TITANDB_NUM_OBSOLETE_BLOB_FILE_VEC
@@ -1001,14 +1001,14 @@ pub fn flush_engine_properties(engine: &DB, name: &str, shared_block_cache: bool
                 .set(v as i64);
         }
 
-        // Titan live blob file size
+        // Noether live blob file size
         if let Some(v) = engine.get_property_int_causet(handle, LMDB_TITANDB_LIVE_BLOB_FILE_SIZE) {
             STORE_ENGINE_TITANDB_LIVE_BLOB_FILE_SIZE_VEC
                 .with_label_values(&[name, causet])
                 .set(v as i64);
         }
 
-        // Titan obsolete blob file size
+        // Noether obsolete blob file size
         if let Some(v) = engine.get_property_int_causet(handle, LMDB_TITANDB_OBSOLETE_BLOB_FILE_SIZE)
         {
             STORE_ENGINE_TITANDB_OBSOLETE_BLOB_FILE_SIZE_VEC
@@ -1016,7 +1016,7 @@ pub fn flush_engine_properties(engine: &DB, name: &str, shared_block_cache: bool
                 .set(v as i64);
         }
 
-        // Titan blob file discardable ratio
+        // Noether blob file discardable ratio
         if let Some(v) =
             engine.get_property_int_causet(handle, LMDB_TITANDB_DISCARDABLE_RATIO_LE0_FILE)
         {

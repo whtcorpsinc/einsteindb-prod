@@ -6,13 +6,16 @@ description = "MemCAM inspired Distributed Relativistic Semi-Relational Allegro 
 license = "Apache-2.0"
 keywords = ["einsteindb", "distributed-systems", "violetabft"]
 homepage = "https://einsteindb.com"
-repository = "https://github.com/whtcorpsinc/einsteindb-prod/"
+repository = "https://github.com/whtcorpsinc/einsteindb/"
 readme = "README.md"
 edition = "2020"
 publish = false
 
 [features]
-default = ["protobuf-codec"]
+bundled_sqlite3 = ["rusqlite/bundled"]
+sqlcipher = ["rusqlite/sqlcipher", "einsteindb_edb/sqlcipher"]
+syncable = ["einsteindb_lenin", "lenin_promises", "einsteindb_edb/syncable"]
+default = ["protobuf-codec", "bundled_sqlite3", "syncable"]
 tcmalloc = ["einsteindb_alloc/tcmalloc"]
 jemalloc = ["einsteindb_alloc/jemalloc", "engine_lmdb/jemalloc"]
 mimalloc = ["einsteindb_alloc/mimalloc"]
@@ -115,7 +118,7 @@ protobuf = "2.8"
 quick-error = "1.2.3"
 violetabft = { version = "0.6.0-alpha", default-features = false }
 violetabftstore = { path = "components/violetabftstore" }
-raft_log_engine = { path = "components/raft_log_engine" }
+violetabft_log_engine = { path = "components/violetabft_log_engine" }
 rand = "0.7.3"
 regex = "1.3"
 rev_lines = "0.2.1"

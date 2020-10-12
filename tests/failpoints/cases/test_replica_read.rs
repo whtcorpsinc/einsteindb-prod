@@ -3,9 +3,9 @@
 use crossbeam::channel;
 use engine_lmdb::raw::DB;
 use engine_lmdb::Compat;
-use engine_promises::{Peekable, CAUSET_RAFT};
-use ekvproto::raft_serverpb::{PeerState, VioletaBftApplyState, VioletaBftMessage, BraneLocalState};
-use violetabft::eraftpb::MessageType;
+use engine_promises::{Peekable, CAUSET_VIOLETABFT};
+use ekvproto::violetabft_serverpb::{PeerState, VioletaBftApplyState, VioletaBftMessage, BraneLocalState};
+use violetabft::evioletabftpb::MessageType;
 use std::mem;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
@@ -76,7 +76,7 @@ fn test_duplicate_read_index_ctx() {
     // Initialize cluster
     let mut cluster = new_node_cluster(0, 3);
     configure_for_lease_read(&mut cluster, Some(50), Some(10_000));
-    cluster.causetg.raft_store.raft_heartbeat_ticks = 1;
+    cluster.causetg.violetabft_store.violetabft_heartbeat_ticks = 1;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -140,8 +140,8 @@ fn test_duplicate_read_index_ctx() {
     let router = cluster.sim.wl().get_router(1).unwrap();
     fail::causetg("pause_on_peer_collect_message", "pause").unwrap();
     cluster.sim.wl().clear_recv_filters(1);
-    for raft_msg in mem::replace(dropped_msgs.lock().unwrap().as_mut(), vec![]) {
-        router.slightlike_raft_message(raft_msg).unwrap();
+    for violetabft_msg in mem::replace(dropped_msgs.dagger().unwrap().as_mut(), vec![]) {
+        router.slightlike_violetabft_message(violetabft_msg).unwrap();
     }
     fail::remove("pause_on_peer_collect_message");
 
@@ -228,7 +228,7 @@ fn test_read_applying_snapshot() {
     let brane_state: BraneLocalState = cluster
         .get_engine(3)
         .c()
-        .get_msg_causet(CAUSET_RAFT, &brane_key)
+        .get_msg_causet(CAUSET_VIOLETABFT, &brane_key)
         .unwrap()
         .unwrap();
     assert_eq!(brane_state.get_state(), PeerState::Applying);
@@ -289,7 +289,7 @@ fn test_read_after_cleanup_cone_for_snap() {
     assert_eq!(cluster.leader_of_brane(brane.get_id()).unwrap(), p1);
     must_get_equal(&cluster.get_engine(3), b"k0", b"v0");
     cluster.stop_node(3);
-    let last_index = cluster.raft_local_state(r1, 1).last_index;
+    let last_index = cluster.violetabft_local_state(r1, 1).last_index;
     (0..10).for_each(|_| cluster.must_put(b"k1", b"v1"));
     // Ensure logs are compacted, then node 1 will slightlike a snapshot to node 3 later
     must_truncated_to(cluster.get_engine(1), r1, last_index + 1);
@@ -343,8 +343,8 @@ fn test_read_after_cleanup_cone_for_snap() {
     fail::causetg("pause_on_peer_collect_message", "pause").unwrap();
     cluster.sim.wl().clear_recv_filters(3);
     cluster.clear_slightlike_filters();
-    router.slightlike_raft_message(snap_msg).unwrap();
-    router.slightlike_raft_message(read_index_msg).unwrap();
+    router.slightlike_violetabft_message(snap_msg).unwrap();
+    router.slightlike_violetabft_message(read_index_msg).unwrap();
     cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
     fail::remove("pause_on_peer_collect_message");
     must_get_none(&cluster.get_engine(3), b"k0");
@@ -358,7 +358,7 @@ fn must_truncated_to(engine: Arc<DB>, brane_id: u64, index: u64) {
     for _ in 1..300 {
         let apply_state: VioletaBftApplyState = engine
             .c()
-            .get_msg_causet(CAUSET_RAFT, &tuplespaceInstanton::apply_state_key(brane_id))
+            .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id))
             .unwrap()
             .unwrap();
         let truncated_index = apply_state.get_truncated_state().get_index();

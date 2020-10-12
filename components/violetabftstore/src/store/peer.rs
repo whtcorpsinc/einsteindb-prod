@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::cell::RefCell;
 use std::collections::VecDeque;
@@ -13,23 +13,23 @@ use error_code::ErrorCodeExt;
 use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
 use ekvproto::metapb;
 use ekvproto::fidelpb::PeerStats;
-use ekvproto::raft_cmdpb::{
+use ekvproto::violetabft_cmdpb::{
     AdminCmdType, AdminResponse, CmdType, CommitMergeRequest, VioletaBftCmdRequest, VioletaBftCmdResponse,
     TransferLeaderRequest, TransferLeaderResponse,
 };
-use ekvproto::raft_serverpb::{
+use ekvproto::violetabft_serverpb::{
     ExtraMessage, ExtraMessageType, MergeState, PeerState, VioletaBftApplyState, VioletaBftMessage,
 };
 use ekvproto::replication_modepb::{
     DrAutoSyncState, BraneReplicationState, BraneReplicationStatus, ReplicationMode,
 };
 use protobuf::Message;
-use violetabft::eraftpb::{self, ConfChangeType, EntryType, MessageType};
+use violetabft::evioletabftpb::{self, ConfChangeType, EntryType, MessageType};
 use violetabft::{
     self, Changer, ProgressState, ProgressTracker, RawNode, Ready, SnapshotStatus, StateRole,
     INVALID_INDEX, NO_LIMIT,
 };
-use raft_proto::ConfChangeI;
+use violetabft_proto::ConfChangeI;
 use smallvec::SmallVec;
 use time::Timespec;
 use uuid::Uuid;
@@ -135,7 +135,7 @@ impl<S: Snapshot> ProposalQueue<S> {
 
 bitflags! {
     // TODO: maybe declare it as protobuf struct is better.
-    /// A bitmap contains some useful flags when dealing with `eraftpb::Entry`.
+    /// A bitmap contains some useful flags when dealing with `evioletabftpb::Entry`.
     pub struct ProposalContext: u8 {
         const SYNC_LOG       = 0b0000_0001;
         const SPLIT          = 0b0000_0010;
@@ -342,7 +342,7 @@ where
     pub peer: metapb::Peer,
 
     /// The VioletaBft state machine of this Peer.
-    pub raft_group: RawNode<PeerStorage<EK, ER>>,
+    pub violetabft_group: RawNode<PeerStorage<EK, ER>>,
     /// The cache of meta information for Brane's other Peers.
     peer_cache: RefCell<HashMap<u64, metapb::Peer>>,
     /// Record the last instant of each peer's heartbeat response.
@@ -363,7 +363,7 @@ where
     /// 2. all read requests must be rejected.
     pub plightlikeing_remove: bool,
     /// If a snapshot is being applied asynchronously, messages should not be sent.
-    plightlikeing_messages: Vec<eraftpb::Message>,
+    plightlikeing_messages: Vec<evioletabftpb::Message>,
 
     /// Record the instants of peers being added into the configuration.
     /// Remove them after they are not plightlikeing any more.
@@ -399,7 +399,7 @@ where
     /// The index of the latest committed split command.
     last_committed_split_idx: u64,
     /// Approximate size of logs that is applied but not compacted yet.
-    pub raft_log_size_hint: u64,
+    pub violetabft_log_size_hint: u64,
 
     /// The index of the latest proposed prepare merge command.
     last_proposed_prepare_merge_idx: u64,
@@ -476,14 +476,14 @@ where
 
         let applied_index = ps.applied_index();
 
-        let raft_causetg = violetabft::Config {
+        let violetabft_causetg = violetabft::Config {
             id: peer.get_id(),
-            election_tick: causetg.raft_election_timeout_ticks,
-            heartbeat_tick: causetg.raft_heartbeat_ticks,
-            min_election_tick: causetg.raft_min_election_timeout_ticks,
-            max_election_tick: causetg.raft_max_election_timeout_ticks,
-            max_size_per_msg: causetg.raft_max_size_per_msg.0,
-            max_inflight_msgs: causetg.raft_max_inflight_msgs,
+            election_tick: causetg.violetabft_election_timeout_ticks,
+            heartbeat_tick: causetg.violetabft_heartbeat_ticks,
+            min_election_tick: causetg.violetabft_min_election_timeout_ticks,
+            max_election_tick: causetg.violetabft_max_election_timeout_ticks,
+            max_size_per_msg: causetg.violetabft_max_size_per_msg.0,
+            max_inflight_msgs: causetg.violetabft_max_inflight_msgs,
             applied: applied_index,
             check_quorum: true,
             skip_bcast_commit: true,
@@ -492,11 +492,11 @@ where
         };
 
         let logger = slog_global::get_global().new(slog::o!("brane_id" => brane.get_id()));
-        let raft_group = RawNode::new(&raft_causetg, ps, &logger)?;
+        let violetabft_group = RawNode::new(&violetabft_causetg, ps, &logger)?;
         let mut peer = Peer {
             peer,
             brane_id: brane.get_id(),
-            raft_group,
+            violetabft_group,
             proposals: ProposalQueue::new(),
             plightlikeing_reads: Default::default(),
             peer_cache: RefCell::new(HashMap::default()),
@@ -528,8 +528,8 @@ where
                 context: vec![],
                 hash: vec![],
             },
-            raft_log_size_hint: 0,
-            leader_lease: Lease::new(causetg.raft_store_max_leader_lease()),
+            violetabft_log_size_hint: 0,
+            leader_lease: Lease::new(causetg.violetabft_store_max_leader_lease()),
             plightlikeing_messages: vec![],
             peer_stat: PeerStat::default(),
             catch_up_logs: None,
@@ -547,7 +547,7 @@ where
 
         // If this brane has only one peer and I am the one, campaign directly.
         if brane.get_peers().len() == 1 && brane.get_peers()[0].get_store_id() == store_id {
-            peer.raft_group.campaign()?;
+            peer.violetabft_group.campaign()?;
         }
 
         Ok(peer)
@@ -559,25 +559,25 @@ where
         if self.is_initialized() {
             let version = state.status().get_dr_auto_sync().state_id;
             let gb = state.calculate_commit_group(version, self.get_store().brane().get_peers());
-            self.raft_group.violetabft.assign_commit_groups(gb);
+            self.violetabft_group.violetabft.assign_commit_groups(gb);
         }
         self.replication_sync = false;
         if state.status().get_mode() == ReplicationMode::Majority {
-            self.raft_group.violetabft.enable_group_commit(false);
+            self.violetabft_group.violetabft.enable_group_commit(false);
             self.replication_mode_version = 0;
             self.dr_auto_sync_state = DrAutoSyncState::Async;
             return;
         }
         self.replication_mode_version = state.status().get_dr_auto_sync().state_id;
         let enable = state.status().get_dr_auto_sync().get_state() != DrAutoSyncState::Async;
-        self.raft_group.violetabft.enable_group_commit(enable);
+        self.violetabft_group.violetabft.enable_group_commit(enable);
         self.dr_auto_sync_state = state.status().get_dr_auto_sync().get_state();
     }
 
     /// Ufidelates replication mode.
     pub fn switch_replication_mode(&mut self, state: &Mutex<GlobalReplicationState>) {
         self.replication_sync = false;
-        let mut guard = state.lock().unwrap();
+        let mut guard = state.dagger().unwrap();
         let enable_group_commit = if guard.status().get_mode() == ReplicationMode::Majority {
             self.replication_mode_version = 0;
             self.dr_auto_sync_state = DrAutoSyncState::Async;
@@ -596,12 +596,12 @@ where
                 Vec::with_capacity(self.brane().get_peers().len()),
             );
             drop(guard);
-            self.raft_group.violetabft.clear_commit_group();
-            self.raft_group.violetabft.assign_commit_groups(&ids);
+            self.violetabft_group.violetabft.clear_commit_group();
+            self.violetabft_group.violetabft.assign_commit_groups(&ids);
         } else {
             drop(guard);
         }
-        self.raft_group
+        self.violetabft_group
             .violetabft
             .enable_group_commit(enable_group_commit);
         info!("switch replication mode"; "version" => self.replication_mode_version, "brane_id" => self.brane_id, "peer_id" => self.peer.id);
@@ -622,12 +622,12 @@ where
 
     #[inline]
     fn next_proposal_index(&self) -> u64 {
-        self.raft_group.violetabft.raft_log.last_index() + 1
+        self.violetabft_group.violetabft.violetabft_log.last_index() + 1
     }
 
     #[inline]
     pub fn get_index_term(&self, idx: u64) -> u64 {
-        match self.raft_group.violetabft.raft_log.term(idx) {
+        match self.violetabft_group.violetabft.violetabft_log.term(idx) {
             Ok(t) => t,
             Err(e) => panic!("{} fail to load term for {}: {:?}", self.tag, idx, e),
         }
@@ -641,8 +641,8 @@ where
             // but commit index is not ufidelated. If Other source peers are already destroyed, so the violetabft
             // group will not make any progress, namely the source peer can not get the latest commit index anymore.
             // Here ufidelate the commit index to let source apply rest uncommitted entries.
-            return if merge.get_commit() > self.raft_group.violetabft.raft_log.committed {
-                self.raft_group.violetabft.raft_log.commit_to(merge.get_commit());
+            return if merge.get_commit() > self.violetabft_group.violetabft.violetabft_log.committed {
+                self.violetabft_group.violetabft.violetabft_log.commit_to(merge.get_commit());
                 Some(merge.get_commit())
             } else {
                 None
@@ -655,23 +655,23 @@ where
             "applightlike merge entries";
             "log_index" => log_idx,
             "merge_commit" => merge.get_commit(),
-            "commit_index" => self.raft_group.violetabft.raft_log.committed,
+            "commit_index" => self.violetabft_group.violetabft.violetabft_log.committed,
         );
-        if log_idx < self.raft_group.violetabft.raft_log.committed {
+        if log_idx < self.violetabft_group.violetabft.violetabft_log.committed {
             // There are maybe some logs not included in CommitMergeRequest's entries, like CompactLog,
             // so the commit index may exceed the last index of the entires from CommitMergeRequest.
             // If that, no need to applightlike
-            if self.raft_group.violetabft.raft_log.committed - log_idx > entries.len() as u64 {
+            if self.violetabft_group.violetabft.violetabft_log.committed - log_idx > entries.len() as u64 {
                 return None;
             }
-            entries = &entries[(self.raft_group.violetabft.raft_log.committed - log_idx) as usize..];
-            log_idx = self.raft_group.violetabft.raft_log.committed;
+            entries = &entries[(self.violetabft_group.violetabft.violetabft_log.committed - log_idx) as usize..];
+            log_idx = self.violetabft_group.violetabft.violetabft_log.committed;
         }
         let log_term = self.get_index_term(log_idx);
 
-        self.raft_group
+        self.violetabft_group
             .violetabft
-            .raft_log
+            .violetabft_log
             .maybe_applightlike(log_idx, log_term, merge.get_commit(), entries)
             .map(|(_, last_index)| last_index)
     }
@@ -690,7 +690,7 @@ where
             return None;
         }
         {
-            let meta = ctx.store_meta.lock().unwrap();
+            let meta = ctx.store_meta.dagger().unwrap();
             if meta.atomic_snap_branes.contains_key(&self.brane_id) {
                 info!(
                     "stale peer is applying atomic snapshot, will destroy next time";
@@ -730,7 +730,7 @@ where
         ctx: &PollContext<EK, ER, T, C>,
         keep_data: bool,
     ) -> Result<()> {
-        fail_point!("raft_store_skip_destroy_peer", |_| Ok(()));
+        fail_point!("violetabft_store_skip_destroy_peer", |_| Ok(()));
         let t = Instant::now();
 
         let brane = self.brane().clone();
@@ -742,8 +742,8 @@ where
 
         // Set Tombstone state explicitly
         let mut kv_wb = ctx.engines.kv.write_batch();
-        let mut raft_wb = ctx.engines.violetabft.log_batch(1024);
-        self.mut_store().clear_meta(&mut kv_wb, &mut raft_wb)?;
+        let mut violetabft_wb = ctx.engines.violetabft.log_batch(1024);
+        self.mut_store().clear_meta(&mut kv_wb, &mut violetabft_wb)?;
         write_peer_state(
             &mut kv_wb,
             &brane,
@@ -754,7 +754,7 @@ where
         let mut write_opts = WriteOptions::new();
         write_opts.set_sync(true);
         ctx.engines.kv.write_opt(&kv_wb, &write_opts)?;
-        ctx.engines.violetabft.consume(&mut raft_wb, true)?;
+        ctx.engines.violetabft.consume(&mut violetabft_wb, true)?;
 
         if self.get_store().is_initialized() && !keep_data {
             // If we meet panic when deleting data and violetabft log, the dirty data
@@ -803,11 +803,11 @@ where
             return res;
         }
         res.leader = true;
-        if self.raft_group.violetabft.election_elapsed + 1 < causetg.raft_election_timeout_ticks {
+        if self.violetabft_group.violetabft.election_elapsed + 1 < causetg.violetabft_election_timeout_ticks {
             return res;
         }
-        let status = self.raft_group.status();
-        let last_index = self.raft_group.violetabft.raft_log.last_index();
+        let status = self.violetabft_group.status();
+        let last_index = self.violetabft_group.violetabft.violetabft_log.last_index();
         for (id, pr) in status.progress.unwrap().iter() {
             // Only recent active peer is considered, so that an isolated follower
             // won't waste leader's resource.
@@ -819,10 +819,10 @@ where
                 return res;
             }
         }
-        if self.raft_group.violetabft.plightlikeing_read_count() > 0 {
+        if self.violetabft_group.violetabft.plightlikeing_read_count() > 0 {
             return res;
         }
-        if self.raft_group.violetabft.lead_transferee.is_some() {
+        if self.violetabft_group.violetabft.lead_transferee.is_some() {
             return res;
         }
         // Unapplied entries can change the configuration of the group.
@@ -845,8 +845,8 @@ where
             // Checking term to make sure campaign has finished and the leader spacelikes
             // doing its job, it's not required but a safe options.
             state != GroupState::Chaos
-                && self.raft_group.violetabft.leader_id != violetabft::INVALID_ID
-                && self.raft_group.violetabft.raft_log.last_term() == self.raft_group.violetabft.term
+                && self.violetabft_group.violetabft.leader_id != violetabft::INVALID_ID
+                && self.violetabft_group.violetabft.violetabft_log.last_term() == self.violetabft_group.violetabft.term
                 && !self.has_unresolved_reads()
                 // If it becomes leader, the stats is not valid anymore.
                 && !self.is_leader()
@@ -859,7 +859,7 @@ where
     /// followers just need to know whether leader is still alive.
     pub fn ping(&mut self) {
         if self.is_leader() {
-            self.raft_group.ping();
+            self.violetabft_group.ping();
         }
     }
 
@@ -896,27 +896,27 @@ where
 
     #[inline]
     pub fn leader_id(&self) -> u64 {
-        self.raft_group.violetabft.leader_id
+        self.violetabft_group.violetabft.leader_id
     }
 
     #[inline]
     pub fn is_leader(&self) -> bool {
-        self.raft_group.violetabft.state == StateRole::Leader
+        self.violetabft_group.violetabft.state == StateRole::Leader
     }
 
     #[inline]
     pub fn get_role(&self) -> StateRole {
-        self.raft_group.violetabft.state
+        self.violetabft_group.violetabft.state
     }
 
     #[inline]
     pub fn get_store(&self) -> &PeerStorage<EK, ER> {
-        self.raft_group.store()
+        self.violetabft_group.store()
     }
 
     #[inline]
     pub fn mut_store(&mut self) -> &mut PeerStorage<EK, ER> {
-        self.raft_group.mut_store()
+        self.violetabft_group.mut_store()
     }
 
     #[inline]
@@ -931,8 +931,8 @@ where
     }
 
     #[inline]
-    pub fn get_plightlikeing_snapshot(&self) -> Option<&eraftpb::Snapshot> {
-        self.raft_group.snap()
+    pub fn get_plightlikeing_snapshot(&self) -> Option<&evioletabftpb::Snapshot> {
+        self.violetabft_group.snap()
     }
 
     fn add_ready_metric(&self, ready: &Ready, metrics: &mut VioletaBftReadyMetrics) {
@@ -952,7 +952,7 @@ where
     fn slightlike<T, I>(&mut self, trans: &mut T, msgs: I, metrics: &mut VioletaBftMessageMetrics)
     where
         T: Transport,
-        I: IntoIterator<Item = eraftpb::Message>,
+        I: IntoIterator<Item = evioletabftpb::Message>,
     {
         for msg in msgs {
             let msg_type = msg.get_msg_type();
@@ -995,7 +995,7 @@ where
                 | MessageType::MsgSnapStatus
                 | MessageType::MsgCheckQuorum => {}
             }
-            self.slightlike_raft_message(msg, trans);
+            self.slightlike_violetabft_message(msg, trans);
         }
     }
 
@@ -1003,7 +1003,7 @@ where
     pub fn step<T, C>(
         &mut self,
         ctx: &mut PollContext<EK, ER, T, C>,
-        mut m: eraftpb::Message,
+        mut m: evioletabftpb::Message,
     ) -> Result<()> {
         fail_point!(
             "step_message_3_1",
@@ -1021,14 +1021,14 @@ where
         // Here we hold up MsgReadIndex. If current peer has valid lease, then we could handle the
         // request directly, rather than slightlike a heartbeat to check quorum.
         let msg_type = m.get_msg_type();
-        let committed = self.raft_group.violetabft.raft_log.committed;
-        let expected_term = self.raft_group.violetabft.raft_log.term(committed).unwrap_or(0);
-        if msg_type == MessageType::MsgReadIndex && expected_term == self.raft_group.violetabft.term {
+        let committed = self.violetabft_group.violetabft.violetabft_log.committed;
+        let expected_term = self.violetabft_group.violetabft.violetabft_log.term(committed).unwrap_or(0);
+        if msg_type == MessageType::MsgReadIndex && expected_term == self.violetabft_group.violetabft.term {
             // If the leader hasn't committed any entries in its term, it can't response read only
             // requests. Please also take a look at violetabft-rs.
             let state = self.inspect_lease();
             if let LeaseState::Valid = state {
-                let mut resp = eraftpb::Message::default();
+                let mut resp = evioletabftpb::Message::default();
                 resp.set_msg_type(MessageType::MsgReadIndexResp);
                 resp.term = self.term();
                 resp.to = m.from;
@@ -1045,7 +1045,7 @@ where
             return Ok(());
         }
 
-        self.raft_group.step(m)?;
+        self.violetabft_group.step(m)?;
         Ok(())
     }
 
@@ -1062,7 +1062,7 @@ where
         }
 
         // Insert heartbeats in case that some peers never response heartbeats.
-        let brane = self.raft_group.store().brane();
+        let brane = self.violetabft_group.store().brane();
         for peer in brane.get_peers() {
             self.peer_heartbeats
                 .entry(peer.get_id())
@@ -1098,7 +1098,7 @@ where
         ctx: &PollContext<EK, ER, T, C>,
     ) -> Vec<metapb::Peer> {
         let mut plightlikeing_peers = Vec::with_capacity(self.brane().get_peers().len());
-        let status = self.raft_group.status();
+        let status = self.violetabft_group.status();
         let truncated_idx = self.get_store().truncated_index();
 
         if status.progress.is_none() {
@@ -1118,7 +1118,7 @@ where
             // (FIDel rely on `plightlikeing_peers` to check whether all target peers exist)
             //
             // So if the `matched` is 0, it must be a plightlikeing peer.
-            // It can be ensured because `truncated_index` must be greater than `RAFT_INIT_LOG_INDEX`(5).
+            // It can be ensured because `truncated_index` must be greater than `VIOLETABFT_INIT_LOG_INDEX`(5).
             if progress.matched < truncated_idx {
                 if let Some(p) = self.get_peer_from_cache(id) {
                     plightlikeing_peers.push(p);
@@ -1169,8 +1169,8 @@ where
             if self.peers_spacelike_plightlikeing_time[i].0 != peer_id {
                 continue;
             }
-            let truncated_idx = self.raft_group.store().truncated_index();
-            if let Some(progress) = self.raft_group.violetabft.prs().get(peer_id) {
+            let truncated_idx = self.violetabft_group.store().truncated_index();
+            if let Some(progress) = self.violetabft_group.violetabft.prs().get(peer_id) {
                 if progress.matched >= truncated_idx {
                     let (_, plightlikeing_after) = self.peers_spacelike_plightlikeing_time.swap_remove(i);
                     let elapsed = duration_to_sec(plightlikeing_after.elapsed());
@@ -1200,7 +1200,7 @@ where
             self.leader_missing_time = None;
             return StaleState::Valid;
         }
-        let naive_peer = !self.is_initialized() || !self.raft_group.violetabft.promotable();
+        let naive_peer = !self.is_initialized() || !self.violetabft_group.violetabft.promotable();
         // Ufidelates the `leader_missing_time` according to the current state.
         //
         // If we are checking this it means we suspect the leader might be missing.
@@ -1233,7 +1233,7 @@ where
     fn on_role_changed<T, C>(&mut self, ctx: &mut PollContext<EK, ER, T, C>, ready: &Ready) {
         // Ufidelate leader lease when the VioletaBft state changes.
         if let Some(ss) = ready.ss() {
-            match ss.raft_state {
+            match ss.violetabft_state {
                 StateRole::Leader => {
                     // The local read can only be performed after a new leader has applied
                     // the first empty entry on its term. After that the lease expiring time
@@ -1259,8 +1259,8 @@ where
                     // TODO: Maybe the predecessor should just drop all the read requests directly?
                     // All the requests need to be redirected in the lightlike anyway and executing
                     // prewrites or commits will be just a waste.
-                    self.last_urgent_proposal_idx = self.raft_group.violetabft.raft_log.last_index();
-                    self.raft_group.skip_bcast_commit(false);
+                    self.last_urgent_proposal_idx = self.violetabft_group.violetabft.violetabft_log.last_index();
+                    self.violetabft_group.skip_bcast_commit(false);
 
                     // A more recent read may happen on the old leader. So max ts should
                     // be ufidelated after a peer becomes leader.
@@ -1272,7 +1272,7 @@ where
                 _ => {}
             }
             ctx.interlock_host
-                .on_role_change(self.brane(), ss.raft_state);
+                .on_role_change(self.brane(), ss.violetabft_state);
             self.cmd_epoch_checker.maybe_ufidelate_term(self.term());
         }
     }
@@ -1401,7 +1401,7 @@ where
             && !self.replication_sync
     }
 
-    pub fn handle_raft_ready_applightlike<T: Transport, C>(
+    pub fn handle_violetabft_ready_applightlike<T: Transport, C>(
         &mut self,
         ctx: &mut PollContext<EK, ER, T, C>,
     ) -> Option<(Ready, InvokeContext)> {
@@ -1427,10 +1427,10 @@ where
         }
 
         if !self.plightlikeing_messages.is_empty() {
-            fail_point!("raft_before_follower_slightlike");
+            fail_point!("violetabft_before_follower_slightlike");
             let messages = mem::replace(&mut self.plightlikeing_messages, vec![]);
             ctx.need_flush_trans = true;
-            self.slightlike(&mut ctx.trans, messages, &mut ctx.raft_metrics.message);
+            self.slightlike(&mut ctx.trans, messages, &mut ctx.violetabft_metrics.message);
         }
         let mut destroy_branes = vec![];
         if self.has_plightlikeing_snapshot() {
@@ -1447,7 +1447,7 @@ where
                 return None;
             }
 
-            let meta = ctx.store_meta.lock().unwrap();
+            let meta = ctx.store_meta.dagger().unwrap();
             // For merge process, the stale source peer is destroyed asynchronously when applying
             // snapshot or creating new peer. So here checks whether there is any overlap, if so,
             // wait and do not handle violetabft ready.
@@ -1470,7 +1470,7 @@ where
         }
 
         if !self
-            .raft_group
+            .violetabft_group
             .has_ready_since(Some(self.last_applying_idx))
         {
             // Generating snapshot task won't set ready for violetabft group.
@@ -1483,14 +1483,14 @@ where
             return None;
         }
 
-        let before_handle_raft_ready_1003 = || {
+        let before_handle_violetabft_ready_1003 = || {
             fail_point!(
-                "before_handle_raft_ready_1003",
+                "before_handle_violetabft_ready_1003",
                 self.peer.get_id() == 1003 && self.is_leader(),
                 |_| {}
             );
         };
-        before_handle_raft_ready_1003();
+        before_handle_violetabft_ready_1003();
 
         fail_point!(
             "before_handle_snapshot_ready_3",
@@ -1504,11 +1504,11 @@ where
             "peer_id" => self.peer.get_id(),
         );
 
-        let mut ready = self.raft_group.ready_since(self.last_applying_idx);
+        let mut ready = self.violetabft_group.ready_since(self.last_applying_idx);
 
         self.on_role_changed(ctx, &ready);
 
-        self.add_ready_metric(&ready, &mut ctx.raft_metrics.ready);
+        self.add_ready_metric(&ready, &mut ctx.violetabft_metrics.ready);
 
         if !ready.committed_entries.as_ref().map_or(true, Vec::is_empty) {
             // We must renew current_time because this value may be created a long time ago.
@@ -1573,15 +1573,15 @@ where
             }
             // The leader can write to disk and replicate to the followers concurrently
             // For more details, check violetabft thesis 10.2.1.
-            fail_point!("raft_before_leader_slightlike");
+            fail_point!("violetabft_before_leader_slightlike");
             let msgs = ready.messages.drain(..);
             ctx.need_flush_trans = true;
-            self.slightlike(&mut ctx.trans, msgs, &mut ctx.raft_metrics.message);
+            self.slightlike(&mut ctx.trans, msgs, &mut ctx.violetabft_metrics.message);
         }
 
         let invoke_ctx = match self
             .mut_store()
-            .handle_raft_ready(ctx, &ready, destroy_branes)
+            .handle_violetabft_ready(ctx, &ready, destroy_branes)
         {
             Ok(r) => r,
             Err(e) => {
@@ -1594,7 +1594,7 @@ where
         Some((ready, invoke_ctx))
     }
 
-    pub fn post_raft_ready_applightlike<T: Transport, C>(
+    pub fn post_violetabft_ready_applightlike<T: Transport, C>(
         &mut self,
         ctx: &mut PollContext<EK, ER, T, C>,
         ready: &mut Ready,
@@ -1602,7 +1602,7 @@ where
     ) -> Option<ApplySnapResult> {
         if invoke_ctx.has_snapshot() {
             // When apply snapshot, there is no log applied and not compacted yet.
-            self.raft_log_size_hint = 0;
+            self.violetabft_log_size_hint = 0;
         }
 
         let apply_snap_result = self.mut_store().post_ready(invoke_ctx);
@@ -1628,14 +1628,14 @@ where
         }
 
         if !self.is_leader() {
-            fail_point!("raft_before_follower_slightlike");
+            fail_point!("violetabft_before_follower_slightlike");
             if self.is_applying_snapshot() {
                 self.plightlikeing_messages = mem::replace(&mut ready.messages, vec![]);
             } else {
                 self.slightlike(
                     &mut ctx.trans,
                     ready.messages.drain(..),
-                    &mut ctx.raft_metrics.message,
+                    &mut ctx.violetabft_metrics.message,
                 );
                 ctx.need_flush_trans = true;
             }
@@ -1643,7 +1643,7 @@ where
 
         if apply_snap_result.is_some() {
             self.activate(ctx);
-            let mut meta = ctx.store_meta.lock().unwrap();
+            let mut meta = ctx.store_meta.dagger().unwrap();
             meta.readers
                 .insert(self.brane_id, ReadDelegate::from_peer(self));
         }
@@ -1651,15 +1651,15 @@ where
         apply_snap_result
     }
 
-    pub fn handle_raft_ready_apply<T, C>(
+    pub fn handle_violetabft_ready_apply<T, C>(
         &mut self,
         ctx: &mut PollContext<EK, ER, T, C>,
         ready: &mut Ready,
         invoke_ctx: &InvokeContext,
     ) {
-        // Call `handle_raft_committed_entries` directly here may lead to inconsistency.
+        // Call `handle_violetabft_committed_entries` directly here may lead to inconsistency.
         // In some cases, there will be some plightlikeing committed entries when applying a
-        // snapshot. If we call `handle_raft_committed_entries` directly, these ufidelates
+        // snapshot. If we call `handle_violetabft_committed_entries` directly, these ufidelates
         // will be written to disk. Because we apply snapshot asynchronously, so these
         // ufidelates will soon be removed. But the soft state of violetabft is still be ufidelated
         // in memory. Hence when handle ready next time, these ufidelates won't be included
@@ -1671,13 +1671,13 @@ where
             let mut lease_to_be_ufidelated = self.is_leader();
             for entry in committed_entries.iter().rev() {
                 // violetabft meta is very small, can be ignored.
-                self.raft_log_size_hint += entry.get_data().len() as u64;
+                self.violetabft_log_size_hint += entry.get_data().len() as u64;
                 if lease_to_be_ufidelated {
                     let propose_time = self
                         .proposals
                         .find_propose_time((entry.get_term(), entry.get_index()));
                     if let Some(propose_time) = propose_time {
-                        ctx.raft_metrics.commit_log.observe(duration_to_sec(
+                        ctx.violetabft_metrics.commit_log.observe(duration_to_sec(
                             (ctx.current_time.unwrap() - propose_time).to_std().unwrap(),
                         ));
                         self.maybe_renew_leader_lease(propose_time, ctx, None);
@@ -1719,11 +1719,11 @@ where
                 self.last_applying_idx = committed_entries.last().unwrap().get_index();
                 if self.last_applying_idx >= self.last_urgent_proposal_idx {
                     // Urgent requests are flushed, make it lazy again.
-                    self.raft_group.skip_bcast_commit(true);
+                    self.violetabft_group.skip_bcast_commit(true);
                     self.last_urgent_proposal_idx = u64::MAX;
                 }
-                let committed_index = self.raft_group.violetabft.raft_log.committed;
-                let term = self.raft_group.violetabft.raft_log.term(committed_index).unwrap();
+                let committed_index = self.violetabft_group.violetabft.violetabft_log.committed;
+                let term = self.violetabft_group.violetabft.violetabft_log.term(committed_index).unwrap();
                 let cbs = self.proposals.take(committed_index, term);
                 let apply = Apply::new(
                     self.peer_id(),
@@ -1754,21 +1754,21 @@ where
         self.apply_reads(ctx, ready);
     }
 
-    pub fn handle_raft_ready_advance(&mut self, ready: Ready) {
+    pub fn handle_violetabft_ready_advance(&mut self, ready: Ready) {
         if !ready.snapshot().is_empty() {
             // Snapshot's metadata has been applied.
             self.last_applying_idx = self.get_store().truncated_index();
-            self.raft_group.advance_applightlike(ready);
+            self.violetabft_group.advance_applightlike(ready);
             // Because we only handle violetabft ready when not applying snapshot, so following
             // line won't be called twice for the same snapshot.
-            self.raft_group.advance_apply(self.last_applying_idx);
+            self.violetabft_group.advance_apply(self.last_applying_idx);
             self.cmd_epoch_checker.advance_apply(
                 self.last_applying_idx,
                 self.term(),
-                self.raft_group.store().brane(),
+                self.violetabft_group.store().brane(),
             );
         } else {
-            self.raft_group.advance_applightlike(ready);
+            self.violetabft_group.advance_applightlike(ready);
         }
         self.proposals.gc();
     }
@@ -1785,7 +1785,7 @@ where
             "brane_id" => self.brane_id,
             "peer_id" => self.peer.get_id(),
         );
-        RAFT_READ_INDEX_PENDING_COUNT.sub(read.cmds.len() as i64);
+        VIOLETABFT_READ_INDEX_PENDING_COUNT.sub(read.cmds.len() as i64);
         for (req, cb, mut read_index) in read.cmds.drain(..) {
             if !replica_read {
                 if read_index.is_none() {
@@ -1885,13 +1885,13 @@ where
             panic!("{} should not applying snapshot.", self.tag);
         }
 
-        self.raft_group
+        self.violetabft_group
             .advance_apply(apply_state.get_applied_index());
 
         self.cmd_epoch_checker.advance_apply(
             apply_state.get_applied_index(),
             self.term(),
-            self.raft_group.store().brane(),
+            self.violetabft_group.store().brane(),
         );
 
         let progress_to_be_ufidelated = self.mut_store().applied_index_term() != applied_index_term;
@@ -1919,7 +1919,7 @@ where
         // Only leaders need to ufidelate applied_index_term.
         if progress_to_be_ufidelated && self.is_leader() {
             let progress = ReadProgress::applied_index_term(applied_index_term);
-            let mut meta = ctx.store_meta.lock().unwrap();
+            let mut meta = ctx.store_meta.dagger().unwrap();
             let reader = meta.readers.get_mut(&self.brane_id).unwrap();
             self.maybe_ufidelate_read_progress(reader, progress);
         }
@@ -1972,12 +1972,12 @@ where
             }
         };
         if let Some(progress) = progress {
-            let mut meta = ctx.store_meta.lock().unwrap();
+            let mut meta = ctx.store_meta.dagger().unwrap();
             let reader = meta.readers.get_mut(&self.brane_id).unwrap();
             self.maybe_ufidelate_read_progress(reader, progress);
         }
         if let Some(progress) = read_progress {
-            let mut meta = ctx.store_meta.lock().unwrap();
+            let mut meta = ctx.store_meta.dagger().unwrap();
             let reader = meta.readers.get_mut(&self.brane_id).unwrap();
             self.maybe_ufidelate_read_progress(reader, progress);
         }
@@ -2008,7 +2008,7 @@ where
 
         // If last peer is the leader of the brane before split, it's intuitional for
         // it to become the leader of new split brane.
-        let _ = self.raft_group.campaign();
+        let _ = self.violetabft_group.campaign();
         true
     }
 
@@ -2026,7 +2026,7 @@ where
             return false;
         }
 
-        ctx.raft_metrics.propose.all += 1;
+        ctx.violetabft_metrics.propose.all += 1;
 
         let req_admin_cmd_type = if !req.has_admin_request() {
             None
@@ -2067,7 +2067,7 @@ where
                     self.last_urgent_proposal_idx = idx;
                     // Eager flush to make urgent proposal be applied on all nodes as soon as
                     // possible.
-                    self.raft_group.skip_bcast_commit(false);
+                    self.violetabft_group.skip_bcast_commit(false);
                 }
                 self.should_wake_up = true;
                 let p = Proposal {
@@ -2116,7 +2116,7 @@ where
     fn check_conf_change<T, C>(
         &mut self,
         ctx: &mut PollContext<EK, ER, T, C>,
-        cc: &eraftpb::ConfChange,
+        cc: &evioletabftpb::ConfChange,
         cmd: &VioletaBftCmdRequest,
     ) -> Result<()> {
         let change_peer = apply::get_change_peer_cmd(cmd).unwrap();
@@ -2151,7 +2151,7 @@ where
         }
 
         let before_progress = {
-            let pr = self.raft_group.status().progress.unwrap().clone();
+            let pr = self.violetabft_group.status().progress.unwrap().clone();
             if pr.is_singleton() {
                 // It's always safe if there is only one node in the cluster.
                 return Ok(());
@@ -2195,7 +2195,7 @@ where
     /// Check if current joint state can handle this confchange
     fn check_joint_state(&mut self, cc: &impl ConfChangeI) -> Result<ProgressTracker> {
         let cc = &cc.as_v2();
-        let mut prs = self.raft_group.status().progress.unwrap().clone();
+        let mut prs = self.violetabft_group.status().progress.unwrap().clone();
         let mut changer = Changer::new(&prs);
         let (causetg, changes) = if cc.leave_joint() {
             changer.leave_joint()?
@@ -2204,7 +2204,7 @@ where
         } else {
             changer.simple(&cc.changes)?
         };
-        prs.apply_conf(causetg, changes, self.raft_group.violetabft.raft_log.last_index());
+        prs.apply_conf(causetg, changes, self.violetabft_group.violetabft.violetabft_log.last_index());
         Ok(prs)
     }
 
@@ -2216,12 +2216,12 @@ where
             "peer" => ?peer,
         );
 
-        self.raft_group.transfer_leader(peer.get_id());
+        self.violetabft_group.transfer_leader(peer.get_id());
     }
 
     fn pre_transfer_leader(&mut self, peer: &metapb::Peer) -> bool {
         // Checks if safe to transfer leader.
-        if self.raft_group.violetabft.has_plightlikeing_conf() {
+        if self.violetabft_group.violetabft.has_plightlikeing_conf() {
             info!(
                 "reject transfer leader due to plightlikeing conf change";
                 "brane_id" => self.brane_id,
@@ -2233,16 +2233,16 @@ where
 
         // Broadcast heartbeat to make sure followers commit the entries immediately.
         // It's only necessary to ping the target peer, but ping all for simplicity.
-        self.raft_group.ping();
-        let mut msg = eraftpb::Message::new();
+        self.violetabft_group.ping();
+        let mut msg = evioletabftpb::Message::new();
         msg.set_to(peer.get_id());
-        msg.set_msg_type(eraftpb::MessageType::MsgTransferLeader);
+        msg.set_msg_type(evioletabftpb::MessageType::MsgTransferLeader);
         msg.set_from(self.peer_id());
         // log term here represents the term of last log. For leader, the term of last
         // log is always its current term. Not just set term because violetabft library forbids
         // setting it for MsgTransferLeader messages.
         msg.set_log_term(self.term());
-        self.raft_group.violetabft.msgs.push(msg);
+        self.violetabft_group.violetabft.msgs.push(msg);
         true
     }
 
@@ -2253,7 +2253,7 @@ where
         peer: &metapb::Peer,
     ) -> Option<&'static str> {
         let peer_id = peer.get_id();
-        let status = self.raft_group.status();
+        let status = self.violetabft_group.status();
         let progress = status.progress.unwrap();
 
         if !progress.conf().voters().contains(peer_id) {
@@ -2273,8 +2273,8 @@ where
             }
         }
 
-        if self.raft_group.violetabft.has_plightlikeing_conf()
-            || self.raft_group.violetabft.plightlikeing_conf_index > index
+        if self.violetabft_group.violetabft.has_plightlikeing_conf()
+            || self.violetabft_group.violetabft.plightlikeing_conf_index > index
         {
             return Some("plightlikeing conf change");
         }
@@ -2292,7 +2292,7 @@ where
         req: VioletaBftCmdRequest,
         cb: Callback<EK::Snapshot>,
     ) {
-        ctx.raft_metrics.propose.local_read += 1;
+        ctx.violetabft_metrics.propose.local_read += 1;
         cb.invoke_read(self.handle_read(ctx, req, false, Some(self.get_store().committed_index())))
     }
 
@@ -2335,7 +2335,7 @@ where
 
         let read = self.plightlikeing_reads.back_mut().unwrap();
         debug_assert!(read.read_index.is_none());
-        self.raft_group.read_index(read.id.as_bytes().to_vec());
+        self.violetabft_group.read_index(read.id.as_bytes().to_vec());
         debug!(
             "request to get a read index";
             "request_id" => ?read.id,
@@ -2363,7 +2363,7 @@ where
                 "peer_id" => self.peer.get_id(),
                 "err" => ?e,
             );
-            poll_ctx.raft_metrics.propose.unsafe_read_index += 1;
+            poll_ctx.violetabft_metrics.propose.unsafe_read_index += 1;
             cmd_resp::bind_error(&mut err_resp, e);
             cb.invoke_with_response(err_resp);
             self.should_wake_up = true;
@@ -2381,7 +2381,7 @@ where
                 LeaseState::Valid | LeaseState::Expired => {
                     let committed_index = self.get_store().committed_index();
                     if let Some(read) = self.plightlikeing_reads.back_mut() {
-                        let max_lease = poll_ctx.causetg.raft_store_max_leader_lease();
+                        let max_lease = poll_ctx.causetg.violetabft_store_max_leader_lease();
                         if read.renew_lease_time + max_lease > renew_lease_time {
                             read.push_command(req, cb, committed_index);
                             return false;
@@ -2403,7 +2403,7 @@ where
                 &mut err_resp,
                 box_err!("{} can not read index due to no leader", self.tag),
             );
-            poll_ctx.raft_metrics.invalid_proposal.read_index_no_leader += 1;
+            poll_ctx.violetabft_metrics.invalid_proposal.read_index_no_leader += 1;
             // The leader may be hibernated, slightlike a message for trying to awaken the leader.
             if poll_ctx.causetg.hibernate_branes
                 && (self.bcast_wake_up_time.is_none()
@@ -2419,17 +2419,17 @@ where
         }
 
         // Should we call pre_propose here?
-        let last_plightlikeing_read_count = self.raft_group.violetabft.plightlikeing_read_count();
-        let last_ready_read_count = self.raft_group.violetabft.ready_read_count();
+        let last_plightlikeing_read_count = self.violetabft_group.violetabft.plightlikeing_read_count();
+        let last_ready_read_count = self.violetabft_group.violetabft.ready_read_count();
 
-        poll_ctx.raft_metrics.propose.read_index += 1;
+        poll_ctx.violetabft_metrics.propose.read_index += 1;
 
         self.bcast_wake_up_time = None;
         let id = Uuid::new_v4();
-        self.raft_group.read_index(id.as_bytes().to_vec());
+        self.violetabft_group.read_index(id.as_bytes().to_vec());
 
-        let plightlikeing_read_count = self.raft_group.violetabft.plightlikeing_read_count();
-        let ready_read_count = self.raft_group.violetabft.ready_read_count();
+        let plightlikeing_read_count = self.violetabft_group.violetabft.plightlikeing_read_count();
+        let ready_read_count = self.violetabft_group.violetabft.ready_read_count();
 
         if plightlikeing_read_count == last_plightlikeing_read_count
             && ready_read_count == last_ready_read_count
@@ -2476,7 +2476,7 @@ where
     /// For now, it is only used in merge.
     pub fn get_min_progress(&self) -> Result<(u64, u64)> {
         let (mut min_m, mut min_c) = (None, None);
-        if let Some(progress) = self.raft_group.status().progress {
+        if let Some(progress) = self.violetabft_group.status().progress {
             for (id, pr) in progress.iter() {
                 // Reject merge if there is any plightlikeing request snapshot,
                 // because a target brane may merge a source brane which is in
@@ -2506,7 +2506,7 @@ where
         ctx: &mut PollContext<EK, ER, T, C>,
         req: &mut VioletaBftCmdRequest,
     ) -> Result<()> {
-        let last_index = self.raft_group.violetabft.raft_log.last_index();
+        let last_index = self.violetabft_group.violetabft.violetabft_log.last_index();
         let (min_matched, min_committed) = self.get_min_progress()?;
         if min_matched == 0
             || min_committed == 0
@@ -2523,9 +2523,9 @@ where
         assert!(min_matched >= min_committed);
         let mut entry_size = 0;
         for entry in self
-            .raft_group
+            .violetabft_group
             .violetabft
-            .raft_log
+            .violetabft_log
             .entries(min_committed + 1, NO_LIMIT)?
         {
             // commit merge only contains entries spacelike from min_matched + 1
@@ -2560,7 +2560,7 @@ where
                 cmd_type
             ));
         }
-        if entry_size as f64 > ctx.causetg.raft_entry_max_size.0 as f64 * 0.9 {
+        if entry_size as f64 > ctx.causetg.violetabft_entry_max_size.0 as f64 * 0.9 {
             return Err(box_err!(
                 "log gap size exceed entry size limit, skip merging."
             ));
@@ -2618,7 +2618,7 @@ where
             ));
         }
 
-        poll_ctx.raft_metrics.propose.normal += 1;
+        poll_ctx.violetabft_metrics.propose.normal += 1;
 
         if self.get_store().applied_index_term() == self.term() {
             // Only when applied index's term is equal to current leader's term, the information
@@ -2660,7 +2660,7 @@ where
         // TODO: use local histogram metrics
         PEER_PROPOSE_LOG_SIZE_HISTOGRAM.observe(data.len() as f64);
 
-        if data.len() as u64 > poll_ctx.causetg.raft_entry_max_size.0 {
+        if data.len() as u64 > poll_ctx.causetg.violetabft_entry_max_size.0 {
             error!(
                 "entry is too large";
                 "brane_id" => self.brane_id,
@@ -2671,7 +2671,7 @@ where
         }
 
         let propose_index = self.next_proposal_index();
-        self.raft_group.propose(ctx.to_vec(), data)?;
+        self.violetabft_group.propose(ctx.to_vec(), data)?;
         if self.next_proposal_index() == propose_index {
             // The message is dropped silently, this usually due to leader absence
             // or transferring leader. Both cases can be considered as NotLeader error.
@@ -2688,7 +2688,7 @@ where
     fn execute_transfer_leader<T, C>(
         &mut self,
         ctx: &mut PollContext<EK, ER, T, C>,
-        msg: &eraftpb::Message,
+        msg: &evioletabftpb::Message,
     ) {
         // log_term is set by original leader, represents the term last log is written
         // in, which should be equal to the original leader's term.
@@ -2734,13 +2734,13 @@ where
             return;
         }
 
-        let mut msg = eraftpb::Message::new();
+        let mut msg = evioletabftpb::Message::new();
         msg.set_from(self.peer_id());
         msg.set_to(self.leader_id());
-        msg.set_msg_type(eraftpb::MessageType::MsgTransferLeader);
+        msg.set_msg_type(evioletabftpb::MessageType::MsgTransferLeader);
         msg.set_index(self.get_store().applied_index());
         msg.set_log_term(self.term());
-        self.raft_group.violetabft.msgs.push(msg);
+        self.violetabft_group.violetabft.msgs.push(msg);
     }
 
     /// Return true to if the transfer leader request is accepted.
@@ -2765,7 +2765,7 @@ where
         req: VioletaBftCmdRequest,
         cb: Callback<EK::Snapshot>,
     ) -> bool {
-        ctx.raft_metrics.propose.transfer_leader += 1;
+        ctx.violetabft_metrics.propose.transfer_leader += 1;
 
         let transfer_leader = get_transfer_leader_cmd(&req).unwrap();
         let peer = transfer_leader.get_peer();
@@ -2798,7 +2798,7 @@ where
                 self.tag
             ));
         }
-        if self.raft_group.violetabft.plightlikeing_conf_index > self.get_store().applied_index() {
+        if self.violetabft_group.violetabft.plightlikeing_conf_index > self.get_store().applied_index() {
             info!(
                 "there is a plightlikeing conf change, try later";
                 "brane_id" => self.brane_id,
@@ -2830,7 +2830,7 @@ where
         let cc = {
             let data = req.write_to_bytes()?;
             let change_peer = apply::get_change_peer_cmd(req).unwrap();
-            let mut cc = eraftpb::ConfChange::default();
+            let mut cc = evioletabftpb::ConfChange::default();
             cc.set_change_type(change_peer.get_change_type());
             cc.set_node_id(change_peer.get_peer().get_id());
             cc.set_context(data);
@@ -2839,7 +2839,7 @@ where
 
         self.check_conf_change(ctx, &cc, req)?;
 
-        ctx.raft_metrics.propose.conf_change += 1;
+        ctx.violetabft_metrics.propose.conf_change += 1;
 
         // TODO: use local histogram metrics
         PEER_PROPOSE_LOG_SIZE_HISTOGRAM.observe(cc.get_context().len() as f64);
@@ -2853,7 +2853,7 @@ where
         );
 
         let propose_index = self.next_proposal_index();
-        self.raft_group
+        self.violetabft_group
             .propose_conf_change(ProposalContext::SYNC_LOG.to_vec(), cc)?;
         if self.next_proposal_index() == propose_index {
             // The message is dropped silently, this usually due to leader absence
@@ -2894,7 +2894,7 @@ where
     }
 
     pub fn term(&self) -> u64 {
-        self.raft_group.violetabft.term
+        self.violetabft_group.violetabft.term
     }
 
     pub fn stop(&mut self) {
@@ -2960,11 +2960,11 @@ where
         status.state_id = self.replication_mode_version;
         let state = if !self.replication_sync {
             if self.dr_auto_sync_state != DrAutoSyncState::Async {
-                let res = self.raft_group.violetabft.check_group_commit_consistent();
+                let res = self.violetabft_group.violetabft.check_group_commit_consistent();
                 if Some(true) != res {
                     let mut buffer: SmallVec<[(u64, u64, u64); 5]> = SmallVec::new();
                     if self.get_store().applied_index_term() >= self.term() {
-                        let progress = self.raft_group.violetabft.prs();
+                        let progress = self.violetabft_group.violetabft.prs();
                         for (id, p) in progress.iter() {
                             if !progress.conf().voters().contains(*id) {
                                 continue;
@@ -3020,7 +3020,7 @@ where
         }
     }
 
-    fn slightlike_raft_message<T: Transport>(&mut self, msg: eraftpb::Message, trans: &mut T) {
+    fn slightlike_violetabft_message<T: Transport>(&mut self, msg: evioletabftpb::Message, trans: &mut T) {
         let mut slightlike_msg = VioletaBftMessage::default();
         slightlike_msg.set_brane_id(self.brane_id);
         // set current epoch
@@ -3085,9 +3085,9 @@ where
                 self.leader_unreachable = true;
             }
             // unreachable store
-            self.raft_group.report_unreachable(to_peer_id);
-            if msg_type == eraftpb::MessageType::MsgSnapshot {
-                self.raft_group
+            self.violetabft_group.report_unreachable(to_peer_id);
+            if msg_type == evioletabftpb::MessageType::MsgSnapshot {
+                self.violetabft_group
                     .report_snapshot(to_peer_id, SnapshotStatus::Failure);
             }
         }
@@ -3315,7 +3315,7 @@ where
     }
 
     fn inspect_lease(&mut self) -> LeaseState {
-        if !self.raft_group.violetabft.in_lease() {
+        if !self.violetabft_group.violetabft.in_lease() {
             return LeaseState::Suspect;
         }
         // None means now.
@@ -3415,9 +3415,9 @@ pub trait AbstractPeer {
     fn meta_peer(&self) -> &metapb::Peer;
     fn brane(&self) -> &metapb::Brane;
     fn apply_state(&self) -> &VioletaBftApplyState;
-    fn raft_status(&self) -> violetabft::Status;
-    fn raft_committed_index(&self) -> u64;
-    fn raft_request_snapshot(&mut self, index: u64);
+    fn violetabft_status(&self) -> violetabft::Status;
+    fn violetabft_committed_index(&self) -> u64;
+    fn violetabft_request_snapshot(&mut self, index: u64);
     fn plightlikeing_merge_state(&self) -> Option<&MergeState>;
 }
 
@@ -3426,19 +3426,19 @@ impl<EK: KvEngine, ER: VioletaBftEngine> AbstractPeer for Peer<EK, ER> {
         &self.peer
     }
     fn brane(&self) -> &metapb::Brane {
-        self.raft_group.store().brane()
+        self.violetabft_group.store().brane()
     }
     fn apply_state(&self) -> &VioletaBftApplyState {
-        self.raft_group.store().apply_state()
+        self.violetabft_group.store().apply_state()
     }
-    fn raft_status(&self) -> violetabft::Status {
-        self.raft_group.status()
+    fn violetabft_status(&self) -> violetabft::Status {
+        self.violetabft_group.status()
     }
-    fn raft_committed_index(&self) -> u64 {
-        self.raft_group.store().committed_index()
+    fn violetabft_committed_index(&self) -> u64 {
+        self.violetabft_group.store().committed_index()
     }
-    fn raft_request_snapshot(&mut self, index: u64) {
-        self.raft_group.request_snapshot(index).unwrap();
+    fn violetabft_request_snapshot(&mut self, index: u64) {
+        self.violetabft_group.request_snapshot(index).unwrap();
     }
     fn plightlikeing_merge_state(&self) -> Option<&MergeState> {
         self.plightlikeing_merge_state.as_ref()
@@ -3448,7 +3448,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> AbstractPeer for Peer<EK, ER> {
 #[causetg(test)]
 mod tests {
     use super::*;
-    use ekvproto::raft_cmdpb;
+    use ekvproto::violetabft_cmdpb;
     #[causetg(feature = "protobuf-codec")]
     use protobuf::ProtobufEnum;
 
@@ -3543,17 +3543,17 @@ mod tests {
 
         // Ok(_)
         let mut req = VioletaBftCmdRequest::default();
-        let mut admin_req = raft_cmdpb::AdminRequest::default();
+        let mut admin_req = violetabft_cmdpb::AdminRequest::default();
 
         req.set_admin_request(admin_req.clone());
         table.push((req.clone(), RequestPolicy::ProposeNormal));
 
-        admin_req.set_change_peer(raft_cmdpb::ChangePeerRequest::default());
+        admin_req.set_change_peer(violetabft_cmdpb::ChangePeerRequest::default());
         req.set_admin_request(admin_req.clone());
         table.push((req.clone(), RequestPolicy::ProposeConfChange));
         admin_req.clear_change_peer();
 
-        admin_req.set_transfer_leader(raft_cmdpb::TransferLeaderRequest::default());
+        admin_req.set_transfer_leader(violetabft_cmdpb::TransferLeaderRequest::default());
         req.set_admin_request(admin_req.clone());
         table.push((req.clone(), RequestPolicy::ProposeTransferLeader));
         admin_req.clear_transfer_leader();
@@ -3567,7 +3567,7 @@ mod tests {
             (CmdType::DeleteCone, RequestPolicy::ProposeNormal),
             (CmdType::IngestSst, RequestPolicy::ProposeNormal),
         ] {
-            let mut request = raft_cmdpb::Request::default();
+            let mut request = violetabft_cmdpb::Request::default();
             request.set_cmd_type(op);
             req.set_requests(vec![request].into());
             table.push((req.clone(), policy));
@@ -3593,7 +3593,7 @@ mod tests {
         }
 
         // Read quorum.
-        let mut request = raft_cmdpb::Request::default();
+        let mut request = violetabft_cmdpb::Request::default();
         request.set_cmd_type(CmdType::Snap);
         req.set_requests(vec![request].into());
         req.mut_header().set_read_quorum(true);
@@ -3607,14 +3607,14 @@ mod tests {
         // Err(_)
         let mut err_table = vec![];
         for &op in &[CmdType::Prewrite, CmdType::Invalid] {
-            let mut request = raft_cmdpb::Request::default();
+            let mut request = violetabft_cmdpb::Request::default();
             request.set_cmd_type(op);
             req.set_requests(vec![request].into());
             err_table.push(req.clone());
         }
-        let mut snap = raft_cmdpb::Request::default();
+        let mut snap = violetabft_cmdpb::Request::default();
         snap.set_cmd_type(CmdType::Snap);
-        let mut put = raft_cmdpb::Request::default();
+        let mut put = violetabft_cmdpb::Request::default();
         put.set_cmd_type(CmdType::Put);
         req.set_requests(vec![snap, put].into());
         err_table.push(req);

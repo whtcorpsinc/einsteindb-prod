@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use test_violetabftstore::*;
 
@@ -9,12 +9,12 @@ fn test_snapshot_encryption<T: Simulator>(cluster: &mut Cluster<T>) {
     for i in 0..100 {
         cluster.must_put(format!("key-{:02}", i).as_bytes(), b"value");
         cluster.must_put_causet("write", format!("key-{:02}", i).as_bytes(), b"value");
-        cluster.must_put_causet("lock", format!("key-{:02}", i).as_bytes(), b"value");
+        cluster.must_put_causet("dagger", format!("key-{:02}", i).as_bytes(), b"value");
     }
 
     cluster.fidel_client.must_add_peer(r1, new_learner_peer(2, 2));
     must_get_equal(&cluster.get_engine(2), b"key-00", b"value");
-    must_get_causet_equal(&cluster.get_engine(2), "lock", b"key-50", b"value");
+    must_get_causet_equal(&cluster.get_engine(2), "dagger", b"key-50", b"value");
     must_get_causet_equal(&cluster.get_engine(2), "write", b"key-99", b"value");
 }
 

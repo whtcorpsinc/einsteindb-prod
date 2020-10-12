@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::fmt::{self, Display, Formatter};
 use std::sync::mpsc::{self, Slightlikeer};
@@ -16,11 +16,11 @@ use tokio::task::spawn_local;
 use engine_promises::{KvEngine, VioletaBftEngine};
 use ekvproto::metapb;
 use ekvproto::fidelpb;
-use ekvproto::raft_cmdpb::{AdminCmdType, AdminRequest, VioletaBftCmdRequest, SplitRequest};
-use ekvproto::raft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, VioletaBftCmdRequest, SplitRequest};
+use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use ekvproto::replication_modepb::BraneReplicationStatus;
 use prometheus::local::LocalHistogram;
-use violetabft::eraftpb::ConfChangeType;
+use violetabft::evioletabftpb::ConfChangeType;
 
 use crate::interlock::{get_brane_approximate_tuplespaceInstanton, get_brane_approximate_size};
 use crate::store::cmd_resp::new_error;
@@ -1221,7 +1221,7 @@ fn slightlike_admin_request<EK, ER>(
 
     req.set_admin_request(request);
 
-    if let Err(e) = router.slightlike_raft_command(VioletaBftCommand::new(req, callback)) {
+    if let Err(e) = router.slightlike_violetabft_command(VioletaBftCommand::new(req, callback)) {
         error!(
             "slightlike request failed";
             "brane_id" => brane_id, "cmd_type" => ?cmd_type, "err" => ?e,
@@ -1245,7 +1245,7 @@ fn slightlike_destroy_peer_message<EK, ER>(
     message.set_to_peer(peer);
     message.set_brane_epoch(fidel_brane.get_brane_epoch().clone());
     message.set_is_tombstone(true);
-    if let Err(e) = router.slightlike_raft_message(message) {
+    if let Err(e) = router.slightlike_violetabft_message(message) {
         error!(
             "slightlike gc peer request failed";
             "brane_id" => local_brane.get_id(),
@@ -1293,7 +1293,7 @@ mod tests {
             read_io_rates: RecordPairVec,
             write_io_rates: RecordPairVec,
         ) {
-            let mut store_stat = self.store_stat.lock().unwrap();
+            let mut store_stat = self.store_stat.dagger().unwrap();
             store_stat.store_cpu_usages = cpu_usages;
             store_stat.store_read_io_rates = read_io_rates;
             store_stat.store_write_io_rates = write_io_rates;
@@ -1339,7 +1339,7 @@ mod tests {
             }
         }
 
-        let total_cpu_usages = sum_record_pairs(&store_stat.lock().unwrap().store_cpu_usages);
+        let total_cpu_usages = sum_record_pairs(&store_stat.dagger().unwrap().store_cpu_usages);
         assert!(total_cpu_usages > 90);
 
         fidel_worker.stop();

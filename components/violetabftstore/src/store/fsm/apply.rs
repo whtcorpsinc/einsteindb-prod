@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::borrow::Cow;
 use std::cmp::{Ord, Ordering as CmpOrdering};
@@ -19,18 +19,18 @@ use batch_system::{BasicMailbox, BatchRouter, BatchSystem, Fsm, HandlerBuilder, 
 use crossbeam::channel::{TryRecvError, TrySlightlikeError};
 use engine_lmdb::{PerfContext, PerfLevel};
 use engine_promises::{KvEngine, VioletaBftEngine, Snapshot, WriteBatch};
-use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_RAFT, CAUSET_WRITE};
+use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
 use ekvproto::import_sstpb::SstMeta;
 use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
 use ekvproto::metapb::{Peer as PeerMeta, PeerRole, Brane, BraneEpoch};
-use ekvproto::raft_cmdpb::{
+use ekvproto::violetabft_cmdpb::{
     AdminCmdType, AdminRequest, AdminResponse, ChangePeerRequest, CmdType, CommitMergeRequest,
     VioletaBftCmdRequest, VioletaBftCmdResponse, Request, Response,
 };
-use ekvproto::raft_serverpb::{
+use ekvproto::violetabft_serverpb::{
     MergeState, PeerState, VioletaBftApplyState, VioletaBftTruncatedState, BraneLocalState,
 };
-use violetabft::eraftpb::{ConfChange, ConfChangeType, Entry, EntryType, Snapshot as VioletaBftSnapshot};
+use violetabft::evioletabftpb::{ConfChange, ConfChangeType, Entry, EntryType, Snapshot as VioletaBftSnapshot};
 use sst_importer::SSTImporter;
 use einsteindb_util::collections::{HashMap, HashMapEntry, HashSet};
 use einsteindb_util::config::{Tracker, VersionTrack};
@@ -622,7 +622,7 @@ fn should_sync_log(cmd: &VioletaBftCmdRequest) -> bool {
     if cmd.has_admin_request() {
         if cmd.get_admin_request().get_cmd_type() == AdminCmdType::CompactLog {
             // We do not need to sync WAL before compact log, because this request will slightlike a msg to
-            // raft_gc_log thread to delete the entries before this index instead of deleting them in
+            // violetabft_gc_log thread to delete the entries before this index instead of deleting them in
             // apply thread directly.
             return false;
         }
@@ -805,7 +805,7 @@ where
     }
 
     /// Handles all the committed_entries, namely, applies the committed entries.
-    fn handle_raft_committed_entries<W: WriteBatch<EK>>(
+    fn handle_violetabft_committed_entries<W: WriteBatch<EK>>(
         &mut self,
         apply_ctx: &mut ApplyContext<EK, W>,
         mut committed_entries_drainer: Drain<Entry>,
@@ -836,8 +836,8 @@ where
             }
 
             let res = match entry.get_entry_type() {
-                EntryType::EntryNormal => self.handle_raft_entry_normal(apply_ctx, &entry),
-                EntryType::EntryConfChange => self.handle_raft_entry_conf_change(apply_ctx, &entry),
+                EntryType::EntryNormal => self.handle_violetabft_entry_normal(apply_ctx, &entry),
+                EntryType::EntryConfChange => self.handle_violetabft_entry_conf_change(apply_ctx, &entry),
                 EntryType::EntryConfChangeV2 => unimplemented!(),
             };
 
@@ -879,7 +879,7 @@ where
 
     fn write_apply_state<W: WriteBatch<EK>>(&self, wb: &mut W) {
         wb.put_msg_causet(
-            CAUSET_RAFT,
+            CAUSET_VIOLETABFT,
             &tuplespaceInstanton::apply_state_key(self.brane.get_id()),
             &self.apply_state,
         )
@@ -891,7 +891,7 @@ where
         });
     }
 
-    fn handle_raft_entry_normal<W: WriteBatch<EK>>(
+    fn handle_violetabft_entry_normal<W: WriteBatch<EK>>(
         &mut self,
         apply_ctx: &mut ApplyContext<EK, W>,
         entry: &Entry,
@@ -916,7 +916,7 @@ where
                 }
             }
 
-            return self.process_raft_cmd(apply_ctx, index, term, cmd);
+            return self.process_violetabft_cmd(apply_ctx, index, term, cmd);
         }
         // TOOD(cdc): should we observe empty cmd, aka leader change?
 
@@ -941,7 +941,7 @@ where
         ApplyResult::None
     }
 
-    fn handle_raft_entry_conf_change<W: WriteBatch<EK>>(
+    fn handle_violetabft_entry_conf_change<W: WriteBatch<EK>>(
         &mut self,
         apply_ctx: &mut ApplyContext<EK, W>,
         entry: &Entry,
@@ -955,7 +955,7 @@ where
         let term = entry.get_term();
         let conf_change: ConfChange = util::parse_data_at(entry.get_data(), index, &self.tag);
         let cmd = util::parse_data_at(conf_change.get_context(), index, &self.tag);
-        match self.process_raft_cmd(apply_ctx, index, term, cmd) {
+        match self.process_violetabft_cmd(apply_ctx, index, term, cmd) {
             ApplyResult::None => {
                 // If failed, tell VioletaBft that the `ConfChange` was aborted.
                 ApplyResult::Res(ExecResult::ChangePeer(Default::default()))
@@ -1011,7 +1011,7 @@ where
         None
     }
 
-    fn process_raft_cmd<W: WriteBatch<EK>>(
+    fn process_violetabft_cmd<W: WriteBatch<EK>>(
         &mut self,
         apply_ctx: &mut ApplyContext<EK, W>,
         index: u64,
@@ -1030,7 +1030,7 @@ where
 
         let is_conf_change = get_change_peer_cmd(&cmd).is_some();
         apply_ctx.host.pre_apply(&self.brane, &cmd);
-        let (mut resp, exec_result) = self.apply_raft_cmd(apply_ctx, index, term, &cmd);
+        let (mut resp, exec_result) = self.apply_violetabft_cmd(apply_ctx, index, term, &cmd);
         if let ApplyResult::WaitMergeSource(_) = exec_result {
             return exec_result;
         }
@@ -1066,7 +1066,7 @@ where
     ///   2. it encounters an error that may not occur on all stores, in this case
     /// we should try to apply the entry again or panic. Considering that this
     /// usually due to disk operation fail, which is rare, so just panic is ok.
-    fn apply_raft_cmd<W: WriteBatch<EK>>(
+    fn apply_violetabft_cmd<W: WriteBatch<EK>>(
         &mut self,
         ctx: &mut ApplyContext<EK, W>,
         index: u64,
@@ -1079,7 +1079,7 @@ where
         ctx.exec_ctx = Some(self.new_ctx(index, term));
         ctx.kv_wb_mut().set_save_point();
         let mut origin_epoch = None;
-        let (resp, exec_result) = match self.exec_raft_cmd(ctx, &req) {
+        let (resp, exec_result) = match self.exec_violetabft_cmd(ctx, &req) {
             Ok(a) => {
                 ctx.kv_wb_mut().pop_save_point().unwrap();
                 if req.has_admin_request() {
@@ -1193,7 +1193,7 @@ where
     EK: KvEngine,
 {
     // Only errors that will also occur on all other stores should be returned.
-    fn exec_raft_cmd<W: WriteBatch<EK>>(
+    fn exec_violetabft_cmd<W: WriteBatch<EK>>(
         &mut self,
         ctx: &mut ApplyContext<EK, W>,
         req: &VioletaBftCmdRequest,
@@ -1842,7 +1842,7 @@ where
 
         let mut replace_branes = HashSet::default();
         {
-            let mut plightlikeing_create_peers = ctx.plightlikeing_create_peers.lock().unwrap();
+            let mut plightlikeing_create_peers = ctx.plightlikeing_create_peers.dagger().unwrap();
             for (brane_id, new_split_peer) in new_split_branes.iter_mut() {
                 match plightlikeing_create_peers.entry(*brane_id) {
                     HashMapEntry::Occupied(mut v) => {
@@ -1867,7 +1867,7 @@ where
             let brane_state_key = tuplespaceInstanton::brane_state_key(*brane_id);
             match ctx
                 .engine
-                .get_msg_causet::<BraneLocalState>(CAUSET_RAFT, &brane_state_key)
+                .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &brane_state_key)
             {
                 Ok(None) => (),
                 Ok(Some(state)) => {
@@ -1888,7 +1888,7 @@ where
         }
 
         if !already_exist_branes.is_empty() {
-            let mut plightlikeing_create_peers = ctx.plightlikeing_create_peers.lock().unwrap();
+            let mut plightlikeing_create_peers = ctx.plightlikeing_create_peers.dagger().unwrap();
             for (brane_id, peer_id) in &already_exist_branes {
                 assert_eq!(
                     plightlikeing_create_peers.remove(brane_id),
@@ -2085,7 +2085,7 @@ where
         self.ready_source_brane_id = 0;
 
         let brane_state_key = tuplespaceInstanton::brane_state_key(source_brane_id);
-        let state: BraneLocalState = match ctx.engine.get_msg_causet(CAUSET_RAFT, &brane_state_key) {
+        let state: BraneLocalState = match ctx.engine.get_msg_causet(CAUSET_VIOLETABFT, &brane_state_key) {
             Ok(Some(s)) => s,
             e => panic!(
                 "{} failed to get branes state of {:?}: {:?}",
@@ -2156,7 +2156,7 @@ where
     ) -> Result<(AdminResponse, ApplyResult<EK::Snapshot>)> {
         PEER_ADMIN_CMD_COUNTER.rollback_merge.all.inc();
         let brane_state_key = tuplespaceInstanton::brane_state_key(self.brane_id());
-        let state: BraneLocalState = match ctx.engine.get_msg_causet(CAUSET_RAFT, &brane_state_key) {
+        let state: BraneLocalState = match ctx.engine.get_msg_causet(CAUSET_VIOLETABFT, &brane_state_key) {
             Ok(Some(s)) => s,
             e => panic!("{} failed to get branes state: {:?}", self.tag, e),
         };
@@ -2238,7 +2238,7 @@ where
         }
 
         // compact failure is safe to be omitted, no need to assert.
-        compact_raft_log(&self.tag, apply_state, compact_index, compact_term)?;
+        compact_violetabft_log(&self.tag, apply_state, compact_index, compact_term)?;
 
         PEER_ADMIN_CMD_COUNTER.compact.success.inc();
 
@@ -2340,7 +2340,7 @@ fn check_sst_for_ingestion(sst: &SstMeta, brane: &Brane) -> Result<()> {
 /// Ufidelates the `state` with given `compact_index` and `compact_term`.
 ///
 /// Remember the VioletaBft log is not deleted here.
-pub fn compact_raft_log(
+pub fn compact_violetabft_log(
     tag: &str,
     state: &mut VioletaBftApplyState,
     compact_index: u64,
@@ -2789,7 +2789,7 @@ where
 
         self.applightlike_proposal(apply.cbs.drain(..));
         self.delegate
-            .handle_raft_committed_entries(apply_ctx, apply.entries.drain(..));
+            .handle_violetabft_committed_entries(apply_ctx, apply.entries.drain(..));
         fail_point!("post_handle_apply_1003", self.delegate.id() == 1003, |_| {});
         if self.delegate.yield_state.is_some() {
             return;
@@ -2883,7 +2883,7 @@ where
         }
         if !state.plightlikeing_entries.is_empty() {
             self.delegate
-                .handle_raft_committed_entries(ctx, state.plightlikeing_entries.drain(..));
+                .handle_violetabft_committed_entries(ctx, state.plightlikeing_entries.drain(..));
             if let Some(ref mut s) = self.delegate.yield_state {
                 // So the delegate is expected to yield the CPU.
                 // It can either be executing another `CommitMerge` in plightlikeing_msgs
@@ -3488,12 +3488,12 @@ mod tests {
 
     use crate::interlock::*;
     use crate::store::msg::WriteResponse;
-    use crate::store::peer_causetStorage::RAFT_INIT_LOG_INDEX;
+    use crate::store::peer_causetStorage::VIOLETABFT_INIT_LOG_INDEX;
     use crate::store::util::{new_learner_peer, new_peer};
     use engine_lmdb::{util::new_engine, LmdbEngine, LmdbSnapshot, LmdbWriteBatch};
     use engine_promises::{Peekable as PeekableTrait, WriteBatchExt};
     use ekvproto::metapb::{self, BraneEpoch};
-    use ekvproto::raft_cmdpb::*;
+    use ekvproto::violetabft_cmdpb::*;
     use protobuf::Message;
     use tempfile::{Builder, TempDir};
     use uuid::Uuid;
@@ -3815,7 +3815,7 @@ mod tests {
         let apply_state_key = tuplespaceInstanton::apply_state_key(2);
         let apply_state = match snapshot_rx.recv_timeout(Duration::from_secs(3)) {
             Ok(Some(BraneTask::Gen { kv_snap, .. })) => kv_snap
-                .get_msg_causet(CAUSET_RAFT, &apply_state_key)
+                .get_msg_causet(CAUSET_VIOLETABFT, &apply_state_key)
                 .unwrap()
                 .unwrap(),
             e => panic!("unexpected apply result: {:?}", e),
@@ -4046,7 +4046,7 @@ mod tests {
                 let batches = self.cmd_batches.replace(Vec::default());
                 for b in batches {
                     if let Some(sink) = self.cmd_sink.as_ref() {
-                        sink.lock().unwrap().slightlike(b).unwrap();
+                        sink.dagger().unwrap().slightlike(b).unwrap();
                     }
                 }
             }
@@ -4054,7 +4054,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handle_raft_committed_entries() {
+    fn test_handle_violetabft_committed_entries() {
         let (_path, engine) = create_tmp_engine("test-delegate");
         let (import_dir, importer) = create_tmp_importer("test-delegate");
         let obs = ApplyObserver::default();
@@ -4658,7 +4658,7 @@ mod tests {
     impl<'a> SplitResultChecker<'a> {
         fn check(&self, spacelike: &[u8], lightlike: &[u8], id: u64, children: &[u64], check_initial: bool) {
             let key = tuplespaceInstanton::brane_state_key(id);
-            let state: BraneLocalState = self.engine.get_msg_causet(CAUSET_RAFT, &key).unwrap().unwrap();
+            let state: BraneLocalState = self.engine.get_msg_causet(CAUSET_VIOLETABFT, &key).unwrap().unwrap();
             assert_eq!(state.get_state(), PeerState::Normal);
             assert_eq!(state.get_brane().get_id(), id);
             assert_eq!(state.get_brane().get_spacelike_key(), spacelike);
@@ -4682,15 +4682,15 @@ mod tests {
             }
             let key = tuplespaceInstanton::apply_state_key(id);
             let initial_state: VioletaBftApplyState =
-                self.engine.get_msg_causet(CAUSET_RAFT, &key).unwrap().unwrap();
-            assert_eq!(initial_state.get_applied_index(), RAFT_INIT_LOG_INDEX);
+                self.engine.get_msg_causet(CAUSET_VIOLETABFT, &key).unwrap().unwrap();
+            assert_eq!(initial_state.get_applied_index(), VIOLETABFT_INIT_LOG_INDEX);
             assert_eq!(
                 initial_state.get_truncated_state().get_index(),
-                RAFT_INIT_LOG_INDEX
+                VIOLETABFT_INIT_LOG_INDEX
             );
             assert_eq!(
                 initial_state.get_truncated_state().get_term(),
-                RAFT_INIT_LOG_INDEX
+                VIOLETABFT_INIT_LOG_INDEX
             );
         }
     }

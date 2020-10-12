@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use std::sync::atomic::AtomicBool;
 use std::sync::{mpsc, Arc, Mutex};
@@ -6,9 +6,9 @@ use std::time::Duration;
 
 use engine_promises::CAUSET_WRITE;
 use ekvproto::metapb::Brane;
-use ekvproto::raft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use fidel_client::FidelClient;
-use violetabft::eraftpb::MessageType;
+use violetabft::evioletabftpb::MessageType;
 use violetabftstore::store::util::is_vote_msg;
 use violetabftstore::Result;
 use einsteindb_util::HandyRwLock;
@@ -139,7 +139,7 @@ fn test_split_lost_request_vote() {
     // Make sure pre-vote is cached in plightlikeing votes.
     {
         let store_meta = cluster.store_metas.get(&3).unwrap();
-        let meta = store_meta.lock().unwrap();
+        let meta = store_meta.dagger().unwrap();
         assert!(meta.plightlikeing_votes.iter().any(|m| {
             m.brane_id == new_brane.id
                 && violetabftstore::store::util::is_first_vote_msg(m.get_message())
@@ -155,7 +155,7 @@ fn gen_split_brane() -> (Brane, Brane, Brane) {
     let mut cluster = new_server_cluster(0, 2);
     let brane_max_size = 50000;
     let brane_split_size = 30000;
-    cluster.causetg.raft_store.split_brane_check_tick_interval = ReadableDuration::millis(20);
+    cluster.causetg.violetabft_store.split_brane_check_tick_interval = ReadableDuration::millis(20);
     cluster.causetg.interlock.brane_max_size = ReadableSize(brane_max_size);
     cluster.causetg.interlock.brane_split_size = ReadableSize(brane_split_size);
 
@@ -228,7 +228,7 @@ impl Filter for PrevoteConeFilter {
             let spacelike_key = msg.get_spacelike_key().to_owned();
             let lightlike_key = msg.get_lightlike_key().to_owned();
             if let Some(before) = self.before.as_ref() {
-                let tx = before.lock().unwrap();
+                let tx = before.dagger().unwrap();
                 let _ = tx.slightlike((spacelike_key, lightlike_key));
             }
         }
@@ -236,7 +236,7 @@ impl Filter for PrevoteConeFilter {
     }
     fn after(&self, _: Result<()>) -> Result<()> {
         if let Some(after) = self.after.as_ref() {
-            let tx = after.lock().unwrap();
+            let tx = after.dagger().unwrap();
             let _ = tx.slightlike(());
         }
         Ok(())
@@ -250,9 +250,9 @@ impl Filter for PrevoteConeFilter {
 fn test_split_not_to_split_exist_brane() {
     let mut cluster = new_node_cluster(0, 4);
     configure_for_merge(&mut cluster);
-    cluster.causetg.raft_store.right_derive_when_split = true;
-    cluster.causetg.raft_store.apply_batch_system.max_batch_size = 1;
-    cluster.causetg.raft_store.apply_batch_system.pool_size = 2;
+    cluster.causetg.violetabft_store.right_derive_when_split = true;
+    cluster.causetg.violetabft_store.apply_batch_system.max_batch_size = 1;
+    cluster.causetg.violetabft_store.apply_batch_system.pool_size = 2;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -323,15 +323,15 @@ fn test_split_not_to_split_exist_brane() {
 fn test_split_not_to_split_exist_tombstone_brane() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.raft_store.right_derive_when_split = true;
-    cluster.causetg.raft_store.store_batch_system.max_batch_size = 1;
-    cluster.causetg.raft_store.store_batch_system.pool_size = 2;
-    cluster.causetg.raft_store.apply_batch_system.max_batch_size = 1;
-    cluster.causetg.raft_store.apply_batch_system.pool_size = 2;
+    cluster.causetg.violetabft_store.right_derive_when_split = true;
+    cluster.causetg.violetabft_store.store_batch_system.max_batch_size = 1;
+    cluster.causetg.violetabft_store.store_batch_system.pool_size = 2;
+    cluster.causetg.violetabft_store.apply_batch_system.max_batch_size = 1;
+    cluster.causetg.violetabft_store.apply_batch_system.pool_size = 2;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
-    fail::causetg("on_raft_gc_log_tick", "return()").unwrap();
+    fail::causetg("on_violetabft_gc_log_tick", "return()").unwrap();
     let r1 = cluster.run_conf_change();
 
     fidel_client.must_add_peer(r1, new_peer(3, 3));
@@ -377,6 +377,6 @@ fn test_split_not_to_split_exist_tombstone_brane() {
     // If left_peer_2 is created, `must_get_none` will fail.
     must_get_none(&cluster.get_engine(2), b"k1");
 
-    fail::remove("on_raft_gc_log_tick");
+    fail::remove("on_violetabft_gc_log_tick");
     fail::remove(peer_check_stale_state_fp);
 }

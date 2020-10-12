@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use std::error;
 use std::io;
@@ -158,9 +158,9 @@ impl From<Error> for errorpb::Error {
                 errorpb.mut_not_leader().set_brane_id(brane_id);
             }
             Error::VioletaBftEntryTooLarge(brane_id, entry_size) => {
-                errorpb.mut_raft_entry_too_large().set_brane_id(brane_id);
+                errorpb.mut_violetabft_entry_too_large().set_brane_id(brane_id);
                 errorpb
-                    .mut_raft_entry_too_large()
+                    .mut_violetabft_entry_too_large()
                     .set_entry_size(entry_size);
             }
             Error::StoreNotMatch(to_store_id, my_store_id) => {

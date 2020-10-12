@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 // TODO: This value is chosen based on MonetDB/X100's research without our own benchmarks.
 pub const BATCH_MAX_SIZE: usize = 1024;

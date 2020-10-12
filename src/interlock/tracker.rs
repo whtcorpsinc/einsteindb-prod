@@ -1,15 +1,15 @@
-// Copyright 2020 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+//Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use ekvproto::kvrpcpb;
 use ekvproto::kvrpcpb::ScanDetailV2;
 
-use crate::persistence::kv::{PerfStatisticsDelta, PerfStatisticsInstant};
+use crate::causetStorage::kv::{PerfStatisticsDelta, PerfStatisticsInstant};
 
 use einsteindb_util::time::{self, Duration, Instant};
 
 use super::metrics::*;
 use crate::interlock::*;
-use crate::persistence::Statistics;
+use crate::causetStorage::Statistics;
 
 // If handle time is larger than the lower bound, the query is considered as slow query.
 const SLOW_QUERY_LOWER_BOUND: f64 = 1.0; // 1 second.

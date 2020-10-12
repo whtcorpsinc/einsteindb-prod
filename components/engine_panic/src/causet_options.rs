@@ -1,12 +1,12 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::db_options::PanicTitanDBOptions;
+use crate::db_options::PanicNoetherDBOptions;
 use engine_promises::PrimaryCausetNetworkOptions;
 
 pub struct PanicPrimaryCausetNetworkOptions;
 
 impl PrimaryCausetNetworkOptions for PanicPrimaryCausetNetworkOptions {
-    type TitanDBOptions = PanicTitanDBOptions;
+    type NoetherDBOptions = PanicNoetherDBOptions;
 
     fn new() -> Self {
         panic!()
@@ -29,7 +29,7 @@ impl PrimaryCausetNetworkOptions for PanicPrimaryCausetNetworkOptions {
     fn set_block_cache_capacity(&self, capacity: u64) -> Result<(), String> {
         panic!()
     }
-    fn set_titandb_options(&mut self, opts: &Self::TitanDBOptions) {
+    fn set_titandb_options(&mut self, opts: &Self::NoetherDBOptions) {
         panic!()
     }
     fn get_target_file_size_base(&self) -> u64 {

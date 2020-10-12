@@ -1,4 +1,4 @@
-// Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 use std::thread;
 use std::time::Duration;
 
@@ -283,8 +283,8 @@ fn test_deregister_plightlikeing_downstream() {
     // Sleep for a while to make sure the brane has been subscribed
     sleep_ms(200);
 
-    let raft_capture_fp = "raft_on_capture_change";
-    fail::causetg(raft_capture_fp, "pause").unwrap();
+    let violetabft_capture_fp = "violetabft_on_capture_change";
+    fail::causetg(violetabft_capture_fp, "pause").unwrap();
 
     // Conn 2
     let (mut req_tx2, resp_rx2) = suite.get_brane_cdc_client(1).event_feed().unwrap();
@@ -312,7 +312,7 @@ fn test_deregister_plightlikeing_downstream() {
         }
         other => panic!("unknown event {:?}", other),
     }
-    fail::remove(raft_capture_fp);
+    fail::remove(violetabft_capture_fp);
 
     event_feed_wrap.as_ref().replace(None);
     suite.stop();

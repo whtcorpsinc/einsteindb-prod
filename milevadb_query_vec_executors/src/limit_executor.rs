@@ -3,7 +3,7 @@
 use fidelpb::FieldType;
 
 use crate::interface::*;
-use milevadb_query_common::persistence::IntervalCone;
+use milevadb_query_common::causetStorage::IntervalCone;
 use milevadb_query_common::Result;
 
 /// FreeDaemon that retrieves events from the source executor
