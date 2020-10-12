@@ -22,7 +22,7 @@ fn writebatch(db: &Arc<DB>, round: usize, batch_tuplespaceInstanton: usize) {
 
 fn bench_writebatch_impl(b: &mut Bencher, batch_tuplespaceInstanton: usize) {
     let path = Builder::new()
-        .prefix("/tmp/rocksdb_write_batch_bench")
+        .prefix("/tmp/lmdb_write_batch_bench")
         .temfidelir()
         .unwrap();
     let db = Arc::new(DB::open_default(path.path().to_str().unwrap()).unwrap());
@@ -101,7 +101,7 @@ fn fill_writebatch(wb: &mut LmdbWriteBatch, target_size: usize) {
 #[bench]
 fn bench_writebatch_without_capacity(b: &mut Bencher) {
     let path = Builder::new()
-        .prefix("/tmp/rocksdb_write_batch_bench")
+        .prefix("/tmp/lmdb_write_batch_bench")
         .temfidelir()
         .unwrap();
     let db = Arc::new(DB::open_default(path.path().to_str().unwrap()).unwrap());
@@ -114,7 +114,7 @@ fn bench_writebatch_without_capacity(b: &mut Bencher) {
 #[bench]
 fn bench_writebatch_with_capacity(b: &mut Bencher) {
     let path = Builder::new()
-        .prefix("/tmp/rocksdb_write_batch_bench")
+        .prefix("/tmp/lmdb_write_batch_bench")
         .temfidelir()
         .unwrap();
     let db = Arc::new(DB::open_default(path.path().to_str().unwrap()).unwrap());

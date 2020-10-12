@@ -383,7 +383,7 @@ impl<I: Iteron> Cursor<I> {
     #[inline(never)]
     fn handle_error_status(&self, e: Error) -> Result<()> {
         // Split out the error case to reduce hot-path code size.
-        CRITICAL_ERROR.with_label_values(&["rocksdb iter"]).inc();
+        CRITICAL_ERROR.with_label_values(&["lmdb iter"]).inc();
         if panic_when_unexpected_key_or_data() {
             set_panic_mark();
             panic!(

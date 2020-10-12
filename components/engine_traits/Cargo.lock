@@ -485,7 +485,7 @@ deplightlikeencies = [
  "protobuf",
  "quick-error",
  "violetabft",
- "rocksdb",
+ "lmdb",
  "serde",
  "serde_derive",
  "slog",
@@ -504,7 +504,7 @@ deplightlikeencies = [
  "engine_promises",
  "lazy_static",
  "prometheus",
- "rocksdb",
+ "lmdb",
  "slog",
  "slog-global",
  "einsteindb_alloc",
@@ -1024,9 +1024,9 @@ deplightlikeencies = [
 ]
 
 [[package]]
-name = "librocksdb_sys"
+name = "liblmdb_sys"
 version = "0.1.0"
-source = "git+https://github.com/einsteindb/rust-rocksdb.git#89a161a5f5987dfe0b3889e88080a452e93a4013"
+source = "git+https://github.com/einsteindb/rust-lmdb.git#89a161a5f5987dfe0b3889e88080a452e93a4013"
 deplightlikeencies = [
  "bindgen",
  "bzip2-sys",
@@ -1043,7 +1043,7 @@ deplightlikeencies = [
 [[package]]
 name = "libtitan_sys"
 version = "0.0.1"
-source = "git+https://github.com/einsteindb/rust-rocksdb.git#89a161a5f5987dfe0b3889e88080a452e93a4013"
+source = "git+https://github.com/einsteindb/rust-lmdb.git#89a161a5f5987dfe0b3889e88080a452e93a4013"
 deplightlikeencies = [
  "bzip2-sys",
  "cc",
@@ -1847,12 +1847,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cabe4fa914dec5870285fa7f71f602645da47c486e68486d2b4ceb4a343e90ac"
 
 [[package]]
-name = "rocksdb"
+name = "lmdb"
 version = "0.3.0"
-source = "git+https://github.com/einsteindb/rust-rocksdb.git#89a161a5f5987dfe0b3889e88080a452e93a4013"
+source = "git+https://github.com/einsteindb/rust-lmdb.git#89a161a5f5987dfe0b3889e88080a452e93a4013"
 deplightlikeencies = [
  "libc",
- "librocksdb_sys",
+ "liblmdb_sys",
 ]
 
 [[package]]
@@ -2243,7 +2243,7 @@ name = "tests"
 version = "0.1.0"
 deplightlikeencies = [
  "engine_lmdb",
- "rocksdb",
+ "lmdb",
 ]
 
 [[package]]

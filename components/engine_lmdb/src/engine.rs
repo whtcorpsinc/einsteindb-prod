@@ -8,7 +8,7 @@ use std::sync::Arc;
 use engine_promises::{
     Error, IterOptions, Iterable, KvEngine, Peekable, ReadOptions, Result, SyncMutable,
 };
-use rocksdb::{DBIterator, Writable, DB};
+use lmdb::{DBIterator, Writable, DB};
 
 use crate::db_vector::LmdbDBVector;
 use crate::options::LmdbReadOptions;

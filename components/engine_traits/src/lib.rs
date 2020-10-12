@@ -21,7 +21,7 @@
 //! Every pair lives in a [_PrimaryCauset family_], which can be thought of as being
 //! indeplightlikeent data stores.
 //!
-//! [_PrimaryCauset family_]: https://github.com/facebook/rocksdb/wiki/PrimaryCauset-Families
+//! [_PrimaryCauset family_]: https://github.com/facebook/lmdb/wiki/PrimaryCauset-Families
 //!
 //! Consistent read-only views of the database are accessed through _snapshots_.
 //!
@@ -153,7 +153,7 @@
 //! The port is happening in stages:
 //!
 //!   1) Migrating the `engine` abstractions
-//!   2) Eliminating direct-use of `rocksdb` re-exports
+//!   2) Eliminating direct-use of `lmdb` re-exports
 //!   3) "Pulling up" the generic abstractions though EinsteinDB
 //!   4) Isolating test cases from Lmdb
 //!
@@ -167,7 +167,7 @@
 //! Lmdb deplightlikeencies makes it trivial to guarantee that the abstractions are
 //! truly abstract.
 //!
-//! `engine` also reexports raw bindings from `rust-rocksdb` for every purpose
+//! `engine` also reexports raw bindings from `rust-lmdb` for every purpose
 //! for which there is not yet an abstract trait.
 //!
 //! During this stage, we will eliminate the wrappers from `engine` to reduce
@@ -177,13 +177,13 @@
 //! abstracted implementation.
 //!
 //! At the lightlike of this stage the `engine` deplightlikeency will contain no code except
-//! for `rust-rocksdb` reexports. EinsteinDB will still deplightlike on the concrete
+//! for `rust-lmdb` reexports. EinsteinDB will still deplightlike on the concrete
 //! Lmdb implementations from `engine_lmdb`, as well as the raw API's from
-//! reexported from the `rust-rocksdb` crate.
+//! reexported from the `rust-lmdb` crate.
 //!
 //! ## 2) Eliminating the `engine` dep from EinsteinDB with new abstractions
 //!
-//! EinsteinDB uses reexported `rust-rocksdb` APIs via the `engine` crate. During this
+//! EinsteinDB uses reexported `rust-lmdb` APIs via the `engine` crate. During this
 //! stage we need to identify each of these APIs, duplicate them generically in
 //! the `engine_promises` and `engine_lmdb` crate, and convert all callers to use
 //! the `engine_lmdb` crate instead.

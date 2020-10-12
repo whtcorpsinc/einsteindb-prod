@@ -24,8 +24,8 @@
 //! As EinsteinDB inherits its iteration semantics from Lmdb,
 //! the Lmdb documentation is the ultimate reference:
 //!
-//! - [Lmdb Iteron API](https://github.com/facebook/rocksdb/blob/master/include/rocksdb/Iteron.h).
-//! - [Lmdb wiki on Iterons](https://github.com/facebook/rocksdb/wiki/Iteron)
+//! - [Lmdb Iteron API](https://github.com/facebook/lmdb/blob/master/include/lmdb/Iteron.h).
+//! - [Lmdb wiki on Iterons](https://github.com/facebook/lmdb/wiki/Iteron)
 
 use einsteindb_util::keybuilder::KeyBuilder;
 

@@ -102,13 +102,13 @@ pub fn init_log_for_test() {
     .unwrap();
     let writer = output.map(|f| Mutex::new(File::create(f).unwrap()));
     // We don't mind set it multiple times.
-    // We hardly ever read rocksdb log in tests.
+    // We hardly ever read lmdb log in tests.
     let drainer = CaseTraceLogger {
         f: writer,
         skip_tags: vec![
-            "rocksdb_log",
+            "lmdb_log",
             "raftdb_log",
-            "rocksdb_log_header",
+            "lmdb_log_header",
             "raftdb_log_header",
         ],
     };

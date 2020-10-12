@@ -355,13 +355,13 @@ pub mod tests {
     }
 
     pub fn gc_by_compact(engine: &StorageLmdbEngine, _: &[u8], safe_point: u64) {
-        let engine = engine.get_rocksdb();
+        let engine = engine.get_lmdb();
         // Put a new key-value pair to ensure compaction can be triggered correctly.
         engine.put_causet("write", b"k1", b"v1").unwrap();
         do_gc_by_compact(&engine, None, None, safe_point, None);
     }
 
-    fn rocksdb_level_file_counts(engine: &LmdbEngine, causet: &str) -> Vec<usize> {
+    fn lmdb_level_file_counts(engine: &LmdbEngine, causet: &str) -> Vec<usize> {
         let causet_handle = get_causet_handle(engine.as_inner(), causet).unwrap();
         let metadata = engine.as_inner().get_PrimaryCauset_family_meta_data(causet_handle);
         let mut res = Vec::with_capacity(7);
@@ -395,7 +395,7 @@ pub mod tests {
         #[test]
         fn at_bottommost_level() {
             let engine = TestEngineBuilder::new().build().unwrap();
-            let raw_engine = engine.get_rocksdb();
+            let raw_engine = engine.get_lmdb();
 
             let split_key = Key::from_raw(b"key")
                 .applightlike_ts(TimeStamp::from(135))
@@ -406,7 +406,7 @@ pub mod tests {
             must_prewrite_put(&engine, b"key", b"value", b"key", 100);
             must_commit(&engine, b"key", 100, 110);
             do_gc_by_compact(&raw_engine, None, None, 50, None);
-            assert_eq!(rocksdb_level_file_counts(&raw_engine, CAUSET_WRITE)[6], 1);
+            assert_eq!(lmdb_level_file_counts(&raw_engine, CAUSET_WRITE)[6], 1);
 
             // So the construction of SST files will be:
             // L6: |key_140, key_130|, |key_110|
@@ -415,7 +415,7 @@ pub mod tests {
             must_prewrite_delete(&engine, b"key", b"key", 140);
             must_commit(&engine, b"key", 140, 140);
             do_gc_by_compact(&raw_engine, None, Some(&split_key), 50, None);
-            assert_eq!(rocksdb_level_file_counts(&raw_engine, CAUSET_WRITE)[6], 2);
+            assert_eq!(lmdb_level_file_counts(&raw_engine, CAUSET_WRITE)[6], 2);
 
             // Put more key/value pairs so that 1 file in L0 and 1 file in L6 can be merged.
             must_prewrite_put(&engine, b"kex", b"value", b"kex", 100);
@@ -424,7 +424,7 @@ pub mod tests {
             do_gc_by_compact(&raw_engine, None, Some(&split_key), 200, None);
 
             // There are still 2 files in L6 because the SST contains key_110 is not touched.
-            assert_eq!(rocksdb_level_file_counts(&raw_engine, CAUSET_WRITE)[6], 2);
+            assert_eq!(lmdb_level_file_counts(&raw_engine, CAUSET_WRITE)[6], 2);
 
             // Although the SST files is not involved in the last compaction,
             // all versions of "key" should be cleared.
@@ -440,7 +440,7 @@ pub mod tests {
             let mut causetg = DbConfig::default();
             causetg.writecauset.dynamic_level_bytes = false;
             let engine = TestEngineBuilder::new().build_with_causetg(&causetg).unwrap();
-            let raw_engine = engine.get_rocksdb();
+            let raw_engine = engine.get_lmdb();
 
             // So the construction of SST files will be:
             // L6: |AAAAA_101, CCCCC_111|
@@ -449,7 +449,7 @@ pub mod tests {
             must_prewrite_put(&engine, b"CCCCC", b"value", b"key", 110);
             must_commit(&engine, b"CCCCC", 110, 111);
             do_gc_by_compact(&raw_engine, None, None, 50, Some(6));
-            assert_eq!(rocksdb_level_file_counts(&raw_engine, CAUSET_WRITE)[6], 1);
+            assert_eq!(lmdb_level_file_counts(&raw_engine, CAUSET_WRITE)[6], 1);
 
             // So the construction of SST files will be:
             // L0: |BBBB_101, DDDDD_101|
@@ -459,7 +459,7 @@ pub mod tests {
             must_prewrite_put(&engine, b"DDDDD", b"value", b"key", 100);
             must_commit(&engine, b"DDDDD", 100, 101);
             raw_engine.flush_causet(CAUSET_WRITE, true).unwrap();
-            assert_eq!(rocksdb_level_file_counts(&raw_engine, CAUSET_WRITE)[0], 1);
+            assert_eq!(lmdb_level_file_counts(&raw_engine, CAUSET_WRITE)[0], 1);
 
             // So the construction of SST files will be:
             // L0: |AAAAA_111, BBBBB_111|, |BBBB_101, DDDDD_101|
@@ -469,7 +469,7 @@ pub mod tests {
             must_prewrite_delete(&engine, b"BBBBB", b"BBBBB", 110);
             must_commit(&engine, b"BBBBB", 110, 111);
             raw_engine.flush_causet(CAUSET_WRITE, true).unwrap();
-            assert_eq!(rocksdb_level_file_counts(&raw_engine, CAUSET_WRITE)[0], 2);
+            assert_eq!(lmdb_level_file_counts(&raw_engine, CAUSET_WRITE)[0], 2);
 
             // Compact |AAAAA_111, BBBBB_111| at L0 and |AAAA_101, CCCCC_111| at L6.
             let spacelike = Key::from_raw(b"AAAAA").into_encoded();

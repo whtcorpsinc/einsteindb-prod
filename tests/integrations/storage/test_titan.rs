@@ -31,8 +31,8 @@ use txn_types::{Key, Write, WriteType};
 #[test]
 fn test_turnoff_titan() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.rocksdb.defaultcauset.disable_auto_compactions = true;
-    cluster.causetg.rocksdb.defaultcauset.num_levels = 1;
+    cluster.causetg.lmdb.defaultcauset.disable_auto_compactions = true;
+    cluster.causetg.lmdb.defaultcauset.num_levels = 1;
     configure_for_enable_titan(&mut cluster, ReadableSize::kb(0));
     cluster.run();
     assert_eq!(cluster.must_get(b"k1"), None);
@@ -59,20 +59,20 @@ fn test_turnoff_titan() {
     for i in cluster.get_node_ids().into_iter() {
         let db = cluster.get_engine(i);
         assert_eq!(
-            db.get_property_int(&"rocksdb.num-files-at-level0").unwrap(),
+            db.get_property_int(&"lmdb.num-files-at-level0").unwrap(),
             2
         );
         assert_eq!(
-            db.get_property_int(&"rocksdb.num-files-at-level1").unwrap(),
+            db.get_property_int(&"lmdb.num-files-at-level1").unwrap(),
             0
         );
         assert_eq!(
-            db.get_property_int(&"rocksdb.titandb.num-live-blob-file")
+            db.get_property_int(&"lmdb.titandb.num-live-blob-file")
                 .unwrap(),
             2
         );
         assert_eq!(
-            db.get_property_int(&"rocksdb.titandb.num-obsolete-blob-file")
+            db.get_property_int(&"lmdb.titandb.num-obsolete-blob-file")
                 .unwrap(),
             0
         );
@@ -102,16 +102,16 @@ fn test_turnoff_titan() {
         all_check_pass = true;
         for i in cluster.get_node_ids().into_iter() {
             let db = cluster.get_engine(i);
-            if db.get_property_int(&"rocksdb.num-files-at-level0").unwrap() != 0 {
+            if db.get_property_int(&"lmdb.num-files-at-level0").unwrap() != 0 {
                 all_check_pass = false;
                 break;
             }
-            if db.get_property_int(&"rocksdb.num-files-at-level1").unwrap() != 1 {
+            if db.get_property_int(&"lmdb.num-files-at-level1").unwrap() != 1 {
                 all_check_pass = false;
                 break;
             }
             if db
-                .get_property_int(&"rocksdb.titandb.num-live-blob-file")
+                .get_property_int(&"lmdb.titandb.num-live-blob-file")
                 .unwrap()
                 != 0
             {
@@ -149,18 +149,18 @@ fn test_delete_files_in_cone_for_titan() {
     // Set configs and create engines
     let mut causetg = EINSTEINDBConfig::default();
     let cache = causetg.persistence.block_cache.build_shared_cache();
-    causetg.rocksdb.titan.enabled = true;
-    causetg.rocksdb.titan.disable_gc = true;
-    causetg.rocksdb.titan.purge_obsolete_files_period = ReadableDuration::secs(1);
-    causetg.rocksdb.defaultcauset.disable_auto_compactions = true;
+    causetg.lmdb.titan.enabled = true;
+    causetg.lmdb.titan.disable_gc = true;
+    causetg.lmdb.titan.purge_obsolete_files_period = ReadableDuration::secs(1);
+    causetg.lmdb.defaultcauset.disable_auto_compactions = true;
     // Disable dynamic_level_bytes, otherwise SST files would be ingested to L0.
-    causetg.rocksdb.defaultcauset.dynamic_level_bytes = false;
-    causetg.rocksdb.defaultcauset.titan.min_gc_batch_size = ReadableSize(0);
-    causetg.rocksdb.defaultcauset.titan.discardable_ratio = 0.4;
-    causetg.rocksdb.defaultcauset.titan.sample_ratio = 1.0;
-    causetg.rocksdb.defaultcauset.titan.min_blob_size = ReadableSize(0);
-    let kv_db_opts = causetg.rocksdb.build_opt();
-    let kv_causets_opts = causetg.rocksdb.build_causet_opts(&cache);
+    causetg.lmdb.defaultcauset.dynamic_level_bytes = false;
+    causetg.lmdb.defaultcauset.titan.min_gc_batch_size = ReadableSize(0);
+    causetg.lmdb.defaultcauset.titan.discardable_ratio = 0.4;
+    causetg.lmdb.defaultcauset.titan.sample_ratio = 1.0;
+    causetg.lmdb.defaultcauset.titan.min_blob_size = ReadableSize(0);
+    let kv_db_opts = causetg.lmdb.build_opt();
+    let kv_causets_opts = causetg.lmdb.build_causet_opts(&cache);
 
     let raft_path = path.path().join(Path::new("titan"));
     let engines = Engines::new(
@@ -221,9 +221,9 @@ fn test_delete_files_in_cone_for_titan() {
     // Flush and compact the kvs into L6.
     db.flush(true).unwrap();
     db.c().compact_files_in_cone(None, None, None).unwrap();
-    let value = db.get_property_int(&"rocksdb.num-files-at-level0").unwrap();
+    let value = db.get_property_int(&"lmdb.num-files-at-level0").unwrap();
     assert_eq!(value, 0);
-    let value = db.get_property_int(&"rocksdb.num-files-at-level6").unwrap();
+    let value = db.get_property_int(&"lmdb.num-files-at-level6").unwrap();
     assert_eq!(value, 1);
 
     // Delete one mvcc kvs we have written above.
@@ -250,11 +250,11 @@ fn test_delete_files_in_cone_for_titan() {
     //
     // There is one blob file in Titan
     // blob1: (a_7, a_value), (b_7, b_value)
-    let value = db.get_property_int(&"rocksdb.num-files-at-level0").unwrap();
+    let value = db.get_property_int(&"lmdb.num-files-at-level0").unwrap();
     assert_eq!(value, 0);
-    let value = db.get_property_int(&"rocksdb.num-files-at-level5").unwrap();
+    let value = db.get_property_int(&"lmdb.num-files-at-level5").unwrap();
     assert_eq!(value, 1);
-    let value = db.get_property_int(&"rocksdb.num-files-at-level6").unwrap();
+    let value = db.get_property_int(&"lmdb.num-files-at-level6").unwrap();
     assert_eq!(value, 1);
 
     // Used to trigger titan gc
@@ -279,13 +279,13 @@ fn test_delete_files_in_cone_for_titan() {
     // blob2: (1, 1)
     // blob3: (2, 2)
     // blob4: (b_7, b_value)
-    let value = db.get_property_int(&"rocksdb.num-files-at-level0").unwrap();
+    let value = db.get_property_int(&"lmdb.num-files-at-level0").unwrap();
     assert_eq!(value, 0);
-    let value = db.get_property_int(&"rocksdb.num-files-at-level1").unwrap();
+    let value = db.get_property_int(&"lmdb.num-files-at-level1").unwrap();
     assert_eq!(value, 1);
-    let value = db.get_property_int(&"rocksdb.num-files-at-level5").unwrap();
+    let value = db.get_property_int(&"lmdb.num-files-at-level5").unwrap();
     assert_eq!(value, 1);
-    let value = db.get_property_int(&"rocksdb.num-files-at-level6").unwrap();
+    let value = db.get_property_int(&"lmdb.num-files-at-level6").unwrap();
     assert_eq!(value, 1);
 
     // Wait Titan to purge obsolete files
@@ -331,13 +331,13 @@ fn test_delete_files_in_cone_for_titan() {
     // blob2: (1, 1)
     // blob3: (2, 2)
     // blob4: (b_7, b_value)
-    let value = db.get_property_int(&"rocksdb.num-files-at-level0").unwrap();
+    let value = db.get_property_int(&"lmdb.num-files-at-level0").unwrap();
     assert_eq!(value, 0);
-    let value = db.get_property_int(&"rocksdb.num-files-at-level1").unwrap();
+    let value = db.get_property_int(&"lmdb.num-files-at-level1").unwrap();
     assert_eq!(value, 1);
-    let value = db.get_property_int(&"rocksdb.num-files-at-level5").unwrap();
+    let value = db.get_property_int(&"lmdb.num-files-at-level5").unwrap();
     assert_eq!(value, 0);
-    let value = db.get_property_int(&"rocksdb.num-files-at-level6").unwrap();
+    let value = db.get_property_int(&"lmdb.num-files-at-level6").unwrap();
     assert_eq!(value, 1);
 
     // Generate a snapshot

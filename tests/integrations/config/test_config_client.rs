@@ -96,13 +96,13 @@ fn test_write_ufidelate_to_file() {
 ## fidel-heartbeat-tick-interval = "30s"
 # fidel-heartbeat-tick-interval = "30s"
 
-[rocksdb.defaultcauset]
+[lmdb.defaultcauset]
 ## config should be ufidelate in place
 block-cache-size = "10GB"
 
-[rocksdb.lockcauset]
+[lmdb.lockcauset]
 ## this config will not ufidelate even it has the same last 
-## name as `rocksdb.defaultcauset.block-cache-size`
+## name as `lmdb.defaultcauset.block-cache-size`
 block-cache-size = "512MB"
 
 [interlock]
@@ -113,7 +113,7 @@ block-cache-size = "512MB"
 ## config should be ufidelate in place
 max-write-bytes-per-sec = "1KB"
 
-[rocksdb.defaultcauset.titan]
+[lmdb.defaultcauset.titan]
 blob-run-mode = "normal"
 "#;
         let mut f = File::create(&causetg.causetg_path).unwrap();
@@ -133,11 +133,11 @@ blob-run-mode = "normal"
         );
         change.insert("gc.max-write-bytes-per-sec".to_owned(), "100MB".to_owned());
         change.insert(
-            "rocksdb.defaultcauset.block-cache-size".to_owned(),
+            "lmdb.defaultcauset.block-cache-size".to_owned(),
             "1GB".to_owned(),
         );
         change.insert(
-            "rocksdb.defaultcauset.titan.blob-run-mode".to_owned(),
+            "lmdb.defaultcauset.titan.blob-run-mode".to_owned(),
             "read-only".to_owned(),
         );
         change
@@ -158,13 +158,13 @@ blob-run-mode = "normal"
 ## fidel-heartbeat-tick-interval = "30s"
 fidel-heartbeat-tick-interval = "1h"
 
-[rocksdb.defaultcauset]
+[lmdb.defaultcauset]
 ## config should be ufidelate in place
 block-cache-size = "1GB"
 
-[rocksdb.lockcauset]
+[lmdb.lockcauset]
 ## this config will not ufidelate even it has the same last 
-## name as `rocksdb.defaultcauset.block-cache-size`
+## name as `lmdb.defaultcauset.block-cache-size`
 block-cache-size = "512MB"
 
 [interlock]
@@ -176,7 +176,7 @@ brane-split-tuplespaceInstanton = 10000
 ## config should be ufidelate in place
 max-write-bytes-per-sec = "100MB"
 
-[rocksdb.defaultcauset.titan]
+[lmdb.defaultcauset.titan]
 blob-run-mode = "read-only"
 "#;
     assert_eq!(expect.as_bytes(), res.as_slice());

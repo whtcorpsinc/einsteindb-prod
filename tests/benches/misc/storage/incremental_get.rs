@@ -29,7 +29,7 @@ fn table_lookup_gen_data() -> (SnapshotStore<Arc<LmdbSnapshot>>, Vec<Key>) {
     store.commit(Context::default(), tuplespaceInstanton, 1, 2).unwrap();
 
     let engine = store.get_engine();
-    let db = engine.get_rocksdb().get_sync_db();
+    let db = engine.get_lmdb().get_sync_db();
     db.compact_cone_causet(db.causet_handle("write").unwrap(), None, None);
     db.compact_cone_causet(db.causet_handle("default").unwrap(), None, None);
     db.compact_cone_causet(db.causet_handle("lock").unwrap(), None, None);

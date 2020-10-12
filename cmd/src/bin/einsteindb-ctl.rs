@@ -49,8 +49,8 @@ use einsteindb_util::{escape, file::calc_crc32, unescape};
 use txn_types::Key;
 
 const METRICS_PROMETHEUS: &str = "prometheus";
-const METRICS_LMDB_KV: &str = "rocksdb_kv";
-const METRICS_LMDB_RAFT: &str = "rocksdb_raft";
+const METRICS_LMDB_KV: &str = "lmdb_kv";
+const METRICS_LMDB_RAFT: &str = "lmdb_raft";
 const METRICS_JEMALLOC: &str = "jemalloc";
 
 type MvccInfoStream = Pin<Box<dyn Stream<Item = Result<(Vec<u8>, MvccInfo), String>>>>;
@@ -78,10 +78,10 @@ fn new_debug_executor(
             let shared_block_cache = cache.is_some();
             let env = get_env(key_manager, None).unwrap();
 
-            let mut kv_db_opts = causetg.rocksdb.build_opt();
+            let mut kv_db_opts = causetg.lmdb.build_opt();
             kv_db_opts.set_env(env.clone());
             kv_db_opts.set_paranoid_checks(!skip_paranoid_checks);
-            let kv_causets_opts = causetg.rocksdb.build_causet_opts(&cache);
+            let kv_causets_opts = causetg.lmdb.build_causet_opts(&cache);
             let kv_path = PathBuf::from(kv_path).canonicalize().unwrap();
             let kv_path = kv_path.to_str().unwrap();
             let kv_db =
@@ -698,12 +698,12 @@ impl DebugFreeDaemon for DebugClient {
         for tag in tags {
             v1!("tag:{}", tag);
             let metrics = match tag {
-                METRICS_LMDB_KV => resp.take_rocksdb_kv(),
-                METRICS_LMDB_RAFT => resp.take_rocksdb_raft(),
+                METRICS_LMDB_KV => resp.take_lmdb_kv(),
+                METRICS_LMDB_RAFT => resp.take_lmdb_raft(),
                 METRICS_JEMALLOC => resp.take_jemalloc(),
                 METRICS_PROMETHEUS => resp.take_prometheus(),
                 _ => String::from(
-                    "unsupported tag, should be one of prometheus/jemalloc/rocksdb_raft/rocksdb_kv",
+                    "unsupported tag, should be one of prometheus/jemalloc/lmdb_raft/lmdb_kv",
                 ),
             };
             v1!("{}", metrics);
@@ -1037,26 +1037,26 @@ fn main() {
             Arg::with_name("db")
                 .long("db")
                 .takes_value(true)
-                .help("Set the rocksdb path"),
+                .help("Set the lmdb path"),
         )
         .arg(
             Arg::with_name("raftdb")
                 .long("raftdb")
                 .takes_value(true)
-                .help("Set the violetabft rocksdb path"),
+                .help("Set the violetabft lmdb path"),
         )
         .arg(
             Arg::with_name("skip-paranoid-checks")
                 .required(false)
                 .long("skip-paranoid-checks")
                 .takes_value(false)
-                .help("Skip paranoid checks when open rocksdb"),
+                .help("Skip paranoid checks when open lmdb"),
         )
         .arg(
             Arg::with_name("config")
                 .long("config")
                 .takes_value(true)
-                .help("Set the config for rocksdb"),
+                .help("Set the config for lmdb"),
         )
         .arg(
             Arg::with_name("host")
@@ -1571,10 +1571,10 @@ fn main() {
                         .value_delimiter(",")
                         .default_value(METRICS_PROMETHEUS)
                         .possible_values(&[
-                            "prometheus", "jemalloc", "rocksdb_raft", "rocksdb_kv",
+                            "prometheus", "jemalloc", "lmdb_raft", "lmdb_kv",
                         ])
                         .help(
-                            "Set the metrics tag, one of prometheus/jemalloc/rocksdb_raft/rocksdb_kv, if not specified, print prometheus",
+                            "Set the metrics tag, one of prometheus/jemalloc/lmdb_raft/lmdb_kv, if not specified, print prometheus",
                         ),
                 ),
         )
@@ -1592,7 +1592,7 @@ fn main() {
         .subcommand(SubCommand::with_name("bad-branes").about("Get all branes with corrupt violetabft"))
         .subcommand(
             SubCommand::with_name("modify-einsteindb-config")
-                .about("Modify einsteindb config, eg. einsteindb-ctl --host ip:port modify-einsteindb-config -n rocksdb.defaultcauset.disable-auto-compactions -v true")
+                .about("Modify einsteindb config, eg. einsteindb-ctl --host ip:port modify-einsteindb-config -n lmdb.defaultcauset.disable-auto-compactions -v true")
                 .arg(
                     Arg::with_name("config_name")
                         .required(true)
@@ -2409,7 +2409,7 @@ fn run_ldb_command(cmd: &ArgMatches<'_>, causetg: &EINSTEINDBConfig) {
         .unwrap()
         .map(|key_manager| Arc::new(key_manager));
     let env = get_env(key_manager, None).unwrap();
-    let mut opts = causetg.rocksdb.build_opt();
+    let mut opts = causetg.lmdb.build_opt();
     opts.set_env(env);
 
     engine_lmdb::raw::run_ldb_tool(&args, &opts);

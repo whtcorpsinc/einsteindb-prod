@@ -102,17 +102,17 @@ impl LmdbEngine {
         info!("LmdbEngine: creating for path"; "path" => path);
         let (path, temp_dir) = match path {
             TEMP_DIR => {
-                let td = Builder::new().prefix("temp-rocksdb").temfidelir().unwrap();
+                let td = Builder::new().prefix("temp-lmdb").temfidelir().unwrap();
                 (td.path().to_str().unwrap().to_owned(), Some(td))
             }
             _ => (path.to_owned(), None),
         };
-        let mut worker = Worker::new("engine-rocksdb");
+        let mut worker = Worker::new("engine-lmdb");
         let db = Arc::new(engine_lmdb::raw_util::new_engine(
             &path, None, causets, causets_opts,
         )?);
         // It does not use the raft_engine, so it is ok to fill with the same
-        // rocksdb.
+        // lmdb.
         let mut kv_engine = BaseLmdbEngine::from_db(db.clone());
         let mut raft_engine = BaseLmdbEngine::from_db(db);
         kv_engine.set_shared_block_cache(shared_block_cache);
@@ -139,7 +139,7 @@ impl LmdbEngine {
         self.engines.clone()
     }
 
-    pub fn get_rocksdb(&self) -> BaseLmdbEngine {
+    pub fn get_lmdb(&self) -> BaseLmdbEngine {
         self.engines.kv.clone()
     }
 
@@ -202,11 +202,11 @@ impl TestEngineBuilder {
 
     /// Build a `LmdbEngine`.
     pub fn build(self) -> Result<LmdbEngine> {
-        let causetg_rocksdb = crate::config::DbConfig::default();
-        self.build_with_causetg(&causetg_rocksdb)
+        let causetg_lmdb = crate::config::DbConfig::default();
+        self.build_with_causetg(&causetg_lmdb)
     }
 
-    pub fn build_with_causetg(self, causetg_rocksdb: &crate::config::DbConfig) -> Result<LmdbEngine> {
+    pub fn build_with_causetg(self, causetg_lmdb: &crate::config::DbConfig) -> Result<LmdbEngine> {
         let path = match self.path {
             None => TEMP_DIR.to_owned(),
             Some(p) => p.to_str().unwrap().to_owned(),
@@ -216,10 +216,10 @@ impl TestEngineBuilder {
         let causets_opts = causets
             .iter()
             .map(|causet| match *causet {
-                CAUSET_DEFAULT => CAUSETOptions::new(CAUSET_DEFAULT, causetg_rocksdb.defaultcauset.build_opt(&cache)),
-                CAUSET_DAGGER => CAUSETOptions::new(CAUSET_DAGGER, causetg_rocksdb.lockcauset.build_opt(&cache)),
-                CAUSET_WRITE => CAUSETOptions::new(CAUSET_WRITE, causetg_rocksdb.writecauset.build_opt(&cache)),
-                CAUSET_RAFT => CAUSETOptions::new(CAUSET_RAFT, causetg_rocksdb.raftcauset.build_opt(&cache)),
+                CAUSET_DEFAULT => CAUSETOptions::new(CAUSET_DEFAULT, causetg_lmdb.defaultcauset.build_opt(&cache)),
+                CAUSET_DAGGER => CAUSETOptions::new(CAUSET_DAGGER, causetg_lmdb.lockcauset.build_opt(&cache)),
+                CAUSET_WRITE => CAUSETOptions::new(CAUSET_WRITE, causetg_lmdb.writecauset.build_opt(&cache)),
+                CAUSET_RAFT => CAUSETOptions::new(CAUSET_RAFT, causetg_lmdb.raftcauset.build_opt(&cache)),
                 _ => CAUSETOptions::new(*causet, PrimaryCausetNetworkOptions::new()),
             })
             .collect();
@@ -450,7 +450,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_rocksdb() {
+    fn test_lmdb() {
         let engine = TestEngineBuilder::new()
             .causets(TEST_ENGINE_CAUSETS)
             .build()
@@ -459,7 +459,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rocksdb_linear() {
+    fn test_lmdb_linear() {
         let engine = TestEngineBuilder::new()
             .causets(TEST_ENGINE_CAUSETS)
             .build()
@@ -468,7 +468,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rocksdb_statistic() {
+    fn test_lmdb_statistic() {
         let engine = TestEngineBuilder::new()
             .causets(TEST_ENGINE_CAUSETS)
             .build()
@@ -477,9 +477,9 @@ mod tests {
     }
 
     #[test]
-    fn rocksdb_reopen() {
+    fn lmdb_reopen() {
         let dir = tempfile::Builder::new()
-            .prefix("rocksdb_test")
+            .prefix("lmdb_test")
             .temfidelir()
             .unwrap();
         {
@@ -501,7 +501,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rocksdb_perf_statistics() {
+    fn test_lmdb_perf_statistics() {
         let engine = TestEngineBuilder::new()
             .causets(TEST_ENGINE_CAUSETS)
             .build()

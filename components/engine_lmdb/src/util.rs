@@ -11,8 +11,8 @@ use engine_promises::Engines;
 use engine_promises::Cone;
 use engine_promises::CAUSET_DEFAULT;
 use engine_promises::{Error, Result};
-use rocksdb::Cone as LmdbCone;
-use rocksdb::{CAUSETHandle, SliceTransform, DB};
+use lmdb::Cone as LmdbCone;
+use lmdb::{CAUSETHandle, SliceTransform, DB};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -101,7 +101,7 @@ pub fn cone_to_rocks_cone<'a>(cone: &Cone<'a>) -> LmdbCone<'a> {
 pub fn get_engine_causet_used_size(engine: &DB, handle: &CAUSETHandle) -> u64 {
     let mut causet_used_size = engine
         .get_property_int_causet(handle, LMDB_TOTAL_SST_FILES_SIZE)
-        .expect("rocksdb is too old, missing total-sst-files-size property");
+        .expect("lmdb is too old, missing total-sst-files-size property");
     // For memtable
     if let Some(mem_table) = engine.get_property_int_causet(handle, LMDB_CUR_SIZE_ALL_MEM_TABLES) {
         causet_used_size += mem_table;

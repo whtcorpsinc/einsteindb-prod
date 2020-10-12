@@ -15,8 +15,8 @@ use einsteindb_util::{self, config, logger};
 // A workaround for checking if log is initialized.
 pub static LOG_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
-// The info log file names does not lightlike with ".log" since it conflict with rocksdb WAL files.
-pub const DEFAULT_LMDB_LOG_FILE: &str = "rocksdb.info";
+// The info log file names does not lightlike with ".log" since it conflict with lmdb WAL files.
+pub const DEFAULT_LMDB_LOG_FILE: &str = "lmdb.info";
 pub const DEFAULT_RAFTDB_LOG_FILE: &str = "raftdb.info";
 
 #[macro_export]
@@ -125,8 +125,8 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
             Some(slow_log_writer)
         };
 
-        let rocksdb_info_log_path = if !config.rocksdb.info_log_dir.is_empty() {
-            make_engine_log_path(&config.rocksdb.info_log_dir, "", DEFAULT_LMDB_LOG_FILE)
+        let lmdb_info_log_path = if !config.lmdb.info_log_dir.is_empty() {
+            make_engine_log_path(&config.lmdb.info_log_dir, "", DEFAULT_LMDB_LOG_FILE)
         } else {
             make_engine_log_path(
                 &config.persistence.data_dir,
@@ -147,16 +147,16 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
                 make_engine_log_path(&config.persistence.data_dir, "violetabft", DEFAULT_RAFTDB_LOG_FILE)
             }
         };
-        let rocksdb_log_writer = logger::file_writer(
-            &rocksdb_info_log_path,
+        let lmdb_log_writer = logger::file_writer(
+            &lmdb_info_log_path,
             config.log_rotation_timespan,
             config.log_rotation_size,
             rename_by_timestamp,
         )
         .unwrap_or_else(|e| {
             fatal!(
-                "failed to initialize rocksdb log with file {}: {}",
-                rocksdb_info_log_path,
+                "failed to initialize lmdb log with file {}: {}",
+                lmdb_info_log_path,
                 e
             );
         });
@@ -178,14 +178,14 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
         match config.log_format {
             config::LogFormat::Text => build_logger_with_slow_log(
                 logger::text_format(writer),
-                logger::rocks_text_format(rocksdb_log_writer),
+                logger::rocks_text_format(lmdb_log_writer),
                 logger::text_format(raftdb_log_writer),
                 slow_log_writer.map(logger::text_format),
                 config,
             ),
             config::LogFormat::Json => build_logger_with_slow_log(
                 logger::json_format(writer),
-                logger::json_format(rocksdb_log_writer),
+                logger::json_format(lmdb_log_writer),
                 logger::json_format(raftdb_log_writer),
                 slow_log_writer.map(logger::json_format),
                 config,
@@ -194,7 +194,7 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
 
         fn build_logger_with_slow_log<N, R, S, T>(
             normal: N,
-            rocksdb: R,
+            lmdb: R,
             raftdb: T,
             slow: Option<S>,
             config: &EINSTEINDBConfig,
@@ -204,7 +204,7 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
             S: slog::Drain<Ok = (), Err = io::Error> + Slightlike + 'static,
             T: slog::Drain<Ok = (), Err = io::Error> + Slightlike + 'static,
         {
-            let drainer = logger::LogDispatcher::new(normal, rocksdb, raftdb, slow);
+            let drainer = logger::LogDispatcher::new(normal, lmdb, raftdb, slow);
 
             // use async drainer and init std log.
             logger::init_log(

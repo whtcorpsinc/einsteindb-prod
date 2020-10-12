@@ -5,8 +5,8 @@ use engine_promises::DBOptions;
 use engine_promises::DBOptionsExt;
 use engine_promises::Result;
 use engine_promises::TitanDBOptions;
-use rocksdb::DBOptions as RawDBOptions;
-use rocksdb::TitanDBOptions as RawTitanDBOptions;
+use lmdb::DBOptions as RawDBOptions;
+use lmdb::TitanDBOptions as RawTitanDBOptions;
 
 impl DBOptionsExt for LmdbEngine {
     type DBOptions = LmdbDBOptions;

@@ -4,8 +4,8 @@ use crate::engine::LmdbEngine;
 use engine_promises::ImportExt;
 use engine_promises::IngestExternalFileOptions;
 use engine_promises::Result;
-use rocksdb::set_external_sst_file_global_seq_no;
-use rocksdb::IngestExternalFileOptions as RawIngestExternalFileOptions;
+use lmdb::set_external_sst_file_global_seq_no;
+use lmdb::IngestExternalFileOptions as RawIngestExternalFileOptions;
 use std::fs::File;
 use std::path::Path;
 

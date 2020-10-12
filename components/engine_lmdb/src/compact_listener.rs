@@ -7,7 +7,7 @@ use crate::properties::{ConeProperties, UserCollectedPropertiesDecoder};
 use crate::raw::EventListener;
 use engine_promises::CompactedEvent;
 use engine_promises::CompactionJobInfo;
-use rocksdb::{
+use lmdb::{
     CompactionJobInfo as RawCompactionJobInfo, CompactionReason, TablePropertiesCollectionView,
 };
 use std::collections::BTreeMap;

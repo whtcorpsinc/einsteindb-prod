@@ -418,7 +418,7 @@ where
     }
 
     /// Commits all changes have done for delegate. `persistent` indicates whether
-    /// write the changes into rocksdb.
+    /// write the changes into lmdb.
     ///
     /// This call is valid only when it's between a `prepare_for` and `finish_for`.
     pub fn commit(&mut self, delegate: &mut ApplyDelegate<EK>) {
@@ -2264,7 +2264,7 @@ where
                 index: ctx.exec_ctx.as_ref().unwrap().index,
                 context: req.get_compute_hash().get_context().to_vec(),
                 // This snapshot may be held for a long time, which may cause too many
-                // open files in rocksdb.
+                // open files in lmdb.
                 // TODO: figure out another way to do consistency check without snapshot
                 // or short life snapshot.
                 snap: ctx.engine.snapshot(),
@@ -2529,7 +2529,7 @@ impl GenSnapTask {
             last_applied_index_term,
             last_applied_state,
             // This snapshot may be held for a long time, which may cause too many
-            // open files in rocksdb.
+            // open files in lmdb.
             kv_snap,
         };
         box_try!(brane_sched.schedule(snapshot));

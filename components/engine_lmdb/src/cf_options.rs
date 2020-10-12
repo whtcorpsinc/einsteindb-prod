@@ -2,7 +2,7 @@
 
 use crate::db_options::LmdbTitanDBOptions;
 use engine_promises::PrimaryCausetNetworkOptions;
-use rocksdb::PrimaryCausetNetworkOptions as RawCAUSETOptions;
+use lmdb::PrimaryCausetNetworkOptions as RawCAUSETOptions;
 
 #[derive(Clone)]
 pub struct LmdbPrimaryCausetNetworkOptions(RawCAUSETOptions);

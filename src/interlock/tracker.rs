@@ -176,17 +176,17 @@ impl Tracker {
         let mut detail_v2 = ScanDetailV2::default();
         detail_v2.set_processed_versions(self.total_causetStorage_stats.write.processed_tuplespaceInstanton as u64);
         detail_v2.set_total_versions(self.total_causetStorage_stats.write.total_op_count() as u64);
-        detail_v2.set_rocksdb_delete_skipped_count(
+        detail_v2.set_lmdb_delete_skipped_count(
             self.total_perf_stats.0.internal_delete_skipped_count as u64,
         );
-        detail_v2.set_rocksdb_key_skipped_count(
+        detail_v2.set_lmdb_key_skipped_count(
             self.total_perf_stats.0.internal_key_skipped_count as u64,
         );
-        detail_v2.set_rocksdb_block_cache_hit_count(
+        detail_v2.set_lmdb_block_cache_hit_count(
             self.total_perf_stats.0.block_cache_hit_count as u64,
         );
-        detail_v2.set_rocksdb_block_read_count(self.total_perf_stats.0.block_read_count as u64);
-        detail_v2.set_rocksdb_block_read_byte(self.total_perf_stats.0.block_read_byte as u64);
+        detail_v2.set_lmdb_block_read_count(self.total_perf_stats.0.block_read_count as u64);
+        detail_v2.set_lmdb_block_read_byte(self.total_perf_stats.0.block_read_byte as u64);
 
         exec_details.set_use_scan_detail_v2(true);
         exec_details.set_scan_detail(detail);

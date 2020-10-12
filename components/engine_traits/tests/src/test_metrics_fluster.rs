@@ -4,7 +4,7 @@ use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
 
-use rocksdb::{DBOptions, TitanDBOptions};
+use lmdb::{DBOptions, TitanDBOptions};
 use tempfile::Builder;
 
 use engine_lmdb::util::{self as rocks_util, LmdbCAUSETOptions};

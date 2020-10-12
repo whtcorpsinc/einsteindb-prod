@@ -23,7 +23,7 @@ fn init_db_with_sst_files(db: &DB, level: i32, n: u8) {
 fn check_db_files_at_level(db: &DB, level: i32, num_files: u64) {
     for causet_name in &[CAUSET_DEFAULT, CAUSET_DAGGER] {
         let handle = db.causet_handle(causet_name).unwrap();
-        let name = format!("rocksdb.num-files-at-level{}", level);
+        let name = format!("lmdb.num-files-at-level{}", level);
         let value = db.get_property_int_causet(handle, &name).unwrap();
         if value != num_files {
             panic!(
@@ -51,22 +51,22 @@ fn test_clear_stale_data<T: Simulator>(cluster: &mut Cluster<T>) {
     // Disable compaction at level 0.
     cluster
         .causetg
-        .rocksdb
+        .lmdb
         .defaultcauset
         .level0_file_num_compaction_trigger = 100;
     cluster
         .causetg
-        .rocksdb
+        .lmdb
         .writecauset
         .level0_file_num_compaction_trigger = 100;
     cluster
         .causetg
-        .rocksdb
+        .lmdb
         .lockcauset
         .level0_file_num_compaction_trigger = 100;
     cluster
         .causetg
-        .rocksdb
+        .lmdb
         .raftcauset
         .level0_file_num_compaction_trigger = 100;
 

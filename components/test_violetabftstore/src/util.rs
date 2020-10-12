@@ -531,7 +531,7 @@ pub fn create_test_engine(
     let kv_path = dir.path().join(DEFAULT_LMDB_SUB_DIR);
     let kv_path_str = kv_path.to_str().unwrap();
 
-    let mut kv_db_opt = causetg.rocksdb.build_opt();
+    let mut kv_db_opt = causetg.lmdb.build_opt();
     kv_db_opt.set_env(env.clone());
 
     if let Some(router) = router {
@@ -549,7 +549,7 @@ pub fn create_test_engine(
         ));
     }
 
-    let kv_causets_opt = causetg.rocksdb.build_causet_opts(&cache);
+    let kv_causets_opt = causetg.lmdb.build_causet_opts(&cache);
 
     let engine = Arc::new(
         engine_lmdb::raw_util::new_engine_opt(kv_path_str, kv_db_opt, kv_causets_opt).unwrap(),
@@ -648,16 +648,16 @@ pub fn configure_for_enable_titan<T: Simulator>(
     cluster: &mut Cluster<T>,
     min_blob_size: ReadableSize,
 ) {
-    cluster.causetg.rocksdb.titan.enabled = true;
-    cluster.causetg.rocksdb.titan.purge_obsolete_files_period = ReadableDuration::secs(1);
-    cluster.causetg.rocksdb.titan.max_background_gc = 10;
-    cluster.causetg.rocksdb.defaultcauset.titan.min_blob_size = min_blob_size;
-    cluster.causetg.rocksdb.defaultcauset.titan.blob_run_mode = BlobRunMode::Normal;
-    cluster.causetg.rocksdb.defaultcauset.titan.min_gc_batch_size = ReadableSize::kb(0);
+    cluster.causetg.lmdb.titan.enabled = true;
+    cluster.causetg.lmdb.titan.purge_obsolete_files_period = ReadableDuration::secs(1);
+    cluster.causetg.lmdb.titan.max_background_gc = 10;
+    cluster.causetg.lmdb.defaultcauset.titan.min_blob_size = min_blob_size;
+    cluster.causetg.lmdb.defaultcauset.titan.blob_run_mode = BlobRunMode::Normal;
+    cluster.causetg.lmdb.defaultcauset.titan.min_gc_batch_size = ReadableSize::kb(0);
 }
 
 pub fn configure_for_disable_titan<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.rocksdb.titan.enabled = false;
+    cluster.causetg.lmdb.titan.enabled = false;
 }
 
 pub fn configure_for_encryption<T: Simulator>(cluster: &mut Cluster<T>) {

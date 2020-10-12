@@ -1022,7 +1022,7 @@ fn test_isolation_multi_inc() {
 use test::Bencher;
 
 #[bench]
-fn bench_txn_store_rocksdb_inc(b: &mut Bencher) {
+fn bench_txn_store_lmdb_inc(b: &mut Bencher) {
     let store = AssertionStorage::default();
     let oracle = Oracle::new();
 
@@ -1032,7 +1032,7 @@ fn bench_txn_store_rocksdb_inc(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_txn_store_rocksdb_inc_x100(b: &mut Bencher) {
+fn bench_txn_store_lmdb_inc_x100(b: &mut Bencher) {
     let store = AssertionStorage::default();
     let oracle = Oracle::new();
 
@@ -1042,7 +1042,7 @@ fn bench_txn_store_rocksdb_inc_x100(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_txn_store_rocksdb_put_x100(b: &mut Bencher) {
+fn bench_txn_store_lmdb_put_x100(b: &mut Bencher) {
     let store = AssertionStorage::default();
     let oracle = Oracle::new();
 

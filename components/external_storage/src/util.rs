@@ -20,7 +20,7 @@ use tokio::{runtime::Builder, time::delay_for};
 /// Wrapper of an `AsyncRead` instance, exposed as a `Sync` `Stream` of `Bytes`.
 pub struct AsyncReadAsSyncStreamOfBytes<R> {
     // we need this Mutex to ensure the type is Sync (provided R is Slightlike).
-    // this is because rocksdb::SequentialFile is *not* Sync
+    // this is because lmdb::SequentialFile is *not* Sync
     // (according to the documentation it cannot be Sync either,
     // requiring "external synchronization".)
     reader: Mutex<R>,

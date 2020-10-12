@@ -8,13 +8,13 @@ use engine_promises::{CfName, CAUSET_DEFAULT};
 use engine_promises::{ExternalSstFileInfo, SstCompressionType, SstWriter, SstWriterBuilder};
 use engine_promises::{Iterable, Result, SstExt, SstReader};
 use engine_promises::{Iteron, SeekKey};
-use rocksdb::rocksdb::supported_compression;
-use rocksdb::DBCompressionType;
-use rocksdb::DBIterator;
-use rocksdb::ExternalSstFileInfo as RawExternalSstFileInfo;
-use rocksdb::DB;
-use rocksdb::{PrimaryCausetNetworkOptions, SstFileReader};
-use rocksdb::{Env, EnvOptions, SequentialFile, SstFileWriter};
+use lmdb::lmdb::supported_compression;
+use lmdb::DBCompressionType;
+use lmdb::DBIterator;
+use lmdb::ExternalSstFileInfo as RawExternalSstFileInfo;
+use lmdb::DB;
+use lmdb::{PrimaryCausetNetworkOptions, SstFileReader};
+use lmdb::{Env, EnvOptions, SequentialFile, SstFileWriter};
 use std::rc::Rc;
 use std::sync::Arc;
 // FIXME: Move LmdbSeekKey into a common module since
@@ -82,7 +82,7 @@ impl Iterable for LmdbSstReader {
 pub struct LmdbSstIterator(DBIterator<Rc<SstFileReader>>);
 
 // TODO(5kbpers): Temporarily force to add `Slightlike` here, add a method for creating
-// DBIterator<Arc<SstFileReader>> in rust-rocksdb later.
+// DBIterator<Arc<SstFileReader>> in rust-lmdb later.
 unsafe impl Slightlike for LmdbSstIterator {}
 
 impl Iteron for LmdbSstIterator {
@@ -185,7 +185,7 @@ impl SstWriterBuilder<LmdbEngine> for LmdbSstWriterBuilder {
             if !all_supported_compression.contains(&ct) {
                 return Err(Error::Other(
                     format!(
-                        "compression type '{}' is not supported by rocksdb",
+                        "compression type '{}' is not supported by lmdb",
                         fmt_db_compression_type(ct)
                     )
                     .into(),
@@ -198,11 +198,11 @@ impl SstWriterBuilder<LmdbEngine> for LmdbSstWriterBuilder {
         // TODO: 0 is a valid value for compression_level
         if self.compression_level != 0 {
             // other three fields are default value.
-            // see: https://github.com/facebook/rocksdb/blob/8cb278d11a43773a3ac22e523f4d183b06d37d88/include/rocksdb/advanced_options.h#L146-L153
+            // see: https://github.com/facebook/lmdb/blob/8cb278d11a43773a3ac22e523f4d183b06d37d88/include/lmdb/advanced_options.h#L146-L153
             io_options.set_compression_options(-14, self.compression_level, 0, 0);
         }
         io_options.compression(compress_type);
-        // in rocksdb 5.5.1, SstFileWriter will try to use bottommost_compression and
+        // in lmdb 5.5.1, SstFileWriter will try to use bottommost_compression and
         // compression_per_level first, so to make sure our specified compression type
         // being used, we must set them empty or disabled.
         io_options.compression_per_level(&[]);

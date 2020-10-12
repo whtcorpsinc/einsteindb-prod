@@ -1,6 +1,6 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use rocksdb::{
+use lmdb::{
     ReadOptions as RawReadOptions, TableFilter, TableProperties, WriteOptions as RawWriteOptions,
 };
 use einsteindb_util::codec::number;

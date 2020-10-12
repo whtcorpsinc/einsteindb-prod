@@ -215,9 +215,9 @@
 ## Size of the shared block cache. Normally it should be tuned to 30%-50% of system's total memory.
 ## When the config is not set, it is decided by the sum of the following fields or their default
 ## value:
-##   * rocksdb.defaultcauset.block-cache-size or 25% of system's total memory
-##   * rocksdb.writecauset.block-cache-size   or 15% of system's total memory
-##   * rocksdb.lockcauset.block-cache-size    or  2% of system's total memory
+##   * lmdb.defaultcauset.block-cache-size or 25% of system's total memory
+##   * lmdb.writecauset.block-cache-size   or 15% of system's total memory
+##   * lmdb.lockcauset.block-cache-size    or  2% of system's total memory
 ##   * raftdb.defaultcauset.block-cache-size  or  2% of system's total memory
 ##
 ## To deploy multiple EinsteinDB nodes on a single physical machine, configure this parameter explicitly.
@@ -362,7 +362,7 @@
 ## Currently only "raw" is supported, which means the check is based raw data.
 # consistency-check-method = "raw"
 
-[rocksdb]
+[lmdb]
 ## Maximum number of threads of Lmdb background jobs.
 ## The background tasks include compaction and flush. For detailed information why Lmdb needs to
 ## do compaction, see Lmdb-related materials. Lmdb will adjust flush and compaction threads
@@ -390,7 +390,7 @@
 # max-open-files = 40960
 
 ## Max size of Lmdb's MANIFEST file.
-## For detailed explanation, please refer to https://github.com/facebook/rocksdb/wiki/MANIFEST
+## For detailed explanation, please refer to https://github.com/facebook/lmdb/wiki/MANIFEST
 # max-manifest-file-size = "128MB"
 
 ## If the value is `true`, the database will be created if it is missing.
@@ -407,7 +407,7 @@
 ## This config specifies the absolute directory path for WAL.
 ## If it is not set, the log files will be in the same directory as data. When you set the path to
 ## Lmdb directory in memory like in `/dev/shm`, you may want to set`wal-dir` to a directory on a
-## persistent persistence. See https://github.com/facebook/rocksdb/wiki/How-to-persist-in-memory-Lmdb-database .
+## persistent persistence. See https://github.com/facebook/lmdb/wiki/How-to-persist-in-memory-Lmdb-database .
 ## If there are two disks on the machine, storing Lmdb data and WAL logs on different disks can
 ## improve performance.
 # wal-dir = "/tmp/einsteindb/store"
@@ -423,7 +423,7 @@
 ##    with ttl being first.
 ## When you set the path to Lmdb directory in memory like in `/dev/shm`, you may want to set
 ## `wal-ttl-seconds` to a value greater than 0 (like 86400) and backup your DB on a regular basis.
-## See https://github.com/facebook/rocksdb/wiki/How-to-persist-in-memory-Lmdb-database .
+## See https://github.com/facebook/lmdb/wiki/How-to-persist-in-memory-Lmdb-database .
 # wal-ttl-seconds = 0
 # wal-size-limit = 0
 
@@ -439,7 +439,7 @@
 ## Same as Lmdb's default value (10 min).
 # stats-dump-period = "10m"
 
-## Refer to: https://github.com/facebook/rocksdb/wiki/Lmdb-FAQ
+## Refer to: https://github.com/facebook/lmdb/wiki/Lmdb-FAQ
 ## If you want to use Lmdb on multi disks or spinning disks, you should set value at least 2MB.
 # compaction-readahead-size = 0
 
@@ -503,7 +503,7 @@
 # info-log-level = "info"
 
 ## Options for `Titan`.
-[rocksdb.titan]
+[lmdb.titan]
 ## Enables or disables `Titan`. Note that Titan is still an experimental feature. Once
 ## enabled, it can't fall back. Forced fallback may result in data loss.
 ## default: false
@@ -514,7 +514,7 @@
 # max-background-gc = 4
 
 ## Options for "Default" PrimaryCauset Network, which stores actual user data.
-[rocksdb.defaultcauset]
+[lmdb.defaultcauset]
 ## Compression method (if any) is used to compress a block.
 ##   no:     kNoCompression
 ##   snappy: kSnappyCompression
@@ -645,7 +645,7 @@
 # optimize-filters-for-hits = true
 
 ## Options for "Default" PrimaryCauset Network for `Titan`.
-[rocksdb.defaultcauset.titan]
+[lmdb.defaultcauset.titan]
 ## The smallest value to store in blob files. Value smaller than
 ## this memory_barrier will be inlined in base DB.
 ## default: 1KB
@@ -688,7 +688,7 @@
 ## With this feature enabled, Titan could get better scan performance, and
 ## better write performance during GC, but will suffer around 1.1 space
 ## amplification and 3 more write amplification if no GC needed (eg. uniformly
-## distributed tuplespaceInstanton) under default rocksdb setting.
+## distributed tuplespaceInstanton) under default lmdb setting.
 ##
 ## Requirement: level_compaction_dynamic_level_base = true
 ## default: false
@@ -699,17 +699,17 @@
 # gc-merge-rewrite = false
 
 ## Options for "Write" PrimaryCauset Network, which stores MVCC commit information
-[rocksdb.writecauset]
-## Recommlightlike to set it the same as `rocksdb.defaultcauset.compression-per-level`.
+[lmdb.writecauset]
+## Recommlightlike to set it the same as `lmdb.defaultcauset.compression-per-level`.
 # compression-per-level = ["no", "no", "lz4", "lz4", "lz4", "zstd", "zstd"]
 # block-size = "64KB"
 
-## Recommlightlike to set it the same as `rocksdb.defaultcauset.write-buffer-size`.
+## Recommlightlike to set it the same as `lmdb.defaultcauset.write-buffer-size`.
 # write-buffer-size = "128MB"
 # max-write-buffer-number = 5
 # min-write-buffer-number-to-merge = 1
 
-## Recommlightlike to set it the same as `rocksdb.defaultcauset.max-bytes-for-level-base`.
+## Recommlightlike to set it the same as `lmdb.defaultcauset.max-bytes-for-level-base`.
 # max-bytes-for-level-base = "512MB"
 # target-file-size-base = "8MB"
 
@@ -723,7 +723,7 @@
 # dynamic-level-bytes = true
 # optimize-filters-for-hits = false
 
-[rocksdb.lockcauset]
+[lmdb.lockcauset]
 # compression-per-level = ["no", "no", "no", "no", "no", "no", "no"]
 # block-size = "16KB"
 # write-buffer-size = "32MB"
@@ -767,16 +767,16 @@
 # optimize-filters-for-hits = true
 
 [raftdb.defaultcauset]
-## Recommlightlike to set it the same as `rocksdb.defaultcauset.compression-per-level`.
+## Recommlightlike to set it the same as `lmdb.defaultcauset.compression-per-level`.
 # compression-per-level = ["no", "no", "lz4", "lz4", "lz4", "zstd", "zstd"]
 # block-size = "64KB"
 
-## Recommlightlike to set it the same as `rocksdb.defaultcauset.write-buffer-size`.
+## Recommlightlike to set it the same as `lmdb.defaultcauset.write-buffer-size`.
 # write-buffer-size = "128MB"
 # max-write-buffer-number = 5
 # min-write-buffer-number-to-merge = 1
 
-## Recommlightlike to set it the same as `rocksdb.defaultcauset.max-bytes-for-level-base`.
+## Recommlightlike to set it the same as `lmdb.defaultcauset.max-bytes-for-level-base`.
 # max-bytes-for-level-base = "512MB"
 # target-file-size-base = "8MB"
 
@@ -899,7 +899,7 @@
 ## The number of tuplespaceInstanton to GC in one batch.
 # batch-tuplespaceInstanton = 512
 
-## Max bytes that GC worker can write to rocksdb in one second.
+## Max bytes that GC worker can write to lmdb in one second.
 ## If it is set to 0, there is no limit.
 # max-write-bytes-per-sec = "0"
 

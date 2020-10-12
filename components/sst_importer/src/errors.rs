@@ -21,7 +21,7 @@ pub fn error_inc(err: &Error) {
         Error::Io(..) => "io",
         Error::Grpc(..) => "grpc",
         Error::Uuid(..) => "uuid",
-        Error::Lmdb(..) => "rocksdb",
+        Error::Lmdb(..) => "lmdb",
         Error::EnginePromises(..) => "engine_promises",
         Error::ParseIntError(..) => "parse_int",
         Error::FileExists(..) => "file_exists",

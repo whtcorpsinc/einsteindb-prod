@@ -18,17 +18,17 @@
 
 [interlock]
 
-[rocksdb]
+[lmdb]
 
-[rocksdb.titan]
+[lmdb.titan]
 
-[rocksdb.defaultcauset]
+[lmdb.defaultcauset]
 
-[rocksdb.defaultcauset.titan]
+[lmdb.defaultcauset.titan]
 
-[rocksdb.writecauset]
+[lmdb.writecauset]
 
-[rocksdb.lockcauset]
+[lmdb.lockcauset]
 
 [raftdb]
 

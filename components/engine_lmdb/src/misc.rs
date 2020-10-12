@@ -3,7 +3,7 @@
 use crate::engine::LmdbEngine;
 use crate::util;
 use engine_promises::{CAUSETNamesExt, MiscExt, Cone, Result, ALL_CAUSETS};
-use rocksdb::Cone as LmdbCone;
+use lmdb::Cone as LmdbCone;
 
 impl MiscExt for LmdbEngine {
     fn is_titan(&self) -> bool {
@@ -98,11 +98,11 @@ impl MiscExt for LmdbEngine {
     }
 
     fn dump_stats(&self) -> Result<String> {
-        const LMDB_DB_STATS_KEY: &str = "rocksdb.dbstats";
-        const LMDB_CAUSET_STATS_KEY: &str = "rocksdb.causetstats";
+        const LMDB_DB_STATS_KEY: &str = "lmdb.dbstats";
+        const LMDB_CAUSET_STATS_KEY: &str = "lmdb.causetstats";
 
         let mut s = Vec::with_capacity(1024);
-        // common rocksdb stats.
+        // common lmdb stats.
         for name in self.causet_names() {
             let handler = util::get_causet_handle(self.as_inner(), name)?;
             if let Some(v) = self

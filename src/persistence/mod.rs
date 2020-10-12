@@ -2115,13 +2115,13 @@ mod tests {
         let engine = {
             let path = "".to_owned();
             let causets = crate::persistence::ALL_CAUSETS.to_vec();
-            let causetg_rocksdb = db_config;
+            let causetg_lmdb = db_config;
             let cache = BlockCacheConfig::default().build_shared_cache();
             let causets_opts = vec![
-                CAUSETOptions::new(CAUSET_DEFAULT, causetg_rocksdb.defaultcauset.build_opt(&cache)),
-                CAUSETOptions::new(CAUSET_DAGGER, causetg_rocksdb.lockcauset.build_opt(&cache)),
-                CAUSETOptions::new(CAUSET_WRITE, causetg_rocksdb.writecauset.build_opt(&cache)),
-                CAUSETOptions::new(CAUSET_RAFT, causetg_rocksdb.raftcauset.build_opt(&cache)),
+                CAUSETOptions::new(CAUSET_DEFAULT, causetg_lmdb.defaultcauset.build_opt(&cache)),
+                CAUSETOptions::new(CAUSET_DAGGER, causetg_lmdb.lockcauset.build_opt(&cache)),
+                CAUSETOptions::new(CAUSET_WRITE, causetg_lmdb.writecauset.build_opt(&cache)),
+                CAUSETOptions::new(CAUSET_RAFT, causetg_lmdb.raftcauset.build_opt(&cache)),
             ];
             LmdbEngine::new(&path, &causets, Some(causets_opts), cache.is_some())
         }

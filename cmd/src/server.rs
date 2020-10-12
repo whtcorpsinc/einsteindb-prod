@@ -891,10 +891,10 @@ impl EinsteinDBServer<LmdbEngine> {
         .unwrap_or_else(|s| fatal!("failed to create violetabft engine: {}", s));
 
         // Create kv engine.
-        let mut kv_db_opts = self.config.rocksdb.build_opt();
+        let mut kv_db_opts = self.config.lmdb.build_opt();
         kv_db_opts.set_env(env);
         kv_db_opts.add_event_listener(self.create_violetabftstore_compaction_listener());
-        let kv_causets_opts = self.config.rocksdb.build_causet_opts(&block_cache);
+        let kv_causets_opts = self.config.lmdb.build_causet_opts(&block_cache);
         let db_path = self
             .store_path
             .join(Path::new(persistence::config::DEFAULT_LMDB_SUB_DIR));
@@ -944,10 +944,10 @@ impl EinsteinDBServer<VioletaBftLogEngine> {
         let raft_engine = VioletaBftLogEngine::new(raft_config);
 
         // Create kv engine.
-        let mut kv_db_opts = self.config.rocksdb.build_opt();
+        let mut kv_db_opts = self.config.lmdb.build_opt();
         kv_db_opts.set_env(env);
         kv_db_opts.add_event_listener(self.create_violetabftstore_compaction_listener());
-        let kv_causets_opts = self.config.rocksdb.build_causet_opts(&block_cache);
+        let kv_causets_opts = self.config.lmdb.build_causet_opts(&block_cache);
         let db_path = self
             .store_path
             .join(Path::new(persistence::config::DEFAULT_LMDB_SUB_DIR));
@@ -1008,15 +1008,15 @@ fn pre_spacelike() {
 
 fn check_system_config(config: &EINSTEINDBConfig) {
     info!("beginning system configuration check");
-    let mut rocksdb_max_open_files = config.rocksdb.max_open_files;
-    if config.rocksdb.titan.enabled {
+    let mut lmdb_max_open_files = config.lmdb.max_open_files;
+    if config.lmdb.titan.enabled {
         // Titan engine maintains yet another pool of blob files and uses the same max
-        // number of open files setup as rocksdb does. So we double the max required
+        // number of open files setup as lmdb does. So we double the max required
         // open files here
-        rocksdb_max_open_files *= 2;
+        lmdb_max_open_files *= 2;
     }
     if let Err(e) = einsteindb_util::config::check_max_open_fds(
-        RESERVED_OPEN_FDS + (rocksdb_max_open_files + config.raftdb.max_open_files) as u64,
+        RESERVED_OPEN_FDS + (lmdb_max_open_files + config.raftdb.max_open_files) as u64,
     ) {
         fatal!("{}", e);
     }
@@ -1024,7 +1024,7 @@ fn check_system_config(config: &EINSTEINDBConfig) {
     // Check Lmdb data dir
     if let Err(e) = einsteindb_util::config::check_data_dir(&config.persistence.data_dir) {
         warn!(
-            "check: rocksdb-data-dir";
+            "check: lmdb-data-dir";
             "path" => &config.persistence.data_dir,
             "err" => %e
         );

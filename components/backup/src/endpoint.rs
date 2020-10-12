@@ -966,7 +966,7 @@ pub mod tests {
             .build()
             .unwrap();
         let concurrency_manager = ConcurrencyManager::new(1.into());
-        let db = rocks.get_rocksdb().get_sync_db();
+        let db = rocks.get_lmdb().get_sync_db();
         (
             temp,
             Endpoint::new(

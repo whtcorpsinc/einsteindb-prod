@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use engine_promises::{self, Error, Result};
-use rocksdb::{DBIterator, SeekKey as RawSeekKey, DB};
+use lmdb::{DBIterator, SeekKey as RawSeekKey, DB};
 
 // FIXME: Would prefer using &DB instead of Arc<DB>.  As elsewhere in
 // this crate, it would require generic associated types.

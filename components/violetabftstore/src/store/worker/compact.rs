@@ -266,7 +266,7 @@ mod tests {
 
     use super::*;
 
-    const LMDB_TOTAL_SST_FILES_SIZE: &str = "rocksdb.total-sst-files-size";
+    const LMDB_TOTAL_SST_FILES_SIZE: &str = "lmdb.total-sst-files-size";
 
     #[test]
     fn test_compact_cone() {

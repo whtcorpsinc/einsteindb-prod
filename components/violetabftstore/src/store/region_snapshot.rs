@@ -224,7 +224,7 @@ where
 {
     #[inline(never)]
     fn handle_get_value_error(&self, e: EngineError, causet: &str, key: &[u8]) -> EngineError {
-        CRITICAL_ERROR.with_label_values(&["rocksdb get"]).inc();
+        CRITICAL_ERROR.with_label_values(&["lmdb get"]).inc();
         if panic_when_unexpected_key_or_data() {
             set_panic_mark();
             panic!(
@@ -246,7 +246,7 @@ where
     }
 }
 
-/// `BraneIterator` wrap a rocksdb Iteron and only allow it to
+/// `BraneIterator` wrap a lmdb Iteron and only allow it to
 /// iterate in the brane. It behaves as if underlying
 /// db only contains one brane.
 pub struct BraneIterator<S: Snapshot> {

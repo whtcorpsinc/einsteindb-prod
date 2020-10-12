@@ -134,13 +134,13 @@ mod tests {
         was_encrypted: bool,
     ) {
         let path = Builder::new()
-            .prefix("_util_rocksdb_test_prepare_sst_for_ingestion")
+            .prefix("_util_lmdb_test_prepare_sst_for_ingestion")
             .temfidelir()
             .unwrap();
         let path_str = path.path().to_str().unwrap();
 
         let sst_dir = Builder::new()
-            .prefix("_util_rocksdb_test_prepare_sst_for_ingestion_sst")
+            .prefix("_util_lmdb_test_prepare_sst_for_ingestion_sst")
             .temfidelir()
             .unwrap();
         let sst_path = sst_dir.path().join("abc.sst");

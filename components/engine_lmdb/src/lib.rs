@@ -89,7 +89,7 @@ pub mod encryption;
 
 mod raft_engine;
 
-pub use rocksdb::set_perf_level;
-pub use rocksdb::PerfContext;
+pub use lmdb::set_perf_level;
+pub use lmdb::PerfContext;
 
 pub mod raw;

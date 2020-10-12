@@ -395,7 +395,7 @@ lazy_static! {
     pub static ref INGEST_SST_DURATION_SECONDS: Histogram =
         register_histogram!(
             "einsteindb_snapshot_ingest_sst_duration_seconds",
-            "Bucketed histogram of rocksdb ingestion durations.",
+            "Bucketed histogram of lmdb ingestion durations.",
             exponential_buckets(0.005, 2.0, 20).unwrap()
         ).unwrap();
 

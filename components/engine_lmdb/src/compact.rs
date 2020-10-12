@@ -3,7 +3,7 @@
 use crate::engine::LmdbEngine;
 use crate::util;
 use engine_promises::{CAUSETNamesExt, CompactExt, Result};
-use rocksdb::{CompactOptions, CompactionOptions, DBCompressionType};
+use lmdb::{CompactOptions, CompactionOptions, DBCompressionType};
 use std::cmp;
 
 impl CompactExt for LmdbEngine {
@@ -109,7 +109,7 @@ mod tests {
     use crate::raw_util::{new_engine, CAUSETOptions};
     use crate::Compat;
     use engine_promises::CompactExt;
-    use rocksdb::{PrimaryCausetNetworkOptions, Writable};
+    use lmdb::{PrimaryCausetNetworkOptions, Writable};
     use std::sync::Arc;
     use tempfile::Builder;
 

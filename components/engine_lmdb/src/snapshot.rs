@@ -4,8 +4,8 @@ use std::fmt::{self, Debug, Formatter};
 use std::sync::Arc;
 
 use engine_promises::{self, IterOptions, Iterable, Peekable, ReadOptions, Result, Snapshot};
-use rocksdb::rocksdb_options::UnsafeSnap;
-use rocksdb::{DBIterator, DB};
+use lmdb::lmdb_options::UnsafeSnap;
+use lmdb::{DBIterator, DB};
 
 use crate::db_vector::LmdbDBVector;
 use crate::options::LmdbReadOptions;

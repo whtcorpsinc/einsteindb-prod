@@ -312,8 +312,8 @@ lazy_static! {
     )
     .unwrap();
     pub static ref CONFIG_LMDB_GAUGE: GaugeVec = register_gauge_vec!(
-        "einsteindb_config_rocksdb",
-        "Config information of rocksdb",
+        "einsteindb_config_lmdb",
+        "Config information of lmdb",
         &["causet", "name"]
     )
     .unwrap();

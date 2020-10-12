@@ -389,8 +389,8 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine> + 'static> debug
                 resp.set_prometheus(metrics::dump());
                 if req.get_all() {
                     let engines = debugger.get_engine();
-                    resp.set_rocksdb_kv(box_try!(MiscExt::dump_stats(&engines.kv)));
-                    resp.set_rocksdb_raft(box_try!(VioletaBftEngine::dump_stats(&engines.violetabft)));
+                    resp.set_lmdb_kv(box_try!(MiscExt::dump_stats(&engines.kv)));
+                    resp.set_lmdb_raft(box_try!(VioletaBftEngine::dump_stats(&engines.violetabft)));
                     resp.set_jemalloc(einsteindb_alloc::dump_stats());
                 }
                 Ok(resp)

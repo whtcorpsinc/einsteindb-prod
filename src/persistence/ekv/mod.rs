@@ -3,7 +3,7 @@
 mod btree_engine;
 mod cursor;
 mod perf_context;
-mod rocksdb_engine;
+mod lmdb_engine;
 mod stats;
 
 use std::cell::UnsafeCell;
@@ -22,7 +22,7 @@ use txn_types::{Key, TxnExtra, Value};
 pub use self::btree_engine::{BTreeEngine, BTreeEngineIterator, BTreeEngineSnapshot};
 pub use self::cursor::{Cursor, CursorBuilder};
 pub use self::perf_context::{PerfStatisticsDelta, PerfStatisticsInstant};
-pub use self::rocksdb_engine::{write_modifies, LmdbEngine, LmdbSnapshot, TestEngineBuilder};
+pub use self::lmdb_engine::{write_modifies, LmdbEngine, LmdbSnapshot, TestEngineBuilder};
 pub use self::stats::{
     CfStatistics, FlowStatistics, FlowStatsReporter, Statistics, StatisticsSummary,
 };

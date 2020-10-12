@@ -186,7 +186,7 @@ fn test_notify_observer_after_apply() {
     );
 }
 
-// It may cause locks missing during green GC if the violetabftstore notifies the lock observer before writing data to the rocksdb:
+// It may cause locks missing during green GC if the violetabftstore notifies the lock observer before writing data to the lmdb:
 //   1. CausetStore-1 transfers a brane to store-2 and store-2 is applying logs.
 //   2. GC worker registers lock observer on store-2 after calling lock observer's callback and before finishing applying which means the lock won't be observed.
 //   3. GC worker scans locks on each store indeplightlikeently. It's possible GC worker has scanned all locks on store-2 and hasn't scanned locks on store-1.
@@ -221,7 +221,7 @@ fn test_collect_applying_locks() {
     ctx.set_peer(leader.clone());
     ctx.set_brane_epoch(cluster.get_brane_epoch(brane_id));
 
-    // Pause store-2 after calling observer callbacks and before writing to the rocksdb.
+    // Pause store-2 after calling observer callbacks and before writing to the lmdb.
     let new_leader_apply_fp = "post_handle_apply_1003";
     fail::causetg(new_leader_apply_fp, "pause").unwrap();
 

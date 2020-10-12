@@ -1,5 +1,5 @@
 // Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
-use rocksdb::{DBInfoLogLevel as InfoLogLevel, Logger};
+use lmdb::{DBInfoLogLevel as InfoLogLevel, Logger};
 
 // TODO(yiwu): abstract the Logger interface.
 #[derive(Default)]
@@ -8,12 +8,12 @@ pub struct LmdbdbLogger;
 impl Logger for LmdbdbLogger {
     fn logv(&self, log_level: InfoLogLevel, log: &str) {
         match log_level {
-            InfoLogLevel::Header => info!(#"rocksdb_log_header", "{}", log),
-            InfoLogLevel::Debug => debug!(#"rocksdb_log", "{}", log),
-            InfoLogLevel::Info => info!(#"rocksdb_log", "{}", log),
-            InfoLogLevel::Warn => warn!(#"rocksdb_log", "{}", log),
-            InfoLogLevel::Error => error!(#"rocksdb_log", "{}", log),
-            InfoLogLevel::Fatal => crit!(#"rocksdb_log", "{}", log),
+            InfoLogLevel::Header => info!(#"lmdb_log_header", "{}", log),
+            InfoLogLevel::Debug => debug!(#"lmdb_log", "{}", log),
+            InfoLogLevel::Info => info!(#"lmdb_log", "{}", log),
+            InfoLogLevel::Warn => warn!(#"lmdb_log", "{}", log),
+            InfoLogLevel::Error => error!(#"lmdb_log", "{}", log),
+            InfoLogLevel::Fatal => crit!(#"lmdb_log", "{}", log),
             _ => {}
         }
     }

@@ -5243,7 +5243,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"rocksdb.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(einsteindb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"lmdb.*\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -13976,7 +13976,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_interlock_rocksdb_perf{instance=~\"$instance\" ,metric=\"internal_delete_skipped_count\"}[1m])) by (req)",
+              "expr": "sum(rate(einsteindb_interlock_lmdb_perf{instance=~\"$instance\" ,metric=\"internal_delete_skipped_count\"}[1m])) by (req)",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 2,
@@ -24727,14 +24727,14 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(einsteindb_interlock_rocksdb_perf{instance=~\"$instance\" ,metric=\"encrypt_data_nanos\"}[1m])) by (req)",
+          "expr": "sum(rate(einsteindb_interlock_lmdb_perf{instance=~\"$instance\" ,metric=\"encrypt_data_nanos\"}[1m])) by (req)",
           "format": "time_series",
           "intervalFactor": 1,
           "leglightlikeFormat": "encrypt-{{req}}",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(einsteindb_interlock_rocksdb_perf{instance=~\"$instance\" ,metric=\"decrypt_data_nanos\"}[1m])) by (req)",
+          "expr": "sum(rate(einsteindb_interlock_lmdb_perf{instance=~\"$instance\" ,metric=\"decrypt_data_nanos\"}[1m])) by (req)",
           "format": "time_series",
           "intervalFactor": 1,
           "leglightlikeFormat": "decrypt-{{req}}",

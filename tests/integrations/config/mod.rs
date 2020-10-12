@@ -222,7 +222,7 @@ fn test_serde_custom_einsteindb_config() {
         max_background_gc: 9,
         purge_obsolete_files_period: ReadableDuration::secs(1),
     };
-    value.rocksdb = DbConfig {
+    value.lmdb = DbConfig {
         wal_recovery_mode: DBRecoveryMode::AbsoluteConsistency,
         wal_dir: "/var".to_owned(),
         wal_ttl_seconds: 1,
@@ -747,9 +747,9 @@ fn test_block_cache_backward_compatible() {
     assert!(causetg.persistence.block_cache.capacity.0.is_some());
     assert_eq!(
         causetg.persistence.block_cache.capacity.0.unwrap().0,
-        causetg.rocksdb.defaultcauset.block_cache_size.0
-            + causetg.rocksdb.writecauset.block_cache_size.0
-            + causetg.rocksdb.lockcauset.block_cache_size.0
+        causetg.lmdb.defaultcauset.block_cache_size.0
+            + causetg.lmdb.writecauset.block_cache_size.0
+            + causetg.lmdb.lockcauset.block_cache_size.0
             + causetg.raftdb.defaultcauset.block_cache_size.0
     );
 }

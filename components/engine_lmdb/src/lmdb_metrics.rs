@@ -6,7 +6,7 @@ use lazy_static::lazy_static;
 use prometheus::*;
 use prometheus_static_metric::*;
 
-use rocksdb::{
+use lmdb::{
     DBStatisticsHistogramType as HistType, DBStatisticsTickerType as TickerType, HistogramData, DB,
 };
 use std::i64;
@@ -913,7 +913,7 @@ pub fn flush_engine_properties(engine: &DB, name: &str, shared_block_cache: bool
             .set(blob_cache_usage as i64);
 
         // TODO: find a better place to record these metrics.
-        // Refer: https://github.com/facebook/rocksdb/wiki/Memory-usage-in-Lmdb
+        // Refer: https://github.com/facebook/lmdb/wiki/Memory-usage-in-Lmdb
         // For index and filter blocks memory
         if let Some(readers_mem) = engine.get_property_int_causet(handle, LMDB_TABLE_READERS_MEM) {
             STORE_ENGINE_MEMORY_GAUGE_VEC
@@ -1180,7 +1180,7 @@ lazy_static! {
 lazy_static! {
     pub static ref STORE_ENGINE_CACHE_EFFICIENCY_VEC: IntCounterVec = register_int_counter_vec!(
         "einsteindb_engine_cache_efficiency",
-        "Efficiency of rocksdb's block cache",
+        "Efficiency of lmdb's block cache",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_CACHE_EFFICIENCY: EngineTickerMetrics =
@@ -1212,7 +1212,7 @@ lazy_static! {
 
     pub static ref STORE_ENGINE_BLOOM_EFFICIENCY_VEC: IntCounterVec = register_int_counter_vec!(
         "einsteindb_engine_bloom_efficiency",
-        "Efficiency of rocksdb's bloom filter",
+        "Efficiency of lmdb's bloom filter",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOOM_EFFICIENCY: EngineTickerMetrics =
@@ -1567,7 +1567,7 @@ mod tests {
     use tempfile::Builder;
 
     use engine_promises::ALL_CAUSETS;
-    use rocksdb::HistogramData;
+    use lmdb::HistogramData;
 
     #[test]
     fn test_flush() {

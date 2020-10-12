@@ -305,7 +305,7 @@ mod tests {
             .causets(&[engine_promises::CAUSET_DEFAULT, engine_promises::CAUSET_WRITE])
             .build()
             .unwrap();
-        let db = rocks.get_rocksdb();
+        let db = rocks.get_lmdb();
 
         let opt = engine_lmdb::raw::IngestExternalFileOptions::new();
         for (causet, sst) in ssts {
@@ -346,7 +346,7 @@ mod tests {
             ])
             .build()
             .unwrap();
-        let db = rocks.get_rocksdb();
+        let db = rocks.get_lmdb();
         let backlightlike = external_causetStorage::make_local_backlightlike(temp.path());
         let persistence = external_causetStorage::create_causetStorage(&backlightlike).unwrap();
 

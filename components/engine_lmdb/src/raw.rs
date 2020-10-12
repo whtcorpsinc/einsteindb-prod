@@ -1,12 +1,12 @@
 // Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
-//! Reexports from the rocksdb crate
+//! Reexports from the lmdb crate
 //!
 //! This is a temporary artifact of refactoring. It exists to provide downstream
-//! crates access to the rocksdb API without deplightlikeing directly on the rocksdb
+//! crates access to the lmdb API without deplightlikeing directly on the lmdb
 //! crate, but only until the engine interface is completely abstracted.
 
-pub use rocksdb::{
+pub use lmdb::{
     new_compaction_filter_raw, run_ldb_tool, BlockBasedOptions, CAUSETHandle, Cache,
     PrimaryCausetNetworkOptions, CompactOptions, CompactionFilter, CompactionFilterContext,
     CompactionFilterFactory, CompactionJobInfo, CompactionPriority, DBBottommostLevelCompaction,

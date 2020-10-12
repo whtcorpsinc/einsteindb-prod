@@ -955,7 +955,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
             }
             if local_state.get_state() == PeerState::Applying {
                 // in case of respacelike happen when we just write brane state to Applying,
-                // but not write raft_local_state to violetabft rocksdb in time.
+                // but not write raft_local_state to violetabft lmdb in time.
                 box_try!(peer_causetStorage::recover_from_applying_state(
                     &self.engines,
                     &mut raft_wb,

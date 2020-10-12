@@ -750,7 +750,7 @@ where
             PeerState::Tombstone,
             self.plightlikeing_merge_state.clone(),
         )?;
-        // write kv rocksdb first in case of respacelike happen between two write
+        // write kv lmdb first in case of respacelike happen between two write
         let mut write_opts = WriteOptions::new();
         write_opts.set_sync(true);
         ctx.engines.kv.write_opt(&kv_wb, &write_opts)?;

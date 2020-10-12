@@ -1,6 +1,6 @@
 // Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
-//! Functions for constructing the rocksdb crate's `DB` type
+//! Functions for constructing the lmdb crate's `DB` type
 //!
 //! These are an artifact of refactoring the engine promises and will go away
 //! eventually. Prefer to use the versions in the `util` module.
@@ -10,8 +10,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 use engine_promises::Result;
-use rocksdb::load_latest_options;
-use rocksdb::{CPrimaryCausetNetworkDescriptor, PrimaryCausetNetworkOptions, DBOptions, Env, DB};
+use lmdb::load_latest_options;
+use lmdb::{CPrimaryCausetNetworkDescriptor, PrimaryCausetNetworkOptions, DBOptions, Env, DB};
 
 use engine_promises::CAUSET_DEFAULT;
 
@@ -211,7 +211,7 @@ fn causets_diff<'a>(a: &[&'a str], b: &[&str]) -> Vec<&'a str> {
 mod tests {
     use super::*;
     use engine_promises::CAUSET_DEFAULT;
-    use rocksdb::{PrimaryCausetNetworkOptions, DBOptions, DB};
+    use lmdb::{PrimaryCausetNetworkOptions, DBOptions, DB};
     use tempfile::Builder;
 
     #[test]
@@ -233,7 +233,7 @@ mod tests {
     #[test]
     fn test_new_engine_opt() {
         let path = Builder::new()
-            .prefix("_util_rocksdb_test_check_PrimaryCauset_families")
+            .prefix("_util_lmdb_test_check_PrimaryCauset_families")
             .temfidelir()
             .unwrap();
         let path_str = path.path().to_str().unwrap();

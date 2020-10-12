@@ -10,7 +10,7 @@ use std::u64;
 use engine_promises::KvEngine;
 use engine_promises::Cone;
 use engine_promises::{IndexHandle, TableProperties, TablePropertiesCollection};
-use rocksdb::{
+use lmdb::{
     DBEntryType, TablePropertiesCollector, TablePropertiesCollectorFactory, TitanBlobIndex,
     UserCollectedProperties,
 };

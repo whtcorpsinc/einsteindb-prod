@@ -320,7 +320,7 @@ mod tests {
         let (scheduler, rx) = einsteindb_util::worker::dummy_scheduler();
         let observer = CdcObserver::new(scheduler);
         let observe_id = ObserveID::new();
-        let engine = TestEngineBuilder::new().build().unwrap().get_rocksdb();
+        let engine = TestEngineBuilder::new().build().unwrap().get_lmdb();
 
         <CdcObserver as CmdObserver<LmdbEngine>>::on_prepare_for_apply(&observer, observe_id, 0);
         <CdcObserver as CmdObserver<LmdbEngine>>::on_apply_cmd(
@@ -385,7 +385,7 @@ mod tests {
     #[test]
     fn test_old_value_reader() {
         let engine = TestEngineBuilder::new().build().unwrap();
-        let kv_engine = engine.get_rocksdb();
+        let kv_engine = engine.get_lmdb();
         let k = b"k";
         let key = Key::from_raw(k);
 

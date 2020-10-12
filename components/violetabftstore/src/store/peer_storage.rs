@@ -147,7 +147,7 @@ impl EntryCache {
             })
             .count();
         // Cache either is empty or contains latest log. Hence we don't need to fetch log
-        // from rocksdb anymore.
+        // from lmdb anymore.
         assert!(lightlike_idx == limit_idx || fetched_size > max_size);
         let (first, second) = einsteindb_util::slices_in_cone(&self.cache, spacelike_idx, lightlike_idx);
         ents.extlightlike_from_slice(first);
@@ -1386,8 +1386,8 @@ where
             ctx.save_raft_state_to(ready_ctx.raft_wb_mut())?;
             if snapshot_index > 0 {
                 // in case of respacelike happen when we just write brane state to Applying,
-                // but not write raft_local_state to violetabft rocksdb in time.
-                // we write violetabft state to default rocksdb, with last index set to snap index,
+                // but not write raft_local_state to violetabft lmdb in time.
+                // we write violetabft state to default lmdb, with last index set to snap index,
                 // in case of recv violetabft log after snapshot.
                 ctx.save_snapshot_raft_state_to(snapshot_index, ready_ctx.kv_wb_mut())?;
             }
@@ -1416,7 +1416,7 @@ where
             if let Err(e) = self.clear_extra_data(self.brane(), &snap_brane) {
                 // No need panic here, when applying snapshot, the deletion will be tried
                 // again. But if the brane cone changes, like [a, c) -> [a, b) and [b, c),
-                // [b, c) will be kept in rocksdb until a covered snapshot is applied or
+                // [b, c) will be kept in lmdb until a covered snapshot is applied or
                 // store is respacelikeed.
                 error!(?e;
                     "failed to cleanup data, may leave some dirty data";
@@ -2167,7 +2167,7 @@ mod tests {
         let sched = worker.scheduler();
         let mut store = new_causetStorage_from_ents(sched, &td, &ents);
         store.cache.as_mut().unwrap().cache.clear();
-        // empty cache should fetch data from rocksdb directly.
+        // empty cache should fetch data from lmdb directly.
         let mut res = store.entries(4, 6, u64::max_value()).unwrap();
         assert_eq!(*res, ents[1..]);
 

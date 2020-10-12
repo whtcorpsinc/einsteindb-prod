@@ -1,8 +1,8 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use configuration::ConfigValue;
-pub use rocksdb::PerfLevel;
-use rocksdb::{DBCompressionType, DBInfoLogLevel, DBTitanDBBlobRunMode};
+pub use lmdb::PerfLevel;
+use lmdb::{DBCompressionType, DBInfoLogLevel, DBTitanDBBlobRunMode};
 use std::str::FromStr;
 
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -62,7 +62,7 @@ pub mod compression_type_level_serde {
     use serde::ser::SerializeSeq;
     use serde::{Deserializer, Serializer};
 
-    use rocksdb::DBCompressionType;
+    use lmdb::DBCompressionType;
 
     pub fn serialize<S>(ts: &[DBCompressionType; 7], serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -202,7 +202,7 @@ macro_rules! numeric_enum_mod {
 
             use serde::{Serializer, Deserializer};
             use serde::de::{self, Unexpected, Visitor};
-            use rocksdb::$enum;
+            use lmdb::$enum;
 
             pub fn serialize<S>(mode: &$enum, serializer: S) -> Result<S::Ok, S::Error>
                 where S: Serializer
@@ -238,7 +238,7 @@ macro_rules! numeric_enum_mod {
             #[causetg(test)]
             mod tests {
                 use toml;
-                use rocksdb::$enum;
+                use lmdb::$enum;
 
                 #[test]
                 fn test_serde() {
@@ -303,7 +303,7 @@ numeric_enum_mod! {perf_level_serde PerfLevel {
 #[causetg(test)]
 mod tests {
     use super::*;
-    use rocksdb::DBCompressionType;
+    use lmdb::DBCompressionType;
 
     #[test]
     fn test_parse_compression_type() {

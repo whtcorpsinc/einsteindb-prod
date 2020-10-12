@@ -1769,7 +1769,7 @@ mod tests {
         let mut target_brane_3 = brane_3;
         target_brane_3.mut_brane_epoch().set_conf_ver(100);
 
-        // Test with bad target brane. No brane state in rocksdb should be changed.
+        // Test with bad target brane. No brane state in lmdb should be changed.
         let target_branes = vec![
             target_brane_1.clone(),
             target_brane_2.clone(),

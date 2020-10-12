@@ -109,7 +109,7 @@ pub trait MiscExt: Iterable + WriteBatchExt + CAUSETNamesExt {
 
     fn ingest_maybe_slowdown_writes(&self, causet: &str) -> Result<bool>;
 
-    /// Gets total used size of rocksdb engine, including:
+    /// Gets total used size of lmdb engine, including:
     /// *  total size (bytes) of all SST files.
     /// *  total size (bytes) of active and unflushed immutable memtables.
     /// *  total size (bytes) of all blob files.
@@ -124,7 +124,7 @@ pub trait MiscExt: Iterable + WriteBatchExt + CAUSETNamesExt {
     ///      so you shouldn't expect to be able to read data from the cone using existing snapshots
     ///      any more.
     ///
-    /// Ref: https://github.com/facebook/rocksdb/wiki/Delete-A-Cone-Of-TuplespaceInstanton
+    /// Ref: https://github.com/facebook/lmdb/wiki/Delete-A-Cone-Of-TuplespaceInstanton
     fn roughly_cleanup_cones(&self, cones: &[(Vec<u8>, Vec<u8>)]) -> Result<()>;
 
     fn path(&self) -> &str;

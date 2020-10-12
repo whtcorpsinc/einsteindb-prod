@@ -9,7 +9,7 @@ use engine_promises::{
     TableProperties, TablePropertiesCollectionIter, TablePropertiesKey, UserCollectedProperties,
 };
 use engine_promises::{TablePropertiesCollection, TablePropertiesExt};
-use rocksdb::table_properties_rc as raw;
+use lmdb::table_properties_rc as raw;
 use std::ops::Deref;
 
 impl TablePropertiesExt for LmdbEngine {

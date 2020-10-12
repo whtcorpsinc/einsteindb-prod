@@ -6,7 +6,7 @@ use std::sync::Arc;
 use crate::raw::Env;
 use encryption::{self, DataKeyManager};
 use engine_promises::{EncryptionKeyManager, EncryptionMethod, FileEncryptionInfo};
-use rocksdb::{
+use lmdb::{
     DBEncryptionMethod, EncryptionKeyManager as DBEncryptionKeyManager,
     FileEncryptionInfo as DBFileEncryptionInfo,
 };
@@ -18,7 +18,7 @@ pub fn get_env(
 ) -> encryption::Result<Arc<Env>> {
     let base_env = base_env.unwrap_or_else(|| Arc::new(Env::default()));
     if let Some(manager) = key_manager {
-        // TODO(yiwu): To avoid nested Arc here, need to refactor rust-rocksdb API to accept a
+        // TODO(yiwu): To avoid nested Arc here, need to refactor rust-lmdb API to accept a
         // Box<DBEncryptionKeyManager> instead.
         Ok(Arc::new(Env::new_key_managed_encrypted_env(
             base_env,

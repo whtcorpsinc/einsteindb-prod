@@ -71,22 +71,22 @@ dev-assert = true
 
 [interlock]
 
-[rocksdb]
+[lmdb]
 max-background-jobs = 1
 max-sub-compactions = 1
 
-[rocksdb.titan]
+[lmdb.titan]
 max-background-gc = 1
 
-[rocksdb.defaultcauset]
+[lmdb.defaultcauset]
 
-[rocksdb.defaultcauset.titan]
+[lmdb.defaultcauset.titan]
 
-[rocksdb.writecauset]
+[lmdb.writecauset]
 
-[rocksdb.lockcauset]
+[lmdb.lockcauset]
 
-[rocksdb.raftcauset]
+[lmdb.raftcauset]
 
 [raftdb]
 max-background-jobs = 1

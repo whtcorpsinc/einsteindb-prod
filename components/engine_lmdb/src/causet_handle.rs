@@ -5,7 +5,7 @@ use crate::engine::LmdbEngine;
 use engine_promises::CAUSETHandle;
 use engine_promises::CAUSETHandleExt;
 use engine_promises::{Error, Result};
-use rocksdb::CAUSETHandle as RawCAUSETHandle;
+use lmdb::CAUSETHandle as RawCAUSETHandle;
 
 impl CAUSETHandleExt for LmdbEngine {
     type CAUSETHandle = LmdbCAUSETHandle;
@@ -29,11 +29,6 @@ impl CAUSETHandleExt for LmdbEngine {
     }
 }
 
-// FIXME: This nasty representation with pointer casting is due to the lack of
-// generic associated types in Rust. See comment on the KvEngine::CAUSETHandle
-// associated type. This could also be fixed if the CAUSETHandle impl was defined
-// inside the rust-rocksdb crate where the RawCAUSETHandles are managed, but that
-// would be an ugly abstraction violation.
 #[repr(transparent)]
 pub struct LmdbCAUSETHandle(RawCAUSETHandle);
 

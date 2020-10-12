@@ -1,7 +1,7 @@
 // Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
 use crate::rocks_metrics::*;
-use rocksdb::{
+use lmdb::{
     CompactionJobInfo, DBBackgroundErrorReason, FlushJobInfo, IngestionInfo, WriteStallInfo,
 };
 use einsteindb_util::set_panic_mark;
@@ -18,7 +18,7 @@ impl LmdbEventListener {
     }
 }
 
-impl rocksdb::EventListener for LmdbEventListener {
+impl lmdb::EventListener for LmdbEventListener {
     fn on_flush_completed(&self, info: &FlushJobInfo) {
         STORE_ENGINE_EVENT_COUNTER_VEC
             .with_label_values(&[&self.db_name, info.causet_name(), "flush"])
@@ -59,12 +59,12 @@ impl rocksdb::EventListener for LmdbEventListener {
                 DBBackgroundErrorReason::WriteCallback => "write_callback",
                 DBBackgroundErrorReason::MemTable => "memtable",
             };
-            // Avoid einsteindb from respacelikeing if rocksdb get corruption.
+            // Avoid einsteindb from respacelikeing if lmdb get corruption.
             if err.spacelikes_with("Corruption") {
                 set_panic_mark();
             }
             panic!(
-                "rocksdb background error. db: {}, reason: {}, error: {}",
+                "lmdb background error. db: {}, reason: {}, error: {}",
                 self.db_name, r, err
             );
         }

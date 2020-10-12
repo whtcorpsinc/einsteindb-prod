@@ -647,7 +647,7 @@ where
         let disk_stats = match fs2::statvfs(store_info.engine.path()) {
             Err(e) => {
                 error!(
-                    "get disk stat for rocksdb failed";
+                    "get disk stat for lmdb failed";
                     "engine_path" => store_info.engine.path(),
                     "err" => ?e
                 );
@@ -676,7 +676,7 @@ where
             0
         };
 
-        // We only care about rocksdb SST file size, so we should check disk available here.
+        // We only care about lmdb SST file size, so we should check disk available here.
         if available > disk_stats.free_space() {
             available = disk_stats.free_space();
         }

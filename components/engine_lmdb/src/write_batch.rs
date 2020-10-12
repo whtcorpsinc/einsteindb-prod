@@ -6,7 +6,7 @@ use crate::engine::LmdbEngine;
 use crate::options::LmdbWriteOptions;
 use crate::util::get_causet_handle;
 use engine_promises::{self, Error, Mutable, Result, WriteBatchExt, WriteOptions};
-use rocksdb::{Writable, WriteBatch as RawWriteBatch, DB};
+use lmdb::{Writable, WriteBatch as RawWriteBatch, DB};
 
 const WRITE_BATCH_MAX_BATCH: usize = 16;
 const WRITE_BATCH_LIMIT: usize = 16;
@@ -314,7 +314,7 @@ mod tests {
     use super::super::LmdbDBOptions;
     use super::*;
     use engine_promises::WriteBatch;
-    use rocksdb::DBOptions as RawDBOptions;
+    use lmdb::DBOptions as RawDBOptions;
     use tempfile::Builder;
 
     #[test]

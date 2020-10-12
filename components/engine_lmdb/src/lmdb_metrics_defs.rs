@@ -1,41 +1,41 @@
 // Copyright 2020 EinsteinDB Project Authors. Licensed under Apache-2.0.
 
-use rocksdb::{DBStatisticsHistogramType as HistType, DBStatisticsTickerType as TickerType};
+use lmdb::{DBStatisticsHistogramType as HistType, DBStatisticsTickerType as TickerType};
 
-pub const LMDB_TOTAL_SST_FILES_SIZE: &str = "rocksdb.total-sst-files-size";
-pub const LMDB_TABLE_READERS_MEM: &str = "rocksdb.estimate-table-readers-mem";
-pub const LMDB_CUR_SIZE_ALL_MEM_TABLES: &str = "rocksdb.cur-size-all-mem-tables";
-pub const LMDB_ESTIMATE_NUM_KEYS: &str = "rocksdb.estimate-num-tuplespaceInstanton";
-pub const LMDB_PENDING_COMPACTION_BYTES: &str = "rocksdb.\
+pub const LMDB_TOTAL_SST_FILES_SIZE: &str = "lmdb.total-sst-files-size";
+pub const LMDB_TABLE_READERS_MEM: &str = "lmdb.estimate-table-readers-mem";
+pub const LMDB_CUR_SIZE_ALL_MEM_TABLES: &str = "lmdb.cur-size-all-mem-tables";
+pub const LMDB_ESTIMATE_NUM_KEYS: &str = "lmdb.estimate-num-tuplespaceInstanton";
+pub const LMDB_PENDING_COMPACTION_BYTES: &str = "lmdb.\
                                                     estimate-plightlikeing-compaction-bytes";
-pub const LMDB_COMPRESSION_RATIO_AT_LEVEL: &str = "rocksdb.compression-ratio-at-level";
-pub const LMDB_NUM_SNAPSHOTS: &str = "rocksdb.num-snapshots";
-pub const LMDB_OLDEST_SNAPSHOT_TIME: &str = "rocksdb.oldest-snapshot-time";
-pub const LMDB_OLDEST_SNAPSHOT_SEQUENCE: &str = "rocksdb.oldest-snapshot-sequence";
-pub const LMDB_NUM_FILES_AT_LEVEL: &str = "rocksdb.num-files-at-level";
-pub const LMDB_NUM_IMMUTABLE_MEM_TABLE: &str = "rocksdb.num-immutable-mem-table";
+pub const LMDB_COMPRESSION_RATIO_AT_LEVEL: &str = "lmdb.compression-ratio-at-level";
+pub const LMDB_NUM_SNAPSHOTS: &str = "lmdb.num-snapshots";
+pub const LMDB_OLDEST_SNAPSHOT_TIME: &str = "lmdb.oldest-snapshot-time";
+pub const LMDB_OLDEST_SNAPSHOT_SEQUENCE: &str = "lmdb.oldest-snapshot-sequence";
+pub const LMDB_NUM_FILES_AT_LEVEL: &str = "lmdb.num-files-at-level";
+pub const LMDB_NUM_IMMUTABLE_MEM_TABLE: &str = "lmdb.num-immutable-mem-table";
 
-pub const LMDB_TITANDB_NUM_BLOB_FILES_AT_LEVEL: &str = "rocksdb.titandb.num-blob-files-at-level";
-pub const LMDB_TITANDB_LIVE_BLOB_SIZE: &str = "rocksdb.titandb.live-blob-size";
-pub const LMDB_TITANDB_NUM_LIVE_BLOB_FILE: &str = "rocksdb.titandb.num-live-blob-file";
-pub const LMDB_TITANDB_NUM_OBSOLETE_BLOB_FILE: &str = "rocksdb.titandb.\
+pub const LMDB_TITANDB_NUM_BLOB_FILES_AT_LEVEL: &str = "lmdb.titandb.num-blob-files-at-level";
+pub const LMDB_TITANDB_LIVE_BLOB_SIZE: &str = "lmdb.titandb.live-blob-size";
+pub const LMDB_TITANDB_NUM_LIVE_BLOB_FILE: &str = "lmdb.titandb.num-live-blob-file";
+pub const LMDB_TITANDB_NUM_OBSOLETE_BLOB_FILE: &str = "lmdb.titandb.\
                                                           num-obsolete-blob-file";
-pub const LMDB_TITANDB_LIVE_BLOB_FILE_SIZE: &str = "rocksdb.titandb.\
+pub const LMDB_TITANDB_LIVE_BLOB_FILE_SIZE: &str = "lmdb.titandb.\
                                                        live-blob-file-size";
-pub const LMDB_TITANDB_OBSOLETE_BLOB_FILE_SIZE: &str = "rocksdb.titandb.\
+pub const LMDB_TITANDB_OBSOLETE_BLOB_FILE_SIZE: &str = "lmdb.titandb.\
                                                            obsolete-blob-file-size";
 pub const LMDB_TITANDB_DISCARDABLE_RATIO_LE0_FILE: &str =
-    "rocksdb.titandb.num-discardable-ratio-le0-file";
+    "lmdb.titandb.num-discardable-ratio-le0-file";
 pub const LMDB_TITANDB_DISCARDABLE_RATIO_LE20_FILE: &str =
-    "rocksdb.titandb.num-discardable-ratio-le20-file";
+    "lmdb.titandb.num-discardable-ratio-le20-file";
 pub const LMDB_TITANDB_DISCARDABLE_RATIO_LE50_FILE: &str =
-    "rocksdb.titandb.num-discardable-ratio-le50-file";
+    "lmdb.titandb.num-discardable-ratio-le50-file";
 pub const LMDB_TITANDB_DISCARDABLE_RATIO_LE80_FILE: &str =
-    "rocksdb.titandb.num-discardable-ratio-le80-file";
+    "lmdb.titandb.num-discardable-ratio-le80-file";
 pub const LMDB_TITANDB_DISCARDABLE_RATIO_LE100_FILE: &str =
-    "rocksdb.titandb.num-discardable-ratio-le100-file";
+    "lmdb.titandb.num-discardable-ratio-le100-file";
 
-pub const LMDB_CAUSETSTATS: &str = "rocksdb.causetstats";
+pub const LMDB_CAUSETSTATS: &str = "lmdb.causetstats";
 pub const LMDB_IOSTALL_KEY: &[&str] = &[
     "io_stalls.level0_slowdown",
     "io_stalls.level0_numfiles",

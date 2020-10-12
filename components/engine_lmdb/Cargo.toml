@@ -17,9 +17,9 @@ prost-codec = [
   "violetabft/prost-codec",
   "ekvproto/prost-codec",
 ]
-jemalloc = ["rocksdb/jemalloc"]
-portable = ["rocksdb/portable"]
-sse = ["rocksdb/sse"]
+jemalloc = ["lmdb/jemalloc"]
+portable = ["lmdb/portable"]
+sse = ["lmdb/sse"]
 
 [deplightlikeencies]
 encryption = { path = "../encryption" }
@@ -44,9 +44,9 @@ ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-featur
 violetabft = { version = "0.6.0-alpha", default-features = false }
 protobuf = "2"
 
-[deplightlikeencies.rocksdb]
-git = "https://github.com/einsteindb/rust-rocksdb.git"
-package = "rocksdb"
+[deplightlikeencies.lmdb]
+git = "https://github.com/einsteindb/rust-lmdb.git"
+package = "lmdb"
 features = ["encryption", "static_libcpp"]
 
 [deplightlikeencies.prometheus-static-metric]

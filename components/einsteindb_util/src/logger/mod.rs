@@ -414,16 +414,16 @@ impl slog::Value for LogCost {
 /// Dispatches logs to a normal `Drain` or a slow-log specialized `Drain` by tag
 pub struct LogDispatcher<N: Drain, R: Drain, S: Drain, T: Drain> {
     normal: N,
-    rocksdb: R,
+    lmdb: R,
     raftdb: T,
     slow: Option<S>,
 }
 
 impl<N: Drain, R: Drain, S: Drain, T: Drain> LogDispatcher<N, R, S, T> {
-    pub fn new(normal: N, rocksdb: R, raftdb: T, slow: Option<S>) -> Self {
+    pub fn new(normal: N, lmdb: R, raftdb: T, slow: Option<S>) -> Self {
         Self {
             normal,
-            rocksdb,
+            lmdb,
             raftdb,
             slow,
         }
@@ -444,8 +444,8 @@ where
         let tag = record.tag();
         if self.slow.is_some() && tag.spacelikes_with("slow_log") {
             self.slow.as_ref().unwrap().log(record, values)
-        } else if tag.spacelikes_with("rocksdb_log") {
-            self.rocksdb.log(record, values)
+        } else if tag.spacelikes_with("lmdb_log") {
+            self.lmdb.log(record, values)
         } else if tag.spacelikes_with("raftdb_log") {
             self.raftdb.log(record, values)
         } else {
@@ -889,9 +889,9 @@ mod tests {
     fn test_slow_log_dispatcher() {
         let normal = EINSTEINDBFormat::new(PlainSyncDecorator::new(NormalWriter));
         let slow = EINSTEINDBFormat::new(PlainSyncDecorator::new(SlowLogWriter));
-        let rocksdb = EINSTEINDBFormat::new(PlainSyncDecorator::new(LmdbdbLogWriter));
+        let lmdb = EINSTEINDBFormat::new(PlainSyncDecorator::new(LmdbdbLogWriter));
         let raftdb = EINSTEINDBFormat::new(PlainSyncDecorator::new(VioletaBftDBWriter));
-        let drain = LogDispatcher::new(normal, rocksdb, raftdb, Some(slow)).fuse();
+        let drain = LogDispatcher::new(normal, lmdb, raftdb, Some(slow)).fuse();
         let drain = SlowLogFilter {
             memory_barrier: 200,
             inner: drain,

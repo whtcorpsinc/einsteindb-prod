@@ -20,7 +20,7 @@ fn test_ufidelate_brane_size<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.causetg.raft_store.brane_split_check_diff = ReadableSize::kb(1);
     cluster
         .causetg
-        .rocksdb
+        .lmdb
         .defaultcauset
         .level0_file_num_compaction_trigger = 10;
     cluster.spacelike().unwrap();

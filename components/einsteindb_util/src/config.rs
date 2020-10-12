@@ -1536,7 +1536,7 @@ normal-concurrency = 1
 [readpool.interlock]
 normal-concurrency = 1
 
-[rocksdb.defaultcauset]
+[lmdb.defaultcauset]
 compression-per-level = ["no", "no", "no", "no", "no", "no", "no"]
 
 "#;
@@ -1553,7 +1553,7 @@ compression-per-level = ["no", "no", "no", "no", "no", "no", "no"]
         );
         m.insert("not-in-file-config1.xxx.yyy".to_owned(), "100".to_owned());
         m.insert(
-            "rocksdb.defaultcauset.compression-per-level".to_owned(),
+            "lmdb.defaultcauset.compression-per-level".to_owned(),
             "[\"no\", \"no\", \"lz4\", \"lz4\", \"lz4\", \"zstd\", \"zstd\"]".to_owned(),
         );
 
@@ -1574,7 +1574,7 @@ xxx = zzz
 [readpool.interlock]
 normal-concurrency = 123
 
-[rocksdb.defaultcauset]
+[lmdb.defaultcauset]
 compression-per-level = ["no", "no", "lz4", "lz4", "lz4", "zstd", "zstd"]
 
 [not-in-file-config1.xxx]

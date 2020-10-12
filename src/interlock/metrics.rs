@@ -152,7 +152,7 @@ lazy_static! {
     pub static ref COPR_SCAN_DETAILS_STATIC: CoprScanDetails =
         auto_flush_from!(COPR_SCAN_DETAILS, CoprScanDetails);
     pub static ref COPR_LMDB_PERF_COUNTER: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_interlock_rocksdb_perf",
+        "einsteindb_interlock_lmdb_perf",
         "Total number of Lmdb internal operations from PerfContext",
         &["req", "metric"]
     )

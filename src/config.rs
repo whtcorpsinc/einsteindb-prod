@@ -163,7 +163,7 @@ fn get_background_job_limit(
     let cpu_num = SysQuota::new().cpu_cores_quota();
     // At the minimum, we should have two background jobs: one for flush and one for compaction.
     // Otherwise, the number of background jobs should not exceed cpu_num - 1.
-    // By default, rocksdb assign (max_background_jobs / 4) threads dedicated for flush, and
+    // By default, lmdb assign (max_background_jobs / 4) threads dedicated for flush, and
     // the rest shared by flush and compaction.
     let max_background_jobs: i32 =
         cmp::max(2, cmp::min(default_background_jobs, (cpu_num - 1.0) as i32));
@@ -1085,7 +1085,7 @@ impl VioletaBftDefaultCfConfig {
 
 // Lmdb Env associate thread pools of multiple instances from the same process.
 // When construct Options, options.env is set to same singleton Env::Default() object.
-// So total max_background_jobs = max(rocksdb.max_background_jobs, raftdb.max_background_jobs)
+// So total max_background_jobs = max(lmdb.max_background_jobs, raftdb.max_background_jobs)
 // But each instance will limit their background jobs according to their own max_background_jobs
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug, Configuration)]
 #[serde(default)]
@@ -1387,7 +1387,7 @@ impl ConfigManager for DBConfigManger {
             self.set_db_config(&change_slice)?;
         }
         info!(
-            "rocksdb config changed";
+            "lmdb config changed";
             "db" => ?self.db_type,
             "change" => change_str
         );
@@ -2105,7 +2105,7 @@ pub struct EINSTEINDBConfig {
     pub interlock: CopConfig,
 
     #[config(submodule)]
-    pub rocksdb: DbConfig,
+    pub lmdb: DbConfig,
 
     #[config(submodule)]
     pub raftdb: VioletaBftDbConfig,
@@ -2153,7 +2153,7 @@ impl Default for EINSTEINDBConfig {
             raft_store: VioletaBftstoreConfig::default(),
             interlock: CopConfig::default(),
             fidel: FidelConfig::default(),
-            rocksdb: DbConfig::default(),
+            lmdb: DbConfig::default(),
             raftdb: VioletaBftDbConfig::default(),
             raft_engine: VioletaBftEngineConfig::default(),
             persistence: StorageConfig::default(),
@@ -2214,32 +2214,32 @@ impl EINSTEINDBConfig {
             if LmdbEngine::exists(&kv_db_path)
                 && !LmdbEngine::exists(&self.raft_store.raftdb_path)
             {
-                return Err("default rocksdb exist, buf raftdb not exist".into());
+                return Err("default lmdb exist, buf raftdb not exist".into());
             }
             if !LmdbEngine::exists(&kv_db_path)
                 && LmdbEngine::exists(&self.raft_store.raftdb_path)
             {
-                return Err("default rocksdb not exist, buf raftdb exist".into());
+                return Err("default lmdb not exist, buf raftdb exist".into());
             }
         } else {
             if LmdbEngine::exists(&kv_db_path)
                 && !VioletaBftLogEngine::exists(&self.raft_engine.config.dir)
             {
-                return Err("default rocksdb exist, buf violetabft engine not exist".into());
+                return Err("default lmdb exist, buf violetabft engine not exist".into());
             }
             if !LmdbEngine::exists(&kv_db_path)
                 && VioletaBftLogEngine::exists(&self.raft_engine.config.dir)
             {
-                return Err("default rocksdb not exist, buf violetabft engine exist".into());
+                return Err("default lmdb not exist, buf violetabft engine exist".into());
             }
         }
 
         // Check blob file dir is empty when titan is disabled
-        if !self.rocksdb.titan.enabled {
-            let titandb_path = if self.rocksdb.titan.dirname.is_empty() {
+        if !self.lmdb.titan.enabled {
+            let titandb_path = if self.lmdb.titan.dirname.is_empty() {
                 Path::new(&kv_db_path).join("titandb")
             } else {
-                Path::new(&self.rocksdb.titan.dirname).to_path_buf()
+                Path::new(&self.lmdb.titan.dirname).to_path_buf()
             };
             if let Err(e) =
                 einsteindb_util::config::check_data_dir_empty(titandb_path.to_str().unwrap(), "blob")
@@ -2265,7 +2265,7 @@ impl EINSTEINDBConfig {
             .into());
         }
 
-        self.rocksdb.validate()?;
+        self.lmdb.validate()?;
         self.raftdb.validate()?;
         self.raft_engine.validate()?;
         self.server.validate()?;
@@ -2362,9 +2362,9 @@ impl EINSTEINDBConfig {
         let cache_causetg = &mut self.persistence.block_cache;
         if cache_causetg.shared && cache_causetg.capacity.0.is_none() {
             cache_causetg.capacity.0 = Some(ReadableSize {
-                0: self.rocksdb.defaultcauset.block_cache_size.0
-                    + self.rocksdb.writecauset.block_cache_size.0
-                    + self.rocksdb.lockcauset.block_cache_size.0
+                0: self.lmdb.defaultcauset.block_cache_size.0
+                    + self.lmdb.writecauset.block_cache_size.0
+                    + self.lmdb.lockcauset.block_cache_size.0
                     + self.raftdb.defaultcauset.block_cache_size.0,
             });
         }
@@ -2373,12 +2373,12 @@ impl EINSTEINDBConfig {
     }
 
     pub fn check_critical_causetg_with(&self, last_causetg: &Self) -> Result<(), String> {
-        if last_causetg.rocksdb.wal_dir != self.rocksdb.wal_dir {
+        if last_causetg.lmdb.wal_dir != self.lmdb.wal_dir {
             return Err(format!(
                 "db wal_dir have been changed, former db wal_dir is '{}', \
                  current db wal_dir is '{}', please guarantee all data wal logs \
                  have been moved to destination directory.",
-                last_causetg.rocksdb.wal_dir, self.rocksdb.wal_dir
+                last_causetg.lmdb.wal_dir, self.lmdb.wal_dir
             ));
         }
 
@@ -2387,7 +2387,7 @@ impl EINSTEINDBConfig {
                 "raftdb wal_dir have been changed, former raftdb wal_dir is '{}', \
                  current raftdb wal_dir is '{}', please guarantee all violetabft wal logs \
                  have been moved to destination directory.",
-                last_causetg.raftdb.wal_dir, self.rocksdb.wal_dir
+                last_causetg.raftdb.wal_dir, self.lmdb.wal_dir
             ));
         }
 
@@ -2463,7 +2463,7 @@ impl EINSTEINDBConfig {
 
     pub fn write_into_metrics(&self) {
         self.raft_store.write_into_metrics();
-        self.rocksdb.write_into_metrics();
+        self.lmdb.write_into_metrics();
     }
 
     pub fn with_tmp() -> Result<(EINSTEINDBConfig, tempfile::TempDir), IoError> {
@@ -2718,7 +2718,7 @@ impl From<&str> for Module {
             "interlock" => Module::Interlock,
             "fidel" => Module::Fidel,
             "split" => Module::Split,
-            "rocksdb" => Module::Lmdbdb,
+            "lmdb" => Module::Lmdbdb,
             "raftdb" => Module::VioletaBftdb,
             "raft_engine" => Module::VioletaBftEngine,
             "persistence" => Module::CausetStorage,
@@ -2837,10 +2837,10 @@ mod tests {
         let mut last_causetg = EINSTEINDBConfig::default();
         assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_ok());
 
-        einsteindb_causetg.rocksdb.wal_dir = "/data/wal_dir".to_owned();
+        einsteindb_causetg.lmdb.wal_dir = "/data/wal_dir".to_owned();
         assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_err());
 
-        last_causetg.rocksdb.wal_dir = "/data/wal_dir".to_owned();
+        last_causetg.lmdb.wal_dir = "/data/wal_dir".to_owned();
         assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_ok());
 
         einsteindb_causetg.raftdb.wal_dir = "/violetabft/wal_dir".to_owned();
@@ -2894,19 +2894,19 @@ mod tests {
 
         let mut einsteindb_causetg = EINSTEINDBConfig::default();
 
-        einsteindb_causetg.rocksdb.wal_dir = s1.clone();
+        einsteindb_causetg.lmdb.wal_dir = s1.clone();
         einsteindb_causetg.raftdb.wal_dir = s2.clone();
         einsteindb_causetg.write_to_file(file).unwrap();
         let causetg_from_file = EINSTEINDBConfig::from_file(file, None);
-        assert_eq!(causetg_from_file.rocksdb.wal_dir, s1);
+        assert_eq!(causetg_from_file.lmdb.wal_dir, s1);
         assert_eq!(causetg_from_file.raftdb.wal_dir, s2);
 
         // write critical config when exist.
-        einsteindb_causetg.rocksdb.wal_dir = s2.clone();
+        einsteindb_causetg.lmdb.wal_dir = s2.clone();
         einsteindb_causetg.raftdb.wal_dir = s1.clone();
         einsteindb_causetg.write_to_file(file).unwrap();
         let causetg_from_file = EINSTEINDBConfig::from_file(file, None);
-        assert_eq!(causetg_from_file.rocksdb.wal_dir, s2);
+        assert_eq!(causetg_from_file.lmdb.wal_dir, s2);
         assert_eq!(causetg_from_file.raftdb.wal_dir, s1);
     }
 
@@ -2938,16 +2938,16 @@ mod tests {
     fn test_block_size() {
         let mut einsteindb_causetg = EINSTEINDBConfig::default();
         einsteindb_causetg.fidel.lightlikepoints = vec!["".to_owned()];
-        einsteindb_causetg.rocksdb.defaultcauset.block_size = ReadableSize::gb(10);
-        einsteindb_causetg.rocksdb.lockcauset.block_size = ReadableSize::gb(10);
-        einsteindb_causetg.rocksdb.writecauset.block_size = ReadableSize::gb(10);
-        einsteindb_causetg.rocksdb.raftcauset.block_size = ReadableSize::gb(10);
+        einsteindb_causetg.lmdb.defaultcauset.block_size = ReadableSize::gb(10);
+        einsteindb_causetg.lmdb.lockcauset.block_size = ReadableSize::gb(10);
+        einsteindb_causetg.lmdb.writecauset.block_size = ReadableSize::gb(10);
+        einsteindb_causetg.lmdb.raftcauset.block_size = ReadableSize::gb(10);
         einsteindb_causetg.raftdb.defaultcauset.block_size = ReadableSize::gb(10);
         assert!(einsteindb_causetg.validate().is_err());
-        einsteindb_causetg.rocksdb.defaultcauset.block_size = ReadableSize::kb(10);
-        einsteindb_causetg.rocksdb.lockcauset.block_size = ReadableSize::kb(10);
-        einsteindb_causetg.rocksdb.writecauset.block_size = ReadableSize::kb(10);
-        einsteindb_causetg.rocksdb.raftcauset.block_size = ReadableSize::kb(10);
+        einsteindb_causetg.lmdb.defaultcauset.block_size = ReadableSize::kb(10);
+        einsteindb_causetg.lmdb.lockcauset.block_size = ReadableSize::kb(10);
+        einsteindb_causetg.lmdb.writecauset.block_size = ReadableSize::kb(10);
+        einsteindb_causetg.lmdb.raftcauset.block_size = ReadableSize::kb(10);
         einsteindb_causetg.raftdb.defaultcauset.block_size = ReadableSize::kb(10);
         einsteindb_causetg.validate().unwrap();
     }
@@ -3010,7 +3010,7 @@ mod tests {
         let mut incoming = EINSTEINDBConfig::default();
         incoming.interlock.brane_split_tuplespaceInstanton = 10000;
         incoming.gc.max_write_bytes_per_sec = ReadableSize::mb(100);
-        incoming.rocksdb.defaultcauset.block_cache_size = ReadableSize::mb(500);
+        incoming.lmdb.defaultcauset.block_cache_size = ReadableSize::mb(500);
         let diff = old.diff(&incoming);
         let mut change = HashMap::new();
         change.insert(
@@ -3019,7 +3019,7 @@ mod tests {
         );
         change.insert("gc.max-write-bytes-per-sec".to_owned(), "100MB".to_owned());
         change.insert(
-            "rocksdb.defaultcauset.block-cache-size".to_owned(),
+            "lmdb.defaultcauset.block-cache-size".to_owned(),
             "500MB".to_owned(),
         );
         let res = to_config_change(change).unwrap();
@@ -3036,11 +3036,11 @@ mod tests {
             // missing or unknown config fields
             ("xxx.yyy".to_owned(), "12".to_owned()),
             (
-                "rocksdb.defaultcauset.block-cache-size.xxx".to_owned(),
+                "lmdb.defaultcauset.block-cache-size.xxx".to_owned(),
                 "50MB".to_owned(),
             ),
-            ("rocksdb.xxx.block-cache-size".to_owned(), "50MB".to_owned()),
-            ("rocksdb.block-cache-size".to_owned(), "50MB".to_owned()),
+            ("lmdb.xxx.block-cache-size".to_owned(), "50MB".to_owned()),
+            ("lmdb.block-cache-size".to_owned(), "50MB".to_owned()),
             // not support change config
             (
                 "violetabftstore.violetabft-heartbeat-ticks".to_owned(),
@@ -3068,7 +3068,7 @@ mod tests {
         );
         change.insert("gc.max-write-bytes-per-sec".to_owned(), "100MB".to_owned());
         change.insert(
-            "rocksdb.defaultcauset.titan.blob-run-mode".to_owned(),
+            "lmdb.defaultcauset.titan.blob-run-mode".to_owned(),
             "read-only".to_owned(),
         );
         let res = to_toml_encode(change).unwrap();
@@ -3085,7 +3085,7 @@ mod tests {
             Some(&"\"100MB\"".to_owned())
         );
         assert_eq!(
-            res.get("rocksdb.defaultcauset.titan.blob-run-mode"),
+            res.get("lmdb.defaultcauset.titan.blob-run-mode"),
             Some(&"\"read-only\"".to_owned())
         );
     }
@@ -3094,8 +3094,8 @@ mod tests {
         let engine = LmdbEngine::from_db(Arc::new(
             new_engine_opt(
                 &causetg.persistence.data_dir,
-                causetg.rocksdb.build_opt(),
-                causetg.rocksdb
+                causetg.lmdb.build_opt(),
+                causetg.lmdb
                     .build_causet_opts(&causetg.persistence.block_cache.build_shared_cache()),
             )
             .unwrap(),
@@ -3114,13 +3114,13 @@ mod tests {
     }
 
     #[test]
-    fn test_change_rocksdb_config() {
+    fn test_change_lmdb_config() {
         let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-        causetg.rocksdb.max_background_jobs = 2;
-        causetg.rocksdb.defaultcauset.disable_auto_compactions = false;
-        causetg.rocksdb.defaultcauset.target_file_size_base = ReadableSize::mb(64);
-        causetg.rocksdb.defaultcauset.block_cache_size = ReadableSize::mb(8);
-        causetg.rocksdb.rate_bytes_per_sec = ReadableSize::mb(64);
+        causetg.lmdb.max_background_jobs = 2;
+        causetg.lmdb.defaultcauset.disable_auto_compactions = false;
+        causetg.lmdb.defaultcauset.target_file_size_base = ReadableSize::mb(64);
+        causetg.lmdb.defaultcauset.block_cache_size = ReadableSize::mb(8);
+        causetg.lmdb.rate_bytes_per_sec = ReadableSize::mb(64);
         causetg.persistence.block_cache.shared = false;
         causetg.validate().unwrap();
         let (db, causetg_controller) = new_engines(causetg);
@@ -3130,7 +3130,7 @@ mod tests {
         assert_eq!(db_opts.get_max_background_jobs(), 2);
 
         causetg_controller
-            .ufidelate_config("rocksdb.max-background-jobs", "8")
+            .ufidelate_config("lmdb.max-background-jobs", "8")
             .unwrap();
         assert_eq!(db.get_db_options().get_max_background_jobs(), 8);
 
@@ -3142,7 +3142,7 @@ mod tests {
         );
 
         causetg_controller
-            .ufidelate_config("rocksdb.rate-bytes-per-sec", "128MB")
+            .ufidelate_config("lmdb.rate-bytes-per-sec", "128MB")
             .unwrap();
         assert_eq!(
             db.get_db_options().get_rate_bytes_per_sec().unwrap(),
@@ -3158,15 +3158,15 @@ mod tests {
 
         let mut change = HashMap::new();
         change.insert(
-            "rocksdb.defaultcauset.disable-auto-compactions".to_owned(),
+            "lmdb.defaultcauset.disable-auto-compactions".to_owned(),
             "true".to_owned(),
         );
         change.insert(
-            "rocksdb.defaultcauset.target-file-size-base".to_owned(),
+            "lmdb.defaultcauset.target-file-size-base".to_owned(),
             "32MB".to_owned(),
         );
         change.insert(
-            "rocksdb.defaultcauset.block-cache-size".to_owned(),
+            "lmdb.defaultcauset.block-cache-size".to_owned(),
             "256MB".to_owned(),
         );
         causetg_controller.ufidelate(change).unwrap();
@@ -3190,9 +3190,9 @@ mod tests {
         causetg.validate().unwrap();
         let (db, causetg_controller) = new_engines(causetg);
 
-        // Can not ufidelate shared block cache through rocksdb module
+        // Can not ufidelate shared block cache through lmdb module
         assert!(causetg_controller
-            .ufidelate_config("rocksdb.defaultcauset.block-cache-size", "256MB")
+            .ufidelate_config("lmdb.defaultcauset.block-cache-size", "256MB")
             .is_err());
 
         causetg_controller
@@ -3211,14 +3211,14 @@ mod tests {
     fn test_dispatch_titan_blob_run_mode_config() {
         let mut causetg = EINSTEINDBConfig::default();
         let mut incoming = causetg.clone();
-        causetg.rocksdb.defaultcauset.titan.blob_run_mode = BlobRunMode::Normal;
-        incoming.rocksdb.defaultcauset.titan.blob_run_mode = BlobRunMode::Fallback;
+        causetg.lmdb.defaultcauset.titan.blob_run_mode = BlobRunMode::Normal;
+        incoming.lmdb.defaultcauset.titan.blob_run_mode = BlobRunMode::Fallback;
 
         let diff = causetg
-            .rocksdb
+            .lmdb
             .defaultcauset
             .titan
-            .diff(&incoming.rocksdb.defaultcauset.titan);
+            .diff(&incoming.lmdb.defaultcauset.titan);
         assert_eq!(diff.len(), 1);
 
         let diff = config_value_to_string(diff.into_iter().collect());

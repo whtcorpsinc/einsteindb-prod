@@ -462,7 +462,7 @@ where
             .get_oldest_snapshot_sequence_number()
             .unwrap_or(u64::MAX);
         for (brane_id, s_key, e_key, stale_sequence) in overlap_cones {
-            // `delete_files_in_cone` may break current rocksdb snapshots consistency,
+            // `delete_files_in_cone` may break current lmdb snapshots consistency,
             // so do not use it unless we can make sure there is no reader of the destroyed peer anymore.
             let use_delete_files = stale_sequence < oldest_sequence;
             if !use_delete_files {

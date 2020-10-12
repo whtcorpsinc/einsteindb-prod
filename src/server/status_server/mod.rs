@@ -1292,8 +1292,8 @@ mod tests {
             "grpc-server"
         );
         assert_eq!(
-            &StatusServer::extract_thread_name("rocksdb:bg1000"),
-            "rocksdb:bg"
+            &StatusServer::extract_thread_name("lmdb:bg1000"),
+            "lmdb:bg"
         );
         assert_eq!(
             &StatusServer::extract_thread_name("violetabftstore-1-100"),

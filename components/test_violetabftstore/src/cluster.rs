@@ -272,7 +272,7 @@ impl<T: Simulator> Cluster<T> {
         let store_meta = Arc::new(Mutex::new(StoreMeta::new(PENDING_VOTES_CAP)));
         self.store_metas.insert(node_id, store_meta.clone());
         debug!("calling run node"; "node_id" => node_id);
-        // FIXME: rocksdb event listeners may not work, because we change the router.
+        // FIXME: lmdb event listeners may not work, because we change the router.
         self.sim
             .wl()
             .run_node(node_id, causetg, engines, store_meta, key_mgr, router, system)?;

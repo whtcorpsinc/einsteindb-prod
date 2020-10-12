@@ -4130,7 +4130,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"rocksdb.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(einsteindb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"lmdb.*\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",

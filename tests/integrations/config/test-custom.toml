@@ -169,7 +169,7 @@ brane-max-tuplespaceInstanton = 100000
 brane-split-tuplespaceInstanton = 100000
 consistency-check-method = "mvcc"
 
-[rocksdb]
+[lmdb]
 wal-recovery-mode = 1
 wal-dir = "/var"
 wal-ttl-seconds = 1
@@ -199,14 +199,14 @@ enable-pipelined-write = false
 enable-unordered-write = true
 enable-multi-batch-write = false
 
-[rocksdb.titan]
+[lmdb.titan]
 enabled = true
 dirname = "bar"
 disable-gc = false
 max-background-gc = 9
 purge-obsolete-files-period = "1s"
 
-[rocksdb.defaultcauset]
+[lmdb.defaultcauset]
 block-size = "12KB"
 block-cache-size = "12GB"
 disable-block-cache = false
@@ -249,7 +249,7 @@ prop-size-index-distance = 4000000
 prop-tuplespaceInstanton-index-distance = 40000
 enable-doubly-skiplist = false
 
-[rocksdb.defaultcauset.titan]
+[lmdb.defaultcauset.titan]
 min-blob-size = "2018B"
 blob-file-compression = "zstd"
 blob-cache-size = "12GB"
@@ -264,7 +264,7 @@ cone-merge = true
 max-sorted-runs = 100
 gc-merge-rewrite = true
 
-[rocksdb.writecauset]
+[lmdb.writecauset]
 block-size = "12KB"
 block-cache-size = "12GB"
 disable-block-cache = false
@@ -306,7 +306,7 @@ force-consistency-checks = false
 prop-size-index-distance = 4000000
 prop-tuplespaceInstanton-index-distance = 40000
 
-[rocksdb.lockcauset]
+[lmdb.lockcauset]
 block-size = "12KB"
 block-cache-size = "12GB"
 disable-block-cache = false
@@ -348,7 +348,7 @@ force-consistency-checks = false
 prop-size-index-distance = 4000000
 prop-tuplespaceInstanton-index-distance = 40000
 
-[rocksdb.raftcauset]
+[lmdb.raftcauset]
 block-size = "12KB"
 block-cache-size = "12GB"
 disable-block-cache = false
@@ -390,7 +390,7 @@ force-consistency-checks = false
 prop-size-index-distance = 4000000
 prop-tuplespaceInstanton-index-distance = 40000
 
-[rocksdb.ver-defaultcauset]
+[lmdb.ver-defaultcauset]
 block-size = "12KB"
 block-cache-size = "12GB"
 disable-block-cache = false
@@ -433,7 +433,7 @@ prop-size-index-distance = 4000000
 prop-tuplespaceInstanton-index-distance = 40000
 enable-doubly-skiplist = false
 
-[rocksdb.ver-defaultcauset.titan]
+[lmdb.ver-defaultcauset.titan]
 min-blob-size = "2018B"
 blob-file-compression = "zstd"
 blob-cache-size = "12GB"
