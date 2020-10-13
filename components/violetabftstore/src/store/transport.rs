@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
 use crate::store::{CasualMessage, PeerMsg, VioletaBftCommand, VioletaBftRouter, StoreMsg};
 use crate::{DiscardReason, Error, Result};

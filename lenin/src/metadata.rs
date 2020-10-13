@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -23,8 +23,8 @@ use public_promises::errors::{
     Result,
 };
 
-use tolstoy_promises::errors::{
-    TolstoyError,
+use lenin_promises::errors::{
+    LeninError,
 };
 
 use einstein_db::{
@@ -52,7 +52,7 @@ pub struct SyncSpacetime {
 
 pub enum PartitionsTable {
     Core,
-    Tolstoy,
+    Lenin,
 }
 
 impl SyncSpacetime {
@@ -65,7 +65,7 @@ impl SyncSpacetime {
 
     pub fn remote_head(causetx: &rusqlite::Transaction) -> Result<Uuid> {
         causetx.causetq_row(
-            "SELECT value FROM tolstoy_spacetime WHERE key = ?",
+            "SELECT value FROM lenin_spacetime WHERE key = ?",
             &[&schema::REMOTE_HEAD_KEY], |r| {
                 let bytes: Vec<u8> = r.get(0);
                 Uuid::from_bytes(bytes.as_slice())
@@ -75,10 +75,10 @@ impl SyncSpacetime {
 
     pub fn set_remote_head(causetx: &rusqlite::Transaction, uuid: &Uuid) -> Result<()> {
         let uuid_bytes = uuid.as_bytes().to_vec();
-        let updated = causetx.execute("UPDATE tolstoy_spacetime SET value = ? WHERE key = ?",
+        let updated = causetx.execute("UPDATE lenin_spacetime SET value = ? WHERE key = ?",
             &[&uuid_bytes, &schema::REMOTE_HEAD_KEY])?;
         if updated != 1 {
-            bail!(TolstoyError::DuplicateSpacetime(schema::REMOTE_HEAD_KEY.into()));
+            bail!(LeninError::DuplicateSpacetime(schema::REMOTE_HEAD_KEY.into()));
         }
         Ok(())
     }
@@ -89,14 +89,14 @@ impl SyncSpacetime {
         Ok(())
     }
 
-    // TODO Functions below start to blur the line between einsteindb-proper and tolstoy...
+    // TODO Functions below start to blur the line between einsteindb-proper and lenin...
     pub fn get_partitions(causetx: &rusqlite::Transaction, parts_table: PartitionsTable) -> Result<PartitionMap> {
         match parts_table {
             PartitionsTable::Core => {
                 edb::read_partition_map(causetx).map_err(|e| e.into())
             },
-            PartitionsTable::Tolstoy => {
-                let mut stmt: ::rusqlite::Statement = causetx.prepare("SELECT part, start, end, idx, allow_excision FROM tolstoy_parts")?;
+            PartitionsTable::Lenin => {
+                let mut stmt: ::rusqlite::Statement = causetx.prepare("SELECT part, start, end, idx, allow_excision FROM lenin_parts")?;
                 let m: Result<PartitionMap> = stmt.causetq_and_then(&[], |row| -> Result<(String, Partition)> {
                     Ok((row.get_checked(0)?, Partition::new(row.get_checked(1)?, row.get_checked(2)?, row.get_checked(3)?, row.get_checked(4)?)))
                 })?.collect();
@@ -114,7 +114,7 @@ impl SyncSpacetime {
         let mut causecausetxs = causecausetxs.into_iter();
 
         let root_causecausetx = match causecausetxs.nth(0) {
-            None => bail!(TolstoyError::UnexpectedState(format!("Could not get root causetx"))),
+            None => bail!(LeninError::UnexpectedState(format!("Could not get root causetx"))),
             Some(t) => t?
         };
 

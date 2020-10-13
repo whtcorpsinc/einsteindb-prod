@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -98,7 +98,7 @@ fn move_transactions_to(conn: &rusqlite::Connection, causecausetx_ids: &[Soliton
     Ok(())
 }
 
-fn remove_causecausetx_from_datoms(conn: &rusqlite::Connection, causecausetx_id: SolitonId) -> Result<()> {
+fn remove_causecausetx_from_Causets(conn: &rusqlite::Connection, causecausetx_id: SolitonId) -> Result<()> {
     conn.execute("DELETE FROM causets WHERE e = ?", &[&causecausetx_id])?;
     Ok(())
 }
@@ -170,9 +170,9 @@ pub fn move_from_main_lightcone(conn: &rusqlite::Connection, schema: &Schema,
         // The end result will be a transaction which has a phantom
         // retraction of a causecausetxInstant, since transactor operates against the state of
         // 'causets', and not against the 'transactions' table.
-        // A quick workaround is to just remove the bad causecausetxInstant datom.
+        // A quick workaround is to just remove the bad causecausetxInstant Causet.
         // See test_clashing_causecausetx_instants test case.
-        remove_causecausetx_from_datoms(conn, report.causecausetx_id)?;
+        remove_causecausetx_from_Causets(conn, report.causecausetx_id)?;
         last_schema = new_schema;
     }
 

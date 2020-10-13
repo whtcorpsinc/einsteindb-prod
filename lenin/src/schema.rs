@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -22,15 +22,15 @@ pub static PARTITION_USER: &str = r":edb.part/user";
 pub static PARTITION_TX: &str = r":edb.part/causetx";
 
 lazy_static! {
-    /// SQL statements to be executed, in order, to create the Tolstoy SQL schema (version 1).
-    /// "tolstoy_parts" records what the partitions were at the end of last sync, and is used
+    /// SQL statements to be executed, in order, to create the Lenin SQL schema (version 1).
+    /// "lenin_parts" records what the partitions were at the end of last sync, and is used
     /// as a "root partition" during renumbering (a three-way merge of partitions).
     #[cfg_attr(rustfmt, rustfmt_skip)]
     static ref SCHEMA_STATEMENTS: Vec<&'static str> = { vec![
-        "CREATE TABLE IF NOT EXISTS tolstoy_tu (causetx INTEGER PRIMARY KEY, uuid BLOB NOT NULL UNIQUE) WITHOUT ROWID",
-        "CREATE TABLE IF NOT EXISTS tolstoy_spacetime (key BLOB NOT NULL UNIQUE, value BLOB NOT NULL)",
-        "CREATE TABLE IF NOT EXISTS tolstoy_parts (part TEXT NOT NULL PRIMARY KEY, start INTEGER NOT NULL, end INTEGER NOT NULL, idx INTEGER NOT NULL, allow_excision SMALLINT NOT NULL)",
-        "CREATE INDEX IF NOT EXISTS idx_tolstoy_tu_ut ON tolstoy_tu (uuid, causetx)",
+        "CREATE TABLE IF NOT EXISTS lenin_tu (causetx INTEGER PRIMARY KEY, uuid BLOB NOT NULL UNIQUE) WITHOUT ROWID",
+        "CREATE TABLE IF NOT EXISTS lenin_spacetime (key BLOB NOT NULL UNIQUE, value BLOB NOT NULL)",
+        "CREATE TABLE IF NOT EXISTS lenin_parts (part TEXT NOT NULL PRIMARY KEY, start INTEGER NOT NULL, end INTEGER NOT NULL, idx INTEGER NOT NULL, allow_excision SMALLINT NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS idx_lenin_tu_ut ON lenin_tu (uuid, causetx)",
         ]
     };
 }
@@ -42,10 +42,10 @@ pub fn ensure_current_version(causetx: &mut rusqlite::Transaction) -> Result<()>
 
     // Initial partition information is what we'd see at bootstrap, and is used during first sync.
     for (name, start, end, index, allow_excision) in BOOTSTRAP_PARTITIONS.iter() {
-        causetx.execute("INSERT OR IGNORE INTO tolstoy_parts VALUES (?, ?, ?, ?, ?)", &[&name.to_string(), start, end, index, allow_excision])?;
+        causetx.execute("INSERT OR IGNORE INTO lenin_parts VALUES (?, ?, ?, ?, ?)", &[&name.to_string(), start, end, index, allow_excision])?;
     }
 
-    causetx.execute("INSERT OR IGNORE INTO tolstoy_spacetime (key, value) VALUES (?, zeroblob(16))", &[&REMOTE_HEAD_KEY])?;
+    causetx.execute("INSERT OR IGNORE INTO lenin_spacetime (key, value) VALUES (?, zeroblob(16))", &[&REMOTE_HEAD_KEY])?;
     Ok(())
 }
 
@@ -92,7 +92,7 @@ pub mod tests {
 
         assert!(ensure_current_version(&mut causetx).is_ok());
 
-        let mut stmt = causetx.prepare("SELECT key FROM tolstoy_spacetime WHERE value = zeroblob(16)").unwrap();
+        let mut stmt = causetx.prepare("SELECT key FROM lenin_spacetime WHERE value = zeroblob(16)").unwrap();
         let mut keys_iter = stmt.causetq_map(&[], |r| r.get(0)).expect("causetq works");
 
         let first: Result<String> = keys_iter.next().unwrap().map_err(|e| e.into());
@@ -104,7 +104,7 @@ pub mod tests {
             (_, _) => { panic!("Wrong number of results."); },
         }
 
-        let partitions = SyncSpacetime::get_partitions(&causetx, PartitionsTable::Tolstoy).unwrap();
+        let partitions = SyncSpacetime::get_partitions(&causetx, PartitionsTable::Lenin).unwrap();
 
         assert_eq!(partitions.len(), BOOTSTRAP_PARTITIONS.len());
 
@@ -127,14 +127,14 @@ pub mod tests {
         let test_uuid = Uuid::new_v4();
         {
             let uuid_bytes = test_uuid.as_bytes().to_vec();
-            match causetx.execute("UPDATE tolstoy_spacetime SET value = ? WHERE key = ?", &[&uuid_bytes, &REMOTE_HEAD_KEY]) {
+            match causetx.execute("UPDATE lenin_spacetime SET value = ? WHERE key = ?", &[&uuid_bytes, &REMOTE_HEAD_KEY]) {
                 Err(e) => panic!("Error running an update: {}", e),
                 _ => ()
             }
         }
 
         let new_idx = USER0 + 1;
-        match causetx.execute("UPDATE tolstoy_parts SET idx = ? WHERE part = ?", &[&new_idx, &PARTITION_USER]) {
+        match causetx.execute("UPDATE lenin_parts SET idx = ? WHERE part = ?", &[&new_idx, &PARTITION_USER]) {
             Err(e) => panic!("Error running an update: {}", e),
             _ => ()
         }
@@ -142,7 +142,7 @@ pub mod tests {
         assert!(ensure_current_version(&mut causetx).is_ok());
 
         // Check that running ensure_current_version on an initialized conn doesn't change anything.
-        let mut stmt = causetx.prepare("SELECT value FROM tolstoy_spacetime").unwrap();
+        let mut stmt = causetx.prepare("SELECT value FROM lenin_spacetime").unwrap();
         let mut values_iter = stmt.causetq_map(&[], |r| {
             let raw_uuid: Vec<u8> = r.get(0);
             Uuid::from_bytes(raw_uuid.as_slice()).unwrap()
@@ -157,7 +157,7 @@ pub mod tests {
             (_, _) => { panic!("Wrong number of results."); },
         }
 
-        let partitions = SyncSpacetime::get_partitions(&causetx, PartitionsTable::Tolstoy).unwrap();
+        let partitions = SyncSpacetime::get_partitions(&causetx, PartitionsTable::Lenin).unwrap();
 
         assert_eq!(partitions.len(), BOOTSTRAP_PARTITIONS.len());
 

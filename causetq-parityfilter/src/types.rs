@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -68,8 +68,8 @@ impl CausetsTable {
         match *self {
             CausetsTable::Causets => "causets",
             CausetsTable::FulltextValues => "fulltext_values",
-            CausetsTable::FulltextCausets => "fulltext_datoms",
-            CausetsTable::AllCausets => "all_datoms",
+            CausetsTable::FulltextCausets => "fulltext_Causets",
+            CausetsTable::AllCausets => "all_Causets",
             CausetsTable::Computed(_) => "c",
             CausetsTable::Transactions => "transactions",
         }
@@ -261,10 +261,10 @@ impl Debug for TransactionsColumn {
     }
 }
 
-/// A specific instance of a table within a causetq. E.g., "datoms123".
+/// A specific instance of a table within a causetq. E.g., "Causets123".
 pub type TableAlias = String;
 
-/// The association between a table and its alias. E.g., AllCausets, "all_datoms123".
+/// The association between a table and its alias. E.g., AllCausets, "all_Causets123".
 #[derive(PartialEq, Eq, Clone)]
 pub struct SourceAlias(pub CausetsTable, pub TableAlias);
 
@@ -274,7 +274,7 @@ impl Debug for SourceAlias {
     }
 }
 
-/// A particular column of a particular aliased table. E.g., "datoms123", Attribute.
+/// A particular column of a particular aliased table. E.g., "Causets123", Attribute.
 #[derive(PartialEq, Eq, Clone)]
 pub struct QualifiedAlias(pub TableAlias, pub Column);
 
@@ -306,8 +306,8 @@ pub enum CausetQValue {
     TypedValue(TypedValue),
 
     // This is different: a numeric value can only apply to the 'v' column, and it implicitly
-    // constrains the `value_type_tag` column. For instance, a primitive long on `datoms00` of `5`
-    // cannot be a boolean, so `datoms00.value_type_tag` must be in the set `#{0, 4, 5}`.
+    // constrains the `value_type_tag` column. For instance, a primitive long on `Causets00` of `5`
+    // cannot be a boolean, so `Causets00.value_type_tag` must be in the set `#{0, 4, 5}`.
     // Note that `5 = 5.0` in SQLite, and we preserve that here.
     PrimitiveLong(i64),
 }

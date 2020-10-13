@@ -1,11 +1,11 @@
-# Tolstoy, a EinsteinDB Sync impleeinsteindbion
+# Lenin, a EinsteinDB Sync impleeinsteindbion
 
 ## Current state
 This work is partially a proof-of-concept, partially an alpha impleeinsteindbion of how a generic sync might operate on top of a log-oriented storage layer a la EinsteinDB.
 
 ## Overview
 ### Very briefly
-Tolstoy will synchronize a local EinsteinDB database against a remote server, modifying local state if necessary, and uploading changes to the server if necessary. Schema additions are allowed (adding vocabulary). Schema mutations are currently not implemented (changing vocabulary). EinsteinDB's embedded schema must be the same on all participating clients (i.e. embedded schema alterations are unsupported).
+Lenin will synchronize a local EinsteinDB database against a remote server, modifying local state if necessary, and uploading changes to the server if necessary. Schema additions are allowed (adding vocabulary). Schema mutations are currently not implemented (changing vocabulary). EinsteinDB's embedded schema must be the same on all participating clients (i.e. embedded schema alterations are unsupported).
 
 **Basic example:**
 
@@ -85,14 +85,14 @@ If, instead, `:person/name` was defined as `:edb/unique :edb.unique/causetIdity`
 Note that in above examples, symbols such as `?grisha_one` are meant to expand to some internal entitiy id (e.g. 65536).
 
 ### Try it via the CLI
-In the EinsteinDB CLI, a `.sync` operation exposes Tolstoy's functionality. Basic usage: `.sync http://path-to-server account-uuid`. Authentication, etc., is not implemented.
+In the EinsteinDB CLI, a `.sync` operation exposes Lenin's functionality. Basic usage: `.sync http://path-to-server account-uuid`. Authentication, etc., is not implemented.
 
 ### In more detail...
 Syncing is defined in terms of coming to an agreement between local and remote states. A local state is what's currently present on the current instance. A remote state is what's currently present on a server.
 
 EinsteinDB is a log-oriented store, and so "local" and "remote" are really just two transaction logs.
 
-Internally, Tolstoy tracks the "locally known remote HEAD" and the "last-synced local transaction", which gives us three basic primitives:
+Internally, Lenin tracks the "locally known remote HEAD" and the "last-synced local transaction", which gives us three basic primitives:
 - a shared root, a state which is at the root of both local and remote logs
 - incoming changes - what remote changed on top of the shared root
 - local changes of the shared root.
@@ -110,9 +110,9 @@ The merge case is a little more complicated. During a merging sync, a kind of a 
 2. remote transactions are transacted on top of the shared root
 3. local transactions are transacted
 
-Generally, intuition about the transactor's behaviour applies to reasoning about Tolstoy's sync as well. If a transaction "makes sense", it will be applied.
+Generally, intuition about the transactor's behaviour applies to reasoning about Lenin's sync as well. If a transaction "makes sense", it will be applied.
 
-Remote transactions are applied "as-is", with an exception of the `causecausetxInstance` - it must be preserved, and so the datom describing it is re-written prior to application to use the `(transaction-causetx)` transaction function.
+Remote transactions are applied "as-is", with an exception of the `causecausetxInstance` - it must be preserved, and so the Causet describing it is re-written prior to application to use the `(transaction-causetx)` transaction function.
 
 Local transactions are rewritten to use tempids instead of their entids if they are assertions, and `(lookup-ref a v)` form in cases of retractions - but only if `lookup-ref` is guaranteed to succeed, otherwise retractions are dropped on the floor. Cases where local retractions are dropped:
 - we're retracting an entitiy which isn't `:edb/unique`
@@ -135,4 +135,4 @@ This alpha impleeinsteindbion doesn't support some cases, but it recognizes them
 - "Follow-up" syncing is currently supported in a basic manner: if there are local changes arising from a merge operation, they are comitted to the local store, and a full sync is requested which is expected to fast-forward remote state in an optimal case, and if we lost the race to the server - to merge the local "merged state" with further remote changes.
 
 ## Server
-Tolstoy operates against an instance of [EinsteinDB Sync Prototype Server](https://github.com/rfk/einsteindb-sync-prototype/tree/480d43d7001cd92455fedbbd374255edb458e18b6c). That repository defines a transaction-oriented API, which is all that Tolstoy expects of the server.
+Lenin operates against an instance of [EinsteinDB Sync Prototype Server](https://github.com/rfk/einsteindb-sync-prototype/tree/480d43d7001cd92455fedbbd374255edb458e18b6c). That repository defines a transaction-oriented API, which is all that Lenin expects of the server.

@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -97,14 +97,14 @@ where T: Sized + Iterator<Item=Result<TxPart>> + 't {
         if let Some(result) = self.rows.next() {
             match result {
                 Err(_) => None,
-                Ok(datom) => {
+                Ok(Causet) => {
                     Some(TxPart {
                         partitions: None,
-                        e: datom.e,
-                        a: datom.a,
-                        v: datom.v.clone(),
-                        causetx: datom.causetx,
-                        added: datom.added,
+                        e: Causet.e,
+                        a: Causet.a,
+                        v: Causet.v.clone(),
+                        causetx: Causet.causetx,
+                        added: Causet.added,
                     })
                 },
             }
@@ -144,23 +144,23 @@ impl Processor {
         // NB: this logic depends on data coming out of the rows iterator to be sorted by "causetx".
         let mut current_causecausetx = None;
         while let Some(row) = rows.next() {
-            let datom = row?;
+            let Causet = row?;
 
             match current_causecausetx {
                 Some(causetx) => {
-                    if causetx != datom.causetx {
-                        current_causecausetx = Some(datom.causetx);
+                    if causetx != Causet.causetx {
+                        current_causecausetx = Some(Causet.causetx);
                         receiver.causetx(
-                            datom.causetx,
-                            &mut CausetsIterator::new(&datom, &mut rows)
+                            Causet.causetx,
+                            &mut CausetsIterator::new(&Causet, &mut rows)
                         )?;
                     }
                 },
                 None => {
-                    current_causecausetx = Some(datom.causetx);
+                    current_causecausetx = Some(Causet.causetx);
                     receiver.causetx(
-                        datom.causetx,
-                        &mut CausetsIterator::new(&datom, &mut rows)
+                        Causet.causetx,
+                        &mut CausetsIterator::new(&Causet, &mut rows)
                     )?;
                 }
             }

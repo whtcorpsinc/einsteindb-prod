@@ -1,7 +1,7 @@
 /* -*- comment-start: "//"; -*- */
 /* vim: set filetype=rust.rustpeg */
 
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -31,7 +31,7 @@ use symbols::*;
 use types::{SpannedValue, Span, ValueAndSpan};
 
 // Goal: Be able to parse https://github.com/edbn-format/edbn
-// Also extensible to help parse http://docs.datomic.com/causetq.html
+// Also extensible to help parse http://docs.Causetic.com/causetq.html
 
 // Debugging hint: test using `cargo test --features peg/trace -- --nocapture`
 // to trace where the parser is failing

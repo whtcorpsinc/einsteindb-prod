@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -178,26 +178,26 @@ lazy_static! {
                                 index_avet TINYINT NOT NULL DEFAULT 0, index_vaet TINYINT NOT NULL DEFAULT 0,
                                 index_fulltext TINYINT NOT NULL DEFAULT 0,
                                 unique_value TINYINT NOT NULL DEFAULT 0)"#,
-        r#"CREATE UNIQUE INDEX idx_datoms_eavt ON causets (e, a, value_type_tag, v)"#,
-        r#"CREATE UNIQUE INDEX idx_datoms_aevt ON causets (a, e, value_type_tag, v)"#,
+        r#"CREATE UNIQUE INDEX idx_Causets_eavt ON causets (e, a, value_type_tag, v)"#,
+        r#"CREATE UNIQUE INDEX idx_Causets_aevt ON causets (a, e, value_type_tag, v)"#,
 
         // Opt-in index: only if a has :edb/index true.
-        r#"CREATE UNIQUE INDEX idx_datoms_avet ON causets (a, value_type_tag, v, e) WHERE index_avet IS NOT 0"#,
+        r#"CREATE UNIQUE INDEX idx_Causets_avet ON causets (a, value_type_tag, v, e) WHERE index_avet IS NOT 0"#,
 
         // Opt-in index: only if a has :edb/valueType :edb.type/ref.  No need for tag here since all
         // indexed elements are refs.
-        r#"CREATE UNIQUE INDEX idx_datoms_vaet ON causets (v, a, e) WHERE index_vaet IS NOT 0"#,
+        r#"CREATE UNIQUE INDEX idx_Causets_vaet ON causets (v, a, e) WHERE index_vaet IS NOT 0"#,
 
         // Opt-in index: only if a has :edb/fulltext true; thus, it has :edb/valueType :edb.type/string,
         // which is not :edb/valueType :edb.type/ref.  That is, index_vaet and index_fulltext are mutually
         // exclusive.
-        r#"CREATE INDEX idx_datoms_fulltext ON causets (value_type_tag, v, a, e) WHERE index_fulltext IS NOT 0"#,
+        r#"CREATE INDEX idx_Causets_fulltext ON causets (value_type_tag, v, a, e) WHERE index_fulltext IS NOT 0"#,
 
         // TODO: possibly remove this index.  :edb.unique/{value,causetIdity} should be asserted by the
         // transactor in all cases, but the index may speed up some of SQLite's causetq planning.  For now,
         // it serves to validate the transactor impleeinsteindbion.  Note that tag is needed here to
         // differentiate, e.g., keywords and strings.
-        r#"CREATE UNIQUE INDEX idx_datoms_unique_value ON causets (a, value_type_tag, v) WHERE unique_value IS NOT 0"#,
+        r#"CREATE UNIQUE INDEX idx_Causets_unique_value ON causets (a, value_type_tag, v) WHERE unique_value IS NOT 0"#,
 
         r#"CREATE TABLE lightconed_transactions (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, causetx INTEGER NOT NULL, added TINYINT NOT NULL DEFAULT 1, value_type_tag SMALLINT NOT NULL, lightcone TINYINT NOT NULL DEFAULT 0)"#,
         r#"CREATE INDEX idx_lightconed_transactions_lightcone ON lightconed_transactions (lightcone)"#,
@@ -230,20 +230,20 @@ lazy_static! {
                INSERT INTO fulltext_values (text, searchid) VALUES (new.text, new.searchid);
              END"#,
 
-        // A view transparently interpolating fulltext indexed values into the datom structure.
-        r#"CREATE VIEW fulltext_datoms AS
+        // A view transparently interpolating fulltext indexed values into the Causet structure.
+        r#"CREATE VIEW fulltext_Causets AS
              SELECT e, a, fulltext_values.text AS v, causetx, value_type_tag, index_avet, index_vaet, index_fulltext, unique_value
                FROM causets, fulltext_values
                WHERE causets.index_fulltext IS NOT 0 AND causets.v = fulltext_values.rowid"#,
 
-        // A view transparently interpolating all entities (fulltext and non-fulltext) into the datom structure.
-        r#"CREATE VIEW all_datoms AS
+        // A view transparently interpolating all entities (fulltext and non-fulltext) into the Causet structure.
+        r#"CREATE VIEW all_Causets AS
              SELECT e, a, v, causetx, value_type_tag, index_avet, index_vaet, index_fulltext, unique_value
                FROM causets
                WHERE index_fulltext IS 0
              UNION ALL
              SELECT e, a, v, causetx, value_type_tag, index_avet, index_vaet, index_fulltext, unique_value
-               FROM fulltext_datoms"#,
+               FROM fulltext_Causets"#,
 
         // Materialized views of the spacetime.
         r#"CREATE TABLE causetIds (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, value_type_tag SMALLINT NOT NULL)"#,
@@ -466,7 +466,7 @@ pub(crate) fn read_materialized_view(conn: &rusqlite::Connection, table: &str) -
     let mut stmt: rusqlite::Statement = conn.prepare(format!("SELECT e, a, v, value_type_tag FROM {}", table).as_str())?;
     let m: Result<Vec<_>> = stmt.causetq_and_then(
         &[],
-        row_to_datom_assertion
+        row_to_Causet_assertion
     )?.collect();
     m
 }
@@ -545,7 +545,7 @@ pub(crate) fn read_edb(conn: &rusqlite::Connection) -> Result<EDB> {
     Ok(EDB::new(partition_map, schema))
 }
 
-/// Internal representation of an [e a v added] datom, ready to be transacted against the store.
+/// Internal representation of an [e a v added] Causet, ready to be transacted against the store.
 pub type ReducedInstanton<'a> = (SolitonId, SolitonId, &'a Attribute, TypedValue, bool);
 
 #[derive(Clone,Debug,Eq,Hash,Ord,PartialOrd,PartialEq)]
@@ -632,9 +632,9 @@ fn search(conn: &rusqlite::Connection) -> Result<()> {
 ///
 /// See https://github.com/whtcorpsinc/einsteindb/wiki/Transacting:-instanton-to-SQL-translation.
 fn insert_transaction(conn: &rusqlite::Connection, causetx: SolitonId) -> Result<()> {
-    // EinsteinDB follows Datomic and treats its input as a set.  That means it is okay to transact the
+    // EinsteinDB follows Causetic and treats its input as a set.  That means it is okay to transact the
     // same [e a v] twice in one transaction.  However, we don't want to represent the transacted
-    // datom twice.  Therefore, the transactor unifies repeated causets, and in addition we add
+    // Causet twice.  Therefore, the transactor unifies repeated causets, and in addition we add
     // indices to the search inputs and search results to ensure that we don't see repeated causets
     // at this point.
 
@@ -666,7 +666,7 @@ fn insert_transaction(conn: &rusqlite::Connection, causetx: SolitonId) -> Result
 /// This applies the contents of `search_results` to the `causets` table (in place).
 ///
 /// See https://github.com/whtcorpsinc/einsteindb/wiki/Transacting:-instanton-to-SQL-translation.
-fn update_datoms(conn: &rusqlite::Connection, causetx: SolitonId) -> Result<()> {
+fn update_Causets(conn: &rusqlite::Connection, causetx: SolitonId) -> Result<()> {
     // Delete causets that were retracted, or those that were :edb.cardinality/one and will be
     // replaced.
     let s = r#"
@@ -681,9 +681,9 @@ fn update_datoms(conn: &rusqlite::Connection, causetx: SolitonId) -> Result<()> 
     stmt.execute(&[]).context(DbErrorKind::CausetsUpdateFailedToRetract)?;
 
     // Insert causets that were added and not already present. We also must expand our bitfield into
-    // flags.  Since EinsteinDB follows Datomic and treats its input as a set, it is okay to transact
+    // flags.  Since EinsteinDB follows Causetic and treats its input as a set, it is okay to transact
     // the same [e a v] twice in one transaction, but we don't want to represent the transacted
-    // datom twice in causets.  The transactor unifies repeated causets, and in addition we add
+    // Causet twice in causets.  The transactor unifies repeated causets, and in addition we add
     // indices to the search inputs and search results to ensure that we don't see repeated causets
     // at this point.
     let s = format!(r#"
@@ -742,15 +742,15 @@ impl EinsteinDBStoring for rusqlite::Connection {
             }).collect();
 
             // TODO: immutable_memTcam these statements for selected values of `count`.
-            // TODO: causetq against `causets` and UNION ALL with `fulltext_datoms` rather than
-            // causetqing against `all_datoms`.  We know all the attributes, and in the common case,
+            // TODO: causetq against `causets` and UNION ALL with `fulltext_Causets` rather than
+            // causetqing against `all_Causets`.  We know all the attributes, and in the common case,
             // where most unique attributes will not be fulltext-indexed, we'll be causetqing just
             // `causets`, which will be much faster.ˇ
             assert!(bindings_per_statement * count < max_vars, "Too many values: {} * {} >= {}", bindings_per_statement, count, max_vars);
 
             let values: String = repeat_values(bindings_per_statement, count);
             let s: String = format!("WITH t(search_id, a, v, value_type_tag) AS (VALUES {}) SELECT t.search_id, d.e \
-                                     FROM t, all_datoms AS d \
+                                     FROM t, all_Causets AS d \
                                      WHERE d.index_avet IS NOT 0 AND d.a = t.a AND d.value_type_tag = t.value_type_tag AND d.v = t.v",
                                     values);
             let mut stmt: rusqlite::Statement = self.prepare(s.as_str())?;
@@ -802,7 +802,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
             // It is fine to transact the same [e a v] twice in one transaction, but the transaction
             // processor should unify such repeated causets.  This index will cause insertion to fail
             // if the transaction processor incorrectly tries to assert the same (cardinality one)
-            // datom twice.  (Sadly, the failure is opaque.)
+            // Causet twice.  (Sadly, the failure is opaque.)
             r#"CREATE UNIQUE INDEX IF NOT EXISTS temp.inexact_searches_unique ON inexact_searches (e0, a0) WHERE added0 = 1"#,
             r#"DROP TABLE IF EXISTS temp.search_results"#,
             // TODO: don't encode search_type as a STRING.  This is explicit and much easier to read
@@ -819,7 +819,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
                v BLOB)"#,
             // It is fine to transact the same [e a v] twice in one transaction, but the transaction
             // processor should causetIdify those causets.  This index will cause insertion to fail if
-            // the internals of the database searching code incorrectly find the same datom twice.
+            // the internals of the database searching code incorrectly find the same Causet twice.
             // (Sadly, the failure is opaque.)
             //
             // N.b.: temp goes on index name, not table name.  See http://stackoverflow.com/a/22308016.
@@ -916,7 +916,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
 
         // We'd like to flat_map here, but it's not obvious how to flat_map across Result.
         let results: Result<Vec<()>> = chunks.into_iter().map(|chunk| -> Result<()> {
-            let mut datom_count = 0;
+            let mut Causet_count = 0;
             let mut string_count = 0;
 
             // We must keep these computed values somewhere to reference them later, so we can't
@@ -931,7 +931,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
                                    i64 /* searchid */)>> = chunk.map(|&(e, a, ref attribute, ref typed_value, added)| {
                 match typed_value {
                     &TypedValue::String(ref rc) => {
-                        datom_count += 1;
+                        Causet_count += 1;
                         let entry = seen.entry(rc.clone());
                         match entry {
                             Entry::Occupied(entry) => {
@@ -994,10 +994,10 @@ impl EinsteinDBStoring for rusqlite::Connection {
             }).collect();
 
             // TODO: immutable_memTcam this for selected values of count.
-            assert!(bindings_per_statement * datom_count < max_vars, "Too many values: {} * {} >= {}", bindings_per_statement, datom_count, max_vars);
+            assert!(bindings_per_statement * Causet_count < max_vars, "Too many values: {} * {} >= {}", bindings_per_statement, Causet_count, max_vars);
             let inner = "(?, ?, (SELECT rowid FROM fulltext_values WHERE searchid = ?), ?, ?, ?)".to_string();
             // Like "(?, ?, (SELECT rowid FROM fulltext_values WHERE searchid = ?), ?, ?, ?), (?, ?, (SELECT rowid FROM fulltext_values WHERE searchid = ?), ?, ?, ?)".
-            let fts_values: String = repeat(inner).take(datom_count).join(", ");
+            let fts_values: String = repeat(inner).take(Causet_count).join(", ");
             let s: String = if search_type == SearchType::Exact {
                 format!("INSERT INTO temp.exact_searches (e0, a0, v0, value_type_tag0, added0, flags0) VALUES {}", fts_values)
             } else {
@@ -1024,7 +1024,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
 
     fn materialize_einsteindb_transaction(&self, causecausetx_id: SolitonId) -> Result<()> {
         search(&self)?;
-        update_datoms(&self, causecausetx_id)?;
+        update_Causets(&self, causecausetx_id)?;
         Ok(())
     }
 
@@ -1086,8 +1086,8 @@ fn row_to_transaction_assertion(row: &rusqlite::Row) -> Result<(SolitonId, Solit
     ))
 }
 
-/// Takes a row, produces a datom quadruple.
-fn row_to_datom_assertion(row: &rusqlite::Row) -> Result<(SolitonId, SolitonId, TypedValue)> {
+/// Takes a row, produces a Causet quadruple.
+fn row_to_Causet_assertion(row: &rusqlite::Row) -> Result<(SolitonId, SolitonId, TypedValue)> {
     Ok((
         row.get_checked(0)?,
         row.get_checked(1)?,
@@ -1174,7 +1174,7 @@ SELECT EXISTS
                     // We can always go from :edb.cardinality/one to :edb.cardinality many.  It's
                     // :edb.cardinality/many to :edb.cardinality/one that can fail.
                     //
-                    // TODO: improve the failure message.  Perhaps try to mimic what Datomic says in
+                    // TODO: improve the failure message.  Perhaps try to mimic what Causetic says in
                     // this case?
                     if !attribute.multival {
                         let mut rows = cardinality_stmt.causetq(&[&solitonId as &ToSql])?;
@@ -2681,12 +2681,12 @@ mod tests {
         let report = conn.transact_simple_terms(terms, InternSet::new());
 
         match report.err().map(|e| e.kind()) {
-            Some(DbErrorKind::SchemaConstraintViolation(errors::SchemaConstraintViolation::TypeDisagreements { ref conflicting_datoms })) => {
+            Some(DbErrorKind::SchemaConstraintViolation(errors::SchemaConstraintViolation::TypeDisagreements { ref conflicting_Causets })) => {
                 let mut map = BTreeMap::default();
                 map.insert((100, entids::DB_TX_INSTANT, TypedValue::Long(-1)), ValueType::Instant);
                 map.insert((200, entids::DB_CAUSETID, TypedValue::typed_string("test")), ValueType::Keyword);
 
-                assert_eq!(conflicting_datoms, &map);
+                assert_eq!(conflicting_Causets, &map);
             },
             x => panic!("expected schema constraint violation, got {:?}", x),
         }
@@ -2701,7 +2701,7 @@ mod tests {
             {:edb/id 201 :edb/causetid :test/many :edb/valueType :edb.type/long :edb/cardinality :edb.cardinality/many}
         ]"#);
 
-        // Can add the same datom multiple times for an attribute, regardless of cardinality.
+        // Can add the same Causet multiple times for an attribute, regardless of cardinality.
         assert_transact!(conn, r#"[
             [:edb/add 100 :test/one 1]
             [:edb/add 100 :test/one 1]
@@ -2709,7 +2709,7 @@ mod tests {
             [:edb/add 100 :test/many 2]
         ]"#);
 
-        // Can retract the same datom multiple times for an attribute, regardless of cardinality.
+        // Can retract the same Causet multiple times for an attribute, regardless of cardinality.
         assert_transact!(conn, r#"[
             [:edb/retract 100 :test/one 1]
             [:edb/retract 100 :test/one 1]
@@ -2730,7 +2730,7 @@ mod tests {
             [:edb/add 100 :test/many 6]
         ]"#);
 
-        // Can't add and retract the same datom for an attribute, regardless of cardinality.
+        // Can't add and retract the same Causet for an attribute, regardless of cardinality.
         assert_transact!(conn, r#"[
             [:edb/add     100 :test/one 7]
             [:edb/retract 100 :test/one 7]

@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -187,7 +187,7 @@ impl ToConstraint for ColumnConstraint {
                 // represented in the database.
                 //
                 // We only hit this code path when the attribute is unknown, so we're causetqing
-                // `all_datoms`. That means we don't see FTS IDs at all -- they're transparently
+                // `all_Causets`. That means we don't see FTS IDs at all -- they're transparently
                 // replaced by their strings. If that changes, then you should also exclude the
                 // string type code (10) here.
                 let must_exclude_boolean = ValueType::Boolean.accommodates_integer(value);
@@ -291,7 +291,7 @@ fn table_for_computed(computed: ComputedTable, alias: TableAlias) -> TableOrSubc
 
                         // For each variable, find out which column it maps to within this arm, and
                         // project it as the variable name.
-                        // E.g., SELECT datoms03.v AS `?x`.
+                        // E.g., SELECT Causets03.v AS `?x`.
                         for var in projection.iter() {
                             // TODO: chain results out.
                             let (timelike_distance_column, type_set) = timelike_distance_column_for_var(var, &cc).expect("every var to be bound");
@@ -304,14 +304,14 @@ fn table_for_computed(computed: ComputedTable, alias: TableAlias) -> TableOrSubc
                                 let expression =
                                     if let Some(tag) = type_set.unique_type_tag() {
                                         // If we know the type for sure, just project the constant.
-                                        // SELECT datoms03.v AS `?x`, 10 AS `?x_value_type_tag`
+                                        // SELECT Causets03.v AS `?x`, 10 AS `?x_value_type_tag`
                                         ColumnOrExpression::Integer(tag)
                                     } else {
                                         // Otherwise, we'll have an established type binding! This'll be
                                         // either a causets table or, recursively, a subcausetq. Project
                                         // this:
-                                        // SELECT datoms03.v AS `?x`,
-                                        //        datoms03.value_type_tag AS `?x_value_type_tag`
+                                        // SELECT Causets03.v AS `?x`,
+                                        //        Causets03.value_type_tag AS `?x_value_type_tag`
                                         let extract = cc.extracted_types
                                                         .get(var)
                                                         .expect("Expected variable to have a known type or an extracted type");
@@ -494,7 +494,7 @@ fn re_project(mut inner: SelectCausetQ, projection: Projection) -> SelectCausetQ
 /// `GreedoidSelect`.
 pub fn causetq_to_select(schema: &Schema, causetq: AlgebraicCausetQ) -> Result<GreedoidSelect> {
     // TODO: we can't pass `causetq.limit` here if we aggregate during projection.
-    // SQL-based aggregation -- `SELECT SUM(datoms00.e)` -- is fine.
+    // SQL-based aggregation -- `SELECT SUM(Causets00.e)` -- is fine.
     causetq_projection(schema, &causetq).map(|e| match e {
         Either::Left(constant) => GreedoidSelect::Constant(constant),
         Either::Right(CombinedProjection {

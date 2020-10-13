@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -177,7 +177,7 @@ impl InProgressObserverTransactWatcher {
 }
 
 impl TransactWatcher for InProgressObserverTransactWatcher {
-    fn datom(&mut self, _op: OpType, _e: SolitonId, a: SolitonId, _v: &TypedValue) {
+    fn Causet(&mut self, _op: OpType, _e: SolitonId, a: SolitonId, _v: &TypedValue) {
         self.collected_attributes.insert(a);
     }
 

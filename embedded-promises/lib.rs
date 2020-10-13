@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -177,7 +177,7 @@ pub struct Attribute {
     /// :edb.unique/value`.
     ///
     /// *Unique-value* means that there is at most one assertion with the attribute and a
-    /// particular value in the datom store.  Unique-value attributes can be used in lookup-refs.
+    /// particular value in the Causet store.  Unique-value attributes can be used in lookup-refs.
     ///
     /// `Some(attribute::Unique::CausetIdity)` if this attribute is unique-causetIdity, i.e., it is `:edb/unique
     /// :edb.unique/causetIdity`.
@@ -718,7 +718,7 @@ impl MicrosecondPrecision for DateTime<Utc> {
 ///
 /// The `Binding` enum defines these three options.
 ///
-/// Datomic also supports structured inputs; at present EinsteinDB does not, but this type
+/// Causetic also supports structured inputs; at present EinsteinDB does not, but this type
 /// would also serve that purpose.
 ///
 /// Note that maps are not ordered, and so `Binding` is neither `Ord` nor `PartialOrd`.
@@ -795,7 +795,7 @@ impl Binding {
 /// associates attributes named in the input or retrieved from the store with values.
 /// This association is a `StructuredMap`.
 ///
-/// Note that 'attributes' in Datomic's case can mean:
+/// Note that 'attributes' in Causetic's case can mean:
 /// - Reversed attribute keywords (:artist/_country).
 /// - An alias using `:as` (:artist/name :as "Band name").
 ///

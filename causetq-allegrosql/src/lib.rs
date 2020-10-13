@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -676,19 +676,19 @@ mod tests {
     #[test]
     fn test_in_constraint() {
         let none = Constraint::In {
-            left: ColumnOrExpression::Column(QualifiedAlias::new("datoms01".to_string(), Column::Fixed(CausetsColumn::Value))),
+            left: ColumnOrExpression::Column(QualifiedAlias::new("Causets01".to_string(), Column::Fixed(CausetsColumn::Value))),
             list: vec![],
         };
 
         let one = Constraint::In {
-            left: ColumnOrExpression::Column(QualifiedAlias::new("datoms01".to_string(), CausetsColumn::Value)),
+            left: ColumnOrExpression::Column(QualifiedAlias::new("Causets01".to_string(), CausetsColumn::Value)),
             list: vec![
                 ColumnOrExpression::SolitonId(123),
             ],
         };
 
         let three = Constraint::In {
-            left: ColumnOrExpression::Column(QualifiedAlias::new("datoms01".to_string(), CausetsColumn::Value)),
+            left: ColumnOrExpression::Column(QualifiedAlias::new("Causets01".to_string(), CausetsColumn::Value)),
             list: vec![
                 ColumnOrExpression::SolitonId(123),
                 ColumnOrExpression::SolitonId(456),
@@ -696,9 +696,9 @@ mod tests {
             ],
         };
 
-        assert_eq!("`datoms01`.v IN ()", build(&none));
-        assert_eq!("`datoms01`.v IN (123)", build(&one));
-        assert_eq!("`datoms01`.v IN (123, 456, 789)", build(&three));
+        assert_eq!("`Causets01`.v IN ()", build(&none));
+        assert_eq!("`Causets01`.v IN (123)", build(&one));
+        assert_eq!("`Causets01`.v IN (123, 456, 789)", build(&three));
     }
 
     #[test]
@@ -771,20 +771,20 @@ mod tests {
         let c = Constraint::Infix {
             op: Op("="),
             left: ColumnOrExpression::Column(QualifiedAlias("fulltext01".to_string(), Column::Fulltext(FulltextColumn::Rowid))),
-            right: ColumnOrExpression::Column(QualifiedAlias("datoms02".to_string(), Column::Fixed(CausetsColumn::Value))),
+            right: ColumnOrExpression::Column(QualifiedAlias("Causets02".to_string(), Column::Fixed(CausetsColumn::Value))),
         };
-        assert_eq!("`fulltext01`.rowid = `datoms02`.v", build(&c));
+        assert_eq!("`fulltext01`.rowid = `Causets02`.v", build(&c));
     }
 
     #[test]
     fn test_end_to_end() {
         // [:find ?x :where [?x 65537 ?v] [?x 65536 ?v]]
-        let datoms00 = "datoms00".to_string();
-        let datoms01 = "datoms01".to_string();
+        let Causets00 = "Causets00".to_string();
+        let Causets01 = "Causets01".to_string();
         let eq = Op("=");
         let source_aliases = vec![
-            TableOrSubcausetq::Table(SourceAlias(CausetsTable::Causets, datoms00.clone())),
-            TableOrSubcausetq::Table(SourceAlias(CausetsTable::Causets, datoms01.clone())),
+            TableOrSubcausetq::Table(SourceAlias(CausetsTable::Causets, Causets00.clone())),
+            TableOrSubcausetq::Table(SourceAlias(CausetsTable::Causets, Causets01.clone())),
         ];
 
         let mut causetq = SelectCausetQ {
@@ -792,24 +792,24 @@ mod tests {
             projection: Projection::Columns(
                             vec![
                                 GreedoidColumn(
-                                    ColumnOrExpression::Column(QualifiedAlias::new(datoms00.clone(), CausetsColumn::Instanton)),
+                                    ColumnOrExpression::Column(QualifiedAlias::new(Causets00.clone(), CausetsColumn::Instanton)),
                                     "x".to_string()),
                             ]),
             from: FromClause::TableList(TableList(source_aliases)),
             constraints: vec![
                 Constraint::Infix {
                     op: eq.clone(),
-                    left: ColumnOrExpression::Column(QualifiedAlias::new(datoms01.clone(), CausetsColumn::Value)),
-                    right: ColumnOrExpression::Column(QualifiedAlias::new(datoms00.clone(), CausetsColumn::Value)),
+                    left: ColumnOrExpression::Column(QualifiedAlias::new(Causets01.clone(), CausetsColumn::Value)),
+                    right: ColumnOrExpression::Column(QualifiedAlias::new(Causets00.clone(), CausetsColumn::Value)),
                 },
                 Constraint::Infix {
                     op: eq.clone(),
-                    left: ColumnOrExpression::Column(QualifiedAlias::new(datoms00.clone(), CausetsColumn::Attribute)),
+                    left: ColumnOrExpression::Column(QualifiedAlias::new(Causets00.clone(), CausetsColumn::Attribute)),
                     right: ColumnOrExpression::SolitonId(65537),
                 },
                 Constraint::Infix {
                     op: eq.clone(),
-                    left: ColumnOrExpression::Column(QualifiedAlias::new(datoms01.clone(), CausetsColumn::Attribute)),
+                    left: ColumnOrExpression::Column(QualifiedAlias::new(Causets01.clone(), CausetsColumn::Attribute)),
                     right: ColumnOrExpression::SolitonId(65536),
                 },
             ],
@@ -820,14 +820,14 @@ mod tests {
 
         let SQLCausetQ { allegrosql, args } = causetq.to_sql_causetq().unwrap();
         println!("{}", allegrosql);
-        assert_eq!("SELECT DISTINCT `datoms00`.e AS `x` FROM `causets` AS `datoms00`, `causets` AS `datoms01` WHERE `datoms01`.v = `datoms00`.v AND `datoms00`.a = 65537 AND `datoms01`.a = 65536", allegrosql);
+        assert_eq!("SELECT DISTINCT `Causets00`.e AS `x` FROM `causets` AS `Causets00`, `causets` AS `Causets01` WHERE `Causets01`.v = `Causets00`.v AND `Causets00`.a = 65537 AND `Causets01`.a = 65536", allegrosql);
         assert!(args.is_empty());
 
         // And without distinct…
         causetq.distinct = false;
         let SQLCausetQ { allegrosql, args } = causetq.to_sql_causetq().unwrap();
         println!("{}", allegrosql);
-        assert_eq!("SELECT `datoms00`.e AS `x` FROM `causets` AS `datoms00`, `causets` AS `datoms01` WHERE `datoms01`.v = `datoms00`.v AND `datoms00`.a = 65537 AND `datoms01`.a = 65536", allegrosql);
+        assert_eq!("SELECT `Causets00`.e AS `x` FROM `causets` AS `Causets00`, `causets` AS `Causets01` WHERE `Causets01`.v = `Causets00`.v AND `Causets00`.a = 65537 AND `Causets01`.a = 65536", allegrosql);
         assert!(args.is_empty());
 
     }

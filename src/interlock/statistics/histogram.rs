@@ -1,4 +1,4 @@
-// Copyright 2017 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC Project Authors. Licensed Under Apache-2.0
 
 use std::mem;
 

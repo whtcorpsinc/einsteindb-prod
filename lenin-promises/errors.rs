@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -20,7 +20,7 @@ use edb_promises::errors::{
 };
 
 #[derive(Debug, Fail)]
-pub enum TolstoyError {
+pub enum LeninError {
     #[fail(display = "Received bad response from the remote: {}", _0)]
     BadRemoteResponse(String),
 
@@ -67,48 +67,48 @@ pub enum TolstoyError {
     UriError(#[cause] hyper::error::UriError),
 }
 
-impl From<DbError> for TolstoyError {
-    fn from(error: DbError) -> TolstoyError {
-        TolstoyError::DbError(error)
+impl From<DbError> for LeninError {
+    fn from(error: DbError) -> LeninError {
+        LeninError::DbError(error)
     }
 }
 
-impl From<serde_json::Error> for TolstoyError {
-    fn from(error: serde_json::Error) -> TolstoyError {
-        TolstoyError::SerializationError(error)
+impl From<serde_json::Error> for LeninError {
+    fn from(error: serde_json::Error) -> LeninError {
+        LeninError::SerializationError(error)
     }
 }
 
-impl From<rusqlite::Error> for TolstoyError {
-    fn from(error: rusqlite::Error) -> TolstoyError {
+impl From<rusqlite::Error> for LeninError {
+    fn from(error: rusqlite::Error) -> LeninError {
         let cause = match error.cause() {
             Some(e) => e.to_string(),
             None => "".to_string()
         };
-        TolstoyError::RusqliteError(error.to_string(), cause)
+        LeninError::RusqliteError(error.to_string(), cause)
     }
 }
 
-impl From<std::io::Error> for TolstoyError {
-    fn from(error: std::io::Error) -> TolstoyError {
-        TolstoyError::IoError(error)
+impl From<std::io::Error> for LeninError {
+    fn from(error: std::io::Error) -> LeninError {
+        LeninError::IoError(error)
     }
 }
 
-impl From<uuid::ParseError> for TolstoyError {
-    fn from(error: uuid::ParseError) -> TolstoyError {
-        TolstoyError::UuidError(error)
+impl From<uuid::ParseError> for LeninError {
+    fn from(error: uuid::ParseError) -> LeninError {
+        LeninError::UuidError(error)
     }
 }
 
-impl From<hyper::Error> for TolstoyError {
-    fn from(error: hyper::Error) -> TolstoyError {
-        TolstoyError::NetworkError(error)
+impl From<hyper::Error> for LeninError {
+    fn from(error: hyper::Error) -> LeninError {
+        LeninError::NetworkError(error)
     }
 }
 
-impl From<hyper::error::UriError> for TolstoyError {
-    fn from(error: hyper::error::UriError) -> TolstoyError {
-        TolstoyError::UriError(error)
+impl From<hyper::error::UriError> for LeninError {
+    fn from(error: hyper::error::UriError) -> LeninError {
+        LeninError::UriError(error)
     }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2016 EinsteinDB Project Authors
+# Copyright 2020 WHTCORPS INC
 
 set -o pipefail
 

@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
 use engine_lmdb::raw::Cone;
 use engine_lmdb::util::get_causet_handle;

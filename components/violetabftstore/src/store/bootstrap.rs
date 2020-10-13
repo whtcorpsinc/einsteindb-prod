@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
 use super::peer_causetStorage::{
     write_initial_apply_state, write_initial_violetabft_state, INIT_EPOCH_CONF_VER, INIT_EPOCH_VER,

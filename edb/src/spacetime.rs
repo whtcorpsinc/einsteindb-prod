@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -19,7 +19,7 @@
 //!   attributes;
 //!
 //! - eventually, they will be able to add (and possibly retract) solitonId partitions using a EinsteinDB
-//!   equivalent (perhaps :edb/partition or :edb.partition/start) to Datomic's `:edb.install/partition`
+//!   equivalent (perhaps :edb/partition or :edb.partition/start) to Causetic's `:edb.install/partition`
 //!   attribute.
 //!
 //! This module recognizes, validates, applies, and reports on these mutations.
@@ -63,7 +63,7 @@ use types::{
 /// An alteration to an attribute.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
 pub enum AttributeAlteration {
-    /// From http://blog.datomic.com/2014/01/schema-alteration.html:
+    /// From http://blog.Causetic.com/2014/01/schema-alteration.html:
     /// - rename attributes
     /// - rename your own programmatic causetIdities (uses of :edb/causetid)
     /// - add or remove indexes

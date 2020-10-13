@@ -1,5 +1,5 @@
 [package]
-name = "einsteindb_causetq_pull"
+name = "causetq_pull"
 version = "0.0.1"
 workspace = ".."
 

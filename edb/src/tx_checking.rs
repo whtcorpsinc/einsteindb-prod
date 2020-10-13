@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -32,7 +32,7 @@ pub(crate) type TypeDisagreements = BTreeMap<(SolitonId, SolitonId, TypedValue),
 
 /// Ensure that the given terms type check.
 ///
-/// We try to be maximally helpful by yielding every malformed datom, rather than only the first.
+/// We try to be maximally helpful by yielding every malformed Causet, rather than only the first.
 /// In the future, we might change this choice, or allow the consumer to specify the robustness of
 /// the type checking desired, since there is a cost to providing helpful diagnostics.
 pub(crate) fn type_disagreements<'schema>(aev_trie: &AEVTrie<'schema>) -> TypeDisagreements {

@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -35,7 +35,7 @@ use edb_promises::errors::{
 };
 
 pub trait TransactWatcher {
-    fn datom(&mut self, op: OpType, e: SolitonId, a: SolitonId, v: &TypedValue);
+    fn Causet(&mut self, op: OpType, e: SolitonId, a: SolitonId, v: &TypedValue);
 
     /// Only return an error if you want to interrupt the transact!
     /// Called with the schema _prior to_ the transact -- any attributes or
@@ -47,7 +47,7 @@ pub trait TransactWatcher {
 pub struct NullWatcher();
 
 impl TransactWatcher for NullWatcher {
-    fn datom(&mut self, _op: OpType, _e: SolitonId, _a: SolitonId, _v: &TypedValue) {
+    fn Causet(&mut self, _op: OpType, _e: SolitonId, _a: SolitonId, _v: &TypedValue) {
     }
 
     fn done(&mut self, _t: &SolitonId, _schema: &Schema) -> Result<()> {

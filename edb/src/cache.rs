@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -8,7 +8,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-///! An impleeinsteindbion of attribute caching.
+///! An implementation of attribute caching.
 ///! Attribute caching means storing the entities and values for a given attribute, in the current
 ///! state of the world, in one or both directions (forward or reverse).
 ///!
@@ -895,7 +895,7 @@ impl AttributeCaches {
                   sqlite: &rusqlite::Connection,
                   attribute: SolitonId) -> Result<()> {
         let is_fulltext = schema.attribute_for_entid(attribute).map_or(false, |s| s.fulltext);
-        let table = if is_fulltext { "fulltext_datoms" } else { "causets" };
+        let table = if is_fulltext { "fulltext_Causets" } else { "causets" };
         let allegrosql = format!("SELECT a, e, v, value_type_tag FROM {} WHERE a = ? ORDER BY a ASC, e ASC", table);
         let args: Vec<&rusqlite::types::ToSql> = vec![&attribute];
         let mut stmt = sqlite.prepare(&allegrosql).context(DbErrorKind::CacheUpdateFailed)?;
@@ -970,7 +970,7 @@ impl AttributeCaches {
         qb.push_sql("SELECT a, e, v, value_type_tag FROM ");
         match attrs {
             AttributeSpec::All => {
-                qb.push_sql("all_datoms WHERE e IN (");
+                qb.push_sql("all_Causets WHERE e IN (");
                 interpose!(item, entities,
                            { qb.push_sql(&item.to_string()) },
                            { qb.push_sql(", ") });
@@ -1007,7 +1007,7 @@ impl AttributeCaches {
                 }
 
                 if has_fts {
-                    qb.push_sql("fulltext_datoms WHERE e IN (");
+                    qb.push_sql("fulltext_Causets WHERE e IN (");
                     interpose!(item, entities,
                                { qb.push_sql(&item.to_string()) },
                                { qb.push_sql(", ") });
@@ -1606,7 +1606,7 @@ impl<'a> InProgressCacheTransactWatcher<'a> {
 }
 
 impl<'a> TransactWatcher for InProgressCacheTransactWatcher<'a> {
-    fn datom(&mut self, op: OpType, e: SolitonId, a: SolitonId, v: &TypedValue) {
+    fn Causet(&mut self, op: OpType, e: SolitonId, a: SolitonId, v: &TypedValue) {
         if !self.active {
             return;
         }

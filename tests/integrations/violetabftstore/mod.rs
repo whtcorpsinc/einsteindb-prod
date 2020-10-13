@@ -1,4 +1,4 @@
-// Copyright 2016 EinsteinDB Project Authors. Licensed under Apache-2.0.
+// Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
 mod test_bootstrap;
 mod test_clear_stale_data;

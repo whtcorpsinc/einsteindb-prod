@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -19,8 +19,8 @@ use public_promises::errors::{
     Result,
 };
 
-use tolstoy_promises::errors::{
-    TolstoyError,
+use lenin_promises::errors::{
+    LeninError,
 };
 
 use types::{
@@ -33,7 +33,7 @@ pub struct TxMapper {}
 impl TxMapper {
     pub fn set_lg_mappings(edb_causecausetx: &mut rusqlite::Transaction, mappings: Vec<LocalGlobalTxMapping>) -> Result<()> {
         let mut stmt = edb_causecausetx.prepare_cached(
-            "INSERT OR REPLACE INTO tolstoy_tu (causetx, uuid) VALUES (?, ?)"
+            "INSERT OR REPLACE INTO lenin_tu (causetx, uuid) VALUES (?, ?)"
         )?;
         for mapping in mappings.iter() {
             let uuid_bytes = mapping.remote.as_bytes().to_vec();
@@ -53,7 +53,7 @@ impl TxMapper {
             None => {
                 let uuid = Uuid::new_v4();
                 let uuid_bytes = uuid.as_bytes().to_vec();
-                edb_causecausetx.execute("INSERT INTO tolstoy_tu (causetx, uuid) VALUES (?, ?)", &[&causetx, &uuid_bytes])?;
+                edb_causecausetx.execute("INSERT INTO lenin_tu (causetx, uuid) VALUES (?, ?)", &[&causetx, &uuid_bytes])?;
                 return Ok(uuid);
             }
         }
@@ -61,7 +61,7 @@ impl TxMapper {
 
     pub fn get_causecausetx_for_uuid(edb_causecausetx: &rusqlite::Transaction, uuid: &Uuid) -> Result<Option<SolitonId>> {
         let mut stmt = edb_causecausetx.prepare_cached(
-            "SELECT causetx FROM tolstoy_tu WHERE uuid = ?"
+            "SELECT causetx FROM lenin_tu WHERE uuid = ?"
         )?;
 
         let uuid_bytes = uuid.as_bytes().to_vec();
@@ -72,14 +72,14 @@ impl TxMapper {
         if causecausetxs.len() == 0 {
             return Ok(None);
         } else if causecausetxs.len() > 1 {
-            bail!(TolstoyError::TxIncorrectlyMapped(causecausetxs.len()));
+            bail!(LeninError::TxIncorrectlyMapped(causecausetxs.len()));
         }
         Ok(Some(causecausetxs.remove(0)?))
     }
 
     pub fn get(edb_causecausetx: &rusqlite::Transaction, causetx: SolitonId) -> Result<Option<Uuid>> {
         let mut stmt = edb_causecausetx.prepare_cached(
-            "SELECT uuid FROM tolstoy_tu WHERE causetx = ?"
+            "SELECT uuid FROM lenin_tu WHERE causetx = ?"
         )?;
 
         let results = stmt.causetq_and_then(&[&causetx], |r| -> Result<Uuid>{
@@ -92,7 +92,7 @@ impl TxMapper {
         if uuids.len() == 0 {
             return Ok(None);
         } else if uuids.len() > 1 {
-            bail!(TolstoyError::TxIncorrectlyMapped(uuids.len()));
+            bail!(LeninError::TxIncorrectlyMapped(uuids.len()));
         }
         Ok(Some(uuids.remove(0)?))
     }

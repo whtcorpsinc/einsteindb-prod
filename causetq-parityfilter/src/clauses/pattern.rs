@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -761,23 +761,23 @@ mod testing {
 
         // println!("{:#?}", cc);
 
-        let d0_e = QualifiedAlias::new("datoms00".to_string(), CausetsColumn::Instanton);
-        let d0_a = QualifiedAlias::new("datoms00".to_string(), CausetsColumn::Attribute);
-        let d0_v = QualifiedAlias::new("datoms00".to_string(), CausetsColumn::Value);
+        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Instanton);
+        let d0_a = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Attribute);
+        let d0_v = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Value);
 
         // After this, we know a lot of things:
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, "datoms00".to_string())]);
+        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, "Causets00".to_string())]);
 
         // ?x must be a ref.
         assert_eq!(cc.known_type(&x).unwrap(), ValueType::Ref);
 
-        // ?x is bound to datoms0.e.
+        // ?x is bound to Causets0.e.
         assert_eq!(cc.column_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
 
         // Our 'where' clauses are two:
-        // - datoms0.a = 99
-        // - datoms0.v = true
+        // - Causets0.a = 99
+        // - Causets0.v = true
         // No need for a type tag constraint, because the attribute is known.
         assert_eq!(cc.wheres, vec![
                    ColumnConstraint::Equals(d0_a, CausetQValue::SolitonId(99)),
@@ -802,25 +802,25 @@ mod testing {
 
         // println!("{:#?}", cc);
 
-        let d0_e = QualifiedAlias::new("datoms00".to_string(), CausetsColumn::Instanton);
-        let d0_v = QualifiedAlias::new("datoms00".to_string(), CausetsColumn::Value);
+        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Instanton);
+        let d0_v = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Value);
 
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, "datoms00".to_string())]);
+        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, "Causets00".to_string())]);
 
         // ?x must be a ref.
         assert_eq!(cc.known_type(&x).unwrap(), ValueType::Ref);
 
-        // ?x is bound to datoms0.e.
+        // ?x is bound to Causets0.e.
         assert_eq!(cc.column_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
 
         // Our 'where' clauses are two:
-        // - datoms0.v = true
-        // - datoms0.value_type_tag = boolean
+        // - Causets0.v = true
+        // - Causets0.value_type_tag = boolean
         // TODO: implement expand_type_tags.
         assert_eq!(cc.wheres, vec![
                    ColumnConstraint::Equals(d0_v, CausetQValue::TypedValue(TypedValue::Boolean(true))),
-                   ColumnConstraint::has_unit_type("datoms00".to_string(), ValueType::Boolean),
+                   ColumnConstraint::has_unit_type("Causets00".to_string(), ValueType::Boolean),
         ].into());
     }
 
@@ -852,11 +852,11 @@ mod testing {
 
         // println!("{:#?}", cc);
 
-        let d0_e = QualifiedAlias::new("datoms00".to_string(), CausetsColumn::Instanton);
-        let d0_a = QualifiedAlias::new("datoms00".to_string(), CausetsColumn::Attribute);
+        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Instanton);
+        let d0_a = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Attribute);
 
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, "datoms00".to_string())]);
+        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, "Causets00".to_string())]);
 
         // ?x must be a ref, and ?v a boolean.
         assert_eq!(cc.known_type(&x), Some(ValueType::Ref));
@@ -865,7 +865,7 @@ mod testing {
         assert!(!cc.extracted_types.contains_key(&v));
         assert_eq!(cc.known_type(&v), Some(ValueType::Boolean));
 
-        // ?x is bound to datoms0.e.
+        // ?x is bound to Causets0.e.
         assert_eq!(cc.column_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
         assert_eq!(cc.wheres, vec![
                    ColumnConstraint::Equals(d0_a, CausetQValue::SolitonId(99)),
@@ -899,7 +899,7 @@ mod testing {
     }
 
 
-    /// This test ensures that we causetq all_datoms if we're possibly retrieving a string.
+    /// This test ensures that we causetq all_Causets if we're possibly retrieving a string.
     #[test]
     fn test_apply_unattributed_pattern_with_returned() {
         let mut cc = ConjoiningClauses::default();
@@ -919,20 +919,20 @@ mod testing {
 
         // println!("{:#?}", cc);
 
-        let d0_e = QualifiedAlias::new("all_datoms00".to_string(), CausetsColumn::Instanton);
+        let d0_e = QualifiedAlias::new("all_Causets00".to_string(), CausetsColumn::Instanton);
 
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::AllCausets, "all_datoms00".to_string())]);
+        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::AllCausets, "all_Causets00".to_string())]);
 
         // ?x must be a ref.
         assert_eq!(cc.known_type(&x).unwrap(), ValueType::Ref);
 
-        // ?x is bound to datoms0.e.
+        // ?x is bound to Causets0.e.
         assert_eq!(cc.column_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
         assert_eq!(cc.wheres, vec![].into());
     }
 
-    /// This test ensures that we causetq all_datoms if we're looking for a string.
+    /// This test ensures that we causetq all_Causets if we're looking for a string.
     #[test]
     fn test_apply_unattributed_pattern_with_string_value() {
         let mut cc = ConjoiningClauses::default();
@@ -950,25 +950,25 @@ mod testing {
 
         // println!("{:#?}", cc);
 
-        let d0_e = QualifiedAlias::new("all_datoms00".to_string(), CausetsColumn::Instanton);
-        let d0_v = QualifiedAlias::new("all_datoms00".to_string(), CausetsColumn::Value);
+        let d0_e = QualifiedAlias::new("all_Causets00".to_string(), CausetsColumn::Instanton);
+        let d0_v = QualifiedAlias::new("all_Causets00".to_string(), CausetsColumn::Value);
 
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::AllCausets, "all_datoms00".to_string())]);
+        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::AllCausets, "all_Causets00".to_string())]);
 
         // ?x must be a ref.
         assert_eq!(cc.known_type(&x).unwrap(), ValueType::Ref);
 
-        // ?x is bound to datoms0.e.
+        // ?x is bound to Causets0.e.
         assert_eq!(cc.column_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
 
         // Our 'where' clauses are two:
-        // - datoms0.v = 'hello'
-        // - datoms0.value_type_tag = string
+        // - Causets0.v = 'hello'
+        // - Causets0.value_type_tag = string
         // TODO: implement expand_type_tags.
         assert_eq!(cc.wheres, vec![
                    ColumnConstraint::Equals(d0_v, CausetQValue::TypedValue(TypedValue::typed_string("hello"))),
-                   ColumnConstraint::has_unit_type("all_datoms00".to_string(), ValueType::String),
+                   ColumnConstraint::has_unit_type("all_Causets00".to_string(), ValueType::String),
         ].into());
     }
 
@@ -1011,22 +1011,22 @@ mod testing {
 
         println!("{:#?}", cc);
 
-        let d0_e = QualifiedAlias::new("datoms00".to_string(), CausetsColumn::Instanton);
-        let d0_a = QualifiedAlias::new("datoms00".to_string(), CausetsColumn::Attribute);
-        let d0_v = QualifiedAlias::new("datoms00".to_string(), CausetsColumn::Value);
-        let d1_e = QualifiedAlias::new("datoms01".to_string(), CausetsColumn::Instanton);
-        let d1_a = QualifiedAlias::new("datoms01".to_string(), CausetsColumn::Attribute);
+        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Instanton);
+        let d0_a = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Attribute);
+        let d0_v = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Value);
+        let d1_e = QualifiedAlias::new("Causets01".to_string(), CausetsColumn::Instanton);
+        let d1_a = QualifiedAlias::new("Causets01".to_string(), CausetsColumn::Attribute);
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.from, vec![
-                   SourceAlias(CausetsTable::Causets, "datoms00".to_string()),
-                   SourceAlias(CausetsTable::Causets, "datoms01".to_string()),
+                   SourceAlias(CausetsTable::Causets, "Causets00".to_string()),
+                   SourceAlias(CausetsTable::Causets, "Causets01".to_string()),
         ]);
 
         // ?x must be a ref.
         assert_eq!(cc.known_type(&x).unwrap(), ValueType::Ref);
 
-        // ?x is bound to datoms0.e and datoms1.e.
+        // ?x is bound to Causets0.e and Causets1.e.
         assert_eq!(cc.column_bindings.get(&x).unwrap(),
                    &vec![
                        d0_e.clone(),
@@ -1034,10 +1034,10 @@ mod testing {
                    ]);
 
         // Our 'where' clauses are four:
-        // - datoms0.a = 98 (:foo/roz)
-        // - datoms0.v = "idgoeshere"
-        // - datoms1.a = 99 (:foo/bar)
-        // - datoms1.e = datoms0.e
+        // - Causets0.a = 98 (:foo/roz)
+        // - Causets0.v = "idgoeshere"
+        // - Causets1.a = 99 (:foo/bar)
+        // - Causets1.e = Causets0.e
         assert_eq!(cc.wheres, vec![
                    ColumnConstraint::Equals(d0_a, CausetQValue::SolitonId(98)),
                    ColumnConstraint::Equals(d0_v, CausetQValue::TypedValue(TypedValue::typed_string("idgoeshere"))),
@@ -1074,9 +1074,9 @@ mod testing {
             causetx: PatternNonValuePlace::Placeholder,
         });
 
-        let d0_e = QualifiedAlias::new("datoms00".to_string(), CausetsColumn::Instanton);
-        let d0_a = QualifiedAlias::new("datoms00".to_string(), CausetsColumn::Attribute);
-        let d0_v = QualifiedAlias::new("datoms00".to_string(), CausetsColumn::Value);
+        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Instanton);
+        let d0_a = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Attribute);
+        let d0_v = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Value);
 
         // ?y has been expanded into `true`.
         assert_eq!(cc.wheres, vec![

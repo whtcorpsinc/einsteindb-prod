@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -363,14 +363,14 @@ impl ConjoiningClauses {
     /// but the generated SQL is very similar: the former is
     ///
     /// ```allegrosql
-    /// WHERE datoms00.a = 99 AND datoms00.v = 'John'
+    /// WHERE Causets00.a = 99 AND Causets00.v = 'John'
     /// ```
     ///
     /// with the latter growing to
     ///
     /// ```allegrosql
-    /// WHERE (datoms00.a = 99 AND datoms00.v = 'John')
-    ///    OR (datoms00.a = 98 AND datoms00.v = 'Peter')
+    /// WHERE (Causets00.a = 99 AND Causets00.v = 'John')
+    ///    OR (Causets00.a = 98 AND Causets00.v = 'Peter')
     /// ```
     ///
     fn apply_simple_or_join(&mut self,
@@ -558,16 +558,16 @@ impl ConjoiningClauses {
     ///
     /// ```allegrosql
     /// SELECT or123.page AS page FROM
-    ///  (SELECT datoms124.e AS page FROM causets AS datoms124
-    ///   WHERE datoms124.v = ? AND
-    ///         (datoms124.a = :page/title OR
-    ///          datoms124.a = :page/excerpt)
+    ///  (SELECT Causets124.e AS page FROM causets AS Causets124
+    ///   WHERE Causets124.v = ? AND
+    ///         (Causets124.a = :page/title OR
+    ///          Causets124.a = :page/excerpt)
     ///   UNION
-    ///   SELECT datoms126.e AS page FROM causets AS datoms125, causets AS datoms126
-    ///   WHERE datoms125.a = :save/string AND
-    ///         datoms125.v = ? AND
-    ///         datoms126.v = datoms125.e AND
-    ///         datoms126.a = :page/save)
+    ///   SELECT Causets126.e AS page FROM causets AS Causets125, causets AS Causets126
+    ///   WHERE Causets125.a = :save/string AND
+    ///         Causets125.v = ? AND
+    ///         Causets126.v = Causets125.e AND
+    ///         Causets126.a = :page/save)
     ///  AS or123
     /// ```
     ///
@@ -883,7 +883,7 @@ mod testing {
                         [?x :foo/knows "Daphne"])]"#;
         let cc = alg(known, causetq);
         let vx = Variable::from_valid_name("?x");
-        let d0 = "datoms00".to_string();
+        let d0 = "Causets00".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
         let d0a = QualifiedAlias::new(d0.clone(), CausetsColumn::Attribute);
         let d0v = QualifiedAlias::new(d0.clone(), CausetsColumn::Value);
@@ -925,8 +925,8 @@ mod testing {
                  [?x :foo/knows "Daphne"])]"#;
         let cc = alg(known, causetq);
         let vx = Variable::from_valid_name("?x");
-        let d0 = "datoms00".to_string();
-        let d1 = "datoms01".to_string();
+        let d0 = "Causets00".to_string();
+        let d1 = "Causets01".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
         let d0a = QualifiedAlias::new(d0.clone(), CausetsColumn::Attribute);
         let d1e = QualifiedAlias::new(d1.clone(), CausetsColumn::Instanton);
@@ -976,8 +976,8 @@ mod testing {
                  [?x :foo/knows "Daphne"])]"#;
         let cc = alg(known, causetq);
         let vx = Variable::from_valid_name("?x");
-        let d0 = "datoms00".to_string();
-        let d1 = "datoms01".to_string();
+        let d0 = "Causets00".to_string();
+        let d1 = "Causets01".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
         let d0a = QualifiedAlias::new(d0.clone(), CausetsColumn::Attribute);
         let d0v = QualifiedAlias::new(d0.clone(), CausetsColumn::Value);
@@ -1027,7 +1027,7 @@ mod testing {
         let cc = alg(known, causetq);
         let vx = Variable::from_valid_name("?x");
         let vy = Variable::from_valid_name("?y");
-        let d0 = "datoms00".to_string();
+        let d0 = "Causets00".to_string();
         let c0 = "c00".to_string();
         let c0x = QualifiedAlias::new(c0.clone(), VariableColumn::Variable(vx.clone()));
         let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);

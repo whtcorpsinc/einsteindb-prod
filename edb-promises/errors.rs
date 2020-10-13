@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -46,7 +46,7 @@ pub enum CardinalityConflict {
         vs: BTreeSet<TypedValue>,
     },
 
-    /// A datom has been both asserted and retracted, like `[:edb/add e a v]` and `[:edb/retract e a v]`.
+    /// A Causet has been both asserted and retracted, like `[:edb/add e a v]` and `[:edb/retract e a v]`.
     AddRetractConflict {
         e: SolitonId,
         a: SolitonId,
@@ -69,10 +69,10 @@ pub enum SchemaConstraintViolation {
         conflicting_upserts: BTreeMap<TempId, BTreeSet<KnownSolitonId>>,
     },
 
-    /// A transaction tried to assert a datom or causets with the wrong value `v` type(s).
+    /// A transaction tried to assert a Causet or causets with the wrong value `v` type(s).
     TypeDisagreements {
         /// The key (`[e a v]`) has an invalid value `v`: it is not of the expected value type.
-        conflicting_datoms: BTreeMap<(SolitonId, SolitonId, TypedValue), ValueType>
+        conflicting_Causets: BTreeMap<(SolitonId, SolitonId, TypedValue), ValueType>
     },
 
     /// A transaction tried to assert causets that don't observe the schema's cardinality constraints.
@@ -92,10 +92,10 @@ impl ::std::fmt::Display for SchemaConstraintViolation {
                 }
                 Ok(())
             },
-            &TypeDisagreements { ref conflicting_datoms } => {
+            &TypeDisagreements { ref conflicting_Causets } => {
                 writeln!(f, "type disagreements:")?;
-                for (ref datom, expected_type) in conflicting_datoms {
-                    writeln!(f, "  expected value of type {} but got datom [{} {} {:?}]", expected_type, datom.0, datom.1, datom.2)?;
+                for (ref Causet, expected_type) in conflicting_Causets {
+                    writeln!(f, "  expected value of type {} but got Causet [{} {} {:?}]", expected_type, Causet.0, Causet.1, Causet.2)?;
                 }
                 Ok(())
             },

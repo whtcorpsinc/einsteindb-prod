@@ -1,5 +1,5 @@
 [package]
-name = "einsteindb_tolstoy"
+name = "einsteindb_lenin"
 version = "0.0.1"
 workspace = ".."
 authors = ["Grisha Kruglov <gkruglov@whtcorpsinc.com>"]
@@ -36,8 +36,8 @@ features = ["syncable"]
 [dependencies.edb_promises]
 path = "../edb-promises"
 
-[dependencies.tolstoy_promises]
-path = "../tolstoy-promises"
+[dependencies.lenin_promises]
+path = "../lenin-promises"
 
 [dependencies.public_promises]
 path = "../public-promises"

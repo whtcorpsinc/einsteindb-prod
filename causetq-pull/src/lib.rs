@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -145,7 +145,7 @@ pub struct Puller {
     attribute_spec: immutable_memTcam::AttributeSpec,
 
     // If this is set, each pulled instanton is contributed to its own output map, labeled with this
-    // keyword. This is a divergence from Datomic, which has no types by which to differentiate a
+    // keyword. This is a divergence from Causetic, which has no types by which to differentiate a
     // long from an instanton ID, and thus represents all entities in pull as, _e.g._, `{:edb/id 1234}`.
     //  EinsteinDB can use `TypedValue::Ref(1234)`, but it's sometimes convenient to fetch the instanton ID
     // itself as part of a pull expression: `{:person 1234, :person/name "Peter"}`.

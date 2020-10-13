@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -286,7 +286,7 @@ impl GlobalTransactionLog for RemoteClient {
             let chunks = self.get_chunks(&causetx)?;
 
             // We pass along all of the downloaded parts, including transaction's
-            // spacetime datom. Transactor is expected to do the right thing, and
+            // spacetime Causet. Transactor is expected to do the right thing, and
             // use causecausetxInstant from one of our causets.
             for chunk in chunks {
                 let part = self.get_chunk(&chunk)?;
@@ -321,7 +321,7 @@ impl GlobalTransactionLog for RemoteClient {
         let payload: String = serde_json::to_string(payload)?;
         let uri = format!("{}/chunks/{}", self.bound_base_uri(), chunk_uuid);
         d(&format!("serialized chunk: {:?}", payload));
-        // TODO don't want to clone every datom!
+        // TODO don't want to clone every Causet!
         self.put(uri, payload, StatusCode::Created)
     }
 }

@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -20,8 +20,8 @@ use public_promises::errors::{
     Result,
 };
 
-use tolstoy_promises::errors::{
-    TolstoyError,
+use lenin_promises::errors::{
+    LeninError,
 };
 
 use causets::{
@@ -58,10 +58,10 @@ impl<'a> BootstrapHelper<'a> {
                 // TODO v is just a type tag and a Copy value, we shouldn't need to clone.
                 match v.clone().into_long() {
                     Some(v) => Ok(v),
-                    None => bail!(TolstoyError::BadRemoteState("incorrect type for embedded schema version".to_string()))
+                    None => bail!(LeninError::BadRemoteState("incorrect type for embedded schema version".to_string()))
                 }
             },
-            None => bail!(TolstoyError::BadRemoteState("missing embedded schema version".to_string()))
+            None => bail!(LeninError::BadRemoteState("missing embedded schema version".to_string()))
         }
     }
 }

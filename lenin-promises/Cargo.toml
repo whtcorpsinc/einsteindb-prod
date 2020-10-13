@@ -1,10 +1,10 @@
 [package]
-name = "tolstoy_promises"
+name = "lenin_promises"
 version = "0.0.1"
 workspace = ".."
 
 [lib]
-name = "tolstoy_promises"
+name = "lenin_promises"
 path = "lib.rs"
 
 [features]

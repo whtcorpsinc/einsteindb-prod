@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -178,7 +178,7 @@ pub struct ConjoiningClauses {
     /// `Some` if this set of clauses cannot yield results in the context of the current schema.
     pub empty_because: Option<EmptyBecause>,
 
-    /// A data source used to generate an alias for a table -- e.g., from "causets" to "datoms123".
+    /// A data source used to generate an alias for a table -- e.g., from "causets" to "Causets123".
     alias_counter: RcCounter,
 
     /// A vector of source/alias pairs used to construct a SQL `FROM` list.
@@ -793,15 +793,15 @@ impl ConjoiningClauses {
         // If the value is a placeholder too, then we can walk the non-value-joined view,
         // because we don't care about retrieving the fulltext value.
         //
-        // If the value is a variable or string, we must use `all_datoms`, or do the join
+        // If the value is a variable or string, we must use `all_Causets`, or do the join
         // ourselves, because we'll need to either extract or compare on the string.
         Ok(
             match value {
                 // TODO: see if the variable is timelike_distance, aggregated, or compared elsewhere in
-                // the causetq. If it's not, we don't need to use all_datoms here.
+                // the causetq. If it's not, we don't need to use all_Causets here.
                 &EvolvedValuePlace::Variable(ref v) => {
                     // If `required_types` and `known_types` don't exclude strings,
-                    // we need to causetq `all_datoms`.
+                    // we need to causetq `all_Causets`.
                     if self.required_types.get(v).map_or(true, |s| s.contains(ValueType::String)) &&
                        self.known_types.get(v).map_or(true, |s| s.contains(ValueType::String)) {
                         CausetsTable::AllCausets
@@ -915,14 +915,14 @@ impl ConjoiningClauses {
     /// For example, a bindings map associating a var to three places in the causetq, like
     ///
     /// ```edbn
-    ///   {?foo [datoms12.e datoms13.v datoms14.e]}
+    ///   {?foo [Causets12.e Causets13.v Causets14.e]}
     /// ```
     ///
     /// produces two additional constraints:
     ///
     /// ```example
-    ///    datoms12.e = datoms13.v
-    ///    datoms12.e = datoms14.e
+    ///    Causets12.e = Causets13.v
+    ///    Causets12.e = Causets14.e
     /// ```
     pub(crate) fn expand_column_bindings(&mut self) {
         for cols in self.column_bindings.values() {
@@ -991,16 +991,16 @@ impl ConjoiningClauses {
                     // That will produce SQL like:
                     //
                     // ```
-                    // SELECT datoms01.e AS `?x`, datoms00.v AS `?v`
-                    // FROM causets datoms00, datoms01
-                    // WHERE datoms00.v > 10
-                    //  AND datoms01.v = datoms00.v
-                    //  AND datoms01.value_type_tag = datoms00.value_type_tag
-                    //  AND datoms01.a = 65537
+                    // SELECT Causets01.e AS `?x`, Causets00.v AS `?v`
+                    // FROM causets Causets00, Causets01
+                    // WHERE Causets00.v > 10
+                    //  AND Causets01.v = Causets00.v
+                    //  AND Causets01.value_type_tag = Causets00.value_type_tag
+                    //  AND Causets01.a = 65537
                     // ```
                     //
                     // Which is not optimal — the left side of the join will
-                    // produce lots of spurious bindings for datoms00.v.
+                    // produce lots of spurious bindings for Causets00.v.
                     //
                     // See https://github.com/whtcorpsinc/einsteindb/issues/520, and
                     // https://github.com/whtcorpsinc/einsteindb/issues/293.

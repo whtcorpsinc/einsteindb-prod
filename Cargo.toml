@@ -8,7 +8,7 @@ keywords = ["einsteindb", "distributed-systems", "violetabft"]
 homepage = "https://einsteindb.com"
 repository = "https://github.com/whtcorpsinc/einsteindb/"
 readme = "README.md"
-edition = "2020"
+edition = "2018"
 publish = false
 
 [features]

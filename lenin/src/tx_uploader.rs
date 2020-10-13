@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -111,15 +111,15 @@ impl<'c> TxReceiver<UploaderReport> for TxUploader<'c> {
         causets[0].partitions = Some(allocate_partition_map_for_entids(causets.iter().map(|d| d.e), &self.local_partitions));
 
         // Upload all chunks.
-        for datom in &causets {
-            let datom_uuid = Uuid::new_v4();
-            causecausetx_chunks.push(datom_uuid);
-            d(&format!("putting chunk: {:?}, {:?}", &datom_uuid, &datom));
+        for Causet in &causets {
+            let Causet_uuid = Uuid::new_v4();
+            causecausetx_chunks.push(Causet_uuid);
+            d(&format!("putting chunk: {:?}, {:?}", &Causet_uuid, &Causet));
             // TODO switch over to CBOR once we're past debugging stuff.
             // See https://github.com/whtcorpsinc/einsteindb/issues/570
-            // let cbor_val = serde_cbor::to_value(&datom)?;
-            // self.remote_client.put_chunk(&datom_uuid, &serde_cbor::ser::to_vec_sd(&cbor_val)?)?;
-            self.remote_client.put_chunk(&datom_uuid, &datom)?;
+            // let cbor_val = serde_cbor::to_value(&Causet)?;
+            // self.remote_client.put_chunk(&Causet_uuid, &serde_cbor::ser::to_vec_sd(&cbor_val)?)?;
+            self.remote_client.put_chunk(&Causet_uuid, &Causet)?;
         }
 
         // Upload causetx.

@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -145,19 +145,19 @@ impl ConjoiningClauses {
         }
 
         let fulltext_values_alias = self.next_alias_for_table(CausetsTable::FulltextValues);
-        let datoms_table_alias = self.next_alias_for_table(CausetsTable::Causets);
+        let Causets_table_alias = self.next_alias_for_table(CausetsTable::Causets);
 
         // We do a fulltext lookup by joining the fulltext values table against causets -- just
         // like applying a pattern, but two tables contribute instead of one.
         self.from.push(SourceAlias(CausetsTable::FulltextValues, fulltext_values_alias.clone()));
-        self.from.push(SourceAlias(CausetsTable::Causets, datoms_table_alias.clone()));
+        self.from.push(SourceAlias(CausetsTable::Causets, Causets_table_alias.clone()));
 
         // TODO: constrain the type in the more general cases (e.g., `a` is a var).
-        self.constrain_attribute(datoms_table_alias.clone(), a);
+        self.constrain_attribute(Causets_table_alias.clone(), a);
 
         // Join the causets table to the fulltext values table.
         self.wheres.add_intersection(ColumnConstraint::Equals(
-            QualifiedAlias(datoms_table_alias.clone(), Column::Fixed(CausetsColumn::Value)),
+            QualifiedAlias(Causets_table_alias.clone(), Column::Fixed(CausetsColumn::Value)),
             CausetQValue::Column(QualifiedAlias(fulltext_values_alias.clone(), Column::Fulltext(FulltextColumn::Rowid)))));
 
         // `search` is either text or a variable.
@@ -219,7 +219,7 @@ impl ConjoiningClauses {
                 return Ok(());
             }
 
-            self.bind_column_to_var(schema, datoms_table_alias.clone(), CausetsColumn::Instanton, var.clone());
+            self.bind_column_to_var(schema, Causets_table_alias.clone(), CausetsColumn::Instanton, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_value {
@@ -239,7 +239,7 @@ impl ConjoiningClauses {
                 return Ok(());
             }
 
-            self.bind_column_to_var(schema, datoms_table_alias.clone(), CausetsColumn::Tx, var.clone());
+            self.bind_column_to_var(schema, Causets_table_alias.clone(), CausetsColumn::Tx, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_sembedded {
@@ -331,9 +331,9 @@ mod testing {
         let clauses = cc.wheres;
         assert_eq!(clauses.len(), 3);
 
-        assert_eq!(clauses.0[0], ColumnConstraint::Equals(QualifiedAlias("datoms01".to_string(), Column::Fixed(CausetsColumn::Attribute)),
+        assert_eq!(clauses.0[0], ColumnConstraint::Equals(QualifiedAlias("Causets01".to_string(), Column::Fixed(CausetsColumn::Attribute)),
                                                           CausetQValue::SolitonId(100)).into());
-        assert_eq!(clauses.0[1], ColumnConstraint::Equals(QualifiedAlias("datoms01".to_string(), Column::Fixed(CausetsColumn::Value)),
+        assert_eq!(clauses.0[1], ColumnConstraint::Equals(QualifiedAlias("Causets01".to_string(), Column::Fixed(CausetsColumn::Value)),
                                                           CausetQValue::Column(QualifiedAlias("fulltext_values00".to_string(), Column::Fulltext(FulltextColumn::Rowid)))).into());
         assert_eq!(clauses.0[2], ColumnConstraint::Matches(QualifiedAlias("fulltext_values00".to_string(), Column::Fulltext(FulltextColumn::Text)),
                                                            CausetQValue::TypedValue("needle".into())).into());
@@ -342,11 +342,11 @@ mod testing {
         assert_eq!(bindings.len(), 3);
 
         assert_eq!(bindings.get(&Variable::from_valid_name("?instanton")).expect("column binding for ?instanton").clone(),
-                   vec![QualifiedAlias("datoms01".to_string(), Column::Fixed(CausetsColumn::Instanton))]);
+                   vec![QualifiedAlias("Causets01".to_string(), Column::Fixed(CausetsColumn::Instanton))]);
         assert_eq!(bindings.get(&Variable::from_valid_name("?value")).expect("column binding for ?value").clone(),
                    vec![QualifiedAlias("fulltext_values00".to_string(), Column::Fulltext(FulltextColumn::Text))]);
         assert_eq!(bindings.get(&Variable::from_valid_name("?causetx")).expect("column binding for ?causetx").clone(),
-                   vec![QualifiedAlias("datoms01".to_string(), Column::Fixed(CausetsColumn::Tx))]);
+                   vec![QualifiedAlias("Causets01".to_string(), Column::Fixed(CausetsColumn::Tx))]);
 
         // Sembedded is a value binding.
         let values = cc.value_bindings;

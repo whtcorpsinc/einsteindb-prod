@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -154,7 +154,7 @@ fn test_scalar() {
 
     let causetq = r#"[:find ?x . :where [?x :foo/bar "yyy"]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.a = 99 AND `datoms00`.v = $v0 LIMIT 1");
+    assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 1");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
@@ -164,7 +164,7 @@ fn test_tuple() {
 
     let causetq = r#"[:find [?x] :where [?x :foo/bar "yyy"]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.a = 99 AND `datoms00`.v = $v0 LIMIT 1");
+    assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 1");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
@@ -174,7 +174,7 @@ fn test_coll() {
 
     let causetq = r#"[:find [?x ...] :where [?x :foo/bar "yyy"]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.a = 99 AND `datoms00`.v = $v0");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
@@ -184,7 +184,7 @@ fn test_rel() {
 
     let causetq = r#"[:find ?x :where [?x :foo/bar "yyy"]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.a = 99 AND `datoms00`.v = $v0");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
@@ -194,7 +194,7 @@ fn test_limit() {
 
     let causetq = r#"[:find ?x :where [?x :foo/bar "yyy"] :limit 5]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.a = 99 AND `datoms00`.v = $v0 LIMIT 5");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 5");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
@@ -206,9 +206,9 @@ fn test_unbound_variable_limit() {
     // later input.
     let causetq = r#"[:find ?x :in ?limit-is-9-great :where [?x :foo/bar "yyy"] :limit ?limit-is-9-great]"#;
     let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, CausetQInputs::default());
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` \
-                     FROM `causets` AS `datoms00` \
-                     WHERE `datoms00`.a = 99 AND `datoms00`.v = $v0 \
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` \
+                     FROM `causets` AS `Causets00` \
+                     WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 \
                      LIMIT $ilimit_is_9_great");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
@@ -221,7 +221,7 @@ fn test_bound_variable_limit() {
     let causetq = r#"[:find ?x :in ?limit :where [?x :foo/bar "yyy"] :limit ?limit]"#;
     let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?limit"), TypedValue::Long(92))]);
     let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, inputs);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.a = 99 AND `datoms00`.v = $v0 LIMIT 92");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 92");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
@@ -234,7 +234,7 @@ fn test_bound_variable_limit_affects_distinct() {
     let causetq = r#"[:find ?x :in ?limit :where [?x :foo/bar "yyy"] :limit ?limit]"#;
     let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?limit"), TypedValue::Long(1))]);
     let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, inputs);
-    assert_eq!(allegrosql, "SELECT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.a = 99 AND `datoms00`.v = $v0 LIMIT 1");
+    assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 1");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
@@ -257,7 +257,7 @@ fn test_bound_variable_limit_affects_types() {
     // TODO: this causetq isn't actually correct -- we don't yet algebrize for variables that are
     // specified in `:in` but not provided at algebrizing time. But it shows what we care about
     // at the moment: we don't project a type column, because we know it's a Long.
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x`, `datoms00`.v AS `?limit` FROM `causets` AS `datoms00` LIMIT $ilimit");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x`, `Causets00`.v AS `?limit` FROM `causets` AS `Causets00` LIMIT $ilimit");
     assert_eq!(args, vec![]);
 }
 
@@ -269,7 +269,7 @@ fn test_unknown_attribute_keyword_value() {
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
 
     // Only match keywords, not strings: tag = 13.
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.v = $v0 AND (`datoms00`.value_type_tag = 13)");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.v = $v0 AND (`Causets00`.value_type_tag = 13)");
     assert_eq!(args, vec![make_arg("$v0", ":ab/yyy")]);
 }
 
@@ -280,9 +280,9 @@ fn test_unknown_attribute_string_value() {
     let causetq = r#"[:find ?x :where [?x _ "horses"]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
 
-    // We expect all_datoms because we're causetqing for a string. Magic, that.
+    // We expect all_Causets because we're causetqing for a string. Magic, that.
     // We don't want keywords etc., so tag = 10.
-    assert_eq!(allegrosql, "SELECT DISTINCT `all_datoms00`.e AS `?x` FROM `all_datoms` AS `all_datoms00` WHERE `all_datoms00`.v = $v0 AND (`all_datoms00`.value_type_tag = 10)");
+    assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets00`.e AS `?x` FROM `all_Causets` AS `all_Causets00` WHERE `all_Causets00`.v = $v0 AND (`all_Causets00`.value_type_tag = 10)");
     assert_eq!(args, vec![make_arg("$v0", "horses")]);
 }
 
@@ -295,7 +295,7 @@ fn test_unknown_attribute_double_value() {
 
     // In general, doubles _could_ be 1.0, which might match a boolean or a ref. Set tag = 5 to
     // make sure we only match numbers.
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.v = 9.95e0 AND (`datoms00`.value_type_tag = 5)");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.v = 9.95e0 AND (`Causets00`.value_type_tag = 5)");
     assert_eq!(args, vec![]);
 }
 
@@ -310,22 +310,22 @@ fn test_unknown_attribute_integer_value() {
 
     // Can't match boolean; no need to filter it out.
     let SQLCausetQ { allegrosql, args } = translate(&schema, negative);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.v = -1");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.v = -1");
     assert_eq!(args, vec![]);
 
     // Excludes booleans.
     let SQLCausetQ { allegrosql, args } = translate(&schema, zero);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE (`datoms00`.v = 0 AND `datoms00`.value_type_tag <> 1)");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE (`Causets00`.v = 0 AND `Causets00`.value_type_tag <> 1)");
     assert_eq!(args, vec![]);
 
     // Excludes booleans.
     let SQLCausetQ { allegrosql, args } = translate(&schema, one);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE (`datoms00`.v = 1 AND `datoms00`.value_type_tag <> 1)");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE (`Causets00`.v = 1 AND `Causets00`.value_type_tag <> 1)");
     assert_eq!(args, vec![]);
 
     // Can't match boolean; no need to filter it out.
     let SQLCausetQ { allegrosql, args } = translate(&schema, two);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.v = 2");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.v = 2");
     assert_eq!(args, vec![]);
 }
 
@@ -353,10 +353,10 @@ fn test_type_required_long() {
     let causetq = r#"[:find ?x :where [?x _ ?e] [(type ?e :edb.type/long)]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
 
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` \
-                     FROM `causets` AS `datoms00` \
-                     WHERE ((`datoms00`.value_type_tag = 5 AND \
-                             (typeof(`datoms00`.v) = 'integer')))");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` \
+                     FROM `causets` AS `Causets00` \
+                     WHERE ((`Causets00`.value_type_tag = 5 AND \
+                             (typeof(`Causets00`.v) = 'integer')))");
 
     assert_eq!(args, vec![]);
 }
@@ -368,10 +368,10 @@ fn test_type_required_double() {
     let causetq = r#"[:find ?x :where [?x _ ?e] [(type ?e :edb.type/double)]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
 
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` \
-                     FROM `causets` AS `datoms00` \
-                     WHERE ((`datoms00`.value_type_tag = 5 AND \
-                             (typeof(`datoms00`.v) = 'real')))");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` \
+                     FROM `causets` AS `Causets00` \
+                     WHERE ((`Causets00`.value_type_tag = 5 AND \
+                             (typeof(`Causets00`.v) = 'real')))");
 
     assert_eq!(args, vec![]);
 }
@@ -383,9 +383,9 @@ fn test_type_required_boolean() {
     let causetq = r#"[:find ?x :where [?x _ ?e] [(type ?e :edb.type/boolean)]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
 
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` \
-                     FROM `causets` AS `datoms00` \
-                     WHERE (`datoms00`.value_type_tag = 1)");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` \
+                     FROM `causets` AS `Causets00` \
+                     WHERE (`Causets00`.value_type_tag = 1)");
 
     assert_eq!(args, vec![]);
 }
@@ -397,10 +397,10 @@ fn test_type_required_string() {
     let causetq = r#"[:find ?x :where [?x _ ?e] [(type ?e :edb.type/string)]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
 
-    // Note: strings should use `all_datoms` and not `causets`.
-    assert_eq!(allegrosql, "SELECT DISTINCT `all_datoms00`.e AS `?x` \
-                     FROM `all_datoms` AS `all_datoms00` \
-                     WHERE (`all_datoms00`.value_type_tag = 10)");
+    // Note: strings should use `all_Causets` and not `causets`.
+    assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets00`.e AS `?x` \
+                     FROM `all_Causets` AS `all_Causets00` \
+                     WHERE (`all_Causets00`.value_type_tag = 10)");
     assert_eq!(args, vec![]);
 }
 
@@ -412,8 +412,8 @@ fn test_numeric_less_than_unknown_attribute() {
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
 
     // Although we infer numericness from numeric predicates, we've already assigned a table to the
-    // first pattern, and so this is _still_ `all_datoms`.
-    assert_eq!(allegrosql, "SELECT DISTINCT `all_datoms00`.e AS `?x` FROM `all_datoms` AS `all_datoms00` WHERE `all_datoms00`.v < 10");
+    // first pattern, and so this is _still_ `all_Causets`.
+    assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets00`.e AS `?x` FROM `all_Causets` AS `all_Causets00` WHERE `all_Causets00`.v < 10");
     assert_eq!(args, vec![]);
 }
 
@@ -422,7 +422,7 @@ fn test_numeric_gte_known_attribute() {
     let schema = prepopulated_typed_schema(ValueType::Double);
     let causetq = r#"[:find ?x :where [?x :foo/bar ?y] [(>= ?y 12.9)]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.a = 99 AND `datoms00`.v >= 1.29e1");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v >= 1.29e1");
     assert_eq!(args, vec![]);
 }
 
@@ -431,7 +431,7 @@ fn test_numeric_not_equals_known_attribute() {
     let schema = prepopulated_typed_schema(ValueType::Long);
     let causetq = r#"[:find ?x . :where [?x :foo/bar ?y] [(!= ?y 12)]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.a = 99 AND `datoms00`.v <> 12 LIMIT 1");
+    assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v <> 12 LIMIT 1");
     assert_eq!(args, vec![]);
 }
 
@@ -444,8 +444,8 @@ fn test_compare_long_to_double_constants() {
                     [?e :foo/bar ?v]
                     [(< 99.0 1234512345)]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT `datoms00`.e AS `?e` FROM `causets` AS `datoms00` \
-                     WHERE `datoms00`.a = 99 \
+    assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?e` FROM `causets` AS `Causets00` \
+                     WHERE `Causets00`.a = 99 \
                        AND 9.9e1 < 1234512345 \
                      LIMIT 1");
     assert_eq!(args, vec![]);
@@ -461,9 +461,9 @@ fn test_compare_long_to_double() {
                     [?e :foo/bar ?t]
                     [(< ?t 1234512345)]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT `datoms00`.e AS `?e` FROM `causets` AS `datoms00` \
-                     WHERE `datoms00`.a = 99 \
-                       AND `datoms00`.v < 1234512345 \
+    assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?e` FROM `causets` AS `Causets00` \
+                     WHERE `Causets00`.a = 99 \
+                       AND `Causets00`.v < 1234512345 \
                      LIMIT 1");
     assert_eq!(args, vec![]);
 }
@@ -478,9 +478,9 @@ fn test_compare_double_to_long() {
                     [?e :foo/bar ?t]
                     [(< ?t 1234512345.0)]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT `datoms00`.e AS `?e` FROM `causets` AS `datoms00` \
-                     WHERE `datoms00`.a = 99 \
-                       AND `datoms00`.v < 1.234512345e9 \
+    assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?e` FROM `causets` AS `Causets00` \
+                     WHERE `Causets00`.a = 99 \
+                       AND `Causets00`.v < 1.234512345e9 \
                      LIMIT 1");
     assert_eq!(args, vec![]);
 }
@@ -506,7 +506,7 @@ fn test_simple_or_join() {
                     [?page :page/url ?url]
                     [?page :page/description ?description]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT `datoms01`.v AS `?url`, `datoms02`.v AS `?description` FROM `causets` AS `datoms00`, `causets` AS `datoms01`, `causets` AS `datoms02` WHERE ((`datoms00`.a = 97 AND `datoms00`.v = $v0) OR (`datoms00`.a = 98 AND `datoms00`.v = $v1)) AND `datoms01`.a = 97 AND `datoms02`.a = 99 AND `datoms00`.e = `datoms01`.e AND `datoms00`.e = `datoms02`.e LIMIT 1");
+    assert_eq!(allegrosql, "SELECT `Causets01`.v AS `?url`, `Causets02`.v AS `?description` FROM `causets` AS `Causets00`, `causets` AS `Causets01`, `causets` AS `Causets02` WHERE ((`Causets00`.a = 97 AND `Causets00`.v = $v0) OR (`Causets00`.a = 98 AND `Causets00`.v = $v1)) AND `Causets01`.a = 97 AND `Causets02`.a = 99 AND `Causets00`.e = `Causets01`.e AND `Causets00`.e = `Causets02`.e LIMIT 1");
     assert_eq!(args, vec![make_arg("$v0", "http://foo.com/"), make_arg("$v1", "Foo")]);
 }
 
@@ -541,31 +541,31 @@ fn test_complex_or_join() {
                     [?page :page/url ?url]
                     [?page :page/description ?description]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT `datoms04`.v AS `?url`, \
-                            `datoms05`.v AS `?description` \
-                     FROM (SELECT `datoms00`.e AS `?page` \
-                           FROM `causets` AS `datoms00` \
-                           WHERE `datoms00`.a = 97 \
-                           AND `datoms00`.v = $v0 \
+    assert_eq!(allegrosql, "SELECT `Causets04`.v AS `?url`, \
+                            `Causets05`.v AS `?description` \
+                     FROM (SELECT `Causets00`.e AS `?page` \
+                           FROM `causets` AS `Causets00` \
+                           WHERE `Causets00`.a = 97 \
+                           AND `Causets00`.v = $v0 \
                            UNION \
-                           SELECT `datoms01`.e AS `?page` \
-                               FROM `causets` AS `datoms01` \
-                               WHERE `datoms01`.a = 98 \
-                               AND `datoms01`.v = $v1 \
+                           SELECT `Causets01`.e AS `?page` \
+                               FROM `causets` AS `Causets01` \
+                               WHERE `Causets01`.a = 98 \
+                               AND `Causets01`.v = $v1 \
                            UNION \
-                           SELECT `datoms02`.e AS `?page` \
-                               FROM `causets` AS `datoms02`, \
-                                   `causets` AS `datoms03` \
-                               WHERE `datoms02`.a = 95 \
-                               AND `datoms03`.a = 96 \
-                               AND `datoms03`.v = $v1 \
-                               AND `datoms02`.v = `datoms03`.e) AS `c00`, \
-                           `causets` AS `datoms04`, \
-                           `causets` AS `datoms05` \
-                    WHERE `datoms04`.a = 97 \
-                    AND `datoms05`.a = 99 \
-                    AND `c00`.`?page` = `datoms04`.e \
-                    AND `c00`.`?page` = `datoms05`.e \
+                           SELECT `Causets02`.e AS `?page` \
+                               FROM `causets` AS `Causets02`, \
+                                   `causets` AS `Causets03` \
+                               WHERE `Causets02`.a = 95 \
+                               AND `Causets03`.a = 96 \
+                               AND `Causets03`.v = $v1 \
+                               AND `Causets02`.v = `Causets03`.e) AS `c00`, \
+                           `causets` AS `Causets04`, \
+                           `causets` AS `Causets05` \
+                    WHERE `Causets04`.a = 97 \
+                    AND `Causets05`.a = 99 \
+                    AND `c00`.`?page` = `Causets04`.e \
+                    AND `c00`.`?page` = `Causets05`.e \
                     LIMIT 1");
     assert_eq!(args, vec![make_arg("$v0", "http://foo.com/"),
                           make_arg("$v1", "Foo")]);
@@ -588,16 +588,16 @@ fn test_complex_or_join_type_projection() {
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
     assert_eq!(allegrosql, "SELECT `c00`.`?y` AS `?y`, \
                             `c00`.`?y_value_type_tag` AS `?y_value_type_tag` \
-                       FROM (SELECT `datoms00`.v AS `?y`, \
+                       FROM (SELECT `Causets00`.v AS `?y`, \
                                     10 AS `?y_value_type_tag` \
-                            FROM `causets` AS `datoms00` \
-                            WHERE `datoms00`.e = 6 \
-                            AND `datoms00`.a = 98 \
+                            FROM `causets` AS `Causets00` \
+                            WHERE `Causets00`.e = 6 \
+                            AND `Causets00`.a = 98 \
                             UNION \
-                            SELECT `all_datoms01`.v AS `?y`, \
-                                `all_datoms01`.value_type_tag AS `?y_value_type_tag` \
-                            FROM `all_datoms` AS `all_datoms01` \
-                            WHERE `all_datoms01`.e = 5) AS `c00` \
+                            SELECT `all_Causets01`.v AS `?y`, \
+                                `all_Causets01`.value_type_tag AS `?y_value_type_tag` \
+                            FROM `all_Causets` AS `all_Causets01` \
+                            WHERE `all_Causets01`.e = 5) AS `c00` \
                     LIMIT 1");
     assert_eq!(args, vec![]);
 }
@@ -624,7 +624,7 @@ fn test_not() {
                            (not [?page :page/url "http://foo.com/"]
                                 [?page :page/bookmarked true])]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.v AS `?title` FROM `causets` AS `datoms00` WHERE `datoms00`.a = 98 AND NOT EXISTS (SELECT 1 FROM `causets` AS `datoms01`, `causets` AS `datoms02` WHERE `datoms01`.a = 97 AND `datoms01`.v = $v0 AND `datoms02`.a = 99 AND `datoms02`.v = 1 AND `datoms00`.e = `datoms01`.e AND `datoms00`.e = `datoms02`.e)");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.v AS `?title` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 98 AND NOT EXISTS (SELECT 1 FROM `causets` AS `Causets01`, `causets` AS `Causets02` WHERE `Causets01`.a = 97 AND `Causets01`.v = $v0 AND `Causets02`.a = 99 AND `Causets02`.v = 1 AND `Causets00`.e = `Causets01`.e AND `Causets00`.e = `Causets02`.e)");
     assert_eq!(args, vec![make_arg("$v0", "http://foo.com/")]);
 }
 
@@ -653,7 +653,7 @@ fn test_not_join() {
                                    [?page :bookmarks/page ?url]
                                    [?page :bookmarks/date_created "4/4/2017"])]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?url` FROM `causets` AS `datoms00` WHERE `datoms00`.a = 97 AND NOT EXISTS (SELECT 1 FROM `causets` AS `datoms01`, `causets` AS `datoms02` WHERE `datoms01`.a = 98 AND `datoms02`.a = 99 AND `datoms02`.v = $v0 AND `datoms01`.e = `datoms02`.e AND `datoms00`.e = `datoms01`.v)");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?url` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 97 AND NOT EXISTS (SELECT 1 FROM `causets` AS `Causets01`, `causets` AS `Causets02` WHERE `Causets01`.a = 98 AND `Causets02`.a = 99 AND `Causets02`.v = $v0 AND `Causets01`.e = `Causets02`.e AND `Causets00`.e = `Causets01`.v)");
     assert_eq!(args, vec![make_arg("$v0", "4/4/2017")]);
 }
 
@@ -664,13 +664,13 @@ fn test_with_without_aggregate() {
     // Known type.
     let causetq = r#"[:find ?x :with ?y :where [?x :foo/bar ?y]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.a = 99");
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99");
     assert_eq!(args, vec![]);
 
     // Unknown type.
     let causetq = r#"[:find ?x :with ?y :where [?x _ ?y]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `all_datoms00`.e AS `?x` FROM `all_datoms` AS `all_datoms00`");
+    assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets00`.e AS `?x` FROM `all_Causets` AS `all_Causets00`");
     assert_eq!(args, vec![]);
 }
 
@@ -681,18 +681,18 @@ fn test_order_by() {
     // Known type.
     let causetq = r#"[:find ?x :where [?x :foo/bar ?y] :order (desc ?y)]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?x`, `datoms00`.v AS `?y` \
-                     FROM `causets` AS `datoms00` \
-                     WHERE `datoms00`.a = 99 \
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x`, `Causets00`.v AS `?y` \
+                     FROM `causets` AS `Causets00` \
+                     WHERE `Causets00`.a = 99 \
                      ORDER BY `?y` DESC");
     assert_eq!(args, vec![]);
 
     // Unknown type.
     let causetq = r#"[:find ?x :with ?y :where [?x _ ?y] :order ?y ?x]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `all_datoms00`.e AS `?x`, `all_datoms00`.v AS `?y`, \
-                                     `all_datoms00`.value_type_tag AS `?y_value_type_tag` \
-                     FROM `all_datoms` AS `all_datoms00` \
+    assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets00`.e AS `?x`, `all_Causets00`.v AS `?y`, \
+                                     `all_Causets00`.value_type_tag AS `?y_value_type_tag` \
+                     FROM `all_Causets` AS `all_Causets00` \
                      ORDER BY `?y_value_type_tag` ASC, `?y` ASC, `?x` ASC");
     assert_eq!(args, vec![]);
 }
@@ -716,13 +716,13 @@ fn test_complex_nested_or_join_type_projection() {
 
     let SQLCausetQ { allegrosql, args } = translate(&schema, input);
     assert_eq!(allegrosql, "SELECT `c00`.`?y` AS `?y` \
-                     FROM (SELECT `datoms00`.v AS `?y` \
-                           FROM `causets` AS `datoms00` \
-                           WHERE `datoms00`.a = 98 \
+                     FROM (SELECT `Causets00`.v AS `?y` \
+                           FROM `causets` AS `Causets00` \
+                           WHERE `Causets00`.a = 98 \
                            UNION \
-                           SELECT `datoms01`.v AS `?y` \
-                           FROM `causets` AS `datoms01` \
-                           WHERE `datoms01`.a = 98) \
+                           SELECT `Causets01`.v AS `?y` \
+                           FROM `causets` AS `Causets01` \
+                           WHERE `Causets01`.a = 98) \
                            AS `c00` \
                      LIMIT 1");
     assert_eq!(args, vec![]);
@@ -843,16 +843,16 @@ fn test_compound_with_ground() {
     // Verify that we can use ground to constrain the bindings produced by earlier clauses.
     let causetq = r#"[:find ?x . :where [_ :foo/bar ?x] [(ground "yyy") ?x]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT $v0 AS `?x` FROM `causets` AS `datoms00` \
-                     WHERE `datoms00`.a = 99 AND `datoms00`.v = $v0 LIMIT 1");
+    assert_eq!(allegrosql, "SELECT $v0 AS `?x` FROM `causets` AS `Causets00` \
+                     WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 1");
 
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 
     // Verify that we can further constrain the bindings produced by our clause.
     let causetq = r#"[:find ?x . :where [(ground "yyy") ?x] [_ :foo/bar ?x]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT $v0 AS `?x` FROM `causets` AS `datoms00` \
-                     WHERE `datoms00`.a = 99 AND `datoms00`.v = $v0 LIMIT 1");
+    assert_eq!(allegrosql, "SELECT $v0 AS `?x` FROM `causets` AS `Causets00` \
+                     WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 1");
 
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
@@ -862,11 +862,11 @@ fn test_unbound_attribute_with_ground_instanton() {
     let causetq = r#"[:find ?x ?v :where [?x _ ?v] (not [(ground 17) ?x])]"#;
     let schema = prepopulated_schema();
     let SQLCausetQ { allegrosql, .. } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `all_datoms00`.e AS `?x`, \
-                                     `all_datoms00`.v AS `?v`, \
-                                     `all_datoms00`.value_type_tag AS `?v_value_type_tag` \
-                     FROM `all_datoms` AS `all_datoms00` \
-                     WHERE NOT EXISTS (SELECT 1 WHERE `all_datoms00`.e = 17)");
+    assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets00`.e AS `?x`, \
+                                     `all_Causets00`.v AS `?v`, \
+                                     `all_Causets00`.value_type_tag AS `?v_value_type_tag` \
+                     FROM `all_Causets` AS `all_Causets00` \
+                     WHERE NOT EXISTS (SELECT 1 WHERE `all_Causets00`.e = 17)");
 }
 
 #[test]
@@ -874,12 +874,12 @@ fn test_unbound_attribute_with_ground() {
     let causetq = r#"[:find ?x ?v :where [?x _ ?v] (not [(ground 17) ?v])]"#;
     let schema = prepopulated_schema();
     let SQLCausetQ { allegrosql, .. } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `all_datoms00`.e AS `?x`, \
-                                     `all_datoms00`.v AS `?v`, \
-                                     `all_datoms00`.value_type_tag AS `?v_value_type_tag` \
-                     FROM `all_datoms` AS `all_datoms00` \
-                     WHERE NOT EXISTS (SELECT 1 WHERE `all_datoms00`.v = 17 AND \
-                                                     (`all_datoms00`.value_type_tag = 5))");
+    assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets00`.e AS `?x`, \
+                                     `all_Causets00`.v AS `?v`, \
+                                     `all_Causets00`.value_type_tag AS `?v_value_type_tag` \
+                     FROM `all_Causets` AS `all_Causets00` \
+                     WHERE NOT EXISTS (SELECT 1 WHERE `all_Causets00`.v = 17 AND \
+                                                     (`all_Causets00`.value_type_tag = 5))");
 }
 
 
@@ -901,18 +901,18 @@ fn test_not_with_ground() {
     let causetq = r#"[:find ?x :where [?x :edb/valueType ?v] (not [(ground :edb.type/instant) ?v])]"#;
     let SQLCausetQ { allegrosql, .. } = translate(&schema, causetq);
     assert_eq!(allegrosql,
-               "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` WHERE `datoms00`.a = 7 AND NOT \
-                EXISTS (SELECT 1 WHERE `datoms00`.v = 29)");
+               "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 7 AND NOT \
+                EXISTS (SELECT 1 WHERE `Causets00`.v = 29)");
 
     // Coll.
     // TODO: we can generate better SQL for this, too. #476.
     let causetq = r#"[:find ?x :where [?x :edb/valueType ?v] (not [(ground [:edb.type/bool :edb.type/instant]) [?v ...]])]"#;
     let SQLCausetQ { allegrosql, .. } = translate(&schema, causetq);
     assert_eq!(allegrosql,
-               "SELECT DISTINCT `datoms00`.e AS `?x` FROM `causets` AS `datoms00` \
-                WHERE `datoms00`.a = 7 AND NOT EXISTS \
+               "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` \
+                WHERE `Causets00`.a = 7 AND NOT EXISTS \
                 (SELECT 1 FROM (SELECT 0 AS `?v` WHERE 0 UNION ALL VALUES (28), (29)) AS `c00` \
-                 WHERE `datoms00`.v = `c00`.`?v`)");
+                 WHERE `Causets00`.v = `c00`.`?v`)");
 }
 
 #[test]
@@ -921,73 +921,73 @@ fn test_fulltext() {
 
     let causetq = r#"[:find ?instanton ?value ?causetx ?sembedded :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sembedded]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms01`.e AS `?instanton`, \
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
-                                     `datoms01`.causetx AS `?causetx`, \
+                                     `Causets01`.causetx AS `?causetx`, \
                                      0e0 AS `?sembedded` \
                      FROM `fulltext_values` AS `fulltext_values00`, \
-                          `causets` AS `datoms01` \
-                     WHERE `datoms01`.a = 100 \
-                       AND `datoms01`.v = `fulltext_values00`.rowid \
+                          `causets` AS `Causets01` \
+                     WHERE `Causets01`.a = 100 \
+                       AND `Causets01`.v = `fulltext_values00`.rowid \
                        AND `fulltext_values00`.text MATCH $v0");
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
     let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sembedded]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
     // Observe that the computed table isn't dropped, even though `?sembedded` isn't bound in the final conjoining clause.
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms01`.e AS `?instanton`, \
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
-                                     `datoms01`.causetx AS `?causetx` \
+                                     `Causets01`.causetx AS `?causetx` \
                      FROM `fulltext_values` AS `fulltext_values00`, \
-                          `causets` AS `datoms01` \
-                     WHERE `datoms01`.a = 100 \
-                       AND `datoms01`.v = `fulltext_values00`.rowid \
+                          `causets` AS `Causets01` \
+                     WHERE `Causets01`.a = 100 \
+                       AND `Causets01`.v = `fulltext_values00`.rowid \
                        AND `fulltext_values00`.text MATCH $v0");
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
     let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx _]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
     // Observe that the computed table isn't included at all when `?sembedded` isn't bound.
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms01`.e AS `?instanton`, \
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
-                                     `datoms01`.causetx AS `?causetx` \
+                                     `Causets01`.causetx AS `?causetx` \
                      FROM `fulltext_values` AS `fulltext_values00`, \
-                          `causets` AS `datoms01` \
-                     WHERE `datoms01`.a = 100 \
-                       AND `datoms01`.v = `fulltext_values00`.rowid \
+                          `causets` AS `Causets01` \
+                     WHERE `Causets01`.a = 100 \
+                       AND `Causets01`.v = `fulltext_values00`.rowid \
                        AND `fulltext_values00`.text MATCH $v0");
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
     let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sembedded]]] [?instanton :foo/bar ?sembedded]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms01`.e AS `?instanton`, \
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
-                                     `datoms01`.causetx AS `?causetx` \
+                                     `Causets01`.causetx AS `?causetx` \
                      FROM `fulltext_values` AS `fulltext_values00`, \
-                          `causets` AS `datoms01`, \
-                          `causets` AS `datoms02` \
-                     WHERE `datoms01`.a = 100 \
-                       AND `datoms01`.v = `fulltext_values00`.rowid \
+                          `causets` AS `Causets01`, \
+                          `causets` AS `Causets02` \
+                     WHERE `Causets01`.a = 100 \
+                       AND `Causets01`.v = `fulltext_values00`.rowid \
                        AND `fulltext_values00`.text MATCH $v0 \
-                       AND `datoms02`.a = 99 \
-                       AND `datoms02`.v = 0e0 \
-                       AND `datoms01`.e = `datoms02`.e");
+                       AND `Causets02`.a = 99 \
+                       AND `Causets02`.v = 0e0 \
+                       AND `Causets01`.e = `Causets02`.e");
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
     let causetq = r#"[:find ?instanton ?value ?causetx :where [?instanton :foo/bar ?sembedded] [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sembedded]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?instanton`, \
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?instanton`, \
                                      `fulltext_values01`.text AS `?value`, \
-                                     `datoms02`.causetx AS `?causetx` \
-                     FROM `causets` AS `datoms00`, \
+                                     `Causets02`.causetx AS `?causetx` \
+                     FROM `causets` AS `Causets00`, \
                           `fulltext_values` AS `fulltext_values01`, \
-                          `causets` AS `datoms02` \
-                     WHERE `datoms00`.a = 99 \
-                       AND `datoms02`.a = 100 \
-                       AND `datoms02`.v = `fulltext_values01`.rowid \
+                          `causets` AS `Causets02` \
+                     WHERE `Causets00`.a = 99 \
+                       AND `Causets02`.a = 100 \
+                       AND `Causets02`.v = `fulltext_values01`.rowid \
                        AND `fulltext_values01`.text MATCH $v0 \
-                       AND `datoms00`.v = 0e0 \
-                       AND `datoms00`.e = `datoms02`.e");
+                       AND `Causets00`.v = 0e0 \
+                       AND `Causets00`.e = `Causets02`.e");
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 }
 
@@ -1008,9 +1008,9 @@ fn test_fulltext_inputs() {
     assert_eq!(allegrosql, "SELECT DISTINCT `fulltext_values00`.text AS `?val` \
                      FROM \
                      `fulltext_values` AS `fulltext_values00`, \
-                     `causets` AS `datoms01` \
-                     WHERE `datoms01`.a = 100 \
-                       AND `datoms01`.v = `fulltext_values00`.rowid \
+                     `causets` AS `Causets01` \
+                     WHERE `Causets01`.a = 100 \
+                       AND `Causets01`.v = `fulltext_values00`.rowid \
                        AND `fulltext_values00`.text MATCH $v0");
     assert_eq!(args, vec![make_arg("$v0", "hello"),]);
 
@@ -1020,11 +1020,11 @@ fn test_fulltext_inputs() {
     assert_eq!(allegrosql, "SELECT DISTINCT `fulltext_values00`.text AS `?val` \
                      FROM \
                      `fulltext_values` AS `fulltext_values00`, \
-                     `causets` AS `datoms01` \
-                     WHERE `datoms01`.a = 100 \
-                       AND `datoms01`.v = `fulltext_values00`.rowid \
+                     `causets` AS `Causets01` \
+                     WHERE `Causets01`.a = 100 \
+                       AND `Causets01`.v = `fulltext_values00`.rowid \
                        AND `fulltext_values00`.text MATCH $v0 \
-                       AND `datoms01`.e = 111");
+                       AND `Causets01`.e = 111");
     assert_eq!(args, vec![make_arg("$v0", "hello"),]);
 
     // Same again, but retrieving the instanton.
@@ -1035,11 +1035,11 @@ fn test_fulltext_inputs() {
     let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, inputs);
     assert_eq!(allegrosql, "SELECT 111 AS `?instanton` FROM \
                      `fulltext_values` AS `fulltext_values00`, \
-                     `causets` AS `datoms01` \
-                     WHERE `datoms01`.a = 100 \
-                       AND `datoms01`.v = `fulltext_values00`.rowid \
+                     `causets` AS `Causets01` \
+                     WHERE `Causets01`.a = 100 \
+                       AND `Causets01`.v = `fulltext_values00`.rowid \
                        AND `fulltext_values00`.text MATCH $v0 \
-                       AND `datoms01`.e = 111 \
+                       AND `Causets01`.e = 111 \
                      LIMIT 1");
     assert_eq!(args, vec![make_arg("$v0", "hello"),]);
 
@@ -1053,17 +1053,17 @@ fn test_fulltext_inputs() {
     let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, inputs);
     assert_eq!(allegrosql, "SELECT DISTINCT 121 AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
-                                     `datoms02`.v AS `?friend` \
+                                     `Causets02`.v AS `?friend` \
                      FROM \
                      `fulltext_values` AS `fulltext_values00`, \
-                     `causets` AS `datoms01`, \
-                     `causets` AS `datoms02` \
-                     WHERE `datoms01`.a = 100 \
-                       AND `datoms01`.v = `fulltext_values00`.rowid \
+                     `causets` AS `Causets01`, \
+                     `causets` AS `Causets02` \
+                     WHERE `Causets01`.a = 100 \
+                       AND `Causets01`.v = `fulltext_values00`.rowid \
                        AND `fulltext_values00`.text MATCH $v0 \
-                       AND `datoms01`.e = 121 \
-                       AND `datoms02`.e = 121 \
-                       AND `datoms02`.a = 99");
+                       AND `Causets01`.e = 121 \
+                       AND `Causets02`.e = 121 \
+                       AND `Causets02`.a = 99");
     assert_eq!(args, vec![make_arg("$v0", "hello"),]);
 }
 
@@ -1076,11 +1076,11 @@ fn test_instant_range() {
                     [(> ?t #inst "2017-06-16T00:56:41.257Z")]]"#;
 
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `datoms00`.e AS `?e` \
+    assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?e` \
                      FROM \
-                     `causets` AS `datoms00` \
-                     WHERE `datoms00`.a = 99 \
-                       AND `datoms00`.v > 1497574601257000");
+                     `causets` AS `Causets00` \
+                     WHERE `Causets00`.a = 99 \
+                       AND `Causets00`.v > 1497574601257000");
     assert_eq!(args, vec![]);
 }
 
@@ -1098,10 +1098,10 @@ fn test_project_aggregates() {
                      (SELECT `?e` AS `?e`, max(`?t`) AS `(max ?t)` \
                       FROM \
                       (SELECT DISTINCT \
-                       `datoms00`.e AS `?e`, \
-                       `datoms00`.v AS `?t` \
-                       FROM `causets` AS `datoms00` \
-                       WHERE `datoms00`.a = 99) \
+                       `Causets00`.e AS `?e`, \
+                       `Causets00`.v AS `?t` \
+                       FROM `causets` AS `Causets00` \
+                       WHERE `Causets00`.a = 99) \
                       GROUP BY `?e`) \
                      WHERE `(max ?t)` IS NOT NULL");
     assert_eq!(args, vec![]);
@@ -1116,10 +1116,10 @@ fn test_project_aggregates() {
                      (SELECT max(`?t`) AS `(max ?t)` \
                       FROM \
                       (SELECT DISTINCT \
-                       `datoms00`.v AS `?t`, \
-                       `datoms00`.e AS `?e` \
-                       FROM `causets` AS `datoms00` \
-                       WHERE `datoms00`.a = 99)\
+                       `Causets00`.v AS `?t`, \
+                       `Causets00`.e AS `?e` \
+                       FROM `causets` AS `Causets00` \
+                       WHERE `Causets00`.a = 99)\
                       ) \
                      WHERE `(max ?t)` IS NOT NULL");
     assert_eq!(args, vec![]);
@@ -1137,11 +1137,11 @@ fn test_project_aggregates() {
                      (SELECT max(`?x`) AS `(max ?x)`, `?a` AS `?a` \
                       FROM \
                       (SELECT DISTINCT \
-                       `datoms01`.v AS `?x`, \
-                       `datoms00`.a AS `?a`, \
-                       `datoms00`.e AS `?e` \
-                       FROM `causets` AS `datoms00`, `causets` AS `datoms01` \
-                       WHERE `datoms01`.a = 99 AND `datoms00`.v = `datoms01`.e) \
+                       `Causets01`.v AS `?x`, \
+                       `Causets00`.a AS `?a`, \
+                       `Causets00`.e AS `?e` \
+                       FROM `causets` AS `Causets00`, `causets` AS `Causets01` \
+                       WHERE `Causets01`.a = 99 AND `Causets00`.v = `Causets01`.e) \
                       GROUP BY `?a`) \
                      WHERE `(max ?x)` IS NOT NULL \
                      ORDER BY `?a` ASC");
@@ -1161,11 +1161,11 @@ fn test_project_aggregates() {
                      (SELECT max(`?x`) AS `(max ?x)`, `?a` AS `?a` \
                       FROM \
                       (SELECT DISTINCT \
-                       `datoms01`.v AS `?x`, \
-                       `datoms00`.a AS `?a`, \
-                       `datoms00`.e AS `?e` \
-                       FROM `causets` AS `datoms00`, `causets` AS `datoms01` \
-                       WHERE `datoms01`.a = 99 AND `datoms00`.v = `datoms01`.e) \
+                       `Causets01`.v AS `?x`, \
+                       `Causets00`.a AS `?a`, \
+                       `Causets00`.e AS `?e` \
+                       FROM `causets` AS `Causets00`, `causets` AS `Causets01` \
+                       WHERE `Causets01`.a = 99 AND `Causets00`.v = `Causets01`.e) \
                       GROUP BY `?a` \
                       ORDER BY `?a` DESC \
                       LIMIT 10) \
@@ -1182,10 +1182,10 @@ fn test_project_aggregates() {
     assert_eq!(allegrosql, "SELECT count(`?t`) AS `(count ?t)` \
                      FROM \
                      (SELECT DISTINCT \
-                      `datoms00`.v AS `?t`, \
-                      `datoms00`.e AS `?e` \
-                      FROM `causets` AS `datoms00` \
-                      WHERE `datoms00`.a = 99)");
+                      `Causets00`.v AS `?t`, \
+                      `Causets00`.e AS `?e` \
+                      FROM `causets` AS `Causets00` \
+                      WHERE `Causets00`.a = 99)");
     assert_eq!(args, vec![]);
 }
 
@@ -1203,10 +1203,10 @@ fn test_project_the() {
                      (SELECT `?e` AS `?e`, max(`?t`) AS `(max ?t)` \
                       FROM \
                       (SELECT DISTINCT \
-                       `datoms00`.e AS `?e`, \
-                       `datoms00`.v AS `?t` \
-                       FROM `causets` AS `datoms00` \
-                       WHERE `datoms00`.a = 99)) \
+                       `Causets00`.e AS `?e`, \
+                       `Causets00`.v AS `?t` \
+                       FROM `causets` AS `Causets00` \
+                       WHERE `Causets00`.a = 99)) \
                      WHERE `(max ?t)` IS NOT NULL");
     assert_eq!(args, vec![]);
 }
@@ -1217,16 +1217,16 @@ fn test_causecausetx_before_and_after() {
     let causetq = r#"[:find ?x :where [?x _ _ ?causetx] [(causetx-after ?causetx 12345)]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT \
-                     `datoms00`.e AS `?x` \
-                     FROM `causets` AS `datoms00` \
-                     WHERE `datoms00`.causetx > 12345");
+                     `Causets00`.e AS `?x` \
+                     FROM `causets` AS `Causets00` \
+                     WHERE `Causets00`.causetx > 12345");
     assert_eq!(args, vec![]);
     let causetq = r#"[:find ?x :where [?x _ _ ?causetx] [(causetx-before ?causetx 12345)]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT \
-                     `datoms00`.e AS `?x` \
-                     FROM `causets` AS `datoms00` \
-                     WHERE `datoms00`.causetx < 12345");
+                     `Causets00`.e AS `?x` \
+                     FROM `causets` AS `Causets00` \
+                     WHERE `Causets00`.causetx < 12345");
     assert_eq!(args, vec![]);
 }
 
@@ -1254,31 +1254,31 @@ fn test_causecausetx_ids() {
     let causetq = r#"[:find ?causetx :where [?first :edb/causecausetxInstant #inst "2016-01-01T11:00:00.000Z"] [?last :edb/causecausetxInstant #inst "2017-01-01T11:00:00.000Z"] [(causetx-ids $ ?first ?last) [?causetx ...]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `transactions02`.causetx AS `?causetx` \
-                     FROM `causets` AS `datoms00`, \
-                     `causets` AS `datoms01`, \
+                     FROM `causets` AS `Causets00`, \
+                     `causets` AS `Causets01`, \
                      `transactions` AS `transactions02` \
-                     WHERE `datoms00`.a = 101 \
-                     AND `datoms00`.v = 1451646000000000 \
-                     AND `datoms01`.a = 101 \
-                     AND `datoms01`.v = 1483268400000000 \
-                     AND `datoms00`.e <= `transactions02`.causetx \
-                     AND `transactions02`.causetx < `datoms01`.e");
+                     WHERE `Causets00`.a = 101 \
+                     AND `Causets00`.v = 1451646000000000 \
+                     AND `Causets01`.a = 101 \
+                     AND `Causets01`.v = 1483268400000000 \
+                     AND `Causets00`.e <= `transactions02`.causetx \
+                     AND `transactions02`.causetx < `Causets01`.e");
     assert_eq!(args, vec![]);
 
-    // In practice the following causetq would be inefficient because of the filter on all_datoms.causetx,
+    // In practice the following causetq would be inefficient because of the filter on all_Causets.causetx,
     // but that is what (causetx-data) is for.
     let causetq = r#"[:find ?e ?a ?v ?causetx :where [(causetx-ids $ 1000 2000) [[?causetx]]] [?e ?a ?v ?causetx]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    assert_eq!(allegrosql, "SELECT DISTINCT `all_datoms01`.e AS `?e`, \
-	                   `all_datoms01`.a AS `?a`, \
-                     `all_datoms01`.v AS `?v`, \
-                     `all_datoms01`.value_type_tag AS `?v_value_type_tag`, \
+    assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets01`.e AS `?e`, \
+	                   `all_Causets01`.a AS `?a`, \
+                     `all_Causets01`.v AS `?v`, \
+                     `all_Causets01`.value_type_tag AS `?v_value_type_tag`, \
                      `transactions00`.causetx AS `?causetx` \
                      FROM `transactions` AS `transactions00`, \
-                     `all_datoms` AS `all_datoms01` \
+                     `all_Causets` AS `all_Causets01` \
                      WHERE 1000 <= `transactions00`.causetx \
                      AND `transactions00`.causetx < 2000 \
-                     AND `transactions00`.causetx = `all_datoms01`.causetx");
+                     AND `transactions00`.causetx = `all_Causets01`.causetx");
     assert_eq!(args, vec![]);
 }
 

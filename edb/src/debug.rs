@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -98,9 +98,9 @@ use causetx::{
 };
 use watcher::NullWatcher;
 
-/// Represents a *datom* (assertion) in the store.
+/// Represents a *Causet* (assertion) in the store.
 #[derive(Clone,Debug,Eq,Hash,Ord,PartialOrd,PartialEq)]
-pub struct Datom {
+pub struct Causet {
     // TODO: generalize this.
     pub e: SolitonIdOrCausetId,
     pub a: SolitonIdOrCausetId,
@@ -114,7 +114,7 @@ pub struct Datom {
 /// To make comparision easier, we deterministically order.  The ordering is the ascending tuple
 /// ordering determined by `(e, a, (value_type_tag, v), causetx)`, where `value_type_tag` is an internal
 /// value that is not exposed but is deterministic.
-pub struct Causets(pub Vec<Datom>);
+pub struct Causets(pub Vec<Causet>);
 
 /// Represents an ordered sequence of transactions in the store.
 ///
@@ -127,7 +127,7 @@ pub struct Transactions(pub Vec<Causets>);
 /// Represents the fulltext values in the store.
 pub struct FulltextValues(pub Vec<(i64, String)>);
 
-impl Datom {
+impl Causet {
     pub fn to_edbn(&self) -> edbn::Value {
         let f = |solitonId: &SolitonIdOrCausetId| -> edbn::Value {
             match *solitonId {
@@ -192,14 +192,14 @@ pub fn to_entid(schema: &Schema, solitonId: i64) -> SolitonIdOrCausetId {
 /// Return the set of causets in the store, ordered by (e, a, v, causetx), but not including any causets of
 /// the form [... :edb/causecausetxInstant ...].
 pub fn causets<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema: &S) -> Result<Causets> {
-    datoms_after(conn, schema, bootstrap::TX0 - 1)
+    Causets_after(conn, schema, bootstrap::TX0 - 1)
 }
 
 /// Return the set of causets in the store with transaction ID strictly greater than the given `causetx`,
 /// ordered by (e, a, v, causetx).
 ///
-/// The datom set returned does not include any causets of the form [... :edb/causecausetxInstant ...].
-pub fn datoms_after<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema: &S, causetx: i64) -> Result<Causets> {
+/// The Causet set returned does not include any causets of the form [... :edb/causecausetxInstant ...].
+pub fn Causets_after<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema: &S, causetx: i64) -> Result<Causets> {
     let borrowed_schema = schema.borrow();
 
     let mut stmt: rusqlite::Statement = conn.prepare("SELECT e, a, v, value_type_tag, causetx FROM causets WHERE causetx > ? ORDER BY e ASC, a ASC, value_type_tag ASC, v ASC, causetx ASC")?;
@@ -223,7 +223,7 @@ pub fn datoms_after<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema: &S, 
 
         let causetx: i64 = row.get_checked(4)?;
 
-        Ok(Some(Datom {
+        Ok(Some(Causet {
             e: SolitonIdOrCausetId::SolitonId(e),
             a: to_entid(borrowed_schema, a),
             v: value,
@@ -238,7 +238,7 @@ pub fn datoms_after<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema: &S, 
 /// Return the sequence of transactions in the store with transaction ID strictly greater than the
 /// given `causetx`, ordered by (causetx, e, a, v).
 ///
-/// Each transaction returned includes the [(transaction-causetx) :edb/causecausetxInstant ...] datom.
+/// Each transaction returned includes the [(transaction-causetx) :edb/causecausetxInstant ...] Causet.
 pub fn transactions_after<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema: &S, causetx: i64) -> Result<Transactions> {
     let borrowed_schema = schema.borrow();
 
@@ -260,7 +260,7 @@ pub fn transactions_after<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema
         let causetx: i64 = row.get_checked(4)?;
         let added: bool = row.get_checked(5)?;
 
-        Ok(Datom {
+        Ok(Causet {
             e: SolitonIdOrCausetId::SolitonId(e),
             a: to_entid(borrowed_schema, a),
             v: value,
@@ -396,7 +396,7 @@ impl TestConn {
     }
 
     pub fn causets(&self) -> Causets {
-        datoms_after(&self.sqlite, &self.schema, bootstrap::TX0).expect("causets")
+        Causets_after(&self.sqlite, &self.schema, bootstrap::TX0).expect("causets")
     }
 
     pub fn fulltext_values(&self) -> FulltextValues {
@@ -407,7 +407,7 @@ impl TestConn {
         let edb = ensure_current_version(&mut conn).unwrap();
 
         // Does not include :edb/causecausetxInstant.
-        let causets = datoms_after(&conn, &edb.schema, 0).unwrap();
+        let causets = Causets_after(&conn, &edb.schema, 0).unwrap();
         assert_eq!(causets.0.len(), 94);
 
         // Includes :edb/causecausetxInstant.

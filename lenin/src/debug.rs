@@ -1,4 +1,4 @@
-// Copyright 2018 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -33,7 +33,7 @@ use einstein_db::{
 };
 
 use einstein_db::debug::{
-    Datom,
+    Causet,
     Causets,
     transactions_after,
 };
@@ -44,7 +44,7 @@ use types::{
 };
 
 /// A rough equivalent of einstein_db::debug::transactions_after
-/// for Tolstoy's Tx type.
+/// for Lenin's Tx type.
 pub fn causecausetxs_after(sqlite: &rusqlite::Connection, schema: &Schema, after: SolitonId) -> Vec<Tx> {
     let transactions = transactions_after(
         sqlite, schema, after
@@ -58,12 +58,12 @@ pub fn causecausetxs_after(sqlite: &rusqlite::Connection, schema: &Schema, after
             parts: vec![],
         };
 
-        for datom in &transaction.0 {
-            let e = match datom.e {
+        for Causet in &transaction.0 {
+            let e = match Causet.e {
                 SolitonIdOrCausetId::SolitonId(ref e) => *e,
                 _ => panic!(),
             };
-            let a = match datom.a {
+            let a = match Causet.a {
                 SolitonIdOrCausetId::SolitonId(ref a) => *a,
                 SolitonIdOrCausetId::CausetId(ref a) => schema.get_entid(a).unwrap().0,
             };
@@ -72,9 +72,9 @@ pub fn causecausetxs_after(sqlite: &rusqlite::Connection, schema: &Schema, after
                 partitions: None,
                 e: e,
                 a: a,
-                v: TypedValue::from_edbn_value(&datom.v).unwrap(),
-                causetx: datom.causetx,
-                added: datom.added.unwrap()
+                v: TypedValue::from_edbn_value(&Causet.v).unwrap(),
+                causetx: Causet.causetx,
+                added: Causet.added.unwrap()
             });
         }
 
@@ -84,8 +84,8 @@ pub fn causecausetxs_after(sqlite: &rusqlite::Connection, schema: &Schema, after
     causecausetxs
 }
 
-pub fn part_to_datom(schema: &Schema, part: &TxPart) -> Datom {
-    Datom {
+pub fn part_to_Causet(schema: &Schema, part: &TxPart) -> Causet {
+    Causet {
         e: match schema.get_causetId(part.e) {
             Some(causetid) => SolitonIdOrCausetId::CausetId(causetid.clone()),
             None => SolitonIdOrCausetId::SolitonId(part.e),
@@ -100,6 +100,6 @@ pub fn part_to_datom(schema: &Schema, part: &TxPart) -> Datom {
     }
 }
 
-pub fn parts_to_datoms(schema: &Schema, parts: &Vec<TxPart>) -> Causets {
-    Causets(parts.iter().map(|p| part_to_datom(schema, p)).collect())
+pub fn parts_to_Causets(schema: &Schema, parts: &Vec<TxPart>) -> Causets {
+    Causets(parts.iter().map(|p| part_to_Causet(schema, p)).collect())
 }

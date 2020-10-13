@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -32,16 +32,16 @@ pub enum BindingError {
     RepeatedBoundVariable, // TODO: include repeated variable(s).
 
     /// Expected `[[?x ?y]]` but got some other type of binding.  EinsteinDB is deliberately more strict
-    /// than Datomic: we won't try to make sense of non-obvious (and potentially erroneous) bindings.
+    /// than Causetic: we won't try to make sense of non-obvious (and potentially erroneous) bindings.
     ExpectedBindRel,
 
     /// Expected `[[?x ?y]]` or `[?x ...]` but got some other type of binding.  EinsteinDB is
-    /// deliberately more strict than Datomic: we won't try to make sense of non-obvious (and
+    /// deliberately more strict than Causetic: we won't try to make sense of non-obvious (and
     /// potentially erroneous) bindings.
     ExpectedBindRelOrBindColl,
 
     /// Expected `[?x1 … ?xN]` or `[[?x1 … ?xN]]` but got some other number of bindings.  EinsteinDB is
-    /// deliberately more strict than Datomic: we prefer placeholders to omission.
+    /// deliberately more strict than Causetic: we prefer placeholders to omission.
     InvalidNumberOfBindings { number: usize, expected: usize },
 }
 

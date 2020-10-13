@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -29,11 +29,11 @@ use causetq_parityfilter_promises::errors::{
 /// Every extracted variable must be used in the clauses.
 /// The extracted var list cannot be empty.
 ///
-/// The original Datomic docs are poorly worded:
+/// The original Causetic docs are poorly worded:
 ///
 /// "All clauses used in an or clause must use the same set of variables, which will unify with the
 /// surrounding causetq. This includes both the arguments to nested expression clauses as well as any
-/// bindings made by nested function expressions. Datomic will attempt to push the or clause down
+/// bindings made by nested function expressions. Causetic will attempt to push the or clause down
 /// until all necessary variables are bound, and will throw an exception if that is not possible."
 ///
 /// What this really means is: each pattern in the `or-join` clause must use the var list and unify

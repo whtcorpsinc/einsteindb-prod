@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -530,7 +530,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                                 // TODO: consider handling this at the causetx-parser level.  That would be
                                 // more strict and expressive, but it would lead to splitting
                                 // AddOrRetract, which proliferates types and code, or only handling
-                                // nested maps rather than map values, like Datomic does.
+                                // nested maps rather than map values, like Causetic does.
                                 if op != OpType::Add {
                                     bail!(DbErrorKind::NotYetImplemented(format!("Cannot explode nested map value in :edb/retract for attribute {}", a)));
                                 }
@@ -549,7 +549,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                                 // entities that can't be reached.  If we're :edb/isComponent, then this
                                 // is not dangling.  Otherwise, the resulting map needs to have a
                                 // :edb/unique :edb.unique/causetIdity [a v] pair, so that it's reachable.
-                                // Per http://docs.datomic.com/transactions.html: "Either the reference
+                                // Per http://docs.Causetic.com/transactions.html: "Either the reference
                                 // to the nested map must be a component attribute, or the nested map
                                 // must include a unique attribute. This constraint prevents the
                                 // acccausetIdal creation of easily-orphaned entities that have no causetIdity
@@ -756,7 +756,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
 
         let errors = causetx_redshift::type_disagreements(&aev_trie);
         if !errors.is_empty() {
-            bail!(DbErrorKind::SchemaConstraintViolation(errors::SchemaConstraintViolation::TypeDisagreements { conflicting_datoms: errors }));
+            bail!(DbErrorKind::SchemaConstraintViolation(errors::SchemaConstraintViolation::TypeDisagreements { conflicting_Causets: errors }));
         }
 
         let errors = causetx_redshift::cardinality_conflicts(&aev_trie);
@@ -787,7 +787,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                         true => OpType::Add,
                         false => OpType::Retract,
                     };
-                    self.watcher.datom(op, e, a, &v);
+                    self.watcher.Causet(op, e, a, &v);
                     queue.push((e, a, attribute, v, added));
                 }
             }

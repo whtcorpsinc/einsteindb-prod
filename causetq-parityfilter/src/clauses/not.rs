@@ -1,4 +1,4 @@
-// Copyright 2016 WHTCORPS INC
+// Copyright 2020 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -211,17 +211,17 @@ mod testing {
 
         let vx = Variable::from_valid_name("?x");
 
-        let d0 = "datoms00".to_string();
+        let d0 = "Causets00".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
         let d0a = QualifiedAlias::new(d0.clone(), CausetsColumn::Attribute);
         let d0v = QualifiedAlias::new(d0.clone(), CausetsColumn::Value);
 
-        let d1 = "datoms01".to_string();
+        let d1 = "Causets01".to_string();
         let d1e = QualifiedAlias::new(d1.clone(), CausetsColumn::Instanton);
         let d1a = QualifiedAlias::new(d1.clone(), CausetsColumn::Attribute);
         let d1v = QualifiedAlias::new(d1.clone(), CausetsColumn::Value);
 
-        let d2 = "datoms02".to_string();
+        let d2 = "Causets02".to_string();
         let d2e = QualifiedAlias::new(d2.clone(), CausetsColumn::Instanton);
         let d2a = QualifiedAlias::new(d2.clone(), CausetsColumn::Attribute);
         let d2v = QualifiedAlias::new(d2.clone(), CausetsColumn::Value);
@@ -272,22 +272,22 @@ mod testing {
         let vx = Variable::from_valid_name("?x");
         let vy = Variable::from_valid_name("?y");
 
-        let d0 = "datoms00".to_string();
+        let d0 = "Causets00".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
         let d0a = QualifiedAlias::new(d0.clone(), CausetsColumn::Attribute);
         let d0v = QualifiedAlias::new(d0.clone(), CausetsColumn::Value);
 
-        let d1 = "datoms01".to_string();
+        let d1 = "Causets01".to_string();
         let d1e = QualifiedAlias::new(d1.clone(), CausetsColumn::Instanton);
         let d1a = QualifiedAlias::new(d1.clone(), CausetsColumn::Attribute);
         let d1v = QualifiedAlias::new(d1.clone(), CausetsColumn::Value);
 
-        let d2 = "datoms02".to_string();
+        let d2 = "Causets02".to_string();
         let d2e = QualifiedAlias::new(d2.clone(), CausetsColumn::Instanton);
         let d2a = QualifiedAlias::new(d2.clone(), CausetsColumn::Attribute);
         let d2v = QualifiedAlias::new(d2.clone(), CausetsColumn::Value);
 
-        let d3 = "datoms03".to_string();
+        let d3 = "Causets03".to_string();
         let d3e = QualifiedAlias::new(d3.clone(), CausetsColumn::Instanton);
         let d3a = QualifiedAlias::new(d3.clone(), CausetsColumn::Attribute);
         let d3v = QualifiedAlias::new(d3.clone(), CausetsColumn::Value);
@@ -344,17 +344,17 @@ mod testing {
 
         let vx = Variable::from_valid_name("?x");
 
-        let d0 = "datoms00".to_string();
+        let d0 = "Causets00".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
         let d0a = QualifiedAlias::new(d0.clone(), CausetsColumn::Attribute);
         let d0v = QualifiedAlias::new(d0.clone(), CausetsColumn::Value);
 
-        let d1 = "datoms01".to_string();
+        let d1 = "Causets01".to_string();
         let d1e = QualifiedAlias::new(d1.clone(), CausetsColumn::Instanton);
         let d1a = QualifiedAlias::new(d1.clone(), CausetsColumn::Attribute);
         let d1v = QualifiedAlias::new(d1.clone(), CausetsColumn::Value);
 
-        let d2 = "datoms02".to_string();
+        let d2 = "Causets02".to_string();
         let d2e = QualifiedAlias::new(d2.clone(), CausetsColumn::Instanton);
         let d2a = QualifiedAlias::new(d2.clone(), CausetsColumn::Attribute);
         let d2v = QualifiedAlias::new(d2.clone(), CausetsColumn::Value);
@@ -404,17 +404,17 @@ mod testing {
                         [?x :foo/parent "Daphne"])]"#;
         let cc = alg(&schema, causetq);
 
-        let d0 = "datoms00".to_string();
+        let d0 = "Causets00".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
         let d0a = QualifiedAlias::new(d0.clone(), CausetsColumn::Attribute);
         let d0v = QualifiedAlias::new(d0.clone(), CausetsColumn::Value);
 
-        let d1 = "datoms01".to_string();
+        let d1 = "Causets01".to_string();
         let d1e = QualifiedAlias::new(d1.clone(), CausetsColumn::Instanton);
         let d1a = QualifiedAlias::new(d1.clone(), CausetsColumn::Attribute);
         let d1v = QualifiedAlias::new(d1.clone(), CausetsColumn::Value);
 
-        let d2 = "datoms02".to_string();
+        let d2 = "Causets02".to_string();
         let d2e = QualifiedAlias::new(d2.clone(), CausetsColumn::Instanton);
         let d2a = QualifiedAlias::new(d2.clone(), CausetsColumn::Attribute);
         let d2v = QualifiedAlias::new(d2.clone(), CausetsColumn::Value);
@@ -480,12 +480,12 @@ mod testing {
         let bill = CausetQValue::TypedValue(TypedValue::typed_string("Bill"));
         let john = CausetQValue::TypedValue(TypedValue::typed_string("John"));
 
-        let d0 = "datoms00".to_string();
+        let d0 = "Causets00".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
         let d0a = QualifiedAlias::new(d0.clone(), CausetsColumn::Attribute);
         let d0v = QualifiedAlias::new(d0.clone(), CausetsColumn::Value);
 
-        let d1 = "datoms01".to_string();
+        let d1 = "Causets01".to_string();
         let d1e = QualifiedAlias::new(d1.clone(), CausetsColumn::Instanton);
         let d1a = QualifiedAlias::new(d1.clone(), CausetsColumn::Attribute);
         let d1v = QualifiedAlias::new(d1.clone(), CausetsColumn::Value);
