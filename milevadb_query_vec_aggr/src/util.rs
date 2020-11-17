@@ -31,8 +31,8 @@ pub fn check_aggr_exp_supported_one_child(aggr_def: &Expr) -> Result<()> {
 /// See `typeInfer4Sum` and `typeInfer4Avg` in MilevaDB.
 ///
 /// TODO: This logic should be performed by MilevaDB.
-pub fn rewrite_exp_for_sum_avg(schema: &[FieldType], exp: &mut RpnExpression) -> Result<()> {
-    let ret_field_type = exp.ret_field_type(schema);
+pub fn rewrite_exp_for_sum_avg(schemaReplicant: &[FieldType], exp: &mut RpnExpression) -> Result<()> {
+    let ret_field_type = exp.ret_field_type(schemaReplicant);
     let ret_eval_type = box_try!(EvalType::try_from(ret_field_type.as_accessor().tp()));
     let new_ret_field_type = match ret_eval_type {
         EvalType::Decimal | EvalType::Real => {
@@ -55,8 +55,8 @@ pub fn rewrite_exp_for_sum_avg(schema: &[FieldType], exp: &mut RpnExpression) ->
 }
 
 /// Rewrites the expression to insert necessary cast functions for Bit operation family functions.
-pub fn rewrite_exp_for_bit_op(schema: &[FieldType], exp: &mut RpnExpression) -> Result<()> {
-    let ret_field_type = exp.ret_field_type(schema);
+pub fn rewrite_exp_for_bit_op(schemaReplicant: &[FieldType], exp: &mut RpnExpression) -> Result<()> {
+    let ret_field_type = exp.ret_field_type(schemaReplicant);
     let ret_eval_type = box_try!(EvalType::try_from(ret_field_type.as_accessor().tp()));
     let new_ret_field_type = match ret_eval_type {
         EvalType::Int => {

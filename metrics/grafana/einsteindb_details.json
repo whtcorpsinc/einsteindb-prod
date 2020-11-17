@@ -11112,7 +11112,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_causetStorage_mvcc_versions_bucket{instance=~\"$instance\"}[5m]))",
+              "expr": "sum(rate(einsteindb_causetStorage_tail_pointer_versions_bucket{instance=~\"$instance\"}[5m]))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": " max",
@@ -11195,7 +11195,7 @@
           "reverseYBuckets": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_causetStorage_mvcc_gc_delete_versions_bucket{instance=~\"$instance\"}[1m]))",
+              "expr": "sum(rate(einsteindb_causetStorage_tail_pointer_gc_delete_versions_bucket{instance=~\"$instance\"}[1m]))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": " max",
@@ -11798,7 +11798,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_causetStorage_mvcc_gc_delete_versions_sum[1m]))",
+              "expr": "sum(rate(einsteindb_causetStorage_tail_pointer_gc_delete_versions_sum[1m]))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "tuplespaceInstanton/s",
@@ -24891,7 +24891,7 @@
     }
   ],
   "refresh": "1m",
-  "schemaVersion": 18,
+  "schemaReplicantVersion": 18,
   "style": "dark",
   "tags": [],
   "templating": {

@@ -67,16 +67,16 @@ impl<T: BitOp> super::AggrDefinitionParser for AggrFnDefinitionParserBitOp<T> {
         mut root_expr: Expr,
         mut exp: RpnExpression,
         _ctx: &mut EvalContext,
-        src_schema: &[FieldType],
-        out_schema: &mut Vec<FieldType>,
+        src_schemaReplicant: &[FieldType],
+        out_schemaReplicant: &mut Vec<FieldType>,
         out_exp: &mut Vec<RpnExpression>,
     ) -> Result<Box<dyn super::AggrFunction>> {
         assert_eq!(root_expr.get_tp(), T::tp());
 
         // bit operation outputs one PrimaryCauset.
-        out_schema.push(root_expr.take_field_type());
+        out_schemaReplicant.push(root_expr.take_field_type());
 
-        super::util::rewrite_exp_for_bit_op(src_schema, &mut exp).unwrap();
+        super::util::rewrite_exp_for_bit_op(src_schemaReplicant, &mut exp).unwrap();
         out_exp.push(exp);
 
         Ok(Box::new(AggrFnBitOp::<T>(std::marker::PhantomData)))
@@ -345,7 +345,7 @@ mod tests {
             .build();
         bit_xor_parser.check_supported(&bit_xor).unwrap();
 
-        let src_schema = [FieldTypeTp::LongLong.into()];
+        let src_schemaReplicant = [FieldTypeTp::LongLong.into()];
         let mut PrimaryCausets = LazyBatchPrimaryCausetVec::from(vec![{
             let mut col = LazyBatchPrimaryCauset::decoded_with_capacity_and_tp(0, EvalType::Int);
             col.mut_decoded().push_int(Some(1000));
@@ -360,29 +360,29 @@ mod tests {
         }]);
         let logical_rows = vec![6, 3, 4, 5, 1, 2];
 
-        let mut schema = vec![];
+        let mut schemaReplicant = vec![];
         let mut exp = vec![];
 
         let mut ctx = EvalContext::default();
         let bit_and_fn = bit_and_parser
-            .parse(bit_and, &mut ctx, &src_schema, &mut schema, &mut exp)
+            .parse(bit_and, &mut ctx, &src_schemaReplicant, &mut schemaReplicant, &mut exp)
             .unwrap();
-        assert_eq!(schema.len(), 1);
-        assert_eq!(schema[0].as_accessor().tp(), FieldTypeTp::LongLong);
+        assert_eq!(schemaReplicant.len(), 1);
+        assert_eq!(schemaReplicant[0].as_accessor().tp(), FieldTypeTp::LongLong);
         assert_eq!(exp.len(), 1);
 
         let bit_or_fn = bit_or_parser
-            .parse(bit_or, &mut ctx, &src_schema, &mut schema, &mut exp)
+            .parse(bit_or, &mut ctx, &src_schemaReplicant, &mut schemaReplicant, &mut exp)
             .unwrap();
-        assert_eq!(schema.len(), 2);
-        assert_eq!(schema[1].as_accessor().tp(), FieldTypeTp::LongLong);
+        assert_eq!(schemaReplicant.len(), 2);
+        assert_eq!(schemaReplicant[1].as_accessor().tp(), FieldTypeTp::LongLong);
         assert_eq!(exp.len(), 2);
 
         let bit_xor_fn = bit_xor_parser
-            .parse(bit_xor, &mut ctx, &src_schema, &mut schema, &mut exp)
+            .parse(bit_xor, &mut ctx, &src_schemaReplicant, &mut schemaReplicant, &mut exp)
             .unwrap();
-        assert_eq!(schema.len(), 3);
-        assert_eq!(schema[2].as_accessor().tp(), FieldTypeTp::LongLong);
+        assert_eq!(schemaReplicant.len(), 3);
+        assert_eq!(schemaReplicant[2].as_accessor().tp(), FieldTypeTp::LongLong);
         assert_eq!(exp.len(), 3);
 
         let mut bit_and_state = bit_and_fn.create_state();
@@ -394,7 +394,7 @@ mod tests {
         // bit and
         {
             let bit_and_result = exp[0]
-                .eval(&mut ctx, &src_schema, &mut PrimaryCausets, &logical_rows, 6)
+                .eval(&mut ctx, &src_schemaReplicant, &mut PrimaryCausets, &logical_rows, 6)
                 .unwrap();
             let bit_and_result = bit_and_result.vector_value().unwrap();
             let bit_and_slice = bit_and_result.as_ref().to_int_vec();
@@ -415,7 +415,7 @@ mod tests {
         // bit or
         {
             let bit_or_result = exp[1]
-                .eval(&mut ctx, &src_schema, &mut PrimaryCausets, &logical_rows, 6)
+                .eval(&mut ctx, &src_schemaReplicant, &mut PrimaryCausets, &logical_rows, 6)
                 .unwrap();
             let bit_or_result = bit_or_result.vector_value().unwrap();
             let bit_or_slice = bit_or_result.as_ref().to_int_vec();
@@ -436,7 +436,7 @@ mod tests {
         // bit xor
         {
             let bit_xor_result = exp[2]
-                .eval(&mut ctx, &src_schema, &mut PrimaryCausets, &logical_rows, 6)
+                .eval(&mut ctx, &src_schemaReplicant, &mut PrimaryCausets, &logical_rows, 6)
                 .unwrap();
             let bit_xor_result = bit_xor_result.vector_value().unwrap();
             let bit_xor_slice = bit_xor_result.as_ref().to_int_vec();

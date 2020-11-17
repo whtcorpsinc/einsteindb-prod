@@ -39,8 +39,8 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchFastHashAggregationFreeDaemo
     type StorageStats = Src::StorageStats;
 
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        self.0.schema()
+    fn schemaReplicant(&self) -> &[FieldType] {
+        self.0.schemaReplicant()
     }
 
     #[inline]
@@ -134,7 +134,7 @@ impl<Src: BatchFreeDaemon> BatchFastHashAggregationFreeDaemon<Src> {
         let group_by_exp = RpnExpressionBuilder::build_from_expr_tree(
             group_by_exp_defs.into_iter().next().unwrap(),
             &mut ctx,
-            src.schema().len(),
+            src.schemaReplicant().len(),
         )?;
         Self::new_impl(
             config,
@@ -153,7 +153,7 @@ impl<Src: BatchFreeDaemon> BatchFastHashAggregationFreeDaemon<Src> {
         aggr_defs: Vec<Expr>,
         aggr_def_parser: impl AggrDefinitionParser,
     ) -> Result<Self> {
-        let group_by_field_type = group_by_exp.ret_field_type(src.schema()).clone();
+        let group_by_field_type = group_by_exp.ret_field_type(src.schemaReplicant()).clone();
         let group_by_eval_type =
             EvalType::try_from(group_by_field_type.as_accessor().tp()).unwrap();
         let groups = match_template_hashable! {
@@ -227,7 +227,7 @@ pub struct FastHashAggregationImpl {
 impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for FastHashAggregationImpl {
     #[inline]
     fn prepare_entities(&mut self, entities: &mut Entities<Src>) {
-        entities.schema.push(self.group_by_field_type.clone());
+        entities.schemaReplicant.push(self.group_by_field_type.clone());
     }
 
     #[inline]
@@ -241,7 +241,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for FastHashAggregatio
         self.states_offset_each_logical_row.clear();
         let group_by_result = self.group_by_exp.eval(
             &mut entities.context,
-            entities.src.schema(),
+            entities.src.schemaReplicant(),
             &mut input_physical_PrimaryCausets,
             input_logical_rows,
             input_logical_rows.len(),
@@ -541,7 +541,7 @@ mod tests {
             // Let's check group by PrimaryCauset first. Group by PrimaryCauset is decoded in fast hash agg,
             // but not decoded in slow hash agg. So decode it anyway.
             r.physical_PrimaryCausets[4]
-                .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schema()[4])
+                .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schemaReplicant()[4])
                 .unwrap();
 
             // The row order is not defined. Let's sort it by the group by PrimaryCauset before asserting.
@@ -671,7 +671,7 @@ mod tests {
             assert_eq!(r.physical_PrimaryCausets.PrimaryCausets_len(), 5); // 4 result PrimaryCauset, 1 group by PrimaryCauset
 
             r.physical_PrimaryCausets[4]
-                .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schema()[4])
+                .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schemaReplicant()[4])
                 .unwrap();
 
             // Group by a constant, So should be only one group.
@@ -757,7 +757,7 @@ mod tests {
             // Let's check group by PrimaryCauset first. Group by PrimaryCauset is decoded in fast hash agg,
             // but not decoded in slow hash agg. So decode it anyway.
             r.physical_PrimaryCausets[3]
-                .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schema()[3])
+                .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schemaReplicant()[3])
                 .unwrap();
 
             // The row order is not defined. Let's sort it by the group by PrimaryCauset before asserting.
@@ -816,11 +816,11 @@ mod tests {
                 &self,
                 _aggr_def: Expr,
                 _ctx: &mut EvalContext,
-                _src_schema: &[FieldType],
-                out_schema: &mut Vec<FieldType>,
+                _src_schemaReplicant: &[FieldType],
+                out_schemaReplicant: &mut Vec<FieldType>,
                 out_exp: &mut Vec<RpnExpression>,
             ) -> Result<Box<dyn AggrFunction>> {
-                out_schema.push(FieldTypeTp::LongLong.into());
+                out_schemaReplicant.push(FieldTypeTp::LongLong.into());
                 out_exp.push(
                     RpnExpressionBuilder::new_for_test()
                         .push_constant_for_test(1)
@@ -979,7 +979,7 @@ mod tests {
             assert_eq!(r.physical_PrimaryCausets.rows_len(), 3);
             assert_eq!(r.physical_PrimaryCausets.PrimaryCausets_len(), 1); // 0 result PrimaryCauset, 1 group by PrimaryCauset
             r.physical_PrimaryCausets[0]
-                .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schema()[0])
+                .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schemaReplicant()[0])
                 .unwrap();
             let mut sort_PrimaryCauset: Vec<(usize, _)> = r.physical_PrimaryCausets[0]
                 .decoded()
@@ -1048,7 +1048,7 @@ mod tests {
             assert_eq!(r.physical_PrimaryCausets.rows_len(), 1);
             assert_eq!(r.physical_PrimaryCausets.PrimaryCausets_len(), 1); // 0 result PrimaryCauset, 1 group by PrimaryCauset
             r.physical_PrimaryCausets[0]
-                .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schema()[0])
+                .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schemaReplicant()[0])
                 .unwrap();
             assert_eq!(r.physical_PrimaryCausets[0].decoded().to_int_vec(), &[Some(1)]);
         }

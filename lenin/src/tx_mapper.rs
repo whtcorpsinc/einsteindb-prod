@@ -101,12 +101,12 @@ impl TxMapper {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use schema;
+    use schemaReplicant;
 
     #[test]
     fn test_getters() {
-        let mut conn = schema::tests::setup_conn_bare();
-        let mut causetx = schema::tests::setup_causecausetx(&mut conn);
+        let mut conn = schemaReplicant::tests::setup_conn_bare();
+        let mut causetx = schemaReplicant::tests::setup_causecausetx(&mut conn);
         assert_eq!(None, TxMapper::get(&mut causetx, 1).expect("success"));
         let set_uuid = TxMapper::get_or_set_uuid_for_causecausetx(&mut causetx, 1).expect("success");
         assert_eq!(Some(set_uuid), TxMapper::get(&mut causetx, 1).expect("success"));
@@ -114,8 +114,8 @@ pub mod tests {
 
     #[test]
     fn test_bulk_setter() {
-        let mut conn = schema::tests::setup_conn_bare();
-        let mut causetx = schema::tests::setup_causecausetx(&mut conn);
+        let mut conn = schemaReplicant::tests::setup_conn_bare();
+        let mut causetx = schemaReplicant::tests::setup_causecausetx(&mut conn);
         
 
         TxMapper::set_lg_mappings(&mut causetx, vec![]).expect("empty map success");

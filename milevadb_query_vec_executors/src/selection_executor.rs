@@ -52,7 +52,7 @@ impl<Src: BatchFreeDaemon> BatchSelectionFreeDaemon<Src> {
             conditions.push(RpnExpressionBuilder::build_from_expr_tree(
                 def,
                 &mut ctx,
-                src.schema().len(),
+                src.schemaReplicant().len(),
             )?);
         }
 
@@ -81,7 +81,7 @@ impl<Src: BatchFreeDaemon> BatchSelectionFreeDaemon<Src> {
 
             match self.conditions[condition_index].eval(
                 &mut self.context,
-                self.src.schema(),
+                self.src.schemaReplicant(),
                 &mut src_result.physical_PrimaryCausets,
                 &src_logical_rows_copy,
                 src_logical_rows_copy.len(),
@@ -169,9 +169,9 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchSelectionFreeDaemon<Src> {
     type StorageStats = Src::StorageStats;
 
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        // The selection executor's schema comes from its child.
-        self.src.schema()
+    fn schemaReplicant(&self) -> &[FieldType] {
+        // The selection executor's schemaReplicant comes from its child.
+        self.src.schemaReplicant()
     }
 
     #[inline]
@@ -287,7 +287,7 @@ mod tests {
 
     /// Builds an executor that will return these logical data:
     ///
-    /// == Schema ==
+    /// == SchemaReplicant ==
     /// Col0 (Int)      Col1(Real)
     /// == Call #1 ==
     /// 1               NULL
@@ -417,7 +417,7 @@ mod tests {
 
     /// Builds an executor that will return these logical data:
     ///
-    /// == Schema ==
+    /// == SchemaReplicant ==
     /// Col0 (Int)      Col1(Int)       Col2(Int)
     /// == Call #1 ==
     /// 4               NULL            1
@@ -605,7 +605,7 @@ mod tests {
 
         // The built data is as follows:
         //
-        // == Schema ==
+        // == SchemaReplicant ==
         // Col0 (Int)       Col1(Int)
         // == Call #1 ==
         // 4                4

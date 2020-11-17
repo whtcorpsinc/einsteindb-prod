@@ -15,22 +15,22 @@ use std::collections::{
 };
 
 use embedded_promises::{
-    ValueTypeSet,
+    MinkowskiSet,
 };
 
 use edbn::causetq::{
     OrJoin,
-    OrWhereClause,
+    OrWhereGerund,
     Pattern,
     PatternValuePlace,
     PatternNonValuePlace,
     UnifyVars,
     Variable,
-    WhereClause,
+    WhereGerund,
 };
 
-use clauses::{
-    ConjoiningClauses,
+use gerunds::{
+    ConjoiningGerunds,
     PushComputed,
 };
 
@@ -52,7 +52,7 @@ use types::{
     VariableColumn,
 };
 
-use Known;
+use KnownCauset;
 
 /// Return true if both left and right are the same variable or both are non-variable.
 fn _simply_matches_place(left: &PatternNonValuePlace, right: &PatternNonValuePlace) -> bool {
@@ -83,49 +83,49 @@ fn _simply_matches_value_place(left: &PatternValuePlace, right: &PatternValuePla
 pub enum DeconstructedOrJoin {
     KnownSuccess,
     KnownEmpty(EmptyBecause),
-    Unit(OrWhereClause),
+    Unit(OrWhereGerund),
     UnitPattern(Pattern),
     Simple(Vec<Pattern>, BTreeSet<Variable>),
     Complex(OrJoin),
 }
 
 /// Application of `or`. Note that this is recursive!
-impl ConjoiningClauses {
-    fn apply_or_where_clause(&mut self, known: Known, clause: OrWhereClause) -> Result<()> {
-        match clause {
-            OrWhereClause::Clause(clause) => self.apply_clause(known, clause),
+impl ConjoiningGerunds {
+    fn apply_or_where_gerund(&mut self, knownCauset: KnownCauset, gerund: OrWhereGerund) -> Result<()> {
+        match gerund {
+            OrWhereGerund::Gerund(gerund) => self.apply_gerund(knownCauset, gerund),
 
             // A causetq might be:
             // [:find ?x :where (or (and [?x _ 5] [?x :foo/bar 7]))]
             // which is equivalent to dropping the `or` _and_ the `and`!
-            OrWhereClause::And(clauses) => {
-                self.apply_clauses(known, clauses)?;
+            OrWhereGerund::And(gerunds) => {
+                self.apply_gerunds(knownCauset, gerunds)?;
                 Ok(())
             },
         }
     }
 
-    pub(crate) fn apply_or_join(&mut self, known: Known, mut or_join: OrJoin) -> Result<()> {
-        // Simple optimization. Empty `or` clauses disappear. Unit `or` clauses
-        // are equivalent to just the inner clause.
+    pub(crate) fn apply_or_join(&mut self, knownCauset: KnownCauset, mut or_join: OrJoin) -> Result<()> {
+        // Simple optimization. Empty `or` gerunds disappear. Unit `or` gerunds
+        // are equivalent to just the inner gerund.
 
         // Pre-immutable_memTcam mentioned variables. We use these in a few places.
         or_join.mentioned_variables();
 
-        match or_join.clauses.len() {
+        match or_join.gerunds.len() {
             0 => Ok(()),
             1 if or_join.is_fully_unified() => {
-                let clause = or_join.clauses.pop().expect("there's a clause");
-                self.apply_or_where_clause(known, clause)
+                let gerund = or_join.gerunds.pop().expect("there's a gerund");
+                self.apply_or_where_gerund(knownCauset, gerund)
             },
-            // Either there's only one clause pattern, and it's not fully unified, or we
-            // have multiple clauses.
+            // Either there's only one gerund pattern, and it's not fully unified, or we
+            // have multiple gerunds.
             // In the former case we can't just apply it: it includes a variable that we don't want
             // to join with the rest of the causetq.
-            // Notably, this clause might be an `and`, making this a complex pattern, so we can't
+            // Notably, this gerund might be an `and`, making this a complex pattern, so we can't
             // necessarily rewrite it in place.
             // In the latter case, we still need to do a bit more work.
-            _ => self.apply_non_trivial_or_join(known, or_join),
+            _ => self.apply_non_trivial_or_join(knownCauset, or_join),
         }
     }
 
@@ -135,7 +135,7 @@ impl ConjoiningClauses {
     /// - Each pattern should run against the same table, for the same reason.
     /// - Each pattern uses the same variables. (That's checked by validation.)
     /// - Each pattern has the same shape, so we can extract bindings from the same columns
-    ///   regardless of which clause matched.
+    ///   regardless of which gerund matched.
     ///
     /// Like this:
     ///
@@ -147,10 +147,10 @@ impl ConjoiningClauses {
     /// ```
     ///
     /// While we're doing this diagnosis, we'll also find out if:
-    /// - No patterns can match: the enclosing CC is known-empty.
+    /// - No patterns can match: the enclosing CC is knownCauset-empty.
     /// - Some patterns can't match: they are discarded.
     /// - Only one pattern can match: the `or` can be simplified away.
-    fn deconstruct_or_join(&self, known: Known, or_join: OrJoin) -> DeconstructedOrJoin {
+    fn deconstruct_or_join(&self, knownCauset: KnownCauset, or_join: OrJoin) -> DeconstructedOrJoin {
         // If we have explicit non-maximal unify-vars, we *can't* simply run this as a
         // single pattern --
         // ```
@@ -163,40 +163,40 @@ impl ConjoiningClauses {
         if !or_join.is_fully_unified() {
             // It's complex because we need to make sure that non-unified vars
             // mentioned in the body of the `or-join` do not unify with variables
-            // outside the `or-join`. We can't naïvely collect clauses into the
+            // outside the `or-join`. We can't naïvely collect gerunds into the
             // same CC. TODO: pay attention to the unify list when generating
             // constraints. Temporarily shadow variables within each `or` branch.
             return DeconstructedOrJoin::Complex(or_join);
         }
 
-        match or_join.clauses.len() {
+        match or_join.gerunds.len() {
             0 => DeconstructedOrJoin::KnownSuccess,
 
-            // It's safe to simply 'leak' the entire clause, because we know every var in it is
+            // It's safe to simply 'leak' the entire gerund, because we know every var in it is
             // supposed to unify with the enclosing form.
-            1 => DeconstructedOrJoin::Unit(or_join.clauses.into_iter().next().unwrap()),
-            _ => self._deconstruct_or_join(known, or_join),
+            1 => DeconstructedOrJoin::Unit(or_join.gerunds.into_iter().next().unwrap()),
+            _ => self._deconstruct_or_join(knownCauset, or_join),
         }
     }
 
-    /// This helper does the work of taking a known-non-trivial `or` or `or-join`,
+    /// This helper does the work of taking a knownCauset-non-trivial `or` or `or-join`,
     /// walking the contained patterns to decide whether it can be translated simply
     /// -- as a collection of constraints on a single table alias -- or if it needs to
     /// be implemented as a `UNION`.
     ///
     /// See the description of `deconstruct_or_join` for more details. This method expects
     /// to be called _only_ by `deconstruct_or_join`.
-    fn _deconstruct_or_join(&self, known: Known, or_join: OrJoin) -> DeconstructedOrJoin {
+    fn _deconstruct_or_join(&self, knownCauset: KnownCauset, or_join: OrJoin) -> DeconstructedOrJoin {
         // Preconditions enforced by `deconstruct_or_join`.
         // Note that a fully unified explicit `or-join` can arrive here, and might leave as
         // an implicit `or`.
         assert!(or_join.is_fully_unified());
-        assert!(or_join.clauses.len() >= 2);
+        assert!(or_join.gerunds.len() >= 2);
 
         // We're going to collect into this.
         // If at any point we hit something that's not a suitable pattern, we'll
         // reconstruct and return a complex `OrJoin`.
-        let mut patterns: Vec<Pattern> = Vec::with_capacity(or_join.clauses.len());
+        let mut patterns: Vec<Pattern> = Vec::with_capacity(or_join.gerunds.len());
 
         // Keep track of the table we need every pattern to use.
         let mut expected_table: Option<CausetsTable> = None;
@@ -206,24 +206,24 @@ impl ConjoiningClauses {
         // We'll return this as our reason if no pattern can return results.
         let mut empty_because: Option<EmptyBecause> = None;
 
-        // Walk each clause in turn, bailing as soon as we know this can't be simple.
-        let (join_clauses, _unify_vars, mentioned_vars) = or_join.dismember();
-        let mut clauses = join_clauses.into_iter();
-        while let Some(clause) = clauses.next() {
+        // Walk each gerund in turn, bailing as soon as we know this can't be simple.
+        let (join_gerunds, _unify_vars, mentioned_vars) = or_join.dismember();
+        let mut gerunds = join_gerunds.into_iter();
+        while let Some(gerund) = gerunds.next() {
             // If we fail half-way through processing, we want to reconstitute the input.
-            // Keep a handle to the clause itself here to smooth over the moved `if let` below.
-            let last: OrWhereClause;
+            // Keep a handle to the gerund itself here to smooth over the moved `if let` below.
+            let last: OrWhereGerund;
 
-            if let OrWhereClause::Clause(WhereClause::Pattern(p)) = clause {
+            if let OrWhereGerund::Gerund(WhereGerund::Pattern(p)) = gerund {
                 // Compute the table for the pattern. If we can't figure one out, it means
                 // the pattern cannot succeed; we drop it.
                 // Inside an `or` it's not a failure for a pattern to be unable to match, which
                 use self::PlaceOrEmpty::*;
-                let table = match self.make_evolved_attribute(&known, p.attribute.clone()) {
+                let table = match self.make_evolved_attribute(&knownCauset, p.attribute.clone()) {
                     Place((aaa, value_type)) => {
-                        match self.make_evolved_value(&known, value_type, p.value.clone()) {
+                        match self.make_evolved_value(&knownCauset, value_type, p.value.clone()) {
                             Place(v) => {
-                                self.table_for_places(known.schema, &aaa, &v)
+                                self.table_for_places(knownCauset.schemaReplicant, &aaa, &v)
                             },
                             Empty(e) => Err(e),
                         }
@@ -252,7 +252,7 @@ impl ConjoiningClauses {
                                 true
                             };
 
-                        // All of our clauses that _do_ yield a table -- that are possible --
+                        // All of our gerunds that _do_ yield a table -- that are possible --
                         // must use the same table in order for this to be a simple `or`!
                         if same_shape {
                             if expected_table == Some(table) {
@@ -270,20 +270,20 @@ impl ConjoiningClauses {
                         // We'll fall through to reconstruction.
                     }
                 }
-                last = OrWhereClause::Clause(WhereClause::Pattern(p));
+                last = OrWhereGerund::Gerund(WhereGerund::Pattern(p));
             } else {
-                last = clause;
+                last = gerund;
             }
 
             // If we get here, it means one of our checks above failed. Reconstruct and bail.
-            let reconstructed: Vec<OrWhereClause> =
+            let reconstructed: Vec<OrWhereGerund> =
                 // Non-empty patterns already collected…
                 patterns.into_iter()
-                        .map(|p| OrWhereClause::Clause(WhereClause::Pattern(p)))
-                // … then the clause we just considered…
+                        .map(|p| OrWhereGerund::Gerund(WhereGerund::Pattern(p)))
+                // … then the gerund we just considered…
                         .chain(::std::iter::once(last))
                 // … then the rest of the iterator.
-                        .chain(clauses)
+                        .chain(gerunds)
                         .collect();
 
             return DeconstructedOrJoin::Complex(OrJoin::new(
@@ -293,7 +293,7 @@ impl ConjoiningClauses {
         }
 
         // If we got here without returning, then `patterns` is what we're working with.
-        // If `patterns` is empty, it means _none_ of the clauses in the `or` could succeed.
+        // If `patterns` is empty, it means _none_ of the gerunds in the `or` could succeed.
         match patterns.len() {
             0 => {
                 assert!(empty_because.is_some());
@@ -304,8 +304,8 @@ impl ConjoiningClauses {
         }
     }
 
-    fn apply_non_trivial_or_join(&mut self, known: Known, or_join: OrJoin) -> Result<()> {
-        match self.deconstruct_or_join(known, or_join) {
+    fn apply_non_trivial_or_join(&mut self, knownCauset: KnownCauset, or_join: OrJoin) -> Result<()> {
+        match self.deconstruct_or_join(knownCauset, or_join) {
             DeconstructedOrJoin::KnownSuccess => {
                 // The pattern came to us empty -- `(or)`. Do nothing.
                 Ok(())
@@ -316,18 +316,18 @@ impl ConjoiningClauses {
                 self.mark_known_empty(reason);
                 Ok(())
             },
-            DeconstructedOrJoin::Unit(clause) => {
-                // There was only one clause. We're unifying all variables, so we can just apply here.
-                self.apply_or_where_clause(known, clause)
+            DeconstructedOrJoin::Unit(gerund) => {
+                // There was only one gerund. We're unifying all variables, so we can just apply here.
+                self.apply_or_where_gerund(knownCauset, gerund)
             },
             DeconstructedOrJoin::UnitPattern(pattern) => {
                 // Same, but simpler.
-                match self.make_evolved_pattern(known, pattern) {
+                match self.make_evolved_pattern(knownCauset, pattern) {
                     PlaceOrEmpty::Empty(e) => {
                         self.mark_known_empty(e);
                     },
                     PlaceOrEmpty::Place(pattern) => {
-                        self.apply_pattern(known, pattern);
+                        self.apply_pattern(knownCauset, pattern);
                     },
                 };
                 Ok(())
@@ -336,11 +336,11 @@ impl ConjoiningClauses {
                 // Hooray! Fully unified and plain ol' patterns that all use the same table.
                 // Go right ahead and produce a set of constraint alternations that we can collect,
                 // using a single table alias.
-                self.apply_simple_or_join(known, patterns, mentioned_vars)
+                self.apply_simple_or_join(knownCauset, patterns, mentioned_vars)
             },
             DeconstructedOrJoin::Complex(or_join) => {
                 // Do this the hard way.
-                self.apply_complex_or_join(known, or_join)
+                self.apply_complex_or_join(knownCauset, or_join)
             },
         }
     }
@@ -374,7 +374,7 @@ impl ConjoiningClauses {
     /// ```
     ///
     fn apply_simple_or_join(&mut self,
-                            known: Known,
+                            knownCauset: KnownCauset,
                             patterns: Vec<Pattern>,
                             mentioned_vars: BTreeSet<Variable>)
                             -> Result<()> {
@@ -385,7 +385,7 @@ impl ConjoiningClauses {
         assert!(patterns.len() >= 2);
 
         let patterns: Vec<EvolvedPattern> = patterns.into_iter().filter_map(|pattern| {
-            match self.make_evolved_pattern(known, pattern) {
+            match self.make_evolved_pattern(knownCauset, pattern) {
                 PlaceOrEmpty::Empty(_e) => {
                     // Never mind.
                     None
@@ -396,7 +396,7 @@ impl ConjoiningClauses {
 
 
         // Begin by building a base CC that we'll use to produce constraints from each pattern.
-        // Populate this base CC with whatever variables are already known from the CC to which
+        // Populate this base CC with whatever variables are already knownCauset from the CC to which
         // we're applying this `or`.
         // This will give us any applicable type constraints or column mappings.
         // Then generate a single table alias, based on the first pattern, and use that to make any
@@ -405,10 +405,10 @@ impl ConjoiningClauses {
 
         // We expect this to always work: if it doesn't, it means we should never have got to this
         // point.
-        let source_alias = self.alias_table(known.schema, &patterns[0]).expect("couldn't get table");
+        let source_alias = self.alias_table(knownCauset.schemaReplicant, &patterns[0]).expect("couldn't get table");
 
         // This is where we'll collect everything we eventually add to the destination CC.
-        let mut folded = ConjoiningClauses::default();
+        let mut folded = ConjoiningGerunds::default();
 
         // Scoped borrow of source_alias.
         {
@@ -436,7 +436,7 @@ impl ConjoiningClauses {
                 patterns.into_iter()
                         .map(|pattern| {
                             let mut receptacle = template.make_receptacle();
-                            receptacle.apply_pattern_clause_for_alias(known, &pattern, &source_alias);
+                            receptacle.apply_pattern_gerund_for_alias(knownCauset, &pattern, &source_alias);
                             receptacle
                         })
                         .peekable();
@@ -467,7 +467,7 @@ impl ConjoiningClauses {
                     }
                 }
             } else {
-                // No non-empty receptacles? The destination CC is known-empty, because or([]) is false.
+                // No non-empty receptacles? The destination CC is knownCauset-empty, because or([]) is false.
                 self.mark_known_empty(reason.unwrap_or(EmptyBecause::AttributeLookupFailed));
                 return Ok(());
             }
@@ -479,7 +479,7 @@ impl ConjoiningClauses {
             // combined into a `ConstraintAlternation`. (As an optimization, this collection can be
             // simplified.)
             //
-            // Each receptacle's known types are _unioned_. Strictly speaking this is a weakening:
+            // Each receptacle's knownCauset types are _unioned_. Strictly speaking this is a weakening:
             // we might know that if `?x` is an integer then `?y` is a string, or vice versa, but at
             // this point we'll simply state that `?x` and `?y` can both be integers or strings.
 
@@ -510,7 +510,7 @@ impl ConjoiningClauses {
         // Collect the source alias: we use a single table join to represent the entire `or`.
         self.from.push(source_alias);
 
-        // Add in the known types and constraints.
+        // Add in the knownCauset types and constraints.
         // Each constant attribute might _expand_ the set of possible types of the value-place
         // variable. We thus generate a set of possible types, and we intersect it with the
         // types already possible in the CC. If the resultant set is empty, the pattern cannot
@@ -518,7 +518,7 @@ impl ConjoiningClauses {
         self.intersect(folded)
     }
 
-    fn intersect(&mut self, mut cc: ConjoiningClauses) -> Result<()> {
+    fn intersect(&mut self, mut cc: ConjoiningGerunds) -> Result<()> {
         if cc.is_known_empty() {
             self.empty_because = cc.empty_because;
         }
@@ -527,14 +527,14 @@ impl ConjoiningClauses {
         Ok(())
     }
 
-    /// Apply a provided `or` or `or-join` to this `ConjoiningClauses`. If you're calling this
+    /// Apply a provided `or` or `or-join` to this `ConjoiningGerunds`. If you're calling this
     /// rather than another `or`-applier, it's assumed that the contents of the `or` are relatively
     /// complex: perhaps its arms consist of more than just patterns, or perhaps each arm includes
     /// different variables in different places.
     ///
-    /// Step one (not yet implemented): any clauses that are standalone patterns might differ only
+    /// Step one (not yet implemented): any gerunds that are standalone patterns might differ only
     /// in attribute. In that case, we can treat them as a 'simple or' -- a single pattern with a
-    /// WHERE clause that alternates on the attribute. Pull those out first.
+    /// WHERE gerund that alternates on the attribute. Pull those out first.
     ///
     /// Step two: for each cluster of patterns, and for each `and`, recursively build a CC and
     /// simple projection. The projection must be the same for each CC, because we will concatenate
@@ -573,11 +573,11 @@ impl ConjoiningClauses {
     ///
     /// Note that a top-level standalone `or` doesn't really need to be aliased, but
     /// it shouldn't do any harm.
-    fn apply_complex_or_join(&mut self, known: Known, or_join: OrJoin) -> Result<()> {
+    fn apply_complex_or_join(&mut self, knownCauset: KnownCauset, or_join: OrJoin) -> Result<()> {
         // N.B., a solitary pattern here *cannot* be simply applied to the enclosing CC. We don't
         // want to join all the vars, and indeed if it were safe to do so, we wouldn't have ended up
         // in this function!
-        let (join_clauses, unify_vars, mentioned_vars) = or_join.dismember();
+        let (join_gerunds, unify_vars, mentioned_vars) = or_join.dismember();
         let timelike_distance = match unify_vars {
             UnifyVars::Implicit => mentioned_vars.into_iter().collect(),
             UnifyVars::Explicit(vs) => vs,
@@ -585,17 +585,17 @@ impl ConjoiningClauses {
 
         let template = self.use_as_template(&timelike_distance);
 
-        let mut acc = Vec::with_capacity(join_clauses.len());
+        let mut acc = Vec::with_capacity(join_gerunds.len());
         let mut empty_because: Option<EmptyBecause> = None;
 
-        for clause in join_clauses.into_iter() {
+        for gerund in join_gerunds.into_iter() {
             let mut receptacle = template.make_receptacle();
-            match clause {
-                OrWhereClause::And(clauses) => {
-                    receptacle.apply_clauses(known, clauses)?;
+            match gerund {
+                OrWhereGerund::And(gerunds) => {
+                    receptacle.apply_gerunds(knownCauset, gerunds)?;
                 },
-                OrWhereClause::Clause(clause) => {
-                    receptacle.apply_clause(known, clause)?;
+                OrWhereGerund::Gerund(gerund) => {
+                    receptacle.apply_gerund(knownCauset, gerund)?;
                 },
             }
             if receptacle.is_known_empty() {
@@ -678,14 +678,14 @@ impl ConjoiningClauses {
 
         // Collect the new type information from the arms. There's some redundant work here --
         // they already have all of the information from the parent.
-        // Note that we start with the first clause's type information.
+        // Note that we start with the first gerund's type information.
         {
-            let mut clauses = acc.iter();
-            let mut additional_types = clauses.next()
-                                              .expect("there to be at least one clause")
+            let mut gerunds = acc.iter();
+            let mut additional_types = gerunds.next()
+                                              .expect("there to be at least one gerund")
                                               .known_types
                                               .clone();
-            for cc in clauses {
+            for cc in gerunds {
                 union_types(&mut additional_types, &cc.known_types);
             }
             self.broaden_types(additional_types);
@@ -700,9 +700,9 @@ impl ConjoiningClauses {
         let alias = self.next_alias_for_table(table);
 
         // Stitch the computed table into column_bindings, so we get cross-linking.
-        let schema = known.schema;
+        let schemaReplicant = knownCauset.schemaReplicant;
         for var in var_associations.into_iter() {
-            self.bind_column_to_var(schema, alias.clone(), VariableColumn::Variable(var.clone()), var);
+            self.bind_column_to_var(schemaReplicant, alias.clone(), VariableColumn::Variable(var.clone()), var);
         }
         for var in type_associations.into_iter() {
             self.extracted_types.insert(var.clone(), QualifiedAlias::new(alias.clone(), VariableColumn::VariableTypeTag(var)));
@@ -713,22 +713,22 @@ impl ConjoiningClauses {
 }
 
 /// Helper to fold together a set of type maps.
-fn union_types(into: &mut BTreeMap<Variable, ValueTypeSet>,
-               additional_types: &BTreeMap<Variable, ValueTypeSet>) {
+fn union_types(into: &mut BTreeMap<Variable, MinkowskiSet>,
+               additional_types: &BTreeMap<Variable, MinkowskiSet>) {
     // We want the exclusive disjunction -- any variable not mentioned in both sets -- to default
-    // to ValueTypeSet::Any.
+    // to MinkowskiSet::Any.
     // This is necessary because we lazily populate known_types, so sometimes the type set will
-    // be missing a `ValueTypeSet::Any` for a variable, and we want to broaden rather than
+    // be missing a `MinkowskiSet::Any` for a variable, and we want to broaden rather than
     // acccausetIdally taking the other side's word for it!
     // The alternative would be to exhaustively pre-fill `known_types` with all mentioned variables
     // in the whole causetq, which is daunting.
-    let mut any: BTreeMap<Variable, ValueTypeSet>;
+    let mut any: BTreeMap<Variable, MinkowskiSet>;
     // Scoped borrow of `into`.
     {
         let i: BTreeSet<&Variable> = into.keys().collect();
         let a: BTreeSet<&Variable> = additional_types.keys().collect();
         any = i.symmetric_difference(&a)
-               .map(|v| ((*v).clone(), ValueTypeSet::any()))
+               .map(|v| ((*v).clone(), MinkowskiSet::any()))
                .collect();
     }
 
@@ -755,12 +755,12 @@ mod testing {
 
     use embedded_promises::{
         Attribute,
-        ValueType,
-        TypedValue,
+        MinkowskiValueType,
+        MinkowskiType,
     };
 
     use einsteindb_embedded::{
-        Schema,
+        SchemaReplicant,
     };
 
     use edbn::causetq::{
@@ -768,7 +768,7 @@ mod testing {
         Variable,
     };
 
-    use clauses::{
+    use gerunds::{
         add_attribute,
         associate_causetId,
     };
@@ -789,69 +789,69 @@ mod testing {
         parse_find_string,
     };
 
-    fn alg(known: Known, input: &str) -> ConjoiningClauses {
+    fn alg(knownCauset: KnownCauset, input: &str) -> ConjoiningGerunds {
         let parsed = parse_find_string(input).expect("parse failed");
-        algebrize(known, parsed).expect("algebrize failed").cc
+        algebrize(knownCauset, parsed).expect("algebrize failed").cc
     }
 
     /// Algebrize with a starting counter, so we can compare inner queries by algebrizing a
     /// simpler version.
-    fn alg_c(known: Known, counter: usize, input: &str) -> ConjoiningClauses {
+    fn alg_c(knownCauset: KnownCauset, counter: usize, input: &str) -> ConjoiningGerunds {
         let parsed = parse_find_string(input).expect("parse failed");
-        algebrize_with_counter(known, parsed, counter).expect("algebrize failed").cc
+        algebrize_with_counter(knownCauset, parsed, counter).expect("algebrize failed").cc
     }
 
-    fn compare_ccs(left: ConjoiningClauses, right: ConjoiningClauses) {
+    fn compare_ccs(left: ConjoiningGerunds, right: ConjoiningGerunds) {
         assert_eq!(left.wheres, right.wheres);
         assert_eq!(left.from, right.from);
     }
 
-    fn prepopulated_schema() -> Schema {
-        let mut schema = Schema::default();
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "name"), 65);
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "knows"), 66);
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "parent"), 67);
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "age"), 68);
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "height"), 69);
-        add_attribute(&mut schema, 65, Attribute {
-            value_type: ValueType::String,
+    fn prepopulated_schemaReplicant() -> SchemaReplicant {
+        let mut schemaReplicant = SchemaReplicant::default();
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "name"), 65);
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "knows"), 66);
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "parent"), 67);
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "age"), 68);
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "height"), 69);
+        add_attribute(&mut schemaReplicant, 65, Attribute {
+            value_type: MinkowskiValueType::String,
             multival: false,
             ..Default::default()
         });
-        add_attribute(&mut schema, 66, Attribute {
-            value_type: ValueType::String,
+        add_attribute(&mut schemaReplicant, 66, Attribute {
+            value_type: MinkowskiValueType::String,
             multival: true,
             ..Default::default()
         });
-        add_attribute(&mut schema, 67, Attribute {
-            value_type: ValueType::String,
+        add_attribute(&mut schemaReplicant, 67, Attribute {
+            value_type: MinkowskiValueType::String,
             multival: true,
             ..Default::default()
         });
-        add_attribute(&mut schema, 68, Attribute {
-            value_type: ValueType::Long,
+        add_attribute(&mut schemaReplicant, 68, Attribute {
+            value_type: MinkowskiValueType::Long,
             multival: false,
             ..Default::default()
         });
-        add_attribute(&mut schema, 69, Attribute {
-            value_type: ValueType::Long,
+        add_attribute(&mut schemaReplicant, 69, Attribute {
+            value_type: MinkowskiValueType::Long,
             multival: false,
             ..Default::default()
         });
-        schema
+        schemaReplicant
     }
 
     /// Test that if all the attributes in an `or` fail to resolve, the entire thing fails.
     #[test]
-    fn test_schema_based_failure() {
-        let schema = Schema::default();
-        let known = Known::for_schema(&schema);
+    fn test_schemaReplicant_based_failure() {
+        let schemaReplicant = SchemaReplicant::default();
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
         let causetq = r#"
             [:find ?x
              :where (or [?x :foo/nope1 "John"]
                         [?x :foo/nope2 "Ámbar"]
                         [?x :foo/nope3 "Daphne"])]"#;
-        let cc = alg(known, causetq);
+        let cc = alg(knownCauset, causetq);
         assert!(cc.is_known_empty());
         assert_eq!(cc.empty_because, Some(EmptyBecause::UnresolvedCausetId(Keyword::namespaced("foo", "nope3"))));
     }
@@ -859,29 +859,29 @@ mod testing {
     /// Test that if only one of the attributes in an `or` resolves, it's equivalent to a simple causetq.
     #[test]
     fn test_only_one_arm_succeeds() {
-        let schema = prepopulated_schema();
-        let known = Known::for_schema(&schema);
+        let schemaReplicant = prepopulated_schemaReplicant();
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
         let causetq = r#"
             [:find ?x
              :where (or [?x :foo/nope "John"]
                         [?x :foo/parent "Ámbar"]
                         [?x :foo/nope "Daphne"])]"#;
-        let cc = alg(known, causetq);
+        let cc = alg(knownCauset, causetq);
         assert!(!cc.is_known_empty());
-        compare_ccs(cc, alg(known, r#"[:find ?x :where [?x :foo/parent "Ámbar"]]"#));
+        compare_ccs(cc, alg(knownCauset, r#"[:find ?x :where [?x :foo/parent "Ámbar"]]"#));
     }
 
     // Simple alternation.
     #[test]
     fn test_simple_alternation() {
-        let schema = prepopulated_schema();
-        let known = Known::for_schema(&schema);
+        let schemaReplicant = prepopulated_schemaReplicant();
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
         let causetq = r#"
             [:find ?x
              :where (or [?x :foo/knows "John"]
                         [?x :foo/parent "Ámbar"]
                         [?x :foo/knows "Daphne"])]"#;
-        let cc = alg(known, causetq);
+        let cc = alg(knownCauset, causetq);
         let vx = Variable::from_valid_name("?x");
         let d0 = "Causets00".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
@@ -889,9 +889,9 @@ mod testing {
         let d0v = QualifiedAlias::new(d0.clone(), CausetsColumn::Value);
         let knows = CausetQValue::SolitonId(66);
         let parent = CausetQValue::SolitonId(67);
-        let john = CausetQValue::TypedValue(TypedValue::typed_string("John"));
-        let ambar = CausetQValue::TypedValue(TypedValue::typed_string("Ámbar"));
-        let daphne = CausetQValue::TypedValue(TypedValue::typed_string("Daphne"));
+        let john = CausetQValue::MinkowskiType(MinkowskiType::typed_string("John"));
+        let ambar = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Ámbar"));
+        let daphne = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Daphne"));
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.wheres, ColumnIntersection(vec![
@@ -914,8 +914,8 @@ mod testing {
     // Alternation with a pattern.
     #[test]
     fn test_alternation_with_pattern() {
-        let schema = prepopulated_schema();
-        let known = Known::for_schema(&schema);
+        let schemaReplicant = prepopulated_schemaReplicant();
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
         let causetq = r#"
             [:find [?x ?name]
              :where
@@ -923,7 +923,7 @@ mod testing {
              (or [?x :foo/knows "John"]
                  [?x :foo/parent "Ámbar"]
                  [?x :foo/knows "Daphne"])]"#;
-        let cc = alg(known, causetq);
+        let cc = alg(knownCauset, causetq);
         let vx = Variable::from_valid_name("?x");
         let d0 = "Causets00".to_string();
         let d1 = "Causets01".to_string();
@@ -935,9 +935,9 @@ mod testing {
         let name = CausetQValue::SolitonId(65);
         let knows = CausetQValue::SolitonId(66);
         let parent = CausetQValue::SolitonId(67);
-        let john = CausetQValue::TypedValue(TypedValue::typed_string("John"));
-        let ambar = CausetQValue::TypedValue(TypedValue::typed_string("Ámbar"));
-        let daphne = CausetQValue::TypedValue(TypedValue::typed_string("Daphne"));
+        let john = CausetQValue::MinkowskiType(MinkowskiType::typed_string("John"));
+        let ambar = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Ámbar"));
+        let daphne = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Daphne"));
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.wheres, ColumnIntersection(vec![
@@ -965,8 +965,8 @@ mod testing {
     // Alternation with a pattern and a predicate.
     #[test]
     fn test_alternation_with_pattern_and_predicate() {
-        let schema = prepopulated_schema();
-        let known = Known::for_schema(&schema);
+        let schemaReplicant = prepopulated_schemaReplicant();
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
         let causetq = r#"
             [:find ?x ?age
              :where
@@ -974,7 +974,7 @@ mod testing {
              [(< ?age 30)]
              (or [?x :foo/knows "John"]
                  [?x :foo/knows "Daphne"])]"#;
-        let cc = alg(known, causetq);
+        let cc = alg(knownCauset, causetq);
         let vx = Variable::from_valid_name("?x");
         let d0 = "Causets00".to_string();
         let d1 = "Causets01".to_string();
@@ -986,8 +986,8 @@ mod testing {
         let d1v = QualifiedAlias::new(d1.clone(), CausetsColumn::Value);
         let knows = CausetQValue::SolitonId(66);
         let age = CausetQValue::SolitonId(68);
-        let john = CausetQValue::TypedValue(TypedValue::typed_string("John"));
-        let daphne = CausetQValue::TypedValue(TypedValue::typed_string("Daphne"));
+        let john = CausetQValue::MinkowskiType(MinkowskiType::typed_string("John"));
+        let daphne = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Daphne"));
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.wheres, ColumnIntersection(vec![
@@ -995,7 +995,7 @@ mod testing {
             ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Inequality {
                 operator: Inequality::LessThan,
                 left: CausetQValue::Column(d0v.clone()),
-                right: CausetQValue::TypedValue(TypedValue::Long(30)),
+                right: CausetQValue::MinkowskiType(MinkowskiType::Long(30)),
             }),
             ColumnConstraintOrAlternation::Alternation(
                 ColumnAlternation(vec![
@@ -1019,12 +1019,12 @@ mod testing {
     // [:find ?x :where [?x :foo/bar ?y] [?x :foo/baz ?y]]
     #[test]
     fn test_unit_or_join_doesnt_flatten() {
-        let schema = prepopulated_schema();
-        let known = Known::for_schema(&schema);
+        let schemaReplicant = prepopulated_schemaReplicant();
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
         let causetq = r#"[:find ?x
                         :where [?x :foo/knows ?y]
                                (or-join [?x] [?x :foo/parent ?y])]"#;
-        let cc = alg(known, causetq);
+        let cc = alg(knownCauset, causetq);
         let vx = Variable::from_valid_name("?x");
         let vy = Variable::from_valid_name("?y");
         let d0 = "Causets00".to_string();
@@ -1055,31 +1055,31 @@ mod testing {
     // [:find ?x :where [?x :foo/bar ?y] [?x :foo/baz ?y]]
     #[test]
     fn test_unit_or_does_flatten() {
-        let schema = prepopulated_schema();
-        let known = Known::for_schema(&schema);
+        let schemaReplicant = prepopulated_schemaReplicant();
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
         let or_causetq =   r#"[:find ?x
                              :where [?x :foo/knows ?y]
                                     (or [?x :foo/parent ?y])]"#;
         let flat_causetq = r#"[:find ?x
                              :where [?x :foo/knows ?y]
                                     [?x :foo/parent ?y]]"#;
-        compare_ccs(alg(known, or_causetq),
-                    alg(known, flat_causetq));
+        compare_ccs(alg(knownCauset, or_causetq),
+                    alg(knownCauset, flat_causetq));
     }
 
     // Elision of `and`.
     #[test]
     fn test_unit_or_and_does_flatten() {
-        let schema = prepopulated_schema();
-        let known = Known::for_schema(&schema);
+        let schemaReplicant = prepopulated_schemaReplicant();
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
         let or_causetq =   r#"[:find ?x
                              :where (or (and [?x :foo/parent ?y]
                                              [?x :foo/age 7]))]"#;
         let flat_causetq =   r#"[:find ?x
                                :where [?x :foo/parent ?y]
                                       [?x :foo/age 7]]"#;
-        compare_ccs(alg(known, or_causetq),
-                    alg(known, flat_causetq));
+        compare_ccs(alg(knownCauset, or_causetq),
+                    alg(knownCauset, flat_causetq));
     }
 
     // Alternation with `and`.
@@ -1087,18 +1087,18 @@ mod testing {
     ///  :where (or (and [?x :foo/knows "John"]
     ///                  [?x :foo/parent "Ámbar"])
     ///             [?x :foo/knows "Daphne"])]
-    /// Strictly speaking this can be implemented with a `NOT EXISTS` clause for the second pattern,
+    /// Strictly speaking this can be implemented with a `NOT EXISTS` gerund for the second pattern,
     /// but that would be a fair amount of analysis work, I think.
     #[test]
     fn test_alternation_with_and() {
-        let schema = prepopulated_schema();
-        let known = Known::for_schema(&schema);
+        let schemaReplicant = prepopulated_schemaReplicant();
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
         let causetq = r#"
             [:find ?x
              :where (or (and [?x :foo/knows "John"]
                              [?x :foo/parent "Ámbar"])
                         [?x :foo/knows "Daphne"])]"#;
-        let cc = alg(known, causetq);
+        let cc = alg(knownCauset, causetq);
         let mut tables = cc.computed_tables.into_iter();
         match (tables.next(), tables.next()) {
             (Some(ComputedTable::Union { projection, type_extraction, arms }), None) => {
@@ -1108,12 +1108,12 @@ mod testing {
                 let mut arms = arms.into_iter();
                 match (arms.next(), arms.next(), arms.next()) {
                     (Some(and), Some(pattern), None) => {
-                        let expected_and = alg_c(known,
+                        let expected_and = alg_c(knownCauset,
                                                  0,  // The first pattern to be processed.
                                                  r#"[:find ?x :where [?x :foo/knows "John"] [?x :foo/parent "Ámbar"]]"#);
                         compare_ccs(and, expected_and);
 
-                        let expected_pattern = alg_c(known,
+                        let expected_pattern = alg_c(knownCauset,
                                                      2,      // Two aliases taken by the other arm.
                                                      r#"[:find ?x :where [?x :foo/knows "Daphne"]]"#);
                         compare_ccs(pattern, expected_pattern);
@@ -1131,8 +1131,8 @@ mod testing {
 
     #[test]
     fn test_type_based_or_pruning() {
-        let schema = prepopulated_schema();
-        let known = Known::for_schema(&schema);
+        let schemaReplicant = prepopulated_schemaReplicant();
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
         // This simplifies to:
         // [:find ?x
         //  :where [?a :some/int ?x]
@@ -1146,6 +1146,6 @@ mod testing {
             [:find ?x
              :where [?a :foo/age ?x]
                     [_ :foo/height ?x]]"#;
-        compare_ccs(alg(known, causetq), alg(known, simple));
+        compare_ccs(alg(knownCauset, causetq), alg(knownCauset, simple));
     }
 }

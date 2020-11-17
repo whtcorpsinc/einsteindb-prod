@@ -13,7 +13,7 @@ use ekvproto::kvrpcpb::{Context, LockInfo};
 use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER};
 use test_causetStorage::*;
 use einsteindb::server::gc_worker::DEFAULT_GC_BATCH_KEYS;
-use einsteindb::causetStorage::mvcc::MAX_TXN_WRITE_SIZE;
+use einsteindb::causetStorage::tail_pointer::MAX_TXN_WRITE_SIZE;
 use einsteindb::causetStorage::txn::RESOLVE_LOCK_BATCH_SIZE;
 use einsteindb::causetStorage::Engine;
 use txn_types::{Key, Mutation, TimeStamp};

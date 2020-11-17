@@ -23,7 +23,7 @@ use violetabftstore::store::msg::{Callback, ReadResponse, SignificantMsg};
 use resolved_ts::Resolver;
 use einsteindb::config::CdcConfig;
 use einsteindb::causetStorage::kv::Snapshot;
-use einsteindb::causetStorage::mvcc::{DeltaScanner, ScannerBuilder};
+use einsteindb::causetStorage::tail_pointer::{DeltaScanner, ScannerBuilder};
 use einsteindb::causetStorage::txn::TxnEntry;
 use einsteindb::causetStorage::txn::TxnEntryScanner;
 use einsteindb_util::collections::HashMap;
@@ -1083,7 +1083,7 @@ mod tests {
     use test_violetabftstore::MockVioletaBftStoreRouter;
     use test_violetabftstore::TestFidelClient;
     use einsteindb::causetStorage::kv::Engine;
-    use einsteindb::causetStorage::mvcc::tests::*;
+    use einsteindb::causetStorage::tail_pointer::tests::*;
     use einsteindb::causetStorage::TestEngineBuilder;
     use einsteindb_util::collections::HashSet;
     use einsteindb_util::config::ReadableDuration;

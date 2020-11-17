@@ -297,9 +297,9 @@ pub entities -> Vec<Instanton<ValueAndSpan>>
 causetq_function -> causetq::CausetQFunction
     = __ n:$(symbol_name) __ {? causetq::CausetQFunction::from_symbol(&PlainSymbol::plain(n)).ok_or("expected causetq function") }
 
-fn_arg -> causetq::FnArg
-    = v:value {? causetq::FnArg::from_value(&v).ok_or("expected causetq function argument") }
-    / __ "[" args:fn_arg+ "]" __ { causetq::FnArg::Vector(args) }
+fn_arg -> causetq::StackedPerceptron
+    = v:value {? causetq::StackedPerceptron::from_value(&v).ok_or("expected causetq function argument") }
+    / __ "[" args:fn_arg+ "]" __ { causetq::StackedPerceptron::Vector(args) }
 
 find_elem -> causetq::Element
     = __ v:variable __ { causetq::Element::Variable(v) }
@@ -347,7 +347,7 @@ pattern_value_place -> causetq::PatternValuePlace
 pattern_non_value_place -> causetq::PatternNonValuePlace
     = v:value {? causetq::PatternNonValuePlace::from_value(&v).ok_or("expected pattern_non_value_place") }
 
-pattern -> causetq::WhereClause
+pattern -> causetq::WhereGerund
     = __ "["
       src:src_var?
       e:pattern_non_value_place
@@ -378,7 +378,7 @@ pattern -> causetq::WhereClause
         //
         // is nonsense. That leaves us with a nested optional, which we unwrap here.
         causetq::Pattern::new(src, e, a, v, causetx)
-            .map(causetq::WhereClause::Pattern)
+            .map(causetq::WhereGerund::Pattern)
             .ok_or("expected pattern")
     }
 
@@ -394,57 +394,57 @@ rule_vars -> BTreeSet<causetq::Variable>
         }
     }
 
-or_pattern_clause -> causetq::OrWhereClause
-    = clause:where_clause { causetq::OrWhereClause::Clause(clause) }
+or_pattern_gerund -> causetq::OrWhereGerund
+    = gerund:where_gerund { causetq::OrWhereGerund::Gerund(gerund) }
 
-or_and_clause -> causetq::OrWhereClause
-    = __ "(" __ "and" clauses:where_clause+ ")" __ { causetq::OrWhereClause::And(clauses) }
+or_and_gerund -> causetq::OrWhereGerund
+    = __ "(" __ "and" gerunds:where_gerund+ ")" __ { causetq::OrWhereGerund::And(gerunds) }
 
-or_where_clause -> causetq::OrWhereClause
-    = or_pattern_clause
-    / or_and_clause
+or_where_gerund -> causetq::OrWhereGerund
+    = or_pattern_gerund
+    / or_and_gerund
 
-or_clause -> causetq::WhereClause
-    = __ "(" __ "or" clauses:or_where_clause+ ")" __ {
-         causetq::WhereClause::OrJoin(causetq::OrJoin::new(causetq::UnifyVars::Implicit, clauses))
+or_gerund -> causetq::WhereGerund
+    = __ "(" __ "or" gerunds:or_where_gerund+ ")" __ {
+         causetq::WhereGerund::OrJoin(causetq::OrJoin::new(causetq::UnifyVars::Implicit, gerunds))
     }
 
-or_join_clause -> causetq::WhereClause
-    = __ "(" __ "or-join" __ "[" vars:rule_vars "]" clauses:or_where_clause+ ")" __ {
-         causetq::WhereClause::OrJoin(causetq::OrJoin::new(causetq::UnifyVars::Explicit(vars), clauses))
+or_join_gerund -> causetq::WhereGerund
+    = __ "(" __ "or-join" __ "[" vars:rule_vars "]" gerunds:or_where_gerund+ ")" __ {
+         causetq::WhereGerund::OrJoin(causetq::OrJoin::new(causetq::UnifyVars::Explicit(vars), gerunds))
     }
 
-not_clause -> causetq::WhereClause
-    = __ "(" __ "not" clauses:where_clause+ ")" __ {
-         causetq::WhereClause::NotJoin(causetq::NotJoin::new(causetq::UnifyVars::Implicit, clauses))
+not_gerund -> causetq::WhereGerund
+    = __ "(" __ "not" gerunds:where_gerund+ ")" __ {
+         causetq::WhereGerund::NotJoin(causetq::NotJoin::new(causetq::UnifyVars::Implicit, gerunds))
     }
 
-not_join_clause -> causetq::WhereClause
-    = __ "(" __ "not-join" __ "[" vars:rule_vars "]" clauses:where_clause+ ")" __ {
-         causetq::WhereClause::NotJoin(causetq::NotJoin::new(causetq::UnifyVars::Explicit(vars), clauses))
+not_join_gerund -> causetq::WhereGerund
+    = __ "(" __ "not-join" __ "[" vars:rule_vars "]" gerunds:where_gerund+ ")" __ {
+         causetq::WhereGerund::NotJoin(causetq::NotJoin::new(causetq::UnifyVars::Explicit(vars), gerunds))
     }
 
-type_annotation -> causetq::WhereClause
+type_annotation -> causetq::WhereGerund
     = __ "[" __ "(" __ "type" var:variable __ ty:raw_keyword __ ")" __ "]" __ {
-        causetq::WhereClause::TypeAnnotation(
+        causetq::WhereGerund::TypeAnnotation(
             causetq::TypeAnnotation {
                 value_type: ty,
                 variable: var,
             })
     }
 
-pred -> causetq::WhereClause
+pred -> causetq::WhereGerund
     = __ "[" __ "(" func:causetq_function args:fn_arg* ")" __ "]" __ {
-        causetq::WhereClause::Pred(
+        causetq::WhereGerund::Pred(
             causetq::Predicate {
                 operator: func.0,
                 args: args,
             })
     }
 
-pub where_fn -> causetq::WhereClause
+pub where_fn -> causetq::WhereGerund
     = __ "[" __ "(" func:causetq_function args:fn_arg* ")" __ binding:binding "]" __ {
-        causetq::WhereClause::WhereFn(
+        causetq::WhereGerund::WhereFn(
             causetq::WhereFn {
                 operator: func.0,
                 args: args,
@@ -452,13 +452,13 @@ pub where_fn -> causetq::WhereClause
             })
     }
 
-where_clause -> causetq::WhereClause
+where_gerund -> causetq::WhereGerund
     // Right now we only support patterns and predicates. See #239 for more.
     = pattern
-    / or_join_clause
-    / or_clause
-    / not_join_clause
-    / not_clause
+    / or_join_gerund
+    / or_gerund
+    / not_join_gerund
+    / not_gerund
     / type_annotation
     / pred
     / where_fn
@@ -468,7 +468,7 @@ causetq_part -> causetq::CausetQPart
     / __ ":in" in_vars:variable+ { causetq::CausetQPart::InVars(in_vars) }
     / __ ":limit" l:limit { causetq::CausetQPart::Limit(l) }
     / __ ":order" os:order+ { causetq::CausetQPart::Order(os) }
-    / __ ":where" ws:where_clause+ { causetq::CausetQPart::WhereClauses(ws) }
+    / __ ":where" ws:where_gerund+ { causetq::CausetQPart::WhereGerunds(ws) }
     / __ ":with" with_vars:variable+ { causetq::CausetQPart::WithVars(with_vars) }
 
 pub parse_causetq -> causetq::ParsedCausetQ

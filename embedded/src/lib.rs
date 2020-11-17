@@ -23,7 +23,7 @@ use embedded_promises::{
     Attribute,
     SolitonId,
     KnownSolitonId,
-    ValueType,
+    MinkowskiValueType,
 };
 
 mod immutable_memTcam;
@@ -68,13 +68,13 @@ pub use causecausetx_report::{
 };
 
 pub use types::{
-    ValueTypeTag,
+    MinkowskiValueTypeTag,
 };
 
 pub use sql_types::{
     SQLTypeAffinity,
-    SQLValueType,
-    SQLValueTypeSet,
+    SQLMinkowskiValueType,
+    SQLMinkowskiSet,
 };
 
 /// Map `Keyword` causetIds (`:edb/causetid`) to positive integer entids (`1`).
@@ -86,15 +86,15 @@ pub type SolitonIdMap = BTreeMap<SolitonId, Keyword>;
 /// Map attribute entids to `Attribute` instances.
 pub type AttributeMap = BTreeMap<SolitonId, Attribute>;
 
-/// Represents a EinsteinDB schema.
+/// Represents a EinsteinDB schemaReplicant.
 ///
-/// Maintains the mapping between string causetIds and positive integer entids; and exposes the schema
+/// Maintains the mapping between string causetIds and positive integer entids; and exposes the schemaReplicant
 /// flags associated to a given solitonId (equivalently, causetid).
 ///
 /// TODO: consider a single bi-directional map instead of separate causetid->solitonId and solitonId->causetid
 /// maps.
 #[derive(Clone, Debug, Default, Eq, Hash, Ord, PartialOrd, PartialEq)]
-pub struct Schema {
+pub struct SchemaReplicant {
     /// Map solitonId->causetid.
     ///
     /// Invariant: is the inverse map of `causetId_map`.
@@ -116,33 +116,33 @@ pub struct Schema {
     pub component_attributes: Vec<SolitonId>,
 }
 
-pub trait HasSchema {
-    fn entid_for_type(&self, t: ValueType) -> Option<KnownSolitonId>;
+pub trait HasSchemaReplicant {
+    fn entid_for_type(&self, t: MinkowskiValueType) -> Option<KnownSolitonId>;
 
     fn get_causetId<T>(&self, x: T) -> Option<&Keyword> where T: Into<SolitonId>;
-    fn get_entid(&self, x: &Keyword) -> Option<KnownSolitonId>;
+    fn get_causetid(&self, x: &Keyword) -> Option<KnownSolitonId>;
     fn attribute_for_entid<T>(&self, x: T) -> Option<&Attribute> where T: Into<SolitonId>;
 
     // Returns the attribute and the solitonId named by the provided causetid.
     fn attribute_for_causetId(&self, causetid: &Keyword) -> Option<(&Attribute, KnownSolitonId)>;
 
-    /// Return true if the provided solitonId causetIdifies an attribute in this schema.
+    /// Return true if the provided solitonId causetIdifies an attribute in this schemaReplicant.
     fn is_attribute<T>(&self, x: T) -> bool where T: Into<SolitonId>;
 
-    /// Return true if the provided causetid causetIdifies an attribute in this schema.
+    /// Return true if the provided causetid causetIdifies an attribute in this schemaReplicant.
     fn causetIdifies_attribute(&self, x: &Keyword) -> bool;
 
     fn component_attributes(&self) -> &[SolitonId];
 }
 
-impl Schema {
-    pub fn new(causetId_map: CausetIdMap, entid_map: SolitonIdMap, attribute_map: AttributeMap) -> Schema {
-        let mut s = Schema { causetId_map, entid_map, attribute_map, component_attributes: Vec::new() };
+impl SchemaReplicant {
+    pub fn new(causetId_map: CausetIdMap, entid_map: SolitonIdMap, attribute_map: AttributeMap) -> SchemaReplicant {
+        let mut s = SchemaReplicant { causetId_map, entid_map, attribute_map, component_attributes: Vec::new() };
         s.update_component_attributes();
         s
     }
 
-    /// Returns an symbolic representation of the schema suitable for applying across EinsteinDB stores.
+    /// Returns an symbolic representation of the schemaReplicant suitable for applying across EinsteinDB stores.
     pub fn to_edbn_value(&self) -> edbn::Value {
         edbn::Value::Vector((&self.attribute_map).iter()
             .map(|(solitonId, attribute)|
@@ -165,17 +165,17 @@ impl Schema {
     }
 }
 
-impl HasSchema for Schema {
-    fn entid_for_type(&self, t: ValueType) -> Option<KnownSolitonId> {
+impl HasSchemaReplicant for SchemaReplicant {
+    fn entid_for_type(&self, t: MinkowskiValueType) -> Option<KnownSolitonId> {
         // TODO: this can be made more efficient.
-        self.get_entid(&t.into_keyword())
+        self.get_causetid(&t.into_keyword())
     }
 
     fn get_causetId<T>(&self, x: T) -> Option<&Keyword> where T: Into<SolitonId> {
         self.entid_map.get(&x.into())
     }
 
-    fn get_entid(&self, x: &Keyword) -> Option<KnownSolitonId> {
+    fn get_causetid(&self, x: &Keyword) -> Option<KnownSolitonId> {
         self.get_raw_entid(x).map(KnownSolitonId)
     }
 
@@ -190,12 +190,12 @@ impl HasSchema for Schema {
             })
     }
 
-    /// Return true if the provided solitonId causetIdifies an attribute in this schema.
+    /// Return true if the provided solitonId causetIdifies an attribute in this schemaReplicant.
     fn is_attribute<T>(&self, x: T) -> bool where T: Into<SolitonId> {
         self.attribute_map.contains_key(&x.into())
     }
 
-    /// Return true if the provided causetid causetIdifies an attribute in this schema.
+    /// Return true if the provided causetid causetIdifies an attribute in this schemaReplicant.
     fn causetIdifies_attribute(&self, x: &Keyword) -> bool {
         self.get_raw_entid(x).map(|e| self.is_attribute(e)).unwrap_or(false)
     }
@@ -255,16 +255,16 @@ mod test {
 
     use embedded_promises::{
         attribute,
-        TypedValue,
+        MinkowskiType,
     };
 
-    fn associate_causetId(schema: &mut Schema, i: Keyword, e: SolitonId) {
-        schema.entid_map.insert(e, i.clone());
-        schema.causetId_map.insert(i, e);
+    fn associate_causetId(schemaReplicant: &mut SchemaReplicant, i: Keyword, e: SolitonId) {
+        schemaReplicant.entid_map.insert(e, i.clone());
+        schemaReplicant.causetId_map.insert(i, e);
     }
 
-    fn add_attribute(schema: &mut Schema, e: SolitonId, a: Attribute) {
-        schema.attribute_map.insert(e, a);
+    fn add_attribute(schemaReplicant: &mut SchemaReplicant, e: SolitonId, a: Attribute) {
+        schemaReplicant.attribute_map.insert(e, a);
     }
 
     #[test]
@@ -272,8 +272,8 @@ mod test {
         let dt: DateTime<Utc> = DateTime::from_str("2018-01-11T00:34:09.273457004Z").expect("parsed");
         let expected: DateTime<Utc> = DateTime::from_str("2018-01-11T00:34:09.273457Z").expect("parsed");
 
-        let tv: TypedValue = dt.into();
-        if let TypedValue::Instant(roundtripped) = tv {
+        let tv: MinkowskiType = dt.into();
+        if let MinkowskiType::Instant(roundtripped) = tv {
             assert_eq!(roundtripped, expected);
         } else {
             panic!();
@@ -282,35 +282,35 @@ mod test {
 
     #[test]
     fn test_as_edbn_value() {
-        let mut schema = Schema::default();
+        let mut schemaReplicant = SchemaReplicant::default();
 
         let attr1 = Attribute {
             index: true,
-            value_type: ValueType::Ref,
+            value_type: MinkowskiValueType::Ref,
             fulltext: false,
             unique: None,
             multival: false,
             component: false,
             no_history: true,
         };
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "bar"), 97);
-        add_attribute(&mut schema, 97, attr1);
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "bar"), 97);
+        add_attribute(&mut schemaReplicant, 97, attr1);
 
         let attr2 = Attribute {
             index: false,
-            value_type: ValueType::String,
+            value_type: MinkowskiValueType::String,
             fulltext: true,
             unique: Some(attribute::Unique::Value),
             multival: true,
             component: false,
             no_history: false,
         };
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "bas"), 98);
-        add_attribute(&mut schema, 98, attr2);
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "bas"), 98);
+        add_attribute(&mut schemaReplicant, 98, attr2);
 
         let attr3 = Attribute {
             index: false,
-            value_type: ValueType::Boolean,
+            value_type: MinkowskiValueType::Boolean,
             fulltext: false,
             unique: Some(attribute::Unique::CausetIdity),
             multival: false,
@@ -318,10 +318,10 @@ mod test {
             no_history: false,
         };
 
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "bat"), 99);
-        add_attribute(&mut schema, 99, attr3);
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "bat"), 99);
+        add_attribute(&mut schemaReplicant, 99, attr3);
 
-        let value = schema.to_edbn_value();
+        let value = schemaReplicant.to_edbn_value();
 
         let expected_output = r#"[ {   :edb/causetid     :foo/bar
     :edb/valueType :edb.type/ref
@@ -342,7 +342,7 @@ mod test {
         assert_eq!(expected_value, value);
 
         // let's compare the whole thing again, just to make sure we are not changing anything when we convert to edbn.
-        let value2 = schema.to_edbn_value();
+        let value2 = schemaReplicant.to_edbn_value();
         assert_eq!(expected_value, value2);
     }
 }

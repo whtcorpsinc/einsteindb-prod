@@ -154,7 +154,7 @@
 //!
 //! // Pay attention that the first argument is specialized to `ScalarArg`
 //! impl<'a, Arg1> RegexMatch_Fn for Arg<ScalarArg<'a, Bytes>, Arg<Arg1, Null>>
-//! where Arg1: RpnFnArg<Type = &'a Option<Bytes>> {
+//! where Arg1: RpnStackedPerceptron<Type = &'a Option<Bytes>> {
 //!     fn eval(
 //!         self,
 //!         ctx: &mut EvalContext,
@@ -709,13 +709,13 @@ impl ValidatorFnGenerator {
     fn generate(
         self,
         impl_generics: &ImplGenerics<'_>,
-        where_clause: Option<&WhereClause>,
+        where_gerund: Option<&WhereGerund>,
     ) -> TokenStream {
         let inners = self.tokens;
         quote! {
             fn validate #impl_generics (
                 expr: &fidelpb::Expr
-            ) -> milevadb_query_common::Result<()> #where_clause {
+            ) -> milevadb_query_common::Result<()> #where_gerund {
                 use milevadb_query_datatype::codec::data_type::Evaluable;
                 use crate::function;
                 #( #inners )*
@@ -729,7 +729,7 @@ fn generate_init_metadata_fn(
     metadata_type: &Option<TokenStream>,
     metadata_mapper: &Option<TokenStream>,
     impl_generics: &ImplGenerics<'_>,
-    where_clause: Option<&WhereClause>,
+    where_gerund: Option<&WhereGerund>,
 ) -> TokenStream {
     let fn_body = match (metadata_type, metadata_mapper) {
         (Some(metadata_type), Some(metadata_mapper)) => quote! {
@@ -750,7 +750,7 @@ fn generate_init_metadata_fn(
     };
     quote! {
         fn init_metadata #impl_generics (expr: &mut ::fidelpb::Expr)
-            -> Result<Box<dyn std::any::Any + Slightlike>> #where_clause {
+            -> Result<Box<dyn std::any::Any + Slightlike>> #where_gerund {
             #fn_body
         }
     }
@@ -770,7 +770,7 @@ fn generate_metadata_type_checker(
     metadata_type: &Option<TokenStream>,
     metadata_mapper: &Option<TokenStream>,
     impl_generics: &ImplGenerics<'_>,
-    where_clause: Option<&WhereClause>,
+    where_gerund: Option<&WhereGerund>,
     fn_body: TokenStream,
 ) -> TokenStream {
     if metadata_type.is_some() || metadata_mapper.is_some() {
@@ -790,7 +790,7 @@ fn generate_metadata_type_checker(
                     args: &[crate::RpnStackNode<'_>],
                     extra: &mut crate::RpnFnCallExtra<'_>,
                     expr: &mut ::fidelpb::Expr,
-                ) #where_clause {
+                ) #where_gerund {
                     for row_index in 0..output_rows {
                         let metadata = #metadata_expr;
                         #fn_body
@@ -924,7 +924,7 @@ impl VargsRpnFn {
             &format!("{}_fn_meta", &self.item_fn.sig.ident),
             Span::call_site(),
         );
-        let (impl_generics, ty_generics, where_clause) = self.item_fn.sig.generics.split_for_impl();
+        let (impl_generics, ty_generics, where_gerund) = self.item_fn.sig.generics.split_for_impl();
         let ty_generics_turbofish = ty_generics.as_turbofish();
         let fn_ident = &self.item_fn.sig.ident;
         let fn_name = self.item_fn.sig.ident.to_string();
@@ -934,7 +934,7 @@ impl VargsRpnFn {
             &self.metadata_type,
             &self.metadata_mapper,
             &impl_generics,
-            where_clause,
+            where_gerund,
         );
         let downcast_metadata = generate_downcast_metadata(
             self.metadata_type.is_some() || self.metadata_mapper.is_some(),
@@ -943,7 +943,7 @@ impl VargsRpnFn {
             &self.metadata_type,
             &self.metadata_mapper,
             &impl_generics,
-            where_clause,
+            where_gerund,
             quote! {
                 #fn_ident #ty_generics_turbofish ( #(#captures,)* &[]).ok();
             },
@@ -955,7 +955,7 @@ impl VargsRpnFn {
             .validate_min_args(self.min_args)
             .validate_args_identical_type(&self.arg_type_anonymous)
             .validate_by_fn(&self.extra_validator)
-            .generate(&impl_generics, where_clause);
+            .generate(&impl_generics, where_gerund);
 
         let transmute_ref = if is_json(arg_type) {
             quote! {
@@ -977,7 +977,7 @@ impl VargsRpnFn {
         quote! {
             pub const fn #constructor_ident #impl_generics ()
             -> crate::RpnFnMeta
-            #where_clause
+            #where_gerund
             {
                 #[inline]
                 fn run #impl_generics (
@@ -986,7 +986,7 @@ impl VargsRpnFn {
                     args: &[crate::RpnStackNode<'_>],
                     extra: &mut crate::RpnFnCallExtra<'_>,
                     metadata: &(dyn std::any::Any + Slightlike),
-                ) -> milevadb_query_common::Result<milevadb_query_datatype::codec::data_type::VectorValue> #where_clause {
+                ) -> milevadb_query_common::Result<milevadb_query_datatype::codec::data_type::VectorValue> #where_gerund {
                     #downcast_metadata
                     crate::function::#varg_buf.with(|vargs_buf| {
                         use milevadb_query_datatype::codec::data_type::{Evaluable, EvaluableRef, EvaluableRet};
@@ -1083,7 +1083,7 @@ impl RawVargsRpnFn {
             &format!("{}_fn_meta", &self.item_fn.sig.ident),
             Span::call_site(),
         );
-        let (impl_generics, ty_generics, where_clause) = self.item_fn.sig.generics.split_for_impl();
+        let (impl_generics, ty_generics, where_gerund) = self.item_fn.sig.generics.split_for_impl();
         let ty_generics_turbofish = ty_generics.as_turbofish();
         let fn_ident = &self.item_fn.sig.ident;
         let fn_name = self.item_fn.sig.ident.to_string();
@@ -1092,7 +1092,7 @@ impl RawVargsRpnFn {
             &self.metadata_type,
             &self.metadata_mapper,
             &impl_generics,
-            where_clause,
+            where_gerund,
         );
         let downcast_metadata = generate_downcast_metadata(
             self.metadata_type.is_some() || self.metadata_mapper.is_some(),
@@ -1101,7 +1101,7 @@ impl RawVargsRpnFn {
             &self.metadata_type,
             &self.metadata_mapper,
             &impl_generics,
-            where_clause,
+            where_gerund,
             quote! {
                 #fn_ident #ty_generics_turbofish ( #(#captures,)* &[]).ok();
             },
@@ -1112,14 +1112,14 @@ impl RawVargsRpnFn {
             .validate_max_args(self.max_args)
             .validate_min_args(self.min_args)
             .validate_by_fn(&self.extra_validator)
-            .generate(&impl_generics, where_clause);
+            .generate(&impl_generics, where_gerund);
 
         let vec_type = &self.ret_type;
 
         quote! {
             pub const fn #constructor_ident #impl_generics ()
             -> crate::RpnFnMeta
-            #where_clause
+            #where_gerund
             {
                 #[inline]
                 fn run #impl_generics (
@@ -1128,7 +1128,7 @@ impl RawVargsRpnFn {
                     args: &[crate::RpnStackNode<'_>],
                     extra: &mut crate::RpnFnCallExtra<'_>,
                     metadata: &(dyn std::any::Any + Slightlike),
-                ) -> milevadb_query_common::Result<milevadb_query_datatype::codec::data_type::VectorValue> #where_clause {
+                ) -> milevadb_query_common::Result<milevadb_query_datatype::codec::data_type::VectorValue> #where_gerund {
                     #downcast_metadata
                     crate::function::RAW_VARG_PARAM_BUF.with(|mut vargs_buf| {
                         let mut vargs_buf = vargs_buf.borrow_mut();
@@ -1187,13 +1187,13 @@ struct NormalRpnFn {
 }
 
 impl NormalRpnFn {
-    fn get_arg_type(attr: &RpnFnAttr, fn_arg: &FnArg) -> Result<RpnFnSignatureParam> {
+    fn get_arg_type(attr: &RpnFnAttr, fn_arg: &StackedPerceptron) -> Result<RpnFnSignatureParam> {
         if attr.nullable {
             parse2::<RpnFnSignatureParam>(fn_arg.into_token_stream()).map_err(|_| {
                 Error::new_spanned(fn_arg, "Expect parameter type to be like `Option<&T>`, `Option<JsonRef>` or `Option<BytesRef>`")
             })
         } else {
-            if let FnArg::Typed(mut fn_arg) = fn_arg.clone() {
+            if let StackedPerceptron::Typed(mut fn_arg) = fn_arg.clone() {
                 let ty = fn_arg.ty.clone();
                 if parse2::<RpnFnSignatureParam>((&fn_arg).into_token_stream()).is_ok() {
                     // Developer has supplied Option<T>
@@ -1286,10 +1286,10 @@ impl NormalRpnFn {
     }
 
     fn generate_fn_trait(&self) -> TokenStream {
-        let (impl_generics, _, where_clause) = self.item_fn.sig.generics.split_for_impl();
+        let (impl_generics, _, where_gerund) = self.item_fn.sig.generics.split_for_impl();
         let fn_trait_ident = &self.fn_trait_ident;
         quote! {
-            trait #fn_trait_ident #impl_generics #where_clause {
+            trait #fn_trait_ident #impl_generics #where_gerund {
                 fn eval(
                     self,
                     ctx: &mut milevadb_query_datatype::expr::EvalContext,
@@ -1310,9 +1310,9 @@ impl NormalRpnFn {
         let fn_trait_ident = &self.fn_trait_ident;
         let tp_ident = Ident::new("D_", Span::call_site());
         let (_, ty_generics, _) = self.item_fn.sig.generics.split_for_impl();
-        let (impl_generics, _, where_clause) = generics.split_for_impl();
+        let (impl_generics, _, where_gerund) = generics.split_for_impl();
         quote! {
-            impl #impl_generics #fn_trait_ident #ty_generics for #tp_ident #where_clause {
+            impl #impl_generics #fn_trait_ident #ty_generics for #tp_ident #where_gerund {
                 default fn eval(
                     self,
                     ctx: &mut milevadb_query_datatype::expr::EvalContext,
@@ -1336,7 +1336,7 @@ impl NormalRpnFn {
         for (arg_index, arg_type) in self.arg_types.iter().enumerate().rev() {
             let arg_name = Ident::new(&format!("Arg{}_", arg_index), Span::call_site());
             let generic_param = quote! {
-                #arg_name: crate::function::RpnFnArg<
+                #arg_name: crate::function::RpnStackedPerceptron<
                     Type = Option<#arg_type>
                 >
             };
@@ -1346,7 +1346,7 @@ impl NormalRpnFn {
         let fn_ident = &self.item_fn.sig.ident;
         let fn_trait_ident = &self.fn_trait_ident;
         let (_, ty_generics, _) = self.item_fn.sig.generics.split_for_impl();
-        let (impl_generics, _, where_clause) = generics.split_for_impl();
+        let (impl_generics, _, where_gerund) = generics.split_for_impl();
         let captures = &self.captures;
         let extract =
             (0..self.arg_types.len()).map(|i| Ident::new(&format!("arg{}", i), Span::call_site()));
@@ -1381,7 +1381,7 @@ impl NormalRpnFn {
             &self.metadata_type,
             &self.metadata_mapper,
             &impl_generics,
-            where_clause,
+            where_gerund,
             if self.nullable {
                 quote! {
                     let arg: &#tp = unsafe { &*std::ptr::null() };
@@ -1490,7 +1490,7 @@ impl NormalRpnFn {
         };
 
         quote! {
-            impl #impl_generics #fn_trait_ident #ty_generics for #tp #where_clause {
+            impl #impl_generics #fn_trait_ident #ty_generics for #tp #where_gerund {
                 default fn eval(
                     self,
                     ctx: &mut milevadb_query_datatype::expr::EvalContext,
@@ -1515,7 +1515,7 @@ impl NormalRpnFn {
         let generics = self.item_fn.sig.generics.clone();
         let mut impl_evaluator_generics = self.item_fn.sig.generics.clone();
         impl_evaluator_generics.params.push(parse_quote! { 'arg_ });
-        let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+        let (impl_generics, ty_generics, where_gerund) = generics.split_for_impl();
         let (impl_eval_generics, _, _) = impl_evaluator_generics.split_for_impl();
 
         let evaluator_ident = &self.evaluator_ident;
@@ -1526,10 +1526,10 @@ impl NormalRpnFn {
         quote! {
             pub struct #evaluator_ident #impl_generics (
                 std::marker::PhantomData <(#(#generic_types),*)>
-            ) #where_clause ;
+            ) #where_gerund ;
 
             impl #impl_eval_generics crate::function::Evaluator <'arg_>
-                for #evaluator_ident #ty_generics #where_clause {
+                for #evaluator_ident #ty_generics #where_gerund {
                 #[inline]
                 fn eval(
                     self,
@@ -1551,7 +1551,7 @@ impl NormalRpnFn {
             &format!("{}_fn_meta", &self.item_fn.sig.ident),
             Span::call_site(),
         );
-        let (impl_generics, ty_generics, where_clause) = self.item_fn.sig.generics.split_for_impl();
+        let (impl_generics, ty_generics, where_gerund) = self.item_fn.sig.generics.split_for_impl();
         let ty_generics_turbofish = ty_generics.as_turbofish();
         let evaluator_ident = &self.evaluator_ident;
         let mut evaluator =
@@ -1564,19 +1564,19 @@ impl NormalRpnFn {
             &self.metadata_type,
             &self.metadata_mapper,
             &impl_generics,
-            where_clause,
+            where_gerund,
         );
 
         let validator_fn = ValidatorFnGenerator::new()
             .validate_return_type(&self.ret_type)
             .validate_args_type(&self.arg_types_anonymous)
             .validate_by_fn(&self.extra_validator)
-            .generate(&impl_generics, where_clause);
+            .generate(&impl_generics, where_gerund);
 
         quote! {
             pub const fn #constructor_ident #impl_generics ()
             -> crate::RpnFnMeta
-            #where_clause
+            #where_gerund
             {
                 #[inline]
                 fn run #impl_generics (
@@ -1585,7 +1585,7 @@ impl NormalRpnFn {
                     args: &[crate::RpnStackNode<'_>],
                     extra: &mut crate::RpnFnCallExtra<'_>,
                     metadata: &(dyn std::any::Any + Slightlike),
-                ) -> milevadb_query_common::Result<milevadb_query_datatype::codec::data_type::VectorValue> #where_clause {
+                ) -> milevadb_query_common::Result<milevadb_query_datatype::codec::data_type::VectorValue> #where_gerund {
                     use crate::function::{ArgConstructor, Evaluator, Null};
                     #evaluator.eval(Null, ctx, output_rows, args, extra, metadata)
                 }
@@ -1669,8 +1669,8 @@ mod tests_normal {
         let expected: TokenStream = quote! {
             impl<
                 'arg_,
-                Arg1_: crate::function::RpnFnArg<Type = Option<&'arg_ Real> >,
-                Arg0_: crate::function::RpnFnArg<Type = Option<&'arg_ Int> >
+                Arg1_: crate::function::RpnStackedPerceptron<Type = Option<&'arg_ Real> >,
+                Arg0_: crate::function::RpnStackedPerceptron<Type = Option<&'arg_ Int> >
             > Foo_Fn for crate::function::Arg<Arg0_, crate::function::Arg<Arg1_, crate::function::Null> >
             {
                 default fn eval(
@@ -1835,7 +1835,7 @@ mod tests_normal {
     fn test_generic_generate_real_fn_trait_impl() {
         let gen = generic_fn();
         let expected: TokenStream = quote! {
-            impl<'arg_, A: M, B, Arg0_: crate::function::RpnFnArg<Type = Option<&'arg_ A::X> > > Foo_Fn<A, B>
+            impl<'arg_, A: M, B, Arg0_: crate::function::RpnStackedPerceptron<Type = Option<&'arg_ A::X> > > Foo_Fn<A, B>
                 for crate::function::Arg<Arg0_, crate::function::Null>
             where
                 B: N<A>
@@ -1981,9 +1981,9 @@ mod tests_normal {
         let expected: TokenStream = quote! {
             impl<
                     'arg_,
-                    Arg2_: crate::function::RpnFnArg<Type = Option<JsonRef<'arg_> > >,
-                    Arg1_: crate::function::RpnFnArg<Type = Option<&'arg_ Real> >,
-                    Arg0_: crate::function::RpnFnArg<Type = Option<&'arg_ Int> >
+                    Arg2_: crate::function::RpnStackedPerceptron<Type = Option<JsonRef<'arg_> > >,
+                    Arg1_: crate::function::RpnStackedPerceptron<Type = Option<&'arg_ Real> >,
+                    Arg0_: crate::function::RpnStackedPerceptron<Type = Option<&'arg_ Int> >
                 > Foo_Fn
                 for crate::function::Arg<
                     Arg0_,

@@ -12,8 +12,8 @@ use edbn::causetq::{
     WhereFn,
 };
 
-use clauses::{
-    ConjoiningClauses,
+use gerunds::{
+    ConjoiningGerunds,
 };
 
 use causetq_parityfilter_promises::errors::{
@@ -21,24 +21,24 @@ use causetq_parityfilter_promises::errors::{
     Result,
 };
 
-use Known;
+use KnownCauset;
 
 /// Application of `where` functions.
-impl ConjoiningClauses {
+impl ConjoiningGerunds {
     /// There are several kinds of functions binding variables in our Datalog:
     /// - A set of functions like `ground`, fulltext` and `get-else` that are translated into SQL
     ///   `VALUES`, `MATCH`, or `JOIN`, yielding bindings.
     /// - In the future, some functions that are implemented via function calls in SQLite.
     ///
     /// At present we have implemented only a limited selection of functions.
-    pub(crate) fn apply_where_fn(&mut self, known: Known, where_fn: WhereFn) -> Result<()> {
+    pub(crate) fn apply_where_fn(&mut self, knownCauset: KnownCauset, where_fn: WhereFn) -> Result<()> {
         // Because we'll be growing the set of built-in functions, handling each differently, and
         // ultimately allowing user-specified functions, we match on the function name first.
         match where_fn.operator.0.as_str() {
-            "fulltext" => self.apply_fulltext(known, where_fn),
-            "ground" => self.apply_ground(known, where_fn),
-            "causetx-data" => self.apply_causecausetx_data(known, where_fn),
-            "causetx-ids" => self.apply_causecausetx_ids(known, where_fn),
+            "fulltext" => self.apply_fulltext(knownCauset, where_fn),
+            "ground" => self.apply_ground(knownCauset, where_fn),
+            "causetx-data" => self.apply_causecausetx_data(knownCauset, where_fn),
+            "causetx-ids" => self.apply_causecausetx_ids(knownCauset, where_fn),
             _ => bail!(ParityFilterError::UnknownFunction(where_fn.operator.clone())),
         }
     }

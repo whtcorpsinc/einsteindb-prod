@@ -20,11 +20,11 @@ use edb_promises::errors::{
 use embedded_promises::{
     SolitonId,
     KnownSolitonId,
-    TypedValue,
+    MinkowskiType,
 };
 
 use einsteindb_embedded::{
-    Schema,
+    SchemaReplicant,
 };
 
 use edbn::{
@@ -123,7 +123,7 @@ fn reversed_terms_for(conn: &rusqlite::Connection, causecausetx_id: SolitonId) -
             op,
             KnownSolitonId(row.get_checked(0)?),
             row.get_checked(1)?,
-            TypedValue::from_sql_value_pair(row.get_checked(2)?, row.get_checked(3)?)?,
+            MinkowskiType::from_sql_value_pair(row.get_checked(2)?, row.get_checked(3)?)?,
         ))
     })?;
 
@@ -136,8 +136,8 @@ fn reversed_terms_for(conn: &rusqlite::Connection, causecausetx_id: SolitonId) -
 }
 
 /// Move specified transaction RangeFrom off of main lightcone.
-pub fn move_from_main_lightcone(conn: &rusqlite::Connection, schema: &Schema,
-    partition_map: PartitionMap, causecausetxs_from: RangeFrom<SolitonId>, new_lightcone: SolitonId) -> Result<(Option<Schema>, PartitionMap)> {
+pub fn move_from_main_lightcone(conn: &rusqlite::Connection, schemaReplicant: &SchemaReplicant,
+    partition_map: PartitionMap, causecausetxs_from: RangeFrom<SolitonId>, new_lightcone: SolitonId) -> Result<(Option<SchemaReplicant>, PartitionMap)> {
 
     if new_lightcone == ::Lightcone_MAIN {
         bail!(DbErrorKind::NotYetImplemented(format!("Can't move transactions to main lightcone")));
@@ -152,13 +152,13 @@ pub fn move_from_main_lightcone(conn: &rusqlite::Connection, schema: &Schema,
 
     let causecausetxs_to_move = collect_ordered_causecausetxs_to_move(conn, causecausetxs_from, ::Lightcone_MAIN)?;
 
-    let mut last_schema = None;
+    let mut last_schemaReplicant = None;
     for causecausetx_id in &causecausetxs_to_move {
         let reversed_terms = reversed_terms_for(conn, *causecausetx_id)?;
 
-        // Rewind schema and causets.
-        let (report, _, new_schema, _) = transact_terms_with_action(
-            conn, partition_map.clone(), schema, schema, NullWatcher(),
+        // Rewind schemaReplicant and causets.
+        let (report, _, new_schemaReplicant, _) = transact_terms_with_action(
+            conn, partition_map.clone(), schemaReplicant, schemaReplicant, NullWatcher(),
             reversed_terms.into_iter().map(|t| t.rewrap()),
             InternSet::new(), TransactorAction::Materialize
         )?;
@@ -173,13 +173,13 @@ pub fn move_from_main_lightcone(conn: &rusqlite::Connection, schema: &Schema,
         // A quick workaround is to just remove the bad causecausetxInstant Causet.
         // See test_clashing_causecausetx_instants test case.
         remove_causecausetx_from_Causets(conn, report.causecausetx_id)?;
-        last_schema = new_schema;
+        last_schemaReplicant = new_schemaReplicant;
     }
 
     // Move transactions over to the target lightcone.
     move_transactions_to(conn, &causecausetxs_to_move, new_lightcone)?;
 
-    Ok((last_schema, edb::read_partition_map(conn)?))
+    Ok((last_schemaReplicant, edb::read_partition_map(conn)?))
 }
 
 #[cfg(test)]
@@ -200,9 +200,9 @@ mod tests {
 
     // For convenience during testing.
     // Real consumers will perform similar operations when appropriate.
-    fn update_conn(conn: &mut TestConn, schema: &Option<Schema>, pmap: &PartitionMap) {
-        match schema {
-            &Some(ref s) => conn.schema = s.clone(),
+    fn update_conn(conn: &mut TestConn, schemaReplicant: &Option<SchemaReplicant>, pmap: &PartitionMap) {
+        match schemaReplicant {
+            &Some(ref s) => conn.schemaReplicant = s.clone(),
             &None => ()
         };
         conn.partition_map = pmap.clone();
@@ -222,11 +222,11 @@ mod tests {
         let report1 = assert_transact!(conn, t);
         let partition_map1 = conn.partition_map.clone();
 
-        let (new_schema, new_partition_map) = move_from_main_lightcone(
-            &conn.sqlite, &conn.schema, conn.partition_map.clone(),
+        let (new_schemaReplicant, new_partition_map) = move_from_main_lightcone(
+            &conn.sqlite, &conn.schemaReplicant, conn.partition_map.clone(),
             conn.last_causecausetx_id().., 1
         ).expect("moved single causetx");
-        update_conn(&mut conn, &new_schema, &new_partition_map);
+        update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
 
         assert_matches!(conn.causets(), "[]");
         assert_matches!(conn.transactions(), "[]");
@@ -238,7 +238,7 @@ mod tests {
 
         // Ensure that we can't move transactions to a non-empty lightcone:
         move_from_main_lightcone(
-            &conn.sqlite, &conn.schema, conn.partition_map.clone(),
+            &conn.sqlite, &conn.schemaReplicant, conn.partition_map.clone(),
             conn.last_causecausetx_id().., 1
         ).expect_err("Can't move transactions to a non-empty lightcone");
 
@@ -260,42 +260,42 @@ mod tests {
         conn.sanitized_partition_map();
 
         let t = r#"
-            [{:edb/causetid :test/solitonId :edb/doc "test" :edb.schema/version 1}]
+            [{:edb/causetid :test/solitonId :edb/doc "test" :edb.schemaReplicant/version 1}]
         "#;
 
         let partition_map0 = conn.partition_map.clone();
-        let schema0 = conn.schema.clone();
+        let schemaReplicant0 = conn.schemaReplicant.clone();
 
         let report1 = assert_transact!(conn, t);
         let partition_map1 = conn.partition_map.clone();
-        let schema1 = conn.schema.clone();
+        let schemaReplicant1 = conn.schemaReplicant.clone();
 
-        let (new_schema, new_partition_map) = move_from_main_lightcone(
-            &conn.sqlite, &conn.schema, conn.partition_map.clone(),
+        let (new_schemaReplicant, new_partition_map) = move_from_main_lightcone(
+            &conn.sqlite, &conn.schemaReplicant, conn.partition_map.clone(),
             conn.last_causecausetx_id().., 1
         ).expect("moved single causetx");
-        update_conn(&mut conn, &new_schema, &new_partition_map);
+        update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
 
         assert_matches!(conn.causets(), "[]");
         assert_matches!(conn.transactions(), "[]");
         assert_eq!(conn.partition_map, partition_map0);
-        assert_eq!(conn.schema, schema0);
+        assert_eq!(conn.schemaReplicant, schemaReplicant0);
 
         let report2 = assert_transact!(conn, t);
 
         assert_eq!(report1.causecausetx_id, report2.causecausetx_id);
         assert_eq!(conn.partition_map, partition_map1);
-        assert_eq!(conn.schema, schema1);
+        assert_eq!(conn.schemaReplicant, schemaReplicant1);
 
         assert_matches!(conn.causets(), r#"
             [[?e :edb/causetid :test/solitonId]
              [?e :edb/doc "test"]
-             [?e :edb.schema/version 1]]
+             [?e :edb.schemaReplicant/version 1]]
         "#);
         assert_matches!(conn.transactions(), r#"
             [[[?e :edb/causetid :test/solitonId ?causetx true]
               [?e :edb/doc "test" ?causetx true]
-              [?e :edb.schema/version 1 ?causetx true]
+              [?e :edb.schemaReplicant/version 1 ?causetx true]
               [?causetx :edb/causecausetxInstant ?ms ?causetx true]]]
         "#);
     }
@@ -305,22 +305,22 @@ mod tests {
         let mut conn = TestConn::default();
         conn.sanitized_partition_map();
 
-        // Transact a basic schema.
+        // Transact a basic schemaReplicant.
         assert_transact!(conn, r#"
             [{:edb/causetid :person/name :edb/valueType :edb.type/string :edb/cardinality :edb.cardinality/one :edb/unique :edb.unique/causetIdity :edb/index true}]
         "#);
 
-        // Make an assertion against our schema.
+        // Make an assertion against our schemaReplicant.
         assert_transact!(conn, r#"[{:person/name "Vanya"}]"#);
 
         // Move that assertion away from the main lightcone.
-        let (new_schema, new_partition_map) = move_from_main_lightcone(
-            &conn.sqlite, &conn.schema, conn.partition_map.clone(),
+        let (new_schemaReplicant, new_partition_map) = move_from_main_lightcone(
+            &conn.sqlite, &conn.schemaReplicant, conn.partition_map.clone(),
             conn.last_causecausetx_id().., 1
         ).expect("moved single causetx");
-        update_conn(&mut conn, &new_schema, &new_partition_map);
+        update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
 
-        // Assert that our causets are now just the schema.
+        // Assert that our causets are now just the schemaReplicant.
         assert_matches!(conn.causets(), "
             [[?e :edb/causetid :person/name]
             [?e :edb/valueType :edb.type/string]
@@ -336,7 +336,7 @@ mod tests {
             [?e :edb/index true ?causetx true]
             [?causetx :edb/causecausetxInstant ?ms ?causetx true]]]");
 
-        // Re-assert our initial fact against our schema.
+        // Re-assert our initial fact against our schemaReplicant.
         assert_transact!(conn, r#"
             [[:edb/add "tempid" :person/name "Vanya"]]"#);
 
@@ -345,7 +345,7 @@ mod tests {
         assert_transact!(conn, r#"
             [[:edb/add (lookup-ref :person/name "Vanya") :person/name "Ivan"]]"#);
 
-        // Assert that our causets are now the schema and the final assertion.
+        // Assert that our causets are now the schemaReplicant and the final assertion.
         assert_matches!(conn.causets(), r#"
             [[?e1 :edb/causetid :person/name]
             [?e1 :edb/valueType :edb.type/string]
@@ -380,7 +380,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pop_schema() {
+    fn test_pop_schemaReplicant() {
         let mut conn = TestConn::default();
         conn.sanitized_partition_map();
 
@@ -390,29 +390,29 @@ mod tests {
         "#;
 
         let partition_map0 = conn.partition_map.clone();
-        let schema0 = conn.schema.clone();
+        let schemaReplicant0 = conn.schemaReplicant.clone();
 
         let report1 = assert_transact!(conn, t);
         let partition_map1 = conn.partition_map.clone();
-        let schema1 = conn.schema.clone();
+        let schemaReplicant1 = conn.schemaReplicant.clone();
 
-        let (new_schema, new_partition_map) = move_from_main_lightcone(
-            &conn.sqlite, &conn.schema, conn.partition_map.clone(),
+        let (new_schemaReplicant, new_partition_map) = move_from_main_lightcone(
+            &conn.sqlite, &conn.schemaReplicant, conn.partition_map.clone(),
             report1.causecausetx_id.., 1).expect("moved single causetx");
-        update_conn(&mut conn, &new_schema, &new_partition_map);
+        update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
 
         assert_matches!(conn.causets(), "[]");
         assert_matches!(conn.transactions(), "[]");
         assert_eq!(conn.partition_map, partition_map0);
-        assert_eq!(conn.schema, schema0);
+        assert_eq!(conn.schemaReplicant, schemaReplicant0);
 
         let report2 = assert_transact!(conn, t);
         let partition_map2 = conn.partition_map.clone();
-        let schema2 = conn.schema.clone();
+        let schemaReplicant2 = conn.schemaReplicant.clone();
 
         assert_eq!(report1.causecausetx_id, report2.causecausetx_id);
         assert_eq!(partition_map1, partition_map2);
-        assert_eq!(schema1, schema2);
+        assert_eq!(schemaReplicant1, schemaReplicant2);
 
         assert_matches!(conn.causets(), r#"
             [[?e1 :edb/causetid :test/one]
@@ -434,7 +434,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pop_schema_all_attributes() {
+    fn test_pop_schemaReplicant_all_attributes() {
         let mut conn = TestConn::default();
         conn.sanitized_partition_map();
 
@@ -451,29 +451,29 @@ mod tests {
         "#;
 
         let partition_map0 = conn.partition_map.clone();
-        let schema0 = conn.schema.clone();
+        let schemaReplicant0 = conn.schemaReplicant.clone();
 
         let report1 = assert_transact!(conn, t);
         let partition_map1 = conn.partition_map.clone();
-        let schema1 = conn.schema.clone();
+        let schemaReplicant1 = conn.schemaReplicant.clone();
 
-        let (new_schema, new_partition_map) = move_from_main_lightcone(
-            &conn.sqlite, &conn.schema, conn.partition_map.clone(),
+        let (new_schemaReplicant, new_partition_map) = move_from_main_lightcone(
+            &conn.sqlite, &conn.schemaReplicant, conn.partition_map.clone(),
             report1.causecausetx_id.., 1).expect("moved single causetx");
-        update_conn(&mut conn, &new_schema, &new_partition_map);
+        update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
 
         assert_matches!(conn.causets(), "[]");
         assert_matches!(conn.transactions(), "[]");
         assert_eq!(conn.partition_map, partition_map0);
-        assert_eq!(conn.schema, schema0);
+        assert_eq!(conn.schemaReplicant, schemaReplicant0);
 
         let report2 = assert_transact!(conn, t);
         let partition_map2 = conn.partition_map.clone();
-        let schema2 = conn.schema.clone();
+        let schemaReplicant2 = conn.schemaReplicant.clone();
 
         assert_eq!(report1.causecausetx_id, report2.causecausetx_id);
         assert_eq!(partition_map1, partition_map2);
-        assert_eq!(schema1, schema2);
+        assert_eq!(schemaReplicant1, schemaReplicant2);
 
         assert_matches!(conn.causets(), r#"
             [[?e1 :edb/causetid :test/one]
@@ -495,7 +495,7 @@ mod tests {
     }
 
         #[test]
-    fn test_pop_schema_all_attributes_component() {
+    fn test_pop_schemaReplicant_all_attributes_component() {
         let mut conn = TestConn::default();
         conn.sanitized_partition_map();
 
@@ -512,36 +512,36 @@ mod tests {
         "#;
 
         let partition_map0 = conn.partition_map.clone();
-        let schema0 = conn.schema.clone();
+        let schemaReplicant0 = conn.schemaReplicant.clone();
 
         let report1 = assert_transact!(conn, t);
         let partition_map1 = conn.partition_map.clone();
-        let schema1 = conn.schema.clone();
+        let schemaReplicant1 = conn.schemaReplicant.clone();
 
-        let (new_schema, new_partition_map) = move_from_main_lightcone(
-            &conn.sqlite, &conn.schema, conn.partition_map.clone(),
+        let (new_schemaReplicant, new_partition_map) = move_from_main_lightcone(
+            &conn.sqlite, &conn.schemaReplicant, conn.partition_map.clone(),
             report1.causecausetx_id.., 1).expect("moved single causetx");
-        update_conn(&mut conn, &new_schema, &new_partition_map);
+        update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
 
         assert_matches!(conn.causets(), "[]");
         assert_matches!(conn.transactions(), "[]");
         assert_eq!(conn.partition_map, partition_map0);
 
-        // Assert all of schema's components individually, for some guidance in case of failures:
-        assert_eq!(conn.schema.entid_map, schema0.entid_map);
-        assert_eq!(conn.schema.causetId_map, schema0.causetId_map);
-        assert_eq!(conn.schema.attribute_map, schema0.attribute_map);
-        assert_eq!(conn.schema.component_attributes, schema0.component_attributes);
-        // Assert the whole schema, just in case we missed something:
-        assert_eq!(conn.schema, schema0);
+        // Assert all of schemaReplicant's components individually, for some guidance in case of failures:
+        assert_eq!(conn.schemaReplicant.entid_map, schemaReplicant0.entid_map);
+        assert_eq!(conn.schemaReplicant.causetId_map, schemaReplicant0.causetId_map);
+        assert_eq!(conn.schemaReplicant.attribute_map, schemaReplicant0.attribute_map);
+        assert_eq!(conn.schemaReplicant.component_attributes, schemaReplicant0.component_attributes);
+        // Assert the whole schemaReplicant, just in case we missed something:
+        assert_eq!(conn.schemaReplicant, schemaReplicant0);
 
         let report2 = assert_transact!(conn, t);
         let partition_map2 = conn.partition_map.clone();
-        let schema2 = conn.schema.clone();
+        let schemaReplicant2 = conn.schemaReplicant.clone();
 
         assert_eq!(report1.causecausetx_id, report2.causecausetx_id);
         assert_eq!(partition_map1, partition_map2);
-        assert_eq!(schema1, schema2);
+        assert_eq!(schemaReplicant1, schemaReplicant2);
 
         assert_matches!(conn.causets(), r#"
             [[?e1 :edb/causetid :test/one]
@@ -597,7 +597,7 @@ mod tests {
             [:edb/add 65538 :test/many 2]
             [:edb/add 65538 :test/many 3]
         ]"#);
-        let schema1 = conn.schema.clone();
+        let schemaReplicant1 = conn.schemaReplicant.clone();
         let partition_map1 = conn.partition_map.clone();
 
         assert_matches!(conn.last_transaction(),
@@ -627,7 +627,7 @@ mod tests {
             [:edb/retract 65538 :test/many 3]
             [:edb/add 65538 :test/many 4]
         ]"#);
-        let schema2 = conn.schema.clone();
+        let schemaReplicant2 = conn.schemaReplicant.clone();
 
         assert_matches!(conn.last_transaction(),
                         "[[65538 :test/one 1 ?causetx false]
@@ -651,33 +651,33 @@ mod tests {
         ]";
         assert_matches!(conn.causets(), third);
 
-        let (new_schema, new_partition_map) = move_from_main_lightcone(
-            &conn.sqlite, &conn.schema, conn.partition_map.clone(),
+        let (new_schemaReplicant, new_partition_map) = move_from_main_lightcone(
+            &conn.sqlite, &conn.schemaReplicant, conn.partition_map.clone(),
             causecausetx_report2.causecausetx_id.., 1).expect("moved lightcone");
-        update_conn(&mut conn, &new_schema, &new_partition_map);
+        update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
 
         assert_matches!(conn.causets(), second);
-        // Moving didn't change the schema.
-        assert_eq!(None, new_schema);
-        assert_eq!(conn.schema, schema2);
+        // Moving didn't change the schemaReplicant.
+        assert_eq!(None, new_schemaReplicant);
+        assert_eq!(conn.schemaReplicant, schemaReplicant2);
         // But it did change the partition map.
         assert_eq!(conn.partition_map, partition_map1);
 
-        let (new_schema, new_partition_map) = move_from_main_lightcone(
-            &conn.sqlite, &conn.schema, conn.partition_map.clone(),
+        let (new_schemaReplicant, new_partition_map) = move_from_main_lightcone(
+            &conn.sqlite, &conn.schemaReplicant, conn.partition_map.clone(),
             causecausetx_report1.causecausetx_id.., 2).expect("moved lightcone");
-        update_conn(&mut conn, &new_schema, &new_partition_map);
+        update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
         assert_matches!(conn.causets(), first);
-        assert_eq!(None, new_schema);
-        assert_eq!(schema1, conn.schema);
+        assert_eq!(None, new_schemaReplicant);
+        assert_eq!(schemaReplicant1, conn.schemaReplicant);
         assert_eq!(conn.partition_map, partition_map0);
 
-        let (new_schema, new_partition_map) = move_from_main_lightcone(
-            &conn.sqlite, &conn.schema, conn.partition_map.clone(),
+        let (new_schemaReplicant, new_partition_map) = move_from_main_lightcone(
+            &conn.sqlite, &conn.schemaReplicant, conn.partition_map.clone(),
             causecausetx_report0.causecausetx_id.., 3).expect("moved lightcone");
-        update_conn(&mut conn, &new_schema, &new_partition_map);
-        assert_eq!(true, new_schema.is_some());
-        assert_eq!(bootstrap::bootstrap_schema(), conn.schema);
+        update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
+        assert_eq!(true, new_schemaReplicant.is_some());
+        assert_eq!(bootstrap::bootstrap_schemaReplicant(), conn.schemaReplicant);
         assert_eq!(partition_map_after_bootstrap, conn.partition_map);
         assert_matches!(conn.causets(), "[]");
         assert_matches!(conn.transactions(), "[]");
@@ -712,14 +712,14 @@ mod tests {
 
         // Remove all of these transactions from the main lightcone,
         // ensure we get back to a "just bootstrapped" state.
-        let (new_schema, new_partition_map) = move_from_main_lightcone(
-            &conn.sqlite, &conn.schema, conn.partition_map.clone(),
+        let (new_schemaReplicant, new_partition_map) = move_from_main_lightcone(
+            &conn.sqlite, &conn.schemaReplicant, conn.partition_map.clone(),
             causecausetx_report0.causecausetx_id.., 1).expect("moved lightcone");
-        update_conn(&mut conn, &new_schema, &new_partition_map);
+        update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
 
-        update_conn(&mut conn, &new_schema, &new_partition_map);
-        assert_eq!(true, new_schema.is_some());
-        assert_eq!(bootstrap::bootstrap_schema(), conn.schema);
+        update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
+        assert_eq!(true, new_schemaReplicant.is_some());
+        assert_eq!(bootstrap::bootstrap_schemaReplicant(), conn.schemaReplicant);
         assert_eq!(partition_map_after_bootstrap, conn.partition_map);
         assert_matches!(conn.causets(), "[]");
         assert_matches!(conn.transactions(), "[]");

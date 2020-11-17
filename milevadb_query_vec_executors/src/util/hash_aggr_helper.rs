@@ -23,13 +23,13 @@ impl HashAggregationHelper {
         states_offset_each_logical_row: &[usize],
     ) -> Result<()> {
         let logical_rows_len = input_logical_rows.len();
-        let src_schema = entities.src.schema();
+        let src_schemaReplicant = entities.src.schemaReplicant();
 
         for idx in 0..entities.each_aggr_fn.len() {
             let aggr_expr = &entities.each_aggr_exprs[idx];
             let aggr_expr_result = aggr_expr.eval(
                 &mut entities.context,
-                src_schema,
+                src_schemaReplicant,
                 input_physical_PrimaryCausets,
                 input_logical_rows,
                 logical_rows_len,

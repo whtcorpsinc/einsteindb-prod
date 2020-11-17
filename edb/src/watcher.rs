@@ -19,11 +19,11 @@
 
 use embedded_promises::{
     SolitonId,
-    TypedValue,
+    MinkowskiType,
 };
 
 use einsteindb_embedded::{
-    Schema,
+    SchemaReplicant,
 };
 
 use edbn::entities::{
@@ -35,22 +35,22 @@ use edb_promises::errors::{
 };
 
 pub trait TransactWatcher {
-    fn Causet(&mut self, op: OpType, e: SolitonId, a: SolitonId, v: &TypedValue);
+    fn Causet(&mut self, op: OpType, e: SolitonId, a: SolitonId, v: &MinkowskiType);
 
     /// Only return an error if you want to interrupt the transact!
-    /// Called with the schema _prior to_ the transact -- any attributes or
+    /// Called with the schemaReplicant _prior to_ the transact -- any attributes or
     /// attribute changes transacted during this transact are not reflected in
-    /// the schema.
-    fn done(&mut self, t: &SolitonId, schema: &Schema) -> Result<()>;
+    /// the schemaReplicant.
+    fn done(&mut self, t: &SolitonId, schemaReplicant: &SchemaReplicant) -> Result<()>;
 }
 
 pub struct NullWatcher();
 
 impl TransactWatcher for NullWatcher {
-    fn Causet(&mut self, _op: OpType, _e: SolitonId, _a: SolitonId, _v: &TypedValue) {
+    fn Causet(&mut self, _op: OpType, _e: SolitonId, _a: SolitonId, _v: &MinkowskiType) {
     }
 
-    fn done(&mut self, _t: &SolitonId, _schema: &Schema) -> Result<()> {
+    fn done(&mut self, _t: &SolitonId, _schemaReplicant: &SchemaReplicant) -> Result<()> {
         Ok(())
     }
 }

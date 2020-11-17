@@ -46,15 +46,15 @@ impl<S: CausetStorage> BatchTableScanFreeDaemon<S> {
         let is_PrimaryCauset_filled = vec![false; PrimaryCausets_info.len()];
         let mut is_key_only = true;
         let mut handle_indices = HandleIndicesVec::new();
-        let mut schema = Vec::with_capacity(PrimaryCausets_info.len());
+        let mut schemaReplicant = Vec::with_capacity(PrimaryCausets_info.len());
         let mut PrimaryCausets_default_value = Vec::with_capacity(PrimaryCausets_info.len());
         let mut PrimaryCauset_id_index = HashMap::default();
 
         let primary_PrimaryCauset_ids_set = primary_PrimaryCauset_ids.iter().collect::<HashSet<_>>();
         for (index, mut ci) in PrimaryCausets_info.into_iter().enumerate() {
             // For each PrimaryCauset info, we need to extract the following info:
-            // - Corresponding field type (push into `schema`).
-            schema.push(field_type_from_PrimaryCauset_info(&ci));
+            // - Corresponding field type (push into `schemaReplicant`).
+            schemaReplicant.push(field_type_from_PrimaryCauset_info(&ci));
 
             // - Prepare PrimaryCauset default value (will be used to fill missing PrimaryCauset later).
             PrimaryCausets_default_value.push(ci.take_default_val());
@@ -77,7 +77,7 @@ impl<S: CausetStorage> BatchTableScanFreeDaemon<S> {
         let no_common_handle = primary_PrimaryCauset_ids.is_empty();
         let imp = TableScanFreeDaemonImpl {
             context: EvalContext::new(config),
-            schema,
+            schemaReplicant,
             PrimaryCausets_default_value,
             PrimaryCauset_id_index,
             handle_indices,
@@ -101,8 +101,8 @@ impl<S: CausetStorage> BatchFreeDaemon for BatchTableScanFreeDaemon<S> {
     type StorageStats = S::Statistics;
 
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        self.0.schema()
+    fn schemaReplicant(&self) -> &[FieldType] {
+        self.0.schemaReplicant()
     }
 
     #[inline]
@@ -136,15 +136,15 @@ struct TableScanFreeDaemonImpl {
     // TODO: Rename EvalContext to ExecContext.
     context: EvalContext,
 
-    /// The schema of the output. All of the output come from specific PrimaryCausets in the underlying
+    /// The schemaReplicant of the output. All of the output come from specific PrimaryCausets in the underlying
     /// causetStorage.
-    schema: Vec<FieldType>,
+    schemaReplicant: Vec<FieldType>,
 
-    /// The default value of corresponding PrimaryCausets in the schema. When PrimaryCauset data is missing,
+    /// The default value of corresponding PrimaryCausets in the schemaReplicant. When PrimaryCauset data is missing,
     /// the default value will be used to fill the output.
     PrimaryCausets_default_value: Vec<Vec<u8>>,
 
-    /// The output position in the schema giving the PrimaryCauset id.
+    /// The output position in the schemaReplicant giving the PrimaryCauset id.
     PrimaryCauset_id_index: HashMap<i64, usize>,
 
     /// Vec of indices in output row to put the handle. The indices must be sorted in the vec.
@@ -223,7 +223,7 @@ impl TableScanFreeDaemonImpl {
             if let Some((spacelike, offset)) = row.search_in_non_null_ids(*col_id)? {
                 let mut buffer_to_write = PrimaryCausets[*idx].mut_raw().begin_concat_extlightlike();
                 buffer_to_write
-                    .write_v2_as_datum(&row.values()[spacelike..offset], &self.schema[*idx])?;
+                    .write_v2_as_datum(&row.values()[spacelike..offset], &self.schemaReplicant[*idx])?;
                 *decoded_PrimaryCausets += 1;
                 self.is_PrimaryCauset_filled[*idx] = true;
             } else if row.search_in_null_ids(*col_id) {
@@ -240,8 +240,8 @@ impl TableScanFreeDaemonImpl {
 
 impl ScanFreeDaemonImpl for TableScanFreeDaemonImpl {
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        &self.schema
+    fn schemaReplicant(&self) -> &[FieldType] {
+        &self.schemaReplicant
     }
 
     #[inline]
@@ -251,7 +251,7 @@ impl ScanFreeDaemonImpl for TableScanFreeDaemonImpl {
 
     /// Constructs empty PrimaryCausets, with PK in decoded format and the rest in raw format.
     fn build_PrimaryCauset_vec(&self, scan_rows: usize) -> LazyBatchPrimaryCausetVec {
-        let PrimaryCausets_len = self.schema.len();
+        let PrimaryCausets_len = self.schemaReplicant.len();
         let mut PrimaryCausets = Vec::with_capacity(PrimaryCausets_len);
 
         // If there are any PK PrimaryCausets, for each of them, fill non-PK PrimaryCausets before it and push the
@@ -302,7 +302,7 @@ impl ScanFreeDaemonImpl for TableScanFreeDaemonImpl {
     ) -> Result<()> {
         use milevadb_query_datatype::codec::{datum, table};
 
-        let PrimaryCausets_len = self.schema.len();
+        let PrimaryCausets_len = self.schemaReplicant.len();
         let mut decoded_PrimaryCausets = 0;
 
         if value.is_empty() || (value.len() == 1 && value[0] == datum::NIL_FLAG) {
@@ -358,7 +358,7 @@ impl ScanFreeDaemonImpl for TableScanFreeDaemonImpl {
                 let default_value = if !self.PrimaryCausets_default_value[i].is_empty() {
                     // default value is provided, use the default value
                     self.PrimaryCausets_default_value[i].as_slice()
-                } else if !self.schema[i]
+                } else if !self.schemaReplicant[i]
                     .as_accessor()
                     .flag()
                     .contains(milevadb_query_datatype::FieldTypeFlag::NOT_NULL)
@@ -403,8 +403,8 @@ mod tests {
     use milevadb_query_datatype::codec::{datum, table, Datum};
     use milevadb_query_datatype::expr::EvalConfig;
 
-    /// Test Helper for normal test with fixed schema and data.
-    /// Table Schema:  ID (INT, PK),   Foo (INT),     Bar (FLOAT, Default 4.5)
+    /// Test Helper for normal test with fixed schemaReplicant and data.
+    /// Table SchemaReplicant:  ID (INT, PK),   Foo (INT),     Bar (FLOAT, Default 4.5)
     /// PrimaryCauset id:     1,              2,             4
     /// PrimaryCauset offset: 0,              1,             2
     /// Table Data:    1,              10,            5.2
@@ -422,7 +422,7 @@ mod tests {
     }
 
     impl TableScanTestHelper {
-        /// create the TableScanTestHelper with fixed schema and data.
+        /// create the TableScanTestHelper with fixed schemaReplicant and data.
         fn new() -> TableScanTestHelper {
             const TABLE_ID: i64 = 7;
             // [(row_id, PrimaryCausets)] where each PrimaryCauset: (PrimaryCauset id, datum)
@@ -703,11 +703,11 @@ mod tests {
             vec![0, 1],
             vec![0, 2],
             vec![1, 2],
-            //PK is the last PrimaryCauset in schema
+            //PK is the last PrimaryCauset in schemaReplicant
             vec![2, 1, 0],
-            //PK is the first PrimaryCauset in schema
+            //PK is the first PrimaryCauset in schemaReplicant
             vec![0, 1, 2],
-            // PK is in the middle of the schema
+            // PK is in the middle of the schemaReplicant
             vec![1, 0, 2],
         ];
         // expect_rows used in next_batch for each test case.
@@ -808,7 +808,7 @@ mod tests {
                 ci
             },
         ];
-        let schema = vec![
+        let schemaReplicant = vec![
             FieldTypeTp::LongLong.into(),
             FieldTypeTp::LongLong.into(),
             FieldTypeTp::LongLong.into(),
@@ -894,7 +894,7 @@ mod tests {
             );
             assert!(result.physical_PrimaryCausets[1].is_raw());
             result.physical_PrimaryCausets[1]
-                .ensure_all_decoded_for_test(&mut ctx, &schema[1])
+                .ensure_all_decoded_for_test(&mut ctx, &schemaReplicant[1])
                 .unwrap();
             assert_eq!(
                 result.physical_PrimaryCausets[1].decoded().to_int_vec(),
@@ -902,7 +902,7 @@ mod tests {
             );
             assert!(result.physical_PrimaryCausets[2].is_raw());
             result.physical_PrimaryCausets[2]
-                .ensure_all_decoded_for_test(&mut ctx, &schema[2])
+                .ensure_all_decoded_for_test(&mut ctx, &schemaReplicant[2])
                 .unwrap();
             assert_eq!(
                 result.physical_PrimaryCausets[2].decoded().to_int_vec(),
@@ -930,7 +930,7 @@ mod tests {
                 ci
             },
         ];
-        let schema = vec![FieldTypeTp::LongLong.into(), FieldTypeTp::LongLong.into()];
+        let schemaReplicant = vec![FieldTypeTp::LongLong.into(), FieldTypeTp::LongLong.into()];
 
         let mut ctx = EvalContext::default();
         let mut kv = vec![];
@@ -1000,7 +1000,7 @@ mod tests {
             );
             assert!(result.physical_PrimaryCausets[1].is_raw());
             result.physical_PrimaryCausets[1]
-                .ensure_all_decoded_for_test(&mut ctx, &schema[1])
+                .ensure_all_decoded_for_test(&mut ctx, &schemaReplicant[1])
                 .unwrap();
             assert_eq!(
                 result.physical_PrimaryCausets[1].decoded().to_int_vec(),
@@ -1036,7 +1036,7 @@ mod tests {
             );
             assert!(result.physical_PrimaryCausets[1].is_raw());
             result.physical_PrimaryCausets[1]
-                .ensure_all_decoded_for_test(&mut ctx, &schema[1])
+                .ensure_all_decoded_for_test(&mut ctx, &schemaReplicant[1])
                 .unwrap();
             assert_eq!(
                 result.physical_PrimaryCausets[1].decoded().to_int_vec(),
@@ -1094,7 +1094,7 @@ mod tests {
             );
             assert!(result.physical_PrimaryCausets[1].is_raw());
             result.physical_PrimaryCausets[1]
-                .ensure_all_decoded_for_test(&mut ctx, &schema[1])
+                .ensure_all_decoded_for_test(&mut ctx, &schemaReplicant[1])
                 .unwrap();
             assert_eq!(
                 result.physical_PrimaryCausets[1].decoded().to_int_vec(),
@@ -1140,11 +1140,11 @@ mod tests {
             PrimaryCausets_info.push(ci);
         }
 
-        let mut schema = Vec::new();
-        schema.resize(PrimaryCausets_is_pk.len(), FieldTypeTp::LongLong.into());
+        let mut schemaReplicant = Vec::new();
+        schemaReplicant.resize(PrimaryCausets_is_pk.len(), FieldTypeTp::LongLong.into());
 
         let key = table::encode_row_key(TABLE_ID, 1);
-        let col_ids = (10..10 + schema.len() as i64).collect::<Vec<_>>();
+        let col_ids = (10..10 + schemaReplicant.len() as i64).collect::<Vec<_>>();
         let row = col_ids.iter().map(|i| Datum::I64(*i)).collect();
         let value = table::encode_row(&mut EvalContext::default(), row, &col_ids).unwrap();
 
@@ -1171,7 +1171,7 @@ mod tests {
         assert_eq!(result.physical_PrimaryCausets.PrimaryCausets_len(), PrimaryCausets_is_pk.len());
         for i in 0..PrimaryCausets_is_pk.len() {
             result.physical_PrimaryCausets[i]
-                .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[i])
+                .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[i])
                 .unwrap();
             if PrimaryCausets_is_pk[i] {
                 assert_eq!(
@@ -1211,7 +1211,7 @@ mod tests {
 
         // Prepare some table meta data
         let mut PrimaryCausets_info = vec![];
-        let mut schema = vec![];
+        let mut schemaReplicant = vec![];
         let mut handle = vec![];
         let mut primary_PrimaryCauset_ids = vec![];
         let mut missed_PrimaryCausets_info = vec![];
@@ -1231,7 +1231,7 @@ mod tests {
                 ci.as_mut_accessor().set_tp(FieldTypeTp::LongLong);
 
                 PrimaryCausets_info.push(ci);
-                schema.push(FieldTypeTp::LongLong.into());
+                schemaReplicant.push(FieldTypeTp::LongLong.into());
             } else {
                 missed_PrimaryCausets_info.push(i as i64);
             }
@@ -1279,7 +1279,7 @@ mod tests {
         // We expect we fill the primary PrimaryCauset with the value embedded in the common handle.
         for i in 0..result.physical_PrimaryCausets.PrimaryCausets_len() {
             result.physical_PrimaryCausets[i]
-                .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[i])
+                .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[i])
                 .unwrap();
 
             assert_eq!(

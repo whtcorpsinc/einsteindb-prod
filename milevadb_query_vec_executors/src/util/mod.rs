@@ -18,12 +18,12 @@ use milevadb_query_vec_expr::RpnStackNode;
 pub fn ensure_PrimaryCausets_decoded(
     ctx: &mut EvalContext,
     exprs: &[RpnExpression],
-    schema: &[FieldType],
+    schemaReplicant: &[FieldType],
     input_physical_PrimaryCausets: &mut LazyBatchPrimaryCausetVec,
     input_logical_rows: &[usize],
 ) -> Result<()> {
     for expr in exprs {
-        expr.ensure_PrimaryCausets_decoded(ctx, schema, input_physical_PrimaryCausets, input_logical_rows)?;
+        expr.ensure_PrimaryCausets_decoded(ctx, schemaReplicant, input_physical_PrimaryCausets, input_logical_rows)?;
     }
     Ok(())
 }
@@ -33,7 +33,7 @@ pub fn ensure_PrimaryCausets_decoded(
 pub unsafe fn eval_exprs_decoded_no_lifetime<'a>(
     ctx: &mut EvalContext,
     exprs: &[RpnExpression],
-    schema: &[FieldType],
+    schemaReplicant: &[FieldType],
     input_physical_PrimaryCausets: &LazyBatchPrimaryCausetVec,
     input_logical_rows: &[usize],
     output: &mut Vec<RpnStackNode<'a>>,
@@ -45,7 +45,7 @@ pub unsafe fn eval_exprs_decoded_no_lifetime<'a>(
     for expr in exprs {
         output.push(erase_lifetime(expr).eval_decoded(
             ctx,
-            erase_lifetime(schema),
+            erase_lifetime(schemaReplicant),
             erase_lifetime(input_physical_PrimaryCausets),
             erase_lifetime(input_logical_rows),
             input_logical_rows.len(),

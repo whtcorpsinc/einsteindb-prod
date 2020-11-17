@@ -17,7 +17,7 @@ use einstein_db::{
 
 use embedded_promises::{
     SolitonId,
-    TypedValue,
+    MinkowskiType,
 };
 
 use public_promises::errors::{
@@ -120,7 +120,7 @@ fn to_causecausetx_part(row: &rusqlite::Row) -> Result<TxPart> {
         partitions: None,
         e: row.get_checked(0)?,
         a: row.get_checked(1)?,
-        v: TypedValue::from_sql_value_pair(row.get_checked(2)?, row.get_checked(3)?)?,
+        v: MinkowskiType::from_sql_value_pair(row.get_checked(2)?, row.get_checked(3)?)?,
         causetx: row.get_checked(4)?,
         added: row.get_checked(5)?,
     })

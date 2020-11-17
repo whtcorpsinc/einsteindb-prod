@@ -219,7 +219,7 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine> + 'static> debug
         self.handle_response(ctx, sink, f, TAG);
     }
 
-    fn scan_mvcc(
+    fn scan_tail_pointer(
         &mut self,
         ctx: RpcContext<'_>,
         mut req: ScanMvccRequest,
@@ -234,20 +234,20 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine> + 'static> debug
         let limit = req.get_limit();
 
         let future = async move {
-            let iter = debugger.scan_mvcc(&from, &to, limit);
+            let iter = debugger.scan_tail_pointer(&from, &to, limit);
             if iter.is_err() {
                 return;
             }
             let mut s = stream::iter(iter.unwrap())
-                .map_err(|e| error_to_grpc_error("scan_mvcc", e))
-                .map_ok(|(key, mvcc_info)| {
+                .map_err(|e| error_to_grpc_error("scan_tail_pointer", e))
+                .map_ok(|(key, tail_pointer_info)| {
                     let mut resp = ScanMvccResponse::default();
                     resp.set_key(key);
-                    resp.set_info(mvcc_info);
+                    resp.set_info(tail_pointer_info);
                     (resp, WriteFlags::default())
                 });
             if let Err(e) = sink.slightlike_all(&mut s).await {
-                on_grpc_error("scan_mvcc", &e);
+                on_grpc_error("scan_tail_pointer", &e);
                 return;
             }
             let _ = sink.close().await;

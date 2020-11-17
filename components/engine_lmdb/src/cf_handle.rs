@@ -8,6 +8,8 @@ use engine_promises::{Error, Result};
 use lmdb::CAUSETHandle as RawCAUSETHandle;
 
 impl CAUSETHandleExt for LmdbEngine {
+
+    //a virtual cursor 
     type CAUSETHandle = LmdbCAUSETHandle;
     type PrimaryCausetNetworkOptions = LmdbPrimaryCausetNetworkOptions;
 

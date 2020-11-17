@@ -25,7 +25,7 @@ use violetabft::evioletabftpb::Entry;
 use violetabft::{self, RawNode};
 
 use crate::config::ConfigController;
-use crate::causetStorage::mvcc::{Dagger, LockType, TimeStamp, Write, WriteRef, WriteType};
+use crate::causetStorage::tail_pointer::{Dagger, LockType, TimeStamp, Write, WriteRef, WriteType};
 use engine_lmdb::properties::MvccProperties;
 use violetabftstore::interlock::get_brane_approximate_middle;
 use violetabftstore::store::util as violetabftstore_util;
@@ -250,7 +250,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
     }
 
     /// Scan MVCC Infos for given cone `[spacelike, lightlike)`.
-    pub fn scan_mvcc(&self, spacelike: &[u8], lightlike: &[u8], limit: u64) -> Result<MvccInfoIterator> {
+    pub fn scan_tail_pointer(&self, spacelike: &[u8], lightlike: &[u8], limit: u64) -> Result<MvccInfoIterator> {
         if !spacelike.spacelikes_with(b"z") || (!lightlike.is_empty() && !lightlike.spacelikes_with(b"z")) {
             return Err(Error::InvalidArgument(
                 "spacelike and lightlike should spacelike with \"z\"".to_owned(),
@@ -382,7 +382,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
         let mut errors = Vec::with_capacity(branes.len());
         for brane in branes {
             let brane_id = brane.get_id();
-            if let Err(e) = recover_mvcc_for_cone(
+            if let Err(e) = recover_tail_pointer_for_cone(
                 db.as_inner(),
                 brane.get_spacelike_key(),
                 brane.get_lightlike_key(),
@@ -422,7 +422,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
             let lightlike_key = cone_borders[thread_index + 1].clone();
 
             let thread = ThreadBuilder::new()
-                .name(format!("mvcc-recover-thread-{}", thread_index))
+                .name(format!("tail_pointer-recover-thread-{}", thread_index))
                 .spawn(move || {
                     einsteindb_alloc::add_thread_memory_accessor();
                     v1!(
@@ -432,7 +432,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
                         hex::encode_upper(&lightlike_key)
                     );
 
-                    let result = recover_mvcc_for_cone(
+                    let result = recover_tail_pointer_for_cone(
                         db.as_inner(),
                         &spacelike_key,
                         &lightlike_key,
@@ -735,7 +735,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
         let spacelike = tuplespaceInstanton::enc_spacelike_key(brane);
         let lightlike = tuplespaceInstanton::enc_lightlike_key(brane);
 
-        let mut res = dump_mvcc_properties(self.engines.kv.as_inner(), &spacelike, &lightlike)?;
+        let mut res = dump_tail_pointer_properties(self.engines.kv.as_inner(), &spacelike, &lightlike)?;
 
         let middle_key = match box_try!(get_brane_approximate_middle(&self.engines.kv, brane)) {
             Some(data_key) => {
@@ -755,7 +755,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
     }
 
     pub fn get_cone_properties(&self, spacelike: &[u8], lightlike: &[u8]) -> Result<Vec<(String, String)>> {
-        dump_mvcc_properties(
+        dump_tail_pointer_properties(
             self.engines.kv.as_inner(),
             &tuplespaceInstanton::data_key(spacelike),
             &tuplespaceInstanton::data_lightlike_key(lightlike),
@@ -763,17 +763,17 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
     }
 }
 
-fn dump_mvcc_properties(db: &Arc<DB>, spacelike: &[u8], lightlike: &[u8]) -> Result<Vec<(String, String)>> {
+fn dump_tail_pointer_properties(db: &Arc<DB>, spacelike: &[u8], lightlike: &[u8]) -> Result<Vec<(String, String)>> {
     let mut num_entries = 0; // number of Lmdbdb K/V entries.
 
     let collection = box_try!(db.c().get_cone_properties_causet(CAUSET_WRITE, &spacelike, &lightlike));
     let num_files = collection.len();
 
-    let mut mvcc_properties = MvccProperties::new();
+    let mut tail_pointer_properties = MvccProperties::new();
     for (_, v) in collection.iter() {
         num_entries += v.num_entries();
-        let mvcc = box_try!(MvccProperties::decode(&v.user_collected_properties()));
-        mvcc_properties.add(&mvcc);
+        let tail_pointer = box_try!(MvccProperties::decode(&v.user_collected_properties()));
+        tail_pointer_properties.add(&tail_pointer);
     }
 
     let sst_files = collection
@@ -789,20 +789,20 @@ fn dump_mvcc_properties(db: &Arc<DB>, spacelike: &[u8], lightlike: &[u8]) -> Res
         .join(", ");
 
     let mut res: Vec<(String, String)> = [
-        ("mvcc.min_ts", mvcc_properties.min_ts.into_inner()),
-        ("mvcc.max_ts", mvcc_properties.max_ts.into_inner()),
-        ("mvcc.num_rows", mvcc_properties.num_rows),
-        ("mvcc.num_puts", mvcc_properties.num_puts),
-        ("mvcc.num_deletes", mvcc_properties.num_deletes),
-        ("mvcc.num_versions", mvcc_properties.num_versions),
-        ("mvcc.max_row_versions", mvcc_properties.max_row_versions),
+        ("tail_pointer.min_ts", tail_pointer_properties.min_ts.into_inner()),
+        ("tail_pointer.max_ts", tail_pointer_properties.max_ts.into_inner()),
+        ("tail_pointer.num_rows", tail_pointer_properties.num_rows),
+        ("tail_pointer.num_puts", tail_pointer_properties.num_puts),
+        ("tail_pointer.num_deletes", tail_pointer_properties.num_deletes),
+        ("tail_pointer.num_versions", tail_pointer_properties.num_versions),
+        ("tail_pointer.max_row_versions", tail_pointer_properties.max_row_versions),
     ]
     .iter()
     .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
     .collect();
 
     // Entries and delete marks of Lmdb.
-    let num_deletes = num_entries - mvcc_properties.num_versions;
+    let num_deletes = num_entries - tail_pointer_properties.num_versions;
     res.push(("num_entries".to_owned(), num_entries.to_string()));
     res.push(("num_deletes".to_owned(), num_deletes.to_string()));
 
@@ -813,21 +813,21 @@ fn dump_mvcc_properties(db: &Arc<DB>, spacelike: &[u8], lightlike: &[u8]) -> Res
     Ok(res)
 }
 
-fn recover_mvcc_for_cone(
+fn recover_tail_pointer_for_cone(
     db: &Arc<DB>,
     spacelike_key: &[u8],
     lightlike_key: &[u8],
     read_only: bool,
     thread_index: usize,
 ) -> Result<()> {
-    let mut mvcc_checker = box_try!(MvccChecker::new(Arc::clone(&db), spacelike_key, lightlike_key));
-    mvcc_checker.thread_index = thread_index;
+    let mut tail_pointer_checker = box_try!(MvccChecker::new(Arc::clone(&db), spacelike_key, lightlike_key));
+    tail_pointer_checker.thread_index = thread_index;
 
     let wb_limit: usize = 10240;
 
     loop {
         let mut wb = db.c().write_batch();
-        mvcc_checker.check_mvcc(&mut wb, Some(wb_limit))?;
+        tail_pointer_checker.check_tail_pointer(&mut wb, Some(wb_limit))?;
 
         let batch_size = wb.count();
 
@@ -842,9 +842,9 @@ fn recover_mvcc_for_cone(
         v1!(
             "thread {}: total fix default: {}, dagger: {}, write: {}",
             thread_index,
-            mvcc_checker.default_fix_count,
-            mvcc_checker.lock_fix_count,
-            mvcc_checker.write_fix_count
+            tail_pointer_checker.default_fix_count,
+            tail_pointer_checker.lock_fix_count,
+            tail_pointer_checker.write_fix_count
         );
 
         if batch_size < wb_limit {
@@ -918,7 +918,7 @@ impl MvccChecker {
         }
     }
 
-    pub fn check_mvcc(&mut self, wb: &mut LmdbWriteBatch, limit: Option<usize>) -> Result<()> {
+    pub fn check_tail_pointer(&mut self, wb: &mut LmdbWriteBatch, limit: Option<usize>) -> Result<()> {
         loop {
             // Find min key in the 3 CAUSETs.
             let mut key = MvccChecker::min_key(None, &self.default_iter, |k| {
@@ -928,7 +928,7 @@ impl MvccChecker {
             key = MvccChecker::min_key(key, &self.write_iter, |k| Key::truncate_ts_for(k).unwrap());
 
             match key {
-                Some(key) => self.check_mvcc_key(wb, key.as_ref())?,
+                Some(key) => self.check_tail_pointer_key(wb, key.as_ref())?,
                 None => return Ok(()),
             }
 
@@ -940,7 +940,7 @@ impl MvccChecker {
         }
     }
 
-    fn check_mvcc_key(&mut self, wb: &mut LmdbWriteBatch, key: &[u8]) -> Result<()> {
+    fn check_tail_pointer_key(&mut self, wb: &mut LmdbWriteBatch, key: &[u8]) -> Result<()> {
         self.scan_count += 1;
         if self.scan_count % 1_000_000 == 0 {
             v1!(
@@ -1146,7 +1146,7 @@ impl MvccInfoIterator {
     fn new(db: &Arc<DB>, from: &[u8], to: &[u8], limit: u64) -> Result<Self> {
         if !tuplespaceInstanton::validate_data_key(from) {
             return Err(Error::InvalidArgument(format!(
-                "from non-mvcc area {:?}",
+                "from non-tail_pointer area {:?}",
                 from
             )));
         }
@@ -1247,7 +1247,7 @@ impl MvccInfoIterator {
             return Ok(None);
         }
 
-        let mut mvcc_info = MvccInfo::default();
+        let mut tail_pointer_info = MvccInfo::default();
         let mut min_prefix = Vec::new();
 
         let (lock_ok, writes_ok) = match (
@@ -1269,13 +1269,13 @@ impl MvccInfoIterator {
 
         if lock_ok {
             if let Some((prefix, dagger)) = self.next_lock()? {
-                mvcc_info.set_lock(dagger);
+                tail_pointer_info.set_lock(dagger);
                 min_prefix = prefix;
             }
         }
         if writes_ok {
             if let Some((prefix, writes)) = self.next_write()? {
-                mvcc_info.set_writes(writes.into());
+                tail_pointer_info.set_writes(writes.into());
                 min_prefix = prefix;
             }
         }
@@ -1283,13 +1283,13 @@ impl MvccInfoIterator {
             match box_try!(Key::truncate_ts_for(self.default_iter.key())).cmp(&min_prefix) {
                 Ordering::Equal => {
                     if let Some((_, values)) = self.next_default()? {
-                        mvcc_info.set_values(values.into());
+                        tail_pointer_info.set_values(values.into());
                     }
                 }
                 Ordering::Greater => {}
                 _ => {
                     let err_msg = format!(
-                        "scan_mvcc CAUSET_DEFAULT corrupt: want {}, got {}",
+                        "scan_tail_pointer CAUSET_DEFAULT corrupt: want {}, got {}",
                         hex::encode_upper(&min_prefix),
                         hex::encode_upper(box_try!(Key::truncate_ts_for(self.default_iter.key())))
                     );
@@ -1298,7 +1298,7 @@ impl MvccInfoIterator {
             }
         }
         self.count += 1;
-        Ok(Some((min_prefix, mvcc_info)))
+        Ok(Some((min_prefix, tail_pointer_info)))
     }
 }
 
@@ -1398,7 +1398,7 @@ mod tests {
     use tempfile::Builder;
 
     use super::*;
-    use crate::causetStorage::mvcc::{Dagger, LockType};
+    use crate::causetStorage::tail_pointer::{Dagger, LockType};
     use engine_lmdb::raw_util::{new_engine_opt, CAUSETOptions};
     use engine_lmdb::LmdbEngine;
     use engine_promises::{CAUSETHandleExt, Mutable, SyncMutable};
@@ -1676,7 +1676,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scan_mvcc() {
+    fn test_scan_tail_pointer() {
         let debugger = new_debugger();
         let engine = &debugger.engines.kv;
 
@@ -1732,15 +1732,15 @@ mod tests {
         }
 
         let mut count = 0;
-        for key_and_mvcc in debugger.scan_mvcc(b"z", &[], 10).unwrap() {
-            assert!(key_and_mvcc.is_ok());
+        for key_and_tail_pointer in debugger.scan_tail_pointer(b"z", &[], 10).unwrap() {
+            assert!(key_and_tail_pointer.is_ok());
             count += 1;
         }
         assert_eq!(count, 7);
 
         // Test scan with bad spacelike, lightlike or limit.
-        assert!(debugger.scan_mvcc(b"z", b"", 0).is_err());
-        assert!(debugger.scan_mvcc(b"z", b"x", 3).is_err());
+        assert!(debugger.scan_tail_pointer(b"z", b"", 0).is_err());
+        assert!(debugger.scan_tail_pointer(b"z", b"x", 3).is_err());
     }
 
     #[test]
@@ -1993,7 +1993,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mvcc_checker() {
+    fn test_tail_pointer_checker() {
         let (mut default, mut dagger, mut write) = (vec![], vec![], vec![]);
         enum Expect {
             Keep,
@@ -2127,7 +2127,7 @@ mod tests {
         }
 
         let path = Builder::new()
-            .prefix("test_mvcc_checker")
+            .prefix("test_tail_pointer_checker")
             .temfidelir()
             .unwrap();
         let path_str = path.path().to_str().unwrap();
@@ -2145,7 +2145,7 @@ mod tests {
         // Fix problems.
         let mut checker = MvccChecker::new(Arc::clone(&db), b"k", b"l").unwrap();
         let mut wb = db.c().write_batch();
-        checker.check_mvcc(&mut wb, None).unwrap();
+        checker.check_tail_pointer(&mut wb, None).unwrap();
         db.c().write(&wb).unwrap();
         // Check result.
         for (causet, k, _, expect) in kv {

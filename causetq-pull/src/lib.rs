@@ -12,7 +12,7 @@
 
 ///! A pull expression is a function.
 ///!
-///! Its inputs are a store, a schema, and a set of bindings.
+///! Its inputs are a store, a schemaReplicant, and a set of bindings.
 ///!
 ///! Its output is a map whose keys are the input bindings and whose values are
 ///! appropriate structured values to represent the pull expression.
@@ -78,15 +78,15 @@ use std::iter::{
 use embedded_promises::{
     Binding,
     SolitonId,
-    TypedValue,
+    MinkowskiType,
     StructuredMap,
 };
 
 use einsteindb_embedded::{
     Cloned,
-    HasSchema,
+    HasSchemaReplicant,
     Keyword,
-    Schema,
+    SchemaReplicant,
     ValueRc,
 };
 
@@ -105,7 +105,7 @@ use causetq_pull_promises::errors::{
 
 type PullResults = BTreeMap<SolitonId, ValueRc<StructuredMap>>;
 
-pub fn pull_attributes_for_instanton<A>(schema: &Schema,
+pub fn pull_attributes_for_instanton<A>(schemaReplicant: &SchemaReplicant,
                                      edb: &rusqlite::Connection,
                                      instanton: SolitonId,
                                      attributes: A) -> Result<StructuredMap>
@@ -113,8 +113,8 @@ pub fn pull_attributes_for_instanton<A>(schema: &Schema,
     let attrs = attributes.into_iter()
                           .map(|e| PullAttributeSpec::Attribute(PullConcreteAttribute::SolitonId(e).into()))
                           .collect();
-    Puller::prepare(schema, attrs)?
-        .pull(schema, edb, once(instanton))
+    Puller::prepare(schemaReplicant, attrs)?
+        .pull(schemaReplicant, edb, once(instanton))
         .map(|m| m.into_iter()
                   .next()
                   .map(|(k, vs)| {
@@ -124,7 +124,7 @@ pub fn pull_attributes_for_instanton<A>(schema: &Schema,
                   .unwrap_or_else(StructuredMap::default))
 }
 
-pub fn pull_attributes_for_entities<E, A>(schema: &Schema,
+pub fn pull_attributes_for_entities<E, A>(schemaReplicant: &SchemaReplicant,
                                           edb: &rusqlite::Connection,
                                           entities: E,
                                           attributes: A) -> Result<PullResults>
@@ -133,8 +133,8 @@ pub fn pull_attributes_for_entities<E, A>(schema: &Schema,
     let attrs = attributes.into_iter()
                           .map(|e| PullAttributeSpec::Attribute(PullConcreteAttribute::SolitonId(e).into()))
                           .collect();
-    Puller::prepare(schema, attrs)?
-        .pull(schema, edb, entities)
+    Puller::prepare(schemaReplicant, attrs)?
+        .pull(schemaReplicant, edb, entities)
 }
 
 /// A `Puller` constructs on demand a map from a provided set of instanton IDs to a set of structured maps.
@@ -147,19 +147,19 @@ pub struct Puller {
     // If this is set, each pulled instanton is contributed to its own output map, labeled with this
     // keyword. This is a divergence from Causetic, which has no types by which to differentiate a
     // long from an instanton ID, and thus represents all entities in pull as, _e.g._, `{:edb/id 1234}`.
-    //  EinsteinDB can use `TypedValue::Ref(1234)`, but it's sometimes convenient to fetch the instanton ID
+    //  EinsteinDB can use `MinkowskiType::Ref(1234)`, but it's sometimes convenient to fetch the instanton ID
     // itself as part of a pull expression: `{:person 1234, :person/name "Peter"}`.
     edb_id_alias: Option<ValueRc<Keyword>>,
 }
 
 impl Puller {
-    pub fn prepare(schema: &Schema, attributes: Vec<PullAttributeSpec>) -> Result<Puller> {
+    pub fn prepare(schemaReplicant: &SchemaReplicant, attributes: Vec<PullAttributeSpec>) -> Result<Puller> {
         // TODO: eventually this entry point will handle aliasing and that kind of
         // thing. For now it's just a convenience.
 
         let lookup_name = |i: &SolitonId| {
             // In the unlikely event that we have an attribute with no name, we bail.
-            schema.get_causetId(*i)
+            schemaReplicant.get_causetId(*i)
                     .map(|causetid| ValueRc::new(causetid.clone()))
                     .ok_or_else(|| PullError::UnnamedAttribute(*i))
         };
@@ -172,7 +172,7 @@ impl Puller {
         for attr in attributes.iter() {
             match attr {
                 &PullAttributeSpec::Wildcard => {
-                    let attribute_ids = schema.attribute_map.keys();
+                    let attribute_ids = schemaReplicant.attribute_map.keys();
                     for id in attribute_ids {
                         names.insert(*id, lookup_name(id)?);
                         attrs.insert(*id);
@@ -195,7 +195,7 @@ impl Puller {
                             edb_id_alias = Some(alias.unwrap_or_else(|| edb_id.to_value_rc()));
                         },
                         &PullConcreteAttribute::CausetId(ref i) => {
-                            if let Some(solitonId) = schema.get_entid(i) {
+                            if let Some(solitonId) = schemaReplicant.get_causetid(i) {
                                 let name = alias.unwrap_or_else(|| i.to_value_rc());
                                 names.insert(solitonId.into(), name);
                                 attrs.insert(solitonId.into());
@@ -213,13 +213,13 @@ impl Puller {
 
         Ok(Puller {
             attributes: names,
-            attribute_spec: immutable_memTcam::AttributeSpec::specified(&attrs, schema),
+            attribute_spec: immutable_memTcam::AttributeSpec::specified(&attrs, schemaReplicant),
             edb_id_alias,
         })
     }
 
     pub fn pull<E>(&self,
-                   schema: &Schema,
+                   schemaReplicant: &SchemaReplicant,
                    edb: &rusqlite::Connection,
                    entities: E) -> Result<PullResults>
         where E: IntoIterator<Item=SolitonId> {
@@ -227,7 +227,7 @@ impl Puller {
         // - Generating `AttributeCaches` for the provided attributes and entities.
         //   TODO: it would be nice to invert the immutable_memTcam as we build it, rather than have to invert it here.
         // - Recursing. (TODO: we'll need AttributeCaches to not overwrite in case of recursion! And
-        //   ideally not do excess work when some instanton/attribute pairs are known.)
+        //   ideally not do excess work when some instanton/attribute pairs are knownCauset.)
         // - Building a structure by walking the pull expression with the caches.
         // TODO: limits.
 
@@ -235,7 +235,7 @@ impl Puller {
         // TODO: use the store's existing immutable_memTcam!
         let entities: Vec<SolitonId> = entities.into_iter().collect();
         let caches = immutable_memTcam::AttributeCaches::make_cache_for_entities_and_attributes(
-            schema,
+            schemaReplicant,
             edb,
             self.attribute_spec.clone(),
             &entities)?;
@@ -251,12 +251,12 @@ impl Puller {
                 let mut r = maps.entry(*e)
                                 .or_insert(ValueRc::new(StructuredMap::default()));
                 let mut m = ValueRc::get_mut(r).unwrap();
-                m.insert(alias.clone(), Binding::Scalar(TypedValue::Ref(*e)));
+                m.insert(alias.clone(), Binding::Scalar(MinkowskiType::Ref(*e)));
             }
         }
 
         for (name, immutable_memTcam) in self.attributes.iter().filter_map(|(a, name)|
-            caches.forward_attribute_cache_for_attribute(schema, *a)
+            caches.forward_attribute_cache_for_attribute(schemaReplicant, *a)
                   .map(|immutable_memTcam| (name.clone(), immutable_memTcam))) {
 
             for e in entities.iter() {

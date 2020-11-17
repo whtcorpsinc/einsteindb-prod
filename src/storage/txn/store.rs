@@ -5,7 +5,7 @@ use ekvproto::kvrpcpb::IsolationLevel;
 use super::{Error, ErrorInner, Result};
 use crate::causetStorage::kv::{Snapshot, Statistics};
 use crate::causetStorage::metrics::*;
-use crate::causetStorage::mvcc::{
+use crate::causetStorage::tail_pointer::{
     EntryScanner, Error as MvccError, ErrorInner as MvccErrorInner, NewerTsCheckState, PointGetter,
     PointGetterBuilder, Scanner as MvccScanner, ScannerBuilder,
 };
@@ -589,7 +589,7 @@ mod tests {
         Cursor, Engine, Iteron, Result as EngineResult, LmdbEngine, LmdbSnapshot, ScanMode,
         TestEngineBuilder, WriteData,
     };
-    use crate::causetStorage::mvcc::{Mutation, MvccTxn};
+    use crate::causetStorage::tail_pointer::{Mutation, MvccTxn};
     use crate::causetStorage::txn::commit;
     use concurrency_manager::ConcurrencyManager;
     use engine_promises::CfName;
@@ -1090,12 +1090,12 @@ mod tests {
             Some((Key::from_raw(b"z"), b"beta".to_vec()))
         );
         assert!(scanner.next().is_err());
-        // note: mvcc impl does not guarantee to work any more after meeting a non dagger error
+        // note: tail_pointer impl does not guarantee to work any more after meeting a non dagger error
         assert_eq!(scanner.next().unwrap(), None);
 
         let mut scanner = store.scanner(true, false, false, None, None).unwrap();
         assert!(scanner.next().is_err());
-        // note: mvcc impl does not guarantee to work any more after meeting a non dagger error
+        // note: tail_pointer impl does not guarantee to work any more after meeting a non dagger error
         assert_eq!(
             scanner.next().unwrap(),
             Some((Key::from_raw(b"z"), b"beta".to_vec()))
@@ -1152,7 +1152,7 @@ mod tests {
         );
         assert_eq!(scanner.next().unwrap(), Some((Key::from_raw(b"z"), vec![])));
         assert!(scanner.next().is_err());
-        // note: mvcc impl does not guarantee to work any more after meeting a non dagger error
+        // note: tail_pointer impl does not guarantee to work any more after meeting a non dagger error
         assert_eq!(scanner.next().unwrap(), None);
 
         let mut scanner = store

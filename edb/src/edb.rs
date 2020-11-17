@@ -46,15 +46,15 @@ use embedded_promises::{
     Attribute,
     AttributeBitFlags,
     SolitonId,
-    TypedValue,
-    ValueType,
+    MinkowskiType,
+    MinkowskiValueType,
 };
 
 use einsteindb_embedded::{
     AttributeMap,
     FromMicros,
     CausetIdMap,
-    Schema,
+    SchemaReplicant,
     ToMicros,
     ValueRc,
 };
@@ -65,8 +65,8 @@ use edb_promises::errors::{
 };
 
 use spacetime;
-use schema::{
-    SchemaBuilding,
+use schemaReplicant::{
+    SchemaReplicantBuilding,
 };
 use types::{
     AVMap,
@@ -151,7 +151,7 @@ where S: AsRef<str> {
 
 /// Version history:
 ///
-/// 1: initial Rust EinsteinDB schema.
+/// 1: initial Rust EinsteinDB schemaReplicant.
 pub const CURRENT_VERSION: i32 = 1;
 
 /// MIN_SQLITE_VERSION should be changed when there's a new minimum version of sqlite required
@@ -170,7 +170,7 @@ fn to_bool_ref(x: bool) -> &'static bool {
 }
 
 lazy_static! {
-    /// SQL statements to be executed, in order, to create the EinsteinDB SQL schema (version 1).
+    /// SQL statements to be executed, in order, to create the EinsteinDB SQL schemaReplicant (version 1).
     #[cfg_attr(rustfmt, rustfmt_skip)]
     static ref V1_STATEMENTS: Vec<&'static str> = { vec![
         r#"CREATE TABLE causets (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, causetx INTEGER NOT NULL,
@@ -248,8 +248,8 @@ lazy_static! {
         // Materialized views of the spacetime.
         r#"CREATE TABLE causetIds (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, value_type_tag SMALLINT NOT NULL)"#,
         r#"CREATE INDEX idx_causetIds_unique ON causetIds (e, a, v, value_type_tag)"#,
-        r#"CREATE TABLE schema (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, value_type_tag SMALLINT NOT NULL)"#,
-        r#"CREATE INDEX idx_schema_unique ON schema (e, a, v, value_type_tag)"#,
+        r#"CREATE TABLE schemaReplicant (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, value_type_tag SMALLINT NOT NULL)"#,
+        r#"CREATE INDEX idx_schemaReplicant_unique ON schemaReplicant (e, a, v, value_type_tag)"#,
 
         // TODO: store solitonId instead of causetid for partition name.
         r#"CREATE TABLE known_parts (part TEXT NOT NULL PRIMARY KEY, start INTEGER NOT NULL, end INTEGER NOT NULL, allow_excision SMALLINT NOT NULL)"#,
@@ -259,7 +259,7 @@ lazy_static! {
 
 /// Set the SQLite user version.
 ///
-/// EinsteinDB manages its own SQL schema version using the user version.  See the [SQLite
+/// EinsteinDB manages its own SQL schemaReplicant version using the user version.  See the [SQLite
 /// docueinsteindbion](https://www.sqlite.org/pragma.html#pragma_user_version).
 fn set_user_version(conn: &rusqlite::Connection, version: i32) -> Result<()> {
     conn.execute(&format!("PRAGMA user_version = {}", version), &[])
@@ -269,7 +269,7 @@ fn set_user_version(conn: &rusqlite::Connection, version: i32) -> Result<()> {
 
 /// Get the SQLite user version.
 ///
-/// EinsteinDB manages its own SQL schema version using the user version.  See the [SQLite
+/// EinsteinDB manages its own SQL schemaReplicant version using the user version.  See the [SQLite
 /// docueinsteindbion](https://www.sqlite.org/pragma.html#pragma_user_version).
 fn get_user_version(conn: &rusqlite::Connection) -> Result<i32> {
     let v = conn.causetq_row("PRAGMA user_version", &[], |row| {
@@ -288,10 +288,10 @@ pub fn create_empty_current_version(conn: &mut rusqlite::Connection) -> Result<(
 
     set_user_version(&causetx, CURRENT_VERSION)?;
 
-    let bootstrap_schema = bootstrap::bootstrap_schema();
+    let bootstrap_schemaReplicant = bootstrap::bootstrap_schemaReplicant();
     let bootstrap_partition_map = bootstrap::bootstrap_partition_map();
 
-    Ok((causetx, EDB::new(bootstrap_partition_map, bootstrap_schema)))
+    Ok((causetx, EDB::new(bootstrap_partition_map, bootstrap_schemaReplicant)))
 }
 
 /// Creates a partition map view for the main lightcone based on partitions
@@ -339,14 +339,14 @@ pub fn create_current_version(conn: &mut rusqlite::Connection) -> Result<EDB> {
     create_current_partition_view(&causetx)?;
 
     // TODO: return to transact_internal to self-manage the encompassing SQLite transaction.
-    let bootstrap_schema_for_mutation = Schema::default(); // The bootstrap transaction will populate this schema.
+    let bootstrap_schemaReplicant_for_mutation = SchemaReplicant::default(); // The bootstrap transaction will populate this schemaReplicant.
 
-    let (_report, next_partition_map, next_schema, _watcher) = transact(&causetx, edb.partition_map, &bootstrap_schema_for_mutation, &edb.schema, NullWatcher(), bootstrap::bootstrap_entities())?;
+    let (_report, next_partition_map, next_schemaReplicant, _watcher) = transact(&causetx, edb.partition_map, &bootstrap_schemaReplicant_for_mutation, &edb.schemaReplicant, NullWatcher(), bootstrap::bootstrap_entities())?;
 
-    // TODO: validate spacetime mutations that aren't schema related, like additional partitions.
-    if let Some(next_schema) = next_schema {
-        if next_schema != edb.schema {
-            bail!(DbErrorKind::NotYetImplemented(format!("Initial bootstrap transaction did not produce expected bootstrap schema")));
+    // TODO: validate spacetime mutations that aren't schemaReplicant related, like additional partitions.
+    if let Some(next_schemaReplicant) = next_schemaReplicant {
+        if next_schemaReplicant != edb.schemaReplicant {
+            bail!(DbErrorKind::NotYetImplemented(format!("Initial bootstrap transaction did not produce expected bootstrap schemaReplicant")));
         }
     }
 
@@ -373,26 +373,26 @@ pub fn ensure_current_version(conn: &mut rusqlite::Connection) -> Result<EDB> {
 }
 
 pub trait TypedSQLValue {
-    fn from_sql_value_pair(value: rusqlite::types::Value, value_type_tag: i32) -> Result<TypedValue>;
+    fn from_sql_value_pair(value: rusqlite::types::Value, value_type_tag: i32) -> Result<MinkowskiType>;
     fn to_sql_value_pair<'a>(&'a self) -> (ToSqlOutput<'a>, i32);
-    fn from_edbn_value(value: &Value) -> Option<TypedValue>;
-    fn to_edbn_value_pair(&self) -> (Value, ValueType);
+    fn from_edbn_value(value: &Value) -> Option<MinkowskiType>;
+    fn to_edbn_value_pair(&self) -> (Value, MinkowskiValueType);
 }
 
-impl TypedSQLValue for TypedValue {
-    /// Given a SQLite `value` and a `value_type_tag`, return the corresponding `TypedValue`.
-    fn from_sql_value_pair(value: rusqlite::types::Value, value_type_tag: i32) -> Result<TypedValue> {
+impl TypedSQLValue for MinkowskiType {
+    /// Given a SQLite `value` and a `value_type_tag`, return the corresponding `MinkowskiType`.
+    fn from_sql_value_pair(value: rusqlite::types::Value, value_type_tag: i32) -> Result<MinkowskiType> {
         match (value_type_tag, value) {
-            (0, rusqlite::types::Value::Integer(x)) => Ok(TypedValue::Ref(x)),
-            (1, rusqlite::types::Value::Integer(x)) => Ok(TypedValue::Boolean(0 != x)),
+            (0, rusqlite::types::Value::Integer(x)) => Ok(MinkowskiType::Ref(x)),
+            (1, rusqlite::types::Value::Integer(x)) => Ok(MinkowskiType::Boolean(0 != x)),
 
             // Negative integers are simply times before 1970.
-            (4, rusqlite::types::Value::Integer(x)) => Ok(TypedValue::Instant(DateTime::<Utc>::from_micros(x))),
+            (4, rusqlite::types::Value::Integer(x)) => Ok(MinkowskiType::Instant(DateTime::<Utc>::from_micros(x))),
 
             // SQLite distinguishes integral from decimal types, allowing long and double to
             // share a tag.
-            (5, rusqlite::types::Value::Integer(x)) => Ok(TypedValue::Long(x)),
-            (5, rusqlite::types::Value::Real(x)) => Ok(TypedValue::Double(x.into())),
+            (5, rusqlite::types::Value::Integer(x)) => Ok(MinkowskiType::Long(x)),
+            (5, rusqlite::types::Value::Real(x)) => Ok(MinkowskiType::Double(x.into())),
             (10, rusqlite::types::Value::Text(x)) => Ok(x.into()),
             (11, rusqlite::types::Value::Blob(x)) => {
                 let u = Uuid::from_bytes(x.as_slice());
@@ -401,7 +401,7 @@ impl TypedSQLValue for TypedValue {
                     bail!(DbErrorKind::BadSQLValuePair(rusqlite::types::Value::Blob(x),
                                                      value_type_tag));
                 }
-                Ok(TypedValue::Uuid(u.unwrap()))
+                Ok(MinkowskiType::Uuid(u.unwrap()))
             },
             (13, rusqlite::types::Value::Text(x)) => {
                 to_namespaced_keyword(&x).map(|k| k.into())
@@ -410,20 +410,20 @@ impl TypedSQLValue for TypedValue {
         }
     }
 
-    /// Given an EDBN `value`, return a corresponding EinsteinDB `TypedValue`.
+    /// Given an EDBN `value`, return a corresponding EinsteinDB `MinkowskiType`.
     ///
-    /// An EDBN `Value` does not encode a unique EinsteinDB `ValueType`, so the composition
+    /// An EDBN `Value` does not encode a unique EinsteinDB `MinkowskiValueType`, so the composition
     /// `from_edbn_value(first(to_edbn_value_pair(...)))` loses information.  Additionally, there are
     /// EDBN values which are not EinsteinDB typed values.
     ///
     /// This function is deterministic.
-    fn from_edbn_value(value: &Value) -> Option<TypedValue> {
+    fn from_edbn_value(value: &Value) -> Option<MinkowskiType> {
         match value {
-            &Value::Boolean(x) => Some(TypedValue::Boolean(x)),
-            &Value::Instant(x) => Some(TypedValue::Instant(x)),
-            &Value::Integer(x) => Some(TypedValue::Long(x)),
-            &Value::Uuid(x) => Some(TypedValue::Uuid(x)),
-            &Value::Float(ref x) => Some(TypedValue::Double(x.clone())),
+            &Value::Boolean(x) => Some(MinkowskiType::Boolean(x)),
+            &Value::Instant(x) => Some(MinkowskiType::Instant(x)),
+            &Value::Integer(x) => Some(MinkowskiType::Long(x)),
+            &Value::Uuid(x) => Some(MinkowskiType::Uuid(x)),
+            &Value::Float(ref x) => Some(MinkowskiType::Double(x.clone())),
             &Value::Text(ref x) => Some(x.clone().into()),
             &Value::Keyword(ref x) => Some(x.clone().into()),
             _ => None
@@ -433,36 +433,36 @@ impl TypedSQLValue for TypedValue {
     /// Return the corresponding SQLite `value` and `value_type_tag` pair.
     fn to_sql_value_pair<'a>(&'a self) -> (ToSqlOutput<'a>, i32) {
         match self {
-            &TypedValue::Ref(x) => (rusqlite::types::Value::Integer(x).into(), 0),
-            &TypedValue::Boolean(x) => (rusqlite::types::Value::Integer(if x { 1 } else { 0 }).into(), 1),
-            &TypedValue::Instant(x) => (rusqlite::types::Value::Integer(x.to_micros()).into(), 4),
+            &MinkowskiType::Ref(x) => (rusqlite::types::Value::Integer(x).into(), 0),
+            &MinkowskiType::Boolean(x) => (rusqlite::types::Value::Integer(if x { 1 } else { 0 }).into(), 1),
+            &MinkowskiType::Instant(x) => (rusqlite::types::Value::Integer(x.to_micros()).into(), 4),
             // SQLite distinguishes integral from decimal types, allowing long and double to share a tag.
-            &TypedValue::Long(x) => (rusqlite::types::Value::Integer(x).into(), 5),
-            &TypedValue::Double(x) => (rusqlite::types::Value::Real(x.into_inner()).into(), 5),
-            &TypedValue::String(ref x) => (rusqlite::types::ValueRef::Text(x.as_str()).into(), 10),
-            &TypedValue::Uuid(ref u) => (rusqlite::types::Value::Blob(u.as_bytes().to_vec()).into(), 11),
-            &TypedValue::Keyword(ref x) => (rusqlite::types::ValueRef::Text(&x.to_string()).into(), 13),
+            &MinkowskiType::Long(x) => (rusqlite::types::Value::Integer(x).into(), 5),
+            &MinkowskiType::Double(x) => (rusqlite::types::Value::Real(x.into_inner()).into(), 5),
+            &MinkowskiType::String(ref x) => (rusqlite::types::ValueRef::Text(x.as_str()).into(), 10),
+            &MinkowskiType::Uuid(ref u) => (rusqlite::types::Value::Blob(u.as_bytes().to_vec()).into(), 11),
+            &MinkowskiType::Keyword(ref x) => (rusqlite::types::ValueRef::Text(&x.to_string()).into(), 13),
         }
     }
 
     /// Return the corresponding EDBN `value` and `value_type` pair.
-    fn to_edbn_value_pair(&self) -> (Value, ValueType) {
+    fn to_edbn_value_pair(&self) -> (Value, MinkowskiValueType) {
         match self {
-            &TypedValue::Ref(x) => (Value::Integer(x), ValueType::Ref),
-            &TypedValue::Boolean(x) => (Value::Boolean(x), ValueType::Boolean),
-            &TypedValue::Instant(x) => (Value::Instant(x), ValueType::Instant),
-            &TypedValue::Long(x) => (Value::Integer(x), ValueType::Long),
-            &TypedValue::Double(x) => (Value::Float(x), ValueType::Double),
-            &TypedValue::String(ref x) => (Value::Text(x.as_ref().clone()), ValueType::String),
-            &TypedValue::Uuid(ref u) => (Value::Uuid(u.clone()), ValueType::Uuid),
-            &TypedValue::Keyword(ref x) => (Value::Keyword(x.as_ref().clone()), ValueType::Keyword),
+            &MinkowskiType::Ref(x) => (Value::Integer(x), MinkowskiValueType::Ref),
+            &MinkowskiType::Boolean(x) => (Value::Boolean(x), MinkowskiValueType::Boolean),
+            &MinkowskiType::Instant(x) => (Value::Instant(x), MinkowskiValueType::Instant),
+            &MinkowskiType::Long(x) => (Value::Integer(x), MinkowskiValueType::Long),
+            &MinkowskiType::Double(x) => (Value::Float(x), MinkowskiValueType::Double),
+            &MinkowskiType::String(ref x) => (Value::Text(x.as_ref().clone()), MinkowskiValueType::String),
+            &MinkowskiType::Uuid(ref u) => (Value::Uuid(u.clone()), MinkowskiValueType::Uuid),
+            &MinkowskiType::Keyword(ref x) => (Value::Keyword(x.as_ref().clone()), MinkowskiValueType::Keyword),
         }
     }
 }
 
 /// Read an arbitrary [e a v value_type_tag] materialized view from the given table in the SQL
 /// store.
-pub(crate) fn read_materialized_view(conn: &rusqlite::Connection, table: &str) -> Result<Vec<(SolitonId, SolitonId, TypedValue)>> {
+pub(crate) fn read_materialized_view(conn: &rusqlite::Connection, table: &str) -> Result<Vec<(SolitonId, SolitonId, MinkowskiType)>> {
     let mut stmt: rusqlite::Statement = conn.prepare(format!("SELECT e, a, v, value_type_tag FROM {}", table).as_str())?;
     let m: Result<Vec<_>> = stmt.causetq_and_then(
         &[],
@@ -478,7 +478,7 @@ pub fn read_partition_map(conn: &rusqlite::Connection) -> Result<PartitionMap> {
     // - while moving lightcones,
     // - during sync.
     // First part of the union sprinkles 'allow_excision' into the 'parts' view.
-    // Second part of the union takes care of partitions which are known
+    // Second part of the union takes care of partitions which are knownCauset
     // but don't have any transactions.
     let mut stmt: rusqlite::Statement = conn.prepare("
         SELECT
@@ -519,7 +519,7 @@ pub(crate) fn read_causetId_map(conn: &rusqlite::Connection) -> Result<CausetIdM
         if a != entids::DB_CAUSETID {
             bail!(DbErrorKind::NotYetImplemented(format!("bad causetIds materialized view: expected :edb/causetid but got {}", a)));
         }
-        if let TypedValue::Keyword(keyword) = typed_value {
+        if let MinkowskiType::Keyword(keyword) = typed_value {
             Ok((keyword.as_ref().clone(), e))
         } else {
             bail!(DbErrorKind::NotYetImplemented(format!("bad causetIds materialized view: expected [solitonId :edb/causetid keyword] but got [solitonId :edb/causetid {:?}]", typed_value)));
@@ -527,9 +527,9 @@ pub(crate) fn read_causetId_map(conn: &rusqlite::Connection) -> Result<CausetIdM
     }).collect()
 }
 
-/// Read the schema materialized view from the given SQL store.
+/// Read the schemaReplicant materialized view from the given SQL store.
 pub(crate) fn read_attribute_map(conn: &rusqlite::Connection) -> Result<AttributeMap> {
-    let entid_triples = read_materialized_view(conn, "schema")?;
+    let entid_triples = read_materialized_view(conn, "schemaReplicant")?;
     let mut attribute_map = AttributeMap::default();
     spacetime::update_attribute_map_from_entid_triples(&mut attribute_map, entid_triples, vec![])?;
     Ok(attribute_map)
@@ -541,12 +541,12 @@ pub(crate) fn read_edb(conn: &rusqlite::Connection) -> Result<EDB> {
     let partition_map = read_partition_map(conn)?;
     let causetId_map = read_causetId_map(conn)?;
     let attribute_map = read_attribute_map(conn)?;
-    let schema = Schema::from_causetId_map_and_attribute_map(causetId_map, attribute_map)?;
-    Ok(EDB::new(partition_map, schema))
+    let schemaReplicant = SchemaReplicant::from_causetId_map_and_attribute_map(causetId_map, attribute_map)?;
+    Ok(EDB::new(partition_map, schemaReplicant))
 }
 
 /// Internal representation of an [e a v added] Causet, ready to be transacted against the store.
-pub type ReducedInstanton<'a> = (SolitonId, SolitonId, &'a Attribute, TypedValue, bool);
+pub type ReducedInstanton<'a> = (SolitonId, SolitonId, &'a Attribute, MinkowskiType, bool);
 
 #[derive(Clone,Debug,Eq,Hash,Ord,PartialOrd,PartialEq)]
 pub enum SearchType {
@@ -557,7 +557,7 @@ pub enum SearchType {
 /// `EinsteinDBStoring` will be the trait that encapsulates the storage layer.  It is consumed by the
 /// transaction processing layer.
 ///
-/// Right now, the only impleeinsteindbion of `EinsteinDBStoring` is the SQLite-specific SQL schema.  In the
+/// Right now, the only impleeinsteindbion of `EinsteinDBStoring` is the SQLite-specific SQL schemaReplicant.  In the
 /// future, we might consider other SQL engines (perhaps with different fulltext indexing), or
 /// entirely different data stores, say ones shaped like key-value stores.
 pub trait EinsteinDBStoring {
@@ -594,7 +594,7 @@ pub trait EinsteinDBStoring {
 
     /// Extract spacetime-related [e a typed_value added] causets resolved in the last
     /// materialized transaction.
-    fn resolved_spacetime_assertions(&self) -> Result<Vec<(SolitonId, SolitonId, TypedValue, bool)>>;
+    fn resolved_spacetime_assertions(&self) -> Result<Vec<(SolitonId, SolitonId, MinkowskiType, bool)>>;
 }
 
 /// Take search rows and complete `temp.search_results`.
@@ -930,7 +930,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
                                    u8 /* flags0 */,
                                    i64 /* searchid */)>> = chunk.map(|&(e, a, ref attribute, ref typed_value, added)| {
                 match typed_value {
-                    &TypedValue::String(ref rc) => {
+                    &MinkowskiType::String(ref rc) => {
                         Causet_count += 1;
                         let entry = seen.entry(rc.clone());
                         match entry {
@@ -1028,7 +1028,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
         Ok(())
     }
 
-    fn resolved_spacetime_assertions(&self) ->  Result<Vec<(SolitonId, SolitonId, TypedValue, bool)>> {
+    fn resolved_spacetime_assertions(&self) ->  Result<Vec<(SolitonId, SolitonId, MinkowskiType, bool)>> {
         let sql_stmt = format!(r#"
             SELECT e, a, v, value_type_tag, added FROM
             (
@@ -1059,7 +1059,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
 }
 
 /// Extract spacetime-related [e a typed_value added] causets committed in the given transaction.
-pub fn committed_spacetime_assertions(conn: &rusqlite::Connection, causecausetx_id: SolitonId) -> Result<Vec<(SolitonId, SolitonId, TypedValue, bool)>> {
+pub fn committed_spacetime_assertions(conn: &rusqlite::Connection, causecausetx_id: SolitonId) -> Result<Vec<(SolitonId, SolitonId, MinkowskiType, bool)>> {
     let sql_stmt = format!(r#"
         SELECT e, a, v, value_type_tag, added
         FROM transactions
@@ -1077,29 +1077,29 @@ pub fn committed_spacetime_assertions(conn: &rusqlite::Connection, causecausetx_
 }
 
 /// Takes a row, produces a transaction quadruple.
-fn row_to_transaction_assertion(row: &rusqlite::Row) -> Result<(SolitonId, SolitonId, TypedValue, bool)> {
+fn row_to_transaction_assertion(row: &rusqlite::Row) -> Result<(SolitonId, SolitonId, MinkowskiType, bool)> {
     Ok((
         row.get_checked(0)?,
         row.get_checked(1)?,
-        TypedValue::from_sql_value_pair(row.get_checked(2)?, row.get_checked(3)?)?,
+        MinkowskiType::from_sql_value_pair(row.get_checked(2)?, row.get_checked(3)?)?,
         row.get_checked(4)?
     ))
 }
 
 /// Takes a row, produces a Causet quadruple.
-fn row_to_Causet_assertion(row: &rusqlite::Row) -> Result<(SolitonId, SolitonId, TypedValue)> {
+fn row_to_Causet_assertion(row: &rusqlite::Row) -> Result<(SolitonId, SolitonId, MinkowskiType)> {
     Ok((
         row.get_checked(0)?,
         row.get_checked(1)?,
-        TypedValue::from_sql_value_pair(row.get_checked(2)?, row.get_checked(3)?)?
+        MinkowskiType::from_sql_value_pair(row.get_checked(2)?, row.get_checked(3)?)?
     ))
 }
 
 /// Update the spacetime materialized views based on the given spacetime report.
 ///
-/// This updates the "entids", "causetIds", and "schema" materialized views, copying directly from the
+/// This updates the "entids", "causetIds", and "schemaReplicant" materialized views, copying directly from the
 /// "causets" and "transactions" table as appropriate.
-pub fn update_spacetime(conn: &rusqlite::Connection, _old_schema: &Schema, new_schema: &Schema, spacetime_report: &spacetime::SpacetimeReport) -> Result<()>
+pub fn update_spacetime(conn: &rusqlite::Connection, _old_schemaReplicant: &SchemaReplicant, new_schemaReplicant: &SchemaReplicant, spacetime_report: &spacetime::SpacetimeReport) -> Result<()>
 {
     use spacetime::AttributeAlteration::*;
 
@@ -1126,12 +1126,12 @@ pub fn update_spacetime(conn: &rusqlite::Connection, _old_schema: &Schema, new_s
         || !spacetime_report.attributes_altered.is_empty()
         || !spacetime_report.causetIds_altered.is_empty() {
 
-        conn.execute(format!("DELETE FROM schema").as_str(),
+        conn.execute(format!("DELETE FROM schemaReplicant").as_str(),
                      &[])?;
-        // NB: we're using :edb/valueType as a placeholder for the entire schema-defining set.
+        // NB: we're using :edb/valueType as a placeholder for the entire schemaReplicant-defining set.
         let s = format!(r#"
             WITH s(e) AS (SELECT e FROM causets WHERE a = {})
-            INSERT INTO schema
+            INSERT INTO schemaReplicant
             SELECT s.e, a, v, value_type_tag
             FROM causets, s
             WHERE s.e = causets.e AND a IN {}
@@ -1151,7 +1151,7 @@ SELECT EXISTS
         left.v <> right.v)"#)?;
 
     for (&solitonId, alterations) in &spacetime_report.attributes_altered {
-        let attribute = new_schema.require_attribute_for_entid(solitonId)?;
+        let attribute = new_schemaReplicant.require_attribute_for_entid(solitonId)?;
 
         for alteration in alterations {
             match alteration {
@@ -1164,8 +1164,8 @@ SELECT EXISTS
                     // error message in this case.
                     if unique_value_stmt.execute(&[to_bool_ref(attribute.unique.is_some()), &solitonId as &ToSql]).is_err() {
                         match attribute.unique {
-                            Some(attribute::Unique::Value) => bail!(DbErrorKind::SchemaAlterationFailed(format!("Cannot alter schema attribute {} to be :edb.unique/value", solitonId))),
-                            Some(attribute::Unique::CausetIdity) => bail!(DbErrorKind::SchemaAlterationFailed(format!("Cannot alter schema attribute {} to be :edb.unique/causetIdity", solitonId))),
+                            Some(attribute::Unique::Value) => bail!(DbErrorKind::SchemaReplicantAlterationFailed(format!("Cannot alter schemaReplicant attribute {} to be :edb.unique/value", solitonId))),
+                            Some(attribute::Unique::CausetIdity) => bail!(DbErrorKind::SchemaReplicantAlterationFailed(format!("Cannot alter schemaReplicant attribute {} to be :edb.unique/causetIdity", solitonId))),
                             None => unreachable!(), // This shouldn't happen, even after we support removing :edb/unique.
                         }
                     }
@@ -1179,7 +1179,7 @@ SELECT EXISTS
                     if !attribute.multival {
                         let mut rows = cardinality_stmt.causetq(&[&solitonId as &ToSql])?;
                         if rows.next().is_some() {
-                            bail!(DbErrorKind::SchemaAlterationFailed(format!("Cannot alter schema attribute {} to be :edb.cardinality/one", solitonId)));
+                            bail!(DbErrorKind::SchemaReplicantAlterationFailed(format!("Cannot alter schemaReplicant attribute {} to be :edb.cardinality/one", solitonId)));
                         }
                     }
                 },
@@ -1234,7 +1234,7 @@ mod tests {
         KnownSolitonId,
     };
     use einsteindb_embedded::{
-        HasSchema,
+        HasSchemaReplicant,
         Keyword,
     };
     use einsteindb_embedded::util::Either::*;
@@ -1248,67 +1248,67 @@ mod tests {
 
     fn run_test_add(mut conn: TestConn) {
         // Test inserting :edb.cardinality/one elements.
-        assert_transact!(conn, "[[:edb/add 100 :edb.schema/version 1]
-                                 [:edb/add 101 :edb.schema/version 2]]");
+        assert_transact!(conn, "[[:edb/add 100 :edb.schemaReplicant/version 1]
+                                 [:edb/add 101 :edb.schemaReplicant/version 2]]");
         assert_matches!(conn.last_transaction(),
-                        "[[100 :edb.schema/version 1 ?causetx true]
-                          [101 :edb.schema/version 2 ?causetx true]
+                        "[[100 :edb.schemaReplicant/version 1 ?causetx true]
+                          [101 :edb.schemaReplicant/version 2 ?causetx true]
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
-                       "[[100 :edb.schema/version 1]
-                         [101 :edb.schema/version 2]]");
+                       "[[100 :edb.schemaReplicant/version 1]
+                         [101 :edb.schemaReplicant/version 2]]");
 
         // Test inserting :edb.cardinality/many elements.
-        assert_transact!(conn, "[[:edb/add 200 :edb.schema/attribute 100]
-                                 [:edb/add 200 :edb.schema/attribute 101]]");
+        assert_transact!(conn, "[[:edb/add 200 :edb.schemaReplicant/attribute 100]
+                                 [:edb/add 200 :edb.schemaReplicant/attribute 101]]");
         assert_matches!(conn.last_transaction(),
-                        "[[200 :edb.schema/attribute 100 ?causetx true]
-                          [200 :edb.schema/attribute 101 ?causetx true]
+                        "[[200 :edb.schemaReplicant/attribute 100 ?causetx true]
+                          [200 :edb.schemaReplicant/attribute 101 ?causetx true]
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
-                        "[[100 :edb.schema/version 1]
-                          [101 :edb.schema/version 2]
-                          [200 :edb.schema/attribute 100]
-                          [200 :edb.schema/attribute 101]]");
+                        "[[100 :edb.schemaReplicant/version 1]
+                          [101 :edb.schemaReplicant/version 2]
+                          [200 :edb.schemaReplicant/attribute 100]
+                          [200 :edb.schemaReplicant/attribute 101]]");
 
         // Test replacing existing :edb.cardinality/one elements.
-        assert_transact!(conn, "[[:edb/add 100 :edb.schema/version 11]
-                                 [:edb/add 101 :edb.schema/version 22]]");
+        assert_transact!(conn, "[[:edb/add 100 :edb.schemaReplicant/version 11]
+                                 [:edb/add 101 :edb.schemaReplicant/version 22]]");
         assert_matches!(conn.last_transaction(),
-                        "[[100 :edb.schema/version 1 ?causetx false]
-                          [100 :edb.schema/version 11 ?causetx true]
-                          [101 :edb.schema/version 2 ?causetx false]
-                          [101 :edb.schema/version 22 ?causetx true]
+                        "[[100 :edb.schemaReplicant/version 1 ?causetx false]
+                          [100 :edb.schemaReplicant/version 11 ?causetx true]
+                          [101 :edb.schemaReplicant/version 2 ?causetx false]
+                          [101 :edb.schemaReplicant/version 22 ?causetx true]
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
-                        "[[100 :edb.schema/version 11]
-                          [101 :edb.schema/version 22]
-                          [200 :edb.schema/attribute 100]
-                          [200 :edb.schema/attribute 101]]");
+                        "[[100 :edb.schemaReplicant/version 11]
+                          [101 :edb.schemaReplicant/version 22]
+                          [200 :edb.schemaReplicant/attribute 100]
+                          [200 :edb.schemaReplicant/attribute 101]]");
 
 
         // Test that asserting existing :edb.cardinality/one elements doesn't change the store.
-        assert_transact!(conn, "[[:edb/add 100 :edb.schema/version 11]
-                                 [:edb/add 101 :edb.schema/version 22]]");
+        assert_transact!(conn, "[[:edb/add 100 :edb.schemaReplicant/version 11]
+                                 [:edb/add 101 :edb.schemaReplicant/version 22]]");
         assert_matches!(conn.last_transaction(),
                         "[[?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
-                        "[[100 :edb.schema/version 11]
-                          [101 :edb.schema/version 22]
-                          [200 :edb.schema/attribute 100]
-                          [200 :edb.schema/attribute 101]]");
+                        "[[100 :edb.schemaReplicant/version 11]
+                          [101 :edb.schemaReplicant/version 22]
+                          [200 :edb.schemaReplicant/attribute 100]
+                          [200 :edb.schemaReplicant/attribute 101]]");
 
 
         // Test that asserting existing :edb.cardinality/many elements doesn't change the store.
-        assert_transact!(conn, "[[:edb/add 200 :edb.schema/attribute 100]
-                                 [:edb/add 200 :edb.schema/attribute 101]]");
+        assert_transact!(conn, "[[:edb/add 200 :edb.schemaReplicant/attribute 100]
+                                 [:edb/add 200 :edb.schemaReplicant/attribute 101]]");
         assert_matches!(conn.last_transaction(),
                         "[[?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
-                        "[[100 :edb.schema/version 11]
-                          [101 :edb.schema/version 22]
-                          [200 :edb.schema/attribute 100]
-                          [200 :edb.schema/attribute 101]]");
+                        "[[100 :edb.schemaReplicant/version 11]
+                          [101 :edb.schemaReplicant/version 22]
+                          [200 :edb.schemaReplicant/attribute 100]
+                          [200 :edb.schemaReplicant/attribute 101]]");
     }
 
     #[test]
@@ -1333,7 +1333,7 @@ mod tests {
         assert_transact!(conn, "[[:edb/add (transaction-causetx) :edb/causecausetxInstant #inst \"2017-06-16T00:59:11.257Z\"]
                                  [:edb/add (transaction-causetx) :edb/causecausetxInstant #inst \"2017-06-16T00:59:11.752Z\"]
                                  [:edb/add 102 :edb/causetid :name/Vlad]]",
-                         Err("schema constraint violation: cardinality conflicts:\n  CardinalityOneAddConflict { e: 268435458, a: 3, vs: {Instant(2017-06-16T00:59:11.257Z), Instant(2017-06-16T00:59:11.752Z)} }\n"));
+                         Err("schemaReplicant constraint violation: cardinality conflicts:\n  CardinalityOneAddConflict { e: 268435458, a: 3, vs: {Instant(2017-06-16T00:59:11.257Z), Instant(2017-06-16T00:59:11.752Z)} }\n"));
 
         // Test multiple causecausetxInstants with the same value.
         assert_transact!(conn, "[[:edb/add (transaction-causetx) :edb/causecausetxInstant #inst \"2017-06-16T00:59:11.257Z\"]
@@ -1380,66 +1380,66 @@ mod tests {
         let mut conn = TestConn::default();
 
         // Insert a few :edb.cardinality/one elements.
-        assert_transact!(conn, "[[:edb/add 100 :edb.schema/version 1]
-                                 [:edb/add 101 :edb.schema/version 2]]");
+        assert_transact!(conn, "[[:edb/add 100 :edb.schemaReplicant/version 1]
+                                 [:edb/add 101 :edb.schemaReplicant/version 2]]");
         assert_matches!(conn.last_transaction(),
-                        "[[100 :edb.schema/version 1 ?causetx true]
-                          [101 :edb.schema/version 2 ?causetx true]
+                        "[[100 :edb.schemaReplicant/version 1 ?causetx true]
+                          [101 :edb.schemaReplicant/version 2 ?causetx true]
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
-                        "[[100 :edb.schema/version 1]
-                          [101 :edb.schema/version 2]]");
+                        "[[100 :edb.schemaReplicant/version 1]
+                          [101 :edb.schemaReplicant/version 2]]");
 
         // And a few :edb.cardinality/many elements.
-        assert_transact!(conn, "[[:edb/add 200 :edb.schema/attribute 100]
-                                 [:edb/add 200 :edb.schema/attribute 101]]");
+        assert_transact!(conn, "[[:edb/add 200 :edb.schemaReplicant/attribute 100]
+                                 [:edb/add 200 :edb.schemaReplicant/attribute 101]]");
         assert_matches!(conn.last_transaction(),
-                        "[[200 :edb.schema/attribute 100 ?causetx true]
-                          [200 :edb.schema/attribute 101 ?causetx true]
+                        "[[200 :edb.schemaReplicant/attribute 100 ?causetx true]
+                          [200 :edb.schemaReplicant/attribute 101 ?causetx true]
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
-                        "[[100 :edb.schema/version 1]
-                          [101 :edb.schema/version 2]
-                          [200 :edb.schema/attribute 100]
-                          [200 :edb.schema/attribute 101]]");
+                        "[[100 :edb.schemaReplicant/version 1]
+                          [101 :edb.schemaReplicant/version 2]
+                          [200 :edb.schemaReplicant/attribute 100]
+                          [200 :edb.schemaReplicant/attribute 101]]");
 
         // Test that we can retract :edb.cardinality/one elements.
-        assert_transact!(conn, "[[:edb/retract 100 :edb.schema/version 1]]");
+        assert_transact!(conn, "[[:edb/retract 100 :edb.schemaReplicant/version 1]]");
         assert_matches!(conn.last_transaction(),
-                        "[[100 :edb.schema/version 1 ?causetx false]
+                        "[[100 :edb.schemaReplicant/version 1 ?causetx false]
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
-                        "[[101 :edb.schema/version 2]
-                          [200 :edb.schema/attribute 100]
-                          [200 :edb.schema/attribute 101]]");
+                        "[[101 :edb.schemaReplicant/version 2]
+                          [200 :edb.schemaReplicant/attribute 100]
+                          [200 :edb.schemaReplicant/attribute 101]]");
 
         // Test that we can retract :edb.cardinality/many elements.
-        assert_transact!(conn, "[[:edb/retract 200 :edb.schema/attribute 100]]");
+        assert_transact!(conn, "[[:edb/retract 200 :edb.schemaReplicant/attribute 100]]");
         assert_matches!(conn.last_transaction(),
-                        "[[200 :edb.schema/attribute 100 ?causetx false]
+                        "[[200 :edb.schemaReplicant/attribute 100 ?causetx false]
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
-                        "[[101 :edb.schema/version 2]
-                          [200 :edb.schema/attribute 101]]");
+                        "[[101 :edb.schemaReplicant/version 2]
+                          [200 :edb.schemaReplicant/attribute 101]]");
 
         // Verify that retracting :edb.cardinality/{one,many} elements that are not present doesn't
         // change the store.
-        assert_transact!(conn, "[[:edb/retract 100 :edb.schema/version 1]
-                                 [:edb/retract 200 :edb.schema/attribute 100]]");
+        assert_transact!(conn, "[[:edb/retract 100 :edb.schemaReplicant/version 1]
+                                 [:edb/retract 200 :edb.schemaReplicant/attribute 100]]");
         assert_matches!(conn.last_transaction(),
                         "[[?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
-                        "[[101 :edb.schema/version 2]
-                          [200 :edb.schema/attribute 101]]");
+                        "[[101 :edb.schemaReplicant/version 2]
+                          [200 :edb.schemaReplicant/attribute 101]]");
     }
 
     #[test]
-    fn test_edb_doc_is_not_schema() {
+    fn test_edb_doc_is_not_schemaReplicant() {
         let mut conn = TestConn::default();
 
         // Neither transaction below is defining a new attribute.  That is, it's fine to use :edb/doc
         // to describe any instanton in the system, not just attributes.  And in particular, including
-        // :edb/doc shouldn't make the transactor consider the instanton a schema attribute.
+        // :edb/doc shouldn't make the transactor consider the instanton a schemaReplicant attribute.
         assert_transact!(conn, r#"
             [{:edb/doc "test"}]
         "#);
@@ -1464,7 +1464,7 @@ mod tests {
               :edb/valueType :edb.type/string
               :edb/unique :edb.unique/causetIdity
               :edb/cardinality :edb.cardinality/many}]",
-              Err("bad schema assertion: :edb/unique :edb/unique_causetIdity without :edb/index true for solitonId: 65538"));
+              Err("bad schemaReplicant assertion: :edb/unique :edb/unique_causetIdity without :edb/index true for solitonId: 65538"));
     }
 
     // TODO: don't use :edb/causetid to test upserts!
@@ -1485,18 +1485,18 @@ mod tests {
 
         // Upserting two tempids to the same solitonId works.
         let report = assert_transact!(conn, "[[:edb/add \"t1\" :edb/causetid :name/Ivan]
-                                              [:edb/add \"t1\" :edb.schema/attribute 100]
+                                              [:edb/add \"t1\" :edb.schemaReplicant/attribute 100]
                                               [:edb/add \"t2\" :edb/causetid :name/Petr]
-                                              [:edb/add \"t2\" :edb.schema/attribute 101]]");
+                                              [:edb/add \"t2\" :edb.schemaReplicant/attribute 101]]");
         assert_matches!(conn.last_transaction(),
-                        "[[100 :edb.schema/attribute :name/Ivan ?causetx true]
-                          [101 :edb.schema/attribute :name/Petr ?causetx true]
+                        "[[100 :edb.schemaReplicant/attribute :name/Ivan ?causetx true]
+                          [101 :edb.schemaReplicant/attribute :name/Petr ?causetx true]
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
                         "[[100 :edb/causetid :name/Ivan]
-                          [100 :edb.schema/attribute :name/Ivan]
+                          [100 :edb.schemaReplicant/attribute :name/Ivan]
                           [101 :edb/causetid :name/Petr]
-                          [101 :edb.schema/attribute :name/Petr]]");
+                          [101 :edb.schemaReplicant/attribute :name/Petr]]");
         assert_matches!(tempids(&report),
                         "{\"t1\" 100
                           \"t2\" 101}");
@@ -1504,23 +1504,23 @@ mod tests {
         // Upserting a tempid works.  The ref doesn't have to exist (at this time), but we can't
         // reuse an existing ref due to :edb/unique :edb.unique/value.
         let report = assert_transact!(conn, "[[:edb/add \"t1\" :edb/causetid :name/Ivan]
-                                              [:edb/add \"t1\" :edb.schema/attribute 102]]");
+                                              [:edb/add \"t1\" :edb.schemaReplicant/attribute 102]]");
         assert_matches!(conn.last_transaction(),
-                        "[[100 :edb.schema/attribute 102 ?causetx true]
+                        "[[100 :edb.schemaReplicant/attribute 102 ?causetx true]
                           [?true :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
                         "[[100 :edb/causetid :name/Ivan]
-                          [100 :edb.schema/attribute :name/Ivan]
-                          [100 :edb.schema/attribute 102]
+                          [100 :edb.schemaReplicant/attribute :name/Ivan]
+                          [100 :edb.schemaReplicant/attribute 102]
                           [101 :edb/causetid :name/Petr]
-                          [101 :edb.schema/attribute :name/Petr]]");
+                          [101 :edb.schemaReplicant/attribute :name/Petr]]");
         assert_matches!(tempids(&report),
                         "{\"t1\" 100}");
 
         // A single complex upsert allocates a new solitonId.
-        let report = assert_transact!(conn, "[[:edb/add \"t1\" :edb.schema/attribute \"t2\"]]");
+        let report = assert_transact!(conn, "[[:edb/add \"t1\" :edb.schemaReplicant/attribute \"t2\"]]");
         assert_matches!(conn.last_transaction(),
-                        "[[65536 :edb.schema/attribute 65537 ?causetx true]
+                        "[[65536 :edb.schemaReplicant/attribute 65537 ?causetx true]
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(tempids(&report),
                         "{\"t1\" 65536
@@ -1529,7 +1529,7 @@ mod tests {
         // Conflicting upserts fail.
         assert_transact!(conn, "[[:edb/add \"t1\" :edb/causetid :name/Ivan]
                                  [:edb/add \"t1\" :edb/causetid :name/Petr]]",
-                         Err("schema constraint violation: conflicting upserts:\n  tempid External(\"t1\") upserts to {KnownSolitonId(100), KnownSolitonId(101)}\n"));
+                         Err("schemaReplicant constraint violation: conflicting upserts:\n  tempid External(\"t1\") upserts to {KnownSolitonId(100), KnownSolitonId(101)}\n"));
 
         // The error messages of conflicting upserts gives information about all failing upserts (in a particular generation).
         assert_transact!(conn, "[[:edb/add \"t2\" :edb/causetid :name/Grigory]
@@ -1537,7 +1537,7 @@ mod tests {
                                  [:edb/add \"t2\" :edb/causetid :name/Ivan]
                                  [:edb/add \"t1\" :edb/causetid :name/Ivan]
                                  [:edb/add \"t1\" :edb/causetid :name/Petr]]",
-                         Err("schema constraint violation: conflicting upserts:\n  tempid External(\"t1\") upserts to {KnownSolitonId(100), KnownSolitonId(101)}\n  tempid External(\"t2\") upserts to {KnownSolitonId(100), KnownSolitonId(101)}\n"));
+                         Err("schemaReplicant constraint violation: conflicting upserts:\n  tempid External(\"t1\") upserts to {KnownSolitonId(100), KnownSolitonId(101)}\n  tempid External(\"t2\") upserts to {KnownSolitonId(100), KnownSolitonId(101)}\n"));
 
         // tempids in :edb/retract that don't upsert fail.
         assert_transact!(conn, "[[:edb/retract \"t1\" :edb/causetid :name/Anonymous]]",
@@ -1546,7 +1546,7 @@ mod tests {
         // tempids in :edb/retract that do upsert are retracted.  The ref given doesn't exist, so the
         // assertion will be ignored.
         let report = assert_transact!(conn, "[[:edb/add \"t1\" :edb/causetid :name/Ivan]
-                                              [:edb/retract \"t1\" :edb.schema/attribute 103]]");
+                                              [:edb/retract \"t1\" :edb.schemaReplicant/attribute 103]]");
         assert_matches!(conn.last_transaction(),
                         "[[?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(tempids(&report),
@@ -1555,10 +1555,10 @@ mod tests {
         // A multistep upsert.  The upsert algorithm will first try to resolve "t1", fail, and then
         // allocate both "t1" and "t2".
         let report = assert_transact!(conn, "[[:edb/add \"t1\" :edb/causetid :name/Josef]
-                                              [:edb/add \"t2\" :edb.schema/attribute \"t1\"]]");
+                                              [:edb/add \"t2\" :edb.schemaReplicant/attribute \"t1\"]]");
         assert_matches!(conn.last_transaction(),
                         "[[65538 :edb/causetid :name/Josef ?causetx true]
-                          [65539 :edb.schema/attribute :name/Josef ?causetx true]
+                          [65539 :edb.schemaReplicant/attribute :name/Josef ?causetx true]
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(tempids(&report),
                         "{\"t1\" 65538
@@ -1566,7 +1566,7 @@ mod tests {
 
         // A multistep insert.  This time, we can resolve both, but we have to try "t1", succeed,
         // and then resolve "t2".
-        // TODO: We can't quite test this without more schema elements.
+        // TODO: We can't quite test this without more schemaReplicant elements.
         // conn.transact("[[:edb/add \"t1\" :edb/causetid :name/Josef]
         //                 [:edb/add \"t2\" :edb/causetid \"t1\"]]");
         // assert_matches!(conn.last_transaction(),
@@ -1641,15 +1641,15 @@ mod tests {
         // We're missing some tests here, since our impleeinsteindbion is incomplete.
         // See https://github.com/whtcorpsinc/einsteindb/issues/797
 
-        // We can assert a new schema attribute.
+        // We can assert a new schemaReplicant attribute.
         assert_transact!(conn, "[[:edb/add 100 :edb/causetid :test/causetid]
                                  [:edb/add 100 :edb/valueType :edb.type/long]
                                  [:edb/add 100 :edb/cardinality :edb.cardinality/many]]");
 
-        assert_eq!(conn.schema.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":test/causetid").unwrap());
-        assert_eq!(conn.schema.causetId_map.get(&to_namespaced_keyword(":test/causetid").unwrap()).cloned().unwrap(), 100);
-        let attribute = conn.schema.attribute_for_entid(100).unwrap().clone();
-        assert_eq!(attribute.value_type, ValueType::Long);
+        assert_eq!(conn.schemaReplicant.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":test/causetid").unwrap());
+        assert_eq!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":test/causetid").unwrap()).cloned().unwrap(), 100);
+        let attribute = conn.schemaReplicant.attribute_for_entid(100).unwrap().clone();
+        assert_eq!(attribute.value_type, MinkowskiValueType::Long);
         assert_eq!(attribute.multival, true);
         assert_eq!(attribute.fulltext, false);
 
@@ -1663,9 +1663,9 @@ mod tests {
                           [100 :edb/valueType :edb.type/long]
                           [100 :edb/cardinality :edb.cardinality/many]]");
 
-        // Let's check we actually have the schema characteristics we expect.
-        let attribute = conn.schema.attribute_for_entid(100).unwrap().clone();
-        assert_eq!(attribute.value_type, ValueType::Long);
+        // Let's check we actually have the schemaReplicant characteristics we expect.
+        let attribute = conn.schemaReplicant.attribute_for_entid(100).unwrap().clone();
+        assert_eq!(attribute.value_type, MinkowskiValueType::Long);
         assert_eq!(attribute.multival, true);
         assert_eq!(attribute.fulltext, false);
 
@@ -1681,23 +1681,23 @@ mod tests {
         // Cannot retract a single characteristic of an installed attribute.
         assert_transact!(conn,
                          "[[:edb/retract 100 :edb/cardinality :edb.cardinality/many]]",
-                         Err("bad schema assertion: Retracting attribute 8 for instanton 100 not permitted."));
+                         Err("bad schemaReplicant assertion: Retracting attribute 8 for instanton 100 not permitted."));
 
         // Cannot retract a single characteristic of an installed attribute.
         assert_transact!(conn,
                          "[[:edb/retract 100 :edb/valueType :edb.type/long]]",
-                         Err("bad schema assertion: Retracting attribute 7 for instanton 100 not permitted."));
+                         Err("bad schemaReplicant assertion: Retracting attribute 7 for instanton 100 not permitted."));
 
         // Cannot retract a non-defining set of characteristics of an installed attribute.
         assert_transact!(conn,
                          "[[:edb/retract 100 :edb/valueType :edb.type/long]
                          [:edb/retract 100 :edb/cardinality :edb.cardinality/many]]",
-                         Err("bad schema assertion: Retracting defining attributes of a schema without retracting its :edb/causetid is not permitted."));
+                         Err("bad schemaReplicant assertion: Retracting defining attributes of a schemaReplicant without retracting its :edb/causetid is not permitted."));
 
         // See https://github.com/whtcorpsinc/einsteindb/issues/796.
         // assert_transact!(conn,
         //                 "[[:edb/retract 100 :edb/causetid :test/causetid]]",
-        //                 Err("bad schema assertion: Retracting :edb/causetid of a schema without retracting its defining attributes is not permitted."));
+        //                 Err("bad schemaReplicant assertion: Retracting :edb/causetid of a schemaReplicant without retracting its defining attributes is not permitted."));
 
         // Can retract all of characterists of an installed attribute in one go.
         assert_transact!(conn,
@@ -1721,7 +1721,7 @@ mod tests {
 
         // Trying to alter the :edb/valueType will fail.
         assert_transact!(conn, "[[:edb/add 100 :edb/valueType :edb.type/long]]",
-                         Err("bad schema assertion: Schema alteration for existing attribute with solitonId 100 is not valid"));
+                         Err("bad schemaReplicant assertion: SchemaReplicant alteration for existing attribute with solitonId 100 is not valid"));
 
         // But we can alter the cardinality.
         assert_transact!(conn, "[[:edb/add 100 :edb/cardinality :edb.cardinality/many]]");
@@ -1735,9 +1735,9 @@ mod tests {
                           [100 :edb/valueType :edb.type/keyword]
                           [100 :edb/cardinality :edb.cardinality/many]]");
 
-        // Let's check we actually have the schema characteristics we expect.
-        let attribute = conn.schema.attribute_for_entid(100).unwrap().clone();
-        assert_eq!(attribute.value_type, ValueType::Keyword);
+        // Let's check we actually have the schemaReplicant characteristics we expect.
+        let attribute = conn.schemaReplicant.attribute_for_entid(100).unwrap().clone();
+        assert_eq!(attribute.value_type, MinkowskiValueType::Keyword);
         assert_eq!(attribute.multival, true);
         assert_eq!(attribute.fulltext, false);
 
@@ -1762,8 +1762,8 @@ mod tests {
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
                         "[[100 :edb/causetid :name/Ivan]]");
-        assert_eq!(conn.schema.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Ivan").unwrap());
-        assert_eq!(conn.schema.causetId_map.get(&to_namespaced_keyword(":name/Ivan").unwrap()).cloned().unwrap(), 100);
+        assert_eq!(conn.schemaReplicant.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Ivan").unwrap());
+        assert_eq!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":name/Ivan").unwrap()).cloned().unwrap(), 100);
 
         // We can re-assert an existing :edb/causetid.
         assert_transact!(conn, "[[:edb/add 100 :edb/causetid :name/Ivan]]");
@@ -1771,8 +1771,8 @@ mod tests {
                         "[[?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
                         "[[100 :edb/causetid :name/Ivan]]");
-        assert_eq!(conn.schema.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Ivan").unwrap());
-        assert_eq!(conn.schema.causetId_map.get(&to_namespaced_keyword(":name/Ivan").unwrap()).cloned().unwrap(), 100);
+        assert_eq!(conn.schemaReplicant.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Ivan").unwrap());
+        assert_eq!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":name/Ivan").unwrap()).cloned().unwrap(), 100);
 
         // We can alter an existing :edb/causetid to have a new keyword.
         assert_transact!(conn, "[[:edb/add :name/Ivan :edb/causetid :name/Petr]]");
@@ -1783,11 +1783,11 @@ mod tests {
         assert_matches!(conn.causets(),
                         "[[100 :edb/causetid :name/Petr]]");
         // SolitonId map is updated.
-        assert_eq!(conn.schema.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Petr").unwrap());
+        assert_eq!(conn.schemaReplicant.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Petr").unwrap());
         // CausetId map contains the new causetid.
-        assert_eq!(conn.schema.causetId_map.get(&to_namespaced_keyword(":name/Petr").unwrap()).cloned().unwrap(), 100);
+        assert_eq!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":name/Petr").unwrap()).cloned().unwrap(), 100);
         // CausetId map no longer contains the old causetid.
-        assert!(conn.schema.causetId_map.get(&to_namespaced_keyword(":name/Ivan").unwrap()).is_none());
+        assert!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":name/Ivan").unwrap()).is_none());
 
         // We can re-purpose an old causetid.
         assert_transact!(conn, "[[:edb/add 101 :edb/causetid :name/Ivan]]");
@@ -1798,18 +1798,18 @@ mod tests {
                         "[[100 :edb/causetid :name/Petr]
                           [101 :edb/causetid :name/Ivan]]");
         // SolitonId map contains both entids.
-        assert_eq!(conn.schema.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Petr").unwrap());
-        assert_eq!(conn.schema.entid_map.get(&101).cloned().unwrap(), to_namespaced_keyword(":name/Ivan").unwrap());
+        assert_eq!(conn.schemaReplicant.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Petr").unwrap());
+        assert_eq!(conn.schemaReplicant.entid_map.get(&101).cloned().unwrap(), to_namespaced_keyword(":name/Ivan").unwrap());
         // CausetId map contains the new causetid.
-        assert_eq!(conn.schema.causetId_map.get(&to_namespaced_keyword(":name/Petr").unwrap()).cloned().unwrap(), 100);
+        assert_eq!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":name/Petr").unwrap()).cloned().unwrap(), 100);
         // CausetId map contains the old causetid, but re-purposed to the new solitonId.
-        assert_eq!(conn.schema.causetId_map.get(&to_namespaced_keyword(":name/Ivan").unwrap()).cloned().unwrap(), 101);
+        assert_eq!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":name/Ivan").unwrap()).cloned().unwrap(), 101);
 
         // We can retract an existing :edb/causetid.
         assert_transact!(conn, "[[:edb/retract :name/Petr :edb/causetid :name/Petr]]");
         // It's really gone.
-        assert!(conn.schema.entid_map.get(&100).is_none());
-        assert!(conn.schema.causetId_map.get(&to_namespaced_keyword(":name/Petr").unwrap()).is_none());
+        assert!(conn.schemaReplicant.entid_map.get(&100).is_none());
+        assert!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":name/Petr").unwrap()).is_none());
     }
 
     #[test]
@@ -1838,7 +1838,7 @@ mod tests {
         // We can't always go from :edb.cardinality/many to :edb.cardinality/one.
         assert_transact!(conn, "[[:edb/add 100 :edb/cardinality :edb.cardinality/one]]",
                          // TODO: give more helpful error details.
-                         Err("schema alteration failed: Cannot alter schema attribute 100 to be :edb.cardinality/one"));
+                         Err("schemaReplicant alteration failed: Cannot alter schemaReplicant attribute 100 to be :edb.cardinality/one"));
     }
 
     #[test]
@@ -1856,12 +1856,12 @@ mod tests {
         // We can't always migrate to be :edb.unique/value.
         assert_transact!(conn, "[[:edb/add :test/causetid :edb/unique :edb.unique/value]]",
                          // TODO: give more helpful error details.
-                         Err("schema alteration failed: Cannot alter schema attribute 100 to be :edb.unique/value"));
+                         Err("schemaReplicant alteration failed: Cannot alter schemaReplicant attribute 100 to be :edb.unique/value"));
 
         // Not even indirectly!
         assert_transact!(conn, "[[:edb/add :test/causetid :edb/unique :edb.unique/causetIdity]]",
                          // TODO: give more helpful error details.
-                         Err("schema alteration failed: Cannot alter schema attribute 100 to be :edb.unique/causetIdity"));
+                         Err("schemaReplicant alteration failed: Cannot alter schemaReplicant attribute 100 to be :edb.unique/causetIdity"));
 
         // But we can if we make sure there's no repeated [a v] pair.
         assert_transact!(conn, "[[:edb/add 201 :test/causetid 2]]");
@@ -1873,9 +1873,9 @@ mod tests {
         // We can also retract the uniqueness constraint altogether.
         assert_transact!(conn, "[[:edb/retract :test/causetid :edb/unique :edb.unique/value]]");
 
-        // Once we've done so, the schema shows it's not unique…
+        // Once we've done so, the schemaReplicant shows it's not unique…
         {
-            let attr = conn.schema.attribute_for_causetId(&Keyword::namespaced("test", "causetid")).unwrap().0;
+            let attr = conn.schemaReplicant.attribute_for_causetId(&Keyword::namespaced("test", "causetid")).unwrap().0;
             assert_eq!(None, attr.unique);
         }
 
@@ -1914,7 +1914,7 @@ mod tests {
                           [200 :test/causetid \"Ai!\"]]");
     }
 
-    /// Verify that we can't alter :edb/fulltext schema characteristics at all.
+    /// Verify that we can't alter :edb/fulltext schemaReplicant characteristics at all.
     #[test]
     fn test_edb_alter_fulltext() {
         let mut conn = TestConn::default();
@@ -1932,11 +1932,11 @@ mod tests {
 
         assert_transact!(conn,
                          "[[:edb/retract 111 :edb/fulltext true]]",
-                         Err("bad schema assertion: Retracting attribute 12 for instanton 111 not permitted."));
+                         Err("bad schemaReplicant assertion: Retracting attribute 12 for instanton 111 not permitted."));
 
         assert_transact!(conn,
                          "[[:edb/add 222 :edb/fulltext true]]",
-                         Err("bad schema assertion: Schema alteration for existing attribute with solitonId 222 is not valid"));
+                         Err("bad schemaReplicant assertion: SchemaReplicant alteration for existing attribute with solitonId 222 is not valid"));
     }
 
     #[test]
@@ -1955,15 +1955,15 @@ mod tests {
                                  [:edb/add 222 :edb/index true]
                                  [:edb/add 222 :edb/fulltext true]]");
 
-        // Let's check we actually have the schema characteristics we expect.
-        let fulltext = conn.schema.attribute_for_entid(111).cloned().expect(":test/fulltext");
-        assert_eq!(fulltext.value_type, ValueType::String);
+        // Let's check we actually have the schemaReplicant characteristics we expect.
+        let fulltext = conn.schemaReplicant.attribute_for_entid(111).cloned().expect(":test/fulltext");
+        assert_eq!(fulltext.value_type, MinkowskiValueType::String);
         assert_eq!(fulltext.fulltext, true);
         assert_eq!(fulltext.multival, false);
         assert_eq!(fulltext.unique, Some(attribute::Unique::CausetIdity));
 
-        let other = conn.schema.attribute_for_entid(222).cloned().expect(":test/other");
-        assert_eq!(other.value_type, ValueType::String);
+        let other = conn.schemaReplicant.attribute_for_entid(222).cloned().expect(":test/other");
+        assert_eq!(other.value_type, MinkowskiValueType::String);
         assert_eq!(other.fulltext, true);
         assert_eq!(other.multival, false);
         assert_eq!(other.unique, None);
@@ -2521,7 +2521,7 @@ mod tests {
             [:edb/add "bar" :test/one 124]
         ]"#,
         // This is impleeinsteindbion specific (due to the allocated solitonId), but it should be deterministic.
-        Err("schema constraint violation: cardinality conflicts:\n  CardinalityOneAddConflict { e: 65536, a: 111, vs: {Long(123), Long(124)} }\n"));
+        Err("schemaReplicant constraint violation: cardinality conflicts:\n  CardinalityOneAddConflict { e: 65536, a: 111, vs: {Long(123), Long(124)} }\n"));
 
         // It also fails for map notation.
         assert_transact!(conn, r#"[
@@ -2529,7 +2529,7 @@ mod tests {
             {:test/unique "x", :test/one 124}
         ]"#,
         // This is impleeinsteindbion specific (due to the allocated solitonId), but it should be deterministic.
-        Err("schema constraint violation: cardinality conflicts:\n  CardinalityOneAddConflict { e: 65536, a: 111, vs: {Long(123), Long(124)} }\n"));
+        Err("schemaReplicant constraint violation: cardinality conflicts:\n  CardinalityOneAddConflict { e: 65536, a: 111, vs: {Long(123), Long(124)} }\n"));
     }
 
     #[test]
@@ -2573,7 +2573,7 @@ mod tests {
             [:edb/add "b" :page/id "2"]
             [:edb/add "b" :page/ref "a"]
         ]"#,
-        Err("schema constraint violation: conflicting upserts:\n  tempid External(\"a\") upserts to {KnownSolitonId(111), KnownSolitonId(222)}\n  tempid External(\"b\") upserts to {KnownSolitonId(111), KnownSolitonId(222)}\n"));
+        Err("schemaReplicant constraint violation: conflicting upserts:\n  tempid External(\"a\") upserts to {KnownSolitonId(111), KnownSolitonId(222)}\n  tempid External(\"b\") upserts to {KnownSolitonId(111), KnownSolitonId(222)}\n"));
 
         // Here's a case where the upsert is not resolved, just allocated, but leads to conflicting
         // cardinality one causets.
@@ -2581,7 +2581,7 @@ mod tests {
             [:edb/add "x" :page/ref 333]
             [:edb/add "x" :page/ref 444]
         ]"#,
-        Err("schema constraint violation: cardinality conflicts:\n  CardinalityOneAddConflict { e: 65539, a: 65537, vs: {Ref(333), Ref(444)} }\n"));
+        Err("schemaReplicant constraint violation: cardinality conflicts:\n  CardinalityOneAddConflict { e: 65539, a: 65537, vs: {Ref(333), Ref(444)} }\n"));
     }
 
     #[test]
@@ -2667,28 +2667,28 @@ mod tests {
     #[test]
     fn test_term_typechecking_issue_663() {
         // The builder interfaces provide untrusted `Term` instances to the transactor, bypassing
-        // the typechecking layers invoked in the schema-aware coercion from `edbn::Value` into
-        // `TypedValue`.  Typechecking now happens lower in the stack (as well as higher in the
+        // the typechecking layers invoked in the schemaReplicant-aware coercion from `edbn::Value` into
+        // `MinkowskiType`.  Typechecking now happens lower in the stack (as well as higher in the
         // stack) so we shouldn't be able to insert bad data into the store.
 
         let mut conn = TestConn::default();
 
         let mut terms = vec![];
 
-        terms.push(Term::AddOrRetract(OpType::Add, Left(KnownSolitonId(200)), entids::DB_CAUSETID, Left(TypedValue::typed_string("test"))));
-        terms.push(Term::AddOrRetract(OpType::Retract, Left(KnownSolitonId(100)), entids::DB_TX_INSTANT, Left(TypedValue::Long(-1))));
+        terms.push(Term::AddOrRetract(OpType::Add, Left(KnownSolitonId(200)), entids::DB_CAUSETID, Left(MinkowskiType::typed_string("test"))));
+        terms.push(Term::AddOrRetract(OpType::Retract, Left(KnownSolitonId(100)), entids::DB_TX_INSTANT, Left(MinkowskiType::Long(-1))));
 
         let report = conn.transact_simple_terms(terms, InternSet::new());
 
         match report.err().map(|e| e.kind()) {
-            Some(DbErrorKind::SchemaConstraintViolation(errors::SchemaConstraintViolation::TypeDisagreements { ref conflicting_Causets })) => {
+            Some(DbErrorKind::SchemaReplicantConstraintViolation(errors::SchemaReplicantConstraintViolation::TypeDisagreements { ref conflicting_Causets })) => {
                 let mut map = BTreeMap::default();
-                map.insert((100, entids::DB_TX_INSTANT, TypedValue::Long(-1)), ValueType::Instant);
-                map.insert((200, entids::DB_CAUSETID, TypedValue::typed_string("test")), ValueType::Keyword);
+                map.insert((100, entids::DB_TX_INSTANT, MinkowskiType::Long(-1)), MinkowskiValueType::Instant);
+                map.insert((200, entids::DB_CAUSETID, MinkowskiType::typed_string("test")), MinkowskiValueType::Keyword);
 
                 assert_eq!(conflicting_Causets, &map);
             },
-            x => panic!("expected schema constraint violation, got {:?}", x),
+            x => panic!("expected schemaReplicant constraint violation, got {:?}", x),
         }
     }
 
@@ -2722,7 +2722,7 @@ mod tests {
             [:edb/add 100 :test/one 3]
             [:edb/add 100 :test/one 4]
         ]"#,
-        Err("schema constraint violation: cardinality conflicts:\n  CardinalityOneAddConflict { e: 100, a: 200, vs: {Long(3), Long(4)} }\n"));
+        Err("schemaReplicant constraint violation: cardinality conflicts:\n  CardinalityOneAddConflict { e: 100, a: 200, vs: {Long(3), Long(4)} }\n"));
 
         // Can transact multiple causets for a cardinality many attribute.
         assert_transact!(conn, r#"[
@@ -2737,7 +2737,7 @@ mod tests {
             [:edb/add     100 :test/many 8]
             [:edb/retract 100 :test/many 8]
         ]"#,
-        Err("schema constraint violation: cardinality conflicts:\n  AddRetractConflict { e: 100, a: 200, vs: {Long(7)} }\n  AddRetractConflict { e: 100, a: 201, vs: {Long(8)} }\n"));
+        Err("schemaReplicant constraint violation: cardinality conflicts:\n  AddRetractConflict { e: 100, a: 200, vs: {Long(7)} }\n  AddRetractConflict { e: 100, a: 201, vs: {Long(8)} }\n"));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use crate::causetStorage::mvcc::{
+use crate::causetStorage::tail_pointer::{
     metrics::{MVCC_CONFLICT_COUNTER, MVCC_DUPLICATE_CMD_COUNTER_VEC},
     ErrorInner, LockType, MvccTxn, ReleasedLock, Result as MvccResult,
 };
@@ -13,7 +13,7 @@ pub fn commit<S: Snapshot>(
     commit_ts: TimeStamp,
 ) -> MvccResult<Option<ReleasedLock>> {
     fail_point!("commit", |err| Err(
-        crate::causetStorage::mvcc::txn::make_txn_error(err, &key, txn.spacelike_ts,).into()
+        crate::causetStorage::tail_pointer::txn::make_txn_error(err, &key, txn.spacelike_ts,).into()
     ));
 
     let mut dagger = match txn.reader.load_lock(&key)? {
@@ -101,8 +101,8 @@ pub fn commit<S: Snapshot>(
 
 pub mod tests {
     use super::*;
-    use crate::causetStorage::mvcc::tests::*;
-    use crate::causetStorage::mvcc::MvccTxn;
+    use crate::causetStorage::tail_pointer::tests::*;
+    use crate::causetStorage::tail_pointer::MvccTxn;
     use crate::causetStorage::Engine;
     use concurrency_manager::ConcurrencyManager;
     use ekvproto::kvrpcpb::Context;
@@ -110,7 +110,7 @@ pub mod tests {
 
     #[causetg(test)]
     use crate::causetStorage::{
-        mvcc::SHORT_VALUE_MAX_LEN, txn::commands::check_txn_status, TestEngineBuilder, TxnStatus,
+        tail_pointer::SHORT_VALUE_MAX_LEN, txn::commands::check_txn_status, TestEngineBuilder, TxnStatus,
     };
 
     pub fn must_succeed<E: Engine>(

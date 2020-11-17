@@ -2,7 +2,7 @@
 
 use crate::causetStorage::kv::WriteData;
 use crate::causetStorage::lock_manager::LockManager;
-use crate::causetStorage::mvcc::{MvccTxn, Result as MvccResult};
+use crate::causetStorage::tail_pointer::{MvccTxn, Result as MvccResult};
 use crate::causetStorage::txn::commands::{
     Command, CommandExt, ReleasedLocks, TypedCommand, WriteCommand, WriteContext, WriteResult,
 };
@@ -52,7 +52,7 @@ impl<S: Snapshot, L: LockManager> WriteCommand<S, L> for PessimisticRollback {
         let mut released_locks = ReleasedLocks::new(self.spacelike_ts, TimeStamp::zero());
         for key in tuplespaceInstanton {
             fail_point!("pessimistic_rollback", |err| Err(
-                crate::causetStorage::mvcc::Error::from(crate::causetStorage::mvcc::txn::make_txn_error(
+                crate::causetStorage::tail_pointer::Error::from(crate::causetStorage::tail_pointer::txn::make_txn_error(
                     err,
                     &key,
                     self.spacelike_ts
@@ -93,7 +93,7 @@ pub mod tests {
     use super::*;
     use crate::causetStorage::kv::Engine;
     use crate::causetStorage::lock_manager::DummyLockManager;
-    use crate::causetStorage::mvcc::tests::*;
+    use crate::causetStorage::tail_pointer::tests::*;
     use crate::causetStorage::txn::commands::{WriteCommand, WriteContext};
     use crate::causetStorage::txn::tests::*;
     use crate::causetStorage::TestEngineBuilder;

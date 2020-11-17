@@ -44,7 +44,7 @@ use milevadb_query_vec_expr::RpnExpression;
 pub trait AggregationFreeDaemonImpl<Src: BatchFreeDaemon>: Slightlike {
     /// Accepts entities without any group by PrimaryCausets and modifies them optionally.
     ///
-    /// Implementors should modify the `schema` entity when there are group by PrimaryCausets.
+    /// Implementors should modify the `schemaReplicant` entity when there are group by PrimaryCausets.
     ///
     /// This function will be called only once.
     fn prepare_entities(&mut self, entities: &mut Entities<Src>);
@@ -95,9 +95,9 @@ pub struct Entities<Src: BatchFreeDaemon> {
     pub src: Src,
     pub context: EvalContext,
 
-    /// The schema of the aggregation executor. It consists of aggregate result PrimaryCausets and
+    /// The schemaReplicant of the aggregation executor. It consists of aggregate result PrimaryCausets and
     /// group by PrimaryCausets.
-    pub schema: Vec<FieldType>,
+    pub schemaReplicant: Vec<FieldType>,
 
     /// The aggregate function.
     pub each_aggr_fn: Vec<Box<dyn AggrFunction>>,
@@ -130,35 +130,35 @@ impl<Src: BatchFreeDaemon, I: AggregationFreeDaemonImpl<Src>> AggregationFreeDae
         aggr_def_parser: impl AggrDefinitionParser,
     ) -> Result<Self> {
         let aggr_fn_len = aggr_defs.len();
-        let src_schema = src.schema();
+        let src_schemaReplicant = src.schemaReplicant();
 
-        let mut schema = Vec::with_capacity(aggr_fn_len * 2);
+        let mut schemaReplicant = Vec::with_capacity(aggr_fn_len * 2);
         let mut each_aggr_fn = Vec::with_capacity(aggr_fn_len);
         let mut each_aggr_cardinality = Vec::with_capacity(aggr_fn_len);
         let mut each_aggr_exprs = Vec::with_capacity(aggr_fn_len);
         let mut ctx = EvalContext::new(config.clone());
 
         for aggr_def in aggr_defs {
-            let schema_len = schema.len();
+            let schemaReplicant_len = schemaReplicant.len();
             let each_aggr_exprs_len = each_aggr_exprs.len();
 
             let aggr_fn = aggr_def_parser.parse(
                 aggr_def,
                 &mut ctx,
-                src_schema,
-                &mut schema,
+                src_schemaReplicant,
+                &mut schemaReplicant,
                 &mut each_aggr_exprs,
             )?;
 
-            assert!(schema.len() > schema_len);
+            assert!(schemaReplicant.len() > schemaReplicant_len);
             // Currently only support 1 parameter aggregate functions, so let's simply assert it.
             assert_eq!(each_aggr_exprs.len(), each_aggr_exprs_len + 1);
 
             each_aggr_fn.push(aggr_fn);
-            each_aggr_cardinality.push(schema.len() - schema_len);
+            each_aggr_cardinality.push(schemaReplicant.len() - schemaReplicant_len);
         }
 
-        let all_result_PrimaryCauset_types = schema
+        let all_result_PrimaryCauset_types = schemaReplicant
             .iter()
             .map(|ft| {
                 // The unwrap is fine because aggregate function parser should never return an
@@ -171,7 +171,7 @@ impl<Src: BatchFreeDaemon, I: AggregationFreeDaemonImpl<Src>> AggregationFreeDae
         let mut entities = Entities {
             src,
             context: EvalContext::new(config),
-            schema,
+            schemaReplicant,
             each_aggr_fn,
             each_aggr_cardinality,
             each_aggr_exprs,
@@ -271,8 +271,8 @@ impl<Src: BatchFreeDaemon, I: AggregationFreeDaemonImpl<Src>> BatchFreeDaemon
     type StorageStats = Src::StorageStats;
 
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        self.entities.schema.as_slice()
+    fn schemaReplicant(&self) -> &[FieldType] {
+        self.entities.schemaReplicant.as_slice()
     }
 
     #[inline]
@@ -367,7 +367,7 @@ pub mod tests {
 
     /// Builds an executor that will return these logical data:
     ///
-    /// == Schema ==
+    /// == SchemaReplicant ==
     /// Col0(Real)   Col1(Real)  Col2(Bytes) Col3(Int)  Col4(Bytes-utf8_general_ci)
     /// == Call #1 ==
     /// NULL         1.0         abc         1          aa

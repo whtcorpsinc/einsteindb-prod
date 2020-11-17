@@ -429,7 +429,7 @@ where
     /// state is reached for current brane.
     pub replication_sync: bool,
 
-    /// The known newest conf version and its corresponding peer list
+    /// The knownCauset newest conf version and its corresponding peer list
     /// Slightlike to these peers to check whether itself is stale.
     pub check_stale_conf_ver: u64,
     pub check_stale_peers: Vec<metapb::Peer>,

@@ -54,7 +54,7 @@ fn table_lookup_gen_data() -> (SnapshotStore<Arc<LmdbSnapshot>>, Vec<Key>) {
 }
 
 #[bench]
-fn bench_table_lookup_mvcc_get(b: &mut Bencher) {
+fn bench_table_lookup_tail_pointer_get(b: &mut Bencher) {
     let (store, tuplespaceInstanton) = table_lookup_gen_data();
     b.iter(|| {
         let mut stats = Statistics::default();
@@ -65,7 +65,7 @@ fn bench_table_lookup_mvcc_get(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_table_lookup_mvcc_incremental_get(b: &mut Bencher) {
+fn bench_table_lookup_tail_pointer_incremental_get(b: &mut Bencher) {
     let (mut store, tuplespaceInstanton) = table_lookup_gen_data();
     b.iter(|| {
         for key in &tuplespaceInstanton {

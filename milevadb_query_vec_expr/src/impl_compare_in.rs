@@ -378,9 +378,9 @@ mod tests {
                     }
                 }
                 let mut ctx = EvalContext::default();
-                let schema = &[FieldTypeTp::LongLong.into()];
+                let schemaReplicant = &[FieldTypeTp::LongLong.into()];
                 let mut PrimaryCausets = LazyBatchPrimaryCausetVec::empty();
-                let result = exp.eval(&mut ctx, schema, &mut PrimaryCausets, &[], 1);
+                let result = exp.eval(&mut ctx, schemaReplicant, &mut PrimaryCausets, &[], 1);
                 let val = result.unwrap();
                 assert!(val.is_vector());
                 assert_eq!(
@@ -494,9 +494,9 @@ mod tests {
                 assert_eq!(args_len, 1);
             }
             let mut ctx = EvalContext::default();
-            let schema = &[];
+            let schemaReplicant = &[];
             let mut PrimaryCausets = LazyBatchPrimaryCausetVec::empty();
-            let result = exp.eval(&mut ctx, schema, &mut PrimaryCausets, &[], 1);
+            let result = exp.eval(&mut ctx, schemaReplicant, &mut PrimaryCausets, &[], 1);
             let val = result.unwrap();
             assert!(val.is_vector());
             assert_eq!(
@@ -528,7 +528,7 @@ mod tests {
             assert_eq!(args_len, 3);
         }
         let mut ctx = EvalContext::default();
-        let schema = &[FieldTypeTp::LongLong.into(), FieldTypeTp::LongLong.into()];
+        let schemaReplicant = &[FieldTypeTp::LongLong.into(), FieldTypeTp::LongLong.into()];
         let mut PrimaryCausets = LazyBatchPrimaryCausetVec::from(vec![
             {
                 let mut col = LazyBatchPrimaryCauset::decoded_with_capacity_and_tp(3, EvalType::Int);
@@ -545,7 +545,7 @@ mod tests {
                 col
             },
         ]);
-        let result = exp.eval(&mut ctx, schema, &mut PrimaryCausets, &[1, 0, 2], 3);
+        let result = exp.eval(&mut ctx, schemaReplicant, &mut PrimaryCausets, &[1, 0, 2], 3);
         let val = result.unwrap();
         assert!(val.is_vector());
         assert_eq!(
@@ -572,7 +572,7 @@ mod tests {
         .unwrap();
 
         let mut ctx = EvalContext::default();
-        let schema = &[FieldTypeTp::LongLong.into()];
+        let schemaReplicant = &[FieldTypeTp::LongLong.into()];
         let mut col = LazyBatchPrimaryCauset::decoded_with_capacity_and_tp(1024, EvalType::Int);
         for i in 0..1024 {
             col.mut_decoded().push_int(Some(i));
@@ -583,7 +583,7 @@ mod tests {
         b.iter(|| {
             let result = black_box(&exp).eval(
                 black_box(&mut ctx),
-                black_box(schema),
+                black_box(schemaReplicant),
                 black_box(&mut PrimaryCausets),
                 black_box(&logical_rows),
                 black_box(1024),

@@ -131,7 +131,7 @@ pub struct Receiver<T> {
 
 impl<T> Slightlikeer<T> {
     pub fn is_empty(&self) -> bool {
-        // When there is no slightlikeer references, it can't be known whether
+        // When there is no slightlikeer references, it can't be knownCauset whether
         // it's empty or not.
         self.slightlikeer.as_ref().map_or(false, |s| s.is_empty())
     }

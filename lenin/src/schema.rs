@@ -22,7 +22,7 @@ pub static PARTITION_USER: &str = r":edb.part/user";
 pub static PARTITION_TX: &str = r":edb.part/causetx";
 
 lazy_static! {
-    /// SQL statements to be executed, in order, to create the Lenin SQL schema (version 1).
+    /// SQL statements to be executed, in order, to create the Lenin SQL schemaReplicant (version 1).
     /// "lenin_parts" records what the partitions were at the end of last sync, and is used
     /// as a "root partition" during renumbering (a three-way merge of partitions).
     #[cfg_attr(rustfmt, rustfmt_skip)]

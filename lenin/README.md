@@ -5,7 +5,7 @@ This work is partially a proof-of-concept, partially an alpha impleeinsteindbion
 
 ## Overview
 ### Very briefly
-Lenin will synchronize a local EinsteinDB database against a remote server, modifying local state if necessary, and uploading changes to the server if necessary. Schema additions are allowed (adding vocabulary). Schema mutations are currently not implemented (changing vocabulary). EinsteinDB's embedded schema must be the same on all participating clients (i.e. embedded schema alterations are unsupported).
+Lenin will synchronize a local EinsteinDB database against a remote server, modifying local state if necessary, and uploading changes to the server if necessary. SchemaReplicant additions are allowed (adding vocabulary). SchemaReplicant mutations are currently not implemented (changing vocabulary). EinsteinDB's embedded schemaReplicant must be the same on all participating clients (i.e. embedded schemaReplicant alterations are unsupported).
 
 **Basic example:**
 
@@ -74,7 +74,7 @@ Instanton `Grisha` will be "duplicated", since `:person/name` is not defined as 
 If, instead, `:person/name` was defined as `:edb/unique :edb.unique/causetIdity`, then our final state will be:
 ```
 [
-    [...schema causets...]
+    [...schemaReplicant causets...]
 
     [?united_grisha :person/name "Grisha"]
     [?united_grisha :person/age 30]
@@ -92,7 +92,7 @@ Syncing is defined in terms of coming to an agreement between local and remote s
 
 EinsteinDB is a log-oriented store, and so "local" and "remote" are really just two transaction logs.
 
-Internally, Lenin tracks the "locally known remote HEAD" and the "last-synced local transaction", which gives us three basic primitives:
+Internally, Lenin tracks the "locally knownCauset remote HEAD" and the "last-synced local transaction", which gives us three basic primitives:
 - a shared root, a state which is at the root of both local and remote logs
 - incoming changes - what remote changed on top of the shared root
 - local changes of the shared root.
@@ -127,8 +127,8 @@ Alternatively a non-atomic report is produced. It's a series of regular atomic r
 
 ## Explicitly not supported - will abort with a NotYetImplemented
 This alpha impleeinsteindbion doesn't support some cases, but it recognizes them and gracefully aborts (leaving local and remote states untouched):
-- Syncing against a EinsteinDB instance which uses a different embedded schema version.
-- Syncing with schema mutations. Schema additions are fine, but transactions which change a set of attributes that define a user-defined `:edb/causetid` will cause sync to abort.
+- Syncing against a EinsteinDB instance which uses a different embedded schemaReplicant version.
+- Syncing with schemaReplicant mutations. SchemaReplicant additions are fine, but transactions which change a set of attributes that define a user-defined `:edb/causetid` will cause sync to abort.
 
 ## Misc operational properties
 - All sync operations happen in a context of an `InProgress` - an internal EinsteinDB transaction representation. If sync succeeds, all necessary operations are comitted to the underlying database in a single SQLite transaction. Similarly, an aborting sync will simply drop an uncomitted transaction.

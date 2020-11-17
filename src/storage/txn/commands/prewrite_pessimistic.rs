@@ -4,8 +4,8 @@ use txn_types::{Key, Mutation, TimeStamp};
 
 use crate::causetStorage::kv::WriteData;
 use crate::causetStorage::lock_manager::LockManager;
-use crate::causetStorage::mvcc::MvccTxn;
-use crate::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner};
+use crate::causetStorage::tail_pointer::MvccTxn;
+use crate::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
 use crate::causetStorage::txn::commands::{
     Command, CommandExt, TypedCommand, WriteCommand, WriteContext, WriteResult,
 };

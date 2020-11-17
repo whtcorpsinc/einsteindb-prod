@@ -14,7 +14,7 @@ pub mod errors;
 pub mod kv;
 pub mod lock_manager;
 pub(crate) mod metrics;
-pub mod mvcc;
+pub mod tail_pointer;
 pub mod txn;
 
 mod read_pool;
@@ -38,7 +38,7 @@ use crate::causetStorage::{
     kv::{with_tls_engine, Modify, WriteData},
     lock_manager::{DummyLockManager, LockManager},
     metrics::*,
-    mvcc::PointGetterBuilder,
+    tail_pointer::PointGetterBuilder,
     txn::{commands::TypedCommand, scheduler::Scheduler as TxnScheduler, Command},
     types::StorageCallbackType,
 };
@@ -598,7 +598,7 @@ impl<E: Engine, L: LockManager> CausetStorage<E, L> {
                                     &bypass_locks,
                                 )
                             })
-                            .map_err(mvcc::Error::from)?;
+                            .map_err(tail_pointer::Error::from)?;
                     }
                 }
 
@@ -1420,7 +1420,7 @@ fn async_commit_check_tuplespaceInstanton<'a>(
                 .read_key_check(&key, |dagger| {
                     Dagger::check_ts_conflict(Cow::Borrowed(dagger), &key, ts, bypass_locks)
                 })
-                .map_err(mvcc::Error::from)?;
+                .map_err(tail_pointer::Error::from)?;
         }
     }
     Ok(())
@@ -1643,12 +1643,12 @@ mod tests {
     use super::{test_util::*, *};
 
     use crate::config::NoetherDBConfig;
-    use crate::causetStorage::mvcc::LockType;
+    use crate::causetStorage::tail_pointer::LockType;
     use crate::causetStorage::{
         config::BlockCacheConfig,
         kv::{Error as EngineError, ErrorInner as EngineErrorInner},
         lock_manager::{Dagger, WaitTimeout},
-        mvcc::{Error as MvccError, ErrorInner as MvccErrorInner},
+        tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner},
         txn::{commands, Error as TxnError, ErrorInner as TxnErrorInner},
     };
     use engine_lmdb::raw_util::CAUSETOptions;
@@ -1692,8 +1692,8 @@ mod tests {
         rx.recv().unwrap();
         expect_error(
             |e| match e {
-                Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                    box mvcc::ErrorInner::KeyIsLocked { .. },
+                Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                    box tail_pointer::ErrorInner::KeyIsLocked { .. },
                 ))))) => (),
                 e => panic!("unexpected error chain: {:?}", e),
             },
@@ -1745,8 +1745,8 @@ mod tests {
                     1.into(),
                 ),
                 expect_fail_callback(tx, 0, |e| match e {
-                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                        box mvcc::ErrorInner::Engine(EngineError(box EngineErrorInner::Request(
+                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                        box tail_pointer::ErrorInner::Engine(EngineError(box EngineErrorInner::Request(
                             ..,
                         ))),
                     ))))) => {}
@@ -1757,8 +1757,8 @@ mod tests {
         rx.recv().unwrap();
         expect_error(
             |e| match e {
-                Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                    box mvcc::ErrorInner::Engine(EngineError(box EngineErrorInner::Request(..))),
+                Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                    box tail_pointer::ErrorInner::Engine(EngineError(box EngineErrorInner::Request(..))),
                 ))))) => (),
                 e => panic!("unexpected error chain: {:?}", e),
             },
@@ -1766,8 +1766,8 @@ mod tests {
         );
         expect_error(
             |e| match e {
-                Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                    box mvcc::ErrorInner::Engine(EngineError(box EngineErrorInner::Request(..))),
+                Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                    box tail_pointer::ErrorInner::Engine(EngineError(box EngineErrorInner::Request(..))),
                 ))))) => (),
                 e => panic!("unexpected error chain: {:?}", e),
             },
@@ -1784,8 +1784,8 @@ mod tests {
         );
         expect_error(
             |e| match e {
-                Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                    box mvcc::ErrorInner::Engine(EngineError(box EngineErrorInner::Request(..))),
+                Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                    box tail_pointer::ErrorInner::Engine(EngineError(box EngineErrorInner::Request(..))),
                 ))))) => (),
                 e => panic!("unexpected error chain: {:?}", e),
             },
@@ -1803,8 +1803,8 @@ mod tests {
         for v in x {
             expect_error(
                 |e| match e {
-                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                        box mvcc::ErrorInner::Engine(EngineError(box EngineErrorInner::Request(
+                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                        box tail_pointer::ErrorInner::Engine(EngineError(box EngineErrorInner::Request(
                             ..,
                         ))),
                     ))))) => {}
@@ -2443,8 +2443,8 @@ mod tests {
         .unwrap();
         expect_error(
             |e| match e {
-                Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                    box mvcc::ErrorInner::KeyIsLocked(..),
+                Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                    box tail_pointer::ErrorInner::KeyIsLocked(..),
                 ))))) => {}
                 e => panic!("unexpected error chain: {:?}", e),
             },
@@ -2556,8 +2556,8 @@ mod tests {
                     105.into(),
                 ),
                 expect_fail_callback(tx, 6, |e| match e {
-                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                        box mvcc::ErrorInner::WriteConflict { .. },
+                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                        box tail_pointer::ErrorInner::WriteConflict { .. },
                     ))))) => (),
                     e => panic!("unexpected error chain: {:?}", e),
                 }),
@@ -2679,9 +2679,9 @@ mod tests {
                     Context::default(),
                 ),
                 expect_fail_callback(tx.clone(), 0, |e| match e {
-                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                        box mvcc::ErrorInner::KeyIsLocked(info),
-                    ))))) => assert_eq!(info.get_lock_ttl(), 100),
+                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                        box tail_pointer::ErrorInner::KeyIsLocked(info),
+                    ))))) => assert_eq!(info.get_dagger_ttl(), 100),
                     e => panic!("unexpected error chain: {:?}", e),
                 }),
             )
@@ -4298,8 +4298,8 @@ mod tests {
             .sched_txn_command(
                 commands::TxnHeartBeat::new(k.clone(), 10.into(), 100, Context::default()),
                 expect_fail_callback(tx.clone(), 0, |e| match e {
-                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                        box mvcc::ErrorInner::TxnLockNotFound { .. },
+                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                        box tail_pointer::ErrorInner::TxnLockNotFound { .. },
                     ))))) => (),
                     e => panic!("unexpected error chain: {:?}", e),
                 }),
@@ -4357,8 +4357,8 @@ mod tests {
             .sched_txn_command(
                 commands::TxnHeartBeat::new(k, 11.into(), 150, Context::default()),
                 expect_fail_callback(tx, 0, |e| match e {
-                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                        box mvcc::ErrorInner::TxnLockNotFound { .. },
+                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                        box tail_pointer::ErrorInner::TxnLockNotFound { .. },
                     ))))) => (),
                     e => panic!("unexpected error chain: {:?}", e),
                 }),
@@ -4395,8 +4395,8 @@ mod tests {
                     Context::default(),
                 ),
                 expect_fail_callback(tx.clone(), 0, |e| match e {
-                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                        box mvcc::ErrorInner::TxnNotFound { .. },
+                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                        box tail_pointer::ErrorInner::TxnNotFound { .. },
                     ))))) => (),
                     e => panic!("unexpected error chain: {:?}", e),
                 }),
@@ -4432,8 +4432,8 @@ mod tests {
                     ts(9, 0),
                 ),
                 expect_fail_callback(tx.clone(), 0, |e| match e {
-                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                        box mvcc::ErrorInner::WriteConflict { .. },
+                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                        box tail_pointer::ErrorInner::WriteConflict { .. },
                     ))))) => (),
                     e => panic!("unexpected error chain: {:?}", e),
                 }),
@@ -4550,8 +4550,8 @@ mod tests {
             .sched_txn_command(
                 commands::Commit::new(vec![k], ts(25, 0), ts(28, 0), Context::default()),
                 expect_fail_callback(tx, 0, |e| match e {
-                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(mvcc::Error(
-                        box mvcc::ErrorInner::TxnLockNotFound { .. },
+                    Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(tail_pointer::Error(
+                        box tail_pointer::ErrorInner::TxnLockNotFound { .. },
                     ))))) => (),
                     e => panic!("unexpected error chain: {:?}", e),
                 }),
@@ -4742,7 +4742,7 @@ mod tests {
                     ),
                     expect_fail_callback(tx.clone(), 0, |e| match e {
                         Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(
-                            mvcc::Error(box mvcc::ErrorInner::KeyIsLocked(_)),
+                            tail_pointer::Error(box tail_pointer::ErrorInner::KeyIsLocked(_)),
                         )))) => (),
                         e => panic!("unexpected error chain: {:?}", e),
                     }),
@@ -4801,7 +4801,7 @@ mod tests {
                     ),
                     expect_fail_callback(tx.clone(), 0, |e| match e {
                         Error(box ErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(
-                            mvcc::Error(box mvcc::ErrorInner::WriteConflict { .. }),
+                            tail_pointer::Error(box tail_pointer::ErrorInner::WriteConflict { .. }),
                         )))) => (),
                         e => panic!("unexpected error chain: {:?}", e),
                     }),
@@ -5011,7 +5011,7 @@ mod tests {
                         ))))) => {
                             assert_eq!(info.get_key(), k.as_slice());
                             assert_eq!(info.get_primary_lock(), k.as_slice());
-                            assert_eq!(info.get_lock_version(), 10);
+                            assert_eq!(info.get_dagger_version(), 10);
                         }
                         _ => panic!("unexpected error"),
                     },
@@ -5373,14 +5373,14 @@ mod tests {
         let key_error = extract_key_error(
             &block_on(causetStorage.get(ctx.clone(), key.clone(), 100.into())).unwrap_err(),
         );
-        assert_eq!(key_error.get_locked().get_key(), b"key");
+        assert_eq!(key_error.get_daggered().get_key(), b"key");
 
         // Test batch_get
         let key_error = extract_key_error(
             &block_on(causetStorage.batch_get(ctx.clone(), vec![Key::from_raw(b"a"), key], 100.into()))
                 .unwrap_err(),
         );
-        assert_eq!(key_error.get_locked().get_key(), b"key");
+        assert_eq!(key_error.get_daggered().get_key(), b"key");
 
         // Test scan
         let key_error = extract_key_error(
@@ -5396,7 +5396,7 @@ mod tests {
             ))
             .unwrap_err(),
         );
-        assert_eq!(key_error.get_locked().get_key(), b"key");
+        assert_eq!(key_error.get_daggered().get_key(), b"key");
 
         // Test batch_get_command
         let mut req1 = GetRequest::default();
@@ -5410,7 +5410,7 @@ mod tests {
         let res = block_on(causetStorage.batch_get_command(vec![req1, req2])).unwrap();
         assert!(res[0].is_ok());
         let key_error = extract_key_error(&res[1].as_ref().unwrap_err());
-        assert_eq!(key_error.get_locked().get_key(), b"key");
+        assert_eq!(key_error.get_daggered().get_key(), b"key");
     }
 
     #[test]

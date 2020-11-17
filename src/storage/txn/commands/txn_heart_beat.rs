@@ -2,7 +2,7 @@
 
 use crate::causetStorage::kv::WriteData;
 use crate::causetStorage::lock_manager::LockManager;
-use crate::causetStorage::mvcc::{ErrorInner as MvccErrorInner, MvccTxn, Result as MvccResult};
+use crate::causetStorage::tail_pointer::{ErrorInner as MvccErrorInner, MvccTxn, Result as MvccResult};
 use crate::causetStorage::txn::commands::{
     Command, CommandExt, TypedCommand, WriteCommand, WriteContext, WriteResult,
 };
@@ -48,7 +48,7 @@ impl<S: Snapshot, L: LockManager> WriteCommand<S, L> for TxnHeartBeat {
             context.concurrency_manager,
         );
         fail_point!("txn_heart_beat", |err| Err(
-            crate::causetStorage::mvcc::Error::from(crate::causetStorage::mvcc::txn::make_txn_error(
+            crate::causetStorage::tail_pointer::Error::from(crate::causetStorage::tail_pointer::txn::make_txn_error(
                 err,
                 &self.primary_key,
                 self.spacelike_ts,
@@ -121,7 +121,7 @@ pub mod tests {
     use super::*;
     use crate::causetStorage::kv::TestEngineBuilder;
     use crate::causetStorage::lock_manager::DummyLockManager;
-    use crate::causetStorage::mvcc::tests::*;
+    use crate::causetStorage::tail_pointer::tests::*;
     use crate::causetStorage::txn::commands::WriteCommand;
     use crate::causetStorage::txn::tests::*;
     use crate::causetStorage::Engine;

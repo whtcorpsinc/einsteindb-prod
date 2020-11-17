@@ -53,7 +53,7 @@ pub mod remote_client;
 pub use remote_client::{
     RemoteClient,
 };
-pub mod schema;
+pub mod schemaReplicant;
 pub mod syncer;
 pub use syncer::{
     Syncer,

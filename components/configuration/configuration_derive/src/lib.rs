@@ -65,7 +65,7 @@ fn generate_token(ast: DeriveInput) -> std::result::Result<TokenStream, Error> {
 }
 
 fn check_generics(g: &Generics, sp: Span) -> Result<()> {
-    if !g.params.is_empty() || g.where_clause.is_some() {
+    if !g.params.is_empty() || g.where_gerund.is_some() {
         return Err(Error::new(
             sp,
             "can not derive Configuration on struct with generics type",

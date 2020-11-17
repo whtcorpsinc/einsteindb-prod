@@ -25,7 +25,7 @@ use txn_types::{Key, TimeStamp};
 
 use crate::server::metrics::*;
 use crate::causetStorage::kv::{Engine, ScanMode, Statistics};
-use crate::causetStorage::mvcc::{check_need_gc, Error as MvccError, GcInfo, MvccReader, MvccTxn};
+use crate::causetStorage::tail_pointer::{check_need_gc, Error as MvccError, GcInfo, MvccReader, MvccTxn};
 
 use super::applied_lock_collector::{AppliedLockCollector, Callback as LockCollectorCallback};
 use super::config::{GcConfig, GcWorkerConfigManager};

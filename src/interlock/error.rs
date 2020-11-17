@@ -2,7 +2,7 @@
 
 use crate::causetStorage;
 use crate::causetStorage::kv::{Error as KvError, ErrorInner as KvErrorInner};
-use crate::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner};
+use crate::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
 use crate::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
 
 use error_code::{self, ErrorCode, ErrorCodeExt};
@@ -86,7 +86,7 @@ impl From<MvccError> for Error {
 impl From<TxnError> for Error {
     fn from(err: causetStorage::txn::Error) -> Self {
         match err {
-            TxnError(box TxnErrorInner::Mvcc(mvcc_error)) => Error::from(mvcc_error),
+            TxnError(box TxnErrorInner::Mvcc(tail_pointer_error)) => Error::from(tail_pointer_error),
             TxnError(box TxnErrorInner::Engine(engine_error)) => Error::from(engine_error),
             e => Error::Other(e.to_string()),
         }

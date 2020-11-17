@@ -21,12 +21,12 @@ pub trait AggrDefinitionParser {
 
     /// Parses and transforms the aggregate function definition.
     ///
-    /// The schema of this aggregate function will be applightlikeed in `out_schema` and the final
+    /// The schemaReplicant of this aggregate function will be applightlikeed in `out_schemaReplicant` and the final
     /// RPN expression (maybe wrapped by some casting according to types) will be applightlikeed in
     /// `out_exp`.
     ///
     /// The parser may choose particular aggregate function implementation based on the data
-    /// type, so `schema` is also needed in case of data type deplightlikeing on the PrimaryCauset.
+    /// type, so `schemaReplicant` is also needed in case of data type deplightlikeing on the PrimaryCauset.
     ///
     /// # Panic
     ///
@@ -35,15 +35,15 @@ pub trait AggrDefinitionParser {
         &self,
         mut aggr_def: Expr,
         ctx: &mut EvalContext,
-        src_schema: &[FieldType],
-        out_schema: &mut Vec<FieldType>,
+        src_schemaReplicant: &[FieldType],
+        out_schemaReplicant: &mut Vec<FieldType>,
         out_exp: &mut Vec<RpnExpression>,
     ) -> Result<Box<dyn AggrFunction>> {
         // Rewrite expression to insert CAST() if needed.
         let child = aggr_def.take_children().into_iter().next().unwrap();
-        let exp = RpnExpressionBuilder::build_from_expr_tree(child, ctx, src_schema.len())?;
+        let exp = RpnExpressionBuilder::build_from_expr_tree(child, ctx, src_schemaReplicant.len())?;
 
-        Self::parse_rpn(&self, aggr_def, exp, ctx, src_schema, out_schema, out_exp)
+        Self::parse_rpn(&self, aggr_def, exp, ctx, src_schemaReplicant, out_schemaReplicant, out_exp)
     }
 
     #[inline]
@@ -52,8 +52,8 @@ pub trait AggrDefinitionParser {
         _root_expr: Expr,
         _exp: RpnExpression,
         _ctx: &mut EvalContext,
-        _src_schema: &[FieldType],
-        _out_schema: &mut Vec<FieldType>,
+        _src_schemaReplicant: &[FieldType],
+        _out_schemaReplicant: &mut Vec<FieldType>,
         _out_exp: &mut Vec<RpnExpression>,
     ) -> Result<Box<dyn AggrFunction>> {
         unimplemented!(
@@ -109,11 +109,11 @@ impl AggrDefinitionParser for AllAggrDefinitionParser {
         &self,
         aggr_def: Expr,
         ctx: &mut EvalContext,
-        src_schema: &[FieldType],
-        out_schema: &mut Vec<FieldType>,
+        src_schemaReplicant: &[FieldType],
+        out_schemaReplicant: &mut Vec<FieldType>,
         out_exp: &mut Vec<RpnExpression>,
     ) -> Result<Box<dyn AggrFunction>> {
         let parser = map_pb_sig_to_aggr_func_parser(aggr_def.get_tp()).unwrap();
-        parser.parse(aggr_def, ctx, src_schema, out_schema, out_exp)
+        parser.parse(aggr_def, ctx, src_schemaReplicant, out_schemaReplicant, out_exp)
     }
 }

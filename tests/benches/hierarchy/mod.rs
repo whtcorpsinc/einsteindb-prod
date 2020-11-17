@@ -1,6 +1,6 @@
 mod engine;
 mod engine_factory;
-mod mvcc;
+mod tail_pointer;
 mod causetStorage;
 mod txn;
 
@@ -8,7 +8,7 @@ use std::fmt;
 
 use self::engine::bench_engine;
 use self::engine_factory::{BTreeEngineFactory, EngineFactory, LmdbEngineFactory};
-use self::mvcc::bench_mvcc;
+use self::tail_pointer::bench_tail_pointer;
 use self::causetStorage::bench_causetStorage;
 use self::txn::bench_txn;
 use criterion::Criterion;
@@ -61,8 +61,8 @@ fn main() {
     bench_engine(&mut c, &btree_engine_configs);
     bench_engine(&mut c, &rocks_engine_configs);
 
-    bench_mvcc(&mut c, &btree_engine_configs);
-    bench_mvcc(&mut c, &rocks_engine_configs);
+    bench_tail_pointer(&mut c, &btree_engine_configs);
+    bench_tail_pointer(&mut c, &rocks_engine_configs);
 
     bench_txn(&mut c, &btree_engine_configs);
     bench_txn(&mut c, &rocks_engine_configs);

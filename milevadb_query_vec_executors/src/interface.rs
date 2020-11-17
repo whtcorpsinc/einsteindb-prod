@@ -21,8 +21,8 @@ use milevadb_query_datatype::expr::EvalWarnings;
 pub trait BatchFreeDaemon: Slightlike {
     type StorageStats;
 
-    /// Gets the schema of the output.
-    fn schema(&self) -> &[FieldType];
+    /// Gets the schemaReplicant of the output.
+    fn schemaReplicant(&self) -> &[FieldType];
 
     /// Pulls next several events of data (stored by PrimaryCauset).
     ///
@@ -69,8 +69,8 @@ pub trait BatchFreeDaemon: Slightlike {
 impl<T: BatchFreeDaemon + ?Sized> BatchFreeDaemon for Box<T> {
     type StorageStats = T::StorageStats;
 
-    fn schema(&self) -> &[FieldType] {
-        (**self).schema()
+    fn schemaReplicant(&self) -> &[FieldType] {
+        (**self).schemaReplicant()
     }
 
     fn next_batch(&mut self, scan_rows: usize) -> BatchExecuteResult {
@@ -99,8 +99,8 @@ impl<C: ExecSummaryCollector + Slightlike, T: BatchFreeDaemon> BatchFreeDaemon
 {
     type StorageStats = T::StorageStats;
 
-    fn schema(&self) -> &[FieldType] {
-        self.inner.schema()
+    fn schemaReplicant(&self) -> &[FieldType] {
+        self.inner.schemaReplicant()
     }
 
     fn next_batch(&mut self, scan_rows: usize) -> BatchExecuteResult {

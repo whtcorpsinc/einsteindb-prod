@@ -16,9 +16,9 @@ use std::fmt::{
 
 use embedded_promises::{
     SolitonId,
-    TypedValue,
-    ValueType,
-    ValueTypeSet,
+    MinkowskiType,
+    MinkowskiValueType,
+    MinkowskiSet,
 };
 
 use einsteindb_embedded::{
@@ -33,7 +33,7 @@ use edbn::causetq::{
     Order,
     SrcVar,
     Variable,
-    WhereClause,
+    WhereGerund,
 };
 
 /// This enum models the fixed set of default tables we have -- two
@@ -51,15 +51,15 @@ pub enum CausetsTable {
 /// A source of rows that isn't a named table -- typically a subcausetq or union.
 #[derive(PartialEq, Eq, Debug)]
 pub enum ComputedTable {
-    Subcausetq(::clauses::ConjoiningClauses),
+    Subcausetq(::gerunds::ConjoiningGerunds),
     Union {
         projection: BTreeSet<Variable>,
         type_extraction: BTreeSet<Variable>,
-        arms: Vec<::clauses::ConjoiningClauses>,
+        arms: Vec<::gerunds::ConjoiningGerunds>,
     },
     NamedValues {
         names: Vec<Variable>,
-        values: Vec<TypedValue>,
+        values: Vec<MinkowskiType>,
     },
 }
 
@@ -87,7 +87,7 @@ pub enum CausetsColumn {
     Attribute,
     Value,
     Tx,
-    ValueTypeTag,
+    MinkowskiValueTypeTag,
 }
 
 /// One of the named columns of our fulltext values table.
@@ -105,7 +105,7 @@ pub enum TransactionsColumn {
     Value,
     Tx,
     Added,
-    ValueTypeTag,
+    MinkowskiValueTypeTag,
 }
 
 #[derive(PartialEq, Eq, Clone)]
@@ -148,7 +148,7 @@ impl CausetsColumn {
             Attribute => "a",
             Value => "v",
             Tx => "causetx",
-            ValueTypeTag => "value_type_tag",
+            MinkowskiValueTypeTag => "value_type_tag",
         }
     }
 
@@ -157,7 +157,7 @@ impl CausetsColumn {
     pub fn associated_type_tag_column(&self) -> Option<CausetsColumn> {
         use self::CausetsColumn::*;
         match *self {
-            Value => Some(ValueTypeTag),
+            Value => Some(MinkowskiValueTypeTag),
             _ => None,
         }
     }
@@ -236,14 +236,14 @@ impl TransactionsColumn {
             Value => "v",
             Tx => "causetx",
             Added => "added",
-            ValueTypeTag => "value_type_tag",
+            MinkowskiValueTypeTag => "value_type_tag",
         }
     }
 
     pub fn associated_type_tag_column(&self) -> Option<TransactionsColumn> {
         use self::TransactionsColumn::*;
         match *self {
-            Value => Some(ValueTypeTag),
+            Value => Some(MinkowskiValueTypeTag),
             _ => None,
         }
     }
@@ -303,7 +303,7 @@ impl QualifiedAlias {
 pub enum CausetQValue {
     Column(QualifiedAlias),
     SolitonId(SolitonId),
-    TypedValue(TypedValue),
+    MinkowskiType(MinkowskiType),
 
     // This is different: a numeric value can only apply to the 'v' column, and it implicitly
     // constrains the `value_type_tag` column. For instance, a primitive long on `Causets00` of `5`
@@ -322,7 +322,7 @@ impl Debug for CausetQValue {
             &SolitonId(ref solitonId) => {
                 write!(f, "instanton({:?})", solitonId)
             },
-            &TypedValue(ref typed_value) => {
+            &MinkowskiType(ref typed_value) => {
                 write!(f, "value({:?})", typed_value)
             },
             &PrimitiveLong(value) => {
@@ -402,7 +402,7 @@ impl Inequality {
     }
 
     // The built-in inequality operators apply to Long, Double, and Instant.
-    pub fn supported_types(&self) -> ValueTypeSet {
+    pub fn supported_types(&self) -> MinkowskiSet {
         use self::Inequality::*;
         match self {
             &LessThan |
@@ -410,15 +410,15 @@ impl Inequality {
             &GreaterThan |
             &GreaterThanOrEquals |
             &NotEquals => {
-                let mut ts = ValueTypeSet::of_numeric_types();
-                ts.insert(ValueType::Instant);
+                let mut ts = MinkowskiSet::of_numeric_types();
+                ts.insert(MinkowskiValueType::Instant);
                 ts
             },
             &Unpermute |
             &Differ |
             &TxAfter |
             &TxBefore => {
-                ValueTypeSet::of_one(ValueType::Ref)
+                MinkowskiSet::of_one(MinkowskiValueType::Ref)
             },
         }
     }
@@ -453,7 +453,7 @@ pub enum ColumnConstraint {
     },
     HasTypes {
         value: TableAlias,
-        value_types: ValueTypeSet,
+        value_types: MinkowskiSet,
         check_value: bool,
     },
     NotExists(ComputedTable),
@@ -461,10 +461,10 @@ pub enum ColumnConstraint {
 }
 
 impl ColumnConstraint {
-    pub fn has_unit_type(value: TableAlias, value_type: ValueType) -> ColumnConstraint {
+    pub fn has_unit_type(value: TableAlias, value_type: MinkowskiValueType) -> ColumnConstraint {
         ColumnConstraint::HasTypes {
             value,
-            value_types: ValueTypeSet::of_one(value_type),
+            value_types: MinkowskiSet::of_one(value_type),
             check_value: false,
         }
     }
@@ -587,9 +587,9 @@ impl Debug for ColumnConstraint {
                 write!(f, "(")?;
                 for value_type in value_types.iter() {
                     write!(f, "({:?}.value_type_tag = {:?}", value, value_type)?;
-                    if check_value && value_type == ValueType::Double || value_type == ValueType::Long {
+                    if check_value && value_type == MinkowskiValueType::Double || value_type == MinkowskiValueType::Long {
                         write!(f, " AND typeof({:?}) = '{:?}')", value,
-                               if value_type == ValueType::Double { "real" } else { "integer" })?;
+                               if value_type == MinkowskiValueType::Double { "real" } else { "integer" })?;
                     } else {
                         write!(f, ")")?;
                     }
@@ -607,14 +607,14 @@ impl Debug for ColumnConstraint {
 #[derive(PartialEq, Clone)]
 pub enum EmptyBecause {
     CachedAttributeHasNoValues { instanton: SolitonId, attr: SolitonId },
-    CachedAttributeHasNoInstanton { value: TypedValue, attr: SolitonId },
-    ConflictingBindings { var: Variable, existing: TypedValue, desired: TypedValue },
+    CachedAttributeHasNoInstanton { value: MinkowskiType, attr: SolitonId },
+    ConflictingBindings { var: Variable, existing: MinkowskiType, desired: MinkowskiType },
 
-    // A variable is known to be of two conflicting sets of types.
-    TypeMismatch { var: Variable, existing: ValueTypeSet, desired: ValueTypeSet },
+    // A variable is knownCauset to be of two conflicting sets of types.
+    TypeMismatch { var: Variable, existing: MinkowskiSet, desired: MinkowskiSet },
 
     // The same, but for non-variables.
-    KnownTypeMismatch { left: ValueTypeSet, right: ValueTypeSet },
+    KnownTypeMismatch { left: MinkowskiSet, right: MinkowskiSet },
     NoValidTypes(Variable),
     NonAttributeArgument,
     NonInstantArgument,
@@ -625,8 +625,8 @@ pub enum EmptyBecause {
     UnresolvedCausetId(Keyword),
     InvalidAttributeCausetId(Keyword),
     InvalidAttributeSolitonId(SolitonId),
-    InvalidBinding(Column, TypedValue),
-    ValueTypeMismatch(ValueType, TypedValue),
+    InvalidBinding(Column, MinkowskiType),
+    MinkowskiValueTypeMismatch(MinkowskiValueType, MinkowskiType),
     AttributeLookupFailed,         // Catch-all, because the table lookup code is lazy. TODO
 }
 
@@ -685,7 +685,7 @@ impl Debug for EmptyBecause {
             &InvalidBinding(ref column, ref tv) => {
                 write!(f, "{:?} cannot name column {:?}", tv, column)
             },
-            &ValueTypeMismatch(value_type, ref typed_value) => {
+            &MinkowskiValueTypeMismatch(value_type, ref typed_value) => {
                 write!(f, "Type mismatch: {:?} doesn't match attribute type {:?}",
                        typed_value, value_type)
             },
@@ -710,7 +710,7 @@ pub struct FindCausetQ {
     pub in_vars: BTreeSet<Variable>,
     pub in_sources: BTreeSet<SrcVar>,
     pub limit: Limit,
-    pub where_clauses: Vec<WhereClause>,
+    pub where_gerunds: Vec<WhereGerund>,
     pub order: Option<Vec<Order>>,
 }
 
@@ -729,7 +729,7 @@ pub enum EvolvedValuePlace {
     Placeholder,
     Variable(Variable),
     SolitonId(SolitonId),
-    Value(TypedValue),
+    Value(MinkowskiType),
     SolitonIdOrInteger(i64),
     CausetIdOrKeyword(ValueRc<Keyword>),
 }

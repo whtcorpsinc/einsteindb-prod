@@ -18,11 +18,11 @@ extern crate causetq_projector_promises;
 use embedded_promises::{
     Attribute,
     SolitonId,
-    ValueType,
+    MinkowskiValueType,
 };
 
 use einsteindb_embedded::{
-    Schema,
+    SchemaReplicant,
 };
 
 use edbn::causetq::{
@@ -30,7 +30,7 @@ use edbn::causetq::{
 };
 
 use einsteindb_causetq_parityfilter::{
-    Known,
+    KnownCauset,
     algebrize,
     parse_find_string,
 };
@@ -39,42 +39,42 @@ use einsteindb_causetq_projector::{
     causetq_projection,
 };
 
-// These are helpers that tests use to build Schema instances.
-fn associate_causetId(schema: &mut Schema, i: Keyword, e: SolitonId) {
-    schema.entid_map.insert(e, i.clone());
-    schema.causetId_map.insert(i.clone(), e);
+// These are helpers that tests use to build SchemaReplicant instances.
+fn associate_causetId(schemaReplicant: &mut SchemaReplicant, i: Keyword, e: SolitonId) {
+    schemaReplicant.entid_map.insert(e, i.clone());
+    schemaReplicant.causetId_map.insert(i.clone(), e);
 }
 
-fn add_attribute(schema: &mut Schema, e: SolitonId, a: Attribute) {
-    schema.attribute_map.insert(e, a);
+fn add_attribute(schemaReplicant: &mut SchemaReplicant, e: SolitonId, a: Attribute) {
+    schemaReplicant.attribute_map.insert(e, a);
 }
 
-fn prepopulated_schema() -> Schema {
-    let mut schema = Schema::default();
-    associate_causetId(&mut schema, Keyword::namespaced("foo", "name"), 65);
-    associate_causetId(&mut schema, Keyword::namespaced("foo", "age"), 68);
-    associate_causetId(&mut schema, Keyword::namespaced("foo", "height"), 69);
-    add_attribute(&mut schema, 65, Attribute {
-        value_type: ValueType::String,
+fn prepopulated_schemaReplicant() -> SchemaReplicant {
+    let mut schemaReplicant = SchemaReplicant::default();
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "name"), 65);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "age"), 68);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "height"), 69);
+    add_attribute(&mut schemaReplicant, 65, Attribute {
+        value_type: MinkowskiValueType::String,
         multival: false,
         ..Default::default()
     });
-    add_attribute(&mut schema, 68, Attribute {
-        value_type: ValueType::Long,
+    add_attribute(&mut schemaReplicant, 68, Attribute {
+        value_type: MinkowskiValueType::Long,
         multival: false,
         ..Default::default()
     });
-    add_attribute(&mut schema, 69, Attribute {
-        value_type: ValueType::Long,
+    add_attribute(&mut schemaReplicant, 69, Attribute {
+        value_type: MinkowskiValueType::Long,
         multival: false,
         ..Default::default()
     });
-    schema
+    schemaReplicant
 }
 
 #[test]
 fn test_aggregate_unsuitable_type() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     let causetq = r#"[:find (avg ?e)
                     :where
@@ -82,15 +82,15 @@ fn test_aggregate_unsuitable_type() {
 
     // While the causetq itself algebrizes and parses…
     let parsed = parse_find_string(causetq).expect("causetq input to have parsed");
-    let algebrized = algebrize(Known::for_schema(&schema), parsed).expect("causetq algebrizes");
+    let algebrized = algebrize(KnownCauset::for_schemaReplicant(&schemaReplicant), parsed).expect("causetq algebrizes");
 
     // … when we look at the projection list, we cannot reconcile the types.
-    assert!(causetq_projection(&schema, &algebrized).is_err());
+    assert!(causetq_projection(&schemaReplicant, &algebrized).is_err());
 }
 
 #[test]
 fn test_the_without_max_or_min() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     let causetq = r#"[:find (the ?e) ?a
                     :where
@@ -98,10 +98,10 @@ fn test_the_without_max_or_min() {
 
     // While the causetq itself algebrizes and parses…
     let parsed = parse_find_string(causetq).expect("causetq input to have parsed");
-    let algebrized = algebrize(Known::for_schema(&schema), parsed).expect("causetq algebrizes");
+    let algebrized = algebrize(KnownCauset::for_schemaReplicant(&schemaReplicant), parsed).expect("causetq algebrizes");
 
     // … when we look at the projection list, we cannot reconcile the types.
-    let projection = causetq_projection(&schema, &algebrized);
+    let projection = causetq_projection(&schemaReplicant, &algebrized);
     assert!(projection.is_err());
     use causetq_projector_promises::errors::{
         ProjectorError,

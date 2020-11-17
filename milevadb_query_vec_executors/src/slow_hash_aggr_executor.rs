@@ -36,8 +36,8 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchSlowHashAggregationFreeDaemo
     type StorageStats = Src::StorageStats;
 
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        self.0.schema()
+    fn schemaReplicant(&self) -> &[FieldType] {
+        self.0.schemaReplicant()
     }
 
     #[inline]
@@ -110,12 +110,12 @@ impl<Src: BatchFreeDaemon> BatchSlowHashAggregationFreeDaemon<Src> {
         group_by_exp_defs: Vec<Expr>,
         aggr_defs: Vec<Expr>,
     ) -> Result<Self> {
-        let schema_len = src.schema().len();
+        let schemaReplicant_len = src.schemaReplicant().len();
         let mut ctx = EvalContext::new(config.clone());
         let mut group_by_exps = Vec::with_capacity(group_by_exp_defs.len());
         for def in group_by_exp_defs {
             group_by_exps.push(RpnExpressionBuilder::build_from_expr_tree(
-                def, &mut ctx, schema_len,
+                def, &mut ctx, schemaReplicant_len,
             )?);
         }
 
@@ -140,7 +140,7 @@ impl<Src: BatchFreeDaemon> BatchSlowHashAggregationFreeDaemon<Src> {
         group_key_offsets.push(0);
         let group_by_exprs_field_type: Vec<&FieldType> = group_by_exps
             .iter()
-            .map(|expr| expr.ret_field_type(src.schema()))
+            .map(|expr| expr.ret_field_type(src.schemaReplicant()))
             .collect();
         let extra_group_by_col_index: Vec<usize> = group_by_exprs_field_type
             .iter()
@@ -233,11 +233,11 @@ unsafe impl Slightlike for SlowHashAggregationImpl {}
 impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for SlowHashAggregationImpl {
     #[inline]
     fn prepare_entities(&mut self, entities: &mut Entities<Src>) {
-        let src_schema = entities.src.schema();
+        let src_schemaReplicant = entities.src.schemaReplicant();
         for group_by_exp in &self.group_by_exps {
             entities
-                .schema
-                .push(group_by_exp.ret_field_type(src_schema).clone());
+                .schemaReplicant
+                .push(group_by_exp.ret_field_type(src_schemaReplicant).clone());
         }
     }
 
@@ -252,7 +252,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for SlowHashAggregatio
         self.states_offset_each_logical_row.clear();
 
         let context = &mut entities.context;
-        let src_schema = entities.src.schema();
+        let src_schemaReplicant = entities.src.schemaReplicant();
         let logical_rows_len = input_logical_rows.len();
         let aggr_fn_len = entities.each_aggr_fn.len();
 
@@ -261,7 +261,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for SlowHashAggregatio
         ensure_PrimaryCausets_decoded(
             context,
             &self.group_by_exps,
-            src_schema,
+            src_schemaReplicant,
             &mut input_physical_PrimaryCausets,
             input_logical_rows,
         )?;
@@ -270,7 +270,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for SlowHashAggregatio
             eval_exprs_decoded_no_lifetime(
                 context,
                 &self.group_by_exps,
-                src_schema,
+                src_schemaReplicant,
                 &input_physical_PrimaryCausets,
                 input_logical_rows,
                 &mut self.group_by_results_unsafe,
@@ -576,13 +576,13 @@ mod tests {
         let mut ctx = EvalContext::default();
         // Let's check the three group by PrimaryCauset first.
         r.physical_PrimaryCausets[3]
-            .ensure_all_decoded_for_test(&mut ctx, &exec.schema()[3])
+            .ensure_all_decoded_for_test(&mut ctx, &exec.schemaReplicant()[3])
             .unwrap();
         r.physical_PrimaryCausets[4]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schema()[4])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schemaReplicant()[4])
             .unwrap();
         r.physical_PrimaryCausets[5]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schema()[5])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schemaReplicant()[5])
             .unwrap();
 
         // The row order is not defined. Let's sort it by the group by PrimaryCauset before asserting.

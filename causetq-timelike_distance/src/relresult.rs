@@ -10,7 +10,7 @@
 
 use embedded_promises::{
     Binding,
-    TypedValue,
+    MinkowskiType,
 };
 
 /// The result you get from a 'rel' causetq, like:
@@ -30,7 +30,7 @@ use embedded_promises::{
 /// - By direct reference to a row by index, using `result.row(i)`. This also returns
 ///   a reference.
 /// - By consuming the results using `into_iter`. This allocates short-lived vectors,
-///   but gives you ownership of the enclosed `TypedValue`s.
+///   but gives you ownership of the enclosed `MinkowskiType`s.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RelResult<T> {
     pub width: usize,
@@ -76,12 +76,12 @@ fn test_rel_result() {
     let empty = StructuredRelResult::empty(3);
     let unit = StructuredRelResult {
         width: 1,
-        values: vec![TypedValue::Long(5).into()],
+        values: vec![MinkowskiType::Long(5).into()],
     };
     let two_by_two = StructuredRelResult {
         width: 2,
-        values: vec![TypedValue::Long(5).into(), TypedValue::Boolean(true).into(),
-                     TypedValue::Long(-2).into(), TypedValue::Boolean(false).into()],
+        values: vec![MinkowskiType::Long(5).into(), MinkowskiType::Boolean(true).into(),
+                     MinkowskiType::Long(-2).into(), MinkowskiType::Boolean(false).into()],
     };
 
     assert!(empty.is_empty());
@@ -96,19 +96,19 @@ fn test_rel_result() {
     assert_eq!(unit.row(1), None);
     assert_eq!(two_by_two.row(2), None);
 
-    assert_eq!(unit.row(0), Some(vec![TypedValue::Long(5).into()].as_slice()));
-    assert_eq!(two_by_two.row(0), Some(vec![TypedValue::Long(5).into(), TypedValue::Boolean(true).into()].as_slice()));
-    assert_eq!(two_by_two.row(1), Some(vec![TypedValue::Long(-2).into(), TypedValue::Boolean(false).into()].as_slice()));
+    assert_eq!(unit.row(0), Some(vec![MinkowskiType::Long(5).into()].as_slice()));
+    assert_eq!(two_by_two.row(0), Some(vec![MinkowskiType::Long(5).into(), MinkowskiType::Boolean(true).into()].as_slice()));
+    assert_eq!(two_by_two.row(1), Some(vec![MinkowskiType::Long(-2).into(), MinkowskiType::Boolean(false).into()].as_slice()));
 
     let mut rr = two_by_two.rows();
-    assert_eq!(rr.next(), Some(vec![TypedValue::Long(5).into(), TypedValue::Boolean(true).into()].as_slice()));
-    assert_eq!(rr.next(), Some(vec![TypedValue::Long(-2).into(), TypedValue::Boolean(false).into()].as_slice()));
+    assert_eq!(rr.next(), Some(vec![MinkowskiType::Long(5).into(), MinkowskiType::Boolean(true).into()].as_slice()));
+    assert_eq!(rr.next(), Some(vec![MinkowskiType::Long(-2).into(), MinkowskiType::Boolean(false).into()].as_slice()));
     assert_eq!(rr.next(), None);
 }
 
 // Primarily for testing.
-impl From<Vec<Vec<TypedValue>>> for RelResult<Binding> {
-    fn from(src: Vec<Vec<TypedValue>>) -> Self {
+impl From<Vec<Vec<MinkowskiType>>> for RelResult<Binding> {
+    fn from(src: Vec<Vec<MinkowskiType>>) -> Self {
         if src.is_empty() {
             RelResult::empty(0)
         } else {

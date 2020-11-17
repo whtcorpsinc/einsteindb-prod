@@ -63,7 +63,7 @@ fn perror_and_exit<E: Error>(prefix: &str, e: E) -> ! {
 fn new_debug_executor(
     db: Option<&str>,
     violetabft_db: Option<&str>,
-    skip_paranoid_checks: bool,
+    ignore_failover: bool,
     host: Option<&str>,
     causetg: &EINSTEINDBConfig,
     mgr: Arc<SecurityManager>,
@@ -80,7 +80,7 @@ fn new_debug_executor(
 
             let mut kv_db_opts = causetg.lmdb.build_opt();
             kv_db_opts.set_env(env.clone());
-            kv_db_opts.set_paranoid_checks(!skip_paranoid_checks);
+            kv_db_opts.set_paranoid_checks(!ignore_failover);
             let kv_causets_opts = causetg.lmdb.build_causet_opts(&cache);
             let kv_path = PathBuf::from(kv_path).canonicalize().unwrap();
             let kv_path = kv_path.to_str().unwrap();
@@ -226,10 +226,10 @@ trait DebugFreeDaemon {
         }
     }
 
-    /// Dump mvcc infos for a given key cone. The given `from` and `to` must
+    /// Dump tail_pointer infos for a given key cone. The given `from` and `to` must
     /// be raw key with `z` prefix. Both `to` and `limit` are empty value means
     /// what we want is point query instead of cone scan.
-    fn dump_mvccs_infos(
+    fn dump_tail_pointers_infos(
         &self,
         from: Vec<u8>,
         to: Vec<u8>,
@@ -253,29 +253,29 @@ trait DebugFreeDaemon {
         }
 
         let scan_future =
-            self.get_mvcc_infos(from.clone(), to, limit)
-                .try_for_each(move |(key, mvcc)| {
+            self.get_tail_pointer_infos(from.clone(), to, limit)
+                .try_for_each(move |(key, tail_pointer)| {
                     if point_query && key != from {
-                        v1!("no mvcc infos for {}", escape(&from));
-                        return future::err::<(), String>("no mvcc infos".to_owned());
+                        v1!("no tail_pointer infos for {}", escape(&from));
+                        return future::err::<(), String>("no tail_pointer infos".to_owned());
                     }
 
                     v1!("key: {}", escape(&key));
-                    if causets.contains(&CAUSET_DAGGER) && mvcc.has_lock() {
-                        let lock_info = mvcc.get_lock();
+                    if causets.contains(&CAUSET_DAGGER) && tail_pointer.has_lock() {
+                        let lock_info = tail_pointer.get_dagger();
                         if spacelike_ts.map_or(true, |ts| lock_info.get_spacelike_ts() == ts) {
                             v1!("\tdagger causet value: {:?}", lock_info);
                         }
                     }
                     if causets.contains(&CAUSET_DEFAULT) {
-                        for value_info in mvcc.get_values() {
+                        for value_info in tail_pointer.get_values() {
                             if commit_ts.map_or(true, |ts| value_info.get_spacelike_ts() == ts) {
                                 v1!("\tdefault causet value: {:?}", value_info);
                             }
                         }
                     }
                     if causets.contains(&CAUSET_WRITE) {
-                        for write_info in mvcc.get_writes() {
+                        for write_info in tail_pointer.get_writes() {
                             if spacelike_ts.map_or(true, |ts| write_info.get_spacelike_ts() == ts)
                                 && commit_ts.map_or(true, |ts| write_info.get_commit_ts() == ts)
                             {
@@ -348,16 +348,16 @@ trait DebugFreeDaemon {
                 }
                 let spacelike_key = tuplespaceInstanton::data_key(brane1.get_spacelike_key());
                 let lightlike_key = tuplespaceInstanton::data_key(brane1.get_lightlike_key());
-                let mut mvcc_infos_1 = self.get_mvcc_infos(spacelike_key.clone(), lightlike_key.clone(), 0);
-                let mut mvcc_infos_2 = rhs_debug_executor.get_mvcc_infos(spacelike_key, lightlike_key, 0);
+                let mut tail_pointer_infos_1 = self.get_tail_pointer_infos(spacelike_key.clone(), lightlike_key.clone(), 0);
+                let mut tail_pointer_infos_2 = rhs_debug_executor.get_tail_pointer_infos(spacelike_key, lightlike_key, 0);
 
                 let mut has_diff = false;
                 let mut key_counts = [0; 2];
 
                 let mut take_item = |i: usize| -> Option<(Vec<u8>, MvccInfo)> {
                     let wait = match i {
-                        1 => block_on(future::poll_fn(|cx| mvcc_infos_1.poll_next_unpin(cx))),
-                        _ => block_on(future::poll_fn(|cx| mvcc_infos_2.poll_next_unpin(cx))),
+                        1 => block_on(future::poll_fn(|cx| tail_pointer_infos_1.poll_next_unpin(cx))),
+                        _ => block_on(future::poll_fn(|cx| tail_pointer_infos_2.poll_next_unpin(cx))),
                     };
                     match wait? {
                         Err(e) => {
@@ -395,7 +395,7 @@ trait DebugFreeDaemon {
                         }
                         _ => {
                             if t1.1 != t2.1 {
-                                v1!("diff mvcc on key: {}", escape(&t1.0));
+                                v1!("diff tail_pointer on key: {}", escape(&t1.0));
                                 has_diff = true;
                             }
                             item1 = take_item(1);
@@ -511,7 +511,7 @@ trait DebugFreeDaemon {
 
     fn check_local_mode(&self);
 
-    fn recover_branes_mvcc(
+    fn recover_branes_tail_pointer(
         &self,
         mgr: Arc<SecurityManager>,
         causetg: &FidelConfig,
@@ -537,7 +537,7 @@ trait DebugFreeDaemon {
         self.recover_branes(branes, read_only);
     }
 
-    fn recover_mvcc_all(&self, threads: usize, read_only: bool) {
+    fn recover_tail_pointer_all(&self, threads: usize, read_only: bool) {
         self.check_local_mode();
         self.recover_all(threads, read_only);
     }
@@ -552,7 +552,7 @@ trait DebugFreeDaemon {
 
     fn get_violetabft_log(&self, brane: u64, index: u64) -> Entry;
 
-    fn get_mvcc_infos(&self, from: Vec<u8>, to: Vec<u8>, limit: u64) -> MvccInfoStream;
+    fn get_tail_pointer_infos(&self, from: Vec<u8>, to: Vec<u8>, limit: u64) -> MvccInfoStream;
 
     fn raw_scan_impl(&self, from_key: &[u8], lightlike_key: &[u8], limit: usize, causet: &str);
 
@@ -649,13 +649,13 @@ impl DebugFreeDaemon for DebugClient {
             .take_entry()
     }
 
-    fn get_mvcc_infos(&self, from: Vec<u8>, to: Vec<u8>, limit: u64) -> MvccInfoStream {
+    fn get_tail_pointer_infos(&self, from: Vec<u8>, to: Vec<u8>, limit: u64) -> MvccInfoStream {
         let mut req = ScanMvccRequest::default();
         req.set_from_key(from);
         req.set_to_key(to);
         req.set_limit(limit);
         Box::pin(
-            self.scan_mvcc(&req)
+            self.scan_tail_pointer(&req)
                 .unwrap()
                 .map_err(|e| e.to_string())
                 .map_ok(|mut resp| (resp.take_key(), resp.take_info())),
@@ -818,10 +818,10 @@ impl<ER: VioletaBftEngine> DebugFreeDaemon for Debugger<ER> {
             .unwrap_or_else(|e| perror_and_exit("Debugger::violetabft_log", e))
     }
 
-    fn get_mvcc_infos(&self, from: Vec<u8>, to: Vec<u8>, limit: u64) -> MvccInfoStream {
+    fn get_tail_pointer_infos(&self, from: Vec<u8>, to: Vec<u8>, limit: u64) -> MvccInfoStream {
         let iter = self
-            .scan_mvcc(&from, &to, limit)
-            .unwrap_or_else(|e| perror_and_exit("Debugger::scan_mvcc", e));
+            .scan_tail_pointer(&from, &to, limit)
+            .unwrap_or_else(|e| perror_and_exit("Debugger::scan_tail_pointer", e));
         let stream = stream::iter(iter).map_err(|e| e.to_string());
         Box::pin(stream)
     }
@@ -1295,8 +1295,8 @@ fn main() {
                 ),
         )
         .subcommand(
-            SubCommand::with_name("mvcc")
-                .about("Print the mvcc value")
+            SubCommand::with_name("tail_pointer")
+                .about("Print the tail_pointer value")
                 .arg(
                     Arg::with_name("key")
                         .required(true)
@@ -1450,8 +1450,8 @@ fn main() {
                 ),
         )
         .subcommand(
-            SubCommand::with_name("recover-mvcc")
-                .about("Recover mvcc data on one node by deleting corrupted tuplespaceInstanton")
+            SubCommand::with_name("recover-tail_pointer")
+                .about("Recover tail_pointer data on one node by deleting corrupted tuplespaceInstanton")
                 .arg(
                     Arg::with_name("all")
                         .short("a")
@@ -1970,14 +1970,14 @@ fn main() {
 
     // Deal with all subcommands about db or host.
     let db = matches.value_of("db");
-    let skip_paranoid_checks = matches.is_present("skip-paranoid-checks");
+    let ignore_failover = matches.is_present("skip-paranoid-checks");
     let violetabft_db = matches.value_of("violetabftdb");
     let host = matches.value_of("host");
 
     let debug_executor = new_debug_executor(
         db,
         violetabft_db,
-        skip_paranoid_checks,
+        ignore_failover,
         host,
         &causetg,
         Arc::clone(&mgr),
@@ -2029,19 +2029,19 @@ fn main() {
         let causets = Vec::from_iter(matches.values_of("show-causet").unwrap());
         let spacelike_ts = matches.value_of("spacelike_ts").map(|s| s.parse().unwrap());
         let commit_ts = matches.value_of("commit_ts").map(|s| s.parse().unwrap());
-        debug_executor.dump_mvccs_infos(from, to, limit, causets, spacelike_ts, commit_ts);
+        debug_executor.dump_tail_pointers_infos(from, to, limit, causets, spacelike_ts, commit_ts);
     } else if let Some(matches) = matches.subcommand_matches("raw-scan") {
         let from = unescape(matches.value_of("from").unwrap());
         let to = unescape(matches.value_of("to").unwrap());
         let limit: usize = matches.value_of("limit").unwrap().parse().unwrap();
         let causet = matches.value_of("causet").unwrap();
         debug_executor.raw_scan(&from, &to, limit, causet);
-    } else if let Some(matches) = matches.subcommand_matches("mvcc") {
+    } else if let Some(matches) = matches.subcommand_matches("tail_pointer") {
         let from = unescape(matches.value_of("key").unwrap());
         let causets = Vec::from_iter(matches.values_of("show-causet").unwrap());
         let spacelike_ts = matches.value_of("spacelike_ts").map(|s| s.parse().unwrap());
         let commit_ts = matches.value_of("commit_ts").map(|s| s.parse().unwrap());
-        debug_executor.dump_mvccs_infos(from, vec![], 0, causets, spacelike_ts, commit_ts);
+        debug_executor.dump_tail_pointers_infos(from, vec![], 0, causets, spacelike_ts, commit_ts);
     } else if let Some(matches) = matches.subcommand_matches("diff") {
         let brane = matches.value_of("brane").unwrap().parse().unwrap();
         let to_db = matches.value_of("to_db");
@@ -2086,7 +2086,7 @@ fn main() {
             assert!(matches.is_present("force"));
             debug_executor.set_brane_tombstone_force(branes);
         }
-    } else if let Some(matches) = matches.subcommand_matches("recover-mvcc") {
+    } else if let Some(matches) = matches.subcommand_matches("recover-tail_pointer") {
         let read_only = matches.is_present("read-only");
         if matches.is_present("all") {
             let threads = matches
@@ -2102,7 +2102,7 @@ fn main() {
                 threads,
                 read_only
             );
-            debug_executor.recover_mvcc_all(threads, read_only);
+            debug_executor.recover_tail_pointer_all(threads, read_only);
         } else {
             let branes = matches
                 .values_of("branes")
@@ -2122,7 +2122,7 @@ fn main() {
             if let Err(e) = causetg.validate() {
                 panic!("invalid fidel configuration: {:?}", e);
             }
-            debug_executor.recover_branes_mvcc(mgr, &causetg, branes, read_only);
+            debug_executor.recover_branes_tail_pointer(mgr, &causetg, branes, read_only);
         }
     } else if let Some(matches) = matches.subcommand_matches("unsafe-recover") {
         if let Some(matches) = matches.subcommand_matches("remove-fail-stores") {

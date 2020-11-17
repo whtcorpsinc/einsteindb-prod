@@ -9,29 +9,29 @@
 // specific language governing permissions and limitations under the License.
 
 use embedded_promises::{
-    ValueType,
-    ValueTypeSet,
-    TypedValue,
+    MinkowskiValueType,
+    MinkowskiSet,
+    MinkowskiType,
 };
 
 use einsteindb_embedded::{
-    Schema,
+    SchemaReplicant,
 };
 
 use edbn::causetq::{
     Binding,
-    FnArg,
+    StackedPerceptron,
     Variable,
     VariableOrPlaceholder,
     WhereFn,
 };
 
-use clauses::{
-    ConjoiningClauses,
+use gerunds::{
+    ConjoiningGerunds,
     PushComputed,
 };
 
-use clauses::convert::ValueConversion;
+use gerunds::convert::ValueConversion;
 
 use causetq_parityfilter_promises::errors::{
     ParityFilterError,
@@ -46,14 +46,14 @@ use types::{
     VariableColumn,
 };
 
-use Known;
+use KnownCauset;
 
-impl ConjoiningClauses {
+impl ConjoiningGerunds {
     /// Take a relation: a matrix of values which will successively bind to named variables of
     /// the provided types.
     /// Construct a computed table to yield this relation.
     /// This function will panic if some invariants are not met.
-    fn collect_named_bindings<'s>(&mut self, schema: &'s Schema, names: Vec<Variable>, types: Vec<ValueType>, values: Vec<TypedValue>) {
+    fn collect_named_bindings<'s>(&mut self, schemaReplicant: &'s SchemaReplicant, names: Vec<Variable>, types: Vec<MinkowskiValueType>, values: Vec<MinkowskiType>) {
         if values.is_empty() {
             return;
         }
@@ -74,24 +74,24 @@ impl ConjoiningClauses {
         // Stitch the computed table into column_bindings, so we get cross-linking.
         for (name, ty) in names.iter().zip(types.into_iter()) {
             self.constrain_var_to_type(name.clone(), ty);
-            self.bind_column_to_var(schema, alias.clone(), VariableColumn::Variable(name.clone()), name.clone());
+            self.bind_column_to_var(schemaReplicant, alias.clone(), VariableColumn::Variable(name.clone()), name.clone());
         }
 
         self.from.push(SourceAlias(table, alias));
     }
 
-    fn apply_ground_place<'s>(&mut self, schema: &'s Schema, var: VariableOrPlaceholder, arg: FnArg) -> Result<()> {
+    fn apply_ground_place<'s>(&mut self, schemaReplicant: &'s SchemaReplicant, var: VariableOrPlaceholder, arg: StackedPerceptron) -> Result<()> {
         match var {
             VariableOrPlaceholder::Placeholder => Ok(()),
-            VariableOrPlaceholder::Variable(var) => self.apply_ground_var(schema, var, arg),
+            VariableOrPlaceholder::Variable(var) => self.apply_ground_var(schemaReplicant, var, arg),
         }
     }
 
     /// Constrain the CC to associate the given var with the given ground argument.
-    /// Marks known-empty on failure.
-    fn apply_ground_var<'s>(&mut self, schema: &'s Schema, var: Variable, arg: FnArg) -> Result<()> {
+    /// Marks knownCauset-empty on failure.
+    fn apply_ground_var<'s>(&mut self, schemaReplicant: &'s SchemaReplicant, var: Variable, arg: StackedPerceptron) -> Result<()> {
         let known_types = self.known_type_set(&var);
-        match self.typed_value_from_arg(schema, &var, arg, known_types)? {
+        match self.typed_value_from_arg(schemaReplicant, &var, arg, known_types)? {
             ValueConversion::Val(value) => self.apply_ground_value(var, value),
             ValueConversion::Impossible(because) => {
                 self.mark_known_empty(because);
@@ -100,8 +100,8 @@ impl ConjoiningClauses {
         }
     }
 
-    /// Marks known-empty on failure.
-    fn apply_ground_value(&mut self, var: Variable, value: TypedValue) -> Result<()> {
+    /// Marks knownCauset-empty on failure.
+    fn apply_ground_value(&mut self, var: Variable, value: MinkowskiType) -> Result<()> {
         if let Some(existing) = self.bound_value(&var) {
             if existing != value {
                 self.mark_known_empty(EmptyBecause::ConflictingBindings {
@@ -118,7 +118,7 @@ impl ConjoiningClauses {
         Ok(())
     }
 
-    pub(crate) fn apply_ground(&mut self, known: Known, where_fn: WhereFn) -> Result<()> {
+    pub(crate) fn apply_ground(&mut self, knownCauset: KnownCauset, where_fn: WhereFn) -> Result<()> {
         if where_fn.args.len() != 1 {
             bail!(ParityFilterError::InvalidNumberOfArguments(where_fn.operator.clone(), where_fn.args.len(), 1));
         }
@@ -135,23 +135,23 @@ impl ConjoiningClauses {
             bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(), BindingError::RepeatedBoundVariable));
         }
 
-        let schema = known.schema;
+        let schemaReplicant = knownCauset.schemaReplicant;
 
         // Scalar and tuple bindings are a little special: because there's only one value,
-        // we can immediately substitute the value as a known value in the CC, additionally
-        // generating a WHERE clause if columns have already been bound.
+        // we can immediately substitute the value as a knownCauset value in the CC, additionally
+        // generating a WHERE gerund if columns have already been bound.
         match (where_fn.binding, args.next().unwrap()) {
             (Binding::BindScalar(var), constant) =>
-                self.apply_ground_var(schema, var, constant),
+                self.apply_ground_var(schemaReplicant, var, constant),
 
-            (Binding::BindTuple(places), FnArg::Vector(children)) => {
+            (Binding::BindTuple(places), StackedPerceptron::Vector(children)) => {
                 // Just the same, but we bind more than one column at a time.
                 if children.len() != places.len() {
                     // Number of arguments don't match the number of values. TODO: better error message.
                     bail!(ParityFilterError::GroundBindingsMismatch)
                 }
                 for (place, arg) in places.into_iter().zip(children.into_iter()) {
-                    self.apply_ground_place(schema, place, arg)?  // TODO: short-circuit on impossible.
+                    self.apply_ground_place(schemaReplicant, place, arg)?  // TODO: short-circuit on impossible.
                 }
                 Ok(())
             },
@@ -160,22 +160,22 @@ impl ConjoiningClauses {
             // implemented as a subcausetq with a projection list and a set of values.
             // The difference is that BindColl has only a single variable, and its values
             // are all in a single structure. That makes it substantially simpler!
-            (Binding::BindColl(var), FnArg::Vector(children)) => {
+            (Binding::BindColl(var), StackedPerceptron::Vector(children)) => {
                 if children.is_empty() {
                     bail!(ParityFilterError::InvalidGroundConstant)
                 }
 
-                // Turn a collection of arguments into a Vec of `TypedValue`s of the same type.
+                // Turn a collection of arguments into a Vec of `MinkowskiType`s of the same type.
                 let known_types = self.known_type_set(&var);
                 // Check that every value has the same type.
-                let mut accumulated_types = ValueTypeSet::none();
+                let mut accumulated_types = MinkowskiSet::none();
                 let mut skip: Option<EmptyBecause> = None;
                 let values = children.into_iter()
-                                     .filter_map(|arg| -> Option<Result<TypedValue>> {
+                                     .filter_map(|arg| -> Option<Result<MinkowskiType>> {
                                          // We need to get conversion errors out.
-                                         // We also want to mark known-empty on impossibilty, but
+                                         // We also want to mark knownCauset-empty on impossibilty, but
                                          // still detect serious errors.
-                                         match self.typed_value_from_arg(schema, &var, arg, known_types) {
+                                         match self.typed_value_from_arg(schemaReplicant, &var, arg, known_types) {
                                              Ok(ValueConversion::Val(tv)) => {
                                                  if accumulated_types.insert(tv.value_type()) &&
                                                     !accumulated_types.is_unit() {
@@ -193,7 +193,7 @@ impl ConjoiningClauses {
                                              Err(e) => Some(Err(e.into())),
                                          }
                                      })
-                                     .collect::<Result<Vec<TypedValue>>>()?;
+                                     .collect::<Result<Vec<MinkowskiType>>>()?;
 
                 if values.is_empty() {
                     let because = skip.expect("we skipped all rows for a reason");
@@ -205,18 +205,18 @@ impl ConjoiningClauses {
                 let types = vec![accumulated_types.exemplar().unwrap()];
                 let names = vec![var.clone()];
 
-                self.collect_named_bindings(schema, names, types, values);
+                self.collect_named_bindings(schemaReplicant, names, types, values);
                 Ok(())
             },
 
-            (Binding::BindRel(places), FnArg::Vector(rows)) => {
+            (Binding::BindRel(places), StackedPerceptron::Vector(rows)) => {
                 if rows.is_empty() {
                     bail!(ParityFilterError::InvalidGroundConstant)
                 }
 
-                // Grab the known types to which these args must conform, and track
+                // Grab the knownCauset types to which these args must conform, and track
                 // the places that won't be bound in the output.
-                let template: Vec<Option<(Variable, ValueTypeSet)>> =
+                let template: Vec<Option<(Variable, MinkowskiSet)>> =
                     places.iter()
                           .map(|x| match x {
                               &VariableOrPlaceholder::Placeholder     => None,
@@ -239,13 +239,13 @@ impl ConjoiningClauses {
                 // This representation of a rectangular matrix is more efficient than one composed
                 // of N separate vectors.
                 let mut matrix = Vec::with_capacity(expected_width * expected_rows);
-                let mut accumulated_types_for_columns = vec![ValueTypeSet::none(); expected_width];
+                let mut accumulated_types_for_columns = vec![MinkowskiSet::none(); expected_width];
 
                 // Loop so we can bail out.
                 let mut skipped_all: Option<EmptyBecause> = None;
                 for row in rows.into_iter() {
                     match row {
-                        FnArg::Vector(cols) => {
+                        StackedPerceptron::Vector(cols) => {
                             // Make sure that every row is the same length.
                             if cols.len() != full_width {
                                 bail!(ParityFilterError::InvalidGroundConstant)
@@ -261,7 +261,7 @@ impl ConjoiningClauses {
                                 // If any value in the row is impossible, then skip the row.
                                 // If all rows are impossible, fail the entire CC.
                                 if let &Some(ref pair) = pair {
-                                    match self.typed_value_from_arg(schema, &pair.0, col, pair.1)? {
+                                    match self.typed_value_from_arg(schemaReplicant, &pair.0, col, pair.1)? {
                                         ValueConversion::Val(tv) => vals.push(tv),
                                         ValueConversion::Impossible(because) => {
                                             // Skip this row. It cannot produce bindings.
@@ -312,7 +312,7 @@ impl ConjoiningClauses {
                 let types = accumulated_types_for_columns.into_iter()
                                                          .map(|x| x.exemplar().unwrap())
                                                          .collect();
-                self.collect_named_bindings(schema, names, types, matrix);
+                self.collect_named_bindings(schemaReplicant, names, types, matrix);
                 Ok(())
             },
             (_, _) => bail!(ParityFilterError::InvalidGroundConstant),
@@ -326,18 +326,18 @@ mod testing {
 
     use embedded_promises::{
         Attribute,
-        ValueType,
+        MinkowskiValueType,
     };
 
     use edbn::causetq::{
         Binding,
-        FnArg,
+        StackedPerceptron,
         Keyword,
         PlainSymbol,
         Variable,
     };
 
-    use clauses::{
+    use gerunds::{
         add_attribute,
         associate_causetId,
     };
@@ -346,26 +346,26 @@ mod testing {
     fn test_apply_ground() {
         let vz = Variable::from_valid_name("?z");
 
-        let mut cc = ConjoiningClauses::default();
-        let mut schema = Schema::default();
+        let mut cc = ConjoiningGerunds::default();
+        let mut schemaReplicant = SchemaReplicant::default();
 
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "fts"), 100);
-        add_attribute(&mut schema, 100, Attribute {
-            value_type: ValueType::String,
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "fts"), 100);
+        add_attribute(&mut schemaReplicant, 100, Attribute {
+            value_type: MinkowskiValueType::String,
             index: true,
             fulltext: true,
             ..Default::default()
         });
 
-        let known = Known::for_schema(&schema);
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
 
         // It's awkward enough to write these expansions that we give the details for the simplest
         // case only.  See the tests of the translator for more extensive (albeit looser) coverage.
         let op = PlainSymbol::plain("ground");
-        cc.apply_ground(known, WhereFn {
+        cc.apply_ground(knownCauset, WhereFn {
             operator: op,
             args: vec![
-                FnArg::SolitonIdOrInteger(10),
+                StackedPerceptron::SolitonIdOrInteger(10),
             ],
             binding: Binding::BindScalar(vz.clone()),
         }).expect("to be able to apply_ground");
@@ -376,8 +376,8 @@ mod testing {
         cc.expand_column_bindings();
         assert!(!cc.is_known_empty());
 
-        let clauses = cc.wheres;
-        assert_eq!(clauses.len(), 0);
+        let gerunds = cc.wheres;
+        assert_eq!(gerunds.len(), 0);
 
         let column_bindings = cc.column_bindings;
         assert_eq!(column_bindings.len(), 0);           // Scalar doesn't need this.
@@ -385,11 +385,11 @@ mod testing {
         let known_types = cc.known_types;
         assert_eq!(known_types.len(), 1);
         assert_eq!(known_types.get(&vz).expect("to know the type of ?z"),
-                   &ValueTypeSet::of_one(ValueType::Long));
+                   &MinkowskiSet::of_one(MinkowskiValueType::Long));
 
         let value_bindings = cc.value_bindings;
         assert_eq!(value_bindings.len(), 1);
         assert_eq!(value_bindings.get(&vz).expect("to have a value for ?z"),
-                   &TypedValue::Long(10));        // We default to Long instead of solitonId.
+                   &MinkowskiType::Long(10));        // We default to Long instead of solitonId.
     }
 }

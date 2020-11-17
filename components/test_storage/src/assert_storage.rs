@@ -4,7 +4,7 @@ use ekvproto::kvrpcpb::{Context, LockInfo};
 
 use test_violetabftstore::{Cluster, ServerCluster, SimulateEngine};
 use einsteindb::causetStorage::kv::{Error as KvError, ErrorInner as KvErrorInner, LmdbEngine};
-use einsteindb::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner, MAX_TXN_WRITE_SIZE};
+use einsteindb::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner, MAX_TXN_WRITE_SIZE};
 use einsteindb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
 use einsteindb::causetStorage::{
     self, Engine, Error as StorageError, ErrorInner as StorageErrorInner, TxnStatus,
@@ -467,7 +467,7 @@ impl<E: Engine> AssertionStorage<E> {
                     Some((
                         info.get_key(),
                         info.get_primary_lock(),
-                        info.get_lock_version().into(),
+                        info.get_dagger_version().into(),
                     ))
                 } else {
                     None

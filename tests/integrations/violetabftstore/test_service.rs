@@ -25,7 +25,7 @@ use test_violetabftstore::*;
 use einsteindb::interlock::REQ_TYPE_DAG;
 use einsteindb::import::SSTImporter;
 use einsteindb::server::gc_worker::sync_gc;
-use einsteindb::causetStorage::mvcc::{Dagger, LockType, TimeStamp};
+use einsteindb::causetStorage::tail_pointer::{Dagger, LockType, TimeStamp};
 use einsteindb_util::worker::{FutureWorker, Worker};
 use einsteindb_util::HandyRwLock;
 use txn_types::Key;
@@ -77,7 +77,7 @@ fn test_rawkv() {
 }
 
 #[test]
-fn test_mvcc_basic() {
+fn test_tail_pointer_basic() {
     let (_cluster, client, ctx) = must_new_cluster_and_kv_client();
     let (k, v) = (b"key".to_vec(), b"value".to_vec());
 
@@ -156,7 +156,7 @@ fn test_mvcc_basic() {
 }
 
 #[test]
-fn test_mvcc_rollback_and_cleanup() {
+fn test_tail_pointer_rollback_and_cleanup() {
     let (_cluster, client, ctx) = must_new_cluster_and_kv_client();
     let (k, v) = (b"key".to_vec(), b"value".to_vec());
 
@@ -264,7 +264,7 @@ fn test_mvcc_rollback_and_cleanup() {
 }
 
 #[test]
-fn test_mvcc_resolve_lock_gc_and_delete() {
+fn test_tail_pointer_resolve_lock_gc_and_delete() {
     use ekvproto::kvrpcpb::*;
 
     let (cluster, client, ctx) = must_new_cluster_and_kv_client();
@@ -365,24 +365,24 @@ fn test_mvcc_resolve_lock_gc_and_delete() {
 
     // Transaction debugger commands
     // MvccGetByKey
-    let mut mvcc_get_by_key_req = MvccGetByKeyRequest::default();
-    mvcc_get_by_key_req.set_context(ctx.clone());
-    mvcc_get_by_key_req.key = k.clone();
-    let mvcc_get_by_key_resp = client.mvcc_get_by_key(&mvcc_get_by_key_req).unwrap();
-    assert!(!mvcc_get_by_key_resp.has_brane_error());
-    assert!(mvcc_get_by_key_resp.error.is_empty());
-    assert!(mvcc_get_by_key_resp.has_info());
+    let mut tail_pointer_get_by_key_req = MvccGetByKeyRequest::default();
+    tail_pointer_get_by_key_req.set_context(ctx.clone());
+    tail_pointer_get_by_key_req.key = k.clone();
+    let tail_pointer_get_by_key_resp = client.tail_pointer_get_by_key(&tail_pointer_get_by_key_req).unwrap();
+    assert!(!tail_pointer_get_by_key_resp.has_brane_error());
+    assert!(tail_pointer_get_by_key_resp.error.is_empty());
+    assert!(tail_pointer_get_by_key_resp.has_info());
     // MvccGetByStartTs
-    let mut mvcc_get_by_spacelike_ts_req = MvccGetByStartTsRequest::default();
-    mvcc_get_by_spacelike_ts_req.set_context(ctx.clone());
-    mvcc_get_by_spacelike_ts_req.spacelike_ts = prewrite_spacelike_version2;
-    let mvcc_get_by_spacelike_ts_resp = client
-        .mvcc_get_by_spacelike_ts(&mvcc_get_by_spacelike_ts_req)
+    let mut tail_pointer_get_by_spacelike_ts_req = MvccGetByStartTsRequest::default();
+    tail_pointer_get_by_spacelike_ts_req.set_context(ctx.clone());
+    tail_pointer_get_by_spacelike_ts_req.spacelike_ts = prewrite_spacelike_version2;
+    let tail_pointer_get_by_spacelike_ts_resp = client
+        .tail_pointer_get_by_spacelike_ts(&tail_pointer_get_by_spacelike_ts_req)
         .unwrap();
-    assert!(!mvcc_get_by_spacelike_ts_resp.has_brane_error());
-    assert!(mvcc_get_by_spacelike_ts_resp.error.is_empty());
-    assert!(mvcc_get_by_spacelike_ts_resp.has_info());
-    assert_eq!(mvcc_get_by_spacelike_ts_resp.key, k);
+    assert!(!tail_pointer_get_by_spacelike_ts_resp.has_brane_error());
+    assert!(tail_pointer_get_by_spacelike_ts_resp.error.is_empty());
+    assert!(tail_pointer_get_by_spacelike_ts_resp.has_info());
+    assert_eq!(tail_pointer_get_by_spacelike_ts_resp.key, k);
 
     // Delete cone
     let mut del_req = DeleteConeRequest::default();
@@ -702,7 +702,7 @@ fn test_debug_fail_point() {
 }
 
 #[test]
-fn test_debug_scan_mvcc() {
+fn test_debug_scan_tail_pointer() {
     let (cluster, debug_client, store_id) = must_new_cluster_and_debug_client();
     let engine = cluster.get_engine(store_id);
 
@@ -732,7 +732,7 @@ fn test_debug_scan_mvcc() {
     req.set_to_key(tuplespaceInstanton::data_key(b"n"));
     req.set_limit(1);
 
-    let receiver = debug_client.scan_mvcc(&req).unwrap();
+    let receiver = debug_client.scan_tail_pointer(&req).unwrap();
     let future = receiver.try_fold(Vec::new(), |mut tuplespaceInstanton, mut resp| {
         let key = resp.take_key();
         tuplespaceInstanton.push(key);

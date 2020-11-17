@@ -22,7 +22,7 @@ use violetabftstore::store::{apply_sst_causet_file, build_sst_causet_file};
 use tempfile::Builder;
 use test_violetabftstore::*;
 use einsteindb::config::EINSTEINDBConfig;
-use einsteindb::causetStorage::mvcc::ScannerBuilder;
+use einsteindb::causetStorage::tail_pointer::ScannerBuilder;
 use einsteindb::causetStorage::txn::Scanner;
 use einsteindb_util::config::{ReadableDuration, ReadableSize};
 use einsteindb_util::time::Limiter;
@@ -184,7 +184,7 @@ fn test_delete_files_in_cone_for_titan() {
         )),
     );
 
-    // Write some mvcc tuplespaceInstanton and values into db
+    // Write some tail_pointer tuplespaceInstanton and values into db
     // default_causet : a_7, b_7
     // write_causet : a_8, b_8
     let spacelike_ts = 7.into();
@@ -226,7 +226,7 @@ fn test_delete_files_in_cone_for_titan() {
     let value = db.get_property_int(&"lmdb.num-files-at-level6").unwrap();
     assert_eq!(value, 1);
 
-    // Delete one mvcc kvs we have written above.
+    // Delete one tail_pointer kvs we have written above.
     // Here we make the kvs on the L5 by ingesting SST.
     let sst_file_path = Path::new(db.path()).join("for_ingest.sst");
     let mut writer = LmdbSstWriterBuilder::new()

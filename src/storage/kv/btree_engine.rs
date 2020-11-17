@@ -232,7 +232,7 @@ impl Snapshot for BTreeEngineSnapshot {
         self.get_causet(CAUSET_DEFAULT, key)
     }
     fn get_causet(&self, causet: CfName, key: &Key) -> EngineResult<Option<Value>> {
-        let tree_causet = self.inner_engine.get_causet(causet);
+        let tree_causet = self.causet_set_engine.get_causet(causet);
         let tree = tree_causet.read().unwrap();
         let v = tree.get(key);
         match v {
@@ -253,7 +253,7 @@ impl Snapshot for BTreeEngineSnapshot {
         iter_opt: IterOptions,
         mode: ScanMode,
     ) -> EngineResult<Cursor<Self::Iter>> {
-        let tree = self.inner_engine.get_causet(causet);
+        let tree = self.causet_set_engine.get_causet(causet);
 
         Ok(Cursor::new(BTreeEngineIterator::new(tree, iter_opt), mode))
     }
@@ -261,13 +261,13 @@ impl Snapshot for BTreeEngineSnapshot {
 
 #[derive(Debug, Clone)]
 pub struct BTreeEngineSnapshot {
-    inner_engine: Arc<BTreeEngine>,
+    causet_set_engine: Arc<BTreeEngine>,
 }
 
 impl BTreeEngineSnapshot {
     pub fn new(engine: &BTreeEngine) -> Self {
         Self {
-            inner_engine: Arc::new(engine.clone()),
+            causet_set_engine: Arc::new(engine.clone()),
         }
     }
 }

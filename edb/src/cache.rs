@@ -81,13 +81,13 @@ use rusqlite;
 use embedded_promises::{
     Binding,
     SolitonId,
-    TypedValue,
+    MinkowskiType,
 };
 
 use einsteindb_embedded::{
     CachedAttributes,
-    HasSchema,
-    Schema,
+    HasSchemaReplicant,
+    SchemaReplicant,
     UpdateableCache,
     ValueRc,
 };
@@ -195,7 +195,7 @@ fn test_vec_remove_item() {
 // The basics of attribute caching.
 //
 
-pub type Aev = (SolitonId, SolitonId, TypedValue);
+pub type Aev = (SolitonId, SolitonId, MinkowskiType);
 
 pub struct AevFactory {
     // Our own simple string-interning system.
@@ -209,15 +209,15 @@ impl AevFactory {
         }
     }
 
-    fn intern(&mut self, v: TypedValue) -> TypedValue {
+    fn intern(&mut self, v: MinkowskiType) -> MinkowskiType {
         match v {
-            TypedValue::String(rc) => {
-                let existing = self.strings.get(&rc).cloned().map(TypedValue::String);
+            MinkowskiType::String(rc) => {
+                let existing = self.strings.get(&rc).cloned().map(MinkowskiType::String);
                 if let Some(existing) = existing {
                     return existing;
                 }
                 self.strings.insert(rc.clone());
-                return TypedValue::String(rc);
+                return MinkowskiType::String(rc);
             },
             t => t,
         }
@@ -227,7 +227,7 @@ impl AevFactory {
         let a: SolitonId = row.get(0);
         let e: SolitonId = row.get(1);
         let value_type_tag: i32 = row.get(3);
-        let v = TypedValue::from_sql_value_pair(row.get(2), value_type_tag).map(|x| x).unwrap();
+        let v = MinkowskiType::from_sql_value_pair(row.get(2), value_type_tag).map(|x| x).unwrap();
         (a, e, self.intern(v))
     }
 }
@@ -257,7 +257,7 @@ pub trait AttributeCache {
 }
 
 trait RemoveFromCache {
-    fn remove(&mut self, e: SolitonId, v: &TypedValue);
+    fn remove(&mut self, e: SolitonId, v: &MinkowskiType);
 }
 
 trait ClearCache {
@@ -265,20 +265,20 @@ trait ClearCache {
 }
 
 trait CardinalityOneCache: RemoveFromCache + ClearCache {
-    fn set(&mut self, e: SolitonId, v: TypedValue);
-    fn get(&self, e: SolitonId) -> Option<&TypedValue>;
+    fn set(&mut self, e: SolitonId, v: MinkowskiType);
+    fn get(&self, e: SolitonId) -> Option<&MinkowskiType>;
 }
 
 trait CardinalityManyCache: RemoveFromCache + ClearCache {
-    fn acc(&mut self, e: SolitonId, v: TypedValue);
-    fn set(&mut self, e: SolitonId, vs: Vec<TypedValue>);
-    fn get(&self, e: SolitonId) -> Option<&Vec<TypedValue>>;
+    fn acc(&mut self, e: SolitonId, v: MinkowskiType);
+    fn set(&mut self, e: SolitonId, vs: Vec<MinkowskiType>);
+    fn get(&self, e: SolitonId) -> Option<&Vec<MinkowskiType>>;
 }
 
 #[derive(Clone, Debug, Default)]
 struct SingleValAttributeCache {
     attr: SolitonId,
-    e_v: CacheMap<SolitonId, Option<TypedValue>>,
+    e_v: CacheMap<SolitonId, Option<MinkowskiType>>,
 }
 
 impl Absorb for SingleValAttributeCache {
@@ -307,7 +307,7 @@ impl ClearCache for SingleValAttributeCache {
 impl RemoveFromCache for SingleValAttributeCache {
     // We never directly remove from the immutable_memTcam unless we're InProgress. In that case, we
     // want to leave a sentinel in place.
-    fn remove(&mut self, e: SolitonId, v: &TypedValue) {
+    fn remove(&mut self, e: SolitonId, v: &MinkowskiType) {
         match self.e_v.entry(e) {
             Occupied(mut entry) => {
                 let removed = entry.insert(None);
@@ -328,11 +328,11 @@ impl RemoveFromCache for SingleValAttributeCache {
 }
 
 impl CardinalityOneCache for SingleValAttributeCache {
-    fn set(&mut self, e: SolitonId, v: TypedValue) {
+    fn set(&mut self, e: SolitonId, v: MinkowskiType) {
         self.e_v.insert(e, Some(v));
     }
 
-    fn get(&self, e: SolitonId) -> Option<&TypedValue> {
+    fn get(&self, e: SolitonId) -> Option<&MinkowskiType> {
         self.e_v.get(&e).and_then(|m| m.as_ref())
     }
 }
@@ -340,7 +340,7 @@ impl CardinalityOneCache for SingleValAttributeCache {
 #[derive(Clone, Debug, Default)]
 struct MultiValAttributeCache {
     attr: SolitonId,
-    e_vs: CacheMap<SolitonId, Vec<TypedValue>>,
+    e_vs: CacheMap<SolitonId, Vec<MinkowskiType>>,
 }
 
 impl Absorb for MultiValAttributeCache {
@@ -377,7 +377,7 @@ impl ClearCache for MultiValAttributeCache {
 }
 
 impl RemoveFromCache for MultiValAttributeCache {
-    fn remove(&mut self, e: SolitonId, v: &TypedValue) {
+    fn remove(&mut self, e: SolitonId, v: &MinkowskiType) {
         if let Some(vec) = self.e_vs.get_mut(&e) {
             let removed = vec.remove_every(v);
             if removed == 0 {
@@ -390,15 +390,15 @@ impl RemoveFromCache for MultiValAttributeCache {
 }
 
 impl CardinalityManyCache for MultiValAttributeCache {
-    fn acc(&mut self, e: SolitonId, v: TypedValue) {
+    fn acc(&mut self, e: SolitonId, v: MinkowskiType) {
         self.e_vs.entry(e).or_insert(vec![]).push(v)
     }
 
-    fn set(&mut self, e: SolitonId, vs: Vec<TypedValue>) {
+    fn set(&mut self, e: SolitonId, vs: Vec<MinkowskiType>) {
         self.e_vs.insert(e, vs);
     }
 
-    fn get(&self, e: SolitonId) -> Option<&Vec<TypedValue>> {
+    fn get(&self, e: SolitonId) -> Option<&Vec<MinkowskiType>> {
         self.e_vs.get(&e)
     }
 }
@@ -406,7 +406,7 @@ impl CardinalityManyCache for MultiValAttributeCache {
 #[derive(Clone, Debug, Default)]
 struct UniqueReverseAttributeCache {
     attr: SolitonId,
-    v_e: CacheMap<TypedValue, Option<SolitonId>>,
+    v_e: CacheMap<MinkowskiType, Option<SolitonId>>,
 }
 
 impl Absorb for UniqueReverseAttributeCache {
@@ -423,7 +423,7 @@ impl ClearCache for UniqueReverseAttributeCache {
 }
 
 impl RemoveFromCache for UniqueReverseAttributeCache {
-    fn remove(&mut self, e: SolitonId, v: &TypedValue) {
+    fn remove(&mut self, e: SolitonId, v: &MinkowskiType) {
         match self.v_e.entry(v.clone()) {           // Future: better entry API!
             Occupied(mut entry) => {
                 let removed = entry.insert(None);
@@ -444,15 +444,15 @@ impl RemoveFromCache for UniqueReverseAttributeCache {
 }
 
 impl UniqueReverseAttributeCache {
-    fn set(&mut self, e: SolitonId, v: TypedValue) {
+    fn set(&mut self, e: SolitonId, v: MinkowskiType) {
         self.v_e.insert(v, Some(e));
     }
 
-    fn get_e(&self, v: &TypedValue) -> Option<SolitonId> {
+    fn get_e(&self, v: &MinkowskiType) -> Option<SolitonId> {
         self.v_e.get(v).and_then(|o| o.clone())
     }
 
-    fn lookup(&self, v: &TypedValue) -> Option<Option<SolitonId>> {
+    fn lookup(&self, v: &MinkowskiType) -> Option<Option<SolitonId>> {
         self.v_e.get(v).cloned()
     }
 }
@@ -460,7 +460,7 @@ impl UniqueReverseAttributeCache {
 #[derive(Clone, Debug, Default)]
 struct NonUniqueReverseAttributeCache {
     attr: SolitonId,
-    v_es: CacheMap<TypedValue, BTreeSet<SolitonId>>,
+    v_es: CacheMap<MinkowskiType, BTreeSet<SolitonId>>,
 }
 
 impl Absorb for NonUniqueReverseAttributeCache {
@@ -484,7 +484,7 @@ impl ClearCache for NonUniqueReverseAttributeCache {
 }
 
 impl RemoveFromCache for NonUniqueReverseAttributeCache {
-    fn remove(&mut self, e: SolitonId, v: &TypedValue) {
+    fn remove(&mut self, e: SolitonId, v: &MinkowskiType) {
         if let Some(vec) = self.v_es.get_mut(&v) {
             let removed = vec.remove(&e);
             if !removed {
@@ -497,18 +497,18 @@ impl RemoveFromCache for NonUniqueReverseAttributeCache {
 }
 
 impl NonUniqueReverseAttributeCache {
-    fn acc(&mut self, e: SolitonId, v: TypedValue) {
+    fn acc(&mut self, e: SolitonId, v: MinkowskiType) {
         self.v_es.entry(v).or_insert(BTreeSet::new()).insert(e);
     }
 
-    fn get_es(&self, v: &TypedValue) -> Option<&BTreeSet<SolitonId>> {
+    fn get_es(&self, v: &MinkowskiType) -> Option<&BTreeSet<SolitonId>> {
         self.v_es.get(v)
     }
 }
 
 fn with_aev_iter<F, I>(a: SolitonId, iter: &mut Peekable<I>, mut f: F)
 where I: Iterator<Item=Aev>,
-      F: FnMut(SolitonId, TypedValue) {
+      F: FnMut(SolitonId, MinkowskiType) {
     let check = Some(a);
     while iter.peek().map(|&(a, _, _)| a) == check {
         let (_, e, v) = iter.next().unwrap();
@@ -698,11 +698,11 @@ impl AttributeCaches {
     // advanced to the first non-matching row.
     fn accumulate_evs<I>(&mut self,
                          fallback: Option<&AttributeCaches>,
-                         schema: &Schema,
+                         schemaReplicant: &SchemaReplicant,
                          iter: &mut Peekable<I>,
                          behavior: AccumulationBehavior) where I: Iterator<Item=Aev> {
         if let Some(&(a, _, _)) = iter.peek() {
-            if let Some(attribute) = schema.attribute_for_entid(a) {
+            if let Some(attribute) = schemaReplicant.attribute_for_entid(a) {
                 let fallback_cached_forward = fallback.map_or(false, |c| c.is_attribute_cached_forward(a));
                 let fallback_cached_reverse = fallback.map_or(false, |c| c.is_attribute_cached_reverse(a));
                 let now_cached_forward = self.is_attribute_cached_forward(a);
@@ -834,9 +834,9 @@ impl AttributeCaches {
         }
     }
 
-    fn accumulate_into_cache<I>(&mut self, fallback: Option<&AttributeCaches>, schema: &Schema, mut iter: Peekable<I>, behavior: AccumulationBehavior) -> Result<()> where I: Iterator<Item=Aev> {
+    fn accumulate_into_cache<I>(&mut self, fallback: Option<&AttributeCaches>, schemaReplicant: &SchemaReplicant, mut iter: Peekable<I>, behavior: AccumulationBehavior) -> Result<()> where I: Iterator<Item=Aev> {
         while iter.peek().is_some() {
-            self.accumulate_evs(fallback, schema, &mut iter, behavior);
+            self.accumulate_evs(fallback, schemaReplicant, &mut iter, behavior);
         }
         Ok(())
     }
@@ -868,7 +868,7 @@ impl AttributeCaches {
 
 // We need this block for fallback.
 impl AttributeCaches {
-    fn get_entid_for_value_if_present(&self, attribute: SolitonId, value: &TypedValue) -> Option<Option<SolitonId>> {
+    fn get_entid_for_value_if_present(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<Option<SolitonId>> {
         if self.is_attribute_cached_reverse(attribute) {
             self.unique_reverse
                 .get(&attribute)
@@ -878,8 +878,8 @@ impl AttributeCaches {
         }
     }
 
-    fn get_value_for_entid_if_present(&self, schema: &Schema, attribute: SolitonId, solitonId: SolitonId) -> Option<Option<&TypedValue>> {
-        if let Some(&Some(ref tv)) = self.value_pairs(schema, attribute)
+    fn get_value_for_entid_if_present(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<Option<&MinkowskiType>> {
+        if let Some(&Some(ref tv)) = self.value_pairs(schemaReplicant, attribute)
                                          .and_then(|c| c.get(&solitonId)) {
             Some(Some(tv))
         } else {
@@ -891,20 +891,20 @@ impl AttributeCaches {
 /// SQL stuff.
 impl AttributeCaches {
     fn repopulate(&mut self,
-                  schema: &Schema,
+                  schemaReplicant: &SchemaReplicant,
                   sqlite: &rusqlite::Connection,
                   attribute: SolitonId) -> Result<()> {
-        let is_fulltext = schema.attribute_for_entid(attribute).map_or(false, |s| s.fulltext);
+        let is_fulltext = schemaReplicant.attribute_for_entid(attribute).map_or(false, |s| s.fulltext);
         let table = if is_fulltext { "fulltext_Causets" } else { "causets" };
         let allegrosql = format!("SELECT a, e, v, value_type_tag FROM {} WHERE a = ? ORDER BY a ASC, e ASC", table);
         let args: Vec<&rusqlite::types::ToSql> = vec![&attribute];
         let mut stmt = sqlite.prepare(&allegrosql).context(DbErrorKind::CacheUpdateFailed)?;
         let replacing = true;
-        self.repopulate_from_aevt(schema, &mut stmt, args, replacing)
+        self.repopulate_from_aevt(schemaReplicant, &mut stmt, args, replacing)
     }
 
     fn repopulate_from_aevt<'a, 's, 'c, 'v>(&'a mut self,
-                                            schema: &'s Schema,
+                                            schemaReplicant: &'s SchemaReplicant,
                                             statement: &'c mut rusqlite::Statement,
                                             args: Vec<&'v rusqlite::types::ToSql>,
                                             replacing: bool) -> Result<()> {
@@ -913,7 +913,7 @@ impl AttributeCaches {
         let aevs = AevRows {
             rows: rows,
         };
-        self.accumulate_into_cache(None, schema, aevs.peekable(), AccumulationBehavior::Add { replacing })?;
+        self.accumulate_into_cache(None, schemaReplicant, aevs.peekable(), AccumulationBehavior::Add { replacing })?;
         Ok(())
     }
 }
@@ -933,11 +933,11 @@ impl AttributeSpec {
         AttributeSpec::All
     }
 
-    pub fn specified(attrs: &BTreeSet<SolitonId>, schema: &Schema) -> AttributeSpec {
+    pub fn specified(attrs: &BTreeSet<SolitonId>, schemaReplicant: &SchemaReplicant) -> AttributeSpec {
         let mut fts = Vec::with_capacity(attrs.len());
         let mut non_fts = Vec::with_capacity(attrs.len());
         for attr in attrs.iter() {
-            if let Some(a) = schema.attribute_for_entid(*attr) {
+            if let Some(a) = schemaReplicant.attribute_for_entid(*attr) {
                 if a.fulltext {
                     fts.push(*attr);
                 } else {
@@ -959,7 +959,7 @@ impl AttributeCaches {
     /// Each provided attribute will be marked as forward-cached; the caller is responsible for
     /// ensuring that this immutable_memTcam is complete or that it is not expected to be complete.
     fn populate_cache_for_entities_and_attributes<'s, 'c>(&mut self,
-                                                          schema: &'s Schema,
+                                                          schemaReplicant: &'s SchemaReplicant,
                                                           sqlite: &'c rusqlite::Connection,
                                                           attrs: AttributeSpec,
                                                           entities: &Vec<SolitonId>) -> Result<()> {
@@ -976,7 +976,7 @@ impl AttributeCaches {
                            { qb.push_sql(", ") });
                 qb.push_sql(") ORDER BY a ASC, e ASC");
 
-                self.forward_cached_attributes.extend(schema.attribute_map.keys());
+                self.forward_cached_attributes.extend(schemaReplicant.attribute_map.keys());
             },
             AttributeSpec::Specified { fts, non_fts } => {
                 let has_fts = !fts.is_empty();
@@ -1027,17 +1027,17 @@ impl AttributeCaches {
         assert!(args.is_empty());                       // TODO: we know there are never args, but we'd like to run this causetq 'properly'.
         let mut stmt = sqlite.prepare(allegrosql.as_str())?;
         let replacing = false;
-        self.repopulate_from_aevt(schema, &mut stmt, vec![], replacing)
+        self.repopulate_from_aevt(schemaReplicant, &mut stmt, vec![], replacing)
     }
 
     /// Return a reference to the immutable_memTcam for the provided `a`, if `a` names an attribute that is
     /// cached in the forward direction. If `a` doesn't name an attribute, or it's not cached at
     /// all, or it's only cached in reverse (`v` to `e`, not `e` to `v`), `None` is returned.
-    pub fn forward_attribute_cache_for_attribute<'a, 's>(&'a self, schema: &'s Schema, a: SolitonId) -> Option<&'a AttributeCache> {
+    pub fn forward_attribute_cache_for_attribute<'a, 's>(&'a self, schemaReplicant: &'s SchemaReplicant, a: SolitonId) -> Option<&'a AttributeCache> {
         if !self.forward_cached_attributes.contains(&a) {
             return None;
         }
-        schema.attribute_for_entid(a)
+        schemaReplicant.attribute_for_entid(a)
               .and_then(|attr|
                 if attr.multival {
                     self.multi_vals.get(&a).map(|v| v as &AttributeCache)
@@ -1050,14 +1050,14 @@ impl AttributeCaches {
     /// The caller is responsible for ensuring that `entities` is unique.
     /// Attributes for which every instanton is already cached will not be processed again.
     pub fn extend_cache_for_entities_and_attributes<'s, 'c>(&mut self,
-                                                            schema: &'s Schema,
+                                                            schemaReplicant: &'s SchemaReplicant,
                                                             sqlite: &'c rusqlite::Connection,
                                                             mut attrs: AttributeSpec,
                                                             entities: &Vec<SolitonId>) -> Result<()> {
-        // TODO: Exclude any entities for which every attribute is known.
+        // TODO: Exclude any entities for which every attribute is knownCauset.
         // TODO: initialize from an existing (complete) AttributeCache.
 
-        // Exclude any attributes for which every instanton's value is already known.
+        // Exclude any attributes for which every instanton's value is already knownCauset.
         match &mut attrs {
             &mut AttributeSpec::All => {
                 // If we're caching all attributes, there's nothing we can exclude.
@@ -1067,7 +1067,7 @@ impl AttributeCaches {
                 // as a 'miss').
                 let exclude_missing = |vec: &mut Vec<SolitonId>| {
                     vec.retain(|a| {
-                        if let Some(attr) = schema.attribute_for_entid(*a) {
+                        if let Some(attr) = schemaReplicant.attribute_for_entid(*a) {
                             if !self.forward_cached_attributes.contains(a) {
                                 // The attribute isn't cached at all. Do the work for all entities.
                                 return true;
@@ -1096,30 +1096,30 @@ impl AttributeCaches {
             },
         }
 
-        self.populate_cache_for_entities_and_attributes(schema, sqlite, attrs, entities)
+        self.populate_cache_for_entities_and_attributes(schemaReplicant, sqlite, attrs, entities)
     }
 
     /// Fetch the requested entities and attributes and put them in a new immutable_memTcam.
     /// The caller is responsible for ensuring that `entities` is unique.
-    pub fn make_cache_for_entities_and_attributes<'s, 'c>(schema: &'s Schema,
+    pub fn make_cache_for_entities_and_attributes<'s, 'c>(schemaReplicant: &'s SchemaReplicant,
                                                           sqlite: &'c rusqlite::Connection,
                                                           attrs: AttributeSpec,
                                                           entities: &Vec<SolitonId>) -> Result<AttributeCaches> {
         let mut immutable_memTcam = AttributeCaches::default();
-        immutable_memTcam.populate_cache_for_entities_and_attributes(schema, sqlite, attrs, entities)?;
+        immutable_memTcam.populate_cache_for_entities_and_attributes(schemaReplicant, sqlite, attrs, entities)?;
         Ok(immutable_memTcam)
     }
 }
 
 
 impl CachedAttributes for AttributeCaches {
-    fn get_values_for_entid(&self, schema: &Schema, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<TypedValue>> {
-        self.values_pairs(schema, attribute)
+    fn get_values_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<MinkowskiType>> {
+        self.values_pairs(schemaReplicant, attribute)
             .and_then(|c| c.get(&solitonId))
     }
 
-    fn get_value_for_entid(&self, schema: &Schema, attribute: SolitonId, solitonId: SolitonId) -> Option<&TypedValue> {
-        if let Some(&Some(ref tv)) = self.value_pairs(schema, attribute)
+    fn get_value_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&MinkowskiType> {
+        if let Some(&Some(ref tv)) = self.value_pairs(schemaReplicant, attribute)
                                          .and_then(|c| c.get(&solitonId)) {
             Some(tv)
         } else {
@@ -1140,7 +1140,7 @@ impl CachedAttributes for AttributeCaches {
         self.forward_cached_attributes.contains(&attribute)
     }
 
-    fn get_entid_for_value(&self, attribute: SolitonId, value: &TypedValue) -> Option<SolitonId> {
+    fn get_entid_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<SolitonId> {
         if self.is_attribute_cached_reverse(attribute) {
             self.unique_reverse.get(&attribute).and_then(|c| c.get_e(value))
         } else {
@@ -1148,7 +1148,7 @@ impl CachedAttributes for AttributeCaches {
         }
     }
 
-    fn get_entids_for_value(&self, attribute: SolitonId, value: &TypedValue) -> Option<&BTreeSet<SolitonId>> {
+    fn get_entids_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>> {
         if self.is_attribute_cached_reverse(attribute) {
             self.non_unique_reverse.get(&attribute).and_then(|c| c.get_es(value))
         } else {
@@ -1158,26 +1158,26 @@ impl CachedAttributes for AttributeCaches {
 }
 
 impl UpdateableCache<DbError> for AttributeCaches {
-    fn update<I>(&mut self, schema: &Schema, retractions: I, assertions: I) -> Result<()>
-    where I: Iterator<Item=(SolitonId, SolitonId, TypedValue)> {
-        self.update_with_fallback(None, schema, retractions, assertions)
+    fn update<I>(&mut self, schemaReplicant: &SchemaReplicant, retractions: I, assertions: I) -> Result<()>
+    where I: Iterator<Item=(SolitonId, SolitonId, MinkowskiType)> {
+        self.update_with_fallback(None, schemaReplicant, retractions, assertions)
     }
 }
 
 impl AttributeCaches {
-    fn update_with_fallback<I>(&mut self, fallback: Option<&AttributeCaches>, schema: &Schema, retractions: I, assertions: I) -> Result<()>
-    where I: Iterator<Item=(SolitonId, SolitonId, TypedValue)> {
+    fn update_with_fallback<I>(&mut self, fallback: Option<&AttributeCaches>, schemaReplicant: &SchemaReplicant, retractions: I, assertions: I) -> Result<()>
+    where I: Iterator<Item=(SolitonId, SolitonId, MinkowskiType)> {
         let r_aevs = retractions.peekable();
-        self.accumulate_into_cache(fallback, schema, r_aevs, AccumulationBehavior::Remove)?;
+        self.accumulate_into_cache(fallback, schemaReplicant, r_aevs, AccumulationBehavior::Remove)?;
 
         let aevs = assertions.peekable();
-        self.accumulate_into_cache(fallback, schema, aevs, AccumulationBehavior::Add { replacing: false })
+        self.accumulate_into_cache(fallback, schemaReplicant, aevs, AccumulationBehavior::Add { replacing: false })
     }
 
-    fn values_pairs<U>(&self, schema: &Schema, attribute: U) -> Option<&BTreeMap<SolitonId, Vec<TypedValue>>>
+    fn values_pairs<U>(&self, schemaReplicant: &SchemaReplicant, attribute: U) -> Option<&BTreeMap<SolitonId, Vec<MinkowskiType>>>
     where U: Into<SolitonId> {
         let attribute = attribute.into();
-        schema.attribute_for_entid(attribute)
+        schemaReplicant.attribute_for_entid(attribute)
               .and_then(|attr|
                 if attr.multival {
                     self.multi_vals
@@ -1188,10 +1188,10 @@ impl AttributeCaches {
                 })
     }
 
-    fn value_pairs<U>(&self, schema: &Schema, attribute: U) -> Option<&CacheMap<SolitonId, Option<TypedValue>>>
+    fn value_pairs<U>(&self, schemaReplicant: &SchemaReplicant, attribute: U) -> Option<&CacheMap<SolitonId, Option<MinkowskiType>>>
     where U: Into<SolitonId> {
         let attribute = attribute.into();
-        schema.attribute_for_entid(attribute)
+        schemaReplicant.attribute_for_entid(attribute)
               .and_then(|attr|
                 if attr.multival {
                     None
@@ -1234,30 +1234,30 @@ impl SQLiteAttributeCache {
         new
     }
 
-    pub fn register_forward<U>(&mut self, schema: &Schema, sqlite: &rusqlite::Connection, attribute: U) -> Result<()>
+    pub fn register_forward<U>(&mut self, schemaReplicant: &SchemaReplicant, sqlite: &rusqlite::Connection, attribute: U) -> Result<()>
     where U: Into<SolitonId> {
         let a = attribute.into();
 
         // The attribute must exist!
-        let _ = schema.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
+        let _ = schemaReplicant.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
         let caches = self.make_mut();
         caches.forward_cached_attributes.insert(a);
-        caches.repopulate(schema, sqlite, a)
+        caches.repopulate(schemaReplicant, sqlite, a)
     }
 
-    pub fn register_reverse<U>(&mut self, schema: &Schema, sqlite: &rusqlite::Connection, attribute: U) -> Result<()>
+    pub fn register_reverse<U>(&mut self, schemaReplicant: &SchemaReplicant, sqlite: &rusqlite::Connection, attribute: U) -> Result<()>
     where U: Into<SolitonId> {
         let a = attribute.into();
 
         // The attribute must exist!
-        let _ = schema.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
+        let _ = schemaReplicant.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
 
         let caches = self.make_mut();
         caches.reverse_cached_attributes.insert(a);
-        caches.repopulate(schema, sqlite, a)
+        caches.repopulate(schemaReplicant, sqlite, a)
     }
 
-    pub fn register<U>(&mut self, schema: &Schema, sqlite: &rusqlite::Connection, attribute: U) -> Result<()>
+    pub fn register<U>(&mut self, schemaReplicant: &SchemaReplicant, sqlite: &rusqlite::Connection, attribute: U) -> Result<()>
     where U: Into<SolitonId> {
         let a = attribute.into();
 
@@ -1266,7 +1266,7 @@ impl SQLiteAttributeCache {
         let caches = self.make_mut();
         caches.forward_cached_attributes.insert(a);
         caches.reverse_cached_attributes.insert(a);
-        caches.repopulate(schema, sqlite, a)
+        caches.repopulate(schemaReplicant, sqlite, a)
     }
 
     pub fn unregister<U>(&mut self, attribute: U)
@@ -1280,19 +1280,19 @@ impl SQLiteAttributeCache {
 }
 
 impl UpdateableCache<DbError> for SQLiteAttributeCache {
-    fn update<I>(&mut self, schema: &Schema, retractions: I, assertions: I) -> Result<()>
-    where I: Iterator<Item=(SolitonId, SolitonId, TypedValue)> {
-        self.make_mut().update(schema, retractions, assertions)
+    fn update<I>(&mut self, schemaReplicant: &SchemaReplicant, retractions: I, assertions: I) -> Result<()>
+    where I: Iterator<Item=(SolitonId, SolitonId, MinkowskiType)> {
+        self.make_mut().update(schemaReplicant, retractions, assertions)
     }
 }
 
 impl CachedAttributes for SQLiteAttributeCache {
-    fn get_values_for_entid(&self, schema: &Schema, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<TypedValue>> {
-        self.inner.get_values_for_entid(schema, attribute, solitonId)
+    fn get_values_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<MinkowskiType>> {
+        self.inner.get_values_for_entid(schemaReplicant, attribute, solitonId)
     }
 
-    fn get_value_for_entid(&self, schema: &Schema, attribute: SolitonId, solitonId: SolitonId) -> Option<&TypedValue> {
-        self.inner.get_value_for_entid(schema, attribute, solitonId)
+    fn get_value_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&MinkowskiType> {
+        self.inner.get_value_for_entid(schemaReplicant, attribute, solitonId)
     }
 
     fn is_attribute_cached_reverse(&self, attribute: SolitonId) -> bool {
@@ -1308,26 +1308,26 @@ impl CachedAttributes for SQLiteAttributeCache {
         !self.inner.reverse_cached_attributes.is_empty()
     }
 
-    fn get_entids_for_value(&self, attribute: SolitonId, value: &TypedValue) -> Option<&BTreeSet<SolitonId>> {
+    fn get_entids_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>> {
         self.inner.get_entids_for_value(attribute, value)
     }
 
-    fn get_entid_for_value(&self, attribute: SolitonId, value: &TypedValue) -> Option<SolitonId> {
+    fn get_entid_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<SolitonId> {
         self.inner.get_entid_for_value(attribute, value)
     }
 }
 
 impl SQLiteAttributeCache {
     /// Intended for use from tests.
-    pub fn values_pairs<U>(&self, schema: &Schema, attribute: U) -> Option<&BTreeMap<SolitonId, Vec<TypedValue>>>
+    pub fn values_pairs<U>(&self, schemaReplicant: &SchemaReplicant, attribute: U) -> Option<&BTreeMap<SolitonId, Vec<MinkowskiType>>>
     where U: Into<SolitonId> {
-        self.inner.values_pairs(schema, attribute)
+        self.inner.values_pairs(schemaReplicant, attribute)
     }
 
     /// Intended for use from tests.
-    pub fn value_pairs<U>(&self, schema: &Schema, attribute: U) -> Option<&BTreeMap<SolitonId, Option<TypedValue>>>
+    pub fn value_pairs<U>(&self, schemaReplicant: &SchemaReplicant, attribute: U) -> Option<&BTreeMap<SolitonId, Option<MinkowskiType>>>
     where U: Into<SolitonId> {
-        self.inner.value_pairs(schema, attribute)
+        self.inner.value_pairs(schemaReplicant, attribute)
     }
 }
 
@@ -1352,12 +1352,12 @@ impl InProgressSQLiteAttributeCache {
         }
     }
 
-    pub fn register_forward<U>(&mut self, schema: &Schema, sqlite: &rusqlite::Connection, attribute: U) -> Result<()>
+    pub fn register_forward<U>(&mut self, schemaReplicant: &SchemaReplicant, sqlite: &rusqlite::Connection, attribute: U) -> Result<()>
     where U: Into<SolitonId> {
         let a = attribute.into();
 
         // The attribute must exist!
-        let _ = schema.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
+        let _ = schemaReplicant.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
 
         if self.is_attribute_cached_forward(a) {
             return Ok(());
@@ -1365,15 +1365,15 @@ impl InProgressSQLiteAttributeCache {
 
         self.unregistered_forward.remove(&a);
         self.overlay.forward_cached_attributes.insert(a);
-        self.overlay.repopulate(schema, sqlite, a)
+        self.overlay.repopulate(schemaReplicant, sqlite, a)
     }
 
-    pub fn register_reverse<U>(&mut self, schema: &Schema, sqlite: &rusqlite::Connection, attribute: U) -> Result<()>
+    pub fn register_reverse<U>(&mut self, schemaReplicant: &SchemaReplicant, sqlite: &rusqlite::Connection, attribute: U) -> Result<()>
     where U: Into<SolitonId> {
         let a = attribute.into();
 
         // The attribute must exist!
-        let _ = schema.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
+        let _ = schemaReplicant.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
 
         if self.is_attribute_cached_reverse(a) {
             return Ok(());
@@ -1381,15 +1381,15 @@ impl InProgressSQLiteAttributeCache {
 
         self.unregistered_reverse.remove(&a);
         self.overlay.reverse_cached_attributes.insert(a);
-        self.overlay.repopulate(schema, sqlite, a)
+        self.overlay.repopulate(schemaReplicant, sqlite, a)
     }
 
-    pub fn register<U>(&mut self, schema: &Schema, sqlite: &rusqlite::Connection, attribute: U) -> Result<()>
+    pub fn register<U>(&mut self, schemaReplicant: &SchemaReplicant, sqlite: &rusqlite::Connection, attribute: U) -> Result<()>
     where U: Into<SolitonId> {
         let a = attribute.into();
 
         // The attribute must exist!
-        let _ = schema.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
+        let _ = schemaReplicant.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
 
         // TODO: reverse-index unique by default?
         let reverse_done = self.is_attribute_cached_reverse(a);
@@ -1408,7 +1408,7 @@ impl InProgressSQLiteAttributeCache {
             self.overlay.forward_cached_attributes.insert(a);
         }
 
-        self.overlay.repopulate(schema, sqlite, a)
+        self.overlay.repopulate(schemaReplicant, sqlite, a)
     }
 
 
@@ -1428,14 +1428,14 @@ impl InProgressSQLiteAttributeCache {
 }
 
 impl UpdateableCache<DbError> for InProgressSQLiteAttributeCache {
-    fn update<I>(&mut self, schema: &Schema, retractions: I, assertions: I) -> Result<()>
-    where I: Iterator<Item=(SolitonId, SolitonId, TypedValue)> {
-        self.overlay.update_with_fallback(Some(&self.inner), schema, retractions, assertions)
+    fn update<I>(&mut self, schemaReplicant: &SchemaReplicant, retractions: I, assertions: I) -> Result<()>
+    where I: Iterator<Item=(SolitonId, SolitonId, MinkowskiType)> {
+        self.overlay.update_with_fallback(Some(&self.inner), schemaReplicant, retractions, assertions)
     }
 }
 
 impl CachedAttributes for InProgressSQLiteAttributeCache {
-    fn get_values_for_entid(&self, schema: &Schema, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<TypedValue>> {
+    fn get_values_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<MinkowskiType>> {
         if self.unregistered_forward.contains(&attribute) {
             None
         } else {
@@ -1443,21 +1443,21 @@ impl CachedAttributes for InProgressSQLiteAttributeCache {
             // array in `overlay` -- `Some(vec![])` -- and we won't fall through.
             // We can safely use `or_else`.
             self.overlay
-                .get_values_for_entid(schema, attribute, solitonId)
-                .or_else(|| self.inner.get_values_for_entid(schema, attribute, solitonId))
+                .get_values_for_entid(schemaReplicant, attribute, solitonId)
+                .or_else(|| self.inner.get_values_for_entid(schemaReplicant, attribute, solitonId))
         }
     }
 
-    fn get_value_for_entid(&self, schema: &Schema, attribute: SolitonId, solitonId: SolitonId) -> Option<&TypedValue> {
+    fn get_value_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&MinkowskiType> {
         if self.unregistered_forward.contains(&attribute) {
             None
         } else {
             // If it was present in `inner` but the value was deleted, there will be `Some(None)`
             // in `overlay`, and we won't fall through.
             // We can safely use `or_else`.
-            match self.overlay.get_value_for_entid_if_present(schema, attribute, solitonId) {
+            match self.overlay.get_value_for_entid_if_present(schemaReplicant, attribute, solitonId) {
                 Some(present) => present,
-                None => self.inner.get_value_for_entid(schema, attribute, solitonId),
+                None => self.inner.get_value_for_entid(schemaReplicant, attribute, solitonId),
             }
         }
     }
@@ -1504,7 +1504,7 @@ impl CachedAttributes for InProgressSQLiteAttributeCache {
             .is_some()
     }
 
-    fn get_entids_for_value(&self, attribute: SolitonId, value: &TypedValue) -> Option<&BTreeSet<SolitonId>> {
+    fn get_entids_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>> {
         if self.unregistered_reverse.contains(&attribute) {
             None
         } else {
@@ -1514,7 +1514,7 @@ impl CachedAttributes for InProgressSQLiteAttributeCache {
         }
     }
 
-    fn get_entid_for_value(&self, attribute: SolitonId, value: &TypedValue) -> Option<SolitonId> {
+    fn get_entid_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<SolitonId> {
         if self.unregistered_reverse.contains(&attribute) {
             None
         } else {
@@ -1531,20 +1531,20 @@ impl CachedAttributes for InProgressSQLiteAttributeCache {
 
 impl InProgressSQLiteAttributeCache {
     /// Intended for use from tests.
-    pub fn values_pairs<U>(&self, schema: &Schema, attribute: U) -> Option<&BTreeMap<SolitonId, Vec<TypedValue>>>
+    pub fn values_pairs<U>(&self, schemaReplicant: &SchemaReplicant, attribute: U) -> Option<&BTreeMap<SolitonId, Vec<MinkowskiType>>>
     where U: Into<SolitonId> {
         let a = attribute.into();
-        self.overlay.values_pairs(schema, a)
-                    .or_else(|| self.inner.values_pairs(schema, a))
+        self.overlay.values_pairs(schemaReplicant, a)
+                    .or_else(|| self.inner.values_pairs(schemaReplicant, a))
     }
 
     /// Intended for use from tests.
-    pub fn value_pairs<U>(&self, schema: &Schema, attribute: U) -> Option<&BTreeMap<SolitonId, Option<TypedValue>>>
+    pub fn value_pairs<U>(&self, schemaReplicant: &SchemaReplicant, attribute: U) -> Option<&BTreeMap<SolitonId, Option<MinkowskiType>>>
     where U: Into<SolitonId> {
         let a = attribute.into();
         self.overlay
-            .value_pairs(schema, a)
-            .or_else(|| self.inner.value_pairs(schema, a))
+            .value_pairs(schemaReplicant, a)
+            .or_else(|| self.inner.value_pairs(schemaReplicant, a))
     }
 
     pub fn commit_to(self, destination: &mut SQLiteAttributeCache) {
@@ -1584,8 +1584,8 @@ impl InProgressSQLiteAttributeCache {
 pub struct InProgressCacheTransactWatcher<'a> {
     // A transaction might involve attributes that we immutable_memTcam. Track those values here so that
     // we can update the immutable_memTcam after we commit the transaction.
-    collected_assertions: BTreeMap<SolitonId, Either<(), Vec<(SolitonId, TypedValue)>>>,
-    collected_retractions: BTreeMap<SolitonId, Either<(), Vec<(SolitonId, TypedValue)>>>,
+    collected_assertions: BTreeMap<SolitonId, Either<(), Vec<(SolitonId, MinkowskiType)>>>,
+    collected_retractions: BTreeMap<SolitonId, Either<(), Vec<(SolitonId, MinkowskiType)>>>,
     immutable_memTcam: &'a mut InProgressSQLiteAttributeCache,
     active: bool,
 }
@@ -1606,7 +1606,7 @@ impl<'a> InProgressCacheTransactWatcher<'a> {
 }
 
 impl<'a> TransactWatcher for InProgressCacheTransactWatcher<'a> {
-    fn Causet(&mut self, op: OpType, e: SolitonId, a: SolitonId, v: &TypedValue) {
+    fn Causet(&mut self, op: OpType, e: SolitonId, a: SolitonId, v: &MinkowskiType) {
         if !self.active {
             return;
         }
@@ -1639,7 +1639,7 @@ impl<'a> TransactWatcher for InProgressCacheTransactWatcher<'a> {
         }
     }
 
-    fn done(&mut self, _t: &SolitonId, schema: &Schema) -> Result<()> {
+    fn done(&mut self, _t: &SolitonId, schemaReplicant: &SchemaReplicant) -> Result<()> {
         // Oh, I wish we had impl trait. Without it we have a six-line type signature if we
         // try to break this out as a helper function.
         let collected_retractions = mem::replace(&mut self.collected_retractions, Default::default());
@@ -1662,7 +1662,7 @@ impl<'a> TransactWatcher for InProgressCacheTransactWatcher<'a> {
                                      }));
         let retractions = intermediate_expansion.next().unwrap();
         let assertions = intermediate_expansion.next().unwrap();
-        self.immutable_memTcam.update(schema, retractions, assertions)
+        self.immutable_memTcam.update(schemaReplicant, retractions, assertions)
     }
 }
 

@@ -242,14 +242,14 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
         DeleteConeResponse
     );
     handle_request!(
-        mvcc_get_by_key,
-        future_mvcc_get_by_key,
+        tail_pointer_get_by_key,
+        future_tail_pointer_get_by_key,
         MvccGetByKeyRequest,
         MvccGetByKeyResponse
     );
     handle_request!(
-        mvcc_get_by_spacelike_ts,
-        future_mvcc_get_by_spacelike_ts,
+        tail_pointer_get_by_spacelike_ts,
+        future_tail_pointer_get_by_spacelike_ts,
         MvccGetByStartTsRequest,
         MvccGetByStartTsResponse
     );
@@ -784,8 +784,8 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
         let brane_id = req.get_context().get_brane_id();
         let mut cmd = VioletaBftCmdRequest::default();
         let mut header = VioletaBftRequestHeader::default();
-        let mut inner_req = VioletaBftRequest::default();
-        inner_req.set_cmd_type(CmdType::ReadIndex);
+        let mut causet_set_req = VioletaBftRequest::default();
+        causet_set_req.set_cmd_type(CmdType::ReadIndex);
         header.set_brane_id(req.get_context().get_brane_id());
         header.set_peer(req.get_context().get_peer().clone());
         header.set_brane_epoch(req.get_context().get_brane_epoch().clone());
@@ -795,7 +795,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
         header.set_sync_log(req.get_context().get_sync_log());
         header.set_read_quorum(true);
         cmd.set_header(header);
-        cmd.set_requests(vec![inner_req].into());
+        cmd.set_requests(vec![causet_set_req].into());
 
         let (cb, f) = paired_future_callback();
 
@@ -1659,13 +1659,13 @@ txn_command_future!(future_scan_lock, ScanLockRequest, ScanLockResponse, (v, res
         Err(e) => resp.set_error(extract_key_error(&e)),
     }
 });
-txn_command_future!(future_mvcc_get_by_key, MvccGetByKeyRequest, MvccGetByKeyResponse, (v, resp) {
+txn_command_future!(future_tail_pointer_get_by_key, MvccGetByKeyRequest, MvccGetByKeyResponse, (v, resp) {
     match v {
-        Ok(mvcc) => resp.set_info(mvcc.into_proto()),
+        Ok(tail_pointer) => resp.set_info(tail_pointer.into_proto()),
         Err(e) => resp.set_error(format!("{}", e)),
     }
 });
-txn_command_future!(future_mvcc_get_by_spacelike_ts, MvccGetByStartTsRequest, MvccGetByStartTsResponse, (v, resp) {
+txn_command_future!(future_tail_pointer_get_by_spacelike_ts, MvccGetByStartTsRequest, MvccGetByStartTsResponse, (v, resp) {
     match v {
         Ok(Some((k, vv))) => {
             resp.set_key(k.into_raw().unwrap());

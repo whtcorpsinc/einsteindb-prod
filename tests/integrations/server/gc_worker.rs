@@ -108,7 +108,7 @@ fn test_applied_lock_collector() {
     let check_lock = |dagger: &LockInfo, k: &[u8], pk: &[u8], ts| {
         assert_eq!(dagger.get_key(), k);
         assert_eq!(dagger.get_primary_lock(), pk);
-        assert_eq!(dagger.get_lock_version(), ts);
+        assert_eq!(dagger.get_dagger_version(), ts);
     };
 
     // Register dagger observer at safe point 10000.
@@ -197,7 +197,7 @@ fn test_applied_lock_collector() {
         assert!(resp.get_error().is_empty(), "{:?}", resp.get_error());
         assert!(!resp.get_is_clean());
         // MAX_COLLECT_SIZE is 1024.
-        assert_eq!(resp.get_locks().len(), 1024);
+        assert_eq!(resp.get_daggers().len(), 1024);
     });
 
     // Reregister and check. It shouldn't clean up state.
@@ -207,7 +207,7 @@ fn test_applied_lock_collector() {
         assert!(resp.get_error().is_empty(), "{:?}", resp.get_error());
         assert!(!resp.get_is_clean());
         // MAX_COLLECT_SIZE is 1024.
-        assert_eq!(resp.get_locks().len(), 1024);
+        assert_eq!(resp.get_daggers().len(), 1024);
     });
 
     // Register dagger observer at a later safe point. Dagger observer should reset its state.

@@ -188,7 +188,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         let mut interlock_host = Some(InterlockHost::new(router.clone()));
         match config.interlock.consistency_check_method {
             ConsistencyCheckMethod::Mvcc => {
-                // TODO: use mvcc consistency checker.
+                // TODO: use tail_pointer consistency checker.
                 interlock_host
                     .as_mut()
                     .unwrap()
@@ -304,7 +304,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             .expect("failed to parse into a socket address");
         let cur_ip = cur_addr.ip();
         let cur_port = cur_addr.port();
-        let lock_dir = get_lock_dir();
+        let lock_dir = get_dagger_dir();
 
         let search_base = env::temp_dir().join(&lock_dir);
         std::fs::create_dir_all(&search_base)
@@ -1058,12 +1058,12 @@ fn try_lock_conflict_addr<P: AsRef<Path>>(path: P) -> File {
 }
 
 #[causetg(unix)]
-fn get_lock_dir() -> String {
+fn get_dagger_dir() -> String {
     format!("{}_EINSTEINDB_LOCK_FILES", unsafe { libc::getuid() })
 }
 
 #[causetg(not(unix))]
-fn get_lock_dir() -> String {
+fn get_dagger_dir() -> String {
     "EINSTEINDB_LOCK_FILES".to_owned()
 }
 

@@ -240,7 +240,7 @@ fn applightlike_rpn_nodes_recursively<F>(
     max_PrimaryCausets: usize,
     // TODO: Passing `max_PrimaryCausets` is only a workaround solution that works when we only check
     // PrimaryCauset offset. To totally check whether or not the expression is valid, we need to pass in
-    // the full schema instead.
+    // the full schemaReplicant instead.
 ) -> Result<()>
 where
     F: Fn(&Expr) -> Result<RpnFnMeta> + Copy,
@@ -267,7 +267,7 @@ fn handle_node_PrimaryCauset_ref(
         as usize;
     if offset >= max_PrimaryCausets {
         return Err(other_err!(
-            "Invalid PrimaryCauset offset (schema has {} PrimaryCausets, access index {})",
+            "Invalid PrimaryCauset offset (schemaReplicant has {} PrimaryCausets, access index {})",
             max_PrimaryCausets,
             offset
         ));

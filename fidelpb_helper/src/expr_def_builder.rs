@@ -1,97 +1,97 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use codec::prelude::NumberEncoder;
-use milevadb_query_datatype::{FieldTypeAccessor, FieldTypeFlag, FieldTypeTp};
-use fidelpb::{Expr, ExprType, FieldType, ScalarFuncSig};
+use milevadb_query_datatype::{IntertwinerSpinDaggerTypeAccessor, IntertwinerSpinDaggerTypeFlag, IntertwinerSpinDaggerTypeTp};
+use fidelpb::{Prop, PropType, IntertwinerSpinDaggerType, ScalarFuncSig};
 
-/// A helper utility to build `fidelpb::Expr` (a.k.a. expression definition) easily.
-pub struct ExprDefBuilder(Expr);
+/// A helper utility to build `fidelpb::Prop` (a.k.a. Propession definition) easily.
+pub struct PropDefBuilder(Prop);
 
-impl ExprDefBuilder {
+impl PropDefBuilder {
     pub fn constant_int(v: i64) -> Self {
-        let mut expr = Expr::default();
-        expr.set_tp(ExprType::Int64);
-        expr.mut_val().write_i64(v).unwrap();
-        expr.mut_field_type()
+        let mut Prop = Prop::default();
+        Prop.set_tp(PropType::Int64);
+        Prop.mut_val().write_i64(v).unwrap();
+        Prop.mut_IntertwinerSpinDagger_type()
             .as_mut_accessor()
-            .set_tp(FieldTypeTp::LongLong);
-        Self(expr)
+            .set_tp(IntertwinerSpinDaggerTypeTp::LongLong);
+        Self(Prop)
     }
 
     pub fn constant_uint(v: u64) -> Self {
-        let mut expr = Expr::default();
-        expr.set_tp(ExprType::Uint64);
-        expr.mut_val().write_u64(v).unwrap();
-        expr.mut_field_type()
+        let mut Prop = Prop::default();
+        Prop.set_tp(PropType::Uint64);
+        Prop.mut_val().write_u64(v).unwrap();
+        Prop.mut_IntertwinerSpinDagger_type()
             .as_mut_accessor()
-            .set_tp(FieldTypeTp::LongLong)
-            .set_flag(FieldTypeFlag::UNSIGNED);
-        Self(expr)
+            .set_tp(IntertwinerSpinDaggerTypeTp::LongLong)
+            .set_flag(IntertwinerSpinDaggerTypeFlag::UNSIGNED);
+        Self(Prop)
     }
 
     pub fn constant_real(v: f64) -> Self {
-        let mut expr = Expr::default();
-        expr.set_tp(ExprType::Float64);
-        expr.mut_val().write_f64(v).unwrap();
-        expr.mut_field_type()
+        let mut Prop = Prop::default();
+        Prop.set_tp(PropType::Float64);
+        Prop.mut_val().write_f64(v).unwrap();
+        Prop.mut_IntertwinerSpinDagger_type()
             .as_mut_accessor()
-            .set_tp(FieldTypeTp::Double);
-        Self(expr)
+            .set_tp(IntertwinerSpinDaggerTypeTp::Double);
+        Self(Prop)
     }
 
     pub fn constant_bytes(v: Vec<u8>) -> Self {
-        let mut expr = Expr::default();
-        expr.set_tp(ExprType::String);
-        expr.set_val(v);
-        expr.mut_field_type()
+        let mut Prop = Prop::default();
+        Prop.set_tp(PropType::String);
+        Prop.set_val(v);
+        Prop.mut_IntertwinerSpinDagger_type()
             .as_mut_accessor()
-            .set_tp(FieldTypeTp::VarChar);
-        Self(expr)
+            .set_tp(IntertwinerSpinDaggerTypeTp::VarChar);
+        Self(Prop)
     }
 
-    pub fn constant_null(field_type: impl Into<FieldType>) -> Self {
-        let mut expr = Expr::default();
-        expr.set_tp(ExprType::Null);
-        expr.set_field_type(field_type.into());
-        Self(expr)
+    pub fn constant_null(IntertwinerSpinDagger_type: impl Into<IntertwinerSpinDaggerType>) -> Self {
+        let mut Prop = Prop::default();
+        Prop.set_tp(PropType::Null);
+        Prop.set_IntertwinerSpinDagger_type(IntertwinerSpinDagger_type.into());
+        Self(Prop)
     }
 
-    pub fn PrimaryCauset_ref(offset: usize, field_type: impl Into<FieldType>) -> Self {
-        let mut expr = Expr::default();
-        expr.set_tp(ExprType::PrimaryCausetRef);
-        expr.mut_val().write_i64(offset as i64).unwrap();
-        expr.set_field_type(field_type.into());
-        Self(expr)
+    pub fn PrimaryCauset_ref(offset: usize, IntertwinerSpinDagger_type: impl Into<IntertwinerSpinDaggerType>) -> Self {
+        let mut Prop = Prop::default();
+        Prop.set_tp(PropType::PrimaryCausetRef);
+        Prop.mut_val().write_i64(offset as i64).unwrap();
+        Prop.set_IntertwinerSpinDagger_type(IntertwinerSpinDagger_type.into());
+        Self(Prop)
     }
 
-    pub fn scalar_func(sig: ScalarFuncSig, field_type: impl Into<FieldType>) -> Self {
-        let mut expr = Expr::default();
-        expr.set_tp(ExprType::ScalarFunc);
-        expr.set_sig(sig);
-        expr.set_field_type(field_type.into());
-        Self(expr)
+    pub fn scalar_func(sig: ScalarFuncSig, IntertwinerSpinDagger_type: impl Into<IntertwinerSpinDaggerType>) -> Self {
+        let mut Prop = Prop::default();
+        Prop.set_tp(PropType::ScalarFunc);
+        Prop.set_sig(sig);
+        Prop.set_IntertwinerSpinDagger_type(IntertwinerSpinDagger_type.into());
+        Self(Prop)
     }
 
-    pub fn aggr_func(tp: ExprType, field_type: impl Into<FieldType>) -> Self {
-        let mut expr = Expr::default();
-        expr.set_tp(tp);
-        expr.set_field_type(field_type.into());
-        Self(expr)
+    pub fn aggr_func(tp: PropType, IntertwinerSpinDagger_type: impl Into<IntertwinerSpinDaggerType>) -> Self {
+        let mut Prop = Prop::default();
+        Prop.set_tp(tp);
+        Prop.set_IntertwinerSpinDagger_type(IntertwinerSpinDagger_type.into());
+        Self(Prop)
     }
 
-    pub fn push_child(mut self, child: impl Into<Expr>) -> Self {
+    pub fn push_child(mut self, child: impl Into<Prop>) -> Self {
         self.0.mut_children().push(child.into());
         self
     }
 
-    /// Builds the expression definition.
-    pub fn build(self) -> Expr {
+    /// Builds the Propession definition.
+    pub fn build(self) -> Prop {
         self.0
     }
 }
 
-impl From<ExprDefBuilder> for Expr {
-    fn from(expr_def_builder: ExprDefBuilder) -> Expr {
-        expr_def_builder.build()
+impl From<PropDefBuilder> for Prop {
+    fn from(Prop_def_builder: PropDefBuilder) -> Prop {
+        Prop_def_builder.build()
     }
 }

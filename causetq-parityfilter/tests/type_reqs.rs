@@ -18,44 +18,44 @@ mod utils;
 
 use utils::{
     alg,
-    SchemaBuilder,
+    SchemaReplicantBuilder,
     bails,
 };
 
 use embedded_promises::{
-    ValueType,
+    MinkowskiValueType,
 };
 
 use einsteindb_embedded::{
-    Schema,
+    SchemaReplicant,
 };
 
-use einsteindb_causetq_parityfilter::Known;
+use einsteindb_causetq_parityfilter::KnownCauset;
 
-fn prepopulated_schema() -> Schema {
-    SchemaBuilder::new()
-        .define_simple_attr("test", "boolean", ValueType::Boolean, false)
-        .define_simple_attr("test", "long", ValueType::Long, false)
-        .define_simple_attr("test", "double", ValueType::Double, false)
-        .define_simple_attr("test", "string", ValueType::String, false)
-        .define_simple_attr("test", "keyword", ValueType::Keyword, false)
-        .define_simple_attr("test", "uuid", ValueType::Uuid, false)
-        .define_simple_attr("test", "instant", ValueType::Instant, false)
-        .define_simple_attr("test", "ref", ValueType::Ref, false)
-        .schema
+fn prepopulated_schemaReplicant() -> SchemaReplicant {
+    SchemaReplicantBuilder::new()
+        .define_simple_attr("test", "boolean", MinkowskiValueType::Boolean, false)
+        .define_simple_attr("test", "long", MinkowskiValueType::Long, false)
+        .define_simple_attr("test", "double", MinkowskiValueType::Double, false)
+        .define_simple_attr("test", "string", MinkowskiValueType::String, false)
+        .define_simple_attr("test", "keyword", MinkowskiValueType::Keyword, false)
+        .define_simple_attr("test", "uuid", MinkowskiValueType::Uuid, false)
+        .define_simple_attr("test", "instant", MinkowskiValueType::Instant, false)
+        .define_simple_attr("test", "ref", MinkowskiValueType::Ref, false)
+        .schemaReplicant
 }
 
 #[test]
 fn test_empty_known() {
-    let schema = prepopulated_schema();
-    let known = Known::for_schema(&schema);
-    for known_type in ValueType::all_enums().iter() {
-        for required in ValueType::all_enums().iter() {
+    let schemaReplicant = prepopulated_schemaReplicant();
+    let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
+    for known_type in MinkowskiValueType::all_enums().iter() {
+        for required in MinkowskiValueType::all_enums().iter() {
             let q = format!("[:find ?e :where [?e :test/{} ?v] [(type ?v {})]]",
                             known_type.into_keyword().name(), required);
             println!("CausetQ: {}", q);
-            let cc = alg(known, &q);
-            // It should only be empty if the known type and our requirement differ.
+            let cc = alg(knownCauset, &q);
+            // It should only be empty if the knownCauset type and our requirement differ.
             assert_eq!(cc.empty_because.is_some(), known_type != required,
                        "known_type = {}; required = {}", known_type, required);
         }
@@ -64,16 +64,16 @@ fn test_empty_known() {
 
 #[test]
 fn test_multiple() {
-    let schema = prepopulated_schema();
-    let known = Known::for_schema(&schema);
+    let schemaReplicant = prepopulated_schemaReplicant();
+    let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
     let q = "[:find ?e :where [?e _ ?v] [(type ?v :edb.type/long)] [(type ?v :edb.type/double)]]";
-    let cc = alg(known, &q);
+    let cc = alg(knownCauset, &q);
     assert!(cc.empty_because.is_some());
 }
 
 #[test]
 fn test_unbound() {
-    let schema = prepopulated_schema();
-    let known = Known::for_schema(&schema);
-    bails(known, "[:find ?e :where [(type ?e :edb.type/string)]]");
+    let schemaReplicant = prepopulated_schemaReplicant();
+    let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
+    bails(knownCauset, "[:find ?e :where [(type ?e :edb.type/string)]]");
 }

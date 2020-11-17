@@ -27,8 +27,8 @@ impl super::AggrDefinitionParser for AggrFnDefinitionParserFirst {
         mut root_expr: Expr,
         exp: RpnExpression,
         _ctx: &mut EvalContext,
-        src_schema: &[FieldType],
-        out_schema: &mut Vec<FieldType>,
+        src_schemaReplicant: &[FieldType],
+        out_schemaReplicant: &mut Vec<FieldType>,
         out_exp: &mut Vec<RpnExpression>,
     ) -> Result<Box<dyn AggrFunction>> {
         use std::convert::TryFrom;
@@ -37,7 +37,7 @@ impl super::AggrDefinitionParser for AggrFnDefinitionParserFirst {
         assert_eq!(root_expr.get_tp(), ExprType::First);
 
         let eval_type =
-            EvalType::try_from(exp.ret_field_type(src_schema).as_accessor().tp()).unwrap();
+            EvalType::try_from(exp.ret_field_type(src_schemaReplicant).as_accessor().tp()).unwrap();
 
         let out_ft = root_expr.take_field_type();
 
@@ -51,7 +51,7 @@ impl super::AggrDefinitionParser for AggrFnDefinitionParserFirst {
         }
 
         // FIRST outputs one PrimaryCauset with the same type as its child
-        out_schema.push(out_ft);
+        out_schemaReplicant.push(out_ft);
         out_exp.push(exp);
 
         match_template::match_template! {
@@ -298,12 +298,12 @@ mod tests {
             .build();
         AggrFnDefinitionParserFirst.check_supported(&expr).unwrap();
 
-        let src_schema = [FieldTypeTp::LongLong.into()];
-        let mut schema = vec![];
+        let src_schemaReplicant = [FieldTypeTp::LongLong.into()];
+        let mut schemaReplicant = vec![];
         let mut exp = vec![];
         let mut ctx = EvalContext::default();
         AggrFnDefinitionParserFirst
-            .parse(expr, &mut ctx, &src_schema, &mut schema, &mut exp)
+            .parse(expr, &mut ctx, &src_schemaReplicant, &mut schemaReplicant, &mut exp)
             .unwrap_err();
     }
 }

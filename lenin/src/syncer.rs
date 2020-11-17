@@ -18,7 +18,7 @@ use uuid::Uuid;
 use embedded_promises::{
     SolitonId,
     KnownSolitonId,
-    TypedValue,
+    MinkowskiType,
 };
 
 use edbn::{
@@ -66,7 +66,7 @@ use spacetime::{
     PartitionsTable,
     SyncSpacetime,
 };
-use schema::{
+use schemaReplicant::{
     ensure_current_version,
 };
 use causecausetx_uploader::TxUploader;
@@ -325,7 +325,7 @@ impl Syncer {
 
     fn remote_parts_to_builder(builder: &mut TermBuilder, parts: Vec<TxPart>) -> Result<()> {
         for part in parts {
-            let e: InstantonPlace<TypedValue>;
+            let e: InstantonPlace<MinkowskiType>;
             let a = KnownSolitonId(part.a);
             let v = part.v;
 
@@ -395,7 +395,7 @@ impl Syncer {
         }
 
         // We've just transacted a new causetx, and generated a new causetx solitonId.  Map it to the corresponding
-        // incoming causetx uuid, advance our "locally known remote head".
+        // incoming causetx uuid, advance our "locally knownCauset remote head".
         if let Some((solitonId, uuid)) = last_causecausetx {
             SyncSpacetime::set_remote_head_and_map(&mut in_progress.transaction, (solitonId, &uuid).into())?;
         }
@@ -409,17 +409,17 @@ impl Syncer {
         // 1) Rewind local to shared root.
         local_causecausetxs_to_merge.sort(); // TODO sort at the interface level?
 
-        let (new_schema, new_partition_map) = lightcones::move_from_main_lightcone(
+        let (new_schemaReplicant, new_partition_map) = lightcones::move_from_main_lightcone(
             &ip.transaction,
-            &ip.schema,
+            &ip.schemaReplicant,
             ip.partition_map.clone(),
             local_causecausetxs_to_merge[0].causetx..,
             // A poor man's parent reference. This might be brittle, although
             // excisions are prohibited in the 'causetx' partition, so this should hold...
             local_causecausetxs_to_merge[0].causetx - 1
         )?;
-        match new_schema {
-            Some(schema) => ip.schema = schema,
+        match new_schemaReplicant {
+            Some(schemaReplicant) => ip.schemaReplicant = schemaReplicant,
             None => ()
         };
         ip.partition_map = new_partition_map;
@@ -462,19 +462,19 @@ impl Syncer {
 
             // This is the beginnings of instanton merging.
 
-            // An solitonId might be already known to the Schema, or it
+            // An solitonId might be already knownCauset to the SchemaReplicant, or it
             // might be allocated in this transaction.
             // In the former case, refer to it verbatim.
             // In the latter case, rewrite it as a tempid, and let the transactor allocate it.
             let mut entids_that_will_allocate = HashSet::new();
 
-            // We currently support "strict schema merging": we'll smush attribute definitions,
+            // We currently support "strict schemaReplicant merging": we'll smush attribute definitions,
             // but only if they're the same.
             // e.g. prohibited would be defining different cardinality for the same attribute.
             // Defining new attributes is allowed if:
             // - attribute is defined either on local or remote,
             // - attribute is defined on both local and remote in the same way.
-            // Modifying an attribute is currently not supported (requires higher order schema migrations).
+            // Modifying an attribute is currently not supported (requires higher order schemaReplicant migrations).
             // Note that "same" local and remote attributes might have different entids in the
             // two sets of transactions.
 
@@ -489,9 +489,9 @@ impl Syncer {
             let mut will_not_alter_installed_attribute = HashSet::new();
 
             // Note that at this point, remote and local have flipped - we're transacting
-            // local on top of incoming (which are already in the schema).
+            // local on top of incoming (which are already in the schemaReplicant).
 
-            // Go through local causets, and classify any schema-altering entids into
+            // Go through local causets, and classify any schemaReplicant-altering entids into
             // one of the two sets above.
             for part in &local_causecausetx.parts {
                 // If we have an causetid definition locally, check if remote
@@ -499,10 +499,10 @@ impl Syncer {
                 // both local and remote are defining it in the same way.
                 if part.a == entids::DB_CAUSETID {
                     match part.v {
-                        TypedValue::Keyword(ref local_kw) => {
+                        MinkowskiType::Keyword(ref local_kw) => {
                             // Remote did not define this causetid. Make a note of it,
                             // so that we'll know to ignore its attribute causets.
-                            if !ip.schema.causetId_map.contains_key(local_kw) {
+                            if !ip.schemaReplicant.causetId_map.contains_key(local_kw) {
                                 will_not_alter_installed_attribute.insert(part.e);
 
                             // Otherwise, we'll need to ensure we have the same attribute definition
@@ -513,7 +513,7 @@ impl Syncer {
                         },
                         _ => panic!("programming error: wrong value type for a local causetid")
                     }
-                } else if entids::is_a_schema_attribute(part.a) && !will_not_alter_installed_attribute.contains(&part.e) {
+                } else if entids::is_a_schemaReplicant_attribute(part.a) && !will_not_alter_installed_attribute.contains(&part.e) {
                     might_alter_installed_attributes.insert(part.e);
                 }
             }
@@ -559,7 +559,7 @@ impl Syncer {
                     continue;
                 }
 
-                let e: InstantonPlace<TypedValue>;
+                let e: InstantonPlace<MinkowskiType>;
                 let a = KnownSolitonId(part.a);
                 let v = part.v;
 
@@ -601,7 +601,7 @@ impl Syncer {
                         // - we skip retractions of non-unique attributes,
                         // - we "pre-run" a lookup-ref to ensure it will resolve,
                         //   and skip the retraction otherwise.
-                        match ip.schema.attribute_map.get(&part.a) {
+                        match ip.schemaReplicant.attribute_map.get(&part.a) {
                             Some(attributes) => {
                                 // A lookup-ref using a non-unique attribute will fail.
                                 // Skip this retraction, since we can't make sense of it.
@@ -609,7 +609,7 @@ impl Syncer {
                                     continue;
                                 }
                             },
-                            None => panic!("programming error: missing attribute map for a known attribute")
+                            None => panic!("programming error: missing attribute map for a knownCauset attribute")
                         }
 
                         // TODO prepare a causetq and re-use it for all retractions of this type
@@ -648,17 +648,17 @@ impl Syncer {
 
             let report = ip.transact_builder(builder)?;
 
-            // Let's check that we didn't modify any schema attributes.
-            // Our current attribute map in the schema isn't rich enough to allow
+            // Let's check that we didn't modify any schemaReplicant attributes.
+            // Our current attribute map in the schemaReplicant isn't rich enough to allow
             // for this check: it's missing a notion of "attribute absence" - we can't
             // distinguish between a missing attribute and a default value.
             // Instead, we simply causetq the database, checking if transaction produced
-            // any schema-altering causets.
+            // any schemaReplicant-altering causets.
             for e in might_alter_installed_attributes.iter() {
                 match report.tempids.get(&format!("{}", e)) {
                     Some(resolved_e) => {
                         if SyncSpacetime::has_instanton_assertions_in_causecausetx(&ip.transaction, *resolved_e, report.causecausetx_id)? {
-                            bail!(LeninError::NotYetImplemented("Can't sync with schema alterations yet.".to_string()));
+                            bail!(LeninError::NotYetImplemented("Can't sync with schemaReplicant alterations yet.".to_string()));
                         }
                     },
                     None => ()
@@ -680,7 +680,7 @@ impl Syncer {
         // This would be a good point to create a "merge commit" and upload our loosing lightcone.
 
         // Since we don't upload during a merge (instead, we request a follow-up sync),
-        // set the locally known remote HEAD to what we received from the 'remote'.
+        // set the locally knownCauset remote HEAD to what we received from the 'remote'.
         if let Some((solitonId, uuid)) = remote_report {
             SyncSpacetime::set_remote_head_and_map(&mut ip.transaction, (solitonId, &uuid).into())?;
         }
@@ -710,7 +710,7 @@ impl Syncer {
         let bootstrap_helper = BootstrapHelper::new(remote_bootstrap);
 
         if !bootstrap_helper.is_compatible()? {
-            return Ok(SyncReport::IncompatibleRemoteBootstrap(CORE_SCHEMA_VERSION as i64, bootstrap_helper.embedded_schema_version()?));
+            return Ok(SyncReport::IncompatibleRemoteBootstrap(CORE_SCHEMA_VERSION as i64, bootstrap_helper.embedded_schemaReplicant_version()?));
         }
 
         d(&format!("mapping incoming bootstrap causetx uuid to local bootstrap solitonId: {} -> {}", remote_bootstrap.causetx, local_bootstrap));

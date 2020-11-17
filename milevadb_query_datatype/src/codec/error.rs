@@ -205,7 +205,7 @@ impl From<codec::Error> for Error {
 
 impl From<crate::DataTypeError> for Error {
     fn from(err: crate::DataTypeError) -> Self {
-        box_err!("invalid schema: {:?}", err)
+        box_err!("invalid schemaReplicant: {:?}", err)
     }
 }
 

@@ -26,8 +26,8 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchLimitFreeDaemon<Src> {
     type StorageStats = Src::StorageStats;
 
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        self.src.schema()
+    fn schemaReplicant(&self) -> &[FieldType] {
+        self.src.schemaReplicant()
     }
 
     #[inline]

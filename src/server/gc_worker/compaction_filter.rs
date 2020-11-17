@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use super::{GcConfig, GcWorkerConfigManager};
-use crate::causetStorage::mvcc::{GC_DELETE_VERSIONS_HISTOGRAM, MVCC_VERSIONS_HISTOGRAM};
+use crate::causetStorage::tail_pointer::{GC_DELETE_VERSIONS_HISTOGRAM, MVCC_VERSIONS_HISTOGRAM};
 use engine_lmdb::raw::{
     new_compaction_filter_raw, CompactionFilter, CompactionFilterContext, CompactionFilterFactory,
     DBCompactionFilter, DB,
@@ -314,7 +314,7 @@ pub mod tests {
     use super::*;
     use crate::config::DbConfig;
     use crate::causetStorage::kv::{LmdbEngine as StorageLmdbEngine, TestEngineBuilder};
-    use crate::causetStorage::mvcc::tests::{must_get_none, must_prewrite_delete, must_prewrite_put};
+    use crate::causetStorage::tail_pointer::tests::{must_get_none, must_prewrite_delete, must_prewrite_put};
     use crate::causetStorage::txn::tests::must_commit;
     use engine_lmdb::raw::CompactOptions;
     use engine_lmdb::util::get_causet_handle;
@@ -389,7 +389,7 @@ pub mod tests {
     }
 
     // Test a key can be GCed correctly if its MVCC versions cover multiple SST files.
-    mod mvcc_versions_cover_multiple_ssts {
+    mod tail_pointer_versions_cover_multiple_ssts {
         use super::*;
 
         #[test]

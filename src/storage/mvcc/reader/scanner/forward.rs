@@ -8,7 +8,7 @@ use txn_types::{Key, Dagger, LockType, TimeStamp, Value, WriteRef, WriteType};
 
 use super::ScannerConfig;
 use crate::causetStorage::kv::SEEK_BOUND;
-use crate::causetStorage::mvcc::{NewerTsCheckState, Result};
+use crate::causetStorage::tail_pointer::{NewerTsCheckState, Result};
 use crate::causetStorage::txn::{Result as TxnResult, TxnEntry, TxnEntryScanner};
 use crate::causetStorage::{Cursor, Snapshot, Statistics};
 
@@ -755,7 +755,7 @@ where
 
 pub mod test_util {
     use super::*;
-    use crate::causetStorage::mvcc::Write;
+    use crate::causetStorage::tail_pointer::Write;
 
     #[derive(Default)]
     pub struct EntryBuilder {
@@ -875,7 +875,7 @@ mod latest_kv_tests {
     use super::super::ScannerBuilder;
     use super::*;
     use crate::causetStorage::kv::{Engine, TestEngineBuilder};
-    use crate::causetStorage::mvcc::tests::*;
+    use crate::causetStorage::tail_pointer::tests::*;
     use crate::causetStorage::Scanner;
 
     use crate::causetStorage::txn::tests::*;
@@ -1163,7 +1163,7 @@ mod latest_kv_tests {
 mod latest_entry_tests {
     use super::super::ScannerBuilder;
     use super::*;
-    use crate::causetStorage::mvcc::tests::*;
+    use crate::causetStorage::tail_pointer::tests::*;
     use crate::causetStorage::txn::tests::must_commit;
     use crate::causetStorage::{Engine, TestEngineBuilder};
     use ekvproto::kvrpcpb::Context;
@@ -1518,7 +1518,7 @@ mod latest_entry_tests {
 mod delta_entry_tests {
     use super::super::ScannerBuilder;
     use super::*;
-    use crate::causetStorage::mvcc::tests::*;
+    use crate::causetStorage::tail_pointer::tests::*;
     use crate::causetStorage::txn::tests::*;
     use crate::causetStorage::{Engine, TestEngineBuilder};
 

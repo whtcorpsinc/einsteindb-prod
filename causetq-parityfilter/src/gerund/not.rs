@@ -14,7 +14,7 @@ use edbn::causetq::{
     UnifyVars,
 };
 
-use clauses::ConjoiningClauses;
+use gerunds::ConjoiningGerunds;
 
 use causetq_parityfilter_promises::errors::{
     ParityFilterError,
@@ -26,10 +26,10 @@ use types::{
     ComputedTable,
 };
 
-use Known;
+use KnownCauset;
 
-impl ConjoiningClauses {
-    pub(crate) fn apply_not_join(&mut self, known: Known, not_join: NotJoin) -> Result<()> {
+impl ConjoiningGerunds {
+    pub(crate) fn apply_not_join(&mut self, knownCauset: KnownCauset, not_join: NotJoin) -> Result<()> {
         let unified = match not_join.unify_vars {
             UnifyVars::Implicit => not_join.collect_mentioned_variables(),
             UnifyVars::Explicit(vs) => vs,
@@ -49,7 +49,7 @@ impl ConjoiningClauses {
             }
         }
 
-        template.apply_clauses(known, not_join.clauses)?;
+        template.apply_gerunds(knownCauset, not_join.gerunds)?;
 
         if template.is_known_empty() {
             return Ok(());
@@ -92,13 +92,13 @@ mod testing {
 
     use embedded_promises::{
         Attribute,
-        TypedValue,
-        ValueType,
-        ValueTypeSet,
+        MinkowskiType,
+        MinkowskiValueType,
+        MinkowskiSet,
     };
 
     use einsteindb_embedded::{
-        Schema,
+        SchemaReplicant,
     };
 
     use edbn::causetq::{
@@ -107,7 +107,7 @@ mod testing {
         Variable
     };
 
-    use clauses::{
+    use gerunds::{
         CausetQInputs,
         add_attribute,
         associate_causetId,
@@ -136,64 +136,64 @@ mod testing {
         parse_find_string,
     };
 
-    fn alg(schema: &Schema, input: &str) -> ConjoiningClauses {
-        let known = Known::for_schema(schema);
+    fn alg(schemaReplicant: &SchemaReplicant, input: &str) -> ConjoiningGerunds {
+        let knownCauset = KnownCauset::for_schemaReplicant(schemaReplicant);
         let parsed = parse_find_string(input).expect("parse failed");
-        algebrize(known, parsed).expect("algebrize failed").cc
+        algebrize(knownCauset, parsed).expect("algebrize failed").cc
     }
 
-    fn alg_with_inputs(schema: &Schema, input: &str, inputs: CausetQInputs) -> ConjoiningClauses {
-        let known = Known::for_schema(schema);
+    fn alg_with_inputs(schemaReplicant: &SchemaReplicant, input: &str, inputs: CausetQInputs) -> ConjoiningGerunds {
+        let knownCauset = KnownCauset::for_schemaReplicant(schemaReplicant);
         let parsed = parse_find_string(input).expect("parse failed");
-        algebrize_with_inputs(known, parsed, 0, inputs).expect("algebrize failed").cc
+        algebrize_with_inputs(knownCauset, parsed, 0, inputs).expect("algebrize failed").cc
     }
 
-    fn prepopulated_schema() -> Schema {
-        let mut schema = Schema::default();
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "name"), 65);
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "knows"), 66);
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "parent"), 67);
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "age"), 68);
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "height"), 69);
-        add_attribute(&mut schema,
+    fn prepopulated_schemaReplicant() -> SchemaReplicant {
+        let mut schemaReplicant = SchemaReplicant::default();
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "name"), 65);
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "knows"), 66);
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "parent"), 67);
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "age"), 68);
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "height"), 69);
+        add_attribute(&mut schemaReplicant,
                       65,
                       Attribute {
-                          value_type: ValueType::String,
+                          value_type: MinkowskiValueType::String,
                           multival: false,
                           ..Default::default()
                       });
-        add_attribute(&mut schema,
+        add_attribute(&mut schemaReplicant,
                       66,
                       Attribute {
-                          value_type: ValueType::String,
+                          value_type: MinkowskiValueType::String,
                           multival: true,
                           ..Default::default()
                       });
-        add_attribute(&mut schema,
+        add_attribute(&mut schemaReplicant,
                       67,
                       Attribute {
-                          value_type: ValueType::String,
+                          value_type: MinkowskiValueType::String,
                           multival: true,
                           ..Default::default()
                       });
-        add_attribute(&mut schema,
+        add_attribute(&mut schemaReplicant,
                       68,
                       Attribute {
-                          value_type: ValueType::Long,
+                          value_type: MinkowskiValueType::Long,
                           multival: false,
                           ..Default::default()
                       });
-        add_attribute(&mut schema,
+        add_attribute(&mut schemaReplicant,
                       69,
                       Attribute {
-                          value_type: ValueType::Long,
+                          value_type: MinkowskiValueType::Long,
                           multival: false,
                           ..Default::default()
                       });
-        schema
+        schemaReplicant
     }
 
-    fn compare_ccs(left: ConjoiningClauses, right: ConjoiningClauses) {
+    fn compare_ccs(left: ConjoiningGerunds, right: ConjoiningGerunds) {
         assert_eq!(left.wheres, right.wheres);
         assert_eq!(left.from, right.from);
     }
@@ -201,13 +201,13 @@ mod testing {
     // not.
     #[test]
     fn test_successful_not() {
-        let schema = prepopulated_schema();
+        let schemaReplicant = prepopulated_schemaReplicant();
         let causetq = r#"
             [:find ?x
              :where [?x :foo/knows "John"]
                     (not [?x :foo/parent "Ámbar"]
                          [?x :foo/knows "Daphne"])]"#;
-        let cc = alg(&schema, causetq);
+        let cc = alg(&schemaReplicant, causetq);
 
         let vx = Variable::from_valid_name("?x");
 
@@ -229,11 +229,11 @@ mod testing {
         let knows = CausetQValue::SolitonId(66);
         let parent = CausetQValue::SolitonId(67);
 
-        let john = CausetQValue::TypedValue(TypedValue::typed_string("John"));
-        let ambar = CausetQValue::TypedValue(TypedValue::typed_string("Ámbar"));
-        let daphne = CausetQValue::TypedValue(TypedValue::typed_string("Daphne"));
+        let john = CausetQValue::MinkowskiType(MinkowskiType::typed_string("John"));
+        let ambar = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Ámbar"));
+        let daphne = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Daphne"));
 
-        let mut subcausetq = ConjoiningClauses::default();
+        let mut subcausetq = ConjoiningGerunds::default();
         subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d1),
                              SourceAlias(CausetsTable::Causets, d2)];
         subcausetq.column_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
@@ -244,7 +244,7 @@ mod testing {
                                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d1e.clone()))),
                                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d2e.clone())))]);
 
-        subcausetq.known_types.insert(vx.clone(), ValueTypeSet::of_one(ValueType::Ref));
+        subcausetq.known_types.insert(vx.clone(), MinkowskiSet::of_one(MinkowskiValueType::Ref));
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.wheres, ColumnIntersection(vec![
@@ -259,7 +259,7 @@ mod testing {
     // not-join.
     #[test]
     fn test_successful_not_join() {
-        let schema = prepopulated_schema();
+        let schemaReplicant = prepopulated_schemaReplicant();
         let causetq = r#"
             [:find ?x
              :where [?x :foo/knows ?y]
@@ -267,7 +267,7 @@ mod testing {
                     [?x :foo/name "John"]
                     (not-join [?x ?y]
                               [?x :foo/parent ?y])]"#;
-        let cc = alg(&schema, causetq);
+        let cc = alg(&schemaReplicant, causetq);
 
         let vx = Variable::from_valid_name("?x");
         let vy = Variable::from_valid_name("?y");
@@ -297,10 +297,10 @@ mod testing {
         let parent = CausetQValue::SolitonId(67);
         let age = CausetQValue::SolitonId(68);
 
-        let john = CausetQValue::TypedValue(TypedValue::typed_string("John"));
-        let eleven = CausetQValue::TypedValue(TypedValue::Long(11));
+        let john = CausetQValue::MinkowskiType(MinkowskiType::typed_string("John"));
+        let eleven = CausetQValue::MinkowskiType(MinkowskiType::Long(11));
 
-        let mut subcausetq = ConjoiningClauses::default();
+        let mut subcausetq = ConjoiningGerunds::default();
         subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d3)];
         subcausetq.column_bindings.insert(vx.clone(), vec![d0e.clone(), d3e.clone()]);
         subcausetq.column_bindings.insert(vy.clone(), vec![d0v.clone(), d3v.clone()]);
@@ -308,8 +308,8 @@ mod testing {
                                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d3e.clone()))),
                                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0v.clone(), CausetQValue::Column(d3v.clone())))]);
 
-        subcausetq.known_types.insert(vx.clone(), ValueTypeSet::of_one(ValueType::Ref));
-        subcausetq.known_types.insert(vy.clone(), ValueTypeSet::of_one(ValueType::String));
+        subcausetq.known_types.insert(vx.clone(), MinkowskiSet::of_one(MinkowskiValueType::Ref));
+        subcausetq.known_types.insert(vy.clone(), MinkowskiSet::of_one(MinkowskiValueType::String));
 
         assert!(!cc.is_known_empty());
         let expected_wheres = ColumnIntersection(vec![
@@ -332,7 +332,7 @@ mod testing {
     // Not with a pattern and a predicate.
     #[test]
     fn test_not_with_pattern_and_predicate() {
-        let schema = prepopulated_schema();
+        let schemaReplicant = prepopulated_schemaReplicant();
         let causetq = r#"
             [:find ?x ?age
              :where
@@ -340,7 +340,7 @@ mod testing {
              [(< ?age 30)]
              (not [?x :foo/knows "John"]
                   [?x :foo/knows "Daphne"])]"#;
-        let cc = alg(&schema, causetq);
+        let cc = alg(&schemaReplicant, causetq);
 
         let vx = Variable::from_valid_name("?x");
 
@@ -362,10 +362,10 @@ mod testing {
         let knows = CausetQValue::SolitonId(66);
         let age = CausetQValue::SolitonId(68);
 
-        let john = CausetQValue::TypedValue(TypedValue::typed_string("John"));
-        let daphne = CausetQValue::TypedValue(TypedValue::typed_string("Daphne"));
+        let john = CausetQValue::MinkowskiType(MinkowskiType::typed_string("John"));
+        let daphne = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Daphne"));
 
-        let mut subcausetq = ConjoiningClauses::default();
+        let mut subcausetq = ConjoiningGerunds::default();
         subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d1),
                              SourceAlias(CausetsTable::Causets, d2)];
         subcausetq.column_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
@@ -376,7 +376,7 @@ mod testing {
                                                   ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d1e.clone()))),
                                                   ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d2e.clone())))]);
 
-        subcausetq.known_types.insert(vx.clone(), ValueTypeSet::of_one(ValueType::Ref));
+        subcausetq.known_types.insert(vx.clone(), MinkowskiSet::of_one(MinkowskiValueType::Ref));
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.wheres, ColumnIntersection(vec![
@@ -384,7 +384,7 @@ mod testing {
                 ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Inequality {
                     operator: Inequality::LessThan,
                     left: CausetQValue::Column(d0v.clone()),
-                    right: CausetQValue::TypedValue(TypedValue::Long(30)),
+                    right: CausetQValue::MinkowskiType(MinkowskiType::Long(30)),
                 }),
                 ColumnConstraintOrAlternation::Constraint(ColumnConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
             ]));
@@ -395,14 +395,14 @@ mod testing {
     // not with an or
     #[test]
     fn test_not_with_or() {
-        let schema = prepopulated_schema();
+        let schemaReplicant = prepopulated_schemaReplicant();
         let causetq = r#"
             [:find ?x
              :where [?x :foo/knows "Bill"]
                     (not (or [?x :foo/knows "John"]
                              [?x :foo/knows "Ámbar"])
                         [?x :foo/parent "Daphne"])]"#;
-        let cc = alg(&schema, causetq);
+        let cc = alg(&schemaReplicant, causetq);
 
         let d0 = "Causets00".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
@@ -424,13 +424,13 @@ mod testing {
         let knows = CausetQValue::SolitonId(66);
         let parent = CausetQValue::SolitonId(67);
 
-        let bill = CausetQValue::TypedValue(TypedValue::typed_string("Bill"));
-        let john = CausetQValue::TypedValue(TypedValue::typed_string("John"));
-        let ambar = CausetQValue::TypedValue(TypedValue::typed_string("Ámbar"));
-        let daphne = CausetQValue::TypedValue(TypedValue::typed_string("Daphne"));
+        let bill = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Bill"));
+        let john = CausetQValue::MinkowskiType(MinkowskiType::typed_string("John"));
+        let ambar = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Ámbar"));
+        let daphne = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Daphne"));
 
 
-        let mut subcausetq = ConjoiningClauses::default();
+        let mut subcausetq = ConjoiningGerunds::default();
         subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d1),
                              SourceAlias(CausetsTable::Causets, d2)];
         subcausetq.column_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
@@ -447,7 +447,7 @@ mod testing {
                                                     ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d1e.clone()))),
                                                     ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d2e.clone())))]);
 
-        subcausetq.known_types.insert(vx.clone(), ValueTypeSet::of_one(ValueType::Ref));
+        subcausetq.known_types.insert(vx.clone(), MinkowskiSet::of_one(MinkowskiValueType::Ref));
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.wheres, ColumnIntersection(vec![
@@ -460,7 +460,7 @@ mod testing {
     // not-join with an input variable
     #[test]
     fn test_not_with_in() {
-        let schema = prepopulated_schema();
+        let schemaReplicant = prepopulated_schemaReplicant();
         let causetq = r#"
             [:find ?x
              :in ?y
@@ -470,15 +470,15 @@ mod testing {
         let inputs = CausetQInputs::with_value_sequence(vec![
             (Variable::from_valid_name("?y"), "John".into())
         ]);
-        let cc = alg_with_inputs(&schema, causetq, inputs);
+        let cc = alg_with_inputs(&schemaReplicant, causetq, inputs);
 
         let vx = Variable::from_valid_name("?x");
         let vy = Variable::from_valid_name("?y");
 
         let knows = CausetQValue::SolitonId(66);
 
-        let bill = CausetQValue::TypedValue(TypedValue::typed_string("Bill"));
-        let john = CausetQValue::TypedValue(TypedValue::typed_string("John"));
+        let bill = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Bill"));
+        let john = CausetQValue::MinkowskiType(MinkowskiType::typed_string("John"));
 
         let d0 = "Causets00".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
@@ -490,20 +490,20 @@ mod testing {
         let d1a = QualifiedAlias::new(d1.clone(), CausetsColumn::Attribute);
         let d1v = QualifiedAlias::new(d1.clone(), CausetsColumn::Value);
 
-        let mut subcausetq = ConjoiningClauses::default();
+        let mut subcausetq = ConjoiningGerunds::default();
         subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d1)];
         subcausetq.column_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone()]);
         subcausetq.wheres = ColumnIntersection(vec![ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1a.clone(), knows.clone())),
                                                   ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1v.clone(), john)),
                                                   ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d1e.clone())))]);
 
-        subcausetq.known_types.insert(vx.clone(), ValueTypeSet::of_one(ValueType::Ref));
-        subcausetq.known_types.insert(vy.clone(), ValueTypeSet::of_one(ValueType::String));
+        subcausetq.known_types.insert(vx.clone(), MinkowskiSet::of_one(MinkowskiValueType::Ref));
+        subcausetq.known_types.insert(vy.clone(), MinkowskiSet::of_one(MinkowskiValueType::String));
 
         let mut input_vars: BTreeSet<Variable> = BTreeSet::default();
         input_vars.insert(vy.clone());
         subcausetq.input_variables = input_vars;
-        subcausetq.value_bindings.insert(vy.clone(), TypedValue::typed_string("John"));
+        subcausetq.value_bindings.insert(vy.clone(), MinkowskiType::typed_string("John"));
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.wheres, ColumnIntersection(vec![
@@ -513,49 +513,49 @@ mod testing {
             ]));
     }
 
-    // Test that if any single clause in the `not` fails to resolve the whole clause is considered empty
+    // Test that if any single gerund in the `not` fails to resolve the whole gerund is considered empty
     #[test]
-    fn test_fails_if_any_clause_invalid() {
-        let schema = prepopulated_schema();
+    fn test_fails_if_any_gerund_invalid() {
+        let schemaReplicant = prepopulated_schemaReplicant();
         let causetq = r#"
             [:find ?x
              :where [?x :foo/knows "Bill"]
                     (not [?x :foo/nope "John"]
                          [?x :foo/parent "Ámbar"]
                          [?x :foo/nope "Daphne"])]"#;
-        let cc = alg(&schema, causetq);
+        let cc = alg(&schemaReplicant, causetq);
         assert!(!cc.is_known_empty());
         compare_ccs(cc,
-                    alg(&schema,
+                    alg(&schemaReplicant,
                         r#"[:find ?x :where [?x :foo/knows "Bill"]]"#));
     }
 
     /// Test that if all the attributes in an `not` fail to resolve, the `cc` isn't considered empty.
     #[test]
-    fn test_no_clauses_succeed() {
-        let schema = prepopulated_schema();
+    fn test_no_gerunds_succeed() {
+        let schemaReplicant = prepopulated_schemaReplicant();
         let causetq = r#"
             [:find ?x
              :where [?x :foo/knows "John"]
                     (not [?x :foo/nope "Ámbar"]
                          [?x :foo/nope "Daphne"])]"#;
-        let cc = alg(&schema, causetq);
+        let cc = alg(&schemaReplicant, causetq);
         assert!(!cc.is_known_empty());
         compare_ccs(cc,
-                    alg(&schema, r#"[:find ?x :where [?x :foo/knows "John"]]"#));
+                    alg(&schemaReplicant, r#"[:find ?x :where [?x :foo/knows "John"]]"#));
 
     }
 
     #[test]
     fn test_unbound_var_fails() {
-        let schema = prepopulated_schema();
-        let known = Known::for_schema(&schema);
+        let schemaReplicant = prepopulated_schemaReplicant();
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
         let causetq = r#"
         [:find ?x
          :in ?y
          :where (not [?x :foo/knows ?y])]"#;
         let parsed = parse_find_string(causetq).expect("parse failed");
-        let err = algebrize(known, parsed).expect_err("algebrization should have failed");
+        let err = algebrize(knownCauset, parsed).expect_err("algebrization should have failed");
         match err {
             ParityFilterError::UnboundVariable(var) => { assert_eq!(var, PlainSymbol("?x".to_string())); },
             x => panic!("expected Unbound Variable error, got {:?}", x),

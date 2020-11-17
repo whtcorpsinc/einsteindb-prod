@@ -321,7 +321,7 @@ mod tests {
         assert!(old_sst_files_size > new_sst_files_size);
     }
 
-    fn mvcc_put(db: &DB, k: &[u8], v: &[u8], spacelike_ts: TimeStamp, commit_ts: TimeStamp) {
+    fn tail_pointer_put(db: &DB, k: &[u8], v: &[u8], spacelike_ts: TimeStamp, commit_ts: TimeStamp) {
         let causet = get_causet_handle(db, CAUSET_WRITE).unwrap();
         let k = Key::from_encoded(data_key(k)).applightlike_ts(commit_ts);
         let w = Write::new(WriteType::Put, spacelike_ts, Some(v.to_vec()));
@@ -357,10 +357,10 @@ mod tests {
         let causet = get_causet_handle(&engine, CAUSET_WRITE).unwrap();
         let causet2 = engine.c().causet_handle(CAUSET_WRITE).unwrap();
 
-        // mvcc_put 0..5
+        // tail_pointer_put 0..5
         for i in 0..5 {
             let (k, v) = (format!("k{}", i), format!("value{}", i));
-            mvcc_put(&engine, k.as_bytes(), v.as_bytes(), 1.into(), 2.into());
+            tail_pointer_put(&engine, k.as_bytes(), v.as_bytes(), 1.into(), 2.into());
         }
         engine.flush_causet(causet, true).unwrap();
 
@@ -377,10 +377,10 @@ mod tests {
         assert_eq!(entries, 10);
         assert_eq!(version, 5);
 
-        // mvcc_put 5..10
+        // tail_pointer_put 5..10
         for i in 5..10 {
             let (k, v) = (format!("k{}", i), format!("value{}", i));
-            mvcc_put(&engine, k.as_bytes(), v.as_bytes(), 1.into(), 2.into());
+            tail_pointer_put(&engine, k.as_bytes(), v.as_bytes(), 1.into(), 2.into());
         }
         engine.flush_causet(causet, true).unwrap();
 

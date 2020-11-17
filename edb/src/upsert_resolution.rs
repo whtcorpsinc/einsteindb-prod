@@ -35,7 +35,7 @@ use internal_types::{
     Term,
     TermWithoutTempIds,
     TermWithTempIds,
-    TypedValueOr,
+    MinkowskiTypeOr,
 };
 
 use einsteindb_embedded::util::Either::*;
@@ -44,18 +44,18 @@ use embedded_promises::{
     attribute,
     Attribute,
     SolitonId,
-    TypedValue,
+    MinkowskiType,
 };
 
 use einsteindb_embedded::{
-    Schema,
+    SchemaReplicant,
 };
 use edbn::entities::OpType;
-use schema::SchemaBuilding;
+use schemaReplicant::SchemaReplicantBuilding;
 
 /// A "Simple upsert" that looks like [:edb/add TEMPID a v], where a is :edb.unique/causetIdity.
 #[derive(Clone,Debug,Eq,Hash,Ord,PartialOrd,PartialEq)]
-struct UpsertE(TempIdHandle, SolitonId, TypedValue);
+struct UpsertE(TempIdHandle, SolitonId, MinkowskiType);
 
 /// A "Complex upsert" that looks like [:edb/add TEMPID a OTHERID], where a is :edb.unique/causetIdity
 #[derive(Clone,Debug,Eq,Hash,Ord,PartialOrd,PartialEq)]
@@ -105,12 +105,12 @@ pub(crate) struct FinalPopulations {
 impl Generation {
     /// Split entities into a generation of populations that need to evolve to have their tempids
     /// resolved or allocated, and a population of inert entities that do not reference tempids.
-    pub(crate) fn from<I>(terms: I, schema: &Schema) -> Result<(Generation, Population)> where I: IntoIterator<Item=TermWithTempIds> {
+    pub(crate) fn from<I>(terms: I, schemaReplicant: &SchemaReplicant) -> Result<(Generation, Population)> where I: IntoIterator<Item=TermWithTempIds> {
         let mut generation = Generation::default();
         let mut inert = vec![];
 
         let is_unique = |a: SolitonId| -> Result<bool> {
-            let attribute: &Attribute = schema.require_attribute_for_entid(a)?;
+            let attribute: &Attribute = schemaReplicant.require_attribute_for_entid(a)?;
             Ok(attribute.unique == Some(attribute::Unique::CausetIdity))
         };
 
@@ -174,9 +174,9 @@ impl Generation {
                     // Even though we can resolve entirely, it's possible that the remaining upsert
                     // could conflict.  Moving straight to resolved doesn't give us a chance to
                     // search the store for the conflict.
-                    next.upserts_e.push(UpsertE(t1, a, TypedValue::Ref(n2.0)))
+                    next.upserts_e.push(UpsertE(t1, a, MinkowskiType::Ref(n2.0)))
                 },
-                (None, Some(&n2)) => next.upserts_e.push(UpsertE(t1, a, TypedValue::Ref(n2.0))),
+                (None, Some(&n2)) => next.upserts_e.push(UpsertE(t1, a, MinkowskiType::Ref(n2.0))),
                 (Some(&n1), None) => next.allocations.push(Term::AddOrRetract(OpType::Add, Left(n1), a, Right(t2))),
                 (None, None) => next.upserts_ev.push(UpsertEV(t1, a, t2))
             }
@@ -190,8 +190,8 @@ impl Generation {
             match term {
                 Term::AddOrRetract(op, Right(t1), a, Right(t2)) => {
                     match (temp_id_map.get(&*t1), temp_id_map.get(&*t2)) {
-                        (Some(&n1), Some(&n2)) => next.resolved.push(Term::AddOrRetract(op, n1, a, TypedValue::Ref(n2.0))),
-                        (None, Some(&n2)) => next.allocations.push(Term::AddOrRetract(op, Right(t1), a, Left(TypedValue::Ref(n2.0)))),
+                        (Some(&n1), Some(&n2)) => next.resolved.push(Term::AddOrRetract(op, n1, a, MinkowskiType::Ref(n2.0))),
+                        (None, Some(&n2)) => next.allocations.push(Term::AddOrRetract(op, Right(t1), a, Left(MinkowskiType::Ref(n2.0)))),
                         (Some(&n1), None) => next.allocations.push(Term::AddOrRetract(op, Left(n1), a, Right(t2))),
                         (None, None) => next.allocations.push(Term::AddOrRetract(op, Right(t1), a, Right(t2))),
                     }
@@ -204,7 +204,7 @@ impl Generation {
                 },
                 Term::AddOrRetract(op, Left(e), a, Right(t)) => {
                     match temp_id_map.get(&*t) {
-                        Some(&n) => next.resolved.push(Term::AddOrRetract(op, e, a, TypedValue::Ref(n.0))),
+                        Some(&n) => next.resolved.push(Term::AddOrRetract(op, e, a, MinkowskiType::Ref(n.0))),
                         None => next.allocations.push(Term::AddOrRetract(op, Left(e), a, Right(t))),
                     }
                 },
@@ -241,26 +241,26 @@ impl Generation {
     ///
     /// Some of the tempids may be causetIdified, so we also provide a map from tempid to a dense set
     /// of contiguous integer labels.
-    pub(crate) fn temp_ids_in_allocations(&self, schema: &Schema) -> Result<BTreeMap<TempIdHandle, usize>> {
+    pub(crate) fn temp_ids_in_allocations(&self, schemaReplicant: &SchemaReplicant) -> Result<BTreeMap<TempIdHandle, usize>> {
         assert!(self.upserts_e.is_empty(), "All upserts should have been upserted, resolved, or moved to the allocated population!");
         assert!(self.upserts_ev.is_empty(), "All upserts should have been upserted, resolved, or moved to the allocated population!");
 
         let mut temp_ids: BTreeSet<TempIdHandle> = BTreeSet::default();
-        let mut tempid_avs: BTreeMap<(SolitonId, TypedValueOr<TempIdHandle>), Vec<TempIdHandle>> = BTreeMap::default();
+        let mut tempid_avs: BTreeMap<(SolitonId, MinkowskiTypeOr<TempIdHandle>), Vec<TempIdHandle>> = BTreeMap::default();
 
         for term in self.allocations.iter() {
             match term {
                 &Term::AddOrRetract(OpType::Add, Right(ref t1), a, Right(ref t2)) => {
                     temp_ids.insert(t1.clone());
                     temp_ids.insert(t2.clone());
-                    let attribute: &Attribute = schema.require_attribute_for_entid(a)?;
+                    let attribute: &Attribute = schemaReplicant.require_attribute_for_entid(a)?;
                     if attribute.unique == Some(attribute::Unique::CausetIdity) {
                         tempid_avs.entry((a, Right(t2.clone()))).or_insert(vec![]).push(t1.clone());
                     }
                 },
                 &Term::AddOrRetract(OpType::Add, Right(ref t), a, ref x @ Left(_)) => {
                     temp_ids.insert(t.clone());
-                    let attribute: &Attribute = schema.require_attribute_for_entid(a)?;
+                    let attribute: &Attribute = schemaReplicant.require_attribute_for_entid(a)?;
                     if attribute.unique == Some(attribute::Unique::CausetIdity) {
                         tempid_avs.entry((a, x.clone())).or_insert(vec![]).push(t.clone());
                     }
@@ -276,7 +276,7 @@ impl Generation {
             }
         }
 
-        // Now we union-find all the known tempids.  Two tempids are unioned if they both appear as
+        // Now we union-find all the knownCauset tempids.  Two tempids are unioned if they both appear as
         // the instanton of an `[a v]` upsert, including when the value column `v` is itself a tempid.
         let mut uf = unionfind::UnionFind::new(temp_ids.len());
 
@@ -332,7 +332,7 @@ impl Generation {
                 // TODO: consider require implementing require on temp_id_map.
                 Term::AddOrRetract(op, Right(t1), a, Right(t2)) => {
                     match (op, temp_id_map.get(&*t1), temp_id_map.get(&*t2)) {
-                        (op, Some(&n1), Some(&n2)) => Term::AddOrRetract(op, n1, a, TypedValue::Ref(n2.0)),
+                        (op, Some(&n1), Some(&n2)) => Term::AddOrRetract(op, n1, a, MinkowskiType::Ref(n2.0)),
                         (OpType::Add, _, _) => unreachable!(), // This is a coding error -- every tempid in a :edb/add instanton should resolve or be allocated.
                         (OpType::Retract, _, _) => bail!(DbErrorKind::NotYetImplemented(format!("[:edb/retract ...] instanton referenced tempid that did not upsert: one of {}, {}", t1, t2))),
                     }
@@ -346,7 +346,7 @@ impl Generation {
                 },
                 Term::AddOrRetract(op, Left(e), a, Right(t)) => {
                     match (op, temp_id_map.get(&*t)) {
-                        (op, Some(&n)) => Term::AddOrRetract(op, e, a, TypedValue::Ref(n.0)),
+                        (op, Some(&n)) => Term::AddOrRetract(op, e, a, MinkowskiType::Ref(n.0)),
                         (OpType::Add, _) => unreachable!(), // This is a coding error.
                         (OpType::Retract, _) => bail!(DbErrorKind::NotYetImplemented(format!("[:edb/retract ...] instanton referenced tempid that did not upsert: {}", t))),
                     }

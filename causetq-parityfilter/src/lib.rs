@@ -22,17 +22,17 @@ use std::rc::Rc;
 
 mod types;
 mod validate;
-mod clauses;
+mod gerunds;
 
 use embedded_promises::{
     SolitonId,
-    TypedValue,
-    ValueType,
+    MinkowskiType,
+    MinkowskiValueType,
 };
 
 use einsteindb_embedded::{
     CachedAttributes,
-    Schema,
+    SchemaReplicant,
     parse_causetq,
 };
 
@@ -46,7 +46,7 @@ use edbn::causetq::{
     ParsedCausetQ,
     SrcVar,
     Variable,
-    WhereClause,
+    WhereGerund,
 };
 
 use causetq_parityfilter_promises::errors::{
@@ -54,9 +54,9 @@ use causetq_parityfilter_promises::errors::{
     Result,
 };
 
-pub use clauses::{
+pub use gerunds::{
     CausetQInputs,
-    VariableBindings,
+    MinkowskiBindings,
 };
 
 pub use types::{
@@ -64,35 +64,35 @@ pub use types::{
     FindCausetQ,
 };
 
-/// A convenience wrapper around things known in memory: the schema and caches.
+/// A convenience wrapper around things knownCauset in memory: the schemaReplicant and caches.
 /// We use a trait object here to avoid making dozens of functions generic over the type
 /// of the immutable_memTcam. If performance becomes a concern, we should hard-code specific kinds of
 /// immutable_memTcam right here, and/or eliminate the Option.
 #[derive(Clone, Copy)]
-pub struct Known<'s, 'c> {
-    pub schema: &'s Schema,
+pub struct KnownCauset<'s, 'c> {
+    pub schemaReplicant: &'s SchemaReplicant,
     pub immutable_memTcam: Option<&'c CachedAttributes>,
 }
 
-impl<'s, 'c> Known<'s, 'c> {
-    pub fn for_schema(s: &'s Schema) -> Known<'s, 'static> {
-        Known {
-            schema: s,
+impl<'s, 'c> KnownCauset<'s, 'c> {
+    pub fn for_schemaReplicant(s: &'s SchemaReplicant) -> KnownCauset<'s, 'static> {
+        KnownCauset {
+            schemaReplicant: s,
             immutable_memTcam: None,
         }
     }
 
-    pub fn new(s: &'s Schema, c: Option<&'c CachedAttributes>) -> Known<'s, 'c> {
-        Known {
-            schema: s,
+    pub fn new(s: &'s SchemaReplicant, c: Option<&'c CachedAttributes>) -> KnownCauset<'s, 'c> {
+        KnownCauset {
+            schemaReplicant: s,
             immutable_memTcam: c,
         }
     }
 }
 
 /// This is `CachedAttributes`, but with handy generic parameters.
-/// Why not make the trait generic? Because then we can't use it as a trait object in `Known`.
-impl<'s, 'c> Known<'s, 'c> {
+/// Why not make the trait generic? Because then we can't use it as a trait object in `KnownCauset`.
+impl<'s, 'c> KnownCauset<'s, 'c> {
     pub fn is_attribute_cached_reverse<U>(&self, solitonId: U) -> bool where U: Into<SolitonId> {
         self.immutable_memTcam
             .map(|immutable_memTcam| immutable_memTcam.is_attribute_cached_reverse(solitonId.into()))
@@ -105,22 +105,22 @@ impl<'s, 'c> Known<'s, 'c> {
             .unwrap_or(false)
     }
 
-    pub fn get_values_for_entid<U, V>(&self, schema: &Schema, attribute: U, solitonId: V) -> Option<&Vec<TypedValue>>
+    pub fn get_values_for_entid<U, V>(&self, schemaReplicant: &SchemaReplicant, attribute: U, solitonId: V) -> Option<&Vec<MinkowskiType>>
     where U: Into<SolitonId>, V: Into<SolitonId> {
-        self.immutable_memTcam.and_then(|immutable_memTcam| immutable_memTcam.get_values_for_entid(schema, attribute.into(), solitonId.into()))
+        self.immutable_memTcam.and_then(|immutable_memTcam| immutable_memTcam.get_values_for_entid(schemaReplicant, attribute.into(), solitonId.into()))
     }
 
-    pub fn get_value_for_entid<U, V>(&self, schema: &Schema, attribute: U, solitonId: V) -> Option<&TypedValue>
+    pub fn get_value_for_entid<U, V>(&self, schemaReplicant: &SchemaReplicant, attribute: U, solitonId: V) -> Option<&MinkowskiType>
     where U: Into<SolitonId>, V: Into<SolitonId> {
-        self.immutable_memTcam.and_then(|immutable_memTcam| immutable_memTcam.get_value_for_entid(schema, attribute.into(), solitonId.into()))
+        self.immutable_memTcam.and_then(|immutable_memTcam| immutable_memTcam.get_value_for_entid(schemaReplicant, attribute.into(), solitonId.into()))
     }
 
-    pub fn get_entid_for_value<U>(&self, attribute: U, value: &TypedValue) -> Option<SolitonId>
+    pub fn get_entid_for_value<U>(&self, attribute: U, value: &MinkowskiType) -> Option<SolitonId>
     where U: Into<SolitonId> {
         self.immutable_memTcam.and_then(|immutable_memTcam| immutable_memTcam.get_entid_for_value(attribute.into(), value))
     }
 
-    pub fn get_entids_for_value<U>(&self, attribute: U, value: &TypedValue) -> Option<&BTreeSet<SolitonId>>
+    pub fn get_entids_for_value<U>(&self, attribute: U, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>>
     where U: Into<SolitonId> {
         self.immutable_memTcam.and_then(|immutable_memTcam| immutable_memTcam.get_entids_for_value(attribute.into(), value))
     }
@@ -146,7 +146,7 @@ pub struct AlgebraicCausetQ {
     pub named_projection: BTreeSet<Variable>,
     pub order: Option<Vec<OrderBy>>,
     pub limit: Limit,
-    pub cc: clauses::ConjoiningClauses,
+    pub cc: gerunds::ConjoiningGerunds,
 }
 
 impl AlgebraicCausetQ {
@@ -181,26 +181,26 @@ impl AlgebraicCausetQ {
     }
 
 
-    /// Return a set of the input variables mentioned in the `:in` clause that have not yet been
+    /// Return a set of the input variables mentioned in the `:in` gerund that have not yet been
     /// bound. We do this by looking at the CC.
     pub fn unbound_variables(&self) -> BTreeSet<Variable> {
         self.cc.input_variables.sub(&self.cc.value_bound_variable_set())
     }
 }
 
-pub fn algebrize_with_counter(known: Known, parsed: FindCausetQ, counter: usize) -> Result<AlgebraicCausetQ> {
-    algebrize_with_inputs(known, parsed, counter, CausetQInputs::default())
+pub fn algebrize_with_counter(knownCauset: KnownCauset, parsed: FindCausetQ, counter: usize) -> Result<AlgebraicCausetQ> {
+    algebrize_with_inputs(knownCauset, parsed, counter, CausetQInputs::default())
 }
 
-pub fn algebrize(known: Known, parsed: FindCausetQ) -> Result<AlgebraicCausetQ> {
-    algebrize_with_inputs(known, parsed, 0, CausetQInputs::default())
+pub fn algebrize(knownCauset: KnownCauset, parsed: FindCausetQ) -> Result<AlgebraicCausetQ> {
+    algebrize_with_inputs(knownCauset, parsed, 0, CausetQInputs::default())
 }
 
 /// Take an ordering list. Any variables that aren't fixed by the causetq are used to produce
 /// a vector of `OrderBy` instances, including type comparisons if necessary. This function also
-/// returns a set of variables that should be added to the `with` clause to make the ordering
-/// clauses possible.
-fn validate_and_simplify_order(cc: &ConjoiningClauses, order: Option<Vec<Order>>)
+/// returns a set of variables that should be added to the `with` gerund to make the ordering
+/// gerunds possible.
+fn validate_and_simplify_order(cc: &ConjoiningGerunds, order: Option<Vec<Order>>)
     -> Result<(Option<Vec<OrderBy>>, BTreeSet<Variable>)> {
     match order {
         None => Ok((None, BTreeSet::default())),
@@ -209,7 +209,7 @@ fn validate_and_simplify_order(cc: &ConjoiningClauses, order: Option<Vec<Order>>
             let mut vars: BTreeSet<Variable> = BTreeSet::default();
 
             for Order(direction, var) in order.into_iter() {
-                // Eliminate any ordering clauses that are bound to fixed values.
+                // Eliminate any ordering gerunds that are bound to fixed values.
                 if cc.bound_value(&var).is_some() {
                     continue;
                 }
@@ -239,10 +239,10 @@ fn simplify_limit(mut causetq: AlgebraicCausetQ) -> Result<AlgebraicCausetQ> {
         match causetq.limit {
             Limit::Variable(ref v) => {
                 match causetq.cc.bound_value(v) {
-                    Some(TypedValue::Long(n)) => {
+                    Some(MinkowskiType::Long(n)) => {
                         if n <= 0 {
                             // User-specified limits should always be natural numbers (> 0).
-                            bail!(ParityFilterError::InvalidLimit(n.to_string(), ValueType::Long))
+                            bail!(ParityFilterError::InvalidLimit(n.to_string(), MinkowskiValueType::Long))
                         } else {
                             Some(Limit::Fixed(n as u64))
                         }
@@ -271,12 +271,12 @@ fn simplify_limit(mut causetq: AlgebraicCausetQ) -> Result<AlgebraicCausetQ> {
     Ok(causetq)
 }
 
-pub fn algebrize_with_inputs(known: Known,
+pub fn algebrize_with_inputs(knownCauset: KnownCauset,
                              parsed: FindCausetQ,
                              counter: usize,
                              inputs: CausetQInputs) -> Result<AlgebraicCausetQ> {
     let alias_counter = RcCounter::with_initial(counter);
-    let mut cc = ConjoiningClauses::with_inputs_and_alias_counter(parsed.in_vars, inputs, alias_counter);
+    let mut cc = ConjoiningGerunds::with_inputs_and_alias_counter(parsed.in_vars, inputs, alias_counter);
 
     // This is so the rest of the causetq knows that `?x` is a ref if `(pull ?x …)` appears in `:find`.
     cc.derive_types_from_find_spec(&parsed.find_spec);
@@ -288,7 +288,7 @@ pub fn algebrize_with_inputs(known: Known,
 
     // TODO: integrate default source into pattern processing.
     // TODO: flesh out the rest of find-into-context.
-    cc.apply_clauses(known, parsed.where_clauses)?;
+    cc.apply_gerunds(knownCauset, parsed.where_gerunds)?;
 
     cc.expand_column_bindings();
     cc.prune_extracted_types();
@@ -313,8 +313,8 @@ pub fn algebrize_with_inputs(known: Known,
     simplify_limit(q)
 }
 
-pub use clauses::{
-    ConjoiningClauses,
+pub use gerunds::{
+    ConjoiningGerunds,
 };
 
 pub use types::{
@@ -338,7 +338,7 @@ pub use types::{
 
 
 impl FindCausetQ {
-    pub fn simple(spec: FindSpec, where_clauses: Vec<WhereClause>) -> FindCausetQ {
+    pub fn simple(spec: FindSpec, where_gerunds: Vec<WhereGerund>) -> FindCausetQ {
         FindCausetQ {
             find_spec: spec,
             default_source: SrcVar::DefaultSrc,
@@ -346,7 +346,7 @@ impl FindCausetQ {
             in_vars: BTreeSet::default(),
             in_sources: BTreeSet::default(),
             limit: Limit::None,
-            where_clauses: where_clauses,
+            where_gerunds: where_gerunds,
             order: None,
         }
     }
@@ -390,7 +390,7 @@ impl FindCausetQ {
             in_vars,
             in_sources: parsed.in_sources,
             limit: parsed.limit,
-            where_clauses: parsed.where_clauses,
+            where_gerunds: parsed.where_gerunds,
             order: parsed.order,
         })
     }

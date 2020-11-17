@@ -218,11 +218,11 @@ trait MockKvService {
     cstream_call!(batch_violetabft, BatchVioletaBftMessage, Done);
     cstream_call!(snapshot, SnapshotSoliton, Done);
     unary_call!(
-        mvcc_get_by_spacelike_ts,
+        tail_pointer_get_by_spacelike_ts,
         MvccGetByStartTsRequest,
         MvccGetByStartTsResponse
     );
-    unary_call!(mvcc_get_by_key, MvccGetByKeyRequest, MvccGetByKeyResponse);
+    unary_call!(tail_pointer_get_by_key, MvccGetByKeyRequest, MvccGetByKeyResponse);
     unary_call!(split_brane, SplitBraneRequest, SplitBraneResponse);
     unary_call!(read_index, ReadIndexRequest, ReadIndexResponse);
     bstream_call!(batch_commands, BatchCommandsRequest, BatchCommandsResponse);
@@ -325,11 +325,11 @@ impl<T: MockKvService + Clone + Slightlike + 'static> EINSTEINDB for MockKv<T> {
     cstream_call_dispatch!(batch_violetabft, BatchVioletaBftMessage, Done);
     cstream_call_dispatch!(snapshot, SnapshotSoliton, Done);
     unary_call_dispatch!(
-        mvcc_get_by_spacelike_ts,
+        tail_pointer_get_by_spacelike_ts,
         MvccGetByStartTsRequest,
         MvccGetByStartTsResponse
     );
-    unary_call!(mvcc_get_by_key, MvccGetByKeyRequest, MvccGetByKeyResponse);
+    unary_call!(tail_pointer_get_by_key, MvccGetByKeyRequest, MvccGetByKeyResponse);
     unary_call_dispatch!(split_brane, SplitBraneRequest, SplitBraneResponse);
     unary_call_dispatch!(read_index, ReadIndexRequest, ReadIndexResponse);
     bstream_call_dispatch!(batch_commands, BatchCommandsRequest, BatchCommandsResponse);

@@ -42,13 +42,13 @@ make_static_metric! {
 
 lazy_static! {
     pub static ref MVCC_VERSIONS_HISTOGRAM: Histogram = register_histogram!(
-        "einsteindb_causetStorage_mvcc_versions",
+        "einsteindb_causetStorage_tail_pointer_versions",
         "Histogram of versions for each key",
         exponential_buckets(1.0, 2.0, 30).unwrap()
     )
     .unwrap();
     pub static ref GC_DELETE_VERSIONS_HISTOGRAM: Histogram = register_histogram!(
-        "einsteindb_causetStorage_mvcc_gc_delete_versions",
+        "einsteindb_causetStorage_tail_pointer_gc_delete_versions",
         "Histogram of versions deleted by gc for each key",
         exponential_buckets(1.0, 2.0, 30).unwrap()
     )
@@ -62,7 +62,7 @@ lazy_static! {
     pub static ref MVCC_CONFLICT_COUNTER: MvccConflictCounterVec = {
         register_static_int_counter_vec!(
             MvccConflictCounterVec,
-            "einsteindb_causetStorage_mvcc_conflict_counter",
+            "einsteindb_causetStorage_tail_pointer_conflict_counter",
             "Total number of conflict error",
             &["type"]
         )
@@ -71,7 +71,7 @@ lazy_static! {
     pub static ref MVCC_DUPLICATE_CMD_COUNTER_VEC: MvccDuplicateCmdCounterVec = {
         register_static_int_counter_vec!(
             MvccDuplicateCmdCounterVec,
-            "einsteindb_causetStorage_mvcc_duplicate_cmd_counter",
+            "einsteindb_causetStorage_tail_pointer_duplicate_cmd_counter",
             "Total number of duplicated commands",
             &["type"]
         )
@@ -80,7 +80,7 @@ lazy_static! {
     pub static ref MVCC_CHECK_TXN_STATUS_COUNTER_VEC: MvccCheckTxnStatusCounterVec = {
         register_static_int_counter_vec!(
             MvccCheckTxnStatusCounterVec,
-            "einsteindb_causetStorage_mvcc_check_txn_status",
+            "einsteindb_causetStorage_tail_pointer_check_txn_status",
             "Counter of different results of check_txn_status",
             &["type"]
         )

@@ -78,7 +78,7 @@ pub mod values;
 mod value_type_set;
 
 pub use value_type_set::{
-    ValueTypeSet,
+    MinkowskiSet,
 };
 
 #[macro_export]
@@ -137,7 +137,7 @@ pub enum AttributeBitFlags {
 
 pub mod attribute {
     use ::{
-        TypedValue,
+        MinkowskiType,
     };
 
     #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
@@ -148,23 +148,23 @@ pub mod attribute {
 
     impl Unique {
         // This is easier than rejigging DB_UNIQUE_VALUE to not be EDBN.
-        pub fn into_typed_value(self) -> TypedValue {
+        pub fn into_typed_value(self) -> MinkowskiType {
             match self {
-                Unique::Value => TypedValue::typed_ns_keyword("edb.unique", "value"),
-                Unique::CausetIdity => TypedValue::typed_ns_keyword("edb.unique", "causetIdity"),
+                Unique::Value => MinkowskiType::typed_ns_keyword("edb.unique", "value"),
+                Unique::CausetIdity => MinkowskiType::typed_ns_keyword("edb.unique", "causetIdity"),
             }
         }
     }
 }
 
-/// A EinsteinDB schema attribute has a value type and several other flags determining how assertions
+/// A EinsteinDB schemaReplicant attribute has a value type and several other flags determining how assertions
 /// with the attribute are interpreted.
 ///
 /// TODO: consider packing this into a bitfield or similar.
 #[derive(Clone,Debug,Eq,Hash,Ord,PartialOrd,PartialEq)]
 pub struct Attribute {
     /// The associated value type, i.e., `:edb/valueType`?
-    pub value_type: ValueType,
+    pub value_type: MinkowskiValueType,
 
     /// `true` if this attribute is multi-valued, i.e., it is `:edb/cardinality
     /// :edb.cardinality/many`.  `false` if this attribute is single-valued (the default), i.e., it
@@ -216,7 +216,7 @@ impl Attribute {
         if self.index {
             flags |= AttributeBitFlags::IndexAVET as u8;
         }
-        if self.value_type == ValueType::Ref {
+        if self.value_type == MinkowskiValueType::Ref {
             flags |= AttributeBitFlags::IndexVAET as u8;
         }
         if self.fulltext {
@@ -268,7 +268,7 @@ impl Default for Attribute {
     fn default() -> Attribute {
         Attribute {
             // There's no particular reason to favour one value type, so Ref it is.
-            value_type: ValueType::Ref,
+            value_type: MinkowskiValueType::Ref,
             fulltext: false,
             index: false,
             multival: false,
@@ -283,7 +283,7 @@ impl Default for Attribute {
 /// particular set.  EinsteinDB recognizes the following :edb/valueType values.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
 #[repr(u32)]
-pub enum ValueType {
+pub enum MinkowskiValueType {
     Ref,
     Boolean,
     Instant,
@@ -294,44 +294,44 @@ pub enum ValueType {
     Uuid,
 }
 
-impl ValueType {
-    pub fn all_enums() -> EnumSet<ValueType> {
+impl MinkowskiValueType {
+    pub fn all_enums() -> EnumSet<MinkowskiValueType> {
         // TODO: lazy_static.
         let mut s = EnumSet::new();
-        s.insert(ValueType::Ref);
-        s.insert(ValueType::Boolean);
-        s.insert(ValueType::Instant);
-        s.insert(ValueType::Long);
-        s.insert(ValueType::Double);
-        s.insert(ValueType::String);
-        s.insert(ValueType::Keyword);
-        s.insert(ValueType::Uuid);
+        s.insert(MinkowskiValueType::Ref);
+        s.insert(MinkowskiValueType::Boolean);
+        s.insert(MinkowskiValueType::Instant);
+        s.insert(MinkowskiValueType::Long);
+        s.insert(MinkowskiValueType::Double);
+        s.insert(MinkowskiValueType::String);
+        s.insert(MinkowskiValueType::Keyword);
+        s.insert(MinkowskiValueType::Uuid);
         s
     }
 }
 
 
-impl ::enum_set::CLike for ValueType {
+impl ::enum_set::CLike for MinkowskiValueType {
     fn to_u32(&self) -> u32 {
         *self as u32
     }
 
-    unsafe fn from_u32(v: u32) -> ValueType {
+    unsafe fn from_u32(v: u32) -> MinkowskiValueType {
         ::std::mem::transmute(v)
     }
 }
 
-impl ValueType {
+impl MinkowskiValueType {
     pub fn into_keyword(self) -> Keyword {
         Keyword::namespaced("edb.type", match self {
-            ValueType::Ref => "ref",
-            ValueType::Boolean => "boolean",
-            ValueType::Instant => "instant",
-            ValueType::Long => "long",
-            ValueType::Double => "double",
-            ValueType::String => "string",
-            ValueType::Keyword => "keyword",
-            ValueType::Uuid => "uuid",
+            MinkowskiValueType::Ref => "ref",
+            MinkowskiValueType::Boolean => "boolean",
+            MinkowskiValueType::Instant => "instant",
+            MinkowskiValueType::Long => "long",
+            MinkowskiValueType::Double => "double",
+            MinkowskiValueType::String => "string",
+            MinkowskiValueType::Keyword => "keyword",
+            MinkowskiValueType::Uuid => "uuid",
         })
     }
 
@@ -341,76 +341,76 @@ impl ValueType {
         }
 
         return match keyword.name() {
-            "ref" => Some(ValueType::Ref),
-            "boolean" => Some(ValueType::Boolean),
-            "instant" => Some(ValueType::Instant),
-            "long" => Some(ValueType::Long),
-            "double" => Some(ValueType::Double),
-            "string" => Some(ValueType::String),
-            "keyword" => Some(ValueType::Keyword),
-            "uuid" => Some(ValueType::Uuid),
+            "ref" => Some(MinkowskiValueType::Ref),
+            "boolean" => Some(MinkowskiValueType::Boolean),
+            "instant" => Some(MinkowskiValueType::Instant),
+            "long" => Some(MinkowskiValueType::Long),
+            "double" => Some(MinkowskiValueType::Double),
+            "string" => Some(MinkowskiValueType::String),
+            "keyword" => Some(MinkowskiValueType::Keyword),
+            "uuid" => Some(MinkowskiValueType::Uuid),
             _ => None,
         }
     }
 
-    pub fn into_typed_value(self) -> TypedValue {
-        TypedValue::typed_ns_keyword("edb.type", match self {
-            ValueType::Ref => "ref",
-            ValueType::Boolean => "boolean",
-            ValueType::Instant => "instant",
-            ValueType::Long => "long",
-            ValueType::Double => "double",
-            ValueType::String => "string",
-            ValueType::Keyword => "keyword",
-            ValueType::Uuid => "uuid",
+    pub fn into_typed_value(self) -> MinkowskiType {
+        MinkowskiType::typed_ns_keyword("edb.type", match self {
+            MinkowskiValueType::Ref => "ref",
+            MinkowskiValueType::Boolean => "boolean",
+            MinkowskiValueType::Instant => "instant",
+            MinkowskiValueType::Long => "long",
+            MinkowskiValueType::Double => "double",
+            MinkowskiValueType::String => "string",
+            MinkowskiValueType::Keyword => "keyword",
+            MinkowskiValueType::Uuid => "uuid",
         })
     }
 
     pub fn into_edbn_value(self) -> edbn::Value {
         match self {
-            ValueType::Ref => values::DB_TYPE_REF.clone(),
-            ValueType::Boolean => values::DB_TYPE_BOOLEAN.clone(),
-            ValueType::Instant => values::DB_TYPE_INSTANT.clone(),
-            ValueType::Long => values::DB_TYPE_LONG.clone(),
-            ValueType::Double => values::DB_TYPE_DOUBLE.clone(),
-            ValueType::String => values::DB_TYPE_STRING.clone(),
-            ValueType::Keyword => values::DB_TYPE_KEYWORD.clone(),
-            ValueType::Uuid => values::DB_TYPE_UUID.clone(),
+            MinkowskiValueType::Ref => values::DB_TYPE_REF.clone(),
+            MinkowskiValueType::Boolean => values::DB_TYPE_BOOLEAN.clone(),
+            MinkowskiValueType::Instant => values::DB_TYPE_INSTANT.clone(),
+            MinkowskiValueType::Long => values::DB_TYPE_LONG.clone(),
+            MinkowskiValueType::Double => values::DB_TYPE_DOUBLE.clone(),
+            MinkowskiValueType::String => values::DB_TYPE_STRING.clone(),
+            MinkowskiValueType::Keyword => values::DB_TYPE_KEYWORD.clone(),
+            MinkowskiValueType::Uuid => values::DB_TYPE_UUID.clone(),
         }
     }
 
     pub fn is_numeric(&self) -> bool {
         match self {
-            &ValueType::Long | &ValueType::Double => true,
+            &MinkowskiValueType::Long | &MinkowskiValueType::Double => true,
             _ => false
         }
     }
 }
 
-impl fmt::Display for ValueType {
+impl fmt::Display for MinkowskiValueType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", match *self {
-            ValueType::Ref =>     ":edb.type/ref",
-            ValueType::Boolean => ":edb.type/boolean",
-            ValueType::Instant => ":edb.type/instant",
-            ValueType::Long =>    ":edb.type/long",
-            ValueType::Double =>  ":edb.type/double",
-            ValueType::String =>  ":edb.type/string",
-            ValueType::Keyword => ":edb.type/keyword",
-            ValueType::Uuid =>    ":edb.type/uuid",
+            MinkowskiValueType::Ref =>     ":edb.type/ref",
+            MinkowskiValueType::Boolean => ":edb.type/boolean",
+            MinkowskiValueType::Instant => ":edb.type/instant",
+            MinkowskiValueType::Long =>    ":edb.type/long",
+            MinkowskiValueType::Double =>  ":edb.type/double",
+            MinkowskiValueType::String =>  ":edb.type/string",
+            MinkowskiValueType::Keyword => ":edb.type/keyword",
+            MinkowskiValueType::Uuid =>    ":edb.type/uuid",
         })
     }
 }
 
-/// `TypedValue` is the value type for programmatic use in transaction builders.
-impl TransactableValueMarker for TypedValue {}
+/// `MinkowskiType` is the value type for programmatic use in transaction builders.
+impl TransactableValueMarker for MinkowskiType {}
 
 /// Represents a value that can be stored in a EinsteinDB store.
 // TODO: expand to include :edb.type/uri. https://github.com/whtcorpsinc/einsteindb/issues/201
 // TODO: JSON data type? https://github.com/whtcorpsinc/einsteindb/issues/31
 // TODO: BigInt? Bytes?
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq, Serialize, Deserialize)]
-pub enum TypedValue {
+pub enum MinkowskiType {
     Ref(SolitonId),
     Boolean(bool),
     Long(i64),
@@ -422,128 +422,128 @@ pub enum TypedValue {
     Uuid(Uuid),                        // It's only 128 bits, so this should be acceptable to clone.
 }
 
-impl From<KnownSolitonId> for TypedValue {
-    fn from(k: KnownSolitonId) -> TypedValue {
-        TypedValue::Ref(k.0)
+impl From<KnownSolitonId> for MinkowskiType {
+    fn from(k: KnownSolitonId) -> MinkowskiType {
+        MinkowskiType::Ref(k.0)
     }
 }
 
-impl TypedValue {
+impl MinkowskiType {
     /// Returns true if the provided type is `Some` and matches this value's type, or if the
     /// provided type is `None`.
     #[inline]
-    pub fn is_congruent_with<T: Into<Option<ValueType>>>(&self, t: T) -> bool {
+    pub fn is_congruent_with<T: Into<Option<MinkowskiValueType>>>(&self, t: T) -> bool {
         t.into().map_or(true, |x| self.matches_type(x))
     }
 
     #[inline]
-    pub fn matches_type(&self, t: ValueType) -> bool {
+    pub fn matches_type(&self, t: MinkowskiValueType) -> bool {
         self.value_type() == t
     }
 
-    pub fn value_type(&self) -> ValueType {
+    pub fn value_type(&self) -> MinkowskiValueType {
         match self {
-            &TypedValue::Ref(_) => ValueType::Ref,
-            &TypedValue::Boolean(_) => ValueType::Boolean,
-            &TypedValue::Long(_) => ValueType::Long,
-            &TypedValue::Instant(_) => ValueType::Instant,
-            &TypedValue::Double(_) => ValueType::Double,
-            &TypedValue::String(_) => ValueType::String,
-            &TypedValue::Keyword(_) => ValueType::Keyword,
-            &TypedValue::Uuid(_) => ValueType::Uuid,
+            &MinkowskiType::Ref(_) => MinkowskiValueType::Ref,
+            &MinkowskiType::Boolean(_) => MinkowskiValueType::Boolean,
+            &MinkowskiType::Long(_) => MinkowskiValueType::Long,
+            &MinkowskiType::Instant(_) => MinkowskiValueType::Instant,
+            &MinkowskiType::Double(_) => MinkowskiValueType::Double,
+            &MinkowskiType::String(_) => MinkowskiValueType::String,
+            &MinkowskiType::Keyword(_) => MinkowskiValueType::Keyword,
+            &MinkowskiType::Uuid(_) => MinkowskiValueType::Uuid,
         }
     }
 
-    /// Construct a new `TypedValue::Keyword` instance by cloning the provided
+    /// Construct a new `MinkowskiType::Keyword` instance by cloning the provided
     /// values and wrapping them in a new `ValueRc`. This is expensive, so this might
     /// be best limited to tests.
-    pub fn typed_ns_keyword<S: AsRef<str>, T: AsRef<str>>(ns: S, name: T) -> TypedValue {
+    pub fn typed_ns_keyword<S: AsRef<str>, T: AsRef<str>>(ns: S, name: T) -> MinkowskiType {
         Keyword::namespaced(ns.as_ref(), name.as_ref()).into()
     }
 
-    /// Construct a new `TypedValue::String` instance by cloning the provided
+    /// Construct a new `MinkowskiType::String` instance by cloning the provided
     /// value and wrapping it in a new `ValueRc`. This is expensive, so this might
     /// be best limited to tests.
-    pub fn typed_string<S: AsRef<str>>(s: S) -> TypedValue {
+    pub fn typed_string<S: AsRef<str>>(s: S) -> MinkowskiType {
         s.as_ref().into()
     }
 
-    pub fn current_instant() -> TypedValue {
+    pub fn current_instant() -> MinkowskiType {
         Utc::now().into()
     }
 
-    /// Construct a new `TypedValue::Instant` instance from the provided
+    /// Construct a new `MinkowskiType::Instant` instance from the provided
     /// microsecond timestamp.
-    pub fn instant(micros: i64) -> TypedValue {
+    pub fn instant(micros: i64) -> MinkowskiType {
         DateTime::<Utc>::from_micros(micros).into()
     }
 
     pub fn into_known_entid(self) -> Option<KnownSolitonId> {
         match self {
-            TypedValue::Ref(v) => Some(KnownSolitonId(v)),
+            MinkowskiType::Ref(v) => Some(KnownSolitonId(v)),
             _ => None,
         }
     }
 
     pub fn into_entid(self) -> Option<SolitonId> {
         match self {
-            TypedValue::Ref(v) => Some(v),
+            MinkowskiType::Ref(v) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_kw(self) -> Option<ValueRc<Keyword>> {
         match self {
-            TypedValue::Keyword(v) => Some(v),
+            MinkowskiType::Keyword(v) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_boolean(self) -> Option<bool> {
         match self {
-            TypedValue::Boolean(v) => Some(v),
+            MinkowskiType::Boolean(v) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_long(self) -> Option<i64> {
         match self {
-            TypedValue::Long(v) => Some(v),
+            MinkowskiType::Long(v) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_double(self) -> Option<f64> {
         match self {
-            TypedValue::Double(v) => Some(v.into_inner()),
+            MinkowskiType::Double(v) => Some(v.into_inner()),
             _ => None,
         }
     }
 
     pub fn into_instant(self) -> Option<DateTime<Utc>> {
         match self {
-            TypedValue::Instant(v) => Some(v),
+            MinkowskiType::Instant(v) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_timestamp(self) -> Option<i64> {
         match self {
-            TypedValue::Instant(v) => Some(v.timestamp()),
+            MinkowskiType::Instant(v) => Some(v.timestamp()),
             _ => None,
         }
     }
 
     pub fn into_string(self) -> Option<ValueRc<String>> {
         match self {
-            TypedValue::String(v) => Some(v),
+            MinkowskiType::String(v) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_c_string(self) -> Option<*mut c_char> {
         match self {
-            TypedValue::String(v) => {
+            MinkowskiType::String(v) => {
                 // Get an independent copy of the string.
                 let s: String = v.cloned();
 
@@ -559,7 +559,7 @@ impl TypedValue {
 
     pub fn into_kw_c_string(self) -> Option<*mut c_char> {
         match self {
-            TypedValue::Keyword(v) => {
+            MinkowskiType::Keyword(v) => {
                 // Get an independent copy of the string.
                 let s: String = v.to_string();
 
@@ -575,7 +575,7 @@ impl TypedValue {
 
     pub fn into_uuid_c_string(self) -> Option<*mut c_char> {
         match self {
-            TypedValue::Uuid(v) => {
+            MinkowskiType::Uuid(v) => {
                 // Get an independent copy of the string.
                 let s: String = v.hyphenated().to_string();
 
@@ -591,14 +591,14 @@ impl TypedValue {
 
     pub fn into_uuid(self) -> Option<Uuid> {
         match self {
-            TypedValue::Uuid(v) => Some(v),
+            MinkowskiType::Uuid(v) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_uuid_string(self) -> Option<String> {
         match self {
-            TypedValue::Uuid(v) => Some(v.hyphenated().to_string()),
+            MinkowskiType::Uuid(v) => Some(v.hyphenated().to_string()),
             _ => None,
         }
     }
@@ -606,89 +606,89 @@ impl TypedValue {
 
 // We don't do From<i64> or From<SolitonId> 'cos it's ambiguous.
 
-impl From<bool> for TypedValue {
-    fn from(value: bool) -> TypedValue {
-        TypedValue::Boolean(value)
+impl From<bool> for MinkowskiType {
+    fn from(value: bool) -> MinkowskiType {
+        MinkowskiType::Boolean(value)
     }
 }
 
 /// Truncate the provided `DateTime` to microsecond precision, and return the corresponding
-/// `TypedValue::Instant`.
-impl From<DateTime<Utc>> for TypedValue {
-    fn from(value: DateTime<Utc>) -> TypedValue {
-        TypedValue::Instant(value.microsecond_precision())
+/// `MinkowskiType::Instant`.
+impl From<DateTime<Utc>> for MinkowskiType {
+    fn from(value: DateTime<Utc>) -> MinkowskiType {
+        MinkowskiType::Instant(value.microsecond_precision())
     }
 }
 
-impl From<Uuid> for TypedValue {
-    fn from(value: Uuid) -> TypedValue {
-        TypedValue::Uuid(value)
+impl From<Uuid> for MinkowskiType {
+    fn from(value: Uuid) -> MinkowskiType {
+        MinkowskiType::Uuid(value)
     }
 }
 
-impl<'a> From<&'a str> for TypedValue {
-    fn from(value: &'a str) -> TypedValue {
-        TypedValue::String(ValueRc::new(value.to_string()))
+impl<'a> From<&'a str> for MinkowskiType {
+    fn from(value: &'a str) -> MinkowskiType {
+        MinkowskiType::String(ValueRc::new(value.to_string()))
     }
 }
 
-impl From<Arc<String>> for TypedValue {
-    fn from(value: Arc<String>) -> TypedValue {
-        TypedValue::String(ValueRc::from_arc(value))
+impl From<Arc<String>> for MinkowskiType {
+    fn from(value: Arc<String>) -> MinkowskiType {
+        MinkowskiType::String(ValueRc::from_arc(value))
     }
 }
 
-impl From<Rc<String>> for TypedValue {
-    fn from(value: Rc<String>) -> TypedValue {
-        TypedValue::String(ValueRc::from_rc(value))
+impl From<Rc<String>> for MinkowskiType {
+    fn from(value: Rc<String>) -> MinkowskiType {
+        MinkowskiType::String(ValueRc::from_rc(value))
     }
 }
 
-impl From<Box<String>> for TypedValue {
-    fn from(value: Box<String>) -> TypedValue {
-        TypedValue::String(ValueRc::new(*value))
+impl From<Box<String>> for MinkowskiType {
+    fn from(value: Box<String>) -> MinkowskiType {
+        MinkowskiType::String(ValueRc::new(*value))
     }
 }
 
-impl From<String> for TypedValue {
-    fn from(value: String) -> TypedValue {
-        TypedValue::String(ValueRc::new(value))
+impl From<String> for MinkowskiType {
+    fn from(value: String) -> MinkowskiType {
+        MinkowskiType::String(ValueRc::new(value))
     }
 }
 
-impl From<Arc<Keyword>> for TypedValue {
-    fn from(value: Arc<Keyword>) -> TypedValue {
-        TypedValue::Keyword(ValueRc::from_arc(value))
+impl From<Arc<Keyword>> for MinkowskiType {
+    fn from(value: Arc<Keyword>) -> MinkowskiType {
+        MinkowskiType::Keyword(ValueRc::from_arc(value))
     }
 }
 
-impl From<Rc<Keyword>> for TypedValue {
-    fn from(value: Rc<Keyword>) -> TypedValue {
-        TypedValue::Keyword(ValueRc::from_rc(value))
+impl From<Rc<Keyword>> for MinkowskiType {
+    fn from(value: Rc<Keyword>) -> MinkowskiType {
+        MinkowskiType::Keyword(ValueRc::from_rc(value))
     }
 }
 
-impl From<Keyword> for TypedValue {
-    fn from(value: Keyword) -> TypedValue {
-        TypedValue::Keyword(ValueRc::new(value))
+impl From<Keyword> for MinkowskiType {
+    fn from(value: Keyword) -> MinkowskiType {
+        MinkowskiType::Keyword(ValueRc::new(value))
     }
 }
 
-impl From<u32> for TypedValue {
-    fn from(value: u32) -> TypedValue {
-        TypedValue::Long(value as i64)
+impl From<u32> for MinkowskiType {
+    fn from(value: u32) -> MinkowskiType {
+        MinkowskiType::Long(value as i64)
     }
 }
 
-impl From<i32> for TypedValue {
-    fn from(value: i32) -> TypedValue {
-        TypedValue::Long(value as i64)
+impl From<i32> for MinkowskiType {
+    fn from(value: i32) -> MinkowskiType {
+        MinkowskiType::Long(value as i64)
     }
 }
 
-impl From<f64> for TypedValue {
-    fn from(value: f64) -> TypedValue {
-        TypedValue::Double(OrderedFloat(value))
+impl From<f64> for MinkowskiType {
+    fn from(value: f64) -> MinkowskiType {
+        MinkowskiType::Double(OrderedFloat(value))
     }
 }
 
@@ -724,12 +724,12 @@ impl MicrosecondPrecision for DateTime<Utc> {
 /// Note that maps are not ordered, and so `Binding` is neither `Ord` nor `PartialOrd`.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Binding {
-    Scalar(TypedValue),
+    Scalar(MinkowskiType),
     Vec(ValueRc<Vec<Binding>>),
     Map(ValueRc<StructuredMap>),
 }
 
-impl<T> From<T> for Binding where T: Into<TypedValue> {
+impl<T> From<T> for Binding where T: Into<MinkowskiType> {
     fn from(value: T) -> Self {
         Binding::Scalar(value.into())
     }
@@ -748,7 +748,7 @@ impl From<Vec<Binding>> for Binding {
 }
 
 impl Binding {
-    pub fn into_scalar(self) -> Option<TypedValue> {
+    pub fn into_scalar(self) -> Option<MinkowskiType> {
         match self {
             Binding::Scalar(v) => Some(v),
             _ => None,
@@ -769,7 +769,7 @@ impl Binding {
         }
     }
 
-    pub fn as_scalar(&self) -> Option<&TypedValue> {
+    pub fn as_scalar(&self) -> Option<&MinkowskiType> {
         match self {
             &Binding::Scalar(ref v) => Some(v),
             _ => None,
@@ -839,16 +839,16 @@ impl Binding {
     /// Returns true if the provided type is `Some` and matches this value's type, or if the
     /// provided type is `None`.
     #[inline]
-    pub fn is_congruent_with<T: Into<Option<ValueType>>>(&self, t: T) -> bool {
+    pub fn is_congruent_with<T: Into<Option<MinkowskiValueType>>>(&self, t: T) -> bool {
         t.into().map_or(true, |x| self.matches_type(x))
     }
 
     #[inline]
-    pub fn matches_type(&self, t: ValueType) -> bool {
+    pub fn matches_type(&self, t: MinkowskiValueType) -> bool {
         self.value_type() == Some(t)
     }
 
-    pub fn value_type(&self) -> Option<ValueType> {
+    pub fn value_type(&self) -> Option<MinkowskiValueType> {
         match self {
             &Binding::Scalar(ref v) => Some(v.value_type()),
 
@@ -866,77 +866,77 @@ pub fn now() -> DateTime<Utc> {
 impl Binding {
     pub fn into_known_entid(self) -> Option<KnownSolitonId> {
         match self {
-            Binding::Scalar(TypedValue::Ref(v)) => Some(KnownSolitonId(v)),
+            Binding::Scalar(MinkowskiType::Ref(v)) => Some(KnownSolitonId(v)),
             _ => None,
         }
     }
 
     pub fn into_entid(self) -> Option<SolitonId> {
         match self {
-            Binding::Scalar(TypedValue::Ref(v)) => Some(v),
+            Binding::Scalar(MinkowskiType::Ref(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_kw(self) -> Option<ValueRc<Keyword>> {
         match self {
-            Binding::Scalar(TypedValue::Keyword(v)) => Some(v),
+            Binding::Scalar(MinkowskiType::Keyword(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_boolean(self) -> Option<bool> {
         match self {
-            Binding::Scalar(TypedValue::Boolean(v)) => Some(v),
+            Binding::Scalar(MinkowskiType::Boolean(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_long(self) -> Option<i64> {
         match self {
-            Binding::Scalar(TypedValue::Long(v)) => Some(v),
+            Binding::Scalar(MinkowskiType::Long(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_double(self) -> Option<f64> {
         match self {
-            Binding::Scalar(TypedValue::Double(v)) => Some(v.into_inner()),
+            Binding::Scalar(MinkowskiType::Double(v)) => Some(v.into_inner()),
             _ => None,
         }
     }
 
     pub fn into_instant(self) -> Option<DateTime<Utc>> {
         match self {
-            Binding::Scalar(TypedValue::Instant(v)) => Some(v),
+            Binding::Scalar(MinkowskiType::Instant(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_timestamp(self) -> Option<i64> {
         match self {
-            Binding::Scalar(TypedValue::Instant(v)) => Some(v.timestamp()),
+            Binding::Scalar(MinkowskiType::Instant(v)) => Some(v.timestamp()),
             _ => None,
         }
     }
 
     pub fn into_string(self) -> Option<ValueRc<String>> {
         match self {
-            Binding::Scalar(TypedValue::String(v)) => Some(v),
+            Binding::Scalar(MinkowskiType::String(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_uuid(self) -> Option<Uuid> {
         match self {
-            Binding::Scalar(TypedValue::Uuid(v)) => Some(v),
+            Binding::Scalar(MinkowskiType::Uuid(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_uuid_string(self) -> Option<String> {
         match self {
-            Binding::Scalar(TypedValue::Uuid(v)) => Some(v.hyphenated().to_string()),
+            Binding::Scalar(MinkowskiType::Uuid(v)) => Some(v.hyphenated().to_string()),
             _ => None,
         }
     }
@@ -964,56 +964,56 @@ impl Binding {
 
     pub fn as_entid(&self) -> Option<&SolitonId> {
         match self {
-            &Binding::Scalar(TypedValue::Ref(ref v)) => Some(v),
+            &Binding::Scalar(MinkowskiType::Ref(ref v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_kw(&self) -> Option<&ValueRc<Keyword>> {
         match self {
-            &Binding::Scalar(TypedValue::Keyword(ref v)) => Some(v),
+            &Binding::Scalar(MinkowskiType::Keyword(ref v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_boolean(&self) -> Option<&bool> {
         match self {
-            &Binding::Scalar(TypedValue::Boolean(ref v)) => Some(v),
+            &Binding::Scalar(MinkowskiType::Boolean(ref v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_long(&self) -> Option<&i64> {
         match self {
-            &Binding::Scalar(TypedValue::Long(ref v)) => Some(v),
+            &Binding::Scalar(MinkowskiType::Long(ref v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_double(&self) -> Option<&f64> {
         match self {
-            &Binding::Scalar(TypedValue::Double(ref v)) => Some(&v.0),
+            &Binding::Scalar(MinkowskiType::Double(ref v)) => Some(&v.0),
             _ => None,
         }
     }
 
     pub fn as_instant(&self) -> Option<&DateTime<Utc>> {
         match self {
-            &Binding::Scalar(TypedValue::Instant(ref v)) => Some(v),
+            &Binding::Scalar(MinkowskiType::Instant(ref v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_string(&self) -> Option<&ValueRc<String>> {
         match self {
-            &Binding::Scalar(TypedValue::String(ref v)) => Some(v),
+            &Binding::Scalar(MinkowskiType::String(ref v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_uuid(&self) -> Option<&Uuid> {
         match self {
-            &Binding::Scalar(TypedValue::Uuid(ref v)) => Some(v),
+            &Binding::Scalar(MinkowskiType::Uuid(ref v)) => Some(v),
             _ => None,
         }
     }
@@ -1021,11 +1021,11 @@ impl Binding {
 
 #[test]
 fn test_typed_value() {
-    assert!(TypedValue::Boolean(false).is_congruent_with(None));
-    assert!(TypedValue::Boolean(false).is_congruent_with(ValueType::Boolean));
-    assert!(!TypedValue::typed_string("foo").is_congruent_with(ValueType::Boolean));
-    assert!(TypedValue::typed_string("foo").is_congruent_with(ValueType::String));
-    assert!(TypedValue::typed_string("foo").is_congruent_with(None));
+    assert!(MinkowskiType::Boolean(false).is_congruent_with(None));
+    assert!(MinkowskiType::Boolean(false).is_congruent_with(MinkowskiValueType::Boolean));
+    assert!(!MinkowskiType::typed_string("foo").is_congruent_with(MinkowskiValueType::Boolean));
+    assert!(MinkowskiType::typed_string("foo").is_congruent_with(MinkowskiValueType::String));
+    assert!(MinkowskiType::typed_string("foo").is_congruent_with(None));
 }
 
 #[cfg(test)]
@@ -1036,7 +1036,7 @@ mod tests {
     fn test_attribute_flags() {
         let attr1 = Attribute {
             index: true,
-            value_type: ValueType::Ref,
+            value_type: MinkowskiValueType::Ref,
             fulltext: false,
             unique: None,
             multival: false,
@@ -1051,7 +1051,7 @@ mod tests {
 
         let attr2 = Attribute {
             index: false,
-            value_type: ValueType::Boolean,
+            value_type: MinkowskiValueType::Boolean,
             fulltext: true,
             unique: Some(attribute::Unique::Value),
             multival: false,
@@ -1066,7 +1066,7 @@ mod tests {
 
         let attr3 = Attribute {
             index: false,
-            value_type: ValueType::Boolean,
+            value_type: MinkowskiValueType::Boolean,
             fulltext: true,
             unique: Some(attribute::Unique::CausetIdity),
             multival: false,

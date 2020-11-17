@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use crate::causetStorage::kv::{Cursor, ScanMode, Snapshot, Statistics};
-use crate::causetStorage::mvcc::{default_not_found_error, Result};
+use crate::causetStorage::tail_pointer::{default_not_found_error, Result};
 use engine_lmdb::properties::MvccProperties;
 use engine_lmdb::LmdbTablePropertiesCollection;
 use engine_promises::{IterOptions, TableProperties, TablePropertiesCollection};
@@ -450,7 +450,7 @@ pub fn check_need_gc(
         return true;
     }
 
-    let props = match get_mvcc_properties(safe_point, write_properties) {
+    let props = match get_tail_pointer_properties(safe_point, write_properties) {
         Some(v) => v,
         None => return true,
     };
@@ -476,7 +476,7 @@ pub fn check_need_gc(
     props.max_row_versions > GC_MAX_ROW_VERSIONS_THRESHOLD
 }
 
-fn get_mvcc_properties(
+fn get_tail_pointer_properties(
     safe_point: TimeStamp,
     collection: &LmdbTablePropertiesCollection,
 ) -> Option<MvccProperties> {
@@ -486,15 +486,15 @@ fn get_mvcc_properties(
     // Aggregate MVCC properties.
     let mut props = MvccProperties::new();
     for (_, v) in collection.iter() {
-        let mvcc = match MvccProperties::decode(&v.user_collected_properties()) {
+        let tail_pointer = match MvccProperties::decode(&v.user_collected_properties()) {
             Ok(v) => v,
             Err(_) => return None,
         };
         // Filter out properties after safe_point.
-        if mvcc.min_ts > safe_point {
+        if tail_pointer.min_ts > safe_point {
             continue;
         }
-        props.add(&mvcc);
+        props.add(&tail_pointer);
     }
     Some(props)
 }
@@ -504,7 +504,7 @@ mod tests {
     use super::*;
 
     use crate::causetStorage::kv::Modify;
-    use crate::causetStorage::mvcc::{MvccReader, MvccTxn};
+    use crate::causetStorage::tail_pointer::{MvccReader, MvccTxn};
 
     use crate::causetStorage::txn::commit;
     use concurrency_manager::ConcurrencyManager;
@@ -752,7 +752,7 @@ mod tests {
         brane
     }
 
-    fn get_mvcc_properties_and_check_gc(
+    fn get_tail_pointer_properties_and_check_gc(
         db: Arc<DB>,
         brane: Brane,
         safe_point: impl Into<TimeStamp>,
@@ -768,13 +768,13 @@ mod tests {
             .unwrap();
         assert_eq!(check_need_gc(safe_point, 1.0, &collection), need_gc);
 
-        get_mvcc_properties(safe_point, &collection)
+        get_tail_pointer_properties(safe_point, &collection)
     }
 
     #[test]
     fn test_need_gc() {
         let path = tempfile::Builder::new()
-            .prefix("test_causetStorage_mvcc_reader")
+            .prefix("test_causetStorage_tail_pointer_reader")
             .temfidelir()
             .unwrap();
         let path = path.path().to_str().unwrap();
@@ -791,13 +791,13 @@ mod tests {
         engine.put(&[1], 1, 1);
         engine.put(&[4], 2, 2);
         assert!(
-            get_mvcc_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, true).is_none()
+            get_tail_pointer_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, true).is_none()
         );
         engine.flush();
         // After this flush, we have a SST file without properties.
         // Without properties, we always need GC.
         assert!(
-            get_mvcc_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, true).is_none()
+            get_tail_pointer_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, true).is_none()
         );
     }
 
@@ -924,14 +924,14 @@ mod tests {
         // file w/o properties from previous flush. We always need GC as
         // long as we can't get properties from any SST files.
         assert!(
-            get_mvcc_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, true).is_none()
+            get_tail_pointer_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, true).is_none()
         );
         engine.compact();
         // After this compact, the two SST files are compacted into a new
         // SST file with properties. Now all SST files have properties and
         // all tuplespaceInstanton have only one version, so we don't need gc.
         let props =
-            get_mvcc_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, false).unwrap();
+            get_tail_pointer_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, false).unwrap();
         assert_eq!(props.min_ts, 1.into());
         assert_eq!(props.max_ts, 4.into());
         assert_eq!(props.num_rows, 4);
@@ -948,7 +948,7 @@ mod tests {
         // After this flush, tuplespaceInstanton 5,6 in the new SST file have more than one
         // versions, so we need gc.
         let props =
-            get_mvcc_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, true).unwrap();
+            get_tail_pointer_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, true).unwrap();
         assert_eq!(props.min_ts, 1.into());
         assert_eq!(props.max_ts, 8.into());
         assert_eq!(props.num_rows, 6);
@@ -957,7 +957,7 @@ mod tests {
         assert_eq!(props.max_row_versions, 2);
         // But if the `safe_point` is older than all versions, we don't need gc too.
         let props =
-            get_mvcc_properties_and_check_gc(Arc::clone(&db), brane.clone(), 0, false).unwrap();
+            get_tail_pointer_properties_and_check_gc(Arc::clone(&db), brane.clone(), 0, false).unwrap();
         assert_eq!(props.min_ts, TimeStamp::max());
         assert_eq!(props.max_ts, TimeStamp::zero());
         assert_eq!(props.num_rows, 0);
@@ -972,7 +972,7 @@ mod tests {
         // After this compact, all versions of tuplespaceInstanton 5,6 are deleted,
         // no tuplespaceInstanton have more than one versions, so we don't need gc.
         let props =
-            get_mvcc_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, false).unwrap();
+            get_tail_pointer_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, false).unwrap();
         assert_eq!(props.min_ts, 1.into());
         assert_eq!(props.max_ts, 4.into());
         assert_eq!(props.num_rows, 4);
@@ -984,7 +984,7 @@ mod tests {
         engine.dagger(&[7], 9, 9);
         engine.flush();
         let props =
-            get_mvcc_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, true).unwrap();
+            get_tail_pointer_properties_and_check_gc(Arc::clone(&db), brane.clone(), 10, true).unwrap();
         assert_eq!(props.min_ts, 1.into());
         assert_eq!(props.max_ts, 9.into());
         assert_eq!(props.num_rows, 5);
@@ -996,7 +996,7 @@ mod tests {
     #[test]
     fn test_get_txn_commit_record() {
         let path = tempfile::Builder::new()
-            .prefix("_test_causetStorage_mvcc_reader_get_txn_commit_record")
+            .prefix("_test_causetStorage_tail_pointer_reader_get_txn_commit_record")
             .temfidelir()
             .unwrap();
         let path = path.path().to_str().unwrap();
@@ -1113,7 +1113,7 @@ mod tests {
     #[test]
     fn test_get_txn_commit_record_of_pessimistic_txn() {
         let path = tempfile::Builder::new()
-            .prefix("_test_causetStorage_mvcc_reader_get_txn_commit_record_of_pessimistic_txn")
+            .prefix("_test_causetStorage_tail_pointer_reader_get_txn_commit_record_of_pessimistic_txn")
             .temfidelir()
             .unwrap();
         let path = path.path().to_str().unwrap();
@@ -1154,7 +1154,7 @@ mod tests {
     #[test]
     fn test_seek_write() {
         let path = tempfile::Builder::new()
-            .prefix("_test_causetStorage_mvcc_reader_seek_write")
+            .prefix("_test_causetStorage_tail_pointer_reader_seek_write")
             .temfidelir()
             .unwrap();
         let path = path.path().to_str().unwrap();
@@ -1262,7 +1262,7 @@ mod tests {
     #[test]
     fn test_get_write() {
         let path = tempfile::Builder::new()
-            .prefix("_test_causetStorage_mvcc_reader_get_write")
+            .prefix("_test_causetStorage_tail_pointer_reader_get_write")
             .temfidelir()
             .unwrap();
         let path = path.path().to_str().unwrap();
@@ -1353,7 +1353,7 @@ mod tests {
     #[test]
     fn test_check_lock() {
         let path = tempfile::Builder::new()
-            .prefix("_test_causetStorage_mvcc_reader_check_lock")
+            .prefix("_test_causetStorage_tail_pointer_reader_check_lock")
             .temfidelir()
             .unwrap();
         let path = path.path().to_str().unwrap();
@@ -1408,7 +1408,7 @@ mod tests {
     #[test]
     fn test_scan_locks() {
         let path = tempfile::Builder::new()
-            .prefix("_test_causetStorage_mvcc_reader_scan_locks")
+            .prefix("_test_causetStorage_tail_pointer_reader_scan_locks")
             .temfidelir()
             .unwrap();
         let path = path.path().to_str().unwrap();
@@ -1526,7 +1526,7 @@ mod tests {
     #[test]
     fn test_get() {
         let path = tempfile::Builder::new()
-            .prefix("_test_causetStorage_mvcc_reader_get_write")
+            .prefix("_test_causetStorage_tail_pointer_reader_get_write")
             .temfidelir()
             .unwrap();
         let path = path.path().to_str().unwrap();

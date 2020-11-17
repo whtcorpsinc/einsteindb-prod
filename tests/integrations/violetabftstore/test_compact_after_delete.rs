@@ -8,11 +8,11 @@ use std::sync::mpsc;
 use std::sync::Mutex;
 use std::time::Duration;
 use test_violetabftstore::*;
-use einsteindb::causetStorage::mvcc::{TimeStamp, Write, WriteType};
+use einsteindb::causetStorage::tail_pointer::{TimeStamp, Write, WriteType};
 use einsteindb_util::config::*;
 use txn_types::Key;
 
-fn gen_mvcc_put_kv(
+fn gen_tail_pointer_put_kv(
     k: &[u8],
     v: &[u8],
     spacelike_ts: TimeStamp,
@@ -39,7 +39,7 @@ fn test_compact_after_delete<T: Simulator>(cluster: &mut Cluster<T>) {
 
     for i in 0..1000 {
         let (k, v) = (format!("k{}", i), format!("value{}", i));
-        let (k, v) = gen_mvcc_put_kv(k.as_bytes(), v.as_bytes(), 1.into(), 2.into());
+        let (k, v) = gen_tail_pointer_put_kv(k.as_bytes(), v.as_bytes(), 1.into(), 2.into());
         cluster.must_put_causet(CAUSET_WRITE, &k, &v);
     }
     for engines in cluster.engines.values() {

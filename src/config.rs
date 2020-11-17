@@ -560,7 +560,7 @@ impl WriteCfConfig {
         causet_opts.set_memtable_prefix_bloom_size_ratio(0.1);
         // Collects user defined properties.
         let f = Box::new(MvccPropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.mvcc-properties-collector", f);
+        causet_opts.add_table_properties_collector_factory("einsteindb.tail_pointer-properties-collector", f);
         let f = Box::new(ConePropertiesCollectorFactory {
             prop_size_index_distance: self.prop_size_index_distance,
             prop_tuplespaceInstanton_index_distance: self.prop_tuplespaceInstanton_index_distance,

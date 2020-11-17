@@ -49,7 +49,7 @@ impl LazyBatchPrimaryCausetVec {
         }
     }
 
-    /// Creates a new empty `LazyBatchPrimaryCausetVec` with the same number of PrimaryCausets and schema.
+    /// Creates a new empty `LazyBatchPrimaryCausetVec` with the same number of PrimaryCausets and schemaReplicant.
     #[inline]
     pub fn clone_empty(&self, capacity: usize) -> Self {
         Self {
@@ -128,7 +128,7 @@ impl LazyBatchPrimaryCausetVec {
         &self,
         logical_rows: &[usize],
         output_offsets: &[u32],
-        schema: &[FieldType],
+        schemaReplicant: &[FieldType],
         output: &mut Vec<u8>,
         ctx: &mut EvalContext,
     ) -> Result<()> {
@@ -136,7 +136,7 @@ impl LazyBatchPrimaryCausetVec {
             for offset in output_offsets {
                 let offset = *offset as usize;
                 let col = &self.PrimaryCausets[offset];
-                col.encode(*idx, &schema[offset], ctx, output)?;
+                col.encode(*idx, &schemaReplicant[offset], ctx, output)?;
             }
         }
         Ok(())
@@ -148,14 +148,14 @@ impl LazyBatchPrimaryCausetVec {
         &mut self,
         logical_rows: &[usize],
         output_offsets: &[u32],
-        schema: &[FieldType],
+        schemaReplicant: &[FieldType],
         output: &mut Vec<u8>,
         ctx: &mut EvalContext,
     ) -> Result<()> {
         for offset in output_offsets {
             let offset = *offset as usize;
             let col = &self.PrimaryCausets[offset];
-            col.encode_Soliton(ctx, logical_rows, &schema[offset], output)?;
+            col.encode_Soliton(ctx, logical_rows, &schemaReplicant[offset], output)?;
         }
         Ok(())
     }

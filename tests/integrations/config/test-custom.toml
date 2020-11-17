@@ -167,7 +167,7 @@ brane-max-size = "12MB"
 brane-split-size = "12MB"
 brane-max-tuplespaceInstanton = 100000
 brane-split-tuplespaceInstanton = 100000
-consistency-check-method = "mvcc"
+consistency-check-method = "tail_pointer"
 
 [lmdb]
 wal-recovery-mode = 1

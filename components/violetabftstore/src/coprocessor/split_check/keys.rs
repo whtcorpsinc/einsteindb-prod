@@ -425,7 +425,7 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(MvccPropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.mvcc-properties-collector", f);
+        causet_opts.add_table_properties_collector_factory("einsteindb.tail_pointer-properties-collector", f);
         let f = Box::new(ConePropertiesCollectorFactory::default());
         causet_opts.add_table_properties_collector_factory("einsteindb.cone-properties-collector", f);
         let causets_opts = LARGE_CAUSETS
@@ -454,11 +454,11 @@ mod tests {
             let default_v = vec![0; vlen as usize];
             db.put_causet(default_causet, &key, &default_v).unwrap();
         }
-        // only flush once, so that mvcc properties will insert one point only
+        // only flush once, so that tail_pointer properties will insert one point only
         db.flush_causet(write_causet, true).unwrap();
         db.flush_causet(default_causet, true).unwrap();
 
-        // cone properties get 0, mvcc properties get 3
+        // cone properties get 0, tail_pointer properties get 3
         let mut brane = Brane::default();
         brane.set_id(1);
         brane.set_spacelike_key(b"b1".to_vec());
@@ -467,7 +467,7 @@ mod tests {
         let cone_tuplespaceInstanton = get_brane_approximate_tuplespaceInstanton(db.c(), &brane, 0).unwrap();
         assert_eq!(cone_tuplespaceInstanton, 0);
 
-        // cone properties get 1, mvcc properties get 3
+        // cone properties get 1, tail_pointer properties get 3
         brane.set_spacelike_key(b"a".to_vec());
         brane.set_lightlike_key(b"c".to_vec());
         let cone_tuplespaceInstanton = get_brane_approximate_tuplespaceInstanton(db.c(), &brane, 0).unwrap();

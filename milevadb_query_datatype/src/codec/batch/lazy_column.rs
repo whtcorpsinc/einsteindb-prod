@@ -51,7 +51,7 @@ impl LazyBatchPrimaryCauset {
         LazyBatchPrimaryCauset::Decoded(VectorValue::with_capacity(capacity, eval_tp))
     }
 
-    /// Creates a new empty `LazyBatchPrimaryCauset` with the same schema.
+    /// Creates a new empty `LazyBatchPrimaryCauset` with the same schemaReplicant.
     #[inline]
     pub fn clone_empty(&self, capacity: usize) -> Self {
         match self {

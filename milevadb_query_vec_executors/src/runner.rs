@@ -123,10 +123,10 @@ impl BatchFreeDaemonsRunner<()> {
 }
 
 #[inline]
-fn is_arrow_encodable(schema: &[FieldType]) -> bool {
-    schema
+fn is_arrow_encodable(schemaReplicant: &[FieldType]) -> bool {
+    schemaReplicant
         .iter()
-        .all(|schema| EvalType::try_from(schema.as_accessor().tp()).is_ok())
+        .all(|schemaReplicant| EvalType::try_from(schemaReplicant.as_accessor().tp()).is_ok())
 }
 
 #[allow(clippy::explicit_counter_loop)]
@@ -330,7 +330,7 @@ impl<SS: 'static> BatchFreeDaemonsRunner<SS> {
             is_streaming, // For streaming request, executors will continue scan from cone lightlike where last scan is finished
         )?;
 
-        let encode_type = if !is_arrow_encodable(out_most_executor.schema()) {
+        let encode_type = if !is_arrow_encodable(out_most_executor.schemaReplicant()) {
             EncodeType::TypeDefault
         } else {
             req.get_encode_type()
@@ -338,12 +338,12 @@ impl<SS: 'static> BatchFreeDaemonsRunner<SS> {
 
         // Check output offsets
         let output_offsets = req.take_output_offsets();
-        let schema_len = out_most_executor.schema().len();
+        let schemaReplicant_len = out_most_executor.schemaReplicant().len();
         for offset in &output_offsets {
-            if (*offset as usize) >= schema_len {
+            if (*offset as usize) >= schemaReplicant_len {
                 return Err(other_err!(
-                    "Invalid output offset (schema has {} PrimaryCausets, access index {})",
-                    schema_len,
+                    "Invalid output offset (schemaReplicant has {} PrimaryCausets, access index {})",
+                    schemaReplicant_len,
                     offset
                 ));
             }
@@ -508,11 +508,11 @@ impl<SS: 'static> BatchFreeDaemonsRunner<SS> {
         if !result.logical_rows.is_empty() {
             assert_eq!(
                 result.physical_PrimaryCausets.PrimaryCausets_len(),
-                self.out_most_executor.schema().len()
+                self.out_most_executor.schemaReplicant().len()
             );
             {
                 let data = Soliton.mut_rows_data();
-                // Although `schema()` can be deeply nested, it is ok since we process data in
+                // Although `schemaReplicant()` can be deeply nested, it is ok since we process data in
                 // batch.
                 if is_streaming || self.encode_type == EncodeType::TypeDefault {
                     data.reserve(
@@ -523,7 +523,7 @@ impl<SS: 'static> BatchFreeDaemonsRunner<SS> {
                     result.physical_PrimaryCausets.encode(
                         &result.logical_rows,
                         &self.output_offsets,
-                        self.out_most_executor.schema(),
+                        self.out_most_executor.schemaReplicant(),
                         data,
                         ctx,
                     )?;
@@ -536,7 +536,7 @@ impl<SS: 'static> BatchFreeDaemonsRunner<SS> {
                     result.physical_PrimaryCausets.encode_Soliton(
                         &result.logical_rows,
                         &self.output_offsets,
-                        self.out_most_executor.schema(),
+                        self.out_most_executor.schemaReplicant(),
                         data,
                         ctx,
                     )?;

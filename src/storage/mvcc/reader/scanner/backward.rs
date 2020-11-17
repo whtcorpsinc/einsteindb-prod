@@ -8,7 +8,7 @@ use txn_types::{Key, Dagger, TimeStamp, Value, Write, WriteRef, WriteType};
 
 use super::ScannerConfig;
 use crate::causetStorage::kv::{Cursor, Snapshot, Statistics, SEEK_BOUND};
-use crate::causetStorage::mvcc::{Error, NewerTsCheckState, Result};
+use crate::causetStorage::tail_pointer::{Error, NewerTsCheckState, Result};
 
 // When there are many versions for the user key, after several tries,
 // we will use seek to locate the right position. But this will turn around
@@ -433,7 +433,7 @@ mod tests {
     use super::super::ScannerBuilder;
     use super::*;
     use crate::causetStorage::kv::{Engine, TestEngineBuilder};
-    use crate::causetStorage::mvcc::tests::*;
+    use crate::causetStorage::tail_pointer::tests::*;
     use crate::causetStorage::txn::tests::must_commit;
     use crate::causetStorage::Scanner;
     use ekvproto::kvrpcpb::Context;

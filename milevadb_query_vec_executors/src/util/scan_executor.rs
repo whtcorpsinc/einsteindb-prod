@@ -13,8 +13,8 @@ use milevadb_query_datatype::expr::EvalContext;
 
 /// Common interfaces for table scan and index scan implementations.
 pub trait ScanFreeDaemonImpl: Slightlike {
-    /// Gets the schema.
-    fn schema(&self) -> &[FieldType];
+    /// Gets the schemaReplicant.
+    fn schemaReplicant(&self) -> &[FieldType];
 
     /// Gets a mutable reference of the executor context.
     fn mut_context(&mut self) -> &mut EvalContext;
@@ -157,8 +157,8 @@ impl<S: CausetStorage, I: ScanFreeDaemonImpl> BatchFreeDaemon for ScanFreeDaemon
     type StorageStats = S::Statistics;
 
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        self.imp.schema()
+    fn schemaReplicant(&self) -> &[FieldType] {
+        self.imp.schemaReplicant()
     }
 
     #[inline]

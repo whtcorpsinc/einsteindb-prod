@@ -21,7 +21,7 @@ use violetabftstore::interlock::BraneInfoProvider;
 use violetabftstore::store::util::find_peer;
 use einsteindb::config::BackupConfig;
 use einsteindb::causetStorage::kv::{Engine, ScanMode, Snapshot};
-use einsteindb::causetStorage::mvcc::Error as MvccError;
+use einsteindb::causetStorage::tail_pointer::Error as MvccError;
 use einsteindb::causetStorage::txn::{
     EntryBatch, Error as TxnError, SnapshotStore, TxnEntryScanner, TxnEntryStore,
 };
@@ -903,7 +903,7 @@ pub mod tests {
     use violetabftstore::store::util::new_peer;
     use std::thread;
     use tempfile::TempDir;
-    use einsteindb::causetStorage::mvcc::tests::*;
+    use einsteindb::causetStorage::tail_pointer::tests::*;
     use einsteindb::causetStorage::txn::tests::must_commit;
     use einsteindb::causetStorage::{LmdbEngine, TestEngineBuilder};
     use einsteindb_util::time::Instant;

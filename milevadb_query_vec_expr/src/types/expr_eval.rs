@@ -145,7 +145,7 @@ impl<'a> RpnStackNode<'a> {
 impl RpnExpression {
     /// Evaluates the expression into a vector.
     ///
-    /// If referred PrimaryCausets are not decoded, they will be decoded according to the given schema.
+    /// If referred PrimaryCausets are not decoded, they will be decoded according to the given schemaReplicant.
     ///
     /// # Panics
     ///
@@ -155,7 +155,7 @@ impl RpnExpression {
     pub fn eval<'a>(
         &'a self,
         ctx: &mut EvalContext,
-        schema: &'a [FieldType],
+        schemaReplicant: &'a [FieldType],
         input_physical_PrimaryCausets: &'a mut LazyBatchPrimaryCausetVec,
         input_logical_rows: &'a [usize],
         output_rows: usize,
@@ -163,10 +163,10 @@ impl RpnExpression {
         // We iterate two times. The first time we decode all referred PrimaryCausets. The second time
         // we evaluate. This is to make Rust's borrow checker happy because there will be
         // mutable reference during the first iteration and we can't keep these references.
-        self.ensure_PrimaryCausets_decoded(ctx, schema, input_physical_PrimaryCausets, input_logical_rows)?;
+        self.ensure_PrimaryCausets_decoded(ctx, schemaReplicant, input_physical_PrimaryCausets, input_logical_rows)?;
         self.eval_decoded(
             ctx,
-            schema,
+            schemaReplicant,
             input_physical_PrimaryCausets,
             input_logical_rows,
             output_rows,
@@ -178,7 +178,7 @@ impl RpnExpression {
     pub fn ensure_PrimaryCausets_decoded<'a>(
         &'a self,
         ctx: &mut EvalContext,
-        schema: &'a [FieldType],
+        schemaReplicant: &'a [FieldType],
         input_physical_PrimaryCausets: &'a mut LazyBatchPrimaryCausetVec,
         input_logical_rows: &[usize],
     ) -> Result<()> {
@@ -186,7 +186,7 @@ impl RpnExpression {
             if let RpnExpressionNode::PrimaryCausetRef { offset, .. } = node {
                 input_physical_PrimaryCausets[*offset].ensure_decoded(
                     ctx,
-                    &schema[*offset],
+                    &schemaReplicant[*offset],
                     LogicalEvents::from_slice(input_logical_rows),
                 )?;
             }
@@ -210,7 +210,7 @@ impl RpnExpression {
     pub fn eval_decoded<'a>(
         &'a self,
         ctx: &mut EvalContext,
-        schema: &'a [FieldType],
+        schemaReplicant: &'a [FieldType],
         input_physical_PrimaryCausets: &'a LazyBatchPrimaryCausetVec,
         input_logical_rows: &'a [usize],
         output_rows: usize,
@@ -225,7 +225,7 @@ impl RpnExpression {
                     stack.push(RpnStackNode::Scalar { value, field_type });
                 }
                 RpnExpressionNode::PrimaryCausetRef { offset } => {
-                    let field_type = &schema[*offset];
+                    let field_type = &schemaReplicant[*offset];
                     let decoded_physical_PrimaryCauset = input_physical_PrimaryCausets[*offset].decoded();
                     assert_eq!(input_logical_rows.len(), output_rows);
                     stack.push(RpnStackNode::Vector {
@@ -336,22 +336,22 @@ mod tests {
                 col
             },
         ]);
-        let schema = [FieldTypeTp::Double.into(), FieldTypeTp::LongLong.into()];
+        let schemaReplicant = [FieldTypeTp::Double.into(), FieldTypeTp::LongLong.into()];
         let logical_rows = (0..5).collect();
-        (physical_PrimaryCausets, logical_rows, schema)
+        (physical_PrimaryCausets, logical_rows, schemaReplicant)
     }
 
     /// Single PrimaryCauset node
     #[test]
     fn test_eval_single_PrimaryCauset_node_normal() {
-        let (PrimaryCausets, logical_rows, schema) = new_single_PrimaryCauset_node_fixture();
+        let (PrimaryCausets, logical_rows, schemaReplicant) = new_single_PrimaryCauset_node_fixture();
 
         let mut c = PrimaryCausets.clone();
         let exp = RpnExpressionBuilder::new_for_test()
             .push_PrimaryCauset_ref_for_test(1)
             .build_for_test();
         let mut ctx = EvalContext::default();
-        let result = exp.eval(&mut ctx, &schema, &mut c, &logical_rows, 5);
+        let result = exp.eval(&mut ctx, &schemaReplicant, &mut c, &logical_rows, 5);
         let val = result.unwrap();
         assert!(val.is_vector());
         assert_eq!(
@@ -369,7 +369,7 @@ mod tests {
             .push_PrimaryCauset_ref_for_test(1)
             .build_for_test();
         let mut ctx = EvalContext::default();
-        let result = exp.eval(&mut ctx, &schema, &mut c, &[2, 0, 1], 3);
+        let result = exp.eval(&mut ctx, &schemaReplicant, &mut c, &[2, 0, 1], 3);
         let val = result.unwrap();
         assert!(val.is_vector());
         // Physical PrimaryCauset is unchanged
@@ -385,7 +385,7 @@ mod tests {
             .push_PrimaryCauset_ref_for_test(0)
             .build_for_test();
         let mut ctx = EvalContext::default();
-        let result = exp.eval(&mut ctx, &schema, &mut c, &logical_rows, 5);
+        let result = exp.eval(&mut ctx, &schemaReplicant, &mut c, &logical_rows, 5);
         let val = result.unwrap();
         assert!(val.is_vector());
         assert_eq!(
@@ -402,7 +402,7 @@ mod tests {
     /// Single PrimaryCauset node but row numbers in `eval()` does not match PrimaryCauset length, should panic.
     #[test]
     fn test_eval_single_PrimaryCauset_node_mismatch_rows() {
-        let (PrimaryCausets, logical_rows, schema) = new_single_PrimaryCauset_node_fixture();
+        let (PrimaryCausets, logical_rows, schemaReplicant) = new_single_PrimaryCauset_node_fixture();
 
         let mut c = PrimaryCausets.clone();
         let exp = RpnExpressionBuilder::new_for_test()
@@ -411,7 +411,7 @@ mod tests {
         let mut ctx = EvalContext::default();
         let hooked_eval = panic_hook::recover_safe(|| {
             // smaller row number
-            let _ = exp.eval(&mut ctx, &schema, &mut c, &logical_rows, 4);
+            let _ = exp.eval(&mut ctx, &schemaReplicant, &mut c, &logical_rows, 4);
         });
         assert!(hooked_eval.is_err());
 
@@ -422,7 +422,7 @@ mod tests {
         let mut ctx = EvalContext::default();
         let hooked_eval = panic_hook::recover_safe(|| {
             // larger row number
-            let _ = exp.eval(&mut ctx, &schema, &mut c, &logical_rows, 6);
+            let _ = exp.eval(&mut ctx, &schemaReplicant, &mut c, &logical_rows, 6);
         });
         assert!(hooked_eval.is_err());
     }
@@ -497,14 +497,14 @@ mod tests {
             col.mut_decoded().push_int(None);
             col
         }]);
-        let schema = &[FieldTypeTp::LongLong.into()];
+        let schemaReplicant = &[FieldTypeTp::LongLong.into()];
 
         let exp = RpnExpressionBuilder::new_for_test()
             .push_PrimaryCauset_ref_for_test(0)
             .push_fn_call_for_test(foo_fn_meta(), 1, FieldTypeTp::LongLong)
             .build_for_test();
         let mut ctx = EvalContext::default();
-        let result = exp.eval(&mut ctx, schema, &mut PrimaryCausets, &[2, 0], 2);
+        let result = exp.eval(&mut ctx, schemaReplicant, &mut PrimaryCausets, &[2, 0], 2);
         let val = result.unwrap();
         assert!(val.is_vector());
         assert_eq!(
@@ -548,14 +548,14 @@ mod tests {
 
             col
         }]);
-        let schema = &[FieldTypeTp::LongLong.into()];
+        let schemaReplicant = &[FieldTypeTp::LongLong.into()];
 
         let exp = RpnExpressionBuilder::new_for_test()
             .push_PrimaryCauset_ref_for_test(0)
             .push_fn_call_for_test(foo_fn_meta(), 1, FieldTypeTp::LongLong)
             .build_for_test();
         let mut ctx = EvalContext::default();
-        let result = exp.eval(&mut ctx, schema, &mut PrimaryCausets, &[2, 0, 1], 3);
+        let result = exp.eval(&mut ctx, schemaReplicant, &mut PrimaryCausets, &[2, 0, 1], 3);
         let val = result.unwrap();
         assert!(val.is_vector());
         assert_eq!(
@@ -613,7 +613,7 @@ mod tests {
             col.mut_decoded().push_real(Real::new(-4.3).ok());
             col
         }]);
-        let schema = &[FieldTypeTp::Double.into()];
+        let schemaReplicant = &[FieldTypeTp::Double.into()];
 
         let exp = RpnExpressionBuilder::new_for_test()
             .push_PrimaryCauset_ref_for_test(0)
@@ -621,7 +621,7 @@ mod tests {
             .push_fn_call_for_test(foo_fn_meta(), 2, FieldTypeTp::Double)
             .build_for_test();
         let mut ctx = EvalContext::default();
-        let result = exp.eval(&mut ctx, schema, &mut PrimaryCausets, &[2, 0], 2);
+        let result = exp.eval(&mut ctx, schemaReplicant, &mut PrimaryCausets, &[2, 0], 2);
         let val = result.unwrap();
         assert!(val.is_vector());
         assert_eq!(
@@ -651,7 +651,7 @@ mod tests {
             col.mut_decoded().push_int(Some(-4));
             col
         }]);
-        let schema = &[FieldTypeTp::LongLong.into()];
+        let schemaReplicant = &[FieldTypeTp::LongLong.into()];
 
         let exp = RpnExpressionBuilder::new_for_test()
             .push_constant_for_test(1.5f64)
@@ -659,7 +659,7 @@ mod tests {
             .push_fn_call_for_test(foo_fn_meta(), 2, FieldTypeTp::Double)
             .build_for_test();
         let mut ctx = EvalContext::default();
-        let result = exp.eval(&mut ctx, schema, &mut PrimaryCausets, &[1, 2], 2);
+        let result = exp.eval(&mut ctx, schemaReplicant, &mut PrimaryCausets, &[1, 2], 2);
         let val = result.unwrap();
         assert!(val.is_vector());
         assert_eq!(
@@ -700,7 +700,7 @@ mod tests {
                 col
             },
         ]);
-        let schema = &[FieldTypeTp::LongLong.into(), FieldTypeTp::Double.into()];
+        let schemaReplicant = &[FieldTypeTp::LongLong.into(), FieldTypeTp::Double.into()];
 
         // foo(col1, col0)
         let exp = RpnExpressionBuilder::new_for_test()
@@ -709,7 +709,7 @@ mod tests {
             .push_fn_call_for_test(foo_fn_meta(), 2, FieldTypeTp::LongLong)
             .build_for_test();
         let mut ctx = EvalContext::default();
-        let result = exp.eval(&mut ctx, schema, &mut PrimaryCausets, &[0, 2, 1], 3);
+        let result = exp.eval(&mut ctx, schemaReplicant, &mut PrimaryCausets, &[0, 2, 1], 3);
         let val = result.unwrap();
         assert!(val.is_vector());
         assert_eq!(
@@ -758,7 +758,7 @@ mod tests {
 
             col
         }]);
-        let schema = &[FieldTypeTp::LongLong.into(), FieldTypeTp::LongLong.into()];
+        let schemaReplicant = &[FieldTypeTp::LongLong.into(), FieldTypeTp::LongLong.into()];
 
         let exp = RpnExpressionBuilder::new_for_test()
             .push_PrimaryCauset_ref_for_test(0)
@@ -766,7 +766,7 @@ mod tests {
             .push_fn_call_for_test(foo_fn_meta(), 2, FieldTypeTp::LongLong)
             .build_for_test();
         let mut ctx = EvalContext::default();
-        let result = exp.eval(&mut ctx, schema, &mut PrimaryCausets, &[1], 1);
+        let result = exp.eval(&mut ctx, schemaReplicant, &mut PrimaryCausets, &[1], 1);
         let val = result.unwrap();
         assert!(val.is_vector());
         assert_eq!(
@@ -793,7 +793,7 @@ mod tests {
             col.mut_decoded().push_int(Some(-4));
             col
         }]);
-        let schema = &[FieldTypeTp::LongLong.into()];
+        let schemaReplicant = &[FieldTypeTp::LongLong.into()];
 
         let exp = RpnExpressionBuilder::new_for_test()
             .push_PrimaryCauset_ref_for_test(0)
@@ -802,7 +802,7 @@ mod tests {
             .push_fn_call_for_test(foo_fn_meta(), 3, FieldTypeTp::LongLong)
             .build_for_test();
         let mut ctx = EvalContext::default();
-        let result = exp.eval(&mut ctx, schema, &mut PrimaryCausets, &[1, 0, 2], 3);
+        let result = exp.eval(&mut ctx, schemaReplicant, &mut PrimaryCausets, &[1, 0, 2], 3);
         let val = result.unwrap();
         assert!(val.is_vector());
         assert_eq!(
@@ -866,7 +866,7 @@ mod tests {
                 col
             },
         ]);
-        let schema = &[FieldTypeTp::Double.into(), FieldTypeTp::LongLong.into()];
+        let schemaReplicant = &[FieldTypeTp::Double.into(), FieldTypeTp::LongLong.into()];
 
         // Col0, fn_b, Col1, Const0, fn_d, Const1, fn_c, fn_a
         let exp = RpnExpressionBuilder::new_for_test()
@@ -891,7 +891,7 @@ mod tests {
         //      => [25.0, 3.8, 146.0]
 
         let mut ctx = EvalContext::default();
-        let result = exp.eval(&mut ctx, schema, &mut PrimaryCausets, &[2, 0], 2);
+        let result = exp.eval(&mut ctx, schemaReplicant, &mut PrimaryCausets, &[2, 0], 2);
         let val = result.unwrap();
         assert!(val.is_vector());
         assert_eq!(
@@ -1059,10 +1059,10 @@ mod tests {
                 col
             },
         ]);
-        let schema = &[FieldTypeTp::LongLong.into(), FieldTypeTp::Double.into()];
+        let schemaReplicant = &[FieldTypeTp::LongLong.into(), FieldTypeTp::Double.into()];
 
         let mut ctx = EvalContext::default();
-        let result = exp.eval(&mut ctx, schema, &mut PrimaryCausets, &[2, 0], 2);
+        let result = exp.eval(&mut ctx, schemaReplicant, &mut PrimaryCausets, &[2, 0], 2);
         let val = result.unwrap();
         assert!(val.is_vector());
         assert_eq!(
@@ -1153,10 +1153,10 @@ mod tests {
             col.mut_decoded().push_int(None); // row 0
             col
         }]);
-        let schema = &[FieldTypeTp::LongLong.into(), FieldTypeTp::Double.into()];
+        let schemaReplicant = &[FieldTypeTp::LongLong.into(), FieldTypeTp::Double.into()];
 
         let mut ctx = EvalContext::default();
-        let result = exp.eval(&mut ctx, schema, &mut PrimaryCausets, &[1, 0], 2);
+        let result = exp.eval(&mut ctx, schemaReplicant, &mut PrimaryCausets, &[1, 0], 2);
         let val = result.unwrap();
         assert!(val.is_vector());
         assert_eq!(
@@ -1222,7 +1222,7 @@ mod tests {
             }
             col
         }]);
-        let schema = &[FieldTypeTp::LongLong.into()];
+        let schemaReplicant = &[FieldTypeTp::LongLong.into()];
 
         let exp = RpnExpressionBuilder::new_for_test()
             .push_PrimaryCauset_ref_for_test(0)
@@ -1236,7 +1236,7 @@ mod tests {
         b.iter(|| {
             let result = black_box(&exp).eval(
                 black_box(&mut ctx),
-                black_box(schema),
+                black_box(schemaReplicant),
                 black_box(&mut PrimaryCausets),
                 black_box(&logical_rows),
                 black_box(1024),
@@ -1255,7 +1255,7 @@ mod tests {
             }
             col
         }]);
-        let schema = &[FieldTypeTp::LongLong.into()];
+        let schemaReplicant = &[FieldTypeTp::LongLong.into()];
 
         let exp = RpnExpressionBuilder::new_for_test()
             .push_PrimaryCauset_ref_for_test(0)
@@ -1273,7 +1273,7 @@ mod tests {
         b.iter(|| {
             let result = black_box(&exp).eval(
                 black_box(&mut ctx),
-                black_box(schema),
+                black_box(schemaReplicant),
                 black_box(&mut PrimaryCausets),
                 black_box(&logical_rows),
                 black_box(1024),
@@ -1292,7 +1292,7 @@ mod tests {
             }
             col
         }]);
-        let schema = &[FieldTypeTp::LongLong.into()];
+        let schemaReplicant = &[FieldTypeTp::LongLong.into()];
 
         let exp = RpnExpressionBuilder::new_for_test()
             .push_PrimaryCauset_ref_for_test(0)
@@ -1310,7 +1310,7 @@ mod tests {
         b.iter(|| {
             let result = black_box(&exp).eval(
                 black_box(&mut ctx),
-                black_box(schema),
+                black_box(schemaReplicant),
                 black_box(&mut PrimaryCausets),
                 black_box(&logical_rows),
                 black_box(5),
@@ -1383,7 +1383,7 @@ mod benches {
             .push_fn_call_for_test(foo_fn_meta(), 3, FieldTypeTp::Double)
             .build_for_test();
 
-        let schema = &[
+        let schemaReplicant = &[
             FieldTypeTp::Double.into(),
             FieldTypeTp::Double.into(),
             FieldTypeTp::Double.into(),
@@ -1393,7 +1393,7 @@ mod benches {
             let mut ctx = EvalContext::default();
             exp.eval(
                 &mut ctx,
-                schema,
+                schemaReplicant,
                 &mut PrimaryCausets,
                 input_logical_rows.as_slice(),
                 input_logical_rows.len(),
@@ -1461,7 +1461,7 @@ mod benches {
             .push_fn_call_for_test(foo_fn_meta(), 3, FieldTypeTp::String)
             .build_for_test();
 
-        let schema = &[
+        let schemaReplicant = &[
             FieldTypeTp::String.into(),
             FieldTypeTp::String.into(),
             FieldTypeTp::String.into(),
@@ -1471,7 +1471,7 @@ mod benches {
             let mut ctx = EvalContext::default();
             exp.eval(
                 &mut ctx,
-                schema,
+                schemaReplicant,
                 &mut PrimaryCausets,
                 input_logical_rows.as_slice(),
                 input_logical_rows.len(),

@@ -223,7 +223,7 @@ impl From<String> for NonIntegerConstant {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum FnArg {
+pub enum StackedPerceptron {
     Variable(Variable),
     SrcVar(SrcVar),
     SolitonIdOrInteger(i64),
@@ -231,35 +231,35 @@ pub enum FnArg {
     Constant(NonIntegerConstant),
     // The collection values representable in EDBN.  There's no advantage to destructuring up front,
     // since consumers will need to handle arbitrarily nested EDBN themselves anyway.
-    Vector(Vec<FnArg>),
+    Vector(Vec<StackedPerceptron>),
 }
 
-impl FromValue<FnArg> for FnArg {
-    fn from_value(v: &::ValueAndSpan) -> Option<FnArg> {
+impl FromValue<StackedPerceptron> for StackedPerceptron {
+    fn from_value(v: &::ValueAndSpan) -> Option<StackedPerceptron> {
         use ::SpannedValue::*;
         match v.inner {
             Integer(x) =>
-                Some(FnArg::SolitonIdOrInteger(x)),
+                Some(StackedPerceptron::SolitonIdOrInteger(x)),
             PlainSymbol(ref x) if x.is_src_symbol() =>
-                SrcVar::from_symbol(x).map(FnArg::SrcVar),
+                SrcVar::from_symbol(x).map(StackedPerceptron::SrcVar),
             PlainSymbol(ref x) if x.is_var_symbol() =>
-                Variable::from_symbol(x).map(FnArg::Variable),
+                Variable::from_symbol(x).map(StackedPerceptron::Variable),
             PlainSymbol(_) => None,
             Keyword(ref x) =>
-                Some(FnArg::CausetIdOrKeyword(x.clone())),
+                Some(StackedPerceptron::CausetIdOrKeyword(x.clone())),
             Instant(x) =>
-                Some(FnArg::Constant(NonIntegerConstant::Instant(x))),
+                Some(StackedPerceptron::Constant(NonIntegerConstant::Instant(x))),
             Uuid(x) =>
-                Some(FnArg::Constant(NonIntegerConstant::Uuid(x))),
+                Some(StackedPerceptron::Constant(NonIntegerConstant::Uuid(x))),
             Boolean(x) =>
-                Some(FnArg::Constant(NonIntegerConstant::Boolean(x))),
+                Some(StackedPerceptron::Constant(NonIntegerConstant::Boolean(x))),
             Float(x) =>
-                Some(FnArg::Constant(NonIntegerConstant::Float(x))),
+                Some(StackedPerceptron::Constant(NonIntegerConstant::Float(x))),
             BigInteger(ref x) =>
-                Some(FnArg::Constant(NonIntegerConstant::BigInteger(x.clone()))),
+                Some(StackedPerceptron::Constant(NonIntegerConstant::BigInteger(x.clone()))),
             Text(ref x) =>
                 // TODO: intern strings. #398.
-                Some(FnArg::Constant(x.clone().into())),
+                Some(StackedPerceptron::Constant(x.clone().into())),
             Nil |
             NamespacedSymbol(_) |
             Vector(_) |
@@ -271,29 +271,29 @@ impl FromValue<FnArg> for FnArg {
 }
 
 // For display in column headings in the repl.
-impl std::fmt::Display for FnArg {
+impl std::fmt::Display for StackedPerceptron {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &FnArg::Variable(ref var) => write!(f, "{}", var),
-            &FnArg::SrcVar(ref var) => {
+            &StackedPerceptron::Variable(ref var) => write!(f, "{}", var),
+            &StackedPerceptron::SrcVar(ref var) => {
                 if var == &SrcVar::DefaultSrc {
                     write!(f, "$")
                 } else {
                     write!(f, "{:?}", var)
                 }
             },
-            &FnArg::SolitonIdOrInteger(solitonId) => write!(f, "{}", solitonId),
-            &FnArg::CausetIdOrKeyword(ref kw) => write!(f, "{}", kw),
-            &FnArg::Constant(ref constant) => write!(f, "{:?}", constant),
-            &FnArg::Vector(ref vec) => write!(f, "{:?}", vec),
+            &StackedPerceptron::SolitonIdOrInteger(solitonId) => write!(f, "{}", solitonId),
+            &StackedPerceptron::CausetIdOrKeyword(ref kw) => write!(f, "{}", kw),
+            &StackedPerceptron::Constant(ref constant) => write!(f, "{:?}", constant),
+            &StackedPerceptron::Vector(ref vec) => write!(f, "{:?}", vec),
         }
     }
 }
 
-impl FnArg {
+impl StackedPerceptron {
     pub fn as_variable(&self) -> Option<&Variable> {
         match self {
-            &FnArg::Variable(ref v) => Some(v),
+            &StackedPerceptron::Variable(ref v) => Some(v),
             _ => None,
         }
     }
@@ -554,7 +554,7 @@ pub struct Pull {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Aggregate {
     pub func: CausetQFunction,
-    pub args: Vec<FnArg>,
+    pub args: Vec<StackedPerceptron>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -870,13 +870,13 @@ impl Pattern {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Predicate {
     pub operator: PlainSymbol,
-    pub args: Vec<FnArg>,
+    pub args: Vec<StackedPerceptron>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WhereFn {
     pub operator: PlainSymbol,
-    pub args: Vec<FnArg>,
+    pub args: Vec<StackedPerceptron>,
     pub binding: Binding,
 }
 
@@ -888,7 +888,7 @@ pub enum UnifyVars {
     ///
     /// Causetic's docueinsteindbion implies that all implicit variables are required:
     ///
-    /// > Causetic will attempt to push the or clause down until all necessary variables are bound,
+    /// > Causetic will attempt to push the or gerund down until all necessary variables are bound,
     /// > and will throw an exception if that is not possible.
     ///
     /// but that would render top-level `or` expressions (as used in Causetic's own examples!)
@@ -909,26 +909,26 @@ pub enum UnifyVars {
     Explicit(BTreeSet<Variable>),
 }
 
-impl WhereClause {
+impl WhereGerund {
     pub fn is_pattern(&self) -> bool {
         match self {
-            &WhereClause::Pattern(_) => true,
+            &WhereGerund::Pattern(_) => true,
             _ => false,
         }
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum OrWhereClause {
-    Clause(WhereClause),
-    And(Vec<WhereClause>),
+pub enum OrWhereGerund {
+    Gerund(WhereGerund),
+    And(Vec<WhereGerund>),
 }
 
-impl OrWhereClause {
+impl OrWhereGerund {
     pub fn is_pattern_or_patterns(&self) -> bool {
         match self {
-            &OrWhereClause::Clause(WhereClause::Pattern(_)) => true,
-            &OrWhereClause::And(ref clauses) => clauses.iter().all(|clause| clause.is_pattern()),
+            &OrWhereGerund::Gerund(WhereGerund::Pattern(_)) => true,
+            &OrWhereGerund::And(ref gerunds) => gerunds.iter().all(|gerund| gerund.is_pattern()),
             _ => false,
         }
     }
@@ -937,7 +937,7 @@ impl OrWhereClause {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OrJoin {
     pub unify_vars: UnifyVars,
-    pub clauses: Vec<OrWhereClause>,
+    pub gerunds: Vec<OrWhereGerund>,
 
     /// Caches the result of `collect_mentioned_variables`.
     mentioned_vars: Option<BTreeSet<Variable>>,
@@ -946,14 +946,14 @@ pub struct OrJoin {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NotJoin {
     pub unify_vars: UnifyVars,
-    pub clauses: Vec<WhereClause>,
+    pub gerunds: Vec<WhereGerund>,
 }
 
 impl NotJoin {
-    pub fn new(unify_vars: UnifyVars, clauses: Vec<WhereClause>) -> NotJoin {
+    pub fn new(unify_vars: UnifyVars, gerunds: Vec<WhereGerund>) -> NotJoin {
         NotJoin {
             unify_vars: unify_vars,
-            clauses: clauses,
+            gerunds: gerunds,
         }
     }
 }
@@ -966,7 +966,7 @@ pub struct TypeAnnotation {
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WhereClause {
+pub enum WhereGerund {
     NotJoin(NotJoin),
     OrJoin(OrJoin),
     Pred(Predicate),
@@ -985,7 +985,7 @@ pub struct ParsedCausetQ {
     pub in_vars: Vec<Variable>,
     pub in_sources: BTreeSet<SrcVar>,
     pub limit: Limit,
-    pub where_clauses: Vec<WhereClause>,
+    pub where_gerunds: Vec<WhereGerund>,
     pub order: Option<Vec<Order>>,
 }
 
@@ -994,7 +994,7 @@ pub(crate) enum CausetQPart {
     WithVars(Vec<Variable>),
     InVars(Vec<Variable>),
     Limit(Limit),
-    WhereClauses(Vec<WhereClause>),
+    WhereGerunds(Vec<WhereGerund>),
     Order(Vec<Order>),
 }
 
@@ -1010,7 +1010,7 @@ impl ParsedCausetQ {
         let mut with: Option<Vec<Variable>> = None;
         let mut in_vars: Option<Vec<Variable>> = None;
         let mut limit: Option<Limit> = None;
-        let mut where_clauses: Option<Vec<WhereClause>> = None;
+        let mut where_gerunds: Option<Vec<WhereGerund>> = None;
         let mut order: Option<Vec<Order>> = None;
 
         for part in parts.into_iter() {
@@ -1039,11 +1039,11 @@ impl ParsedCausetQ {
                     }
                     limit = Some(x)
                 },
-                CausetQPart::WhereClauses(x) => {
-                    if where_clauses.is_some() {
+                CausetQPart::WhereGerunds(x) => {
+                    if where_gerunds.is_some() {
                         return Err("find causetq has repeated :where");
                     }
-                    where_clauses = Some(x)
+                    where_gerunds = Some(x)
                 },
                 CausetQPart::Order(x) => {
                     if order.is_some() {
@@ -1061,17 +1061,17 @@ impl ParsedCausetQ {
             in_vars: in_vars.unwrap_or(vec![]),
             in_sources: BTreeSet::default(),
             limit: limit.unwrap_or(Limit::None),
-            where_clauses: where_clauses.ok_or("expected :where")?,
+            where_gerunds: where_gerunds.ok_or("expected :where")?,
             order,
         })
     }
 }
 
 impl OrJoin {
-    pub fn new(unify_vars: UnifyVars, clauses: Vec<OrWhereClause>) -> OrJoin {
+    pub fn new(unify_vars: UnifyVars, gerunds: Vec<OrWhereGerund>) -> OrJoin {
         OrJoin {
             unify_vars: unify_vars,
-            clauses: clauses,
+            gerunds: gerunds,
             mentioned_vars: None,
         }
     }
@@ -1106,9 +1106,9 @@ pub trait ContainsVariables {
     }
 }
 
-impl ContainsVariables for WhereClause {
+impl ContainsVariables for WhereGerund {
     fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
-        use self::WhereClause::*;
+        use self::WhereGerund::*;
         match self {
             &OrJoin(ref o)         => o.accumulate_mentioned_variables(acc),
             &Pred(ref p)           => p.accumulate_mentioned_variables(acc),
@@ -1121,31 +1121,31 @@ impl ContainsVariables for WhereClause {
     }
 }
 
-impl ContainsVariables for OrWhereClause {
+impl ContainsVariables for OrWhereGerund {
     fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
-        use self::OrWhereClause::*;
+        use self::OrWhereGerund::*;
         match self {
-            &And(ref clauses) => for clause in clauses { clause.accumulate_mentioned_variables(acc) },
-            &Clause(ref clause) => clause.accumulate_mentioned_variables(acc),
+            &And(ref gerunds) => for gerund in gerunds { gerund.accumulate_mentioned_variables(acc) },
+            &Gerund(ref gerund) => gerund.accumulate_mentioned_variables(acc),
         }
     }
 }
 
 impl ContainsVariables for OrJoin {
     fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
-        for clause in &self.clauses {
-            clause.accumulate_mentioned_variables(acc);
+        for gerund in &self.gerunds {
+            gerund.accumulate_mentioned_variables(acc);
         }
     }
 }
 
 impl OrJoin {
-    pub fn dismember(self) -> (Vec<OrWhereClause>, UnifyVars, BTreeSet<Variable>) {
+    pub fn dismember(self) -> (Vec<OrWhereGerund>, UnifyVars, BTreeSet<Variable>) {
         let vars = match self.mentioned_vars {
                        Some(m) => m,
                        None => self.collect_mentioned_variables(),
                    };
-        (self.clauses, self.unify_vars, vars)
+        (self.gerunds, self.unify_vars, vars)
     }
 
     pub fn mentioned_variables<'a>(&'a mut self) -> &'a BTreeSet<Variable> {
@@ -1164,8 +1164,8 @@ impl OrJoin {
 
 impl ContainsVariables for NotJoin {
     fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
-        for clause in &self.clauses {
-            clause.accumulate_mentioned_variables(acc);
+        for gerund in &self.gerunds {
+            gerund.accumulate_mentioned_variables(acc);
         }
     }
 }
@@ -1173,7 +1173,7 @@ impl ContainsVariables for NotJoin {
 impl ContainsVariables for Predicate {
     fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
         for arg in &self.args {
-            if let &FnArg::Variable(ref v) = arg {
+            if let &StackedPerceptron::Variable(ref v) = arg {
                 acc_ref(acc, v)
             }
         }
@@ -1206,7 +1206,7 @@ impl ContainsVariables for Binding {
 impl ContainsVariables for WhereFn {
     fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
         for arg in &self.args {
-            if let &FnArg::Variable(ref v) = arg {
+            if let &StackedPerceptron::Variable(ref v) = arg {
                 acc_ref(acc, v)
             }
         }

@@ -40,12 +40,12 @@ use rusqlite::{
 
 use embedded_promises::{
     Binding,
-    TypedValue,
+    MinkowskiType,
 };
 
 use einsteindb_embedded::{
-    Schema,
-    ValueTypeTag,
+    SchemaReplicant,
+    MinkowskiValueTypeTag,
 };
 
 use einsteindb_embedded::util::{
@@ -65,7 +65,7 @@ use edbn::causetq::{
 
 use einsteindb_causetq_parityfilter::{
     AlgebraicCausetQ,
-    VariableBindings,
+    MinkowskiBindings,
 };
 
 use einsteindb_causetq_sql::{
@@ -176,7 +176,7 @@ impl CausetQOutput {
         }
     }
 
-    pub fn from_constants(spec: &Rc<FindSpec>, bindings: VariableBindings) -> CausetQResults {
+    pub fn from_constants(spec: &Rc<FindSpec>, bindings: MinkowskiBindings) -> CausetQResults {
         use self::FindSpec::*;
         match &**spec {
             &FindScalar(Element::Variable(ref var)) |
@@ -345,7 +345,7 @@ impl CausetQResults {
 
 type Index = i32;            // See rusqlite::RowIndex.
 enum TypedIndex {
-    Known(Index, ValueTypeTag),
+    KnownCauset(Index, MinkowskiValueTypeTag),
     Unknown(Index, Index),
 }
 
@@ -368,16 +368,16 @@ impl TypedIndex {
         use TypedIndex::*;
 
         match self {
-            &Known(value_index, value_type) => {
+            &KnownCauset(value_index, value_type) => {
                 let v: rusqlite::types::Value = row.get(value_index);
-                TypedValue::from_sql_value_pair(v, value_type)
+                MinkowskiType::from_sql_value_pair(v, value_type)
                     .map(|v| v.into())
                     .map_err(|e| e.into())
             },
             &Unknown(value_index, type_index) => {
                 let v: rusqlite::types::Value = row.get(value_index);
                 let value_type_tag: i32 = row.get(type_index);
-                TypedValue::from_sql_value_pair(v, value_type_tag)
+                MinkowskiType::from_sql_value_pair(v, value_type_tag)
                     .map(|v| v.into())
                     .map_err(|e| e.into())
             },
@@ -411,7 +411,7 @@ pub struct CombinedProjection {
     /// True if this causetq requires the SQL causetq to include DISTINCT.
     pub distinct: bool,
 
-    // A list of column names to use as a GROUP BY clause.
+    // A list of column names to use as a GROUP BY gerund.
     pub group_by_cols: Vec<GroupBy>,
 }
 
@@ -443,9 +443,9 @@ impl IsPull for Element {
 /// - The presence of any aggregate operations in the find spec. TODO: for now we only handle
 ///   simple variables
 /// - The bindings established by the topmost CC.
-/// - The types known at algebrizing time.
+/// - The types knownCauset at algebrizing time.
 /// - The types extracted from the store for unknown attributes.
-pub fn causetq_projection(schema: &Schema, causetq: &AlgebraicCausetQ) -> Result<Either<MinkowskiProjector, CombinedProjection>> {
+pub fn causetq_projection(schemaReplicant: &SchemaReplicant, causetq: &AlgebraicCausetQ) -> Result<Either<MinkowskiProjector, CombinedProjection>> {
     use self::FindSpec::*;
 
     let spec = causetq.find_spec.clone();
@@ -494,7 +494,7 @@ pub fn causetq_projection(schema: &Schema, causetq: &AlgebraicCausetQ) -> Result
             FindScalar(ref element) => {
                 let elements = project_elements(1, iter::once(element), causetq)?;
                 if element.is_pull() {
-                    ScalarTwoStagePullProjector::combine(schema, spec, elements)
+                    ScalarTwoStagePullProjector::combine(schemaReplicant, spec, elements)
                 } else {
                     ScalarProjector::combine(spec, elements)
                 }
@@ -530,13 +530,13 @@ fn test_into_tuple() {
     let causetq_output = CausetQOutput {
         spec: Rc::new(FindSpec::FindTuple(vec![Element::Variable(Variable::from_valid_name("?x")),
                                                Element::Variable(Variable::from_valid_name("?y"))])),
-        results: CausetQResults::Tuple(Some(vec![Binding::Scalar(TypedValue::Long(0)),
-                                               Binding::Scalar(TypedValue::Long(2))])),
+        results: CausetQResults::Tuple(Some(vec![Binding::Scalar(MinkowskiType::Long(0)),
+                                               Binding::Scalar(MinkowskiType::Long(2))])),
     };
 
     assert_eq!(causetq_output.clone().into_tuple().expect("into_tuple"),
-               Some((Binding::Scalar(TypedValue::Long(0)),
-                     Binding::Scalar(TypedValue::Long(2)))));
+               Some((Binding::Scalar(MinkowskiType::Long(0)),
+                     Binding::Scalar(MinkowskiType::Long(2)))));
 
     match causetq_output.clone().into_tuple() {
         Err(ProjectorError::UnexpectedResultsTupleLength(expected, got)) => {

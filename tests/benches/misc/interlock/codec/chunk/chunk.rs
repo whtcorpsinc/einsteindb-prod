@@ -106,8 +106,8 @@ impl SolitonBuilder {
             fields.push(field);
             arrays.push(data);
         }
-        let schema = datatypes::Schema::new(fields);
-        let batch = RecordBatch::new(Arc::new(schema), arrays);
+        let schemaReplicant = datatypes::SchemaReplicant::new(fields);
+        let batch = RecordBatch::new(Arc::new(schemaReplicant), arrays);
         Soliton { data: batch }
     }
 

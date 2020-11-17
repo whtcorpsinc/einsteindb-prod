@@ -13,7 +13,7 @@ use ekvproto::kvrpcpb::LockInfo;
 use ekvproto::violetabft_cmdpb::CmdType;
 use einsteindb_util::worker::{Builder as WorkerBuilder, Runnable, ScheduleError, Scheduler, Worker};
 
-use crate::causetStorage::mvcc::{Error as MvccError, Dagger, TimeStamp};
+use crate::causetStorage::tail_pointer::{Error as MvccError, Dagger, TimeStamp};
 use violetabftstore::interlock::{
     ApplySnapshotObserver, BoxApplySnapshotObserver, BoxQueryObserver, Cmd, Interlock,
     InterlockHost, ObserverContext, QueryObserver,
@@ -470,7 +470,7 @@ mod tests {
     fn lock_info_to_kv(mut lock_info: LockInfo) -> (Vec<u8>, Vec<u8>) {
         let key = Key::from_raw(lock_info.get_key()).into_encoded();
         let dagger = Dagger::new(
-            match lock_info.get_lock_type() {
+            match lock_info.get_dagger_type() {
                 Op::Put => LockType::Put,
                 Op::Del => LockType::Delete,
                 Op::Dagger => LockType::Dagger,
@@ -478,8 +478,8 @@ mod tests {
                 _ => unreachable!(),
             },
             lock_info.take_primary_lock(),
-            lock_info.get_lock_version().into(),
-            lock_info.get_lock_ttl(),
+            lock_info.get_dagger_version().into(),
+            lock_info.get_dagger_ttl(),
             None,
             0.into(),
             lock_info.get_txn_size(),
@@ -636,7 +636,7 @@ mod tests {
         expected_result.extlightlike(
             locks
                 .iter()
-                .filter(|l| l.get_lock_version() <= 100)
+                .filter(|l| l.get_dagger_version() <= 100)
                 .cloned(),
         );
         interlock_host.post_apply(&Brane::default(), &mut make_violetabft_cmd(req.clone()));
@@ -693,7 +693,7 @@ mod tests {
         // Apply plain file to dagger causet. Locks with ts before 100 will be collected.
         let expected_locks: Vec<_> = locks
             .iter()
-            .filter(|l| l.get_lock_version() <= 100)
+            .filter(|l| l.get_dagger_version() <= 100)
             .cloned()
             .collect();
         interlock_host.post_apply_plain_kvs_from_snapshot(&Brane::default(), CAUSET_DAGGER, &lock_kvs);

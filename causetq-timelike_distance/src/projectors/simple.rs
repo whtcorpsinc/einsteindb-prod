@@ -21,7 +21,7 @@ use ::{
     RelResult,
     Row,
     Rows,
-    Schema,
+    SchemaReplicant,
     TypedIndex,
     rusqlite,
 };
@@ -56,7 +56,7 @@ impl ScalarProjector {
 }
 
 impl Projector for ScalarProjector {
-    fn project<'stmt, 's>(&self, _schema: &Schema, _sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
         let results =
             if let Some(r) = rows.next() {
                 let row = r?;
@@ -112,7 +112,7 @@ impl TupleProjector {
 }
 
 impl Projector for TupleProjector {
-    fn project<'stmt, 's>(&self, _schema: &Schema, _sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
         let results =
             if let Some(r) = rows.next() {
                 let row = r?;
@@ -181,7 +181,7 @@ impl RelProjector {
 }
 
 impl Projector for RelProjector {
-    fn project<'stmt, 's>(&self, _schema: &Schema, _sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
         // Allocate space for five rows to start.
         // This is better than starting off by doubling the buffer a couple of times, and will
         // rapidly grow to support larger causetq results.
@@ -234,7 +234,7 @@ impl CollProjector {
 }
 
 impl Projector for CollProjector {
-    fn project<'stmt, 's>(&self, _schema: &Schema, _sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
         let mut out: Vec<_> = vec![];
         while let Some(r) = rows.next() {
             let row = r?;

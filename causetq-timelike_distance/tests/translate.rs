@@ -28,16 +28,16 @@ use edbn::causetq::{
 use embedded_promises::{
     Attribute,
     SolitonId,
-    TypedValue,
-    ValueType,
+    MinkowskiType,
+    MinkowskiValueType,
 };
 
 use einsteindb_embedded::{
-    Schema,
+    SchemaReplicant,
 };
 
 use einsteindb_causetq_parityfilter::{
-    Known,
+    KnownCauset,
     CausetQInputs,
     algebrize,
     algebrize_with_inputs,
@@ -64,13 +64,13 @@ macro_rules! var {
     };
 }
 
-fn associate_causetId(schema: &mut Schema, i: Keyword, e: SolitonId) {
-    schema.entid_map.insert(e, i.clone());
-    schema.causetId_map.insert(i.clone(), e);
+fn associate_causetId(schemaReplicant: &mut SchemaReplicant, i: Keyword, e: SolitonId) {
+    schemaReplicant.entid_map.insert(e, i.clone());
+    schemaReplicant.causetId_map.insert(i.clone(), e);
 }
 
-fn add_attribute(schema: &mut Schema, e: SolitonId, a: Attribute) {
-    schema.attribute_map.insert(e, a);
+fn add_attribute(schemaReplicant: &mut SchemaReplicant, e: SolitonId, a: Attribute) {
+    schemaReplicant.attribute_map.insert(e, a);
 }
 
 fn causetq_to_sql(causetq: GreedoidSelect) -> SQLCausetQ {
@@ -99,49 +99,49 @@ fn assert_causetq_is_empty(causetq: GreedoidSelect, expected_spec: FindSpec) {
     assert!(constant.results.is_empty());
 }
 
-fn inner_translate_with_inputs(schema: &Schema, causetq: &'static str, inputs: CausetQInputs) -> GreedoidSelect {
-    let known = Known::for_schema(schema);
+fn causet_set_translate_with_inputs(schemaReplicant: &SchemaReplicant, causetq: &'static str, inputs: CausetQInputs) -> GreedoidSelect {
+    let knownCauset = KnownCauset::for_schemaReplicant(schemaReplicant);
     let parsed = parse_find_string(causetq).expect("parse to succeed");
-    let algebrized = algebrize_with_inputs(known, parsed, 0, inputs).expect("algebrize to succeed");
-    causetq_to_select(schema, algebrized).expect("translate to succeed")
+    let algebrized = algebrize_with_inputs(knownCauset, parsed, 0, inputs).expect("algebrize to succeed");
+    causetq_to_select(schemaReplicant, algebrized).expect("translate to succeed")
 }
 
-fn translate_with_inputs(schema: &Schema, causetq: &'static str, inputs: CausetQInputs) -> SQLCausetQ {
-    causetq_to_sql(inner_translate_with_inputs(schema, causetq, inputs))
+fn translate_with_inputs(schemaReplicant: &SchemaReplicant, causetq: &'static str, inputs: CausetQInputs) -> SQLCausetQ {
+    causetq_to_sql(causet_set_translate_with_inputs(schemaReplicant, causetq, inputs))
 }
 
-fn translate(schema: &Schema, causetq: &'static str) -> SQLCausetQ {
-    translate_with_inputs(schema, causetq, CausetQInputs::default())
+fn translate(schemaReplicant: &SchemaReplicant, causetq: &'static str) -> SQLCausetQ {
+    translate_with_inputs(schemaReplicant, causetq, CausetQInputs::default())
 }
 
-fn translate_with_inputs_to_constant(schema: &Schema, causetq: &'static str, inputs: CausetQInputs) -> MinkowskiProjector {
-    causetq_to_constant(inner_translate_with_inputs(schema, causetq, inputs))
+fn translate_with_inputs_to_constant(schemaReplicant: &SchemaReplicant, causetq: &'static str, inputs: CausetQInputs) -> MinkowskiProjector {
+    causetq_to_constant(causet_set_translate_with_inputs(schemaReplicant, causetq, inputs))
 }
 
-fn translate_to_constant(schema: &Schema, causetq: &'static str) -> MinkowskiProjector {
-    translate_with_inputs_to_constant(schema, causetq, CausetQInputs::default())
+fn translate_to_constant(schemaReplicant: &SchemaReplicant, causetq: &'static str) -> MinkowskiProjector {
+    translate_with_inputs_to_constant(schemaReplicant, causetq, CausetQInputs::default())
 }
 
 
-fn prepopulated_typed_schema(foo_type: ValueType) -> Schema {
-    let mut schema = Schema::default();
-    associate_causetId(&mut schema, Keyword::namespaced("foo", "bar"), 99);
-    add_attribute(&mut schema, 99, Attribute {
+fn prepopulated_typed_schemaReplicant(foo_type: MinkowskiValueType) -> SchemaReplicant {
+    let mut schemaReplicant = SchemaReplicant::default();
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "bar"), 99);
+    add_attribute(&mut schemaReplicant, 99, Attribute {
         value_type: foo_type,
         ..Default::default()
     });
-    associate_causetId(&mut schema, Keyword::namespaced("foo", "fts"), 100);
-    add_attribute(&mut schema, 100, Attribute {
-        value_type: ValueType::String,
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "fts"), 100);
+    add_attribute(&mut schemaReplicant, 100, Attribute {
+        value_type: MinkowskiValueType::String,
         index: true,
         fulltext: true,
         ..Default::default()
     });
-    schema
+    schemaReplicant
 }
 
-fn prepopulated_schema() -> Schema {
-    prepopulated_typed_schema(ValueType::String)
+fn prepopulated_schemaReplicant() -> SchemaReplicant {
+    prepopulated_typed_schemaReplicant(MinkowskiValueType::String)
 }
 
 fn make_arg(name: &'static str, value: &'static str) -> (String, Rc<einsteindb_sql::Value>) {
@@ -150,62 +150,62 @@ fn make_arg(name: &'static str, value: &'static str) -> (String, Rc<einsteindb_s
 
 #[test]
 fn test_scalar() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     let causetq = r#"[:find ?x . :where [?x :foo/bar "yyy"]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 1");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
 #[test]
 fn test_tuple() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     let causetq = r#"[:find [?x] :where [?x :foo/bar "yyy"]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 1");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
 #[test]
 fn test_coll() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     let causetq = r#"[:find [?x ...] :where [?x :foo/bar "yyy"]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
 #[test]
 fn test_rel() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     let causetq = r#"[:find ?x :where [?x :foo/bar "yyy"]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
 #[test]
 fn test_limit() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     let causetq = r#"[:find ?x :where [?x :foo/bar "yyy"] :limit 5]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 5");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
 #[test]
 fn test_unbound_variable_limit() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     // We don't know the value of the limit var, so we produce an escaped SQL variable to handle
     // later input.
     let causetq = r#"[:find ?x :in ?limit-is-9-great :where [?x :foo/bar "yyy"] :limit ?limit-is-9-great]"#;
-    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, CausetQInputs::default());
+    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schemaReplicant, causetq, CausetQInputs::default());
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` \
                      FROM `causets` AS `Causets00` \
                      WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 \
@@ -215,43 +215,43 @@ fn test_unbound_variable_limit() {
 
 #[test]
 fn test_bound_variable_limit() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     // We know the value of `?limit` at algebrizing time, so we substitute directly.
     let causetq = r#"[:find ?x :in ?limit :where [?x :foo/bar "yyy"] :limit ?limit]"#;
-    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?limit"), TypedValue::Long(92))]);
-    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, inputs);
+    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?limit"), MinkowskiType::Long(92))]);
+    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schemaReplicant, causetq, inputs);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 92");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
 #[test]
 fn test_bound_variable_limit_affects_distinct() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     // We know the value of `?limit` at algebrizing time, so we substitute directly.
     // As it's `1`, we know we don't need `DISTINCT`!
     let causetq = r#"[:find ?x :in ?limit :where [?x :foo/bar "yyy"] :limit ?limit]"#;
-    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?limit"), TypedValue::Long(1))]);
-    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, inputs);
+    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?limit"), MinkowskiType::Long(1))]);
+    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schemaReplicant, causetq, inputs);
     assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 1");
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 }
 
 #[test]
 fn test_bound_variable_limit_affects_types() {
-    let schema = prepopulated_schema();
-    let known = Known::for_schema(&schema);
+    let schemaReplicant = prepopulated_schemaReplicant();
+    let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
 
     let causetq = r#"[:find ?x ?limit :in ?limit :where [?x _ ?limit] :limit ?limit]"#;
     let parsed = parse_find_string(causetq).expect("parse failed");
-    let algebrized = algebrize(known, parsed).expect("algebrize failed");
+    let algebrized = algebrize(knownCauset, parsed).expect("algebrize failed");
 
-    // The type is known.
-    assert_eq!(Some(ValueType::Long),
+    // The type is knownCauset.
+    assert_eq!(Some(MinkowskiValueType::Long),
                algebrized.cc.known_type(&Variable::from_valid_name("?limit")));
 
-    let select = causetq_to_select(&schema, algebrized).expect("causetq to translate");
+    let select = causetq_to_select(&schemaReplicant, algebrized).expect("causetq to translate");
     let SQLCausetQ { allegrosql, args } = causetq_to_sql(select);
 
     // TODO: this causetq isn't actually correct -- we don't yet algebrize for variables that are
@@ -263,10 +263,10 @@ fn test_bound_variable_limit_affects_types() {
 
 #[test]
 fn test_unknown_attribute_keyword_value() {
-    let schema = Schema::default();
+    let schemaReplicant = SchemaReplicant::default();
 
     let causetq = r#"[:find ?x :where [?x _ :ab/yyy]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
 
     // Only match keywords, not strings: tag = 13.
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.v = $v0 AND (`Causets00`.value_type_tag = 13)");
@@ -275,10 +275,10 @@ fn test_unknown_attribute_keyword_value() {
 
 #[test]
 fn test_unknown_attribute_string_value() {
-    let schema = Schema::default();
+    let schemaReplicant = SchemaReplicant::default();
 
     let causetq = r#"[:find ?x :where [?x _ "horses"]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
 
     // We expect all_Causets because we're causetqing for a string. Magic, that.
     // We don't want keywords etc., so tag = 10.
@@ -288,10 +288,10 @@ fn test_unknown_attribute_string_value() {
 
 #[test]
 fn test_unknown_attribute_double_value() {
-    let schema = Schema::default();
+    let schemaReplicant = SchemaReplicant::default();
 
     let causetq = r#"[:find ?x :where [?x _ 9.95]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
 
     // In general, doubles _could_ be 1.0, which might match a boolean or a ref. Set tag = 5 to
     // make sure we only match numbers.
@@ -301,7 +301,7 @@ fn test_unknown_attribute_double_value() {
 
 #[test]
 fn test_unknown_attribute_integer_value() {
-    let schema = Schema::default();
+    let schemaReplicant = SchemaReplicant::default();
 
     let negative = r#"[:find ?x :where [?x _ -1]]"#;
     let zero = r#"[:find ?x :where [?x _ 0]]"#;
@@ -309,49 +309,49 @@ fn test_unknown_attribute_integer_value() {
     let two = r#"[:find ?x :where [?x _ 2]]"#;
 
     // Can't match boolean; no need to filter it out.
-    let SQLCausetQ { allegrosql, args } = translate(&schema, negative);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, negative);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.v = -1");
     assert_eq!(args, vec![]);
 
     // Excludes booleans.
-    let SQLCausetQ { allegrosql, args } = translate(&schema, zero);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, zero);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE (`Causets00`.v = 0 AND `Causets00`.value_type_tag <> 1)");
     assert_eq!(args, vec![]);
 
     // Excludes booleans.
-    let SQLCausetQ { allegrosql, args } = translate(&schema, one);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, one);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE (`Causets00`.v = 1 AND `Causets00`.value_type_tag <> 1)");
     assert_eq!(args, vec![]);
 
     // Can't match boolean; no need to filter it out.
-    let SQLCausetQ { allegrosql, args } = translate(&schema, two);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, two);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.v = 2");
     assert_eq!(args, vec![]);
 }
 
 #[test]
 fn test_unknown_causetId() {
-    let schema = Schema::default();
-    let known = Known::for_schema(&schema);
+    let schemaReplicant = SchemaReplicant::default();
+    let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
 
     let impossible = r#"[:find ?x :where [?x :edb/causetid :no/exist]]"#;
     let parsed = parse_find_string(impossible).expect("parse failed");
-    let algebrized = algebrize(known, parsed).expect("algebrize failed");
+    let algebrized = algebrize(knownCauset, parsed).expect("algebrize failed");
 
     // This causetq cannot return results: the causetid doesn't resolve for a ref-typed attribute.
     assert!(algebrized.is_known_empty());
 
     // If you insist…
-    let select = causetq_to_select(&schema, algebrized).expect("causetq to translate");
+    let select = causetq_to_select(&schemaReplicant, algebrized).expect("causetq to translate");
     assert_causetq_is_empty(select, FindSpec::FindRel(vec![var!(?x).into()]));
 }
 
 #[test]
 fn test_type_required_long() {
-    let schema = Schema::default();
+    let schemaReplicant = SchemaReplicant::default();
 
     let causetq = r#"[:find ?x :where [?x _ ?e] [(type ?e :edb.type/long)]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
 
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` \
                      FROM `causets` AS `Causets00` \
@@ -363,10 +363,10 @@ fn test_type_required_long() {
 
 #[test]
 fn test_type_required_double() {
-    let schema = Schema::default();
+    let schemaReplicant = SchemaReplicant::default();
 
     let causetq = r#"[:find ?x :where [?x _ ?e] [(type ?e :edb.type/double)]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
 
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` \
                      FROM `causets` AS `Causets00` \
@@ -378,10 +378,10 @@ fn test_type_required_double() {
 
 #[test]
 fn test_type_required_boolean() {
-    let schema = Schema::default();
+    let schemaReplicant = SchemaReplicant::default();
 
     let causetq = r#"[:find ?x :where [?x _ ?e] [(type ?e :edb.type/boolean)]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
 
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` \
                      FROM `causets` AS `Causets00` \
@@ -392,10 +392,10 @@ fn test_type_required_boolean() {
 
 #[test]
 fn test_type_required_string() {
-    let schema = Schema::default();
+    let schemaReplicant = SchemaReplicant::default();
 
     let causetq = r#"[:find ?x :where [?x _ ?e] [(type ?e :edb.type/string)]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
 
     // Note: strings should use `all_Causets` and not `causets`.
     assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets00`.e AS `?x` \
@@ -406,10 +406,10 @@ fn test_type_required_string() {
 
 #[test]
 fn test_numeric_less_than_unknown_attribute() {
-    let schema = Schema::default();
+    let schemaReplicant = SchemaReplicant::default();
 
     let causetq = r#"[:find ?x :where [?x _ ?y] [(< ?y 10)]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
 
     // Although we infer numericness from numeric predicates, we've already assigned a table to the
     // first pattern, and so this is _still_ `all_Causets`.
@@ -419,31 +419,31 @@ fn test_numeric_less_than_unknown_attribute() {
 
 #[test]
 fn test_numeric_gte_known_attribute() {
-    let schema = prepopulated_typed_schema(ValueType::Double);
+    let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Double);
     let causetq = r#"[:find ?x :where [?x :foo/bar ?y] [(>= ?y 12.9)]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v >= 1.29e1");
     assert_eq!(args, vec![]);
 }
 
 #[test]
 fn test_numeric_not_equals_known_attribute() {
-    let schema = prepopulated_typed_schema(ValueType::Long);
+    let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Long);
     let causetq = r#"[:find ?x . :where [?x :foo/bar ?y] [(!= ?y 12)]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99 AND `Causets00`.v <> 12 LIMIT 1");
     assert_eq!(args, vec![]);
 }
 
 #[test]
 fn test_compare_long_to_double_constants() {
-    let schema = prepopulated_typed_schema(ValueType::Double);
+    let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Double);
 
     let causetq = r#"[:find ?e .
                     :where
                     [?e :foo/bar ?v]
                     [(< 99.0 1234512345)]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?e` FROM `causets` AS `Causets00` \
                      WHERE `Causets00`.a = 99 \
                        AND 9.9e1 < 1234512345 \
@@ -453,14 +453,14 @@ fn test_compare_long_to_double_constants() {
 
 #[test]
 fn test_compare_long_to_double() {
-    let schema = prepopulated_typed_schema(ValueType::Double);
+    let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Double);
 
     // You can compare longs to doubles.
     let causetq = r#"[:find ?e .
                     :where
                     [?e :foo/bar ?t]
                     [(< ?t 1234512345)]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?e` FROM `causets` AS `Causets00` \
                      WHERE `Causets00`.a = 99 \
                        AND `Causets00`.v < 1234512345 \
@@ -470,14 +470,14 @@ fn test_compare_long_to_double() {
 
 #[test]
 fn test_compare_double_to_long() {
-    let schema = prepopulated_typed_schema(ValueType::Long);
+    let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Long);
 
     // You can compare doubles to longs.
     let causetq = r#"[:find ?e .
                     :where
                     [?e :foo/bar ?t]
                     [(< ?t 1234512345.0)]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT `Causets00`.e AS `?e` FROM `causets` AS `Causets00` \
                      WHERE `Causets00`.a = 99 \
                        AND `Causets00`.v < 1.234512345e9 \
@@ -487,13 +487,13 @@ fn test_compare_double_to_long() {
 
 #[test]
 fn test_simple_or_join() {
-    let mut schema = Schema::default();
-    associate_causetId(&mut schema, Keyword::namespaced("page", "url"), 97);
-    associate_causetId(&mut schema, Keyword::namespaced("page", "title"), 98);
-    associate_causetId(&mut schema, Keyword::namespaced("page", "description"), 99);
+    let mut schemaReplicant = SchemaReplicant::default();
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("page", "url"), 97);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("page", "title"), 98);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("page", "description"), 99);
     for x in 97..100 {
-        add_attribute(&mut schema, x, Attribute {
-            value_type: ValueType::String,
+        add_attribute(&mut schemaReplicant, x, Attribute {
+            value_type: MinkowskiValueType::String,
             ..Default::default()
         });
     }
@@ -505,27 +505,27 @@ fn test_simple_or_join() {
                       [?page :page/title "Foo"])
                     [?page :page/url ?url]
                     [?page :page/description ?description]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT `Causets01`.v AS `?url`, `Causets02`.v AS `?description` FROM `causets` AS `Causets00`, `causets` AS `Causets01`, `causets` AS `Causets02` WHERE ((`Causets00`.a = 97 AND `Causets00`.v = $v0) OR (`Causets00`.a = 98 AND `Causets00`.v = $v1)) AND `Causets01`.a = 97 AND `Causets02`.a = 99 AND `Causets00`.e = `Causets01`.e AND `Causets00`.e = `Causets02`.e LIMIT 1");
     assert_eq!(args, vec![make_arg("$v0", "http://foo.com/"), make_arg("$v1", "Foo")]);
 }
 
 #[test]
 fn test_complex_or_join() {
-    let mut schema = Schema::default();
-    associate_causetId(&mut schema, Keyword::namespaced("page", "save"), 95);
-    add_attribute(&mut schema, 95, Attribute {
-        value_type: ValueType::Ref,
+    let mut schemaReplicant = SchemaReplicant::default();
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("page", "save"), 95);
+    add_attribute(&mut schemaReplicant, 95, Attribute {
+        value_type: MinkowskiValueType::Ref,
         ..Default::default()
     });
 
-    associate_causetId(&mut schema, Keyword::namespaced("save", "title"), 96);
-    associate_causetId(&mut schema, Keyword::namespaced("page", "url"), 97);
-    associate_causetId(&mut schema, Keyword::namespaced("page", "title"), 98);
-    associate_causetId(&mut schema, Keyword::namespaced("page", "description"), 99);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("save", "title"), 96);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("page", "url"), 97);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("page", "title"), 98);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("page", "description"), 99);
     for x in 96..100 {
-        add_attribute(&mut schema, x, Attribute {
-            value_type: ValueType::String,
+        add_attribute(&mut schemaReplicant, x, Attribute {
+            value_type: MinkowskiValueType::String,
             ..Default::default()
         });
     }
@@ -540,7 +540,7 @@ fn test_complex_or_join() {
                         [?save :save/title "Foo"]))
                     [?page :page/url ?url]
                     [?page :page/description ?description]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT `Causets04`.v AS `?url`, \
                             `Causets05`.v AS `?description` \
                      FROM (SELECT `Causets00`.e AS `?page` \
@@ -573,10 +573,10 @@ fn test_complex_or_join() {
 
 #[test]
 fn test_complex_or_join_type_projection() {
-    let mut schema = Schema::default();
-    associate_causetId(&mut schema, Keyword::namespaced("page", "title"), 98);
-    add_attribute(&mut schema, 98, Attribute {
-        value_type: ValueType::String,
+    let mut schemaReplicant = SchemaReplicant::default();
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("page", "title"), 98);
+    add_attribute(&mut schemaReplicant, 98, Attribute {
+        value_type: MinkowskiValueType::String,
         ..Default::default()
     });
 
@@ -585,7 +585,7 @@ fn test_complex_or_join_type_projection() {
                     (or
                       [6 :page/title ?y]
                       [5 _ ?y])]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT `c00`.`?y` AS `?y`, \
                             `c00`.`?y_value_type_tag` AS `?y_value_type_tag` \
                        FROM (SELECT `Causets00`.v AS `?y`, \
@@ -604,18 +604,18 @@ fn test_complex_or_join_type_projection() {
 
 #[test]
 fn test_not() {
-    let mut schema = Schema::default();
-    associate_causetId(&mut schema, Keyword::namespaced("page", "url"), 97);
-    associate_causetId(&mut schema, Keyword::namespaced("page", "title"), 98);
-    associate_causetId(&mut schema, Keyword::namespaced("page", "bookmarked"), 99);
+    let mut schemaReplicant = SchemaReplicant::default();
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("page", "url"), 97);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("page", "title"), 98);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("page", "bookmarked"), 99);
     for x in 97..99 {
-        add_attribute(&mut schema, x, Attribute {
-            value_type: ValueType::String,
+        add_attribute(&mut schemaReplicant, x, Attribute {
+            value_type: MinkowskiValueType::String,
             ..Default::default()
         });
     }
-    add_attribute(&mut schema, 99, Attribute {
-        value_type: ValueType::Boolean,
+    add_attribute(&mut schemaReplicant, 99, Attribute {
+        value_type: MinkowskiValueType::Boolean,
         ..Default::default()
     });
 
@@ -623,27 +623,27 @@ fn test_not() {
                     :where [?page :page/title ?title]
                            (not [?page :page/url "http://foo.com/"]
                                 [?page :page/bookmarked true])]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.v AS `?title` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 98 AND NOT EXISTS (SELECT 1 FROM `causets` AS `Causets01`, `causets` AS `Causets02` WHERE `Causets01`.a = 97 AND `Causets01`.v = $v0 AND `Causets02`.a = 99 AND `Causets02`.v = 1 AND `Causets00`.e = `Causets01`.e AND `Causets00`.e = `Causets02`.e)");
     assert_eq!(args, vec![make_arg("$v0", "http://foo.com/")]);
 }
 
 #[test]
 fn test_not_join() {
-    let mut schema = Schema::default();
-    associate_causetId(&mut schema, Keyword::namespaced("page", "url"), 97);
-    associate_causetId(&mut schema, Keyword::namespaced("bookmarks", "page"), 98);
-    associate_causetId(&mut schema, Keyword::namespaced("bookmarks", "date_created"), 99);
-    add_attribute(&mut schema, 97, Attribute {
-        value_type: ValueType::String,
+    let mut schemaReplicant = SchemaReplicant::default();
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("page", "url"), 97);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("bookmarks", "page"), 98);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("bookmarks", "date_created"), 99);
+    add_attribute(&mut schemaReplicant, 97, Attribute {
+        value_type: MinkowskiValueType::String,
         ..Default::default()
     });
-    add_attribute(&mut schema, 98, Attribute {
-        value_type: ValueType::Ref,
+    add_attribute(&mut schemaReplicant, 98, Attribute {
+        value_type: MinkowskiValueType::Ref,
         ..Default::default()
     });
-    add_attribute(&mut schema, 99, Attribute {
-        value_type: ValueType::String,
+    add_attribute(&mut schemaReplicant, 99, Attribute {
+        value_type: MinkowskiValueType::String,
         ..Default::default()
     });
 
@@ -652,35 +652,35 @@ fn test_not_join() {
                                (not-join [?url]
                                    [?page :bookmarks/page ?url]
                                    [?page :bookmarks/date_created "4/4/2017"])]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?url` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 97 AND NOT EXISTS (SELECT 1 FROM `causets` AS `Causets01`, `causets` AS `Causets02` WHERE `Causets01`.a = 98 AND `Causets02`.a = 99 AND `Causets02`.v = $v0 AND `Causets01`.e = `Causets02`.e AND `Causets00`.e = `Causets01`.v)");
     assert_eq!(args, vec![make_arg("$v0", "4/4/2017")]);
 }
 
 #[test]
 fn test_with_without_aggregate() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
-    // Known type.
+    // KnownCauset type.
     let causetq = r#"[:find ?x :with ?y :where [?x :foo/bar ?y]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 99");
     assert_eq!(args, vec![]);
 
     // Unknown type.
     let causetq = r#"[:find ?x :with ?y :where [?x _ ?y]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets00`.e AS `?x` FROM `all_Causets` AS `all_Causets00`");
     assert_eq!(args, vec![]);
 }
 
 #[test]
 fn test_order_by() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
-    // Known type.
+    // KnownCauset type.
     let causetq = r#"[:find ?x :where [?x :foo/bar ?y] :order (desc ?y)]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x`, `Causets00`.v AS `?y` \
                      FROM `causets` AS `Causets00` \
                      WHERE `Causets00`.a = 99 \
@@ -689,7 +689,7 @@ fn test_order_by() {
 
     // Unknown type.
     let causetq = r#"[:find ?x :with ?y :where [?x _ ?y] :order ?y ?x]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets00`.e AS `?x`, `all_Causets00`.v AS `?y`, \
                                      `all_Causets00`.value_type_tag AS `?y_value_type_tag` \
                      FROM `all_Causets` AS `all_Causets00` \
@@ -699,10 +699,10 @@ fn test_order_by() {
 
 #[test]
 fn test_complex_nested_or_join_type_projection() {
-    let mut schema = Schema::default();
-    associate_causetId(&mut schema, Keyword::namespaced("page", "title"), 98);
-    add_attribute(&mut schema, 98, Attribute {
-        value_type: ValueType::String,
+    let mut schemaReplicant = SchemaReplicant::default();
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("page", "title"), 98);
+    add_attribute(&mut schemaReplicant, 98, Attribute {
+        value_type: MinkowskiValueType::String,
         ..Default::default()
     });
 
@@ -714,7 +714,7 @@ fn test_complex_nested_or_join_type_projection() {
                       (or
                         [_ :page/title ?y]))]"#;
 
-    let SQLCausetQ { allegrosql, args } = translate(&schema, input);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, input);
     assert_eq!(allegrosql, "SELECT `c00`.`?y` AS `?y` \
                      FROM (SELECT `Causets00`.v AS `?y` \
                            FROM `causets` AS `Causets00` \
@@ -730,59 +730,59 @@ fn test_complex_nested_or_join_type_projection() {
 
 #[test]
 fn test_ground_scalar() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     // Verify that we accept inline constants.
     let causetq = r#"[:find ?x . :where [(ground "yyy") ?x]]"#;
-    let constant = translate_to_constant(&schema, causetq);
+    let constant = translate_to_constant(&schemaReplicant, causetq);
     assert_eq!(constant.project_without_rows().unwrap()
                        .into_scalar().unwrap(),
-               Some(TypedValue::typed_string("yyy").into()));
+               Some(MinkowskiType::typed_string("yyy").into()));
 
     // Verify that we accept bound input constants.
     let causetq = r#"[:find ?x . :in ?v :where [(ground ?v) ?x]]"#;
     let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?v"), "aaa".into())]);
-    let constant = translate_with_inputs_to_constant(&schema, causetq, inputs);
+    let constant = translate_with_inputs_to_constant(&schemaReplicant, causetq, inputs);
     assert_eq!(constant.project_without_rows().unwrap()
                        .into_scalar().unwrap(),
-               Some(TypedValue::typed_string("aaa").into()));
+               Some(MinkowskiType::typed_string("aaa").into()));
 }
 
 #[test]
 fn test_ground_tuple() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     // Verify that we accept inline constants.
     let causetq = r#"[:find ?x ?y :where [(ground [1 "yyy"]) [?x ?y]]]"#;
-    let constant = translate_to_constant(&schema, causetq);
+    let constant = translate_to_constant(&schemaReplicant, causetq);
     assert_eq!(constant.project_without_rows().unwrap()
                        .into_rel().unwrap(),
-               vec![vec![TypedValue::Long(1), TypedValue::typed_string("yyy")]].into());
+               vec![vec![MinkowskiType::Long(1), MinkowskiType::typed_string("yyy")]].into());
 
     // Verify that we accept bound input constants.
     let causetq = r#"[:find [?x ?y] :in ?u ?v :where [(ground [?u ?v]) [?x ?y]]]"#;
-    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?u"), TypedValue::Long(2)),
+    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?u"), MinkowskiType::Long(2)),
                                                        (Variable::from_valid_name("?v"), "aaa".into()),]);
 
-    let constant = translate_with_inputs_to_constant(&schema, causetq, inputs);
+    let constant = translate_with_inputs_to_constant(&schemaReplicant, causetq, inputs);
     assert_eq!(constant.project_without_rows().unwrap()
                        .into_tuple().unwrap(),
-               Some(vec![TypedValue::Long(2).into(), TypedValue::typed_string("aaa").into()]));
+               Some(vec![MinkowskiType::Long(2).into(), MinkowskiType::typed_string("aaa").into()]));
 
     // TODO: treat 2 as an input variable that could be bound late, rather than eagerly binding it.
     // In that case the causetq wouldn't be constant, and would look more like:
-    // let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, inputs);
+    // let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schemaReplicant, causetq, inputs);
     // assert_eq!(allegrosql, "SELECT 2 AS `?x`, $v0 AS `?y` LIMIT 1");
     // assert_eq!(args, vec![make_arg("$v0", "aaa"),]);
 }
 
 #[test]
 fn test_ground_coll() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     // Verify that we accept inline constants.
     let causetq = r#"[:find ?x :where [(ground ["xxx" "yyy"]) [?x ...]]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `c00`.`?x` AS `?x` FROM \
                          (SELECT 0 AS `?x` WHERE 0 UNION ALL VALUES ($v0), ($v1)) AS `c00`");
     assert_eq!(args, vec![make_arg("$v0", "xxx"),
@@ -790,9 +790,9 @@ fn test_ground_coll() {
 
     // Verify that we accept bound input constants.
     let causetq = r#"[:find ?x :in ?u ?v :where [(ground [?u ?v]) [?x ...]]]"#;
-    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?u"), TypedValue::Long(2)),
-                                                       (Variable::from_valid_name("?v"), TypedValue::Long(3)),]);
-    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, inputs);
+    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?u"), MinkowskiType::Long(2)),
+                                                       (Variable::from_valid_name("?v"), MinkowskiType::Long(3)),]);
+    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schemaReplicant, causetq, inputs);
     // TODO: treat 2 and 3 as input variables that could be bound late, rather than eagerly binding.
     assert_eq!(allegrosql, "SELECT DISTINCT `c00`.`?x` AS `?x` FROM \
                          (SELECT 0 AS `?x` WHERE 0 UNION ALL VALUES (2), (3)) AS `c00`");
@@ -801,11 +801,11 @@ fn test_ground_coll() {
 
 #[test]
 fn test_ground_rel() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     // Verify that we accept inline constants.
     let causetq = r#"[:find ?x ?y :where [(ground [[1 "xxx"] [2 "yyy"]]) [[?x ?y]]]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `c00`.`?x` AS `?x`, `c00`.`?y` AS `?y` FROM \
                          (SELECT 0 AS `?x`, 0 AS `?y` WHERE 0 UNION ALL VALUES (1, $v0), (2, $v1)) AS `c00`");
     assert_eq!(args, vec![make_arg("$v0", "xxx"),
@@ -813,9 +813,9 @@ fn test_ground_rel() {
 
     // Verify that we accept bound input constants.
     let causetq = r#"[:find ?x ?y :in ?u ?v :where [(ground [[?u 1] [?v 2]]) [[?x ?y]]]]"#;
-    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?u"), TypedValue::Long(3)),
-                                                       (Variable::from_valid_name("?v"), TypedValue::Long(4)),]);
-    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, inputs);
+    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?u"), MinkowskiType::Long(3)),
+                                                       (Variable::from_valid_name("?v"), MinkowskiType::Long(4)),]);
+    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schemaReplicant, causetq, inputs);
     // TODO: treat 3 and 4 as input variables that could be bound late, rather than eagerly binding.
     assert_eq!(allegrosql, "SELECT DISTINCT `c00`.`?x` AS `?x`, `c00`.`?y` AS `?y` FROM \
                          (SELECT 0 AS `?x`, 0 AS `?y` WHERE 0 UNION ALL VALUES (3, 1), (4, 2)) AS `c00`");
@@ -824,12 +824,12 @@ fn test_ground_rel() {
 
 #[test]
 fn test_compound_with_ground() {
-    let schema = prepopulated_schema();
+    let schemaReplicant = prepopulated_schemaReplicant();
 
     // Verify that we can use the resulting CCs as children in compound CCs.
     let causetq = r#"[:find ?x :where (or [(ground "yyy") ?x]
                                         [(ground "zzz") ?x])]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
 
     // This is confusing because the computed tables (like `c00`) are numbered sequentially in each
     // arm of the `or` rather than numbered globally.  But SQLite scopes the names correctly, so it
@@ -840,17 +840,17 @@ fn test_compound_with_ground() {
     assert_eq!(args, vec![make_arg("$v0", "yyy"),
                           make_arg("$v1", "zzz"),]);
 
-    // Verify that we can use ground to constrain the bindings produced by earlier clauses.
+    // Verify that we can use ground to constrain the bindings produced by earlier gerunds.
     let causetq = r#"[:find ?x . :where [_ :foo/bar ?x] [(ground "yyy") ?x]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT $v0 AS `?x` FROM `causets` AS `Causets00` \
                      WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 1");
 
     assert_eq!(args, vec![make_arg("$v0", "yyy")]);
 
-    // Verify that we can further constrain the bindings produced by our clause.
+    // Verify that we can further constrain the bindings produced by our gerund.
     let causetq = r#"[:find ?x . :where [(ground "yyy") ?x] [_ :foo/bar ?x]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT $v0 AS `?x` FROM `causets` AS `Causets00` \
                      WHERE `Causets00`.a = 99 AND `Causets00`.v = $v0 LIMIT 1");
 
@@ -860,8 +860,8 @@ fn test_compound_with_ground() {
 #[test]
 fn test_unbound_attribute_with_ground_instanton() {
     let causetq = r#"[:find ?x ?v :where [?x _ ?v] (not [(ground 17) ?x])]"#;
-    let schema = prepopulated_schema();
-    let SQLCausetQ { allegrosql, .. } = translate(&schema, causetq);
+    let schemaReplicant = prepopulated_schemaReplicant();
+    let SQLCausetQ { allegrosql, .. } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets00`.e AS `?x`, \
                                      `all_Causets00`.v AS `?v`, \
                                      `all_Causets00`.value_type_tag AS `?v_value_type_tag` \
@@ -872,8 +872,8 @@ fn test_unbound_attribute_with_ground_instanton() {
 #[test]
 fn test_unbound_attribute_with_ground() {
     let causetq = r#"[:find ?x ?v :where [?x _ ?v] (not [(ground 17) ?v])]"#;
-    let schema = prepopulated_schema();
-    let SQLCausetQ { allegrosql, .. } = translate(&schema, causetq);
+    let schemaReplicant = prepopulated_schemaReplicant();
+    let SQLCausetQ { allegrosql, .. } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets00`.e AS `?x`, \
                                      `all_Causets00`.v AS `?v`, \
                                      `all_Causets00`.value_type_tag AS `?v_value_type_tag` \
@@ -885,13 +885,13 @@ fn test_unbound_attribute_with_ground() {
 
 #[test]
 fn test_not_with_ground() {
-    let mut schema = prepopulated_schema();
-    associate_causetId(&mut schema, Keyword::namespaced("edb", "valueType"), 7);
-    associate_causetId(&mut schema, Keyword::namespaced("edb.type", "ref"), 23);
-    associate_causetId(&mut schema, Keyword::namespaced("edb.type", "bool"), 28);
-    associate_causetId(&mut schema, Keyword::namespaced("edb.type", "instant"), 29);
-    add_attribute(&mut schema, 7, Attribute {
-        value_type: ValueType::Ref,
+    let mut schemaReplicant = prepopulated_schemaReplicant();
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("edb", "valueType"), 7);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("edb.type", "ref"), 23);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("edb.type", "bool"), 28);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("edb.type", "instant"), 29);
+    add_attribute(&mut schemaReplicant, 7, Attribute {
+        value_type: MinkowskiValueType::Ref,
         multival: false,
         ..Default::default()
     });
@@ -899,7 +899,7 @@ fn test_not_with_ground() {
     // Scalar.
     // TODO: this kind of simple `not` should be implemented without the subcausetq. #476.
     let causetq = r#"[:find ?x :where [?x :edb/valueType ?v] (not [(ground :edb.type/instant) ?v])]"#;
-    let SQLCausetQ { allegrosql, .. } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, .. } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql,
                "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` WHERE `Causets00`.a = 7 AND NOT \
                 EXISTS (SELECT 1 WHERE `Causets00`.v = 29)");
@@ -907,7 +907,7 @@ fn test_not_with_ground() {
     // Coll.
     // TODO: we can generate better SQL for this, too. #476.
     let causetq = r#"[:find ?x :where [?x :edb/valueType ?v] (not [(ground [:edb.type/bool :edb.type/instant]) [?v ...]])]"#;
-    let SQLCausetQ { allegrosql, .. } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, .. } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql,
                "SELECT DISTINCT `Causets00`.e AS `?x` FROM `causets` AS `Causets00` \
                 WHERE `Causets00`.a = 7 AND NOT EXISTS \
@@ -917,10 +917,10 @@ fn test_not_with_ground() {
 
 #[test]
 fn test_fulltext() {
-    let schema = prepopulated_typed_schema(ValueType::Double);
+    let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Double);
 
     let causetq = r#"[:find ?instanton ?value ?causetx ?sembedded :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sembedded]]]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
                                      `Causets01`.causetx AS `?causetx`, \
@@ -933,8 +933,8 @@ fn test_fulltext() {
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
     let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sembedded]]]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
-    // Observe that the computed table isn't dropped, even though `?sembedded` isn't bound in the final conjoining clause.
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
+    // Observe that the computed table isn't dropped, even though `?sembedded` isn't bound in the final conjoining gerund.
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
                                      `Causets01`.causetx AS `?causetx` \
@@ -946,7 +946,7 @@ fn test_fulltext() {
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
     let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx _]]]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     // Observe that the computed table isn't included at all when `?sembedded` isn't bound.
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
@@ -959,7 +959,7 @@ fn test_fulltext() {
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
     let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sembedded]]] [?instanton :foo/bar ?sembedded]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
                                      `Causets01`.causetx AS `?causetx` \
@@ -975,7 +975,7 @@ fn test_fulltext() {
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
     let causetq = r#"[:find ?instanton ?value ?causetx :where [?instanton :foo/bar ?sembedded] [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sembedded]]]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?instanton`, \
                                      `fulltext_values01`.text AS `?value`, \
                                      `Causets02`.causetx AS `?causetx` \
@@ -993,18 +993,18 @@ fn test_fulltext() {
 
 #[test]
 fn test_fulltext_inputs() {
-    let schema = prepopulated_typed_schema(ValueType::String);
+    let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::String);
 
     // Bind ?instanton. We expect the output to collide.
     let causetq = r#"[:find ?val
                     :in ?instanton
                     :where [(fulltext $ :foo/fts "hello") [[?instanton ?val _ _]]]]"#;
     let mut types = BTreeMap::default();
-    types.insert(Variable::from_valid_name("?instanton"), ValueType::Ref);
+    types.insert(Variable::from_valid_name("?instanton"), MinkowskiValueType::Ref);
     let inputs = CausetQInputs::new(types, BTreeMap::default()).expect("valid inputs");
 
     // Without binding the value. q_once will err if you try this!
-    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, inputs);
+    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schemaReplicant, causetq, inputs);
     assert_eq!(allegrosql, "SELECT DISTINCT `fulltext_values00`.text AS `?val` \
                      FROM \
                      `fulltext_values` AS `fulltext_values00`, \
@@ -1015,8 +1015,8 @@ fn test_fulltext_inputs() {
     assert_eq!(args, vec![make_arg("$v0", "hello"),]);
 
     // With the value bound.
-    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?instanton"), TypedValue::Ref(111))]);
-    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, inputs);
+    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?instanton"), MinkowskiType::Ref(111))]);
+    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schemaReplicant, causetq, inputs);
     assert_eq!(allegrosql, "SELECT DISTINCT `fulltext_values00`.text AS `?val` \
                      FROM \
                      `fulltext_values` AS `fulltext_values00`, \
@@ -1031,8 +1031,8 @@ fn test_fulltext_inputs() {
     let causetq = r#"[:find ?instanton .
                     :in ?instanton
                     :where [(fulltext $ :foo/fts "hello") [[?instanton _ _]]]]"#;
-    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?instanton"), TypedValue::Ref(111))]);
-    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, inputs);
+    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?instanton"), MinkowskiType::Ref(111))]);
+    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schemaReplicant, causetq, inputs);
     assert_eq!(allegrosql, "SELECT 111 AS `?instanton` FROM \
                      `fulltext_values` AS `fulltext_values00`, \
                      `causets` AS `Causets01` \
@@ -1049,8 +1049,8 @@ fn test_fulltext_inputs() {
                     :where
                     [(fulltext $ :foo/fts "hello") [[?instanton ?value]]]
                     [?instanton :foo/bar ?friend]]"#;
-    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?instanton"), TypedValue::Ref(121))]);
-    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schema, causetq, inputs);
+    let inputs = CausetQInputs::with_value_sequence(vec![(Variable::from_valid_name("?instanton"), MinkowskiType::Ref(121))]);
+    let SQLCausetQ { allegrosql, args } = translate_with_inputs(&schemaReplicant, causetq, inputs);
     assert_eq!(allegrosql, "SELECT DISTINCT 121 AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
                                      `Causets02`.v AS `?friend` \
@@ -1069,13 +1069,13 @@ fn test_fulltext_inputs() {
 
 #[test]
 fn test_instant_range() {
-    let schema = prepopulated_typed_schema(ValueType::Instant);
+    let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Instant);
     let causetq = r#"[:find ?e
                     :where
                     [?e :foo/bar ?t]
                     [(> ?t #inst "2017-06-16T00:56:41.257Z")]]"#;
 
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?e` \
                      FROM \
                      `causets` AS `Causets00` \
@@ -1086,11 +1086,11 @@ fn test_instant_range() {
 
 #[test]
 fn test_project_aggregates() {
-    let schema = prepopulated_typed_schema(ValueType::Long);
+    let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Long);
     let causetq = r#"[:find ?e (max ?t)
                     :where
                     [?e :foo/bar ?t]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
 
     // No outer DISTINCT: we aggregate or group by every variable.
     assert_eq!(allegrosql, "SELECT * \
@@ -1110,7 +1110,7 @@ fn test_project_aggregates() {
                     :with ?e
                     :where
                     [?e :foo/bar ?t]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT * \
                      FROM \
                      (SELECT max(`?t`) AS `(max ?t)` \
@@ -1131,7 +1131,7 @@ fn test_project_aggregates() {
                     [?e ?a ?t]
                     [?t :foo/bar ?x]
                     :order ?a]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT * \
 	                   FROM \
                      (SELECT max(`?x`) AS `(max ?x)`, `?a` AS `?a` \
@@ -1155,7 +1155,7 @@ fn test_project_aggregates() {
                     [?t :foo/bar ?x]
                     :order (desc ?a)
                     :limit 10]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT * \
 	                   FROM \
                      (SELECT max(`?x`) AS `(max ?x)`, `?a` AS `?a` \
@@ -1178,7 +1178,7 @@ fn test_project_aggregates() {
                     :with ?e
                     :where
                     [?e :foo/bar ?t]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT count(`?t`) AS `(count ?t)` \
                      FROM \
                      (SELECT DISTINCT \
@@ -1191,11 +1191,11 @@ fn test_project_aggregates() {
 
 #[test]
 fn test_project_the() {
-    let schema = prepopulated_typed_schema(ValueType::Long);
+    let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Long);
     let causetq = r#"[:find (the ?e) (max ?t)
                     :where
                     [?e :foo/bar ?t]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
 
     // We shouldn't NULL-check (the).
     assert_eq!(allegrosql, "SELECT * \
@@ -1213,16 +1213,16 @@ fn test_project_the() {
 
 #[test]
 fn test_causecausetx_before_and_after() {
-    let schema = prepopulated_typed_schema(ValueType::Long);
+    let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Long);
     let causetq = r#"[:find ?x :where [?x _ _ ?causetx] [(causetx-after ?causetx 12345)]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT \
                      `Causets00`.e AS `?x` \
                      FROM `causets` AS `Causets00` \
                      WHERE `Causets00`.causetx > 12345");
     assert_eq!(args, vec![]);
     let causetq = r#"[:find ?x :where [?x _ _ ?causetx] [(causetx-before ?causetx 12345)]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT \
                      `Causets00`.e AS `?x` \
                      FROM `causets` AS `Causets00` \
@@ -1233,17 +1233,17 @@ fn test_causecausetx_before_and_after() {
 
 #[test]
 fn test_causecausetx_ids() {
-    let mut schema = prepopulated_typed_schema(ValueType::Double);
-    associate_causetId(&mut schema, Keyword::namespaced("edb", "causecausetxInstant"), 101);
-    add_attribute(&mut schema, 101, Attribute {
-        value_type: ValueType::Instant,
+    let mut schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Double);
+    associate_causetId(&mut schemaReplicant, Keyword::namespaced("edb", "causecausetxInstant"), 101);
+    add_attribute(&mut schemaReplicant, 101, Attribute {
+        value_type: MinkowskiValueType::Instant,
         multival: false,
         index: true,
         ..Default::default()
     });
 
     let causetq = r#"[:find ?causetx :where [(causetx-ids $ 1000 2000) [[?causetx]]]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `transactions00`.causetx AS `?causetx` \
                      FROM `transactions` AS `transactions00` \
                      WHERE 1000 <= `transactions00`.causetx \
@@ -1252,7 +1252,7 @@ fn test_causecausetx_ids() {
 
     // This is rather artificial but verifies that binding the arguments to (causetx-ids) works.
     let causetq = r#"[:find ?causetx :where [?first :edb/causecausetxInstant #inst "2016-01-01T11:00:00.000Z"] [?last :edb/causecausetxInstant #inst "2017-01-01T11:00:00.000Z"] [(causetx-ids $ ?first ?last) [?causetx ...]]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `transactions02`.causetx AS `?causetx` \
                      FROM `causets` AS `Causets00`, \
                      `causets` AS `Causets01`, \
@@ -1268,7 +1268,7 @@ fn test_causecausetx_ids() {
     // In practice the following causetq would be inefficient because of the filter on all_Causets.causetx,
     // but that is what (causetx-data) is for.
     let causetq = r#"[:find ?e ?a ?v ?causetx :where [(causetx-ids $ 1000 2000) [[?causetx]]] [?e ?a ?v ?causetx]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `all_Causets01`.e AS `?e`, \
 	                   `all_Causets01`.a AS `?a`, \
                      `all_Causets01`.v AS `?v`, \
@@ -1284,10 +1284,10 @@ fn test_causecausetx_ids() {
 
 #[test]
 fn test_causecausetx_data() {
-    let schema = prepopulated_typed_schema(ValueType::Double);
+    let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Double);
 
     let causetq = r#"[:find ?e ?a ?v ?causetx ?added :where [(causetx-data $ 1000) [[?e ?a ?v ?causetx ?added]]]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `transactions00`.e AS `?e`, \
                      `transactions00`.a AS `?a`, \
                      `transactions00`.v AS `?v`, \
@@ -1301,7 +1301,7 @@ fn test_causecausetx_data() {
     // Ensure that we don't project columns that we don't need, even if they are bound to named
     // variables or to placeholders.
     let causetq = r#"[:find [?a ?v ?added] :where [(causetx-data $ 1000) [[?e ?a ?v _ ?added]]]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT `transactions00`.a AS `?a`, \
                      `transactions00`.v AS `?v`, \
                      `transactions00`.value_type_tag AS `?v_value_type_tag`, \
@@ -1315,7 +1315,7 @@ fn test_causecausetx_data() {
     // and a second time to extract data.  https://github.com/whtcorpsinc/einsteindb/issues/644 tracks
     // improving this, perhaps by optimizing certain combinations of functions and bindings.
     let causetq = r#"[:find ?e ?a ?v ?causetx ?added :where [(causetx-ids $ 1000 2000) [[?causetx]]] [(causetx-data $ ?causetx) [[?e ?a ?v _ ?added]]]]"#;
-    let SQLCausetQ { allegrosql, args } = translate(&schema, causetq);
+    let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `transactions01`.e AS `?e`, \
                      `transactions01`.a AS `?a`, \
                      `transactions01`.v AS `?v`, \

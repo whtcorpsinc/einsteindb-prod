@@ -22,8 +22,8 @@ use embedded_promises::{
     Attribute,
     SolitonId,
     KnownSolitonId,
-    TypedValue,
-    ValueType,
+    MinkowskiType,
+    MinkowskiValueType,
 };
 
 use einsteindb_embedded::util::Either;
@@ -47,19 +47,19 @@ use edb_promises::errors::{
     DbErrorKind,
     Result,
 };
-use schema::{
-    SchemaTypeChecking,
+use schemaReplicant::{
+    SchemaReplicantTypeChecking,
 };
 use types::{
     AVMap,
     AVPair,
-    Schema,
+    SchemaReplicant,
     TransactableValue,
 };
 
 impl TransactableValue for ValueAndSpan {
-    fn into_typed_value(self, schema: &Schema, value_type: ValueType) -> Result<TypedValue> {
-        schema.to_typed_value(&self, value_type)
+    fn into_typed_value(self, schemaReplicant: &SchemaReplicant, value_type: MinkowskiValueType) -> Result<MinkowskiType> {
+        schemaReplicant.to_typed_value(&self, value_type)
     }
 
     fn into_instanton_place(self) -> Result<InstantonPlace<Self>> {
@@ -113,8 +113,8 @@ impl TransactableValue for ValueAndSpan {
     }
 }
 
-impl TransactableValue for TypedValue {
-    fn into_typed_value(self, _schema: &Schema, value_type: ValueType) -> Result<TypedValue> {
+impl TransactableValue for MinkowskiType {
+    fn into_typed_value(self, _schemaReplicant: &SchemaReplicant, value_type: MinkowskiValueType) -> Result<MinkowskiType> {
         if self.value_type() != value_type {
             bail!(DbErrorKind::BadValuePair(format!("{:?}", self), value_type));
         }
@@ -123,20 +123,20 @@ impl TransactableValue for TypedValue {
 
     fn into_instanton_place(self) -> Result<InstantonPlace<Self>> {
         match self {
-            TypedValue::Ref(x) => Ok(InstantonPlace::SolitonId(entities::SolitonIdOrCausetId::SolitonId(x))),
-            TypedValue::Keyword(x) => Ok(InstantonPlace::SolitonId(entities::SolitonIdOrCausetId::CausetId((*x).clone()))),
-            TypedValue::String(x) => Ok(InstantonPlace::TempId(TempId::External((*x).clone()).into())),
-            TypedValue::Boolean(_) |
-            TypedValue::Long(_) |
-            TypedValue::Double(_) |
-            TypedValue::Instant(_) |
-            TypedValue::Uuid(_) => bail!(DbErrorKind::InputError(errors::InputError::BadInstantonPlace)),
+            MinkowskiType::Ref(x) => Ok(InstantonPlace::SolitonId(entities::SolitonIdOrCausetId::SolitonId(x))),
+            MinkowskiType::Keyword(x) => Ok(InstantonPlace::SolitonId(entities::SolitonIdOrCausetId::CausetId((*x).clone()))),
+            MinkowskiType::String(x) => Ok(InstantonPlace::TempId(TempId::External((*x).clone()).into())),
+            MinkowskiType::Boolean(_) |
+            MinkowskiType::Long(_) |
+            MinkowskiType::Double(_) |
+            MinkowskiType::Instant(_) |
+            MinkowskiType::Uuid(_) => bail!(DbErrorKind::InputError(errors::InputError::BadInstantonPlace)),
         }
     }
 
     fn as_tempid(&self) -> Option<TempId> {
         match self {
-            &TypedValue::String(ref s) => Some(TempId::External((**s).clone()).into()),
+            &MinkowskiType::String(ref s) => Some(TempId::External((**s).clone()).into()),
             _ => None,
         }
     }
@@ -150,7 +150,7 @@ pub enum Term<E, V> {
 use self::Either::*;
 
 pub type KnownSolitonIdOr<T> = Either<KnownSolitonId, T>;
-pub type TypedValueOr<T> = Either<TypedValue, T>;
+pub type MinkowskiTypeOr<T> = Either<MinkowskiType, T>;
 
 pub type TempIdHandle = ValueRc<TempId>;
 pub type TempIdMap = HashMap<TempIdHandle, KnownSolitonId>;
@@ -166,9 +166,9 @@ pub enum LookupRefOrTempId {
     TempId(TempIdHandle)
 }
 
-pub type TermWithTempIdsAndLookupRefs = Term<KnownSolitonIdOr<LookupRefOrTempId>, TypedValueOr<LookupRefOrTempId>>;
-pub type TermWithTempIds = Term<KnownSolitonIdOr<TempIdHandle>, TypedValueOr<TempIdHandle>>;
-pub type TermWithoutTempIds = Term<KnownSolitonId, TypedValue>;
+pub type TermWithTempIdsAndLookupRefs = Term<KnownSolitonIdOr<LookupRefOrTempId>, MinkowskiTypeOr<LookupRefOrTempId>>;
+pub type TermWithTempIds = Term<KnownSolitonIdOr<TempIdHandle>, MinkowskiTypeOr<TempIdHandle>>;
+pub type TermWithoutTempIds = Term<KnownSolitonId, MinkowskiType>;
 pub type Population = Vec<TermWithTempIds>;
 
 impl TermWithTempIds {
@@ -184,21 +184,21 @@ impl TermWithTempIds {
 }
 
 impl TermWithoutTempIds {
-    pub(crate) fn rewrap<A, B>(self) -> Term<KnownSolitonIdOr<A>, TypedValueOr<B>> {
+    pub(crate) fn rewrap<A, B>(self) -> Term<KnownSolitonIdOr<A>, MinkowskiTypeOr<B>> {
         match self {
             Term::AddOrRetract(op, n, a, v) => Term::AddOrRetract(op, Left(n), a, Left(v))
         }
     }
 }
 
-/// Given a `KnownSolitonIdOr` or a `TypedValueOr`, replace any internal `LookupRef` with the solitonId from
+/// Given a `KnownSolitonIdOr` or a `MinkowskiTypeOr`, replace any internal `LookupRef` with the solitonId from
 /// the given map.  Fail if any `LookupRef` cannot be replaced.
 ///
 /// `lift` allows to specify how the solitonId found is mapped into the output type.  (This could
 /// also be an `Into` or `From` requirement.)
 ///
 /// The reason for this awkward expression is that we're parameterizing over the _type constructor_
-/// (`SolitonIdOr` or `TypedValueOr`), which is not trivial to express in Rust.  This only works because
+/// (`SolitonIdOr` or `MinkowskiTypeOr`), which is not trivial to express in Rust.  This only works because
 /// they're both the same `Result<...>` type with different parameterizations.
 pub fn replace_lookup_ref<T, U>(lookup_map: &AVMap, desired_or: Either<T, LookupRefOrTempId>, lift: U) -> errors::Result<Either<T, TempIdHandle>> where U: FnOnce(SolitonId) -> T {
     match desired_or {
@@ -217,10 +217,10 @@ pub fn replace_lookup_ref<T, U>(lookup_map: &AVMap, desired_or: Either<T, Lookup
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct AddAndRetract {
-    pub(crate) add: BTreeSet<TypedValue>,
-    pub(crate) retract: BTreeSet<TypedValue>,
+    pub(crate) add: BTreeSet<MinkowskiType>,
+    pub(crate) retract: BTreeSet<MinkowskiType>,
 }
 
 // A trie-like structure mapping a -> e -> v that prefix compresses and makes uniqueness constraint
 // checking more efficient.  BTree* for deterministic errors.
-pub(crate) type AEVTrie<'schema> = BTreeMap<(SolitonId, &'schema Attribute), BTreeMap<SolitonId, AddAndRetract>>;
+pub(crate) type AEVTrie<'schemaReplicant> = BTreeMap<(SolitonId, &'schemaReplicant Attribute), BTreeMap<SolitonId, AddAndRetract>>;

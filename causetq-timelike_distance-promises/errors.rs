@@ -13,7 +13,7 @@ use std; // To refer to std::result::Result.
 use rusqlite;
 
 use embedded_promises::{
-    ValueTypeSet,
+    MinkowskiSet,
 };
 use edb_promises::errors::DbError;
 use edbn::causetq::{
@@ -40,7 +40,7 @@ pub enum ProjectorError {
     CannotProjectImpossibleBinding(SimpleAggregationOp),
 
     #[fail(display = "cannot apply projection operation {:?} to types {:?}", _0, _1)]
-    CannotApplyAggregateOperationToTypes(SimpleAggregationOp, ValueTypeSet),
+    CannotApplyAggregateOperationToTypes(SimpleAggregationOp, MinkowskiSet),
 
     #[fail(display = "invalid projection: {}", _0)]
     InvalidProjection(String),

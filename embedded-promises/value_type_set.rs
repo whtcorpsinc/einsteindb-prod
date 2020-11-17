@@ -13,7 +13,7 @@ use enum_set::{
 };
 
 use ::{
-    ValueType,
+    MinkowskiValueType,
 };
 
 trait EnumSetExtensions<T: ::enum_set::CLike + Clone> {
@@ -43,57 +43,57 @@ impl<T: ::enum_set::CLike + Clone> EnumSetExtensions<T> for EnumSet<T> {
 
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ValueTypeSet(pub EnumSet<ValueType>);
+pub struct MinkowskiSet(pub EnumSet<MinkowskiValueType>);
 
-impl Default for ValueTypeSet {
-    fn default() -> ValueTypeSet {
-        ValueTypeSet::any()
+impl Default for MinkowskiSet {
+    fn default() -> MinkowskiSet {
+        MinkowskiSet::any()
     }
 }
 
-impl ValueTypeSet {
-    pub fn any() -> ValueTypeSet {
-        ValueTypeSet(ValueType::all_enums())
+impl MinkowskiSet {
+    pub fn any() -> MinkowskiSet {
+        MinkowskiSet(MinkowskiValueType::all_enums())
     }
 
-    pub fn none() -> ValueTypeSet {
-        ValueTypeSet(EnumSet::new())
+    pub fn none() -> MinkowskiSet {
+        MinkowskiSet(EnumSet::new())
     }
 
     /// Return a set containing only `t`.
-    pub fn of_one(t: ValueType) -> ValueTypeSet {
+    pub fn of_one(t: MinkowskiValueType) -> MinkowskiSet {
         let mut s = EnumSet::new();
         s.insert(t);
-        ValueTypeSet(s)
+        MinkowskiSet(s)
     }
 
     /// Return a set containing `Double` and `Long`.
-    pub fn of_numeric_types() -> ValueTypeSet {
-        ValueTypeSet(EnumSet::of_both(ValueType::Double, ValueType::Long))
+    pub fn of_numeric_types() -> MinkowskiSet {
+        MinkowskiSet(EnumSet::of_both(MinkowskiValueType::Double, MinkowskiValueType::Long))
     }
 
     /// Return a set containing `Double`, `Long`, and `Instant`.
-    pub fn of_numeric_and_instant_types() -> ValueTypeSet {
+    pub fn of_numeric_and_instant_types() -> MinkowskiSet {
         let mut s = EnumSet::new();
-        s.insert(ValueType::Double);
-        s.insert(ValueType::Long);
-        s.insert(ValueType::Instant);
-        ValueTypeSet(s)
+        s.insert(MinkowskiValueType::Double);
+        s.insert(MinkowskiValueType::Long);
+        s.insert(MinkowskiValueType::Instant);
+        MinkowskiSet(s)
     }
 
     /// Return a set containing `Ref` and `Keyword`.
-    pub fn of_keywords() -> ValueTypeSet {
-        ValueTypeSet(EnumSet::of_both(ValueType::Ref, ValueType::Keyword))
+    pub fn of_keywords() -> MinkowskiSet {
+        MinkowskiSet(EnumSet::of_both(MinkowskiValueType::Ref, MinkowskiValueType::Keyword))
     }
 
     /// Return a set containing `Ref` and `Long`.
-    pub fn of_longs() -> ValueTypeSet {
-        ValueTypeSet(EnumSet::of_both(ValueType::Ref, ValueType::Long))
+    pub fn of_longs() -> MinkowskiSet {
+        MinkowskiSet(EnumSet::of_both(MinkowskiValueType::Ref, MinkowskiValueType::Long))
     }
 }
 
-impl ValueTypeSet {
-    pub fn insert(&mut self, vt: ValueType) -> bool {
+impl MinkowskiSet {
+    pub fn insert(&mut self, vt: MinkowskiValueType) -> bool {
         self.0.insert(vt)
     }
 
@@ -102,36 +102,36 @@ impl ValueTypeSet {
     }
 
     /// Returns a set containing all the types in this set and `other`.
-    pub fn union(&self, other: &ValueTypeSet) -> ValueTypeSet {
-        ValueTypeSet(self.0.union(other.0))
+    pub fn union(&self, other: &MinkowskiSet) -> MinkowskiSet {
+        MinkowskiSet(self.0.union(other.0))
     }
 
-    pub fn intersection(&self, other: &ValueTypeSet) -> ValueTypeSet {
-        ValueTypeSet(self.0.intersection(other.0))
+    pub fn intersection(&self, other: &MinkowskiSet) -> MinkowskiSet {
+        MinkowskiSet(self.0.intersection(other.0))
     }
 
     /// Returns the set difference between `self` and `other`, which is the
     /// set of items in `self` that are not in `other`.
-    pub fn difference(&self, other: &ValueTypeSet) -> ValueTypeSet {
-        ValueTypeSet(self.0 - other.0)
+    pub fn difference(&self, other: &MinkowskiSet) -> MinkowskiSet {
+        MinkowskiSet(self.0 - other.0)
     }
 
     /// Return an arbitrary type that's part of this set.
     /// For a set containing a single type, this will be that type.
-    pub fn exemplar(&self) -> Option<ValueType> {
+    pub fn exemplar(&self) -> Option<MinkowskiValueType> {
         self.0.iter().next()
     }
 
-    pub fn is_subset(&self, other: &ValueTypeSet) -> bool {
+    pub fn is_subset(&self, other: &MinkowskiSet) -> bool {
         self.0.is_subset(&other.0)
     }
 
     /// Returns true if `self` and `other` contain no items in common.
-    pub fn is_disjoint(&self, other: &ValueTypeSet) -> bool {
+    pub fn is_disjoint(&self, other: &MinkowskiSet) -> bool {
         self.0.is_disjoint(&other.0)
     }
 
-    pub fn contains(&self, vt: ValueType) -> bool {
+    pub fn contains(&self, vt: MinkowskiValueType) -> bool {
         self.0.contains(&vt)
     }
 
@@ -143,42 +143,42 @@ impl ValueTypeSet {
         self.0.len() == 1
     }
 
-    pub fn iter(&self) -> ::enum_set::Iter<ValueType> {
+    pub fn iter(&self) -> ::enum_set::Iter<MinkowskiValueType> {
         self.0.iter()
     }
 }
 
-impl From<ValueType> for ValueTypeSet {
-    fn from(t: ValueType) -> Self {
-        ValueTypeSet::of_one(t)
+impl From<MinkowskiValueType> for MinkowskiSet {
+    fn from(t: MinkowskiValueType) -> Self {
+        MinkowskiSet::of_one(t)
     }
 }
 
-impl ValueTypeSet {
+impl MinkowskiSet {
     pub fn is_only_numeric(&self) -> bool {
-        self.is_subset(&ValueTypeSet::of_numeric_types())
+        self.is_subset(&MinkowskiSet::of_numeric_types())
     }
 }
 
-impl IntoIterator for ValueTypeSet {
-    type Item = ValueType;
-    type IntoIter = ::enum_set::Iter<ValueType>;
+impl IntoIterator for MinkowskiSet {
+    type Item = MinkowskiValueType;
+    type IntoIter = ::enum_set::Iter<MinkowskiValueType>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
 }
 
-impl ::std::iter::FromIterator<ValueType> for ValueTypeSet {
-    fn from_iter<I: IntoIterator<Item = ValueType>>(iterator: I) -> Self {
+impl ::std::iter::FromIterator<MinkowskiValueType> for MinkowskiSet {
+    fn from_iter<I: IntoIterator<Item = MinkowskiValueType>>(iterator: I) -> Self {
         let mut ret = Self::none();
         ret.0.extend(iterator);
         ret
     }
 }
 
-impl ::std::iter::Extend<ValueType> for ValueTypeSet {
-    fn extend<I: IntoIterator<Item = ValueType>>(&mut self, iter: I) {
+impl ::std::iter::Extend<MinkowskiValueType> for MinkowskiSet {
+    fn extend<I: IntoIterator<Item = MinkowskiValueType>>(&mut self, iter: I) {
         for element in iter {
             self.0.insert(element);
         }

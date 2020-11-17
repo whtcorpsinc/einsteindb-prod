@@ -26,8 +26,8 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchSimpleAggregationFreeDaemon<
     type StorageStats = Src::StorageStats;
 
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        self.0.schema()
+    fn schemaReplicant(&self) -> &[FieldType] {
+        self.0.schemaReplicant()
     }
 
     #[inline]
@@ -146,7 +146,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for SimpleAggregationI
             let aggr_expr = &entities.each_aggr_exprs[idx];
             let aggr_fn_input = aggr_expr.eval(
                 &mut entities.context,
-                entities.src.schema(),
+                entities.src.schemaReplicant(),
                 &mut input_physical_PrimaryCausets,
                 input_logical_rows,
                 rows_len,
@@ -270,7 +270,7 @@ mod tests {
         }
 
         /// `Foo` returns a Int datum.
-        fn push_foo_output_schema(output: &mut Vec<FieldType>) {
+        fn push_foo_output_schemaReplicant(output: &mut Vec<FieldType>) {
             output.push(FieldTypeTp::LongLong.into());
         }
 
@@ -327,7 +327,7 @@ mod tests {
         }
 
         /// `Bar` returns `(a: Int, b: Int, c: Real)`.
-        fn push_bar_output_schema(output: &mut Vec<FieldType>) {
+        fn push_bar_output_schemaReplicant(output: &mut Vec<FieldType>) {
             output.push(FieldTypeTp::LongLong.into());
             output.push(FieldTypeTp::Long.into());
             output.push(FieldTypeTp::Double.into());
@@ -366,14 +366,14 @@ mod tests {
                 &self,
                 aggr_def: Expr,
                 _ctx: &mut EvalContext,
-                _src_schema: &[FieldType],
-                out_schema: &mut Vec<FieldType>,
+                _src_schemaReplicant: &[FieldType],
+                out_schemaReplicant: &mut Vec<FieldType>,
                 out_exp: &mut Vec<RpnExpression>,
             ) -> Result<Box<dyn AggrFunction>> {
                 match aggr_def.get_val()[0] {
                     0 => {
                         // Foo("abc") -> Int
-                        push_foo_output_schema(out_schema);
+                        push_foo_output_schemaReplicant(out_schemaReplicant);
                         out_exp.push(
                             RpnExpressionBuilder::new_for_test()
                                 .push_constant_for_test(b"abc".to_vec())
@@ -383,7 +383,7 @@ mod tests {
                     }
                     1 => {
                         // Foo(NULL) -> Int
-                        push_foo_output_schema(out_schema);
+                        push_foo_output_schemaReplicant(out_schemaReplicant);
                         out_exp.push(
                             RpnExpressionBuilder::new_for_test()
                                 .push_constant_for_test(ScalarValue::Bytes(None))
@@ -393,7 +393,7 @@ mod tests {
                     }
                     2 => {
                         // Bar(42.5) -> (Int, Int, Real)
-                        push_bar_output_schema(out_schema);
+                        push_bar_output_schemaReplicant(out_schemaReplicant);
                         out_exp.push(
                             RpnExpressionBuilder::new_for_test()
                                 .push_constant_for_test(42.5f64)
@@ -403,7 +403,7 @@ mod tests {
                     }
                     3 => {
                         // Bar(NULL) -> (Int, Int, Real)
-                        push_bar_output_schema(out_schema);
+                        push_bar_output_schemaReplicant(out_schemaReplicant);
                         out_exp.push(
                             RpnExpressionBuilder::new_for_test()
                                 .push_constant_for_test(ScalarValue::Real(None))
@@ -413,7 +413,7 @@ mod tests {
                     }
                     4 => {
                         // Foo(col_2) -> Int
-                        push_foo_output_schema(out_schema);
+                        push_foo_output_schemaReplicant(out_schemaReplicant);
                         out_exp.push(
                             RpnExpressionBuilder::new_for_test()
                                 .push_PrimaryCauset_ref_for_test(2)
@@ -423,7 +423,7 @@ mod tests {
                     }
                     5 => {
                         // Bar(col_1) -> (Int, Int, Real)
-                        push_bar_output_schema(out_schema);
+                        push_bar_output_schemaReplicant(out_schemaReplicant);
                         out_exp.push(
                             RpnExpressionBuilder::new_for_test()
                                 .push_PrimaryCauset_ref_for_test(1)
@@ -627,11 +627,11 @@ mod tests {
                 &self,
                 _aggr_def: Expr,
                 _ctx: &mut EvalContext,
-                _src_schema: &[FieldType],
-                out_schema: &mut Vec<FieldType>,
+                _src_schemaReplicant: &[FieldType],
+                out_schemaReplicant: &mut Vec<FieldType>,
                 out_exp: &mut Vec<RpnExpression>,
             ) -> Result<Box<dyn AggrFunction>> {
-                out_schema.push(FieldTypeTp::LongLong.into());
+                out_schemaReplicant.push(FieldTypeTp::LongLong.into());
                 out_exp.push(
                     RpnExpressionBuilder::new_for_test()
                         .push_constant_for_test(5f64)

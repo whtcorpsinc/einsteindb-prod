@@ -9,27 +9,27 @@
 // specific language governing permissions and limitations under the License.
 
 use embedded_promises::{
-    ValueType,
-    TypedValue,
+    MinkowskiValueType,
+    MinkowskiType,
 };
 
 use einsteindb_embedded::{
-    HasSchema,
+    HasSchemaReplicant,
 };
 
 use einsteindb_embedded::util::Either;
 
 use edbn::causetq::{
     Binding,
-    FnArg,
+    StackedPerceptron,
     NonIntegerConstant,
     SrcVar,
     VariableOrPlaceholder,
     WhereFn,
 };
 
-use clauses::{
-    ConjoiningClauses,
+use gerunds::{
+    ConjoiningGerunds,
 };
 
 use causetq_parityfilter_promises::errors::{
@@ -50,11 +50,11 @@ use types::{
     SourceAlias,
 };
 
-use Known;
+use KnownCauset;
 
-impl ConjoiningClauses {
+impl ConjoiningGerunds {
     #[allow(unused_variables)]
-    pub(crate) fn apply_fulltext(&mut self, known: Known, where_fn: WhereFn) -> Result<()> {
+    pub(crate) fn apply_fulltext(&mut self, knownCauset: KnownCauset, where_fn: WhereFn) -> Result<()> {
         if where_fn.args.len() != 3 {
             bail!(ParityFilterError::InvalidNumberOfArguments(where_fn.operator.clone(), where_fn.args.len(), 3));
         }
@@ -95,30 +95,26 @@ impl ConjoiningClauses {
 
         let mut args = where_fn.args.into_iter();
 
-        // TODO: process source variables.
+       
         match args.next().unwrap() {
-            FnArg::SrcVar(SrcVar::DefaultSrc) => {},
+            StackedPerceptron::SrcVar(SrcVar::DefaultSrc) => {},
             _ => bail!(ParityFilterError::InvalidArgument(where_fn.operator.clone(), "source variable", 0)),
         }
 
-        let schema = known.schema;
+        let schemaReplicant = knownCauset.schemaReplicant;
 
-        // TODO: accept placeholder and set of attributes.  Alternately, consider putting the search
-        // term before the attribute arguments and collect the (variadic) attributes into a set.
-        // let a: SolitonId  = self.resolve_attribute_argument(&where_fn.operator, 1, args.next().unwrap())?;
-        //
-        // TODO: improve the expression of this matching, possibly by using attribute_for_* uniformly.
+
         let a = match args.next().unwrap() {
-            FnArg::CausetIdOrKeyword(i) => schema.get_entid(&i).map(|k| k.into()),
+            StackedPerceptron::CausetIdOrKeyword(i) => schemaReplicant.get_causetid(&i).map(|k| k.into()),
             // Must be an solitonId.
-            FnArg::SolitonIdOrInteger(e) => Some(e),
-            FnArg::Variable(v) => {
+            StackedPerceptron::SolitonIdOrInteger(e) => Some(e),
+            StackedPerceptron::Variable(v) => {
                 // If it's already bound, then let's expand the variable.
                 // TODO: allow non-constant attributes.
                 match self.bound_value(&v) {
-                    Some(TypedValue::Ref(solitonId)) => Some(solitonId),
+                    Some(MinkowskiType::Ref(solitonId)) => Some(solitonId),
                     Some(tv) => {
-                        bail!(ParityFilterError::InputTypeDisagreement(v.name().clone(), ValueType::Ref, tv.value_type()))
+                        bail!(ParityFilterError::InputTypeDisagreement(v.name().clone(), MinkowskiValueType::Ref, tv.value_type()))
                     },
                     None => {
                         bail!(ParityFilterError::UnboundVariable((*v.0).clone()))
@@ -130,9 +126,9 @@ impl ConjoiningClauses {
 
         // An unknown causetid, or an instanton that isn't present in the store, or isn't a fulltext
         // attribute, is likely enough to be a coding error that we choose to bail instead of
-        // marking the pattern as known-empty.
+        // marking the pattern as knownCauset-empty.
         let a = a.ok_or(ParityFilterError::InvalidArgument(where_fn.operator.clone(), "attribute", 1))?;
-        let attribute = schema.attribute_for_entid(a)
+        let attribute = schemaReplicant.attribute_for_entid(a)
                               .cloned()
                               .ok_or(ParityFilterError::InvalidArgument(where_fn.operator.clone(),
                                                                 "attribute", 1))?;
@@ -166,18 +162,18 @@ impl ConjoiningClauses {
         // - It's already bound, either by input or by a previous pattern like `ground`.
         // - It's not already bound, but it's a defined input of type Text. Not yet implemented: TODO.
         // - It's not bound. The causetq cannot be algebrized.
-        let search: Either<TypedValue, QualifiedAlias> = match args.next().unwrap() {
-            FnArg::Constant(NonIntegerConstant::Text(s)) => {
-                Either::Left(TypedValue::String(s))
+        let search: Either<MinkowskiType, QualifiedAlias> = match args.next().unwrap() {
+            StackedPerceptron::Constant(NonIntegerConstant::Text(s)) => {
+                Either::Left(MinkowskiType::String(s))
             },
-            FnArg::Variable(in_var) => {
+            StackedPerceptron::Variable(in_var) => {
                 match self.bound_value(&in_var) {
-                    Some(t @ TypedValue::String(_)) => Either::Left(t),
+                    Some(t @ MinkowskiType::String(_)) => Either::Left(t),
                     Some(_) => bail!(ParityFilterError::InvalidArgument(where_fn.operator.clone(), "string", 2)),
                     None => {
                         // Regardless of whether we'll be providing a string later, or the value
                         // comes from a column, it must be a string.
-                        if self.known_type(&in_var) != Some(ValueType::String) {
+                        if self.known_type(&in_var) != Some(MinkowskiValueType::String) {
                             bail!(ParityFilterError::InvalidArgument(where_fn.operator.clone(), "string", 2))
                         }
 
@@ -203,7 +199,7 @@ impl ConjoiningClauses {
         };
 
         let qv = match search {
-            Either::Left(tv) => CausetQValue::TypedValue(tv),
+            Either::Left(tv) => CausetQValue::MinkowskiType(tv),
             Either::Right(qa) => CausetQValue::Column(qa),
         };
 
@@ -214,37 +210,37 @@ impl ConjoiningClauses {
 
         if let VariableOrPlaceholder::Variable(ref var) = b_instanton {
             // It must be a ref.
-            self.constrain_var_to_type(var.clone(), ValueType::Ref);
+            self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
             if self.is_known_empty() {
                 return Ok(());
             }
 
-            self.bind_column_to_var(schema, Causets_table_alias.clone(), CausetsColumn::Instanton, var.clone());
+            self.bind_column_to_var(schemaReplicant, Causets_table_alias.clone(), CausetsColumn::Instanton, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_value {
             // This'll be bound to strings.
-            self.constrain_var_to_type(var.clone(), ValueType::String);
+            self.constrain_var_to_type(var.clone(), MinkowskiValueType::String);
             if self.is_known_empty() {
                 return Ok(());
             }
 
-            self.bind_column_to_var(schema, fulltext_values_alias.clone(), Column::Fulltext(FulltextColumn::Text), var.clone());
+            self.bind_column_to_var(schemaReplicant, fulltext_values_alias.clone(), Column::Fulltext(FulltextColumn::Text), var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_causecausetx {
             // Txs must be refs.
-            self.constrain_var_to_type(var.clone(), ValueType::Ref);
+            self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
             if self.is_known_empty() {
                 return Ok(());
             }
 
-            self.bind_column_to_var(schema, Causets_table_alias.clone(), CausetsColumn::Tx, var.clone());
+            self.bind_column_to_var(schemaReplicant, Causets_table_alias.clone(), CausetsColumn::Tx, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_sembedded {
             // Sembeddeds are doubles.
-            self.constrain_var_to_type(var.clone(), ValueType::Double);
+            self.constrain_var_to_type(var.clone(), MinkowskiValueType::Double);
 
             // We do not allow the sembedded to be bound.
             if self.value_bindings.contains_key(var) || self.input_variables.contains(var) {
@@ -253,7 +249,7 @@ impl ConjoiningClauses {
 
             // We bind the value ourselves. This handily takes care of substituting into existing uses.
             // TODO: produce real sembeddeds using SQLite's matchinfo.
-            self.bind_value(var, TypedValue::Double(0.0.into()));
+            self.bind_value(var, MinkowskiType::Double(0.0.into()));
         }
 
         Ok(())
@@ -266,55 +262,55 @@ mod testing {
 
     use embedded_promises::{
         Attribute,
-        ValueType,
+        MinkowskiValueType,
     };
 
     use einsteindb_embedded::{
-        Schema,
+        SchemaReplicant,
     };
 
     use edbn::causetq::{
         Binding,
-        FnArg,
+        StackedPerceptron,
         Keyword,
         PlainSymbol,
         Variable,
     };
 
-    use clauses::{
+    use gerunds::{
         add_attribute,
         associate_causetId,
     };
 
     #[test]
     fn test_apply_fulltext() {
-        let mut cc = ConjoiningClauses::default();
-        let mut schema = Schema::default();
+        let mut cc = ConjoiningGerunds::default();
+        let mut schemaReplicant = SchemaReplicant::default();
 
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "bar"), 101);
-        add_attribute(&mut schema, 101, Attribute {
-            value_type: ValueType::String,
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "bar"), 101);
+        add_attribute(&mut schemaReplicant, 101, Attribute {
+            value_type: MinkowskiValueType::String,
             fulltext: false,
             ..Default::default()
         });
 
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "fts"), 100);
-        add_attribute(&mut schema, 100, Attribute {
-            value_type: ValueType::String,
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "fts"), 100);
+        add_attribute(&mut schemaReplicant, 100, Attribute {
+            value_type: MinkowskiValueType::String,
             index: true,
             fulltext: true,
             ..Default::default()
         });
 
-        let known = Known::for_schema(&schema);
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
 
         let op = PlainSymbol::plain("fulltext");
-        cc.apply_fulltext(known, WhereFn {
+        cc.apply_fulltext(knownCauset, WhereFn {
             operator: op,
             args: vec![
-                FnArg::SrcVar(SrcVar::DefaultSrc),
-                FnArg::CausetIdOrKeyword(Keyword::namespaced("foo", "fts")),
-                FnArg::Constant("needle".into()),
+                StackedPerceptron::SrcVar(SrcVar::DefaultSrc),
+                StackedPerceptron::CausetIdOrKeyword(Keyword::namespaced("foo", "fts")),
+                StackedPerceptron::Constant("needle".into()),
             ],
             binding: Binding::BindRel(vec![VariableOrPlaceholder::Variable(Variable::from_valid_name("?instanton")),
                                            VariableOrPlaceholder::Variable(Variable::from_valid_name("?value")),
@@ -328,15 +324,15 @@ mod testing {
         cc.expand_column_bindings();
         assert!(!cc.is_known_empty());
 
-        let clauses = cc.wheres;
-        assert_eq!(clauses.len(), 3);
+        let gerunds = cc.wheres;
+        assert_eq!(gerunds.len(), 3);
 
-        assert_eq!(clauses.0[0], ColumnConstraint::Equals(QualifiedAlias("Causets01".to_string(), Column::Fixed(CausetsColumn::Attribute)),
+        assert_eq!(gerunds.0[0], ColumnConstraint::Equals(QualifiedAlias("Causets01".to_string(), Column::Fixed(CausetsColumn::Attribute)),
                                                           CausetQValue::SolitonId(100)).into());
-        assert_eq!(clauses.0[1], ColumnConstraint::Equals(QualifiedAlias("Causets01".to_string(), Column::Fixed(CausetsColumn::Value)),
+        assert_eq!(gerunds.0[1], ColumnConstraint::Equals(QualifiedAlias("Causets01".to_string(), Column::Fixed(CausetsColumn::Value)),
                                                           CausetQValue::Column(QualifiedAlias("fulltext_values00".to_string(), Column::Fulltext(FulltextColumn::Rowid)))).into());
-        assert_eq!(clauses.0[2], ColumnConstraint::Matches(QualifiedAlias("fulltext_values00".to_string(), Column::Fulltext(FulltextColumn::Text)),
-                                                           CausetQValue::TypedValue("needle".into())).into());
+        assert_eq!(gerunds.0[2], ColumnConstraint::Matches(QualifiedAlias("fulltext_values00".to_string(), Column::Fulltext(FulltextColumn::Text)),
+                                                           CausetQValue::MinkowskiType("needle".into())).into());
 
         let bindings = cc.column_bindings;
         assert_eq!(bindings.len(), 3);
@@ -351,28 +347,28 @@ mod testing {
         // Sembedded is a value binding.
         let values = cc.value_bindings;
         assert_eq!(values.get(&Variable::from_valid_name("?sembedded")).expect("column binding for ?sembedded").clone(),
-                   TypedValue::Double(0.0.into()));
+                   MinkowskiType::Double(0.0.into()));
 
         let known_types = cc.known_types;
         assert_eq!(known_types.len(), 4);
 
-        assert_eq!(known_types.get(&Variable::from_valid_name("?instanton")).expect("known types for ?instanton").clone(),
-                   vec![ValueType::Ref].into_iter().collect());
-        assert_eq!(known_types.get(&Variable::from_valid_name("?value")).expect("known types for ?value").clone(),
-                   vec![ValueType::String].into_iter().collect());
-        assert_eq!(known_types.get(&Variable::from_valid_name("?causetx")).expect("known types for ?causetx").clone(),
-                   vec![ValueType::Ref].into_iter().collect());
-        assert_eq!(known_types.get(&Variable::from_valid_name("?sembedded")).expect("known types for ?sembedded").clone(),
-                   vec![ValueType::Double].into_iter().collect());
+        assert_eq!(known_types.get(&Variable::from_valid_name("?instanton")).expect("knownCauset types for ?instanton").clone(),
+                   vec![MinkowskiValueType::Ref].into_iter().collect());
+        assert_eq!(known_types.get(&Variable::from_valid_name("?value")).expect("knownCauset types for ?value").clone(),
+                   vec![MinkowskiValueType::String].into_iter().collect());
+        assert_eq!(known_types.get(&Variable::from_valid_name("?causetx")).expect("knownCauset types for ?causetx").clone(),
+                   vec![MinkowskiValueType::Ref].into_iter().collect());
+        assert_eq!(known_types.get(&Variable::from_valid_name("?sembedded")).expect("knownCauset types for ?sembedded").clone(),
+                   vec![MinkowskiValueType::Double].into_iter().collect());
 
-        let mut cc = ConjoiningClauses::default();
+        let mut cc = ConjoiningGerunds::default();
         let op = PlainSymbol::plain("fulltext");
-        cc.apply_fulltext(known, WhereFn {
+        cc.apply_fulltext(knownCauset, WhereFn {
             operator: op,
             args: vec![
-                FnArg::SrcVar(SrcVar::DefaultSrc),
-                FnArg::CausetIdOrKeyword(Keyword::namespaced("foo", "bar")),
-                FnArg::Constant("needle".into()),
+                StackedPerceptron::SrcVar(SrcVar::DefaultSrc),
+                StackedPerceptron::CausetIdOrKeyword(Keyword::namespaced("foo", "bar")),
+                StackedPerceptron::Constant("needle".into()),
             ],
             binding: Binding::BindRel(vec![VariableOrPlaceholder::Variable(Variable::from_valid_name("?instanton")),
                                            VariableOrPlaceholder::Variable(Variable::from_valid_name("?value")),

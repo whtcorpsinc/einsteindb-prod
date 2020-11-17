@@ -14,7 +14,7 @@ use self::forward::{
 use crate::causetStorage::kv::{
     CfStatistics, Cursor, CursorBuilder, Iteron, ScanMode, Snapshot, Statistics,
 };
-use crate::causetStorage::mvcc::{default_not_found_error, NewerTsCheckState, Result};
+use crate::causetStorage::tail_pointer::{default_not_found_error, NewerTsCheckState, Result};
 use crate::causetStorage::txn::{Result as TxnResult, Scanner as StoreScanner};
 
 pub use self::forward::{test_util, DeltaScanner, EntryScanner};
@@ -432,8 +432,8 @@ mod tests {
     use super::*;
     use crate::causetStorage::kv::SEEK_BOUND;
     use crate::causetStorage::kv::{Engine, LmdbEngine, TestEngineBuilder};
-    use crate::causetStorage::mvcc::tests::*;
-    use crate::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner};
+    use crate::causetStorage::tail_pointer::tests::*;
+    use crate::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
     use crate::causetStorage::txn::tests::*;
     use crate::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
     use ekvproto::kvrpcpb::Context;

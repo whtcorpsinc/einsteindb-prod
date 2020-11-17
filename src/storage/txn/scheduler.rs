@@ -701,7 +701,7 @@ impl<E: Engine, L: LockManager> Clone for Scheduler<E, L> {
 #[causetg(test)]
 mod tests {
     use super::*;
-    use crate::causetStorage::mvcc::{self, Mutation};
+    use crate::causetStorage::tail_pointer::{self, Mutation};
     use crate::causetStorage::txn::{commands, latch::*};
     use ekvproto::kvrpcpb::Context;
     use txn_types::Key;
@@ -764,8 +764,8 @@ mod tests {
                 None,
                 vec![(
                     Key::from_raw(b"k"),
-                    mvcc::Dagger::new(
-                        mvcc::LockType::Put,
+                    tail_pointer::Dagger::new(
+                        tail_pointer::LockType::Put,
                         b"k".to_vec(),
                         10.into(),
                         20,

@@ -9,25 +9,25 @@
 // specific language governing permissions and limitations under the License.
 
 use embedded_promises::{
-    ValueType,
-    ValueTypeSet,
-    TypedValue,
+    MinkowskiValueType,
+    MinkowskiSet,
+    MinkowskiType,
 };
 
 use einsteindb_embedded::{
-    HasSchema,
-    Schema,
-    SQLValueType,
+    HasSchemaReplicant,
+    SchemaReplicant,
+    SQLMinkowskiValueType,
 };
 
 use edbn::causetq::{
-    FnArg,
+    StackedPerceptron,
     NonIntegerConstant,
     Variable,
 };
 
-use clauses::{
-    ConjoiningClauses,
+use gerunds::{
+    ConjoiningGerunds,
 };
 
 use causetq_parityfilter_promises::errors::{
@@ -45,7 +45,7 @@ macro_rules! coerce_to_typed_value {
                Impossible(EmptyBecause::TypeMismatch {
                    var: $var.clone(),
                    existing: $types,
-                   desired: ValueTypeSet::of_one($type),
+                   desired: MinkowskiSet::of_one($type),
                })
            } else {
                Val($constructor($val).into())
@@ -53,72 +53,72 @@ macro_rules! coerce_to_typed_value {
     } }
 }
 
-pub(crate) trait ValueTypes {
-    fn potential_types(&self, schema: &Schema) -> Result<ValueTypeSet>;
+pub(crate) trait MinkowskiValueTypes {
+    fn potential_types(&self, schemaReplicant: &SchemaReplicant) -> Result<MinkowskiSet>;
 }
 
-impl ValueTypes for FnArg {
-    fn potential_types(&self, schema: &Schema) -> Result<ValueTypeSet> {
+impl MinkowskiValueTypes for StackedPerceptron {
+    fn potential_types(&self, schemaReplicant: &SchemaReplicant) -> Result<MinkowskiSet> {
         Ok(match self {
-                &FnArg::SolitonIdOrInteger(x) => {
-                    if ValueType::Ref.accommodates_integer(x) {
+                &StackedPerceptron::SolitonIdOrInteger(x) => {
+                    if MinkowskiValueType::Ref.accommodates_integer(x) {
                         // TODO: also see if it's a valid solitonId?
-                        ValueTypeSet::of_longs()
+                        MinkowskiSet::of_longs()
                     } else {
-                        ValueTypeSet::of_one(ValueType::Long)
+                        MinkowskiSet::of_one(MinkowskiValueType::Long)
                     }
                 },
 
-                &FnArg::CausetIdOrKeyword(ref x) => {
-                    if schema.get_entid(x).is_some() {
-                        ValueTypeSet::of_keywords()
+                &StackedPerceptron::CausetIdOrKeyword(ref x) => {
+                    if schemaReplicant.get_causetid(x).is_some() {
+                        MinkowskiSet::of_keywords()
                     } else {
-                        ValueTypeSet::of_one(ValueType::Keyword)
+                        MinkowskiSet::of_one(MinkowskiValueType::Keyword)
                     }
                 },
 
-                &FnArg::Variable(_) => {
-                    ValueTypeSet::any()
+                &StackedPerceptron::Variable(_) => {
+                    MinkowskiSet::any()
                 },
 
-                &FnArg::Constant(NonIntegerConstant::BigInteger(_)) => {
+                &StackedPerceptron::Constant(NonIntegerConstant::BigInteger(_)) => {
                     // Not yet implemented.
                     bail!(ParityFilterError::UnsupportedArgument)
                 },
 
-                // These don't make sense here. TODO: split FnArg into scalar and non-scalar…
-                &FnArg::Vector(_) |
-                &FnArg::SrcVar(_) => bail!(ParityFilterError::UnsupportedArgument),
+                // These don't make sense here. TODO: split StackedPerceptron into scalar and non-scalar…
+                &StackedPerceptron::Vector(_) |
+                &StackedPerceptron::SrcVar(_) => bail!(ParityFilterError::UnsupportedArgument),
 
                 // These are all straightforward.
-                &FnArg::Constant(NonIntegerConstant::Boolean(_)) => ValueTypeSet::of_one(ValueType::Boolean),
-                &FnArg::Constant(NonIntegerConstant::Instant(_)) => ValueTypeSet::of_one(ValueType::Instant),
-                &FnArg::Constant(NonIntegerConstant::Uuid(_)) => ValueTypeSet::of_one(ValueType::Uuid),
-                &FnArg::Constant(NonIntegerConstant::Float(_)) => ValueTypeSet::of_one(ValueType::Double),
-                &FnArg::Constant(NonIntegerConstant::Text(_)) => ValueTypeSet::of_one(ValueType::String),
+                &StackedPerceptron::Constant(NonIntegerConstant::Boolean(_)) => MinkowskiSet::of_one(MinkowskiValueType::Boolean),
+                &StackedPerceptron::Constant(NonIntegerConstant::Instant(_)) => MinkowskiSet::of_one(MinkowskiValueType::Instant),
+                &StackedPerceptron::Constant(NonIntegerConstant::Uuid(_)) => MinkowskiSet::of_one(MinkowskiValueType::Uuid),
+                &StackedPerceptron::Constant(NonIntegerConstant::Float(_)) => MinkowskiSet::of_one(MinkowskiValueType::Double),
+                &StackedPerceptron::Constant(NonIntegerConstant::Text(_)) => MinkowskiSet::of_one(MinkowskiValueType::String),
             })
     }
 }
 
 pub(crate) enum ValueConversion {
-    Val(TypedValue),
+    Val(MinkowskiType),
     Impossible(EmptyBecause),
 }
 
-/// Conversion of FnArgs to TypedValues.
-impl ConjoiningClauses {
-    /// Convert the provided `FnArg` to a `TypedValue`.
+/// Conversion of StackedPerceptrons to MinkowskiTypes.
+impl ConjoiningGerunds {
+    /// Convert the provided `StackedPerceptron` to a `MinkowskiType`.
     /// The conversion depends on, and can fail because of:
-    /// - Existing known types of a variable to which this arg will be bound.
-    /// - Existing bindings of a variable `FnArg`.
-    pub(crate) fn typed_value_from_arg<'s>(&self, schema: &'s Schema, var: &Variable, arg: FnArg, known_types: ValueTypeSet) -> Result<ValueConversion> {
+    /// - Existing knownCauset types of a variable to which this arg will be bound.
+    /// - Existing bindings of a variable `StackedPerceptron`.
+    pub(crate) fn typed_value_from_arg<'s>(&self, schemaReplicant: &'s SchemaReplicant, var: &Variable, arg: StackedPerceptron, known_types: MinkowskiSet) -> Result<ValueConversion> {
         use self::ValueConversion::*;
         if known_types.is_empty() {
             // If this happens, it likely means the pattern has already failed!
             return Ok(Impossible(EmptyBecause::TypeMismatch {
                 var: var.clone(),
                 existing: known_types,
-                desired: ValueTypeSet::any(),
+                desired: MinkowskiSet::any(),
             }));
         }
 
@@ -131,29 +131,29 @@ impl ConjoiningClauses {
 
         match arg {
             // Longs are potentially ambiguous: they might be longs or entids.
-            FnArg::SolitonIdOrInteger(x) => {
-                match (ValueType::Ref.accommodates_integer(x),
-                       constrained_types.contains(ValueType::Ref),
-                       constrained_types.contains(ValueType::Long)) {
+            StackedPerceptron::SolitonIdOrInteger(x) => {
+                match (MinkowskiValueType::Ref.accommodates_integer(x),
+                       constrained_types.contains(MinkowskiValueType::Ref),
+                       constrained_types.contains(MinkowskiValueType::Long)) {
                     (true, true, true) => {
                         // Ambiguous: this arg could be an solitonId or a long.
                         // We default to long.
-                        Ok(Val(TypedValue::Long(x)))
+                        Ok(Val(MinkowskiType::Long(x)))
                     },
                     (true, true, false) => {
                         // This can only be a ref.
-                        Ok(Val(TypedValue::Ref(x)))
+                        Ok(Val(MinkowskiType::Ref(x)))
                     },
                     (_, false, true) => {
                         // This can only be a long.
-                        Ok(Val(TypedValue::Long(x)))
+                        Ok(Val(MinkowskiType::Long(x)))
                     },
                     (false, true, _) => {
                         // This isn't a valid ref, but that's the type to which this must conform!
                         Ok(Impossible(EmptyBecause::TypeMismatch {
                             var: var.clone(),
                             existing: known_types,
-                            desired: ValueTypeSet::of_longs(),
+                            desired: MinkowskiSet::of_longs(),
                         }))
                     },
                     (_, false, false) => {
@@ -161,16 +161,16 @@ impl ConjoiningClauses {
                         Ok(Impossible(EmptyBecause::TypeMismatch {
                             var: var.clone(),
                             existing: known_types,
-                            desired: ValueTypeSet::of_longs(),
+                            desired: MinkowskiSet::of_longs(),
                         }))
                     },
                 }
             },
 
             // If you definitely want to look up an causetid, do it before running the causetq.
-            FnArg::CausetIdOrKeyword(x) => {
-                match (constrained_types.contains(ValueType::Ref),
-                       constrained_types.contains(ValueType::Keyword)) {
+            StackedPerceptron::CausetIdOrKeyword(x) => {
+                match (constrained_types.contains(MinkowskiValueType::Ref),
+                       constrained_types.contains(MinkowskiValueType::Keyword)) {
                     (true, true) => {
                         // Ambiguous: this could be a keyword or an causetid.
                         // Default to keyword.
@@ -178,31 +178,31 @@ impl ConjoiningClauses {
                     },
                     (true, false) => {
                         // This can only be an causetid. Look it up!
-                        match schema.get_entid(&x).map(|k| k.into()) {
+                        match schemaReplicant.get_causetid(&x).map(|k| k.into()) {
                             Some(e) => Ok(Val(e)),
                             None => Ok(Impossible(EmptyBecause::UnresolvedCausetId(x.clone()))),
                         }
                     },
                     (false, true) => {
-                        Ok(Val(TypedValue::Keyword(x.into())))
+                        Ok(Val(MinkowskiType::Keyword(x.into())))
                     },
                     (false, false) => {
                         Ok(Impossible(EmptyBecause::TypeMismatch {
                             var: var.clone(),
                             existing: known_types,
-                            desired: ValueTypeSet::of_keywords(),
+                            desired: MinkowskiSet::of_keywords(),
                         }))
                     },
                 }
             },
 
-            FnArg::Variable(in_var) => {
+            StackedPerceptron::Variable(in_var) => {
                 // TODO: technically you could ground an existing variable inside the causetq….
                 if !self.input_variables.contains(&in_var) {
                     bail!(ParityFilterError::UnboundVariable((*in_var.0).clone()))
                 }
                 match self.bound_value(&in_var) {
-                    // The type is already known if it's a bound variable….
+                    // The type is already knownCauset if it's a bound variable….
                     Some(ref in_value) => Ok(Val(in_value.clone())),
                     None => {
                         // The variable is present in `:in`, but it hasn't yet been provided.
@@ -214,27 +214,27 @@ impl ConjoiningClauses {
             },
 
             // This isn't implemented yet.
-            FnArg::Constant(NonIntegerConstant::BigInteger(_)) => unimplemented!(),
+            StackedPerceptron::Constant(NonIntegerConstant::BigInteger(_)) => unimplemented!(),
 
             // These don't make sense here.
-            FnArg::Vector(_) |
-            FnArg::SrcVar(_) => bail!(ParityFilterError::InvalidGroundConstant),
+            StackedPerceptron::Vector(_) |
+            StackedPerceptron::SrcVar(_) => bail!(ParityFilterError::InvalidGroundConstant),
 
             // These are all straightforward.
-            FnArg::Constant(NonIntegerConstant::Boolean(x)) => {
-                coerce_to_typed_value!(var, x, known_types, ValueType::Boolean, TypedValue::Boolean)
+            StackedPerceptron::Constant(NonIntegerConstant::Boolean(x)) => {
+                coerce_to_typed_value!(var, x, known_types, MinkowskiValueType::Boolean, MinkowskiType::Boolean)
             },
-            FnArg::Constant(NonIntegerConstant::Instant(x)) => {
-                coerce_to_typed_value!(var, x, known_types, ValueType::Instant, TypedValue::Instant)
+            StackedPerceptron::Constant(NonIntegerConstant::Instant(x)) => {
+                coerce_to_typed_value!(var, x, known_types, MinkowskiValueType::Instant, MinkowskiType::Instant)
             },
-            FnArg::Constant(NonIntegerConstant::Uuid(x)) => {
-                coerce_to_typed_value!(var, x, known_types, ValueType::Uuid, TypedValue::Uuid)
+            StackedPerceptron::Constant(NonIntegerConstant::Uuid(x)) => {
+                coerce_to_typed_value!(var, x, known_types, MinkowskiValueType::Uuid, MinkowskiType::Uuid)
             },
-            FnArg::Constant(NonIntegerConstant::Float(x)) => {
-                coerce_to_typed_value!(var, x, known_types, ValueType::Double, TypedValue::Double)
+            StackedPerceptron::Constant(NonIntegerConstant::Float(x)) => {
+                coerce_to_typed_value!(var, x, known_types, MinkowskiValueType::Double, MinkowskiType::Double)
             },
-            FnArg::Constant(NonIntegerConstant::Text(x)) => {
-                coerce_to_typed_value!(var, x, known_types, ValueType::String, TypedValue::String)
+            StackedPerceptron::Constant(NonIntegerConstant::Text(x)) => {
+                coerce_to_typed_value!(var, x, known_types, MinkowskiValueType::String, MinkowskiType::String)
             },
         }
     }

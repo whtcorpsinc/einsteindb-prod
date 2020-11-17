@@ -102,6 +102,6 @@ impl<T: Clone> Cloned<T> for Box<T> where T: Sized + Clone {
 ///
 /// This type alias exists to allow us to use different boxing mechanisms for values.
 /// This type must implement `FromRc` and `Cloned`, and a `From` impleeinsteindbion must exist for
-/// `TypedValue`.
+/// `MinkowskiType`.
 ///
 pub type ValueRc<T> = Arc<T>;

@@ -29,7 +29,7 @@ impl<T: Clone> Clone for Entry<T> {
 pub trait ClonableObserver: 'static + Slightlike {
     type Ob: ?Sized + Slightlike;
     fn inner(&self) -> &Self::Ob;
-    fn inner_mut(&mut self) -> &mut Self::Ob;
+    fn causet_set_mut(&mut self) -> &mut Self::Ob;
     fn box_clone(&self) -> Box<dyn ClonableObserver<Ob = Self::Ob> + Slightlike>;
 }
 
@@ -63,7 +63,7 @@ macro_rules! impl_box_observer {
                 &self.inner as _
             }
 
-            fn inner_mut(&mut self) -> &mut Self::Ob {
+            fn causet_set_mut(&mut self) -> &mut Self::Ob {
                 &mut self.inner as _
             }
 
@@ -113,7 +113,7 @@ macro_rules! impl_box_observer_g {
                 &self.inner as _
             }
 
-            fn inner_mut(&mut self) -> &mut Self::Ob {
+            fn causet_set_mut(&mut self) -> &mut Self::Ob {
                 &mut self.inner as _
             }
 

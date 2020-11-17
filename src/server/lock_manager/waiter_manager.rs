@@ -4,7 +4,7 @@ use super::config::Config;
 use super::deadlock::Scheduler as DetectorScheduler;
 use super::metrics::*;
 use crate::causetStorage::lock_manager::{Dagger, WaitTimeout};
-use crate::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner, TimeStamp};
+use crate::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner, TimeStamp};
 use crate::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
 use crate::causetStorage::{
     Error as StorageError, ErrorInner as StorageErrorInner, ProcessResult, StorageCallback,
@@ -222,7 +222,7 @@ impl Waiter {
     /// It may be invoked more than once.
     fn conflict_with(&mut self, lock_ts: TimeStamp, commit_ts: TimeStamp) {
         let (key, primary) = self.extract_key_info();
-        let mvcc_err = MvccError::from(MvccErrorInner::WriteConflict {
+        let tail_pointer_err = MvccError::from(MvccErrorInner::WriteConflict {
             spacelike_ts: self.spacelike_ts,
             conflict_spacelike_ts: lock_ts,
             conflict_commit_ts: commit_ts,
@@ -230,21 +230,21 @@ impl Waiter {
             primary,
         });
         self.pr = ProcessResult::Failed {
-            err: StorageError::from(TxnError::from(mvcc_err)),
+            err: StorageError::from(TxnError::from(tail_pointer_err)),
         };
     }
 
     /// Changes the `ProcessResult` to `Deadlock`.
     fn deadlock_with(&mut self, deadlock_key_hash: u64) {
         let (key, _) = self.extract_key_info();
-        let mvcc_err = MvccError::from(MvccErrorInner::Deadlock {
+        let tail_pointer_err = MvccError::from(MvccErrorInner::Deadlock {
             spacelike_ts: self.spacelike_ts,
             lock_ts: self.dagger.ts,
             lock_key: key,
             deadlock_key_hash,
         });
         self.pr = ProcessResult::Failed {
-            err: StorageError::from(TxnError::from(mvcc_err)),
+            err: StorageError::from(TxnError::from(tail_pointer_err)),
         };
     }
 
@@ -255,7 +255,7 @@ impl Waiter {
                 Err(StorageError(box StorageErrorInner::Txn(TxnError(
                     box TxnErrorInner::Mvcc(MvccError(box MvccErrorInner::KeyIsLocked(info))),
                 )))) => (info.take_key(), info.take_primary_lock()),
-                _ => panic!("unexpected mvcc error"),
+                _ => panic!("unexpected tail_pointer error"),
             },
             ProcessResult::Failed { err } => match err {
                 StorageError(box StorageErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(
@@ -268,7 +268,7 @@ impl Waiter {
                     std::mem::replace(key, Vec::new()),
                     std::mem::replace(primary, Vec::new()),
                 ),
-                _ => panic!("unexpected mvcc error"),
+                _ => panic!("unexpected tail_pointer error"),
             },
             _ => panic!("unexpected progress result"),
         }
@@ -774,7 +774,7 @@ pub mod tests {
                 }),
             ))))) => {
                 assert_eq!(spacelike_ts, waiter_ts);
-                assert_eq!(conflict_spacelike_ts, lock_info.get_lock_version().into());
+                assert_eq!(conflict_spacelike_ts, lock_info.get_dagger_version().into());
                 assert_eq!(conflict_commit_ts, commit_ts);
                 assert_eq!(key, lock_info.take_key());
                 assert_eq!(primary, lock_info.take_primary_lock());
@@ -799,7 +799,7 @@ pub mod tests {
                 }),
             ))))) => {
                 assert_eq!(spacelike_ts, waiter_ts);
-                assert_eq!(lock_ts, lock_info.get_lock_version().into());
+                assert_eq!(lock_ts, lock_info.get_dagger_version().into());
                 assert_eq!(lock_key, lock_info.take_key());
                 assert_eq!(deadlock_key_hash, deadlock_hash);
             }

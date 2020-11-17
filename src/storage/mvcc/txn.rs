@@ -1,7 +1,7 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
 use crate::causetStorage::kv::{Modify, ScanMode, Snapshot, Statistics, WriteData};
-use crate::causetStorage::mvcc::{
+use crate::causetStorage::tail_pointer::{
     metrics::*, reader::MvccReader, reader::TxnCommitRecord, ErrorInner, Result,
 };
 use crate::causetStorage::types::TxnStatus;
@@ -810,7 +810,7 @@ impl<S: Snapshot> MvccTxn<S> {
         )
         .into()));
 
-        // Rollback is called only if the transaction is known to fail. Under the circumstances,
+        // Rollback is called only if the transaction is knownCauset to fail. Under the circumstances,
         // the rollback record needn't be protected.
         self.cleanup(key, TimeStamp::zero(), false)
     }
@@ -1008,7 +1008,7 @@ impl<S: Snapshot> MvccTxn<S> {
         mutation_type: MutationType,
         prev_write: Option<Write>,
     ) -> Result<()> {
-        use crate::causetStorage::mvcc::reader::seek_for_valid_write;
+        use crate::causetStorage::tail_pointer::reader::seek_for_valid_write;
 
         if self.extra_op == ExtraOp::ReadOldValue
             && (mutation_type == MutationType::Put || mutation_type == MutationType::Delete)
@@ -1125,8 +1125,8 @@ mod tests {
     use super::*;
 
     use crate::causetStorage::kv::{Engine, LmdbEngine, TestEngineBuilder};
-    use crate::causetStorage::mvcc::tests::*;
-    use crate::causetStorage::mvcc::{Error, ErrorInner, MvccReader};
+    use crate::causetStorage::tail_pointer::tests::*;
+    use crate::causetStorage::tail_pointer::{Error, ErrorInner, MvccReader};
 
     use crate::causetStorage::txn::commands::*;
     use crate::causetStorage::txn::commit;
@@ -1135,7 +1135,7 @@ mod tests {
     use ekvproto::kvrpcpb::Context;
     use txn_types::{TimeStamp, SHORT_VALUE_MAX_LEN};
 
-    fn test_mvcc_txn_read_imp(k1: &[u8], k2: &[u8], v: &[u8]) {
+    fn test_tail_pointer_txn_read_imp(k1: &[u8], k2: &[u8], v: &[u8]) {
         let engine = TestEngineBuilder::new().build().unwrap();
 
         must_get_none(&engine, k1, 1);
@@ -1199,14 +1199,14 @@ mod tests {
     }
 
     #[test]
-    fn test_mvcc_txn_read() {
-        test_mvcc_txn_read_imp(b"k1", b"k2", b"v1");
+    fn test_tail_pointer_txn_read() {
+        test_tail_pointer_txn_read_imp(b"k1", b"k2", b"v1");
 
         let long_value = "v".repeat(SHORT_VALUE_MAX_LEN + 1).into_bytes();
-        test_mvcc_txn_read_imp(b"k1", b"k2", &long_value);
+        test_tail_pointer_txn_read_imp(b"k1", b"k2", &long_value);
     }
 
-    fn test_mvcc_txn_prewrite_imp(k: &[u8], v: &[u8]) {
+    fn test_tail_pointer_txn_prewrite_imp(k: &[u8], v: &[u8]) {
         let engine = TestEngineBuilder::new().build().unwrap();
 
         must_prewrite_put(&engine, k, v, k, 5);
@@ -1240,7 +1240,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mvcc_txn_prewrite_insert() {
+    fn test_tail_pointer_txn_prewrite_insert() {
         let engine = TestEngineBuilder::new().build().unwrap();
         let (k1, v1, v2, v3) = (b"k1", b"v1", b"v2", b"v3");
         must_prewrite_put(&engine, k1, v1, k1, 1);
@@ -1277,7 +1277,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mvcc_txn_prewrite_check_not_exist() {
+    fn test_tail_pointer_txn_prewrite_check_not_exist() {
         let engine = TestEngineBuilder::new().build().unwrap();
         let (k1, v1, v2, v3) = (b"k1", b"v1", b"v2", b"v3");
         must_prewrite_put(&engine, k1, v1, k1, 1);
@@ -1314,7 +1314,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mvcc_txn_pessmistic_prewrite_check_not_exist() {
+    fn test_tail_pointer_txn_pessmistic_prewrite_check_not_exist() {
         let engine = TestEngineBuilder::new().build().unwrap();
         let k = b"k1";
         assert!(try_pessimistic_prewrite_check_not_exists(&engine, k, k, 3).is_err())
@@ -1457,15 +1457,15 @@ mod tests {
     }
 
     #[test]
-    fn test_mvcc_txn_prewrite() {
-        test_mvcc_txn_prewrite_imp(b"k1", b"v1");
+    fn test_tail_pointer_txn_prewrite() {
+        test_tail_pointer_txn_prewrite_imp(b"k1", b"v1");
 
         let long_value = "v".repeat(SHORT_VALUE_MAX_LEN + 1).into_bytes();
-        test_mvcc_txn_prewrite_imp(b"k2", &long_value);
+        test_tail_pointer_txn_prewrite_imp(b"k2", &long_value);
     }
 
     #[test]
-    fn test_mvcc_txn_rollback_after_commit() {
+    fn test_tail_pointer_txn_rollback_after_commit() {
         let engine = TestEngineBuilder::new().build().unwrap();
 
         let k = b"k";
@@ -1488,7 +1488,7 @@ mod tests {
         must_get(&engine, k, t4, v);
     }
 
-    fn test_mvcc_txn_rollback_imp(k: &[u8], v: &[u8]) {
+    fn test_tail_pointer_txn_rollback_imp(k: &[u8], v: &[u8]) {
         let engine = TestEngineBuilder::new().build().unwrap();
 
         must_prewrite_put(&engine, k, v, k, 5);
@@ -1521,15 +1521,15 @@ mod tests {
     }
 
     #[test]
-    fn test_mvcc_txn_rollback() {
-        test_mvcc_txn_rollback_imp(b"k", b"v");
+    fn test_tail_pointer_txn_rollback() {
+        test_tail_pointer_txn_rollback_imp(b"k", b"v");
 
         let long_value = "v".repeat(SHORT_VALUE_MAX_LEN + 1).into_bytes();
-        test_mvcc_txn_rollback_imp(b"k2", &long_value);
+        test_tail_pointer_txn_rollback_imp(b"k2", &long_value);
     }
 
     #[test]
-    fn test_mvcc_txn_rollback_before_prewrite() {
+    fn test_tail_pointer_txn_rollback_before_prewrite() {
         let engine = TestEngineBuilder::new().build().unwrap();
         let key = b"key";
         must_rollback(&engine, key, 5);
@@ -2220,9 +2220,9 @@ mod tests {
                     v,
                     expected_lock_info.get_primary_lock(),
                     &None,
-                    expected_lock_info.get_lock_version().into(),
+                    expected_lock_info.get_dagger_version().into(),
                     false,
-                    expected_lock_info.get_lock_ttl(),
+                    expected_lock_info.get_dagger_ttl(),
                     TimeStamp::zero(),
                     expected_lock_info.get_txn_size(),
                     TimeStamp::zero(),
@@ -2236,9 +2236,9 @@ mod tests {
                     &engine,
                     expected_lock_info.get_key(),
                     expected_lock_info.get_primary_lock(),
-                    expected_lock_info.get_lock_version(),
-                    expected_lock_info.get_lock_ttl(),
-                    expected_lock_info.get_lock_for_ufidelate_ts(),
+                    expected_lock_info.get_dagger_version(),
+                    expected_lock_info.get_dagger_ttl(),
+                    expected_lock_info.get_dagger_for_ufidelate_ts(),
                     false,
                     TimeStamp::zero(),
                 );
@@ -2265,13 +2265,13 @@ mod tests {
 
             // Delete the dagger
             if *is_optimistic {
-                must_rollback(&engine, k, expected_lock_info.get_lock_version());
+                must_rollback(&engine, k, expected_lock_info.get_dagger_version());
             } else {
                 pessimistic_rollback::tests::must_success(
                     &engine,
                     k,
-                    expected_lock_info.get_lock_version(),
-                    expected_lock_info.get_lock_for_ufidelate_ts(),
+                    expected_lock_info.get_dagger_version(),
+                    expected_lock_info.get_dagger_for_ufidelate_ts(),
                 );
             }
         }
@@ -2321,7 +2321,7 @@ mod tests {
         must_pessimistic_prewrite_put(&engine, k1, v1, k1, 15, 15, true);
         // There is a non-pessimistic dagger conflict here.
         match must_pessimistic_prewrite_put_err(&engine, k2, v2, k1, 15, 15, false) {
-            Error(box ErrorInner::KeyIsLocked(info)) => assert_eq!(info.get_lock_ttl(), 0),
+            Error(box ErrorInner::KeyIsLocked(info)) => assert_eq!(info.get_dagger_ttl(), 0),
             e => panic!("unexpected error: {}", e),
         };
     }

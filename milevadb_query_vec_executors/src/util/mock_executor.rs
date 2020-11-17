@@ -10,15 +10,15 @@ use milevadb_query_common::causetStorage::IntervalCone;
 ///
 /// Normally this should be only used in tests.
 pub struct MockFreeDaemon {
-    schema: Vec<FieldType>,
+    schemaReplicant: Vec<FieldType>,
     results: std::vec::IntoIter<BatchExecuteResult>,
 }
 
 impl MockFreeDaemon {
-    pub fn new(schema: Vec<FieldType>, results: Vec<BatchExecuteResult>) -> Self {
+    pub fn new(schemaReplicant: Vec<FieldType>, results: Vec<BatchExecuteResult>) -> Self {
         assert!(!results.is_empty());
         Self {
-            schema,
+            schemaReplicant,
             results: results.into_iter(),
         }
     }
@@ -27,8 +27,8 @@ impl MockFreeDaemon {
 impl BatchFreeDaemon for MockFreeDaemon {
     type StorageStats = ();
 
-    fn schema(&self) -> &[FieldType] {
-        &self.schema
+    fn schemaReplicant(&self) -> &[FieldType] {
+        &self.schemaReplicant
     }
 
     fn next_batch(&mut self, _scan_rows: usize) -> BatchExecuteResult {

@@ -26,14 +26,14 @@ impl super::AggrDefinitionParser for AggrFnDefinitionParserCount {
         root_expr: Expr,
         exp: RpnExpression,
         _ctx: &mut EvalContext,
-        _src_schema: &[FieldType],
-        out_schema: &mut Vec<FieldType>,
+        _src_schemaReplicant: &[FieldType],
+        out_schemaReplicant: &mut Vec<FieldType>,
         out_exp: &mut Vec<RpnExpression>,
     ) -> Result<Box<dyn AggrFunction>> {
         assert_eq!(root_expr.get_tp(), ExprType::Count);
 
         // COUNT outputs one PrimaryCauset.
-        out_schema.push(
+        out_schemaReplicant.push(
             FieldTypeBuilder::new()
                 .tp(FieldTypeTp::LongLong)
                 .flag(FieldTypeFlag::UNSIGNED)

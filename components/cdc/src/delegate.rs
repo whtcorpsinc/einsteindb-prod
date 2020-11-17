@@ -773,7 +773,7 @@ mod tests {
     use ekvproto::errorpb::Error as ErrorHeader;
     use ekvproto::metapb::Brane;
     use std::cell::Cell;
-    use einsteindb::causetStorage::mvcc::test_util::*;
+    use einsteindb::causetStorage::tail_pointer::test_util::*;
     use einsteindb_util::mpsc::batch::{self, BatchReceiver, VecCollector};
 
     #[test]

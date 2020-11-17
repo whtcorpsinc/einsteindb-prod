@@ -3,7 +3,7 @@
 //! Core data types.
 
 use crate::causetStorage::{
-    mvcc::{Dagger, LockType, TimeStamp, Write, WriteType},
+    tail_pointer::{Dagger, LockType, TimeStamp, Write, WriteType},
     txn::ProcessResult,
     Callback, Result,
 };
@@ -11,7 +11,7 @@ use ekvproto::kvrpcpb;
 use std::fmt::Debug;
 use txn_types::{Key, Value};
 
-/// `MvccInfo` stores all mvcc information of given key.
+/// `MvccInfo` stores all tail_pointer information of given key.
 /// Used by `MvccGetByKey` and `MvccGetByStartTs`.
 #[derive(Debug, Default)]
 pub struct MvccInfo {
@@ -54,7 +54,7 @@ impl MvccInfo {
                 .collect()
         }
 
-        let mut mvcc_info = kvrpcpb::MvccInfo::default();
+        let mut tail_pointer_info = kvrpcpb::MvccInfo::default();
         if let Some(dagger) = self.dagger {
             let mut lock_info = kvrpcpb::MvccLock::default();
             let op = match dagger.lock_type {
@@ -67,13 +67,13 @@ impl MvccInfo {
             lock_info.set_spacelike_ts(dagger.ts.into_inner());
             lock_info.set_primary(dagger.primary);
             lock_info.set_short_value(dagger.short_value.unwrap_or_default());
-            mvcc_info.set_lock(lock_info);
+            tail_pointer_info.set_lock(lock_info);
         }
         let vv = extract_2pc_values(self.values);
         let vw = extract_2pc_writes(self.writes);
-        mvcc_info.set_writes(vw.into());
-        mvcc_info.set_values(vv.into());
-        mvcc_info
+        tail_pointer_info.set_writes(vw.into());
+        tail_pointer_info.set_values(vv.into());
+        tail_pointer_info
     }
 }
 
@@ -176,8 +176,8 @@ macro_rules! causetStorage_callback {
 causetStorage_callback! {
     Boolean(()) ProcessResult::Res => (),
     Booleans(Vec<Result<()>>) ProcessResult::MultiRes { results } => results,
-    MvccInfoByKey(MvccInfo) ProcessResult::MvccKey { mvcc } => mvcc,
-    MvccInfoByStartTs(Option<(Key, MvccInfo)>) ProcessResult::MvccStartTs { mvcc } => mvcc,
+    MvccInfoByKey(MvccInfo) ProcessResult::MvccKey { tail_pointer } => tail_pointer,
+    MvccInfoByStartTs(Option<(Key, MvccInfo)>) ProcessResult::MvccStartTs { tail_pointer } => tail_pointer,
     Locks(Vec<kvrpcpb::LockInfo>) ProcessResult::Locks { locks } => locks,
     TxnStatus(TxnStatus) ProcessResult::TxnStatus { txn_status } => txn_status,
     Prewrite(PrewriteResult) ProcessResult::PrewriteResult { result } => result,

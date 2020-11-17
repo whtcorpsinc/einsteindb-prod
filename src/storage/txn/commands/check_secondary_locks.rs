@@ -2,7 +2,7 @@
 
 use crate::causetStorage::kv::WriteData;
 use crate::causetStorage::lock_manager::LockManager;
-use crate::causetStorage::mvcc::{
+use crate::causetStorage::tail_pointer::{
     txn::make_rollback, LockType, MvccTxn, SecondaryLockStatus, TimeStamp, TxnCommitRecord,
 };
 use crate::causetStorage::txn::commands::{
@@ -159,7 +159,7 @@ pub mod tests {
     use super::*;
     use crate::causetStorage::kv::TestEngineBuilder;
     use crate::causetStorage::lock_manager::DummyLockManager;
-    use crate::causetStorage::mvcc::tests::*;
+    use crate::causetStorage::tail_pointer::tests::*;
     use crate::causetStorage::txn::commands::WriteCommand;
     use crate::causetStorage::txn::tests::*;
     use crate::causetStorage::Engine;

@@ -9,8 +9,8 @@
 // specific language governing permissions and limitations under the License.
 
 use embedded_promises::{
-    ValueType,
-    ValueTypeSet,
+    MinkowskiValueType,
+    MinkowskiSet,
 };
 
 use edbn::causetq::{
@@ -21,7 +21,7 @@ use edbn::causetq::{
 
 use einsteindb_causetq_parityfilter::{
     ColumnName,
-    ConjoiningClauses,
+    ConjoiningGerunds,
     VariableColumn,
 };
 
@@ -76,7 +76,7 @@ impl SimpleAggregationOp {
     /// but invalid to take `Max` of `{Uuid, String}`.
     ///
     /// The returned type is the type of the result of the aggregation.
-    pub fn is_applicable_to_types(&self, possibilities: ValueTypeSet) -> Result<ValueType> {
+    pub fn is_applicable_to_types(&self, possibilities: MinkowskiSet) -> Result<MinkowskiValueType> {
         use self::SimpleAggregationOp::*;
         if possibilities.is_empty() {
             bail!(ProjectorError::CannotProjectImpossibleBinding(*self))
@@ -84,24 +84,24 @@ impl SimpleAggregationOp {
 
         match self {
             // One can always count results.
-            &Count => Ok(ValueType::Long),
+            &Count => Ok(MinkowskiValueType::Long),
 
             // Only numeric types can be averaged or summed.
             &Avg => {
                 if possibilities.is_only_numeric() {
                     // The mean of a set of numeric values will always, for our purposes, be a double.
-                    Ok(ValueType::Double)
+                    Ok(MinkowskiValueType::Double)
                 } else {
                     bail!(ProjectorError::CannotApplyAggregateOperationToTypes(*self, possibilities))
                 }
             },
             &Sum => {
                 if possibilities.is_only_numeric() {
-                    if possibilities.contains(ValueType::Double) {
-                        Ok(ValueType::Double)
+                    if possibilities.contains(MinkowskiValueType::Double) {
+                        Ok(MinkowskiValueType::Double)
                     } else {
                         // TODO: BigInt.
-                        Ok(ValueType::Long)
+                        Ok(MinkowskiValueType::Long)
                     }
                 } else {
                     bail!(ProjectorError::CannotApplyAggregateOperationToTypes(*self, possibilities))
@@ -110,7 +110,7 @@ impl SimpleAggregationOp {
 
             &Max | &Min => {
                 if possibilities.is_unit() {
-                    use self::ValueType::*;
+                    use self::MinkowskiValueType::*;
                     let the_type = possibilities.exemplar().expect("a type");
                     match the_type {
                         // These types are numerically ordered.
@@ -132,11 +132,11 @@ impl SimpleAggregationOp {
                     // The only types that are valid to compare cross-type are numbers.
                     if possibilities.is_only_numeric() {
                         // Note that if the max/min is a Long, it will be returned as a Double!
-                        if possibilities.contains(ValueType::Double) {
-                            Ok(ValueType::Double)
+                        if possibilities.contains(MinkowskiValueType::Double) {
+                            Ok(MinkowskiValueType::Double)
                         } else {
                             // TODO: BigInt.
-                            Ok(ValueType::Long)
+                            Ok(MinkowskiValueType::Long)
                         }
                     } else {
                         bail!(ProjectorError::CannotApplyAggregateOperationToTypes(*self, possibilities))
@@ -194,8 +194,8 @@ impl SimpleAggregation for Aggregate {
 /// Returns two values:
 /// - The `ColumnOrExpression` to use in the causetq. This will always refer to other
 ///   variables by name; never to a causets column.
-/// - The known type of that value.
-pub fn timelike_distance_column_for_simple_aggregate(simple: &SimpleAggregate, cc: &ConjoiningClauses) -> Result<(GreedoidColumn, ValueType)> {
+/// - The knownCauset type of that value.
+pub fn timelike_distance_column_for_simple_aggregate(simple: &SimpleAggregate, cc: &ConjoiningGerunds) -> Result<(GreedoidColumn, MinkowskiValueType)> {
     let known_types = cc.known_type_set(&simple.var);
     let return_type = simple.op.is_applicable_to_types(known_types)?;
     let timelike_distance_column_or_expression =

@@ -9,5 +9,5 @@ pub mod commit;
 
 #[causetg(test)]
 pub mod tests {
-    // Todo: move tests in mvcc/txn.rs which tests cooperation of different actions here
+    // Todo: move tests in tail_pointer/txn.rs which tests cooperation of different actions here
 }

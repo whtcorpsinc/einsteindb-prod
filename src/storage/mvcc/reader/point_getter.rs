@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use crate::causetStorage::kv::{Cursor, CursorBuilder, ScanMode, Snapshot, Statistics};
-use crate::causetStorage::mvcc::{default_not_found_error, NewerTsCheckState, Result};
+use crate::causetStorage::tail_pointer::{default_not_found_error, NewerTsCheckState, Result};
 use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_WRITE};
 use ekvproto::kvrpcpb::IsolationLevel;
 use std::borrow::Cow;
@@ -338,7 +338,7 @@ mod tests {
     use txn_types::SHORT_VALUE_MAX_LEN;
 
     use crate::causetStorage::kv::{CfStatistics, Engine, LmdbEngine, TestEngineBuilder};
-    use crate::causetStorage::mvcc::tests::*;
+    use crate::causetStorage::tail_pointer::tests::*;
     use crate::causetStorage::txn::tests::must_commit;
 
     fn new_multi_point_getter<E: Engine>(engine: &E, ts: TimeStamp) -> PointGetter<E::Snap> {

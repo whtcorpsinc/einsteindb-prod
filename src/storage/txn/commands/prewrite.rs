@@ -5,7 +5,7 @@ use txn_types::{Key, Mutation, TimeStamp};
 
 use crate::causetStorage::kv::WriteData;
 use crate::causetStorage::lock_manager::LockManager;
-use crate::causetStorage::mvcc::{
+use crate::causetStorage::tail_pointer::{
     has_data_in_cone, Error as MvccError, ErrorInner as MvccErrorInner, MvccTxn,
 };
 use crate::causetStorage::txn::commands::{WriteCommand, WriteContext, WriteResult};
@@ -265,7 +265,7 @@ mod tests {
     use txn_types::TimeStamp;
     use txn_types::{Key, Mutation};
 
-    use crate::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner};
+    use crate::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
     use crate::causetStorage::txn::commands::{
         Commit, Prewrite, Rollback, WriteContext, FORWARD_MIN_MUTATIONS_NUM,
     };
@@ -276,7 +276,7 @@ mod tests {
         Engine, PrewriteResult, ProcessResult, Snapshot, Statistics, TestEngineBuilder,
     };
 
-    fn inner_test_prewrite_skip_constraint_check(pri_key_number: u8, write_num: usize) {
+    fn causet_set_test_prewrite_skip_constraint_check(pri_key_number: u8, write_num: usize) {
         let mut mutations = Vec::default();
         let pri_key = &[pri_key_number];
         for i in 0..write_num {
@@ -381,9 +381,9 @@ mod tests {
 
     #[test]
     fn test_prewrite_skip_constraint_check() {
-        inner_test_prewrite_skip_constraint_check(0, FORWARD_MIN_MUTATIONS_NUM + 1);
-        inner_test_prewrite_skip_constraint_check(5, FORWARD_MIN_MUTATIONS_NUM + 1);
-        inner_test_prewrite_skip_constraint_check(
+        causet_set_test_prewrite_skip_constraint_check(0, FORWARD_MIN_MUTATIONS_NUM + 1);
+        causet_set_test_prewrite_skip_constraint_check(5, FORWARD_MIN_MUTATIONS_NUM + 1);
+        causet_set_test_prewrite_skip_constraint_check(
             FORWARD_MIN_MUTATIONS_NUM as u8,
             FORWARD_MIN_MUTATIONS_NUM + 1,
         );

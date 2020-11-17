@@ -128,7 +128,7 @@ pub fn is_initial_msg(msg: &evioletabftpb::Message) -> bool {
     let msg_type = msg.get_msg_type();
     msg_type == MessageType::MsgRequestVote
         || msg_type == MessageType::MsgRequestPreVote
-        // the peer has not been known to this leader, it may exist or not.
+        // the peer has not been knownCauset to this leader, it may exist or not.
         || (msg_type == MessageType::MsgHeartbeat && msg.get_commit() == INVALID_INDEX)
 }
 

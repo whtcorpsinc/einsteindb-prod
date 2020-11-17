@@ -30,8 +30,8 @@ use edbn::entities::{
 use embedded_promises::{
     SolitonId,
     KnownSolitonId,
-    TypedValue,
-    ValueType,
+    MinkowskiType,
+    MinkowskiValueType,
 };
 
 pub type Result<T> = ::std::result::Result<T, DbError>;
@@ -43,20 +43,20 @@ pub enum CardinalityConflict {
     CardinalityOneAddConflict {
         e: SolitonId,
         a: SolitonId,
-        vs: BTreeSet<TypedValue>,
+        vs: BTreeSet<MinkowskiType>,
     },
 
     /// A Causet has been both asserted and retracted, like `[:edb/add e a v]` and `[:edb/retract e a v]`.
     AddRetractConflict {
         e: SolitonId,
         a: SolitonId,
-        vs: BTreeSet<TypedValue>,
+        vs: BTreeSet<MinkowskiType>,
     },
 }
 
 // TODO Error/ErrorKind pair
 #[derive(Clone, Debug, Eq, PartialEq, Fail)]
-pub enum SchemaConstraintViolation {
+pub enum SchemaReplicantConstraintViolation {
     /// A transaction tried to assert causets where one tempid upserts to two (or more) distinct
     /// entids.
     ConflictingUpserts {
@@ -72,18 +72,18 @@ pub enum SchemaConstraintViolation {
     /// A transaction tried to assert a Causet or causets with the wrong value `v` type(s).
     TypeDisagreements {
         /// The key (`[e a v]`) has an invalid value `v`: it is not of the expected value type.
-        conflicting_Causets: BTreeMap<(SolitonId, SolitonId, TypedValue), ValueType>
+        conflicting_Causets: BTreeMap<(SolitonId, SolitonId, MinkowskiType), MinkowskiValueType>
     },
 
-    /// A transaction tried to assert causets that don't observe the schema's cardinality constraints.
+    /// A transaction tried to assert causets that don't observe the schemaReplicant's cardinality constraints.
     CardinalityConflicts {
         conflicts: Vec<CardinalityConflict>,
     },
 }
 
-impl ::std::fmt::Display for SchemaConstraintViolation {
+impl ::std::fmt::Display for SchemaReplicantConstraintViolation {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        use self::SchemaConstraintViolation::*;
+        use self::SchemaReplicantConstraintViolation::*;
         match self {
             &ConflictingUpserts { ref conflicting_upserts } => {
                 writeln!(f, "conflicting upserts:")?;
@@ -188,7 +188,7 @@ pub enum DbErrorKind {
 
     /// We've been given a value that isn't the correct EinsteinDB type.
     #[fail(display = "value '{}' is not the expected EinsteinDB value type {:?}", _0, _1)]
-    BadValuePair(String, ValueType),
+    BadValuePair(String, MinkowskiValueType),
 
     /// We've got corrupt data in the SQL store: a value and value_type_tag don't line up.
     /// TODO _1.data_type()
@@ -205,9 +205,9 @@ pub enum DbErrorKind {
     #[fail(display = "bad bootstrap definition: {}", _0)]
     BadBootstrapDefinition(String),
 
-    /// A schema assertion couldn't be parsed.
-    #[fail(display = "bad schema assertion: {}", _0)]
-    BadSchemaAssertion(String),
+    /// A schemaReplicant assertion couldn't be parsed.
+    #[fail(display = "bad schemaReplicant assertion: {}", _0)]
+    BadSchemaReplicantAssertion(String),
 
     /// An causetid->solitonId mapping failed.
     #[fail(display = "no solitonId found for causetid: {}", _0)]
@@ -227,15 +227,15 @@ pub enum DbErrorKind {
     #[fail(display = "cannot reverse-immutable_memTcam non-unique attribute: {}", _0)]
     CannotCacheNonUniqueAttributeInReverse(SolitonId),
 
-    #[fail(display = "schema alteration failed: {}", _0)]
-    SchemaAlterationFailed(String),
+    #[fail(display = "schemaReplicant alteration failed: {}", _0)]
+    SchemaReplicantAlterationFailed(String),
 
-    /// A transaction tried to violate a constraint of the schema of the EinsteinDB store.
-    #[fail(display = "schema constraint violation: {}", _0)]
-    SchemaConstraintViolation(SchemaConstraintViolation),
+    /// A transaction tried to violate a constraint of the schemaReplicant of the EinsteinDB store.
+    #[fail(display = "schemaReplicant constraint violation: {}", _0)]
+    SchemaReplicantConstraintViolation(SchemaReplicantConstraintViolation),
 
     /// The transaction was malformed in some way (that was not recognized at parse time; for
-    /// example, in a way that is schema-dependent).
+    /// example, in a way that is schemaReplicant-dependent).
     #[fail(display = "transaction input error: {}", _0)]
     InputError(InputError),
 

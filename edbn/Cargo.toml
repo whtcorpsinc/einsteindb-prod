@@ -1,11 +1,10 @@
 [package]
 name = "edbn"
 version = "0.1.0"
-authors = ["Joe Walker <jwalker@whtcorpsinc.com>"]
 workspace = ".."
 
 license = "Apache-2.0"
-repository = "https://github.com/whtcorpsinc/einsteindb"
+repository = "https://github.com/whtcorpsinc/einsteindb-prod/edbn"
 description = "EDBN parser for Project EinsteinDB"
 build = "build.rs"
 readme = "./README.md"

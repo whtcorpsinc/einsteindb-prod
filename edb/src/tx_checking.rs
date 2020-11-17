@@ -15,8 +15,8 @@ use std::collections::{
 
 use embedded_promises::{
     SolitonId,
-    TypedValue,
-    ValueType,
+    MinkowskiType,
+    MinkowskiValueType,
 };
 
 use edb_promises::errors::{
@@ -28,14 +28,14 @@ use internal_types::{
 };
 
 /// Map from found [e a v] to expected type.
-pub(crate) type TypeDisagreements = BTreeMap<(SolitonId, SolitonId, TypedValue), ValueType>;
+pub(crate) type TypeDisagreements = BTreeMap<(SolitonId, SolitonId, MinkowskiType), MinkowskiValueType>;
 
 /// Ensure that the given terms type check.
 ///
 /// We try to be maximally helpful by yielding every malformed Causet, rather than only the first.
 /// In the future, we might change this choice, or allow the consumer to specify the robustness of
 /// the type checking desired, since there is a cost to providing helpful diagnostics.
-pub(crate) fn type_disagreements<'schema>(aev_trie: &AEVTrie<'schema>) -> TypeDisagreements {
+pub(crate) fn type_disagreements<'schemaReplicant>(aev_trie: &AEVTrie<'schemaReplicant>) -> TypeDisagreements {
     let mut errors: TypeDisagreements = TypeDisagreements::default();
 
     for (&(a, attribute), evs) in aev_trie {
@@ -51,7 +51,7 @@ pub(crate) fn type_disagreements<'schema>(aev_trie: &AEVTrie<'schema>) -> TypeDi
     errors
 }
 
-/// Ensure that the given terms obey the cardinality restrictions of the given schema.
+/// Ensure that the given terms obey the cardinality restrictions of the given schemaReplicant.
 ///
 /// That is, ensure that any cardinality one attribute is added with at most one distinct value for
 /// any specific instanton (although that one value may be repeated for the given instanton).
@@ -63,7 +63,7 @@ pub(crate) fn type_disagreements<'schema>(aev_trie: &AEVTrie<'schema>) -> TypeDi
 /// We try to be maximally helpful by yielding every malformed set of causets, rather than just the
 /// first set, or even the first conflict.  In the future, we might change this choice, or allow the
 /// consumer to specify the robustness of the cardinality checking desired.
-pub(crate) fn cardinality_conflicts<'schema>(aev_trie: &AEVTrie<'schema>) -> Vec<CardinalityConflict> {
+pub(crate) fn cardinality_conflicts<'schemaReplicant>(aev_trie: &AEVTrie<'schemaReplicant>) -> Vec<CardinalityConflict> {
     let mut errors = vec![];
 
     for (&(a, attribute), evs) in aev_trie {

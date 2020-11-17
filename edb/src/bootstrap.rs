@@ -22,15 +22,15 @@ use edb::TypedSQLValue;
 use edbn::entities::Instanton;
 
 use embedded_promises::{
-    TypedValue,
+    MinkowskiType,
     values,
 };
 
 use einsteindb_embedded::{
     CausetIdMap,
-    Schema,
+    SchemaReplicant,
 };
-use schema::SchemaBuilding;
+use schemaReplicant::SchemaReplicantBuilding;
 use types::{Partition, PartitionMap};
 
 /// The first transaction ID applied to the knowledge base.
@@ -41,7 +41,7 @@ pub const TX0: i64 = 0x10000000;
 /// This is the start of the :edb.part/user partition.
 pub const USER0: i64 = 0x10000;
 
-// Corresponds to the version of the :edb.schema/embedded vocabulary.
+// Corresponds to the version of the :edb.schemaReplicant/embedded vocabulary.
 pub const CORE_SCHEMA_VERSION: u32 = 1;
 
 lazy_static! {
@@ -83,9 +83,9 @@ lazy_static! {
              (ns_keyword!("edb.unique", "value"),      entids::DB_UNIQUE_VALUE),
              (ns_keyword!("edb.unique", "causetIdity"),   entids::DB_UNIQUE_CAUSETIDITY),
              (ns_keyword!("edb", "doc"),               entids::DB_DOC),
-             (ns_keyword!("edb.schema", "version"),    entids::DB_SCHEMA_VERSION),
-             (ns_keyword!("edb.schema", "attribute"),  entids::DB_SCHEMA_ATTRIBUTE),
-             (ns_keyword!("edb.schema", "embedded"),       entids::DB_SCHEMA_CORE),
+             (ns_keyword!("edb.schemaReplicant", "version"),    entids::DB_SCHEMA_VERSION),
+             (ns_keyword!("edb.schemaReplicant", "attribute"),  entids::DB_SCHEMA_ATTRIBUTE),
+             (ns_keyword!("edb.schemaReplicant", "embedded"),       entids::DB_SCHEMA_CORE),
         ]
     };
 
@@ -111,8 +111,8 @@ lazy_static! {
              (ns_keyword!("edb", "fulltext")),
              (ns_keyword!("edb", "noHistory")),
              (ns_keyword!("edb.alter", "attribute")),
-             (ns_keyword!("edb.schema", "version")),
-             (ns_keyword!("edb.schema", "attribute")),
+             (ns_keyword!("edb.schemaReplicant", "version")),
+             (ns_keyword!("edb.schemaReplicant", "attribute")),
         ]
     };
 
@@ -152,12 +152,12 @@ lazy_static! {
                         :edb/cardinality :edb.cardinality/one}
  :edb.alter/attribute   {:edb/valueType   :edb.type/ref
                         :edb/cardinality :edb.cardinality/many}
- :edb.schema/version    {:edb/valueType   :edb.type/long
+ :edb.schemaReplicant/version    {:edb/valueType   :edb.type/long
                         :edb/cardinality :edb.cardinality/one}
 
  ;; unique-value because an attribute can only belong to a single
- ;; schema fragment.
- :edb.schema/attribute  {:edb/valueType   :edb.type/ref
+ ;; schemaReplicant fragment.
+ :edb.schemaReplicant/attribute  {:edb/valueType   :edb.type/ref
                         :edb/index       true
                         :edb/unique      :edb.unique/value
                         :edb/cardinality :edb.cardinality/many}}"#;
@@ -179,37 +179,37 @@ fn causetIds_to_assertions(causetIds: &[(symbols::Keyword, i64)]) -> Vec<Value> 
         .collect()
 }
 
-/// Convert an causetid list into [:edb/add :edb.schema/embedded :edb.schema/attribute CAUSETID] `Value` instances.
-fn schema_attrs_to_assertions(version: u32, causetIds: &[symbols::Keyword]) -> Vec<Value> {
-    let schema_embedded = Value::Keyword(ns_keyword!("edb.schema", "embedded"));
-    let schema_attr = Value::Keyword(ns_keyword!("edb.schema", "attribute"));
-    let schema_version = Value::Keyword(ns_keyword!("edb.schema", "version"));
+/// Convert an causetid list into [:edb/add :edb.schemaReplicant/embedded :edb.schemaReplicant/attribute CAUSETID] `Value` instances.
+fn schemaReplicant_attrs_to_assertions(version: u32, causetIds: &[symbols::Keyword]) -> Vec<Value> {
+    let schemaReplicant_embedded = Value::Keyword(ns_keyword!("edb.schemaReplicant", "embedded"));
+    let schemaReplicant_attr = Value::Keyword(ns_keyword!("edb.schemaReplicant", "attribute"));
+    let schemaReplicant_version = Value::Keyword(ns_keyword!("edb.schemaReplicant", "version"));
     causetIds
         .into_iter()
         .map(|causetid| {
             let value = Value::Keyword(causetid.clone());
             Value::Vector(vec![values::DB_ADD.clone(),
-                               schema_embedded.clone(),
-                               schema_attr.clone(),
+                               schemaReplicant_embedded.clone(),
+                               schemaReplicant_attr.clone(),
                                value])
         })
         .chain(::std::iter::once(Value::Vector(vec![values::DB_ADD.clone(),
-                                             schema_embedded.clone(),
-                                             schema_version,
+                                             schemaReplicant_embedded.clone(),
+                                             schemaReplicant_version,
                                              Value::Integer(version as i64)])))
         .collect()
 }
 
 /// Convert {:causetid {:key :value ...} ...} to
-/// vec![(symbols::Keyword(:causetid), symbols::Keyword(:key), TypedValue(:value)), ...].
+/// vec![(symbols::Keyword(:causetid), symbols::Keyword(:key), MinkowskiType(:value)), ...].
 ///
 /// Such triples are closer to what the transactor will produce when processing attribute
 /// assertions.
-fn symbolic_schema_to_triples(causetId_map: &CausetIdMap, symbolic_schema: &Value) -> Result<Vec<(symbols::Keyword, symbols::Keyword, TypedValue)>> {
+fn symbolic_schemaReplicant_to_triples(causetId_map: &CausetIdMap, symbolic_schemaReplicant: &Value) -> Result<Vec<(symbols::Keyword, symbols::Keyword, MinkowskiType)>> {
     // Failure here is a coding error, not a runtime error.
-    let mut triples: Vec<(symbols::Keyword, symbols::Keyword, TypedValue)> = vec![];
+    let mut triples: Vec<(symbols::Keyword, symbols::Keyword, MinkowskiType)> = vec![];
     // TODO: Consider `flat_map` and `map` rather than loop.
-    match *symbolic_schema {
+    match *symbolic_schemaReplicant {
         Value::Map(ref m) => {
             for (causetid, mp) in m {
                 let causetid = match causetid {
@@ -226,16 +226,16 @@ fn symbolic_schema_to_triples(causetId_map: &CausetIdMap, symbolic_schema: &Valu
 
                             // We have symbolic causetIds but the transactor handles entids.  Ad-hoc
                             // convert right here.  This is a fundamental limitation on the
-                            // bootstrap symbolic schema format; we can't represent "real" keywords
+                            // bootstrap symbolic schemaReplicant format; we can't represent "real" keywords
                             // at this time.
                             //
                             // TODO: remove this limitation, perhaps by including a type tag in the
-                            // bootstrap symbolic schema, or by representing the initial bootstrap
-                            // schema directly as Rust data.
-                            let typed_value = match TypedValue::from_edbn_value(value) {
-                                Some(TypedValue::Keyword(ref k)) => {
+                            // bootstrap symbolic schemaReplicant, or by representing the initial bootstrap
+                            // schemaReplicant directly as Rust data.
+                            let typed_value = match MinkowskiType::from_edbn_value(value) {
+                                Some(MinkowskiType::Keyword(ref k)) => {
                                     causetId_map.get(k)
-                                        .map(|solitonId| TypedValue::Ref(*solitonId))
+                                        .map(|solitonId| MinkowskiType::Ref(*solitonId))
                                         .ok_or(DbErrorKind::UnrecognizedCausetId(k.to_string()))?
                                 },
                                 Some(v) => v,
@@ -255,10 +255,10 @@ fn symbolic_schema_to_triples(causetId_map: &CausetIdMap, symbolic_schema: &Valu
 }
 
 /// Convert {CAUSETID {:key :value ...} ...} to [[:edb/add CAUSETID :key :value] ...].
-fn symbolic_schema_to_assertions(symbolic_schema: &Value) -> Result<Vec<Value>> {
+fn symbolic_schemaReplicant_to_assertions(symbolic_schemaReplicant: &Value) -> Result<Vec<Value>> {
     // Failure here is a coding error, not a runtime error.
     let mut assertions: Vec<Value> = vec![];
-    match *symbolic_schema {
+    match *symbolic_schemaReplicant {
         Value::Map(ref m) => {
             for (causetid, mp) in m {
                 match *mp {
@@ -291,17 +291,17 @@ pub(crate) fn bootstrap_causetId_map() -> CausetIdMap {
              .collect()
 }
 
-pub(crate) fn bootstrap_schema() -> Schema {
+pub(crate) fn bootstrap_schemaReplicant() -> SchemaReplicant {
     let causetId_map = bootstrap_causetId_map();
-    let bootstrap_triples = symbolic_schema_to_triples(&causetId_map, &V1_SYMBOLIC_SCHEMA).expect("symbolic schema");
-    Schema::from_causetId_map_and_triples(causetId_map, bootstrap_triples).unwrap()
+    let bootstrap_triples = symbolic_schemaReplicant_to_triples(&causetId_map, &V1_SYMBOLIC_SCHEMA).expect("symbolic schemaReplicant");
+    SchemaReplicant::from_causetId_map_and_triples(causetId_map, bootstrap_triples).unwrap()
 }
 
 pub(crate) fn bootstrap_entities() -> Vec<Instanton<edbn::ValueAndSpan>> {
     let bootstrap_assertions: Value = Value::Vector([
-        symbolic_schema_to_assertions(&V1_SYMBOLIC_SCHEMA).expect("symbolic schema"),
+        symbolic_schemaReplicant_to_assertions(&V1_SYMBOLIC_SCHEMA).expect("symbolic schemaReplicant"),
         causetIds_to_assertions(&V1_CAUSETIDS[..]),
-        schema_attrs_to_assertions(CORE_SCHEMA_VERSION, V1_CORE_SCHEMA.as_ref()),
+        schemaReplicant_attrs_to_assertions(CORE_SCHEMA_VERSION, V1_CORE_SCHEMA.as_ref()),
     ].concat());
 
     // Failure here is a coding error (since the inputs are fixed), not a runtime error.

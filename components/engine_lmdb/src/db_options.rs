@@ -24,6 +24,8 @@ impl DBOptionsExt for LmdbEngine {
 pub struct LmdbDBOptions(RawDBOptions);
 
 impl LmdbDBOptions {
+
+    //tuplestore
     pub fn from_raw(raw: RawDBOptions) -> LmdbDBOptions {
         LmdbDBOptions(raw)
     }

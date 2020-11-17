@@ -9,24 +9,24 @@
 // specific language governing permissions and limitations under the License.
 
 use embedded_promises::{
-    ValueType,
-    ValueTypeSet,
+    MinkowskiValueType,
+    MinkowskiSet,
 };
 
 use einsteindb_embedded::{
-    Schema,
+    SchemaReplicant,
 };
 
 use edbn::causetq::{
-    FnArg,
+    StackedPerceptron,
     PlainSymbol,
     Predicate,
     TypeAnnotation,
 };
 
-use clauses::ConjoiningClauses;
+use gerunds::ConjoiningGerunds;
 
-use clauses::convert::ValueTypes;
+use gerunds::convert::MinkowskiValueTypes;
 
 use causetq_parityfilter_promises::errors::{
     ParityFilterError,
@@ -40,54 +40,54 @@ use types::{
     CausetQValue,
 };
 
-use Known;
+use KnownCauset;
 
 /// Application of predicates.
-impl ConjoiningClauses {
+impl ConjoiningGerunds {
     /// There are several kinds of predicates in our Datalog:
     /// - A limited set of binary comparison operators: < > <= >= !=.
     ///   These are converted into SQLite binary comparisons and some type constraints.
     /// - In the future, some predicates that are implemented via function calls in SQLite.
     ///
     /// At present we have implemented only the five built-in comparison binary operators.
-    pub(crate) fn apply_predicate(&mut self, known: Known, predicate: Predicate) -> Result<()> {
+    pub(crate) fn apply_predicate(&mut self, knownCauset: KnownCauset, predicate: Predicate) -> Result<()> {
         // Because we'll be growing the set of built-in predicates, handling each differently,
         // and ultimately allowing user-specified predicates, we match on the predicate name first.
         if let Some(op) = Inequality::from_datalog_operator(predicate.operator.0.as_str()) {
-            self.apply_inequality(known, op, predicate)
+            self.apply_inequality(knownCauset, op, predicate)
         } else {
             bail!(ParityFilterError::UnknownFunction(predicate.operator.clone()))
         }
     }
 
-    fn potential_types(&self, schema: &Schema, fn_arg: &FnArg) -> Result<ValueTypeSet> {
+    fn potential_types(&self, schemaReplicant: &SchemaReplicant, fn_arg: &StackedPerceptron) -> Result<MinkowskiSet> {
         match fn_arg {
-            &FnArg::Variable(ref v) => Ok(self.known_type_set(v)),
-            _ => fn_arg.potential_types(schema),
+            &StackedPerceptron::Variable(ref v) => Ok(self.known_type_set(v)),
+            _ => fn_arg.potential_types(schemaReplicant),
         }
     }
 
     /// Apply a type annotation, which is a construct like a predicate that constrains the argument
-    /// to be a specific ValueType.
+    /// to be a specific MinkowskiValueType.
     pub(crate) fn apply_type_anno(&mut self, anno: &TypeAnnotation) -> Result<()> {
-        match ValueType::from_keyword(&anno.value_type) {
-            Some(value_type) => self.add_type_requirement(anno.variable.clone(), ValueTypeSet::of_one(value_type)),
-            None => bail!(ParityFilterError::InvalidArgumentType(PlainSymbol::plain("type"), ValueTypeSet::any(), 2)),
+        match MinkowskiValueType::from_keyword(&anno.value_type) {
+            Some(value_type) => self.add_type_requirement(anno.variable.clone(), MinkowskiSet::of_one(value_type)),
+            None => bail!(ParityFilterError::InvalidArgumentType(PlainSymbol::plain("type"), MinkowskiSet::any(), 2)),
         }
         Ok(())
     }
 
     /// This function:
     /// - Resolves variables and converts types to those more amenable to SQL.
-    /// - Ensures that the predicate functions name a known operator.
+    /// - Ensures that the predicate functions name a knownCauset operator.
     /// - Accumulates an `Inequality` constraint into the `wheres` list.
-    pub(crate) fn apply_inequality(&mut self, known: Known, comparison: Inequality, predicate: Predicate) -> Result<()> {
+    pub(crate) fn apply_inequality(&mut self, knownCauset: KnownCauset, comparison: Inequality, predicate: Predicate) -> Result<()> {
         if predicate.args.len() != 2 {
             bail!(ParityFilterError::InvalidNumberOfArguments(predicate.operator.clone(), predicate.args.len(), 2));
         }
 
         // Go from arguments -- parser output -- to columns or values.
-        // Any variables that aren't bound by this point in the linear processing of clauses will
+        // Any variables that aren't bound by this point in the linear processing of gerunds will
         // cause the application of the predicate to fail.
         let mut args = predicate.args.into_iter();
         let left = args.next().expect("two args");
@@ -95,15 +95,15 @@ impl ConjoiningClauses {
 
 
         // The types we're handling here must be the intersection of the possible types of the arguments,
-        // the known types of any variables, and the types supported by our inequality operators.
+        // the knownCauset types of any variables, and the types supported by our inequality operators.
         let supported_types = comparison.supported_types();
-        let mut left_types = self.potential_types(known.schema, &left)?
+        let mut left_types = self.potential_types(knownCauset.schemaReplicant, &left)?
                                  .intersection(&supported_types);
         if left_types.is_empty() {
             bail!(ParityFilterError::InvalidArgumentType(predicate.operator.clone(), supported_types, 0));
         }
 
-        let mut right_types = self.potential_types(known.schema, &right)?
+        let mut right_types = self.potential_types(knownCauset.schemaReplicant, &right)?
                                   .intersection(&supported_types);
         if right_types.is_empty() {
             bail!(ParityFilterError::InvalidArgumentType(predicate.operator.clone(), supported_types, 1));
@@ -112,11 +112,11 @@ impl ConjoiningClauses {
         // We would like to allow longs to compare to doubles.
         // Do this by expanding the type sets. `resolve_numeric_argument` will
         // use `Long` by preference.
-        if right_types.contains(ValueType::Long) {
-            right_types.insert(ValueType::Double);
+        if right_types.contains(MinkowskiValueType::Long) {
+            right_types.insert(MinkowskiValueType::Double);
         }
-        if left_types.contains(ValueType::Long) {
-            left_types.insert(ValueType::Double);
+        if left_types.contains(MinkowskiValueType::Long) {
+            left_types.insert(MinkowskiValueType::Double);
         }
 
         let shared_types = left_types.intersection(&right_types);
@@ -143,15 +143,15 @@ impl ConjoiningClauses {
         let left_v;
         let right_v;
 
-        if shared_types == ValueTypeSet::of_one(ValueType::Instant) {
+        if shared_types == MinkowskiSet::of_one(MinkowskiValueType::Instant) {
             left_v = self.resolve_instant_argument(&predicate.operator, 0, left)?;
             right_v = self.resolve_instant_argument(&predicate.operator, 1, right)?;
         } else if shared_types.is_only_numeric() {
             left_v = self.resolve_numeric_argument(&predicate.operator, 0, left)?;
             right_v = self.resolve_numeric_argument(&predicate.operator, 1, right)?;
-        } else if shared_types == ValueTypeSet::of_one(ValueType::Ref) {
-            left_v = self.resolve_ref_argument(known.schema, &predicate.operator, 0, left)?;
-            right_v = self.resolve_ref_argument(known.schema, &predicate.operator, 1, right)?;
+        } else if shared_types == MinkowskiSet::of_one(MinkowskiValueType::Ref) {
+            left_v = self.resolve_ref_argument(knownCauset.schemaReplicant, &predicate.operator, 0, left)?;
+            right_v = self.resolve_ref_argument(knownCauset.schemaReplicant, &predicate.operator, 1, right)?;
         } else {
             bail!(ParityFilterError::InvalidArgumentType(predicate.operator.clone(), supported_types, 0));
         }
@@ -195,12 +195,12 @@ mod testing {
     };
     use embedded_promises::{
         Attribute,
-        TypedValue,
-        ValueType,
+        MinkowskiType,
+        MinkowskiValueType,
     };
 
     use edbn::causetq::{
-        FnArg,
+        StackedPerceptron,
         Keyword,
         Pattern,
         PatternNonValuePlace,
@@ -209,7 +209,7 @@ mod testing {
         Variable,
     };
 
-    use clauses::{
+    use gerunds::{
         add_attribute,
         associate_causetId,
         causetid,
@@ -226,19 +226,19 @@ mod testing {
     /// Verify that after application of the predicate we know that the value
     /// must be numeric.
     fn test_apply_inequality() {
-        let mut cc = ConjoiningClauses::default();
-        let mut schema = Schema::default();
+        let mut cc = ConjoiningGerunds::default();
+        let mut schemaReplicant = SchemaReplicant::default();
 
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "bar"), 99);
-        add_attribute(&mut schema, 99, Attribute {
-            value_type: ValueType::Long,
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "bar"), 99);
+        add_attribute(&mut schemaReplicant, 99, Attribute {
+            value_type: MinkowskiValueType::Long,
             ..Default::default()
         });
 
         let x = Variable::from_valid_name("?x");
         let y = Variable::from_valid_name("?y");
-        let known = Known::for_schema(&schema);
-        cc.apply_parsed_pattern(known, Pattern {
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
+        cc.apply_parsed_pattern(knownCauset, Pattern {
             source: None,
             instanton: PatternNonValuePlace::Variable(x.clone()),
             attribute: PatternNonValuePlace::Placeholder,
@@ -249,10 +249,10 @@ mod testing {
 
         let op = PlainSymbol::plain("<");
         let comp = Inequality::from_datalog_operator(op.name()).unwrap();
-        assert!(cc.apply_inequality(known, comp, Predicate {
+        assert!(cc.apply_inequality(knownCauset, comp, Predicate {
              operator: op,
              args: vec![
-                FnArg::Variable(Variable::from_valid_name("?y")), FnArg::SolitonIdOrInteger(10),
+                StackedPerceptron::Variable(Variable::from_valid_name("?y")), StackedPerceptron::SolitonIdOrInteger(10),
             ]}).is_ok());
 
         assert!(!cc.is_known_empty());
@@ -261,18 +261,18 @@ mod testing {
         cc.expand_column_bindings();
         assert!(!cc.is_known_empty());
 
-        // After processing those two clauses, we know that ?y must be numeric, but not exactly
+        // After processing those two gerunds, we know that ?y must be numeric, but not exactly
         // which type it must be.
         assert_eq!(None, cc.known_type(&y));      // Not just one.
-        let expected = ValueTypeSet::of_numeric_types();
+        let expected = MinkowskiSet::of_numeric_types();
         assert_eq!(Some(&expected), cc.known_types.get(&y));
 
-        let clauses = cc.wheres;
-        assert_eq!(clauses.len(), 1);
-        assert_eq!(clauses.0[0], ColumnConstraint::Inequality {
+        let gerunds = cc.wheres;
+        assert_eq!(gerunds.len(), 1);
+        assert_eq!(gerunds.0[0], ColumnConstraint::Inequality {
             operator: Inequality::LessThan,
             left: CausetQValue::Column(cc.column_bindings.get(&y).unwrap()[0].clone()),
-            right: CausetQValue::TypedValue(TypedValue::Long(10)),
+            right: CausetQValue::MinkowskiType(MinkowskiType::Long(10)),
         }.into());
     }
 
@@ -281,25 +281,25 @@ mod testing {
     /// a predicate to constrain the val to numeric types, and a third pattern to conflict with the
     /// numeric types and cause the pattern to fail.
     fn test_apply_conflict_with_numeric_range() {
-        let mut cc = ConjoiningClauses::default();
-        let mut schema = Schema::default();
+        let mut cc = ConjoiningGerunds::default();
+        let mut schemaReplicant = SchemaReplicant::default();
 
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "bar"), 99);
-        associate_causetId(&mut schema, Keyword::namespaced("foo", "roz"), 98);
-        add_attribute(&mut schema, 99, Attribute {
-            value_type: ValueType::Long,
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "bar"), 99);
+        associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "roz"), 98);
+        add_attribute(&mut schemaReplicant, 99, Attribute {
+            value_type: MinkowskiValueType::Long,
             ..Default::default()
         });
-        add_attribute(&mut schema, 98, Attribute {
-            value_type: ValueType::String,
+        add_attribute(&mut schemaReplicant, 98, Attribute {
+            value_type: MinkowskiValueType::String,
             unique: Some(Unique::CausetIdity),
             ..Default::default()
         });
 
         let x = Variable::from_valid_name("?x");
         let y = Variable::from_valid_name("?y");
-        let known = Known::for_schema(&schema);
-        cc.apply_parsed_pattern(known, Pattern {
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
+        cc.apply_parsed_pattern(knownCauset, Pattern {
             source: None,
             instanton: PatternNonValuePlace::Variable(x.clone()),
             attribute: PatternNonValuePlace::Placeholder,
@@ -310,14 +310,14 @@ mod testing {
 
         let op = PlainSymbol::plain(">=");
         let comp = Inequality::from_datalog_operator(op.name()).unwrap();
-        assert!(cc.apply_inequality(known, comp, Predicate {
+        assert!(cc.apply_inequality(knownCauset, comp, Predicate {
              operator: op,
              args: vec![
-                FnArg::Variable(Variable::from_valid_name("?y")), FnArg::SolitonIdOrInteger(10),
+                StackedPerceptron::Variable(Variable::from_valid_name("?y")), StackedPerceptron::SolitonIdOrInteger(10),
             ]}).is_ok());
 
         assert!(!cc.is_known_empty());
-        cc.apply_parsed_pattern(known, Pattern {
+        cc.apply_parsed_pattern(knownCauset, Pattern {
             source: None,
             instanton: PatternNonValuePlace::Variable(x.clone()),
             attribute: causetid("foo", "roz"),
@@ -332,8 +332,8 @@ mod testing {
         assert_eq!(cc.empty_because.unwrap(),
                    EmptyBecause::TypeMismatch {
                        var: y.clone(),
-                       existing: ValueTypeSet::of_numeric_types(),
-                       desired: ValueTypeSet::of_one(ValueType::String),
+                       existing: MinkowskiSet::of_numeric_types(),
+                       desired: MinkowskiSet::of_one(MinkowskiValueType::String),
                    });
     }
 }

@@ -312,7 +312,7 @@ mod tests {
     use ekvproto::violetabft_cmdpb::*;
     use std::time::Duration;
     use einsteindb::causetStorage::kv::TestEngineBuilder;
-    use einsteindb::causetStorage::mvcc::tests::*;
+    use einsteindb::causetStorage::tail_pointer::tests::*;
     use einsteindb::causetStorage::txn::tests::*;
 
     #[test]

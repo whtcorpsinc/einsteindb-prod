@@ -16,11 +16,11 @@
 use embedded_promises::{
     Attribute,
     SolitonId,
-    ValueType,
+    MinkowskiValueType,
 };
 
 use einsteindb_embedded::{
-    Schema,
+    SchemaReplicant,
 };
 
 use edbn::causetq::{
@@ -32,8 +32,8 @@ use causetq_parityfilter_promises::errors::{
 };
 
 use einsteindb_causetq_parityfilter::{
-    ConjoiningClauses,
-    Known,
+    ConjoiningGerunds,
+    KnownCauset,
     CausetQInputs,
     algebrize,
     algebrize_with_inputs,
@@ -42,32 +42,32 @@ use einsteindb_causetq_parityfilter::{
 
 // Common utility functions used in multiple test files.
 
-// These are helpers that tests use to build Schema instances.
-pub fn associate_causetId(schema: &mut Schema, i: Keyword, e: SolitonId) {
-    schema.entid_map.insert(e, i.clone());
-    schema.causetId_map.insert(i.clone(), e);
+// These are helpers that tests use to build SchemaReplicant instances.
+pub fn associate_causetId(schemaReplicant: &mut SchemaReplicant, i: Keyword, e: SolitonId) {
+    schemaReplicant.entid_map.insert(e, i.clone());
+    schemaReplicant.causetId_map.insert(i.clone(), e);
 }
 
-pub fn add_attribute(schema: &mut Schema, e: SolitonId, a: Attribute) {
-    schema.attribute_map.insert(e, a);
+pub fn add_attribute(schemaReplicant: &mut SchemaReplicant, e: SolitonId, a: Attribute) {
+    schemaReplicant.attribute_map.insert(e, a);
 }
 
-pub struct SchemaBuilder {
-    pub schema: Schema,
+pub struct SchemaReplicantBuilder {
+    pub schemaReplicant: SchemaReplicant,
     pub counter: SolitonId,
 }
 
-impl SchemaBuilder {
-    pub fn new() -> SchemaBuilder {
-        SchemaBuilder {
-            schema: Schema::default(),
+impl SchemaReplicantBuilder {
+    pub fn new() -> SchemaReplicantBuilder {
+        SchemaReplicantBuilder {
+            schemaReplicant: SchemaReplicant::default(),
             counter: 65
         }
     }
 
     pub fn define_attr(mut self, kw: Keyword, attr: Attribute) -> Self {
-        associate_causetId(&mut self.schema, kw, self.counter);
-        add_attribute(&mut self.schema, self.counter, attr);
+        associate_causetId(&mut self.schemaReplicant, kw, self.counter);
+        add_attribute(&mut self.schemaReplicant, self.counter, attr);
         self.counter += 1;
         self
     }
@@ -75,7 +75,7 @@ impl SchemaBuilder {
     pub fn define_simple_attr<T>(self,
                                  keyword_ns: T,
                                  keyword_name: T,
-                                 value_type: ValueType,
+                                 value_type: MinkowskiValueType,
                                  multival: bool) -> Self
         where T: AsRef<str>
     {
@@ -87,22 +87,22 @@ impl SchemaBuilder {
     }
 }
 
-pub fn bails(known: Known, input: &str) -> ParityFilterError {
+pub fn bails(knownCauset: KnownCauset, input: &str) -> ParityFilterError {
     let parsed = parse_find_string(input).expect("causetq input to have parsed");
-    algebrize(known, parsed).expect_err("algebrize to have failed")
+    algebrize(knownCauset, parsed).expect_err("algebrize to have failed")
 }
 
-pub fn bails_with_inputs(known: Known, input: &str, inputs: CausetQInputs) -> ParityFilterError {
+pub fn bails_with_inputs(knownCauset: KnownCauset, input: &str, inputs: CausetQInputs) -> ParityFilterError {
     let parsed = parse_find_string(input).expect("causetq input to have parsed");
-    algebrize_with_inputs(known, parsed, 0, inputs).expect_err("algebrize to have failed")
+    algebrize_with_inputs(knownCauset, parsed, 0, inputs).expect_err("algebrize to have failed")
 }
 
-pub fn alg(known: Known, input: &str) -> ConjoiningClauses {
+pub fn alg(knownCauset: KnownCauset, input: &str) -> ConjoiningGerunds {
     let parsed = parse_find_string(input).expect("causetq input to have parsed");
-    algebrize(known, parsed).expect("algebrizing to have succeeded").cc
+    algebrize(knownCauset, parsed).expect("algebrizing to have succeeded").cc
 }
 
-pub fn alg_with_inputs(known: Known, input: &str, inputs: CausetQInputs) -> ConjoiningClauses {
+pub fn alg_with_inputs(knownCauset: KnownCauset, input: &str, inputs: CausetQInputs) -> ConjoiningGerunds {
     let parsed = parse_find_string(input).expect("causetq input to have parsed");
-    algebrize_with_inputs(known, parsed, 0, inputs).expect("algebrizing to have succeeded").cc
+    algebrize_with_inputs(knownCauset, parsed, 0, inputs).expect("algebrizing to have succeeded").cc
 }

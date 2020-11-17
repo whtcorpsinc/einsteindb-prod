@@ -28,13 +28,13 @@ extern crate einsteindb_embedded;
 
 use embedded_promises::{
     SolitonId,
-    TypedValue,
-    ValueType,
+    MinkowskiType,
+    MinkowskiValueType,
 };
 
 pub use self::einsteindb_embedded::{
     DateTime,
-    Schema,
+    SchemaReplicant,
     Utc,
 };
 
@@ -128,15 +128,15 @@ pub struct EDB {
     /// TODO: represent partitions as entids.
     pub partition_map: PartitionMap,
 
-    /// The schema of the store.
-    pub schema: Schema,
+    /// The schemaReplicant of the store.
+    pub schemaReplicant: SchemaReplicant,
 }
 
 impl EDB {
-    pub fn new(partition_map: PartitionMap, schema: Schema) -> EDB {
+    pub fn new(partition_map: PartitionMap, schemaReplicant: SchemaReplicant) -> EDB {
         EDB {
             partition_map: partition_map,
-            schema: schema
+            schemaReplicant: schemaReplicant
         }
     }
 }
@@ -144,10 +144,10 @@ impl EDB {
 /// A pair [a v] in the store.
 ///
 /// Used to represent lookup-refs and [TEMPID a v] upserts as they are resolved.
-pub type AVPair = (SolitonId, TypedValue);
+pub type AVPair = (SolitonId, MinkowskiType);
 
 /// Used to represent assertions and retractions.
-pub(crate) type EAV = (SolitonId, SolitonId, TypedValue);
+pub(crate) type EAV = (SolitonId, SolitonId, MinkowskiType);
 
 /// Map [a v] pairs to existing entids.
 ///
@@ -158,12 +158,12 @@ pub type AVMap<'a> = HashMap<&'a AVPair, SolitonId>;
 pub type AttributeSet = BTreeSet<SolitonId>;
 
 /// The transactor is tied to `edbn::ValueAndSpan` right now, but in the future we'd like to support
-/// `TypedValue` directly for programmatic use.  `TransactableValue` encapsulates the interface
+/// `MinkowskiType` directly for programmatic use.  `TransactableValue` encapsulates the interface
 /// value types (i.e., values in the value place) need to support to be transacted.
 pub trait TransactableValue: Clone {
-    /// Coerce this value place into the given type.  This is where we perform schema-aware
+    /// Coerce this value place into the given type.  This is where we perform schemaReplicant-aware
     /// coercion, for example coercing an integral value into a ref where appropriate.
-    fn into_typed_value(self, schema: &Schema, value_type: ValueType) -> errors::Result<TypedValue>;
+    fn into_typed_value(self, schemaReplicant: &SchemaReplicant, value_type: MinkowskiValueType) -> errors::Result<MinkowskiType>;
 
     /// Make an instanton place out of this value place.  This is where we limit values in nested maps
     /// to valid instanton places.

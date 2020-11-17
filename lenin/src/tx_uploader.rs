@@ -157,7 +157,7 @@ pub mod tests {
         V1_PARTS,
     };
 
-    use schema::{
+    use schemaReplicant::{
         PARTITION_USER,
         PARTITION_TX,
         PARTITION_DB,

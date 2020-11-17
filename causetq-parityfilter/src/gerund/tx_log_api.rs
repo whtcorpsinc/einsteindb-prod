@@ -9,19 +9,19 @@
 // specific language governing permissions and limitations under the License.
 
 use embedded_promises::{
-    ValueType,
+    MinkowskiValueType,
 };
 
 use edbn::causetq::{
     Binding,
-    FnArg,
+    StackedPerceptron,
     SrcVar,
     VariableOrPlaceholder,
     WhereFn,
 };
 
-use clauses::{
-    ConjoiningClauses,
+use gerunds::{
+    ConjoiningGerunds,
 };
 
 use causetq_parityfilter_promises::errors::{
@@ -41,9 +41,9 @@ use types::{
     TransactionsColumn,
 };
 
-use Known;
+use KnownCauset;
 
-impl ConjoiningClauses {
+impl ConjoiningGerunds {
     // Log in CausetQ: causetx-ids and causetx-data
     //
     // The log API includes two convenience functions that are available within causetq. The causetx-ids
@@ -58,7 +58,7 @@ impl ConjoiningClauses {
     // TODO: allow causecausetxK arguments to be instants.
     // TODO: allow arbitrary additional attribute arguments that restrict the causetx-ids to those
     // transactions that impact one of the given attributes.
-    pub(crate) fn apply_causecausetx_ids(&mut self, known: Known, where_fn: WhereFn) -> Result<()> {
+    pub(crate) fn apply_causecausetx_ids(&mut self, knownCauset: KnownCauset, where_fn: WhereFn) -> Result<()> {
         if where_fn.args.len() != 3 {
             bail!(ParityFilterError::InvalidNumberOfArguments(where_fn.operator.clone(), where_fn.args.len(), 3));
         }
@@ -100,24 +100,24 @@ impl ConjoiningClauses {
 
         // TODO: process source variables.
         match args.next().unwrap() {
-            FnArg::SrcVar(SrcVar::DefaultSrc) => {},
+            StackedPerceptron::SrcVar(SrcVar::DefaultSrc) => {},
             _ => bail!(ParityFilterError::InvalidArgument(where_fn.operator.clone(), "source variable", 0)),
         }
 
-        let causecausetx1 = self.resolve_causecausetx_argument(&known.schema, &where_fn.operator, 1, args.next().unwrap())?;
-        let causecausetx2 = self.resolve_causecausetx_argument(&known.schema, &where_fn.operator, 2, args.next().unwrap())?;
+        let causecausetx1 = self.resolve_causecausetx_argument(&knownCauset.schemaReplicant, &where_fn.operator, 1, args.next().unwrap())?;
+        let causecausetx2 = self.resolve_causecausetx_argument(&knownCauset.schemaReplicant, &where_fn.operator, 2, args.next().unwrap())?;
 
         let transactions = self.next_alias_for_table(CausetsTable::Transactions);
 
         self.from.push(SourceAlias(CausetsTable::Transactions, transactions.clone()));
 
         // Bound variable must be a ref.
-        self.constrain_var_to_type(causecausetx_var.clone(), ValueType::Ref);
+        self.constrain_var_to_type(causecausetx_var.clone(), MinkowskiValueType::Ref);
         if self.is_known_empty() {
             return Ok(());
         }
 
-        self.bind_column_to_var(known.schema, transactions.clone(), TransactionsColumn::Tx, causecausetx_var.clone());
+        self.bind_column_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsColumn::Tx, causecausetx_var.clone());
 
         let after_constraint = ColumnConstraint::Inequality {
             operator: Inequality::LessThanOrEquals,
@@ -136,7 +136,7 @@ impl ConjoiningClauses {
         Ok(())
     }
 
-    pub(crate) fn apply_causecausetx_data(&mut self, known: Known, where_fn: WhereFn) -> Result<()> {
+    pub(crate) fn apply_causecausetx_data(&mut self, knownCauset: KnownCauset, where_fn: WhereFn) -> Result<()> {
         if where_fn.args.len() != 2 {
             bail!(ParityFilterError::InvalidNumberOfArguments(where_fn.operator.clone(), where_fn.args.len(), 2));
         }
@@ -179,11 +179,11 @@ impl ConjoiningClauses {
 
         // TODO: process source variables.
         match args.next().unwrap() {
-            FnArg::SrcVar(SrcVar::DefaultSrc) => {},
+            StackedPerceptron::SrcVar(SrcVar::DefaultSrc) => {},
             _ => bail!(ParityFilterError::InvalidArgument(where_fn.operator.clone(), "source variable", 0)),
         }
 
-        let causetx = self.resolve_causecausetx_argument(&known.schema, &where_fn.operator, 1, args.next().unwrap())?;
+        let causetx = self.resolve_causecausetx_argument(&knownCauset.schemaReplicant, &where_fn.operator, 1, args.next().unwrap())?;
 
         let transactions = self.next_alias_for_table(CausetsTable::Transactions);
 
@@ -196,48 +196,48 @@ impl ConjoiningClauses {
 
         if let VariableOrPlaceholder::Variable(ref var) = b_e {
             // It must be a ref.
-            self.constrain_var_to_type(var.clone(), ValueType::Ref);
+            self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
             if self.is_known_empty() {
                 return Ok(());
             }
 
-            self.bind_column_to_var(known.schema, transactions.clone(), TransactionsColumn::Instanton, var.clone());
+            self.bind_column_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsColumn::Instanton, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_a {
             // It must be a ref.
-            self.constrain_var_to_type(var.clone(), ValueType::Ref);
+            self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
             if self.is_known_empty() {
                 return Ok(());
             }
 
-            self.bind_column_to_var(known.schema, transactions.clone(), TransactionsColumn::Attribute, var.clone());
+            self.bind_column_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsColumn::Attribute, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_v {
-            self.bind_column_to_var(known.schema, transactions.clone(), TransactionsColumn::Value, var.clone());
+            self.bind_column_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsColumn::Value, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_causecausetx {
             // It must be a ref.
-            self.constrain_var_to_type(var.clone(), ValueType::Ref);
+            self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
             if self.is_known_empty() {
                 return Ok(());
             }
 
             // TODO: this might be a programming error if var is our causetx argument.  Perhaps we can be
             // helpful in that case.
-            self.bind_column_to_var(known.schema, transactions.clone(), TransactionsColumn::Tx, var.clone());
+            self.bind_column_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsColumn::Tx, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_op {
             // It must be a boolean.
-            self.constrain_var_to_type(var.clone(), ValueType::Boolean);
+            self.constrain_var_to_type(var.clone(), MinkowskiValueType::Boolean);
             if self.is_known_empty() {
                 return Ok(());
             }
 
-            self.bind_column_to_var(known.schema, transactions.clone(), TransactionsColumn::Added, var.clone());
+            self.bind_column_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsColumn::Added, var.clone());
         }
 
         Ok(())
@@ -249,35 +249,35 @@ mod testing {
     use super::*;
 
     use embedded_promises::{
-        TypedValue,
-        ValueType,
+        MinkowskiType,
+        MinkowskiValueType,
     };
 
     use einsteindb_embedded::{
-        Schema,
+        SchemaReplicant,
     };
 
     use edbn::causetq::{
         Binding,
-        FnArg,
+        StackedPerceptron,
         PlainSymbol,
         Variable,
     };
 
     #[test]
     fn test_apply_causecausetx_ids() {
-        let mut cc = ConjoiningClauses::default();
-        let schema = Schema::default();
+        let mut cc = ConjoiningGerunds::default();
+        let schemaReplicant = SchemaReplicant::default();
 
-        let known = Known::for_schema(&schema);
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
 
         let op = PlainSymbol::plain("causetx-ids");
-        cc.apply_causecausetx_ids(known, WhereFn {
+        cc.apply_causecausetx_ids(knownCauset, WhereFn {
             operator: op,
             args: vec![
-                FnArg::SrcVar(SrcVar::DefaultSrc),
-                FnArg::SolitonIdOrInteger(1000),
-                FnArg::SolitonIdOrInteger(2000),
+                StackedPerceptron::SrcVar(SrcVar::DefaultSrc),
+                StackedPerceptron::SolitonIdOrInteger(1000),
+                StackedPerceptron::SolitonIdOrInteger(2000),
             ],
             binding: Binding::BindRel(vec![VariableOrPlaceholder::Variable(Variable::from_valid_name("?causetx")),
             ]),
@@ -289,21 +289,21 @@ mod testing {
         cc.expand_column_bindings();
         assert!(!cc.is_known_empty());
 
-        let clauses = cc.wheres;
-        assert_eq!(clauses.len(), 2);
+        let gerunds = cc.wheres;
+        assert_eq!(gerunds.len(), 2);
 
-        assert_eq!(clauses.0[0],
+        assert_eq!(gerunds.0[0],
                    ColumnConstraint::Inequality {
                        operator: Inequality::LessThanOrEquals,
-                       left: CausetQValue::TypedValue(TypedValue::Ref(1000)),
+                       left: CausetQValue::MinkowskiType(MinkowskiType::Ref(1000)),
                        right: CausetQValue::Column(QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::Tx))),
                    }.into());
 
-        assert_eq!(clauses.0[1],
+        assert_eq!(gerunds.0[1],
                    ColumnConstraint::Inequality {
                        operator: Inequality::LessThan,
                        left: CausetQValue::Column(QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::Tx))),
-                       right: CausetQValue::TypedValue(TypedValue::Ref(2000)),
+                       right: CausetQValue::MinkowskiType(MinkowskiType::Ref(2000)),
                    }.into());
 
         let bindings = cc.column_bindings;
@@ -315,23 +315,23 @@ mod testing {
         let known_types = cc.known_types;
         assert_eq!(known_types.len(), 1);
 
-        assert_eq!(known_types.get(&Variable::from_valid_name("?causetx")).expect("known types for ?causetx").clone(),
-                   vec![ValueType::Ref].into_iter().collect());
+        assert_eq!(known_types.get(&Variable::from_valid_name("?causetx")).expect("knownCauset types for ?causetx").clone(),
+                   vec![MinkowskiValueType::Ref].into_iter().collect());
     }
 
     #[test]
     fn test_apply_causecausetx_data() {
-        let mut cc = ConjoiningClauses::default();
-        let schema = Schema::default();
+        let mut cc = ConjoiningGerunds::default();
+        let schemaReplicant = SchemaReplicant::default();
 
-        let known = Known::for_schema(&schema);
+        let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
 
         let op = PlainSymbol::plain("causetx-data");
-        cc.apply_causecausetx_data(known, WhereFn {
+        cc.apply_causecausetx_data(knownCauset, WhereFn {
             operator: op,
             args: vec![
-                FnArg::SrcVar(SrcVar::DefaultSrc),
-                FnArg::SolitonIdOrInteger(1000),
+                StackedPerceptron::SrcVar(SrcVar::DefaultSrc),
+                StackedPerceptron::SolitonIdOrInteger(1000),
             ],
             binding: Binding::BindRel(vec![
                 VariableOrPlaceholder::Variable(Variable::from_valid_name("?e")),
@@ -348,12 +348,12 @@ mod testing {
         cc.expand_column_bindings();
         assert!(!cc.is_known_empty());
 
-        let clauses = cc.wheres;
-        assert_eq!(clauses.len(), 1);
+        let gerunds = cc.wheres;
+        assert_eq!(gerunds.len(), 1);
 
-        assert_eq!(clauses.0[0],
+        assert_eq!(gerunds.0[0],
                    ColumnConstraint::Equals(QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::Tx)),
-                                            CausetQValue::TypedValue(TypedValue::Ref(1000))).into());
+                                            CausetQValue::MinkowskiType(MinkowskiType::Ref(1000))).into());
 
         let bindings = cc.column_bindings;
         assert_eq!(bindings.len(), 5);
@@ -376,22 +376,22 @@ mod testing {
         let known_types = cc.known_types;
         assert_eq!(known_types.len(), 4);
 
-        assert_eq!(known_types.get(&Variable::from_valid_name("?e")).expect("known types for ?e").clone(),
-                   vec![ValueType::Ref].into_iter().collect());
+        assert_eq!(known_types.get(&Variable::from_valid_name("?e")).expect("knownCauset types for ?e").clone(),
+                   vec![MinkowskiValueType::Ref].into_iter().collect());
 
-        assert_eq!(known_types.get(&Variable::from_valid_name("?a")).expect("known types for ?a").clone(),
-                   vec![ValueType::Ref].into_iter().collect());
+        assert_eq!(known_types.get(&Variable::from_valid_name("?a")).expect("knownCauset types for ?a").clone(),
+                   vec![MinkowskiValueType::Ref].into_iter().collect());
 
-        assert_eq!(known_types.get(&Variable::from_valid_name("?causetx")).expect("known types for ?causetx").clone(),
-                   vec![ValueType::Ref].into_iter().collect());
+        assert_eq!(known_types.get(&Variable::from_valid_name("?causetx")).expect("knownCauset types for ?causetx").clone(),
+                   vec![MinkowskiValueType::Ref].into_iter().collect());
 
-        assert_eq!(known_types.get(&Variable::from_valid_name("?added")).expect("known types for ?added").clone(),
-                   vec![ValueType::Boolean].into_iter().collect());
+        assert_eq!(known_types.get(&Variable::from_valid_name("?added")).expect("knownCauset types for ?added").clone(),
+                   vec![MinkowskiValueType::Boolean].into_iter().collect());
 
         let extracted_types = cc.extracted_types;
         assert_eq!(extracted_types.len(), 1);
 
         assert_eq!(extracted_types.get(&Variable::from_valid_name("?v")).expect("extracted types for ?v").clone(),
-                   QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::ValueTypeTag)));
+                   QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::MinkowskiValueTypeTag)));
     }
 }

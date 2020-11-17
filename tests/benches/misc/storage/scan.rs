@@ -8,7 +8,7 @@ use test_causetStorage::SyncTestStorageBuilder;
 use test_util::*;
 use txn_types::{Key, Mutation};
 
-/// In mvcc kv is not actually deleted, which may cause performance issue
+/// In tail_pointer kv is not actually deleted, which may cause performance issue
 /// when doing scan.
 #[ignore]
 #[bench]

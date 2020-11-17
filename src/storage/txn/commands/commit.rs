@@ -4,7 +4,7 @@ use txn_types::Key;
 
 use crate::causetStorage::kv::WriteData;
 use crate::causetStorage::lock_manager::LockManager;
-use crate::causetStorage::mvcc::MvccTxn;
+use crate::causetStorage::tail_pointer::MvccTxn;
 use crate::causetStorage::txn::commands::{
     Command, CommandExt, ReleasedLocks, TypedCommand, WriteCommand, WriteContext, WriteResult,
 };

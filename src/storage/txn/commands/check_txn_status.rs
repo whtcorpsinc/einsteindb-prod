@@ -4,9 +4,9 @@ use txn_types::{Key, TimeStamp};
 
 use crate::causetStorage::kv::WriteData;
 use crate::causetStorage::lock_manager::LockManager;
-use crate::causetStorage::mvcc::metrics::MVCC_CHECK_TXN_STATUS_COUNTER_VEC;
-use crate::causetStorage::mvcc::txn::MissingLockAction;
-use crate::causetStorage::mvcc::MvccTxn;
+use crate::causetStorage::tail_pointer::metrics::MVCC_CHECK_TXN_STATUS_COUNTER_VEC;
+use crate::causetStorage::tail_pointer::txn::MissingLockAction;
+use crate::causetStorage::tail_pointer::MvccTxn;
 use crate::causetStorage::txn::commands::{
     Command, CommandExt, ReleasedLocks, TypedCommand, WriteCommand, WriteContext, WriteResult,
 };
@@ -77,7 +77,7 @@ impl<S: Snapshot, L: LockManager> WriteCommand<S, L> for CheckTxnStatus {
         let mut released_locks = ReleasedLocks::new(self.lock_ts, TimeStamp::zero());
         let ctx = mem::take(&mut self.ctx);
         fail_point!("check_txn_status", |err| Err(
-            crate::causetStorage::mvcc::Error::from(crate::causetStorage::mvcc::txn::make_txn_error(
+            crate::causetStorage::tail_pointer::Error::from(crate::causetStorage::tail_pointer::txn::make_txn_error(
                 err,
                 &self.primary_key,
                 self.lock_ts
@@ -173,7 +173,7 @@ pub mod tests {
     use super::*;
     use crate::causetStorage::kv::{Engine, WriteData};
     use crate::causetStorage::lock_manager::DummyLockManager;
-    use crate::causetStorage::mvcc::tests::*;
+    use crate::causetStorage::tail_pointer::tests::*;
     use crate::causetStorage::txn::commands::{pessimistic_rollback, WriteCommand, WriteContext};
     use crate::causetStorage::txn::tests::*;
     use crate::causetStorage::{types::TxnStatus, ProcessResult, TestEngineBuilder};

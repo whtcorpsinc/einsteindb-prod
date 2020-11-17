@@ -9,7 +9,7 @@ use crate::error::DataTypeError;
 
 /// Valid values of `fidelpb::FieldType::tp` and `fidelpb::PrimaryCausetInfo::tp`.
 ///
-/// `FieldType` is the field type of a PrimaryCauset defined by schema.
+/// `FieldType` is the field type of a PrimaryCauset defined by schemaReplicant.
 ///
 /// `PrimaryCausetInfo` describes a PrimaryCauset. It contains `FieldType` and some other PrimaryCauset specific
 /// information. However for historical reasons, fields in `FieldType` (for example, `tp`)

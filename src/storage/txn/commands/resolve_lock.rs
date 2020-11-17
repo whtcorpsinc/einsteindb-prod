@@ -2,7 +2,7 @@
 
 use crate::causetStorage::kv::WriteData;
 use crate::causetStorage::lock_manager::LockManager;
-use crate::causetStorage::mvcc::{MvccTxn, MAX_TXN_WRITE_SIZE};
+use crate::causetStorage::tail_pointer::{MvccTxn, MAX_TXN_WRITE_SIZE};
 use crate::causetStorage::txn::commands::{
     Command, CommandExt, ReleasedLocks, ResolveLockReadPhase, TypedCommand, WriteCommand,
     WriteContext, WriteResult,

@@ -10,7 +10,7 @@ use test_violetabftstore::*;
 use test_causetStorage::*;
 use einsteindb::server::gc_worker::{AutoGcConfig, GcConfig};
 use einsteindb::causetStorage::kv::{Engine, Error as KvError, ErrorInner as KvErrorInner};
-use einsteindb::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner};
+use einsteindb::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
 use einsteindb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
 use einsteindb::causetStorage::{Error as StorageError, ErrorInner as StorageErrorInner};
 use einsteindb_util::collections::HashMap;

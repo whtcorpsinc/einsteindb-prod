@@ -83,7 +83,7 @@ use internal_types::{
     TermWithTempIds,
     TermWithTempIdsAndLookupRefs,
     TermWithoutTempIds,
-    TypedValueOr,
+    MinkowskiTypeOr,
     replace_lookup_ref,
 };
 
@@ -94,14 +94,14 @@ use embedded_promises::{
     Attribute,
     SolitonId,
     KnownSolitonId,
-    TypedValue,
-    ValueType,
+    MinkowskiType,
+    MinkowskiValueType,
     now,
 };
 
 use einsteindb_embedded::{
     DateTime,
-    Schema,
+    SchemaReplicant,
     TxReport,
     Utc,
 };
@@ -115,8 +115,8 @@ use edbn::entities::{
 };
 use spacetime;
 use rusqlite;
-use schema::{
-    SchemaBuilding,
+use schemaReplicant::{
+    SchemaReplicantBuilding,
 };
 use causetx_redshift;
 use types::{
@@ -160,16 +160,16 @@ pub struct Tx<'conn, 'a, W> where W: TransactWatcher {
     /// allocates at least one causetx ID, so we own and modify our own partition map.
     partition_map: PartitionMap,
 
-    /// The schema to update from the transaction entities.
+    /// The schemaReplicant to update from the transaction entities.
     ///
-    /// Transactions only update the schema infrequently, so we borrow this schema until we need to
+    /// Transactions only update the schemaReplicant infrequently, so we borrow this schemaReplicant until we need to
     /// modify it.
-    schema_for_mutation: Cow<'a, Schema>,
+    schemaReplicant_for_mutation: Cow<'a, SchemaReplicant>,
 
-    /// The schema to use when interpreting the transaction entities.
+    /// The schemaReplicant to use when interpreting the transaction entities.
     ///
-    /// This schema is not updated, so we just borrow it.
-    schema: &'a Schema,
+    /// This schemaReplicant is not updated, so we just borrow it.
+    schemaReplicant: &'a SchemaReplicant,
 
     watcher: W,
 
@@ -206,15 +206,15 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
     pub fn new(
         store: &'conn rusqlite::Connection,
         partition_map: PartitionMap,
-        schema_for_mutation: &'a Schema,
-        schema: &'a Schema,
+        schemaReplicant_for_mutation: &'a SchemaReplicant,
+        schemaReplicant: &'a SchemaReplicant,
         watcher: W,
         causecausetx_id: SolitonId) -> Tx<'conn, 'a, W> {
         Tx {
             store: store,
             partition_map: partition_map,
-            schema_for_mutation: Cow::Borrowed(schema_for_mutation),
-            schema: schema,
+            schemaReplicant_for_mutation: Cow::Borrowed(schemaReplicant_for_mutation),
+            schemaReplicant: schemaReplicant,
             watcher: watcher,
             causecausetx_id: causecausetx_id,
         }
@@ -257,7 +257,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
         }
 
         if !conflicting_upserts.is_empty() {
-            bail!(DbErrorKind::SchemaConstraintViolation(errors::SchemaConstraintViolation::ConflictingUpserts { conflicting_upserts }));
+            bail!(DbErrorKind::SchemaReplicantConstraintViolation(errors::SchemaReplicantConstraintViolation::ConflictingUpserts { conflicting_upserts }));
         }
 
         Ok(tempids)
@@ -271,7 +271,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
     fn entities_into_terms_with_temp_ids_and_lookup_refs<I, V: TransactableValue>(&self, entities: I) -> Result<(Vec<TermWithTempIdsAndLookupRefs>, InternSet<TempId>, InternSet<AVPair>)> where I: IntoIterator<Item=Instanton<V>> {
         struct InProcess<'a> {
             partition_map: &'a PartitionMap,
-            schema: &'a Schema,
+            schemaReplicant: &'a SchemaReplicant,
             einsteindb_id_count: i64,
             causecausetx_id: KnownSolitonId,
             temp_ids: InternSet<TempId>,
@@ -279,10 +279,10 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
         }
 
         impl<'a> InProcess<'a> {
-            fn with_schema_and_partition_map(schema: &'a Schema, partition_map: &'a PartitionMap, causecausetx_id: KnownSolitonId) -> InProcess<'a> {
+            fn with_schemaReplicant_and_partition_map(schemaReplicant: &'a SchemaReplicant, partition_map: &'a PartitionMap, causecausetx_id: KnownSolitonId) -> InProcess<'a> {
                 InProcess {
                     partition_map,
-                    schema,
+                    schemaReplicant,
                     einsteindb_id_count: 0,
                     causecausetx_id,
                     temp_ids: InternSet::new(),
@@ -299,17 +299,17 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
             }
 
             fn ensure_causetId_exists(&self, e: &Keyword) -> Result<KnownSolitonId> {
-                self.schema.require_entid(e)
+                self.schemaReplicant.require_entid(e)
             }
 
             fn intern_lookup_ref<W: TransactableValue>(&mut self, lookup_ref: &entmod::LookupRef<W>) -> Result<LookupRef> {
                 let lr_a: i64 = match lookup_ref.a {
                     AttributePlace::SolitonId(entmod::SolitonIdOrCausetId::SolitonId(ref a)) => *a,
-                    AttributePlace::SolitonId(entmod::SolitonIdOrCausetId::CausetId(ref a)) => self.schema.require_entid(&a)?.into(),
+                    AttributePlace::SolitonId(entmod::SolitonIdOrCausetId::CausetId(ref a)) => self.schemaReplicant.require_entid(&a)?.into(),
                 };
-                let lr_attribute: &Attribute = self.schema.require_attribute_for_entid(lr_a)?;
+                let lr_attribute: &Attribute = self.schemaReplicant.require_attribute_for_entid(lr_a)?;
 
-                let lr_typed_value: TypedValue = lookup_ref.v.clone().into_typed_value(&self.schema, lr_attribute.value_type)?;
+                let lr_typed_value: MinkowskiType = lookup_ref.v.clone().into_typed_value(&self.schemaReplicant, lr_attribute.value_type)?;
                 if lr_attribute.unique.is_none() {
                     bail!(DbErrorKind::NotYetImplemented(format!("Cannot resolve (lookup-ref {} {:?}) with attribute that is not :edb/unique", lr_a, lr_typed_value)))
                 }
@@ -354,13 +354,13 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
             fn instanton_a_into_term_a(&mut self, x: entmod::SolitonIdOrCausetId) -> Result<SolitonId> {
                 let a = match x {
                     entmod::SolitonIdOrCausetId::SolitonId(ref a) => *a,
-                    entmod::SolitonIdOrCausetId::CausetId(ref a) => self.schema.require_entid(&a)?.into(),
+                    entmod::SolitonIdOrCausetId::CausetId(ref a) => self.schemaReplicant.require_entid(&a)?.into(),
                 };
                 Ok(a)
             }
 
-            fn instanton_e_into_term_v<W: TransactableValue>(&mut self, x: entmod::InstantonPlace<W>) -> Result<TypedValueOr<LookupRefOrTempId>> {
-                self.instanton_e_into_term_e(x).map(|r| r.map_left(|ke| TypedValue::Ref(ke.0)))
+            fn instanton_e_into_term_v<W: TransactableValue>(&mut self, x: entmod::InstantonPlace<W>) -> Result<MinkowskiTypeOr<LookupRefOrTempId>> {
+                self.instanton_e_into_term_e(x).map(|r| r.map_left(|ke| MinkowskiType::Ref(ke.0)))
             }
 
             fn instanton_v_into_term_e<W: TransactableValue>(&mut self, x: entmod::ValuePlace<W>, backward_a: &entmod::SolitonIdOrCausetId) -> Result<KnownSolitonIdOr<LookupRefOrTempId>> {
@@ -370,20 +370,20 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                     },
                     Some(forward_a) => {
                         let forward_a = self.instanton_a_into_term_a(forward_a)?;
-                        let forward_attribute = self.schema.require_attribute_for_entid(forward_a)?;
-                        if forward_attribute.value_type != ValueType::Ref {
+                        let forward_attribute = self.schemaReplicant.require_attribute_for_entid(forward_a)?;
+                        if forward_attribute.value_type != MinkowskiValueType::Ref {
                             bail!(DbErrorKind::NotYetImplemented(format!("Cannot use :attr/_reversed notation for attribute {} that is not :edb/valueType :edb.type/ref", forward_a)))
                         }
 
                         match x {
                             entmod::ValuePlace::Atom(v) => {
-                                // Here is where we do schema-aware typechecking: we either assert
+                                // Here is where we do schemaReplicant-aware typechecking: we either assert
                                 // that the given value is in the attribute's value set, or (in
                                 // limited cases) coerce the value into the attribute's value set.
                                 match v.as_tempid() {
                                     Some(tempid) => Ok(Either::Right(LookupRefOrTempId::TempId(self.temp_ids.intern(tempid)))),
                                     None => {
-                                        if let TypedValue::Ref(solitonId) = v.into_typed_value(&self.schema, ValueType::Ref)? {
+                                        if let MinkowskiType::Ref(solitonId) = v.into_typed_value(&self.schemaReplicant, MinkowskiValueType::Ref)? {
                                             Ok(Either::Left(KnownSolitonId(solitonId)))
                                         } else {
                                             // The given value is expected to be :edb.type/ref, so this shouldn't happen.
@@ -420,7 +420,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
             }
         }
 
-        let mut in_process = InProcess::with_schema_and_partition_map(&self.schema, &self.partition_map, KnownSolitonId(self.causecausetx_id));
+        let mut in_process = InProcess::with_schemaReplicant_and_partition_map(&self.schemaReplicant, &self.partition_map, KnownSolitonId(self.causecausetx_id));
 
         // We want to handle entities in the order they're given to us, while also "exploding" some
         // entities into many.  We therefore push the initial entities onto the back of the deque,
@@ -459,31 +459,31 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                         terms.push(Term::AddOrRetract(OpType::Add, reversed_e, reversed_a, reversed_v));
                     } else {
                         let a = in_process.instanton_a_into_term_a(a)?;
-                        let attribute = self.schema.require_attribute_for_entid(a)?;
+                        let attribute = self.schemaReplicant.require_attribute_for_entid(a)?;
 
                         let v = match v {
                             entmod::ValuePlace::Atom(v) => {
-                                // Here is where we do schema-aware typechecking: we either assert
+                                // Here is where we do schemaReplicant-aware typechecking: we either assert
                                 // that the given value is in the attribute's value set, or (in
                                 // limited cases) coerce the value into the attribute's value set.
-                                if attribute.value_type == ValueType::Ref {
+                                if attribute.value_type == MinkowskiValueType::Ref {
                                     match v.as_tempid() {
                                         Some(tempid) => Either::Right(LookupRefOrTempId::TempId(in_process.temp_ids.intern(tempid))),
-                                        None => v.into_typed_value(&self.schema, attribute.value_type).map(Either::Left)?,
+                                        None => v.into_typed_value(&self.schemaReplicant, attribute.value_type).map(Either::Left)?,
                                     }
                                 } else {
-                                    v.into_typed_value(&self.schema, attribute.value_type).map(Either::Left)?
+                                    v.into_typed_value(&self.schemaReplicant, attribute.value_type).map(Either::Left)?
                                 }
                             },
 
                             entmod::ValuePlace::SolitonId(solitonId) =>
-                                Either::Left(TypedValue::Ref(in_process.instanton_a_into_term_a(solitonId)?)),
+                                Either::Left(MinkowskiType::Ref(in_process.instanton_a_into_term_a(solitonId)?)),
 
                             entmod::ValuePlace::TempId(tempid) =>
                                 Either::Right(LookupRefOrTempId::TempId(in_process.temp_ids.intern(tempid))),
 
                             entmod::ValuePlace::LookupRef(ref lookup_ref) => {
-                                if attribute.value_type != ValueType::Ref {
+                                if attribute.value_type != MinkowskiValueType::Ref {
                                     bail!(DbErrorKind::NotYetImplemented(format!("Cannot resolve value lookup ref for attribute {} that is not :edb/valueType :edb.type/ref", a)))
                                 }
 
@@ -492,16 +492,16 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
 
                             entmod::ValuePlace::TxFunction(ref causecausetx_function) => {
                                 let typed_value = match causecausetx_function.op.0.as_str() {
-                                    "transaction-causetx" => TypedValue::Ref(self.causecausetx_id),
+                                    "transaction-causetx" => MinkowskiType::Ref(self.causecausetx_id),
                                     unknown @ _ => bail!(DbErrorKind::NotYetImplemented(format!("Unknown transaction function {}", unknown))),
                                 };
 
-                                // Here we do schema-aware typechecking: we assert that the computed
+                                // Here we do schemaReplicant-aware typechecking: we assert that the computed
                                 // value is in the attribute's value set.  If and when we have
                                 // transaction functions that produce numeric values, we'll have to
                                 // be more careful here, because a function that produces an integer
                                 // value can be used where a double is expected.  See also
-                                // `SchemaTypeChecking.to_typed_value(...)`.
+                                // `SchemaReplicantTypeChecking.to_typed_value(...)`.
                                 if attribute.value_type != typed_value.value_type() {
                                     bail!(DbErrorKind::NotYetImplemented(format!("Transaction function {} produced value of type {} but expected type {}",
                                                                                causecausetx_function.op.0.as_str(), typed_value.value_type(), attribute.value_type)));
@@ -535,7 +535,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                                     bail!(DbErrorKind::NotYetImplemented(format!("Cannot explode nested map value in :edb/retract for attribute {}", a)));
                                 }
 
-                                if attribute.value_type != ValueType::Ref {
+                                if attribute.value_type != MinkowskiValueType::Ref {
                                     bail!(DbErrorKind::NotYetImplemented(format!("Cannot explode nested map value for attribute {} that is not :edb/valueType :edb.type/ref", a)))
                                 }
 
@@ -558,8 +558,8 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                                     dangling = false;
                                 }
 
-                                for (inner_a, inner_v) in map_notation {
-                                    if let Some(reversed_a) = inner_a.unreversed() {
+                                for (causet_set_a, causet_set_v) in map_notation {
+                                    if let Some(reversed_a) = causet_set_a.unreversed() {
                                         // We definitely have a reference.  The reference might be
                                         // dangling (a bare solitonId, for example), but we don't yet
                                         // support nested maps and reverse notation simultaneously
@@ -568,22 +568,22 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                                         // dangling.
                                         dangling = false;
 
-                                        let reversed_e = in_process.instanton_v_into_term_e(inner_v, &inner_a)?;
+                                        let reversed_e = in_process.instanton_v_into_term_e(causet_set_v, &causet_set_a)?;
                                         let reversed_a = in_process.instanton_a_into_term_a(reversed_a)?;
                                         let reversed_v = in_process.instanton_e_into_term_v(edb_id.clone())?;
                                         terms.push(Term::AddOrRetract(OpType::Add, reversed_e, reversed_a, reversed_v));
                                     } else {
-                                        let inner_a = in_process.instanton_a_into_term_a(inner_a)?;
-                                        let inner_attribute = self.schema.require_attribute_for_entid(inner_a)?;
-                                        if inner_attribute.unique == Some(attribute::Unique::CausetIdity) {
+                                        let causet_set_a = in_process.instanton_a_into_term_a(causet_set_a)?;
+                                        let causet_set_attribute = self.schemaReplicant.require_attribute_for_entid(causet_set_a)?;
+                                        if causet_set_attribute.unique == Some(attribute::Unique::CausetIdity) {
                                             dangling = false;
                                         }
 
                                         deque.push_front(Instanton::AddOrRetract {
                                             op: OpType::Add,
                                             e: edb_id.clone(),
-                                            a: AttributePlace::SolitonId(entmod::SolitonIdOrCausetId::SolitonId(inner_a)),
-                                            v: inner_v,
+                                            a: AttributePlace::SolitonId(entmod::SolitonIdOrCausetId::SolitonId(causet_set_a)),
+                                            v: causet_set_v,
                                         });
                                     }
                                 }
@@ -614,7 +614,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
             match term {
                 Term::AddOrRetract(op, e, a, v) => {
                     let e = replace_lookup_ref(&lookup_ref_map, e, |x| KnownSolitonId(x))?;
-                    let v = replace_lookup_ref(&lookup_ref_map, v, |x| TypedValue::Ref(x))?;
+                    let v = replace_lookup_ref(&lookup_ref_map, v, |x| MinkowskiType::Ref(x))?;
                     Ok(Term::AddOrRetract(op, e, a, v))
                 },
             }
@@ -631,7 +631,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
         let (terms_with_temp_ids_and_lookup_refs, tempid_set, lookup_ref_set) = self.entities_into_terms_with_temp_ids_and_lookup_refs(entities)?;
 
         // Pipeline stage 2: resolve lookup refs -> terms with tempids.
-        let lookup_ref_avs: Vec<&(i64, TypedValue)> = lookup_ref_set.iter().map(|rc| &**rc).collect();
+        let lookup_ref_avs: Vec<&(i64, MinkowskiType)> = lookup_ref_set.iter().map(|rc| &**rc).collect();
         let lookup_ref_map: AVMap = self.store.resolve_avs(&lookup_ref_avs[..])?;
 
         let terms_with_temp_ids = self.resolve_lookup_refs(&lookup_ref_map, terms_with_temp_ids_and_lookup_refs)?;
@@ -651,7 +651,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
 
         // Pipeline stage 3: upsert tempids -> terms without tempids or lookup refs.
         // Now we can collect upsert populations.
-        let (mut generation, inert_terms) = Generation::from(terms, &self.schema)?;
+        let (mut generation, inert_terms) = Generation::from(terms, &self.schemaReplicant)?;
 
         // And evolve them forward.
         while generation.can_evolve() {
@@ -682,7 +682,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
             }
 
             if !conflicting_upserts.is_empty() {
-                bail!(DbErrorKind::SchemaConstraintViolation(errors::SchemaConstraintViolation::ConflictingUpserts { conflicting_upserts }));
+                bail!(DbErrorKind::SchemaReplicantConstraintViolation(errors::SchemaReplicantConstraintViolation::ConflictingUpserts { conflicting_upserts }));
             }
 
             debug!("tempids {:?}", tempids);
@@ -693,7 +693,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
         debug!("final generation {:?}", generation);
 
         // Allocate entids for tempids that didn't upsert.  BTreeMap so this is deterministic.
-        let unresolved_temp_ids: BTreeMap<TempIdHandle, usize> = generation.temp_ids_in_allocations(&self.schema)?;
+        let unresolved_temp_ids: BTreeMap<TempIdHandle, usize> = generation.temp_ids_in_allocations(&self.schemaReplicant)?;
 
         debug!("unresolved tempids {:?}", unresolved_temp_ids);
 
@@ -734,10 +734,10 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
         let mut causecausetx_might_update_spacetime = false;
 
         // Mutable so that we can add the transaction :edb/causecausetxInstant.
-        let mut aev_trie = into_aev_trie(&self.schema, final_populations, inert_terms)?;
+        let mut aev_trie = into_aev_trie(&self.schemaReplicant, final_populations, inert_terms)?;
 
         let causecausetx_instant;
-        { // TODO: Don't use this block to scope borrowing the schema; instead, extract a helper function.
+        { // TODO: Don't use this block to scope borrowing the schemaReplicant; instead, extract a helper function.
 
         // Assertions that are :edb.cardinality/one and not :edb.fulltext.
         let mut non_fts_one: Vec<edb::ReducedInstanton> = vec![];
@@ -756,18 +756,18 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
 
         let errors = causetx_redshift::type_disagreements(&aev_trie);
         if !errors.is_empty() {
-            bail!(DbErrorKind::SchemaConstraintViolation(errors::SchemaConstraintViolation::TypeDisagreements { conflicting_Causets: errors }));
+            bail!(DbErrorKind::SchemaReplicantConstraintViolation(errors::SchemaReplicantConstraintViolation::TypeDisagreements { conflicting_Causets: errors }));
         }
 
         let errors = causetx_redshift::cardinality_conflicts(&aev_trie);
         if !errors.is_empty() {
-            bail!(DbErrorKind::SchemaConstraintViolation(errors::SchemaConstraintViolation::CardinalityConflicts { conflicts: errors }));
+            bail!(DbErrorKind::SchemaReplicantConstraintViolation(errors::SchemaReplicantConstraintViolation::CardinalityConflicts { conflicts: errors }));
         }
 
         // Pipeline stage 4: final terms (after rewriting) -> EDB insertions.
         // Collect into non_fts_*.
 
-        causecausetx_instant = get_or_insert_causecausetx_instant(&mut aev_trie, &self.schema, self.causecausetx_id)?;
+        causecausetx_instant = get_or_insert_causecausetx_instant(&mut aev_trie, &self.schemaReplicant, self.causecausetx_id)?;
 
         for ((a, attribute), evs) in aev_trie {
             if entids::might_update_spacetime(a) {
@@ -821,7 +821,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
 
         }
 
-        self.watcher.done(&self.causecausetx_id, self.schema)?;
+        self.watcher.done(&self.causecausetx_id, self.schemaReplicant)?;
 
         if causecausetx_might_update_spacetime {
             // Extract changes to spacetime from the store.
@@ -829,17 +829,17 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                 TransactorAction::Materialize => self.store.resolved_spacetime_assertions()?,
                 TransactorAction::MaterializeAndCommit => edb::committed_spacetime_assertions(self.store, self.causecausetx_id)?
             };
-            let mut new_schema = (*self.schema_for_mutation).clone(); // Clone the underlying Schema for modification.
-            let spacetime_report = spacetime::update_schema_from_entid_quadruples(&mut new_schema, spacetime_assertions)?;
-            // We might not have made any changes to the schema, even though it looked like we
+            let mut new_schemaReplicant = (*self.schemaReplicant_for_mutation).clone(); // Clone the underlying SchemaReplicant for modification.
+            let spacetime_report = spacetime::update_schemaReplicant_from_entid_quadruples(&mut new_schemaReplicant, spacetime_assertions)?;
+            // We might not have made any changes to the schemaReplicant, even though it looked like we
             // would.  This should not happen, even during bootstrapping: we mutate an empty
-            // `Schema` in this case specifically to run the bootstrapped assertions through the
-            // regular transactor code paths, updating the schema and materialized views uniformly.
+            // `SchemaReplicant` in this case specifically to run the bootstrapped assertions through the
+            // regular transactor code paths, updating the schemaReplicant and materialized views uniformly.
             // But, belt-and-braces: handle it gracefully.
-            if new_schema != *self.schema_for_mutation {
-                let old_schema = (*self.schema_for_mutation).clone(); // Clone the original Schema for comparison.
-                *self.schema_for_mutation.to_mut() = new_schema; // Store the new Schema.
-                edb::update_spacetime(self.store, &old_schema, &*self.schema_for_mutation, &spacetime_report)?;
+            if new_schemaReplicant != *self.schemaReplicant_for_mutation {
+                let old_schemaReplicant = (*self.schemaReplicant_for_mutation).clone(); // Clone the original SchemaReplicant for comparison.
+                *self.schemaReplicant_for_mutation.to_mut() = new_schemaReplicant; // Store the new SchemaReplicant.
+                edb::update_spacetime(self.store, &old_schemaReplicant, &*self.schemaReplicant_for_mutation, &spacetime_report)?;
             }
         }
 
@@ -854,24 +854,24 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
 /// Initialize a new Tx object with a new causetx id and a causetx instant. Kick off the SQLite conn, too.
 fn start_causecausetx<'conn, 'a, W>(conn: &'conn rusqlite::Connection,
                        mut partition_map: PartitionMap,
-                       schema_for_mutation: &'a Schema,
-                       schema: &'a Schema,
+                       schemaReplicant_for_mutation: &'a SchemaReplicant,
+                       schemaReplicant: &'a SchemaReplicant,
                        watcher: W) -> Result<Tx<'conn, 'a, W>>
     where W: TransactWatcher {
     let causecausetx_id = partition_map.allocate_entid(":edb.part/causetx");
     conn.begin_causecausetx_application()?;
 
-    Ok(Tx::new(conn, partition_map, schema_for_mutation, schema, watcher, causecausetx_id))
+    Ok(Tx::new(conn, partition_map, schemaReplicant_for_mutation, schemaReplicant, watcher, causecausetx_id))
 }
 
-fn conclude_causecausetx<W>(causetx: Tx<W>, report: TxReport) -> Result<(TxReport, PartitionMap, Option<Schema>, W)>
+fn conclude_causecausetx<W>(causetx: Tx<W>, report: TxReport) -> Result<(TxReport, PartitionMap, Option<SchemaReplicant>, W)>
 where W: TransactWatcher {
-    // If the schema has moved on, return it.
-    let next_schema = match causetx.schema_for_mutation {
+    // If the schemaReplicant has moved on, return it.
+    let next_schemaReplicant = match causetx.schemaReplicant_for_mutation {
         Cow::Borrowed(_) => None,
-        Cow::Owned(next_schema) => Some(next_schema),
+        Cow::Owned(next_schemaReplicant) => Some(next_schemaReplicant),
     };
-    Ok((report, causetx.partition_map, next_schema, causetx.watcher))
+    Ok((report, causetx.partition_map, next_schemaReplicant, causetx.watcher))
 }
 
 /// Transact the given `entities` against the given SQLite `conn`, using the given spacetime.
@@ -882,15 +882,15 @@ where W: TransactWatcher {
 // TODO: move this to the transactor layer.
 pub fn transact<'conn, 'a, I, V, W>(conn: &'conn rusqlite::Connection,
                                  partition_map: PartitionMap,
-                                 schema_for_mutation: &'a Schema,
-                                 schema: &'a Schema,
+                                 schemaReplicant_for_mutation: &'a SchemaReplicant,
+                                 schemaReplicant: &'a SchemaReplicant,
                                  watcher: W,
-                                 entities: I) -> Result<(TxReport, PartitionMap, Option<Schema>, W)>
+                                 entities: I) -> Result<(TxReport, PartitionMap, Option<SchemaReplicant>, W)>
     where I: IntoIterator<Item=Instanton<V>>,
           V: TransactableValue,
           W: TransactWatcher {
 
-    let mut causetx = start_causecausetx(conn, partition_map, schema_for_mutation, schema, watcher)?;
+    let mut causetx = start_causecausetx(conn, partition_map, schemaReplicant_for_mutation, schemaReplicant, watcher)?;
     let report = causetx.transact_entities(entities)?;
     conclude_causecausetx(causetx, report)
 }
@@ -898,41 +898,41 @@ pub fn transact<'conn, 'a, I, V, W>(conn: &'conn rusqlite::Connection,
 /// Just like `transact`, but accepts lower-level inputs to allow bypassing the parser interface.
 pub fn transact_terms<'conn, 'a, I, W>(conn: &'conn rusqlite::Connection,
                                        partition_map: PartitionMap,
-                                       schema_for_mutation: &'a Schema,
-                                       schema: &'a Schema,
+                                       schemaReplicant_for_mutation: &'a SchemaReplicant,
+                                       schemaReplicant: &'a SchemaReplicant,
                                        watcher: W,
                                        terms: I,
-                                       tempid_set: InternSet<TempId>) -> Result<(TxReport, PartitionMap, Option<Schema>, W)>
+                                       tempid_set: InternSet<TempId>) -> Result<(TxReport, PartitionMap, Option<SchemaReplicant>, W)>
     where I: IntoIterator<Item=TermWithTempIds>,
           W: TransactWatcher {
 
     transact_terms_with_action(
-        conn, partition_map, schema_for_mutation, schema, watcher, terms, tempid_set,
+        conn, partition_map, schemaReplicant_for_mutation, schemaReplicant, watcher, terms, tempid_set,
         TransactorAction::MaterializeAndCommit
     )
 }
 
 pub(crate) fn transact_terms_with_action<'conn, 'a, I, W>(conn: &'conn rusqlite::Connection,
                                        partition_map: PartitionMap,
-                                       schema_for_mutation: &'a Schema,
-                                       schema: &'a Schema,
+                                       schemaReplicant_for_mutation: &'a SchemaReplicant,
+                                       schemaReplicant: &'a SchemaReplicant,
                                        watcher: W,
                                        terms: I,
                                        tempid_set: InternSet<TempId>,
-                                       action: TransactorAction) -> Result<(TxReport, PartitionMap, Option<Schema>, W)>
+                                       action: TransactorAction) -> Result<(TxReport, PartitionMap, Option<SchemaReplicant>, W)>
     where I: IntoIterator<Item=TermWithTempIds>,
           W: TransactWatcher {
 
-    let mut causetx = start_causecausetx(conn, partition_map, schema_for_mutation, schema, watcher)?;
+    let mut causetx = start_causecausetx(conn, partition_map, schemaReplicant_for_mutation, schemaReplicant, watcher)?;
     let report = causetx.transact_simple_terms_with_action(terms, tempid_set, action)?;
     conclude_causecausetx(causetx, report)
 }
 
-fn extend_aev_trie<'schema, I>(schema: &'schema Schema, terms: I, trie: &mut AEVTrie<'schema>) -> Result<()>
+fn extend_aev_trie<'schemaReplicant, I>(schemaReplicant: &'schemaReplicant SchemaReplicant, terms: I, trie: &mut AEVTrie<'schemaReplicant>) -> Result<()>
 where I: IntoIterator<Item=TermWithoutTempIds>
 {
     for Term::AddOrRetract(op, KnownSolitonId(e), a, v) in terms.into_iter() {
-        let attribute: &Attribute = schema.require_attribute_for_entid(a)?;
+        let attribute: &Attribute = schemaReplicant.require_attribute_for_entid(a)?;
 
         let a_and_r = trie
             .entry((a, attribute)).or_insert(BTreeMap::default())
@@ -947,21 +947,21 @@ where I: IntoIterator<Item=TermWithoutTempIds>
     Ok(())
 }
 
-pub(crate) fn into_aev_trie<'schema>(schema: &'schema Schema, final_populations: FinalPopulations, inert_terms: Vec<TermWithTempIds>) -> Result<AEVTrie<'schema>> {
+pub(crate) fn into_aev_trie<'schemaReplicant>(schemaReplicant: &'schemaReplicant SchemaReplicant, final_populations: FinalPopulations, inert_terms: Vec<TermWithTempIds>) -> Result<AEVTrie<'schemaReplicant>> {
     let mut trie = AEVTrie::default();
-    extend_aev_trie(schema, final_populations.resolved, &mut trie)?;
-    extend_aev_trie(schema, final_populations.allocated, &mut trie)?;
+    extend_aev_trie(schemaReplicant, final_populations.resolved, &mut trie)?;
+    extend_aev_trie(schemaReplicant, final_populations.allocated, &mut trie)?;
     // Inert terms need to be unwrapped.  It is a coding error if a term can't be unwrapped.
-    extend_aev_trie(schema, inert_terms.into_iter().map(|term| term.unwrap()), &mut trie)?;
+    extend_aev_trie(schemaReplicant, inert_terms.into_iter().map(|term| term.unwrap()), &mut trie)?;
 
     Ok(trie)
 }
 
 /// Transact [:edb/add :edb/causecausetxInstant causecausetx_instant (transaction-causetx)] if the trie doesn't contain it
 /// already.  Return the instant from the input or the instant inserted.
-fn get_or_insert_causecausetx_instant<'schema>(aev_trie: &mut AEVTrie<'schema>, schema: &'schema Schema, causecausetx_id: SolitonId) -> Result<DateTime<Utc>> {
+fn get_or_insert_causecausetx_instant<'schemaReplicant>(aev_trie: &mut AEVTrie<'schemaReplicant>, schemaReplicant: &'schemaReplicant SchemaReplicant, causecausetx_id: SolitonId) -> Result<DateTime<Utc>> {
     let ars = aev_trie
-        .entry((entids::DB_TX_INSTANT, schema.require_attribute_for_entid(entids::DB_TX_INSTANT)?))
+        .entry((entids::DB_TX_INSTANT, schemaReplicant.require_attribute_for_entid(entids::DB_TX_INSTANT)?))
         .or_insert(BTreeMap::default())
         .entry(causecausetx_id)
         .or_insert(AddAndRetract::default());
@@ -974,7 +974,7 @@ fn get_or_insert_causecausetx_instant<'schema>(aev_trie: &mut AEVTrie<'schema>, 
 
     let first = ars.add.iter().next().cloned();
     match first {
-        Some(TypedValue::Instant(instant)) => Ok(instant),
+        Some(MinkowskiType::Instant(instant)) => Ok(instant),
         Some(_) => unreachable!(), // This is a coding error -- we should have typechecked this already.
         None => {
             let instant = now();

@@ -27,8 +27,8 @@ impl super::AggrDefinitionParser for AggrFnDefinitionParserAvg {
         mut root_expr: Expr,
         mut exp: RpnExpression,
         _ctx: &mut EvalContext,
-        src_schema: &[FieldType],
-        out_schema: &mut Vec<FieldType>,
+        src_schemaReplicant: &[FieldType],
+        out_schemaReplicant: &mut Vec<FieldType>,
         out_exp: &mut Vec<RpnExpression>,
     ) -> Result<Box<dyn AggrFunction>> {
         use std::convert::TryFrom;
@@ -40,10 +40,10 @@ impl super::AggrDefinitionParser for AggrFnDefinitionParserAvg {
         let col_sum_et = box_try!(EvalType::try_from(col_sum_ft.as_accessor().tp()));
 
         // Rewrite expression to insert CAST() if needed.
-        super::util::rewrite_exp_for_sum_avg(src_schema, &mut exp).unwrap();
+        super::util::rewrite_exp_for_sum_avg(src_schemaReplicant, &mut exp).unwrap();
 
         let rewritten_eval_type =
-            EvalType::try_from(exp.ret_field_type(src_schema).as_accessor().tp()).unwrap();
+            EvalType::try_from(exp.ret_field_type(src_schemaReplicant).as_accessor().tp()).unwrap();
         if col_sum_et != rewritten_eval_type {
             return Err(other_err!(
                 "Unexpected return field type {}",
@@ -52,13 +52,13 @@ impl super::AggrDefinitionParser for AggrFnDefinitionParserAvg {
         }
 
         // AVG outputs two PrimaryCausets.
-        out_schema.push(
+        out_schemaReplicant.push(
             FieldTypeBuilder::new()
                 .tp(FieldTypeTp::LongLong)
                 .flag(FieldTypeFlag::UNSIGNED)
                 .build(),
         );
-        out_schema.push(col_sum_ft);
+        out_schemaReplicant.push(col_sum_ft);
         out_exp.push(exp);
 
         Ok(match rewritten_eval_type {
@@ -218,7 +218,7 @@ mod tests {
             .build();
         AggrFnDefinitionParserAvg.check_supported(&expr).unwrap();
 
-        let src_schema = [FieldTypeTp::LongLong.into()];
+        let src_schemaReplicant = [FieldTypeTp::LongLong.into()];
         let mut PrimaryCausets = LazyBatchPrimaryCausetVec::from(vec![{
             let mut col = LazyBatchPrimaryCauset::decoded_with_capacity_and_tp(0, EvalType::Int);
             col.mut_decoded().push_int(Some(100));
@@ -229,16 +229,16 @@ mod tests {
             col
         }]);
 
-        let mut schema = vec![];
+        let mut schemaReplicant = vec![];
         let mut exp = vec![];
 
         let mut ctx = EvalContext::default();
         let aggr_fn = AggrFnDefinitionParserAvg
-            .parse(expr, &mut ctx, &src_schema, &mut schema, &mut exp)
+            .parse(expr, &mut ctx, &src_schemaReplicant, &mut schemaReplicant, &mut exp)
             .unwrap();
-        assert_eq!(schema.len(), 2);
-        assert_eq!(schema[0].as_accessor().tp(), FieldTypeTp::LongLong);
-        assert_eq!(schema[1].as_accessor().tp(), FieldTypeTp::NewDecimal);
+        assert_eq!(schemaReplicant.len(), 2);
+        assert_eq!(schemaReplicant[0].as_accessor().tp(), FieldTypeTp::LongLong);
+        assert_eq!(schemaReplicant[1].as_accessor().tp(), FieldTypeTp::NewDecimal);
 
         assert_eq!(exp.len(), 1);
 
@@ -246,7 +246,7 @@ mod tests {
         let mut ctx = EvalContext::default();
 
         let exp_result = exp[0]
-            .eval(&mut ctx, &src_schema, &mut PrimaryCausets, &[4, 1, 2, 3], 4)
+            .eval(&mut ctx, &src_schemaReplicant, &mut PrimaryCausets, &[4, 1, 2, 3], 4)
             .unwrap();
         let exp_result = exp_result.vector_value().unwrap();
         let slice = exp_result.as_ref().to_decimal_vec();
@@ -273,12 +273,12 @@ mod tests {
             .build();
         AggrFnDefinitionParserAvg.check_supported(&expr).unwrap();
 
-        let src_schema = [FieldTypeTp::LongLong.into()];
-        let mut schema = vec![];
+        let src_schemaReplicant = [FieldTypeTp::LongLong.into()];
+        let mut schemaReplicant = vec![];
         let mut exp = vec![];
         let mut ctx = EvalContext::default();
         AggrFnDefinitionParserAvg
-            .parse(expr, &mut ctx, &src_schema, &mut schema, &mut exp)
+            .parse(expr, &mut ctx, &src_schemaReplicant, &mut schemaReplicant, &mut exp)
             .unwrap_err();
     }
 }

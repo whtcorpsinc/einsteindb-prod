@@ -19,8 +19,8 @@ use std::boxed::Box;
 
 use embedded_promises::{
     SolitonId,
-    TypedValue,
-    ValueType,
+    MinkowskiType,
+    MinkowskiValueType,
 };
 
 use einsteindb_embedded::{
@@ -59,22 +59,22 @@ use einsteindb_sql::{
 // A EinsteinDB-focused representation of a SQL causetq.
 
 /// One of the things that can appear in a projection or a constraint. Note that we use
-/// `TypedValue` here; it's not pure SQL, but it avoids us having to concern ourselves at this
-/// point with the translation between a `TypedValue` and the storage-layer representation.
+/// `MinkowskiType` here; it's not pure SQL, but it avoids us having to concern ourselves at this
+/// point with the translation between a `MinkowskiType` and the storage-layer representation.
 ///
 /// Eventually we might allow different translations by providing a different `CausetQBuilder`
-/// impleeinsteindbion for each storage backend. Passing `TypedValue`s here allows for that.
+/// impleeinsteindbion for each storage backend. Passing `MinkowskiType`s here allows for that.
 pub enum ColumnOrExpression {
     Column(QualifiedAlias),
     ExistingColumn(Name),
     SolitonId(SolitonId),       // Because it's so common.
     Integer(i32),       // We use these for type codes etc.
     Long(i64),
-    Value(TypedValue),
+    Value(MinkowskiType),
     // Some aggregates (`min`, `max`, `avg`) can be over 0 rows, and therefore can be `NULL`; that
     // needs special treatment.
-    NullableAggregate(Box<Expression>, ValueType),      // Track the return type.
-    Expression(Box<Expression>, ValueType),             // Track the return type.
+    NullableAggregate(Box<Expression>, MinkowskiValueType),      // Track the return type.
+    Expression(Box<Expression>, MinkowskiValueType),             // Track the return type.
 }
 
 pub enum Expression {
@@ -88,7 +88,7 @@ impl From<CausetQValue> for ColumnOrExpression {
             CausetQValue::Column(c) => ColumnOrExpression::Column(c),
             CausetQValue::SolitonId(e) => ColumnOrExpression::SolitonId(e),
             CausetQValue::PrimitiveLong(v) => ColumnOrExpression::Long(v),
-            CausetQValue::TypedValue(v) => ColumnOrExpression::Value(v),
+            CausetQValue::MinkowskiType(v) => ColumnOrExpression::Value(v),
         }
     }
 }
@@ -215,15 +215,15 @@ pub enum TableOrSubcausetq {
 pub enum Values {
     /// Like "VALUES (0, 1), (2, 3), ...".
     /// The vector must be of a length that is a multiple of the given size.
-    Unnamed(usize, Vec<TypedValue>),
+    Unnamed(usize, Vec<MinkowskiType>),
 
     /// Like "SELECT 0 AS x, SELECT 0 AS y WHERE 0 UNION ALL VALUES (0, 1), (2, 3), ...".
     /// The vector of values must be of a length that is a multiple of the length
     /// of the vector of names.
-    Named(Vec<Variable>, Vec<TypedValue>),
+    Named(Vec<Variable>, Vec<MinkowskiType>),
 }
 
-pub enum FromClause {
+pub enum FromGerund {
     TableList(TableList),      // Short-hand for a pile of inner joins.
     Join(Join),
     Nothing,
@@ -232,7 +232,7 @@ pub enum FromClause {
 pub struct SelectCausetQ {
     pub distinct: bool,
     pub projection: Projection,
-    pub from: FromClause,
+    pub from: FromGerund,
     pub constraints: Vec<Constraint>,
     pub group_by: Vec<GroupBy>,
     pub order: Vec<OrderBy>,
@@ -546,9 +546,9 @@ impl CausetQFragment for Values {
     }
 }
 
-impl CausetQFragment for FromClause {
+impl CausetQFragment for FromGerund {
     fn push_sql(&self, out: &mut CausetQBuilder) -> BuildCausetQResult {
-        use self::FromClause::*;
+        use self::FromGerund::*;
         match self {
             &TableList(ref table_list) => {
                 if table_list.is_empty() {
@@ -731,29 +731,29 @@ mod tests {
     fn test_unnamed_values() {
         let build = |len, values| build(&Values::Unnamed(len, values));
 
-        assert_eq!(build(1, vec![TypedValue::Long(1)]),
+        assert_eq!(build(1, vec![MinkowskiType::Long(1)]),
                    "VALUES (1)");
 
-        assert_eq!(build(2, vec![TypedValue::Boolean(false), TypedValue::Long(1)]),
+        assert_eq!(build(2, vec![MinkowskiType::Boolean(false), MinkowskiType::Long(1)]),
                    "VALUES (0, 1)");
 
-        assert_eq!(build(2, vec![TypedValue::Boolean(false), TypedValue::Long(1),
-                                 TypedValue::Boolean(true), TypedValue::Long(2)]),
+        assert_eq!(build(2, vec![MinkowskiType::Boolean(false), MinkowskiType::Long(1),
+                                 MinkowskiType::Boolean(true), MinkowskiType::Long(2)]),
                    "VALUES (0, 1), (1, 2)");
     }
 
     #[test]
     fn test_named_values() {
         let build = |names: Vec<_>, values| build(&Values::Named(names.into_iter().map(Variable::from_valid_name).collect(), values));
-        assert_eq!(build(vec!["?a"], vec![TypedValue::Long(1)]),
+        assert_eq!(build(vec!["?a"], vec![MinkowskiType::Long(1)]),
                    "SELECT 0 AS `?a` WHERE 0 UNION ALL VALUES (1)");
 
-        assert_eq!(build(vec!["?a", "?b"], vec![TypedValue::Boolean(false), TypedValue::Long(1)]),
+        assert_eq!(build(vec!["?a", "?b"], vec![MinkowskiType::Boolean(false), MinkowskiType::Long(1)]),
                    "SELECT 0 AS `?a`, 0 AS `?b` WHERE 0 UNION ALL VALUES (0, 1)");
 
         assert_eq!(build(vec!["?a", "?b"],
-                         vec![TypedValue::Boolean(false), TypedValue::Long(1),
-                              TypedValue::Boolean(true), TypedValue::Long(2)]),
+                         vec![MinkowskiType::Boolean(false), MinkowskiType::Long(1),
+                              MinkowskiType::Boolean(true), MinkowskiType::Long(2)]),
                    "SELECT 0 AS `?a`, 0 AS `?b` WHERE 0 UNION ALL VALUES (0, 1), (1, 2)");
     }
 
@@ -795,7 +795,7 @@ mod tests {
                                     ColumnOrExpression::Column(QualifiedAlias::new(Causets00.clone(), CausetsColumn::Instanton)),
                                     "x".to_string()),
                             ]),
-            from: FromClause::TableList(TableList(source_aliases)),
+            from: FromGerund::TableList(TableList(source_aliases)),
             constraints: vec![
                 Constraint::Infix {
                     op: eq.clone(),

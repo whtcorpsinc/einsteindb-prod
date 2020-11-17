@@ -118,13 +118,13 @@ impl AsMut<[RpnExpressionNode]> for RpnExpression {
 
 impl RpnExpression {
     /// Gets the field type of the return value.
-    pub fn ret_field_type<'a>(&'a self, schema: &'a [FieldType]) -> &'a FieldType {
+    pub fn ret_field_type<'a>(&'a self, schemaReplicant: &'a [FieldType]) -> &'a FieldType {
         assert!(!self.0.is_empty());
         let last_node = self.0.last().unwrap();
         match last_node {
             RpnExpressionNode::FnCall { field_type, .. } => field_type,
             RpnExpressionNode::Constant { field_type, .. } => field_type,
-            RpnExpressionNode::PrimaryCausetRef { offset } => &schema[*offset],
+            RpnExpressionNode::PrimaryCausetRef { offset } => &schemaReplicant[*offset],
         }
     }
 

@@ -4556,7 +4556,7 @@
     }
   ],
   "refresh": "5s",
-  "schemaVersion": 18,
+  "schemaReplicantVersion": 18,
   "style": "dark",
   "tags": [],
   "templating": {

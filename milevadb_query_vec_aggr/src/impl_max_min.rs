@@ -57,13 +57,13 @@ impl<T: Extremum> super::AggrDefinitionParser for AggrFnDefinitionParserExtremum
         mut root_expr: Expr,
         exp: RpnExpression,
         _ctx: &mut EvalContext,
-        src_schema: &[FieldType],
-        out_schema: &mut Vec<FieldType>,
+        src_schemaReplicant: &[FieldType],
+        out_schemaReplicant: &mut Vec<FieldType>,
         out_exp: &mut Vec<RpnExpression>,
     ) -> Result<Box<dyn AggrFunction>> {
         assert_eq!(root_expr.get_tp(), T::TP);
         let eval_type =
-            EvalType::try_from(exp.ret_field_type(src_schema).as_accessor().tp()).unwrap();
+            EvalType::try_from(exp.ret_field_type(src_schemaReplicant).as_accessor().tp()).unwrap();
 
         let out_ft = root_expr.take_field_type();
         let out_et = box_try!(EvalType::try_from(out_ft.as_accessor().tp()));
@@ -77,7 +77,7 @@ impl<T: Extremum> super::AggrDefinitionParser for AggrFnDefinitionParserExtremum
         }
 
         // `MAX/MIN` outputs one PrimaryCauset which has the same type with its child
-        out_schema.push(out_ft);
+        out_schemaReplicant.push(out_ft);
         out_exp.push(exp);
 
         if out_et == EvalType::Bytes {
@@ -451,7 +451,7 @@ mod tests {
             .build();
         min_parser.check_supported(&min).unwrap();
 
-        let src_schema = [FieldTypeTp::LongLong.into()];
+        let src_schemaReplicant = [FieldTypeTp::LongLong.into()];
         let mut PrimaryCausets = LazyBatchPrimaryCausetVec::from(vec![{
             let mut col = LazyBatchPrimaryCauset::decoded_with_capacity_and_tp(0, EvalType::Int);
             col.mut_decoded().push_int(Some(10000));
@@ -466,22 +466,22 @@ mod tests {
         }]);
         let logical_rows = vec![3, 2, 6, 5, 1, 7];
 
-        let mut schema = vec![];
+        let mut schemaReplicant = vec![];
         let mut exp = vec![];
 
         let mut ctx = EvalContext::default();
         let max_fn = max_parser
-            .parse(max, &mut ctx, &src_schema, &mut schema, &mut exp)
+            .parse(max, &mut ctx, &src_schemaReplicant, &mut schemaReplicant, &mut exp)
             .unwrap();
-        assert_eq!(schema.len(), 1);
-        assert_eq!(schema[0].as_accessor().tp(), FieldTypeTp::LongLong);
+        assert_eq!(schemaReplicant.len(), 1);
+        assert_eq!(schemaReplicant[0].as_accessor().tp(), FieldTypeTp::LongLong);
         assert_eq!(exp.len(), 1);
 
         let min_fn = min_parser
-            .parse(min, &mut ctx, &src_schema, &mut schema, &mut exp)
+            .parse(min, &mut ctx, &src_schemaReplicant, &mut schemaReplicant, &mut exp)
             .unwrap();
-        assert_eq!(schema.len(), 2);
-        assert_eq!(schema[1].as_accessor().tp(), FieldTypeTp::LongLong);
+        assert_eq!(schemaReplicant.len(), 2);
+        assert_eq!(schemaReplicant[1].as_accessor().tp(), FieldTypeTp::LongLong);
         assert_eq!(exp.len(), 2);
 
         let mut ctx = EvalContext::default();
@@ -493,7 +493,7 @@ mod tests {
         // max
         {
             let max_result = exp[0]
-                .eval(&mut ctx, &src_schema, &mut PrimaryCausets, &logical_rows, 6)
+                .eval(&mut ctx, &src_schemaReplicant, &mut PrimaryCausets, &logical_rows, 6)
                 .unwrap();
             let max_result = max_result.vector_value().unwrap();
             let max_slice: SolitonedVecSized<Int> = max_result.as_ref().to_int_vec().into();
@@ -504,7 +504,7 @@ mod tests {
         // min
         {
             let min_result = exp[0]
-                .eval(&mut ctx, &src_schema, &mut PrimaryCausets, &logical_rows, 6)
+                .eval(&mut ctx, &src_schemaReplicant, &mut PrimaryCausets, &logical_rows, 6)
                 .unwrap();
             let min_result = min_result.vector_value().unwrap();
             let min_slice: SolitonedVecSized<Int> = min_result.as_ref().to_int_vec().into();
@@ -524,12 +524,12 @@ mod tests {
             .check_supported(&expr)
             .unwrap();
 
-        let src_schema = [FieldTypeTp::LongLong.into()];
-        let mut schema = vec![];
+        let src_schemaReplicant = [FieldTypeTp::LongLong.into()];
+        let mut schemaReplicant = vec![];
         let mut exp = vec![];
         let mut ctx = EvalContext::default();
         AggrFnDefinitionParserExtremum::<Max>::new()
-            .parse(expr, &mut ctx, &src_schema, &mut schema, &mut exp)
+            .parse(expr, &mut ctx, &src_schemaReplicant, &mut schemaReplicant, &mut exp)
             .unwrap_err();
     }
 }

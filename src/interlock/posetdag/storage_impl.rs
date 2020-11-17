@@ -5,7 +5,7 @@ use milevadb_query_common::causetStorage::{
 };
 
 use crate::interlock::Error;
-use crate::causetStorage::mvcc::NewerTsCheckState;
+use crate::causetStorage::tail_pointer::NewerTsCheckState;
 use crate::causetStorage::Statistics;
 use crate::causetStorage::{Scanner, CausetStore};
 use txn_types::Key;

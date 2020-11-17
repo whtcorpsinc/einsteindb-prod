@@ -252,7 +252,7 @@ impl<'client> S3Uploader<'client> {
 
     /// Uploads a file atomically.
     ///
-    /// This should be used only when the data is known to be short, and thus relatively cheap to
+    /// This should be used only when the data is knownCauset to be short, and thus relatively cheap to
     /// retry the entire upload.
     async fn upload(&self, data: &[u8]) -> Result<(), RusotoError<PutObjectError>> {
         self.client

@@ -181,7 +181,7 @@ mod tests {
             ],
         ];
 
-        let inner_table_scan = gen_table_scan_executor(1, cis, &raw_data, None);
+        let causet_set_table_scan = gen_table_scan_executor(1, cis, &raw_data, None);
 
         // selection executor
         let mut selection = Selection::default();
@@ -189,7 +189,7 @@ mod tests {
         selection.mut_conditions().push(expr);
 
         let mut selection_executor =
-            SelectionFreeDaemon::new(selection, Arc::new(EvalConfig::default()), inner_table_scan)
+            SelectionFreeDaemon::new(selection, Arc::new(EvalConfig::default()), causet_set_table_scan)
                 .unwrap();
 
         let mut selection_rows = Vec::with_capacity(raw_data.len());
@@ -220,7 +220,7 @@ mod tests {
             vec![Datum::I64(7), Datum::Bytes(b"f".to_vec()), Datum::I64(6)],
         ];
 
-        let inner_table_scan = gen_table_scan_executor(1, cis, &raw_data, None);
+        let causet_set_table_scan = gen_table_scan_executor(1, cis, &raw_data, None);
 
         // selection executor
         let mut selection = Selection::default();
@@ -228,7 +228,7 @@ mod tests {
         selection.mut_conditions().push(expr);
 
         let mut selection_executor =
-            SelectionFreeDaemon::new(selection, Arc::new(EvalConfig::default()), inner_table_scan)
+            SelectionFreeDaemon::new(selection, Arc::new(EvalConfig::default()), causet_set_table_scan)
                 .unwrap();
 
         let mut selection_rows = Vec::with_capacity(raw_data.len());

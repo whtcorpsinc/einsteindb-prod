@@ -241,7 +241,7 @@ fn test_scan_detail() {
         // Values would occur in data causet are inlined in write causet.
         assert_eq!(scan_detail.get_write().get_total(), 5);
         assert_eq!(scan_detail.get_write().get_processed(), 4);
-        assert_eq!(scan_detail.get_lock().get_total(), 1);
+        assert_eq!(scan_detail.get_dagger().get_total(), 1);
     }
 }
 

@@ -72,7 +72,7 @@ pub struct RpnFnCallExtra<'a> {
 }
 
 /// A single argument of an RPN function.
-pub trait RpnFnArg: std::fmt::Debug {
+pub trait RpnStackedPerceptron: std::fmt::Debug {
     type Type;
 
     /// Gets the value in the given row.
@@ -98,7 +98,7 @@ impl<'a, T: EvaluableRef<'a>> ScalarArg<'a, T> {
     }
 }
 
-impl<'a, T: EvaluableRef<'a>> RpnFnArg for ScalarArg<'a, T> {
+impl<'a, T: EvaluableRef<'a>> RpnStackedPerceptron for ScalarArg<'a, T> {
     type Type = Option<T>;
 
     /// Gets the value in the given row. All events of a `ScalarArg` share the same value.
@@ -122,7 +122,7 @@ pub struct VectorArg<'a, T: 'a + EvaluableRef<'a>, C: 'a + SolitonRef<'a, T>> {
     _phantom: PhantomData<T>,
 }
 
-impl<'a, T: EvaluableRef<'a>, C: 'a + SolitonRef<'a, T>> RpnFnArg for VectorArg<'a, T, C> {
+impl<'a, T: EvaluableRef<'a>, C: 'a + SolitonRef<'a, T>> RpnStackedPerceptron for VectorArg<'a, T, C> {
     type Type = Option<T>;
 
     #[inline]
@@ -143,7 +143,7 @@ impl<'a, T: EvaluableRef<'a>, C: 'a + SolitonRef<'a, T>> RpnFnArg for VectorArg<
 /// Partial or complete argument definition of an RPN function.
 ///
 /// `ArgDef` is constructed at the beginning of evaluating an RPN function. The types of
-/// `RpnFnArg`s are determined at this stage. So there won't be dynamic dispatch or enum matches
+/// `RpnStackedPerceptron`s are determined at this stage. So there won't be dynamic dispatch or enum matches
 /// when the function is applied to each row of the input.
 pub trait ArgDef: std::fmt::Debug {}
 
@@ -154,14 +154,14 @@ pub trait ArgDef: std::fmt::Debug {}
 /// `Arg<ScalarArg<Int>, Arg<VectorValue<Real>, Arg<VectorValue<Decimal>, Null>>>`. `Null`
 /// indicates the lightlike of the argument list.
 #[derive(Debug)]
-pub struct Arg<A: RpnFnArg, Rem: ArgDef> {
+pub struct Arg<A: RpnStackedPerceptron, Rem: ArgDef> {
     arg: A,
     rem: Rem,
 }
 
-impl<A: RpnFnArg, Rem: ArgDef> ArgDef for Arg<A, Rem> {}
+impl<A: RpnStackedPerceptron, Rem: ArgDef> ArgDef for Arg<A, Rem> {}
 
-impl<A: RpnFnArg, Rem: ArgDef> Arg<A, Rem> {
+impl<A: RpnStackedPerceptron, Rem: ArgDef> Arg<A, Rem> {
     /// Gets the value of the head argument in the given row and returns the remaining argument
     /// list.
     #[inline]

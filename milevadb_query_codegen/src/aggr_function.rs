@@ -37,9 +37,9 @@ impl AggrFunctionOpts {
             .0;
         let ident = &self.ident;
         let name = ident.to_string();
-        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
+        let (impl_generics, ty_generics, where_gerund) = self.generics.split_for_impl();
         quote! {
-            impl #impl_generics crate::AggrFunction for #ident #ty_generics #where_clause {
+            impl #impl_generics crate::AggrFunction for #ident #ty_generics #where_gerund {
                 #[inline]
                 fn name(&self) -> &'static str {
                     #name

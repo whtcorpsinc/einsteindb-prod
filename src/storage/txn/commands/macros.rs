@@ -18,13 +18,13 @@ macro_rules! command {
             cmd_ty => $cmd_ty: ty,
             display => $format_str: expr, ($($fields: ident$(.$sub_field:ident)?),*),
             content => {
-                $($(#[$inner_doc:meta])* $arg: ident : $arg_ty: ty,)*
+                $($(#[$causet_set_doc:meta])* $arg: ident : $arg_ty: ty,)*
             }
     ) => {
         $(#[$outer_doc])*
         pub struct $cmd {
             pub ctx: crate::causetStorage::Context,
-            $($(#[$inner_doc])* pub $arg: $arg_ty,)*
+            $($(#[$causet_set_doc])* pub $arg: $arg_ty,)*
         }
 
         impl $cmd {

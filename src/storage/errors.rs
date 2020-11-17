@@ -6,7 +6,7 @@ use std::io::Error as IoError;
 
 use crate::causetStorage::{
     kv::{self, Error as EngineError, ErrorInner as EngineErrorInner},
-    mvcc::{self, Error as MvccError, ErrorInner as MvccErrorInner},
+    tail_pointer::{self, Error as MvccError, ErrorInner as MvccErrorInner},
     txn::{self, Error as TxnError, ErrorInner as TxnErrorInner},
     Result,
 };
@@ -27,7 +27,7 @@ quick_error! {
             cause(err)
             display("{}", err)
         }
-        Mvcc(err: mvcc::Error) {
+        Mvcc(err: tail_pointer::Error) {
             from()
             cause(err)
             display("{}", err)

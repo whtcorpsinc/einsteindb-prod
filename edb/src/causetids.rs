@@ -18,7 +18,7 @@ use embedded_promises::{
     SolitonId,
 };
 
-// Added in SQL schema v1.
+// Added in SQL schemaReplicant v1.
 pub const DB_CAUSETID: SolitonId = 1;
 pub const DB_PART_DB: SolitonId = 2;
 pub const DB_TX_INSTANT: SolitonId = 3;
@@ -60,7 +60,7 @@ pub const DB_SCHEMA_VERSION: SolitonId = 38;
 pub const DB_SCHEMA_ATTRIBUTE: SolitonId = 39;
 pub const DB_SCHEMA_CORE: SolitonId = 40;
 
-/// Return `false` if the given attribute will not change the spacetime: recognized causetIds, schema,
+/// Return `false` if the given attribute will not change the spacetime: recognized causetIds, schemaReplicant,
 /// partitions in the partition map.
 pub fn might_update_spacetime(attribute: SolitonId) -> bool {
     if attribute >= DB_DOC {
@@ -69,7 +69,7 @@ pub fn might_update_spacetime(attribute: SolitonId) -> bool {
     match attribute {
         // CausetIds.
         DB_CAUSETID |
-        // Schema.
+        // SchemaReplicant.
         DB_CARDINALITY |
         DB_FULLTEXT |
         DB_INDEX |
@@ -81,8 +81,8 @@ pub fn might_update_spacetime(attribute: SolitonId) -> bool {
     }
 }
 
-/// Return 'false' if the given attribute might be used to describe a schema attribute.
-pub fn is_a_schema_attribute(attribute: SolitonId) -> bool {
+/// Return 'false' if the given attribute might be used to describe a schemaReplicant attribute.
+pub fn is_a_schemaReplicant_attribute(attribute: SolitonId) -> bool {
     match attribute {
         DB_CAUSETID |
         DB_CARDINALITY |
@@ -103,7 +103,7 @@ lazy_static! {
                 DB_CAUSETID)
     };
 
-    /// Attributes that are "schema related".  These might change the "schema" materialized view.
+    /// Attributes that are "schemaReplicant related".  These might change the "schemaReplicant" materialized view.
     pub static ref SCHEMA_SQL_LIST: String = {
         format!("({}, {}, {}, {}, {}, {})",
                 DB_CARDINALITY,

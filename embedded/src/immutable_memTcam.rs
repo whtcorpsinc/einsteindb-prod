@@ -16,11 +16,11 @@ use std::collections::{
 
 use embedded_promises::{
     SolitonId,
-    TypedValue,
+    MinkowskiType,
 };
 
 use ::{
-    Schema,
+    SchemaReplicant,
 };
 
 pub trait CachedAttributes {
@@ -28,15 +28,15 @@ pub trait CachedAttributes {
     fn is_attribute_cached_forward(&self, solitonId: SolitonId) -> bool;
     fn has_cached_attributes(&self) -> bool;
 
-    fn get_values_for_entid(&self, schema: &Schema, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<TypedValue>>;
-    fn get_value_for_entid(&self, schema: &Schema, attribute: SolitonId, solitonId: SolitonId) -> Option<&TypedValue>;
+    fn get_values_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<MinkowskiType>>;
+    fn get_value_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&MinkowskiType>;
 
     /// Reverse lookup.
-    fn get_entid_for_value(&self, attribute: SolitonId, value: &TypedValue) -> Option<SolitonId>;
-    fn get_entids_for_value(&self, attribute: SolitonId, value: &TypedValue) -> Option<&BTreeSet<SolitonId>>;
+    fn get_entid_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<SolitonId>;
+    fn get_entids_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>>;
 }
 
 pub trait UpdateableCache<E> {
-    fn update<I>(&mut self, schema: &Schema, retractions: I, assertions: I) -> Result<(), E>
-    where I: Iterator<Item=(SolitonId, SolitonId, TypedValue)>;
+    fn update<I>(&mut self, schemaReplicant: &SchemaReplicant, retractions: I, assertions: I) -> Result<(), E>
+    where I: Iterator<Item=(SolitonId, SolitonId, MinkowskiType)>;
 }

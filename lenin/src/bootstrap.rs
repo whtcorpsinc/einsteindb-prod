@@ -43,25 +43,25 @@ impl<'a> BootstrapHelper<'a> {
         }
     }
 
-    // TODO we could also iterate through our own bootstrap schema definition and check that everything matches
+    // TODO we could also iterate through our own bootstrap schemaReplicant definition and check that everything matches
     // "version" is used here as a proxy for doing that work
     pub fn is_compatible(&self) -> Result<bool> {
-        Ok(self.embedded_schema_version()? == CORE_SCHEMA_VERSION as i64)
+        Ok(self.embedded_schemaReplicant_version()? == CORE_SCHEMA_VERSION as i64)
     }
 
-    pub fn embedded_schema_version(&self) -> Result<i64> {
+    pub fn embedded_schemaReplicant_version(&self) -> Result<i64> {
         match self.parts.ea_lookup(
-            Keyword::namespaced("edb.schema", "embedded"),
-            Keyword::namespaced("edb.schema", "version"),
+            Keyword::namespaced("edb.schemaReplicant", "embedded"),
+            Keyword::namespaced("edb.schemaReplicant", "version"),
         ) {
             Some(v) => {
                 // TODO v is just a type tag and a Copy value, we shouldn't need to clone.
                 match v.clone().into_long() {
                     Some(v) => Ok(v),
-                    None => bail!(LeninError::BadRemoteState("incorrect type for embedded schema version".to_string()))
+                    None => bail!(LeninError::BadRemoteState("incorrect type for embedded schemaReplicant version".to_string()))
                 }
             },
-            None => bail!(LeninError::BadRemoteState("missing embedded schema version".to_string()))
+            None => bail!(LeninError::BadRemoteState("missing embedded schemaReplicant version".to_string()))
         }
     }
 }
@@ -80,11 +80,11 @@ mod tests {
     fn test_bootstrap_version() {
         let remote = TestConn::default();
 
-        let remote_causecausetxs = causecausetxs_after(&remote.sqlite, &remote.schema, remote.last_causecausetx_id() - 1);
+        let remote_causecausetxs = causecausetxs_after(&remote.sqlite, &remote.schemaReplicant, remote.last_causecausetx_id() - 1);
 
         assert_eq!(1, remote_causecausetxs.len());
 
         let bh = BootstrapHelper::new(&remote_causecausetxs[0]);
-        assert_eq!(1, bh.embedded_schema_version().expect("schema version"));
+        assert_eq!(1, bh.embedded_schemaReplicant_version().expect("schemaReplicant version"));
     }
 }

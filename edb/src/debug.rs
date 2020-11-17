@@ -69,13 +69,13 @@ use edb_promises::errors::Result;
 
 use embedded_promises::{
     SolitonId,
-    TypedValue,
-    ValueType,
+    MinkowskiType,
+    MinkowskiValueType,
 };
 
 use einsteindb_embedded::{
-    HasSchema,
-    SQLValueType,
+    HasSchemaReplicant,
+    SQLMinkowskiValueType,
     TxReport,
 };
 use edbn::{
@@ -88,8 +88,8 @@ use edbn::entities::{
 use internal_types::{
     TermWithTempIds,
 };
-use schema::{
-    SchemaBuilding,
+use schemaReplicant::{
+    SchemaReplicantBuilding,
 };
 use types::*;
 use causetx::{
@@ -164,15 +164,15 @@ impl FulltextValues {
     }
 }
 
-/// Turn TypedValue::Ref into TypedValue::Keyword when it is possible.
+/// Turn MinkowskiType::Ref into MinkowskiType::Keyword when it is possible.
 trait ToCausetId {
-  fn map_causetId(self, schema: &Schema) -> Self;
+  fn map_causetId(self, schemaReplicant: &SchemaReplicant) -> Self;
 }
 
-impl ToCausetId for TypedValue {
-    fn map_causetId(self, schema: &Schema) -> Self {
-        if let TypedValue::Ref(e) = self {
-            schema.get_causetId(e).cloned().map(|i| i.into()).unwrap_or(TypedValue::Ref(e))
+impl ToCausetId for MinkowskiType {
+    fn map_causetId(self, schemaReplicant: &SchemaReplicant) -> Self {
+        if let MinkowskiType::Ref(e) = self {
+            schemaReplicant.get_causetId(e).cloned().map(|i| i.into()).unwrap_or(MinkowskiType::Ref(e))
         } else {
             self
         }
@@ -180,27 +180,27 @@ impl ToCausetId for TypedValue {
 }
 
 /// Convert a numeric solitonId to an causetid `SolitonId` if possible, otherwise a numeric `SolitonId`.
-pub fn to_entid(schema: &Schema, solitonId: i64) -> SolitonIdOrCausetId {
-    schema.get_causetId(solitonId).map_or(SolitonIdOrCausetId::SolitonId(solitonId), |causetid| SolitonIdOrCausetId::CausetId(causetid.clone()))
+pub fn to_entid(schemaReplicant: &SchemaReplicant, solitonId: i64) -> SolitonIdOrCausetId {
+    schemaReplicant.get_causetId(solitonId).map_or(SolitonIdOrCausetId::SolitonId(solitonId), |causetid| SolitonIdOrCausetId::CausetId(causetid.clone()))
 }
 
 // /// Convert a symbolic causetid to an causetid `SolitonId` if possible, otherwise a numeric `SolitonId`.
-// pub fn to_causetId(schema: &Schema, solitonId: i64) -> SolitonId {
-//     schema.get_causetId(solitonId).map_or(SolitonId::SolitonId(solitonId), |causetid| SolitonId::CausetId(causetid.clone()))
+// pub fn to_causetId(schemaReplicant: &SchemaReplicant, solitonId: i64) -> SolitonId {
+//     schemaReplicant.get_causetId(solitonId).map_or(SolitonId::SolitonId(solitonId), |causetid| SolitonId::CausetId(causetid.clone()))
 // }
 
 /// Return the set of causets in the store, ordered by (e, a, v, causetx), but not including any causets of
 /// the form [... :edb/causecausetxInstant ...].
-pub fn causets<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema: &S) -> Result<Causets> {
-    Causets_after(conn, schema, bootstrap::TX0 - 1)
+pub fn causets<S: Borrow<SchemaReplicant>>(conn: &rusqlite::Connection, schemaReplicant: &S) -> Result<Causets> {
+    Causets_after(conn, schemaReplicant, bootstrap::TX0 - 1)
 }
 
 /// Return the set of causets in the store with transaction ID strictly greater than the given `causetx`,
 /// ordered by (e, a, v, causetx).
 ///
 /// The Causet set returned does not include any causets of the form [... :edb/causecausetxInstant ...].
-pub fn Causets_after<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema: &S, causetx: i64) -> Result<Causets> {
-    let borrowed_schema = schema.borrow();
+pub fn Causets_after<S: Borrow<SchemaReplicant>>(conn: &rusqlite::Connection, schemaReplicant: &S, causetx: i64) -> Result<Causets> {
+    let borrowed_schemaReplicant = schemaReplicant.borrow();
 
     let mut stmt: rusqlite::Statement = conn.prepare("SELECT e, a, v, value_type_tag, causetx FROM causets WHERE causetx > ? ORDER BY e ASC, a ASC, value_type_tag ASC, v ASC, causetx ASC")?;
 
@@ -215,17 +215,17 @@ pub fn Causets_after<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema: &S,
         let v: rusqlite::types::Value = row.get_checked(2)?;
         let value_type_tag: i32 = row.get_checked(3)?;
 
-        let attribute = borrowed_schema.require_attribute_for_entid(a)?;
-        let value_type_tag = if !attribute.fulltext { value_type_tag } else { ValueType::Long.value_type_tag() };
+        let attribute = borrowed_schemaReplicant.require_attribute_for_entid(a)?;
+        let value_type_tag = if !attribute.fulltext { value_type_tag } else { MinkowskiValueType::Long.value_type_tag() };
 
-        let typed_value = TypedValue::from_sql_value_pair(v, value_type_tag)?.map_causetId(borrowed_schema);
+        let typed_value = MinkowskiType::from_sql_value_pair(v, value_type_tag)?.map_causetId(borrowed_schemaReplicant);
         let (value, _) = typed_value.to_edbn_value_pair();
 
         let causetx: i64 = row.get_checked(4)?;
 
         Ok(Some(Causet {
             e: SolitonIdOrCausetId::SolitonId(e),
-            a: to_entid(borrowed_schema, a),
+            a: to_entid(borrowed_schemaReplicant, a),
             v: value,
             causetx: causetx,
             added: None,
@@ -239,8 +239,8 @@ pub fn Causets_after<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema: &S,
 /// given `causetx`, ordered by (causetx, e, a, v).
 ///
 /// Each transaction returned includes the [(transaction-causetx) :edb/causecausetxInstant ...] Causet.
-pub fn transactions_after<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema: &S, causetx: i64) -> Result<Transactions> {
-    let borrowed_schema = schema.borrow();
+pub fn transactions_after<S: Borrow<SchemaReplicant>>(conn: &rusqlite::Connection, schemaReplicant: &S, causetx: i64) -> Result<Transactions> {
+    let borrowed_schemaReplicant = schemaReplicant.borrow();
 
     let mut stmt: rusqlite::Statement = conn.prepare("SELECT e, a, v, value_type_tag, causetx, added FROM transactions WHERE causetx > ? ORDER BY causetx ASC, e ASC, a ASC, value_type_tag ASC, v ASC, added ASC")?;
 
@@ -251,10 +251,10 @@ pub fn transactions_after<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema
         let v: rusqlite::types::Value = row.get_checked(2)?;
         let value_type_tag: i32 = row.get_checked(3)?;
 
-        let attribute = borrowed_schema.require_attribute_for_entid(a)?;
-        let value_type_tag = if !attribute.fulltext { value_type_tag } else { ValueType::Long.value_type_tag() };
+        let attribute = borrowed_schemaReplicant.require_attribute_for_entid(a)?;
+        let value_type_tag = if !attribute.fulltext { value_type_tag } else { MinkowskiValueType::Long.value_type_tag() };
 
-        let typed_value = TypedValue::from_sql_value_pair(v, value_type_tag)?.map_causetId(borrowed_schema);
+        let typed_value = MinkowskiType::from_sql_value_pair(v, value_type_tag)?.map_causetId(borrowed_schemaReplicant);
         let (value, _) = typed_value.to_edbn_value_pair();
 
         let causetx: i64 = row.get_checked(4)?;
@@ -262,7 +262,7 @@ pub fn transactions_after<S: Borrow<Schema>>(conn: &rusqlite::Connection, schema
 
         Ok(Causet {
             e: SolitonIdOrCausetId::SolitonId(e),
-            a: to_entid(borrowed_schema, a),
+            a: to_entid(borrowed_schemaReplicant, a),
             v: value,
             causetx: causetx,
             added: Some(added),
@@ -317,21 +317,21 @@ pub fn dump_sql_causetq(conn: &rusqlite::Connection, allegrosql: &str, params: &
     Ok(dump)
 }
 
-// A connection that doesn't try to be clever about possibly sharing its `Schema`.  Compare to
+// A connection that doesn't try to be clever about possibly sharing its `SchemaReplicant`.  Compare to
 // `einsteindb::Conn`.
 pub struct TestConn {
     pub sqlite: rusqlite::Connection,
     pub partition_map: PartitionMap,
-    pub schema: Schema,
+    pub schemaReplicant: SchemaReplicant,
 }
 
 impl TestConn {
     fn assert_materialized_views(&self) {
         let materialized_causetId_map = read_causetId_map(&self.sqlite).expect("causetid map");
-        let materialized_attribute_map = read_attribute_map(&self.sqlite).expect("schema map");
+        let materialized_attribute_map = read_attribute_map(&self.sqlite).expect("schemaReplicant map");
 
-        let materialized_schema = Schema::from_causetId_map_and_attribute_map(materialized_causetId_map, materialized_attribute_map).expect("schema");
-        assert_eq!(materialized_schema, self.schema);
+        let materialized_schemaReplicant = SchemaReplicant::from_causetId_map_and_attribute_map(materialized_causetId_map, materialized_attribute_map).expect("schemaReplicant");
+        assert_eq!(materialized_schemaReplicant, self.schemaReplicant);
     }
 
     pub fn transact<I>(&mut self, transaction: I) -> Result<TxReport> where I: Borrow<str> {
@@ -343,15 +343,15 @@ impl TestConn {
             // We're about to write, so go straight ahead and get an IMMEDIATE transaction.
             let causetx = self.sqlite.transaction_with_behavior(TransactionBehavior::Immediate)?;
             // Applying the transaction can fail, so we don't unwrap.
-            let details = transact(&causetx, self.partition_map.clone(), &self.schema, &self.schema, NullWatcher(), entities)?;
+            let details = transact(&causetx, self.partition_map.clone(), &self.schemaReplicant, &self.schemaReplicant, NullWatcher(), entities)?;
             causetx.commit()?;
             details
         };
 
-        let (report, next_partition_map, next_schema, _watcher) = details;
+        let (report, next_partition_map, next_schemaReplicant, _watcher) = details;
         self.partition_map = next_partition_map;
-        if let Some(next_schema) = next_schema {
-            self.schema = next_schema;
+        if let Some(next_schemaReplicant) = next_schemaReplicant {
+            self.schemaReplicant = next_schemaReplicant;
         }
 
         // Verify that we've updated the materialized views during transacting.
@@ -366,15 +366,15 @@ impl TestConn {
             // We're about to write, so go straight ahead and get an IMMEDIATE transaction.
             let causetx = self.sqlite.transaction_with_behavior(TransactionBehavior::Immediate)?;
             // Applying the transaction can fail, so we don't unwrap.
-            let details = transact_terms(&causetx, self.partition_map.clone(), &self.schema, &self.schema, NullWatcher(), terms, tempid_set)?;
+            let details = transact_terms(&causetx, self.partition_map.clone(), &self.schemaReplicant, &self.schemaReplicant, NullWatcher(), terms, tempid_set)?;
             causetx.commit()?;
             details
         };
 
-        let (report, next_partition_map, next_schema, _watcher) = details;
+        let (report, next_partition_map, next_schemaReplicant, _watcher) = details;
         self.partition_map = next_partition_map;
-        if let Some(next_schema) = next_schema {
-            self.schema = next_schema;
+        if let Some(next_schemaReplicant) = next_schemaReplicant {
+            self.schemaReplicant = next_schemaReplicant;
         }
 
         // Verify that we've updated the materialized views during transacting.
@@ -388,15 +388,15 @@ impl TestConn {
     }
 
     pub fn last_transaction(&self) -> Causets {
-        transactions_after(&self.sqlite, &self.schema, self.last_causecausetx_id() - 1).expect("last_transaction").0.pop().unwrap()
+        transactions_after(&self.sqlite, &self.schemaReplicant, self.last_causecausetx_id() - 1).expect("last_transaction").0.pop().unwrap()
     }
 
     pub fn transactions(&self) -> Transactions {
-        transactions_after(&self.sqlite, &self.schema, bootstrap::TX0).expect("transactions")
+        transactions_after(&self.sqlite, &self.schemaReplicant, bootstrap::TX0).expect("transactions")
     }
 
     pub fn causets(&self) -> Causets {
-        Causets_after(&self.sqlite, &self.schema, bootstrap::TX0).expect("causets")
+        Causets_after(&self.sqlite, &self.schemaReplicant, bootstrap::TX0).expect("causets")
     }
 
     pub fn fulltext_values(&self) -> FulltextValues {
@@ -407,11 +407,11 @@ impl TestConn {
         let edb = ensure_current_version(&mut conn).unwrap();
 
         // Does not include :edb/causecausetxInstant.
-        let causets = Causets_after(&conn, &edb.schema, 0).unwrap();
+        let causets = Causets_after(&conn, &edb.schemaReplicant, 0).unwrap();
         assert_eq!(causets.0.len(), 94);
 
         // Includes :edb/causecausetxInstant.
-        let transactions = transactions_after(&conn, &edb.schema, 0).unwrap();
+        let transactions = transactions_after(&conn, &edb.schemaReplicant, 0).unwrap();
         assert_eq!(transactions.0.len(), 1);
         assert_eq!(transactions.0[0].0.len(), 95);
 
@@ -427,7 +427,7 @@ impl TestConn {
         let test_conn = TestConn {
             sqlite: conn,
             partition_map: parts,
-            schema: edb.schema,
+            schemaReplicant: edb.schemaReplicant,
         };
 
         // Verify that we've created the materialized views during bootstrapping.

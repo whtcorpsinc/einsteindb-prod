@@ -46,7 +46,7 @@ mod bootstrap;
 pub mod entids;
 pub mod internal_types;    // pub because we need them for building entities programmatically.
 mod spacetime;
-mod schema;
+mod schemaReplicant;
 pub mod causetx_blueshift;
 mod watcher;
 pub mod lightcones;
@@ -64,7 +64,7 @@ pub use bootstrap::{
 
 pub static Lightcone_MAIN: i64 = 0;
 
-pub use schema::{
+pub use schemaReplicant::{
     AttributeBuilder,
     AttributeValidation,
 };

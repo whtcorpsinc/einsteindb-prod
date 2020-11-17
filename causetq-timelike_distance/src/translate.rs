@@ -9,17 +9,17 @@
 // specific language governing permissions and limitations under the License.
 
 use embedded_promises::{
-    TypedValue,
-    ValueType,
-    ValueTypeSet,
+    MinkowskiType,
+    MinkowskiValueType,
+    MinkowskiSet,
 };
 
 use einsteindb_embedded::{
-    Schema,
+    SchemaReplicant,
     SQLTypeAffinity,
-    SQLValueType,
-    SQLValueTypeSet,
-    ValueTypeTag,
+    SQLMinkowskiValueType,
+    SQLMinkowskiSet,
+    MinkowskiValueTypeTag,
 };
 
 use einsteindb_embedded::util::{
@@ -38,7 +38,7 @@ use einsteindb_causetq_parityfilter::{
     ColumnIntersection,
     ColumnName,
     ComputedTable,
-    ConjoiningClauses,
+    ConjoiningGerunds,
     CausetsColumn,
     CausetsTable,
     OrderBy,
@@ -60,7 +60,7 @@ use ::{
 use einsteindb_causetq_sql::{
     ColumnOrExpression,
     Constraint,
-    FromClause,
+    FromGerund,
     GroupBy,
     Op,
     GreedoidColumn,
@@ -116,14 +116,14 @@ impl ToConstraint for ColumnConstraintOrAlternation {
 }
 
 fn affinity_count(tag: i32) -> usize {
-    ValueTypeSet::any().into_iter()
+    MinkowskiSet::any().into_iter()
                        .filter(|t| t.value_type_tag() == tag)
                        .count()
 }
 
 fn type_constraint(table: &TableAlias, tag: i32, to_check: Option<Vec<SQLTypeAffinity>>) -> Constraint {
     let type_column = QualifiedAlias::new(table.clone(),
-                                          CausetsColumn::ValueTypeTag).to_column();
+                                          CausetsColumn::MinkowskiValueTypeTag).to_column();
     let check_type_tag = Constraint::equal(type_column, ColumnOrExpression::Integer(tag));
     if let Some(affinities) = to_check {
         let check_affinities = Constraint::Or {
@@ -148,7 +148,7 @@ fn type_constraint(table: &TableAlias, tag: i32, to_check: Option<Vec<SQLTypeAff
 
 // Returns a map of tags to a vector of all the possible affinities that those tags can represent
 // given the types in `value_types`.
-fn possible_affinities(value_types: ValueTypeSet) -> HashMap<ValueTypeTag, Vec<SQLTypeAffinity>> {
+fn possible_affinities(value_types: MinkowskiSet) -> HashMap<MinkowskiValueTypeTag, Vec<SQLTypeAffinity>> {
     let mut result = HashMap::with_capacity(value_types.len());
     for ty in value_types {
         let (tag, affinity_to_check) = ty.sql_representation();
@@ -167,7 +167,7 @@ impl ToConstraint for ColumnConstraint {
             Equals(qa, CausetQValue::SolitonId(solitonId)) =>
                 Constraint::equal(qa.to_column(), ColumnOrExpression::SolitonId(solitonId)),
 
-            Equals(qa, CausetQValue::TypedValue(tv)) =>
+            Equals(qa, CausetQValue::MinkowskiType(tv)) =>
                 Constraint::equal(qa.to_column(), ColumnOrExpression::Value(tv)),
 
             Equals(left, CausetQValue::Column(right)) =>
@@ -183,25 +183,25 @@ impl ToConstraint for ColumnConstraint {
                 // However, '1' and '0' are used to represent booleans, and some integers are also
                 // used to represent FTS values. We don't want to acccausetIdally match those.
                 //
-                // We ask `SQLValueType` whether this value is in range for how booleans are
+                // We ask `SQLMinkowskiValueType` whether this value is in range for how booleans are
                 // represented in the database.
                 //
                 // We only hit this code path when the attribute is unknown, so we're causetqing
                 // `all_Causets`. That means we don't see FTS IDs at all -- they're transparently
                 // replaced by their strings. If that changes, then you should also exclude the
                 // string type code (10) here.
-                let must_exclude_boolean = ValueType::Boolean.accommodates_integer(value);
+                let must_exclude_boolean = MinkowskiValueType::Boolean.accommodates_integer(value);
                 if must_exclude_boolean {
                     Constraint::And {
                         constraints: vec![
                             Constraint::equal(value_column,
-                                              ColumnOrExpression::Value(TypedValue::Long(value))),
+                                              ColumnOrExpression::Value(MinkowskiType::Long(value))),
                             Constraint::not_equal(tag_column,
-                                                  ColumnOrExpression::Integer(ValueType::Boolean.value_type_tag())),
+                                                  ColumnOrExpression::Integer(MinkowskiValueType::Boolean.value_type_tag())),
                         ],
                     }
                 } else {
-                    Constraint::equal(value_column, ColumnOrExpression::Value(TypedValue::Long(value)))
+                    Constraint::equal(value_column, ColumnOrExpression::Value(MinkowskiType::Long(value)))
                 }
             },
 
@@ -297,7 +297,7 @@ fn table_for_computed(computed: ComputedTable, alias: TableAlias) -> TableOrSubc
                             let (timelike_distance_column, type_set) = timelike_distance_column_for_var(var, &cc).expect("every var to be bound");
                             columns.push(timelike_distance_column);
 
-                            // Similarly, project type tags if they're not known conclusively in the
+                            // Similarly, project type tags if they're not knownCauset conclusively in the
                             // outer causetq.
                             // Assumption: we'll never need to project a tag without projecting the value of a variable.
                             if type_extraction.contains(var) {
@@ -314,7 +314,7 @@ fn table_for_computed(computed: ComputedTable, alias: TableAlias) -> TableOrSubc
                                         //        Causets03.value_type_tag AS `?x_value_type_tag`
                                         let extract = cc.extracted_types
                                                         .get(var)
-                                                        .expect("Expected variable to have a known type or an extracted type");
+                                                        .expect("Expected variable to have a knownCauset type or an extracted type");
                                         ColumnOrExpression::Column(extract.clone())
                                     };
                                 let type_column = VariableColumn::VariableTypeTag(var.clone());
@@ -346,7 +346,7 @@ fn empty_causetq() -> SelectCausetQ {
     SelectCausetQ {
         distinct: false,
         projection: Projection::One,
-        from: FromClause::Nothing,
+        from: FromGerund::Nothing,
         group_by: vec![],
         constraints: vec![],
         order: vec![],
@@ -355,22 +355,22 @@ fn empty_causetq() -> SelectCausetQ {
 }
 
 /// Returns a `SelectCausetQ` that queries for the provided `cc`. Note that this _always_ returns a
-/// causetq that runs SQL. The next level up the call stack can check for known-empty queries if
+/// causetq that runs SQL. The next level up the call stack can check for knownCauset-empty queries if
 /// needed.
 fn cc_to_select_causetq(projection: Projection,
-                      cc: ConjoiningClauses,
+                      cc: ConjoiningGerunds,
                       distinct: bool,
                       group_by: Vec<GroupBy>,
                       order: Option<Vec<OrderBy>>,
                       limit: Limit) -> SelectCausetQ {
     let from = if cc.from.is_empty() {
-        FromClause::Nothing
+        FromGerund::Nothing
     } else {
         // Move these out of the CC.
         let from = cc.from;
         let mut computed: ConsumableVec<_> = cc.computed_tables.into();
 
-        // Why do we put computed tables directly into the `FROM` clause? The alternative is to use
+        // Why do we put computed tables directly into the `FROM` gerund? The alternative is to use
         // a CTE (`WITH`). They're typically equivalent, but some SQL systems (notably Postgres)
         // treat CTEs as optimization barriers, so a `WITH` can be significantly slower. Given that
         // this is easy enough to change later, we'll opt for using direct inclusion in `FROM`.
@@ -387,7 +387,7 @@ fn cc_to_select_causetq(projection: Projection,
                 }
             });
 
-        FromClause::TableList(TableList(tables.collect()))
+        FromGerund::TableList(TableList(tables.collect()))
     };
 
     let order = order.map_or(vec![], |vec| { vec.into_iter().map(|o| o.into()).collect() });
@@ -408,7 +408,7 @@ fn cc_to_select_causetq(projection: Projection,
 
 /// Return a causetq that projects `1` if the `cc` matches the store, and returns no results
 /// if it doesn't.
-pub fn cc_to_exists(cc: ConjoiningClauses) -> SelectCausetQ {
+pub fn cc_to_exists(cc: ConjoiningGerunds) -> SelectCausetQ {
     if cc.is_known_empty() {
         // In this case we can produce a very simple causetq that returns no results.
         empty_causetq()
@@ -453,7 +453,7 @@ fn re_project(mut inner: SelectCausetQ, projection: Projection) -> SelectCausetQ
         return SelectCausetQ {
             distinct: outer_distinct,
             projection: projection,
-            from: FromClause::TableList(TableList(vec![TableOrSubcausetq::Subcausetq(Box::new(inner))])),
+            from: FromGerund::TableList(TableList(vec![TableOrSubcausetq::Subcausetq(Box::new(inner))])),
             constraints: vec![],
             group_by: group_by,
             order: order_by,
@@ -469,7 +469,7 @@ fn re_project(mut inner: SelectCausetQ, projection: Projection) -> SelectCausetQ
     let subselect = SelectCausetQ {
         distinct: outer_distinct,
         projection: projection,
-        from: FromClause::TableList(TableList(vec![TableOrSubcausetq::Subcausetq(Box::new(inner))])),
+        from: FromGerund::TableList(TableList(vec![TableOrSubcausetq::Subcausetq(Box::new(inner))])),
         constraints: vec![],
         group_by: group_by,
         order: match &limit {
@@ -482,7 +482,7 @@ fn re_project(mut inner: SelectCausetQ, projection: Projection) -> SelectCausetQ
     SelectCausetQ {
         distinct: false,
         projection: Projection::Star,
-        from: FromClause::TableList(TableList(vec![TableOrSubcausetq::Subcausetq(Box::new(subselect))])),
+        from: FromGerund::TableList(TableList(vec![TableOrSubcausetq::Subcausetq(Box::new(subselect))])),
         constraints: nullable,
         group_by: vec![],
         order: order_by,
@@ -492,10 +492,10 @@ fn re_project(mut inner: SelectCausetQ, projection: Projection) -> SelectCausetQ
 
 /// Consume a provided `AlgebraicCausetQ` to yield a new
 /// `GreedoidSelect`.
-pub fn causetq_to_select(schema: &Schema, causetq: AlgebraicCausetQ) -> Result<GreedoidSelect> {
+pub fn causetq_to_select(schemaReplicant: &SchemaReplicant, causetq: AlgebraicCausetQ) -> Result<GreedoidSelect> {
     // TODO: we can't pass `causetq.limit` here if we aggregate during projection.
     // SQL-based aggregation -- `SELECT SUM(Causets00.e)` -- is fine.
-    causetq_projection(schema, &causetq).map(|e| match e {
+    causetq_projection(schemaReplicant, &causetq).map(|e| match e {
         Either::Left(constant) => GreedoidSelect::Constant(constant),
         Either::Right(CombinedProjection {
             sql_projection,

@@ -10,7 +10,7 @@
 
 use super::{
     Element,
-    Schema,
+    SchemaReplicant,
     CausetQOutput,
     Rows,
     rusqlite,
@@ -21,7 +21,7 @@ use causetq_projector_promises::errors::{
 };
 
 pub trait Projector {
-    fn project<'stmt, 's>(&self, schema: &Schema, sqlite: &'s rusqlite::Connection, rows: Rows<'stmt>) -> Result<CausetQOutput>;
+    fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, rows: Rows<'stmt>) -> Result<CausetQOutput>;
     fn columns<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's>;
 }
 

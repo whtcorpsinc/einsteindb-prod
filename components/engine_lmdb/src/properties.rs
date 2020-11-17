@@ -609,12 +609,12 @@ where
     let mut props = MvccProperties::new();
     let mut num_entries = 0;
     for (_, v) in collection.iter() {
-        let mvcc = match MvccProperties::decode(&v.user_collected_properties()) {
+        let tail_pointer = match MvccProperties::decode(&v.user_collected_properties()) {
             Ok(v) => v,
             Err(_) => return None,
         };
         num_entries += v.num_entries();
-        props.add(&mvcc);
+        props.add(&tail_pointer);
     }
 
     Some((num_entries, props.num_versions))
@@ -806,7 +806,7 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(MvccPropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.mvcc-properties-collector", f);
+        causet_opts.add_table_properties_collector_factory("einsteindb.tail_pointer-properties-collector", f);
         let causets_opts = LARGE_CAUSETS
             .iter()
             .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
@@ -842,7 +842,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mvcc_properties() {
+    fn test_tail_pointer_properties() {
         let cases = [
             ("ab", 2, WriteType::Put, DBEntryType::Put),
             ("ab", 1, WriteType::Delete, DBEntryType::Put),
@@ -874,7 +874,7 @@ mod tests {
     }
 
     #[bench]
-    fn bench_mvcc_properties(b: &mut Bencher) {
+    fn bench_tail_pointer_properties(b: &mut Bencher) {
         let ts = 1.into();
         let num_entries = 100;
         let mut entries = Vec::new();

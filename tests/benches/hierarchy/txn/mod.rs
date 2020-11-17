@@ -5,7 +5,7 @@ use criterion::{black_box, BatchSize, Bencher, Criterion};
 use ekvproto::kvrpcpb::Context;
 use test_util::KvGenerator;
 use einsteindb::causetStorage::kv::{Engine, WriteData};
-use einsteindb::causetStorage::mvcc::{self, MvccTxn};
+use einsteindb::causetStorage::tail_pointer::{self, MvccTxn};
 use txn_types::{Key, Mutation, TimeStamp};
 
 use super::{BenchConfig, EngineFactory, DEFAULT_ITERATIONS};
@@ -63,7 +63,7 @@ fn txn_prewrite<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config: &BenchC
         |mutations| {
             for (mutation, primary) in mutations {
                 let snapshot = engine.snapshot(&ctx).unwrap();
-                let mut txn = mvcc::MvccTxn::new(snapshot, 1.into(), true, cm.clone());
+                let mut txn = tail_pointer::MvccTxn::new(snapshot, 1.into(), true, cm.clone());
                 txn.prewrite(mutation, &primary, &None, false, 0, 0, TimeStamp::default())
                     .unwrap();
                 let write_data = WriteData::from_modifies(txn.into_modifies());
@@ -83,7 +83,7 @@ fn txn_commit<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config: &BenchCon
         |tuplespaceInstanton| {
             for key in tuplespaceInstanton {
                 let snapshot = engine.snapshot(&ctx).unwrap();
-                let mut txn = mvcc::MvccTxn::new(snapshot, 1.into(), true, cm.clone());
+                let mut txn = tail_pointer::MvccTxn::new(snapshot, 1.into(), true, cm.clone());
                 commit(&mut txn, key, 2.into()).unwrap();
                 let write_data = WriteData::from_modifies(txn.into_modifies());
                 black_box(engine.write(&ctx, write_data)).unwrap();
@@ -102,7 +102,7 @@ fn txn_rollback_prewrote<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config
         |tuplespaceInstanton| {
             for key in tuplespaceInstanton {
                 let snapshot = engine.snapshot(&ctx).unwrap();
-                let mut txn = mvcc::MvccTxn::new(snapshot, 1.into(), true, cm.clone());
+                let mut txn = tail_pointer::MvccTxn::new(snapshot, 1.into(), true, cm.clone());
                 txn.rollback(key).unwrap();
                 let write_data = WriteData::from_modifies(txn.into_modifies());
                 black_box(engine.write(&ctx, write_data)).unwrap();
@@ -121,7 +121,7 @@ fn txn_rollback_conflict<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config
         |tuplespaceInstanton| {
             for key in tuplespaceInstanton {
                 let snapshot = engine.snapshot(&ctx).unwrap();
-                let mut txn = mvcc::MvccTxn::new(snapshot, 1.into(), true, cm.clone());
+                let mut txn = tail_pointer::MvccTxn::new(snapshot, 1.into(), true, cm.clone());
                 txn.rollback(key).unwrap();
                 let write_data = WriteData::from_modifies(txn.into_modifies());
                 black_box(engine.write(&ctx, write_data)).unwrap();
@@ -148,7 +148,7 @@ fn txn_rollback_non_prewrote<E: Engine, F: EngineFactory<E>>(
         |tuplespaceInstanton| {
             for key in tuplespaceInstanton {
                 let snapshot = engine.snapshot(&ctx).unwrap();
-                let mut txn = mvcc::MvccTxn::new(snapshot, 1.into(), true, cm.clone());
+                let mut txn = tail_pointer::MvccTxn::new(snapshot, 1.into(), true, cm.clone());
                 txn.rollback(key).unwrap();
                 let write_data = WriteData::from_modifies(txn.into_modifies());
                 black_box(engine.write(&ctx, write_data)).unwrap();

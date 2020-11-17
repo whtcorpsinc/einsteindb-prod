@@ -50,7 +50,7 @@ impl<S: CausetStorage> BatchIndexScanFreeDaemon<S> {
         // - scan from a unique index with like: where unique-index like xxx
         //
         // Note 2: Unlike table scan executor, the accepted `PrimaryCausets_info` of index scan executor is
-        // strictly stipulated. The order of PrimaryCausets in the schema must be the same as index data
+        // strictly stipulated. The order of PrimaryCausets in the schemaReplicant must be the same as index data
         // stored and if PK handle is needed it must be placed as the last one.
         //
         // Note 3: Currently MilevaDB may slightlike multiple PK handles to EinsteinDB (but only the last one is
@@ -78,7 +78,7 @@ impl<S: CausetStorage> BatchIndexScanFreeDaemon<S> {
             ));
         }
 
-        let schema: Vec<_> = PrimaryCausets_info
+        let schemaReplicant: Vec<_> = PrimaryCausets_info
             .iter()
             .map(|ci| field_type_from_PrimaryCauset_info(&ci))
             .collect();
@@ -91,7 +91,7 @@ impl<S: CausetStorage> BatchIndexScanFreeDaemon<S> {
 
         let imp = IndexScanFreeDaemonImpl {
             context: EvalContext::new(config),
-            schema,
+            schemaReplicant,
             PrimaryCausets_id_without_handle,
             decode_handle_strategy,
         };
@@ -112,8 +112,8 @@ impl<S: CausetStorage> BatchFreeDaemon for BatchIndexScanFreeDaemon<S> {
     type StorageStats = S::Statistics;
 
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        self.0.schema()
+    fn schemaReplicant(&self) -> &[FieldType] {
+        self.0.schemaReplicant()
     }
 
     #[inline]
@@ -153,8 +153,8 @@ struct IndexScanFreeDaemonImpl {
     /// See `TableScanFreeDaemonImpl`'s `context`.
     context: EvalContext,
 
-    /// See `TableScanFreeDaemonImpl`'s `schema`.
-    schema: Vec<FieldType>,
+    /// See `TableScanFreeDaemonImpl`'s `schemaReplicant`.
+    schemaReplicant: Vec<FieldType>,
 
     /// ID of interested PrimaryCausets (exclude PK handle PrimaryCauset).
     PrimaryCausets_id_without_handle: Vec<i64>,
@@ -166,8 +166,8 @@ struct IndexScanFreeDaemonImpl {
 
 impl ScanFreeDaemonImpl for IndexScanFreeDaemonImpl {
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        &self.schema
+    fn schemaReplicant(&self) -> &[FieldType] {
+        &self.schemaReplicant
     }
 
     #[inline]
@@ -180,7 +180,7 @@ impl ScanFreeDaemonImpl for IndexScanFreeDaemonImpl {
     /// Note: the structure of the constructed PrimaryCauset is the same as table scan executor but due
     /// to different reasons.
     fn build_PrimaryCauset_vec(&self, scan_rows: usize) -> LazyBatchPrimaryCausetVec {
-        let PrimaryCausets_len = self.schema.len();
+        let PrimaryCausets_len = self.schemaReplicant.len();
         let mut PrimaryCausets = Vec::with_capacity(PrimaryCausets_len);
 
         for _ in 0..self.PrimaryCausets_id_without_handle.len() {
@@ -319,7 +319,7 @@ impl IndexScanFreeDaemonImpl {
             if let Some((spacelike, offset)) = row.search_in_non_null_ids(*col_id)? {
                 let mut buffer_to_write = PrimaryCausets[idx].mut_raw().begin_concat_extlightlike();
                 buffer_to_write
-                    .write_v2_as_datum(&row.values()[spacelike..offset], &self.schema[idx])?;
+                    .write_v2_as_datum(&row.values()[spacelike..offset], &self.schemaReplicant[idx])?;
             } else if row.search_in_null_ids(*col_id) {
                 PrimaryCausets[idx].mut_raw().push(datum::DATUM_DATA_NULL);
             } else {
@@ -517,7 +517,7 @@ mod tests {
         const INDEX_ID: i64 = 42;
         let mut ctx = EvalContext::default();
 
-        // Index schema: (INT, FLOAT)
+        // Index schemaReplicant: (INT, FLOAT)
 
         // the elements in data are: [int index, float index, handle id].
         let data = vec![
@@ -546,8 +546,8 @@ mod tests {
             },
         ];
 
-        // The schema of these PrimaryCausets. Used to check executor output.
-        let schema = vec![
+        // The schemaReplicant of these PrimaryCausets. Used to check executor output.
+        let schemaReplicant = vec![
             FieldTypeTp::LongLong.into(),
             FieldTypeTp::Double.into(),
             FieldTypeTp::LongLong.into(),
@@ -603,7 +603,7 @@ mod tests {
             assert_eq!(result.physical_PrimaryCausets.rows_len(), 3);
             assert!(result.physical_PrimaryCausets[0].is_raw());
             result.physical_PrimaryCausets[0]
-                .ensure_all_decoded_for_test(&mut ctx, &schema[0])
+                .ensure_all_decoded_for_test(&mut ctx, &schemaReplicant[0])
                 .unwrap();
             assert_eq!(
                 result.physical_PrimaryCausets[0].decoded().to_int_vec(),
@@ -611,7 +611,7 @@ mod tests {
             );
             assert!(result.physical_PrimaryCausets[1].is_raw());
             result.physical_PrimaryCausets[1]
-                .ensure_all_decoded_for_test(&mut ctx, &schema[1])
+                .ensure_all_decoded_for_test(&mut ctx, &schemaReplicant[1])
                 .unwrap();
             assert_eq!(
                 result.physical_PrimaryCausets[1].decoded().to_real_vec(),
@@ -659,7 +659,7 @@ mod tests {
             assert_eq!(result.physical_PrimaryCausets.rows_len(), 2);
             assert!(result.physical_PrimaryCausets[0].is_raw());
             result.physical_PrimaryCausets[0]
-                .ensure_all_decoded_for_test(&mut ctx, &schema[0])
+                .ensure_all_decoded_for_test(&mut ctx, &schemaReplicant[0])
                 .unwrap();
             assert_eq!(
                 result.physical_PrimaryCausets[0].decoded().to_int_vec(),
@@ -667,7 +667,7 @@ mod tests {
             );
             assert!(result.physical_PrimaryCausets[1].is_raw());
             result.physical_PrimaryCausets[1]
-                .ensure_all_decoded_for_test(&mut ctx, &schema[1])
+                .ensure_all_decoded_for_test(&mut ctx, &schemaReplicant[1])
                 .unwrap();
             assert_eq!(
                 result.physical_PrimaryCausets[1].decoded().to_real_vec(),
@@ -736,7 +736,7 @@ mod tests {
             assert_eq!(result.physical_PrimaryCausets.rows_len(), 2);
             assert!(result.physical_PrimaryCausets[0].is_raw());
             result.physical_PrimaryCausets[0]
-                .ensure_all_decoded_for_test(&mut ctx, &schema[0])
+                .ensure_all_decoded_for_test(&mut ctx, &schemaReplicant[0])
                 .unwrap();
             assert_eq!(
                 result.physical_PrimaryCausets[0].decoded().to_int_vec(),
@@ -744,7 +744,7 @@ mod tests {
             );
             assert!(result.physical_PrimaryCausets[1].is_raw());
             result.physical_PrimaryCausets[1]
-                .ensure_all_decoded_for_test(&mut ctx, &schema[1])
+                .ensure_all_decoded_for_test(&mut ctx, &schemaReplicant[1])
                 .unwrap();
             assert_eq!(
                 result.physical_PrimaryCausets[1].decoded().to_real_vec(),
@@ -793,7 +793,7 @@ mod tests {
             assert_eq!(result.physical_PrimaryCausets.rows_len(), 1);
             assert!(result.physical_PrimaryCausets[0].is_raw());
             result.physical_PrimaryCausets[0]
-                .ensure_all_decoded_for_test(&mut ctx, &schema[0])
+                .ensure_all_decoded_for_test(&mut ctx, &schemaReplicant[0])
                 .unwrap();
             assert_eq!(
                 result.physical_PrimaryCausets[0].decoded().to_int_vec(),
@@ -801,7 +801,7 @@ mod tests {
             );
             assert!(result.physical_PrimaryCausets[1].is_raw());
             result.physical_PrimaryCausets[1]
-                .ensure_all_decoded_for_test(&mut ctx, &schema[1])
+                .ensure_all_decoded_for_test(&mut ctx, &schemaReplicant[1])
                 .unwrap();
             assert_eq!(
                 result.physical_PrimaryCausets[1].decoded().to_real_vec(),
@@ -840,8 +840,8 @@ mod tests {
             },
         ];
 
-        // The schema of these PrimaryCausets. Used to check executor output.
-        let schema: Vec<FieldType> = vec![
+        // The schemaReplicant of these PrimaryCausets. Used to check executor output.
+        let schemaReplicant: Vec<FieldType> = vec![
             FieldTypeTp::LongLong.into(),
             FieldTypeTp::LongLong.into(),
             FieldTypeTp::Double.into(),
@@ -903,7 +903,7 @@ mod tests {
         assert_eq!(result.physical_PrimaryCausets.rows_len(), 1);
         assert!(result.physical_PrimaryCausets[0].is_raw());
         result.physical_PrimaryCausets[0]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[0])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[0])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[0].decoded().to_int_vec(),
@@ -911,7 +911,7 @@ mod tests {
         );
         assert!(result.physical_PrimaryCausets[1].is_raw());
         result.physical_PrimaryCausets[1]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[1])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[1])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[1].decoded().to_int_vec(),
@@ -919,7 +919,7 @@ mod tests {
         );
         assert!(result.physical_PrimaryCausets[2].is_raw());
         result.physical_PrimaryCausets[2]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[2])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[2])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[2].decoded().to_real_vec(),
@@ -946,7 +946,7 @@ mod tests {
         assert_eq!(result.physical_PrimaryCausets.rows_len(), 1);
         assert!(result.physical_PrimaryCausets[0].is_raw());
         result.physical_PrimaryCausets[0]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[0])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[0])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[0].decoded().to_int_vec(),
@@ -954,7 +954,7 @@ mod tests {
         );
         assert!(result.physical_PrimaryCausets[1].is_raw());
         result.physical_PrimaryCausets[1]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[1])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[1])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[1].decoded().to_int_vec(),
@@ -962,7 +962,7 @@ mod tests {
         );
         assert!(result.physical_PrimaryCausets[2].is_raw());
         result.physical_PrimaryCausets[2]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[2])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[2])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[2].decoded().to_real_vec(),
@@ -995,8 +995,8 @@ mod tests {
             },
         ];
 
-        // The schema of these PrimaryCausets. Used to check executor output.
-        let schema: Vec<FieldType> = vec![
+        // The schemaReplicant of these PrimaryCausets. Used to check executor output.
+        let schemaReplicant: Vec<FieldType> = vec![
             FieldTypeTp::LongLong.into(),
             FieldTypeTp::LongLong.into(),
             FieldTypeTp::Double.into(),
@@ -1042,7 +1042,7 @@ mod tests {
         assert_eq!(result.physical_PrimaryCausets.rows_len(), 1);
         assert!(result.physical_PrimaryCausets[0].is_raw());
         result.physical_PrimaryCausets[0]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[0])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[0])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[0].decoded().to_int_vec(),
@@ -1050,7 +1050,7 @@ mod tests {
         );
         assert!(result.physical_PrimaryCausets[1].is_raw());
         result.physical_PrimaryCausets[1]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[1])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[1])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[1].decoded().to_int_vec(),
@@ -1058,7 +1058,7 @@ mod tests {
         );
         assert!(result.physical_PrimaryCausets[2].is_raw());
         result.physical_PrimaryCausets[2]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[2])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[2])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[2].decoded().to_real_vec(),
@@ -1092,8 +1092,8 @@ mod tests {
             },
         ];
 
-        // The schema of these PrimaryCausets. Used to check executor output.
-        let schema: Vec<FieldType> = vec![
+        // The schemaReplicant of these PrimaryCausets. Used to check executor output.
+        let schemaReplicant: Vec<FieldType> = vec![
             FieldTypeTp::LongLong.into(),
             FieldTypeTp::Double.into(),
             FieldTypeTp::LongLong.into(),
@@ -1142,7 +1142,7 @@ mod tests {
         assert_eq!(result.physical_PrimaryCausets.rows_len(), 1);
         assert!(result.physical_PrimaryCausets[0].is_raw());
         result.physical_PrimaryCausets[0]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[0])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[0])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[0].decoded().to_int_vec(),
@@ -1150,7 +1150,7 @@ mod tests {
         );
         assert!(result.physical_PrimaryCausets[1].is_raw());
         result.physical_PrimaryCausets[1]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[1])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[1])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[1].decoded().to_real_vec(),
@@ -1189,8 +1189,8 @@ mod tests {
             },
         ];
 
-        // The schema of these PrimaryCausets. Used to check executor output.
-        let schema: Vec<FieldType> = vec![
+        // The schemaReplicant of these PrimaryCausets. Used to check executor output.
+        let schemaReplicant: Vec<FieldType> = vec![
             FieldTypeTp::LongLong.into(),
             FieldTypeTp::Double.into(),
             FieldTypeTp::LongLong.into(),
@@ -1236,7 +1236,7 @@ mod tests {
         assert_eq!(result.physical_PrimaryCausets.rows_len(), 1);
         assert!(result.physical_PrimaryCausets[0].is_raw());
         result.physical_PrimaryCausets[0]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[0])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[0])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[0].decoded().to_int_vec(),
@@ -1244,7 +1244,7 @@ mod tests {
         );
         assert!(result.physical_PrimaryCausets[1].is_raw());
         result.physical_PrimaryCausets[1]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[1])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[1])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[1].decoded().to_real_vec(),
@@ -1282,8 +1282,8 @@ mod tests {
             },
         ];
 
-        // The schema of these PrimaryCausets. Used to check executor output.
-        let schema: Vec<FieldType> = vec![
+        // The schemaReplicant of these PrimaryCausets. Used to check executor output.
+        let schemaReplicant: Vec<FieldType> = vec![
             FieldTypeTp::LongLong.into(),
             FieldTypeTp::LongLong.into(),
             FieldTypeTp::Double.into(),
@@ -1329,7 +1329,7 @@ mod tests {
         assert_eq!(result.physical_PrimaryCausets.rows_len(), 1);
         assert!(result.physical_PrimaryCausets[0].is_raw());
         result.physical_PrimaryCausets[0]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[0])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[0])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[0].decoded().to_int_vec(),
@@ -1337,7 +1337,7 @@ mod tests {
         );
         assert!(result.physical_PrimaryCausets[1].is_raw());
         result.physical_PrimaryCausets[1]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[1])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[1])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[1].decoded().to_int_vec(),
@@ -1345,7 +1345,7 @@ mod tests {
         );
         assert!(result.physical_PrimaryCausets[2].is_raw());
         result.physical_PrimaryCausets[2]
-            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schema[2])
+            .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[2])
             .unwrap();
         assert_eq!(
             result.physical_PrimaryCausets[2].decoded().to_real_vec(),

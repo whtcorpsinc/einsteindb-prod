@@ -8,8 +8,8 @@ pub(crate) mod check_secondary_locks;
 pub(crate) mod check_txn_status;
 pub(crate) mod cleanup;
 pub(crate) mod commit;
-pub(crate) mod mvcc_by_key;
-pub(crate) mod mvcc_by_spacelike_ts;
+pub(crate) mod tail_pointer_by_key;
+pub(crate) mod tail_pointer_by_spacelike_ts;
 pub(crate) mod pause;
 pub(crate) mod pessimistic_rollback;
 pub(crate) mod prewrite;
@@ -26,8 +26,8 @@ pub use check_secondary_locks::CheckSecondaryLocks;
 pub use check_txn_status::CheckTxnStatus;
 pub use cleanup::Cleanup;
 pub use commit::Commit;
-pub use mvcc_by_key::MvccByKey;
-pub use mvcc_by_spacelike_ts::MvccByStartTs;
+pub use tail_pointer_by_key::MvccByKey;
+pub use tail_pointer_by_spacelike_ts::MvccByStartTs;
 pub use pause::Pause;
 pub use pessimistic_rollback::PessimisticRollback;
 pub use prewrite::Prewrite;
@@ -53,7 +53,7 @@ use txn_types::{Key, TimeStamp, Value, Write};
 
 use crate::causetStorage::kv::WriteData;
 use crate::causetStorage::lock_manager::{self, LockManager, WaitTimeout};
-use crate::causetStorage::mvcc::{Dagger as MvccLock, MvccReader, ReleasedLock};
+use crate::causetStorage::tail_pointer::{Dagger as MvccLock, MvccReader, ReleasedLock};
 use crate::causetStorage::txn::latch::{self, Latches};
 use crate::causetStorage::txn::{ProcessResult, Result};
 use crate::causetStorage::types::{
@@ -125,7 +125,7 @@ impl From<PrewriteRequest> for TypedCommand<PrewriteResult> {
                 req.take_mutations().into_iter().map(Into::into).collect(),
                 req.take_primary_lock(),
                 req.get_spacelike_version().into(),
-                req.get_lock_ttl(),
+                req.get_dagger_ttl(),
                 req.get_skip_constraint_check(),
                 req.get_txn_size(),
                 req.get_min_commit_ts().into(),
@@ -144,7 +144,7 @@ impl From<PrewriteRequest> for TypedCommand<PrewriteResult> {
                 mutations,
                 req.take_primary_lock(),
                 req.get_spacelike_version().into(),
-                req.get_lock_ttl(),
+                req.get_dagger_ttl(),
                 for_ufidelate_ts.into(),
                 req.get_txn_size(),
                 req.get_min_commit_ts().into(),
@@ -173,7 +173,7 @@ impl From<PessimisticLockRequest> for TypedCommand<StorageResult<PessimisticLock
             tuplespaceInstanton,
             req.take_primary_lock(),
             req.get_spacelike_version().into(),
-            req.get_lock_ttl(),
+            req.get_dagger_ttl(),
             req.get_is_first_lock(),
             req.get_for_ufidelate_ts().into(),
             WaitTimeout::from_encoded(req.get_wait_timeout()),
@@ -243,7 +243,7 @@ impl From<CheckTxnStatusRequest> for TypedCommand<TxnStatus> {
     fn from(mut req: CheckTxnStatusRequest) -> Self {
         CheckTxnStatus::new(
             Key::from_raw(req.get_primary_key()),
-            req.get_lock_ts().into(),
+            req.get_dagger_ts().into(),
             req.get_caller_spacelike_ts().into(),
             req.get_current_ts().into(),
             req.get_rollback_if_not_exist(),
@@ -373,7 +373,7 @@ type LockWritesVals = (
     Vec<(TimeStamp, Value)>,
 );
 
-fn find_mvcc_infos_by_key<S: Snapshot>(
+fn find_tail_pointer_infos_by_key<S: Snapshot>(
     reader: &mut MvccReader<S>,
     key: &Key,
     mut ts: TimeStamp,

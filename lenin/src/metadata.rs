@@ -17,7 +17,7 @@ use embedded_promises::{
     SolitonId,
 };
 
-use schema;
+use schemaReplicant;
 
 use public_promises::errors::{
     Result,
@@ -66,7 +66,7 @@ impl SyncSpacetime {
     pub fn remote_head(causetx: &rusqlite::Transaction) -> Result<Uuid> {
         causetx.causetq_row(
             "SELECT value FROM lenin_spacetime WHERE key = ?",
-            &[&schema::REMOTE_HEAD_KEY], |r| {
+            &[&schemaReplicant::REMOTE_HEAD_KEY], |r| {
                 let bytes: Vec<u8> = r.get(0);
                 Uuid::from_bytes(bytes.as_slice())
             }
@@ -76,9 +76,9 @@ impl SyncSpacetime {
     pub fn set_remote_head(causetx: &rusqlite::Transaction, uuid: &Uuid) -> Result<()> {
         let uuid_bytes = uuid.as_bytes().to_vec();
         let updated = causetx.execute("UPDATE lenin_spacetime SET value = ? WHERE key = ?",
-            &[&uuid_bytes, &schema::REMOTE_HEAD_KEY])?;
+            &[&uuid_bytes, &schemaReplicant::REMOTE_HEAD_KEY])?;
         if updated != 1 {
-            bail!(LeninError::DuplicateSpacetime(schema::REMOTE_HEAD_KEY.into()));
+            bail!(LeninError::DuplicateSpacetime(schemaReplicant::REMOTE_HEAD_KEY.into()));
         }
         Ok(())
     }
@@ -125,11 +125,11 @@ impl SyncSpacetime {
     }
 
     pub fn local_causecausetxs(edb_causecausetx: &rusqlite::Transaction, after: Option<SolitonId>) -> Result<Vec<SolitonId>> {
-        let after_clause = match after {
+        let after_gerund = match after {
             Some(t) => format!("WHERE lightcone = 0 AND causetx > {}", t),
             None => format!("WHERE lightcone = 0")
         };
-        let mut stmt: ::rusqlite::Statement = edb_causecausetx.prepare(&format!("SELECT causetx FROM lightconed_transactions {} GROUP BY causetx ORDER BY causetx", after_clause))?;
+        let mut stmt: ::rusqlite::Statement = edb_causecausetx.prepare(&format!("SELECT causetx FROM lightconed_transactions {} GROUP BY causetx ORDER BY causetx", after_gerund))?;
         let causecausetxs: Vec<_> = stmt.causetq_and_then(&[], |row| -> Result<SolitonId> {
             Ok(row.get_checked(0)?)
         })?.collect();
@@ -165,15 +165,15 @@ mod tests {
 
     #[test]
     fn test_get_remote_head_default() {
-        let mut conn = schema::tests::setup_conn_bare();
-        let causetx = schema::tests::setup_causecausetx(&mut conn);
+        let mut conn = schemaReplicant::tests::setup_conn_bare();
+        let causetx = schemaReplicant::tests::setup_causecausetx(&mut conn);
         assert_eq!(Uuid::nil(), SyncSpacetime::remote_head(&causetx).expect("fetch succeeded"));
     }
 
     #[test]
     fn test_set_and_get_remote_head() {
-        let mut conn = schema::tests::setup_conn_bare();
-        let causetx = schema::tests::setup_causecausetx(&mut conn);
+        let mut conn = schemaReplicant::tests::setup_conn_bare();
+        let causetx = schemaReplicant::tests::setup_causecausetx(&mut conn);
         let uuid = Uuid::new_v4();
         SyncSpacetime::set_remote_head(&causetx, &uuid).expect("update succeeded");
         assert_eq!(uuid, SyncSpacetime::remote_head(&causetx).expect("fetch succeeded"));
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn test_root_and_head_causecausetx() {
-        let mut conn = schema::tests::setup_conn_bare();
+        let mut conn = schemaReplicant::tests::setup_conn_bare();
         edb::ensure_current_version(&mut conn).expect("einsteindb edb init");
         let edb_causecausetx = conn.transaction().expect("transaction");
 

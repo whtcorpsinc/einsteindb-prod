@@ -9,22 +9,22 @@
 // specific language governing permissions and limitations under the License.
 
 use embedded_promises::{
-    ValueType,
-    TypedValue,
+    MinkowskiValueType,
+    MinkowskiType,
 };
 
 use einsteindb_embedded::{
-    HasSchema,
-    Schema,
+    HasSchemaReplicant,
+    SchemaReplicant,
 };
 
 use edbn::causetq::{
-    FnArg,
+    StackedPerceptron,
     NonIntegerConstant,
     PlainSymbol,
 };
 
-use clauses::ConjoiningClauses;
+use gerunds::ConjoiningGerunds;
 
 use causetq_parityfilter_promises::errors::{
     ParityFilterError,
@@ -37,22 +37,22 @@ use types::{
 };
 
 /// Argument resolution.
-impl ConjoiningClauses {
+impl ConjoiningGerunds {
     /// Take a function argument and turn it into a `CausetQValue` suitable for use in a concrete
     /// constraint.
     /// Additionally, do two things:
-    /// - Mark the pattern as known-empty if any argument is known non-numeric.
+    /// - Mark the pattern as knownCauset-empty if any argument is knownCauset non-numeric.
     /// - Mark any variables encountered as numeric.
-    pub(crate) fn resolve_numeric_argument(&mut self, function: &PlainSymbol, position: usize, arg: FnArg) -> Result<CausetQValue> {
-        use self::FnArg::*;
+    pub(crate) fn resolve_numeric_argument(&mut self, function: &PlainSymbol, position: usize, arg: StackedPerceptron) -> Result<CausetQValue> {
+        use self::StackedPerceptron::*;
         match arg {
-            FnArg::Variable(var) => {
+            StackedPerceptron::Variable(var) => {
                 // Handle incorrect types
                 if let Some(v) = self.bound_value(&var) {
                     if v.value_type().is_numeric() {
-                        Ok(CausetQValue::TypedValue(v))
+                        Ok(CausetQValue::MinkowskiType(v))
                     } else {
-                        bail!(ParityFilterError::InputTypeDisagreement(var.name().clone(), ValueType::Long, v.value_type()))
+                        bail!(ParityFilterError::InputTypeDisagreement(var.name().clone(), MinkowskiValueType::Long, v.value_type()))
                     }
                 } else {
                     self.constrain_var_to_numeric(var.clone());
@@ -63,7 +63,7 @@ impl ConjoiningClauses {
                 }
             },
             // Can't be an solitonId.
-            SolitonIdOrInteger(i) => Ok(CausetQValue::TypedValue(TypedValue::Long(i))),
+            SolitonIdOrInteger(i) => Ok(CausetQValue::MinkowskiType(MinkowskiType::Long(i))),
             CausetIdOrKeyword(_) |
             SrcVar(_) |
             Constant(NonIntegerConstant::Boolean(_)) |
@@ -75,20 +75,20 @@ impl ConjoiningClauses {
                 self.mark_known_empty(EmptyBecause::NonNumericArgument);
                 bail!(ParityFilterError::InvalidArgument(function.clone(), "numeric", position))
             },
-            Constant(NonIntegerConstant::Float(f)) => Ok(CausetQValue::TypedValue(TypedValue::Double(f))),
+            Constant(NonIntegerConstant::Float(f)) => Ok(CausetQValue::MinkowskiType(MinkowskiType::Double(f))),
         }
     }
 
-    /// Just like `resolve_numeric_argument`, but for `ValueType::Instant`.
-    pub(crate) fn resolve_instant_argument(&mut self, function: &PlainSymbol, position: usize, arg: FnArg) -> Result<CausetQValue> {
-        use self::FnArg::*;
+    /// Just like `resolve_numeric_argument`, but for `MinkowskiValueType::Instant`.
+    pub(crate) fn resolve_instant_argument(&mut self, function: &PlainSymbol, position: usize, arg: StackedPerceptron) -> Result<CausetQValue> {
+        use self::StackedPerceptron::*;
         match arg {
-            FnArg::Variable(var) => {
+            StackedPerceptron::Variable(var) => {
                 match self.bound_value(&var) {
-                    Some(TypedValue::Instant(v)) => Ok(CausetQValue::TypedValue(TypedValue::Instant(v))),
-                    Some(v) => bail!(ParityFilterError::InputTypeDisagreement(var.name().clone(), ValueType::Instant, v.value_type())),
+                    Some(MinkowskiType::Instant(v)) => Ok(CausetQValue::MinkowskiType(MinkowskiType::Instant(v))),
+                    Some(v) => bail!(ParityFilterError::InputTypeDisagreement(var.name().clone(), MinkowskiValueType::Instant, v.value_type())),
                     None => {
-                        self.constrain_var_to_type(var.clone(), ValueType::Instant);
+                        self.constrain_var_to_type(var.clone(), MinkowskiValueType::Instant);
                         self.column_bindings
                             .get(&var)
                             .and_then(|cols| cols.first().map(|col| CausetQValue::Column(col.clone())))
@@ -97,7 +97,7 @@ impl ConjoiningClauses {
                 }
             },
             Constant(NonIntegerConstant::Instant(v)) => {
-                Ok(CausetQValue::TypedValue(TypedValue::Instant(v)))
+                Ok(CausetQValue::MinkowskiType(MinkowskiType::Instant(v)))
             },
 
             // TODO: should we allow integers if they seem to be timestamps? It's ambiguous…
@@ -111,19 +111,19 @@ impl ConjoiningClauses {
             Constant(NonIntegerConstant::BigInteger(_)) |
             Vector(_) => {
                 self.mark_known_empty(EmptyBecause::NonInstantArgument);
-                bail!(ParityFilterError::InvalidArgumentType(function.clone(), ValueType::Instant.into(), position))
+                bail!(ParityFilterError::InvalidArgumentType(function.clone(), MinkowskiValueType::Instant.into(), position))
             },
         }
     }
 
     /// Take a function argument and turn it into a `CausetQValue` suitable for use in a concrete
     /// constraint.
-    pub(crate) fn resolve_ref_argument(&mut self, schema: &Schema, function: &PlainSymbol, position: usize, arg: FnArg) -> Result<CausetQValue> {
-        use self::FnArg::*;
+    pub(crate) fn resolve_ref_argument(&mut self, schemaReplicant: &SchemaReplicant, function: &PlainSymbol, position: usize, arg: StackedPerceptron) -> Result<CausetQValue> {
+        use self::StackedPerceptron::*;
         match arg {
-            FnArg::Variable(var) => {
-                self.constrain_var_to_type(var.clone(), ValueType::Ref);
-                if let Some(TypedValue::Ref(e)) = self.bound_value(&var) {
+            StackedPerceptron::Variable(var) => {
+                self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
+                if let Some(MinkowskiType::Ref(e)) = self.bound_value(&var) {
                     // Incorrect types will be handled by the constraint, above.
                     Ok(CausetQValue::SolitonId(e))
                 } else {
@@ -133,9 +133,9 @@ impl ConjoiningClauses {
                         .ok_or_else(|| ParityFilterError::UnboundVariable(var.name()).into())
                 }
             },
-            SolitonIdOrInteger(i) => Ok(CausetQValue::TypedValue(TypedValue::Ref(i))),
+            SolitonIdOrInteger(i) => Ok(CausetQValue::MinkowskiType(MinkowskiType::Ref(i))),
             CausetIdOrKeyword(i) => {
-                schema.get_entid(&i)
+                schemaReplicant.get_causetid(&i)
                       .map(|known_entid| CausetQValue::SolitonId(known_entid.into()))
                       .ok_or_else(|| ParityFilterError::UnrecognizedCausetId(i.to_string()).into())
             },
@@ -148,7 +148,7 @@ impl ConjoiningClauses {
             SrcVar(_) |
             Vector(_) => {
                 self.mark_known_empty(EmptyBecause::NonInstantonArgument);
-                bail!(ParityFilterError::InvalidArgumentType(function.clone(), ValueType::Ref.into(), position))
+                bail!(ParityFilterError::InvalidArgumentType(function.clone(), MinkowskiValueType::Ref.into(), position))
             },
 
         }
@@ -156,21 +156,21 @@ impl ConjoiningClauses {
 
     /// Take a transaction ID function argument and turn it into a `CausetQValue` suitable for use in
     /// a concrete constraint.
-    pub(crate) fn resolve_causecausetx_argument(&mut self, schema: &Schema, function: &PlainSymbol, position: usize, arg: FnArg) -> Result<CausetQValue> {
+    pub(crate) fn resolve_causecausetx_argument(&mut self, schemaReplicant: &SchemaReplicant, function: &PlainSymbol, position: usize, arg: StackedPerceptron) -> Result<CausetQValue> {
         // Under the hood there's nothing special about a transaction ID -- it's just another ref.
         // In the future, we might handle instants specially.
-        self.resolve_ref_argument(schema, function, position, arg)
+        self.resolve_ref_argument(schemaReplicant, function, position, arg)
     }
 
     /// Take a function argument and turn it into a `CausetQValue` suitable for use in a concrete
     /// constraint.
     #[allow(dead_code)]
-    fn resolve_argument(&self, arg: FnArg) -> Result<CausetQValue> {
-        use self::FnArg::*;
+    fn resolve_argument(&self, arg: StackedPerceptron) -> Result<CausetQValue> {
+        use self::StackedPerceptron::*;
         match arg {
-            FnArg::Variable(var) => {
+            StackedPerceptron::Variable(var) => {
                 match self.bound_value(&var) {
-                    Some(v) => Ok(CausetQValue::TypedValue(v)),
+                    Some(v) => Ok(CausetQValue::MinkowskiType(v)),
                     None => {
                         self.column_bindings
                             .get(&var)
@@ -181,11 +181,11 @@ impl ConjoiningClauses {
             },
             SolitonIdOrInteger(i) => Ok(CausetQValue::PrimitiveLong(i)),
             CausetIdOrKeyword(_) => unimplemented!(),     // TODO
-            Constant(NonIntegerConstant::Boolean(val)) => Ok(CausetQValue::TypedValue(TypedValue::Boolean(val))),
-            Constant(NonIntegerConstant::Float(f)) => Ok(CausetQValue::TypedValue(TypedValue::Double(f))),
-            Constant(NonIntegerConstant::Text(s)) => Ok(CausetQValue::TypedValue(TypedValue::typed_string(s.as_str()))),
-            Constant(NonIntegerConstant::Uuid(u)) => Ok(CausetQValue::TypedValue(TypedValue::Uuid(u))),
-            Constant(NonIntegerConstant::Instant(u)) => Ok(CausetQValue::TypedValue(TypedValue::Instant(u))),
+            Constant(NonIntegerConstant::Boolean(val)) => Ok(CausetQValue::MinkowskiType(MinkowskiType::Boolean(val))),
+            Constant(NonIntegerConstant::Float(f)) => Ok(CausetQValue::MinkowskiType(MinkowskiType::Double(f))),
+            Constant(NonIntegerConstant::Text(s)) => Ok(CausetQValue::MinkowskiType(MinkowskiType::typed_string(s.as_str()))),
+            Constant(NonIntegerConstant::Uuid(u)) => Ok(CausetQValue::MinkowskiType(MinkowskiType::Uuid(u))),
+            Constant(NonIntegerConstant::Instant(u)) => Ok(CausetQValue::MinkowskiType(MinkowskiType::Instant(u))),
             Constant(NonIntegerConstant::BigInteger(_)) => unimplemented!(),
             SrcVar(_) => unimplemented!(),
             Vector(_) => unimplemented!(),    // TODO

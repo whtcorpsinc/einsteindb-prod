@@ -5,7 +5,7 @@ use criterion::{black_box, BatchSize, Bencher, Criterion};
 use ekvproto::kvrpcpb::Context;
 use test_util::KvGenerator;
 use einsteindb::causetStorage::kv::{Engine, WriteData};
-use einsteindb::causetStorage::mvcc::{self, MvccReader, MvccTxn};
+use einsteindb::causetStorage::tail_pointer::{self, MvccReader, MvccTxn};
 use einsteindb::causetStorage::txn::commit;
 use txn_types::{Key, Mutation, TimeStamp};
 
@@ -51,7 +51,7 @@ where
     (snapshot, tuplespaceInstanton)
 }
 
-fn mvcc_prewrite<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config: &BenchConfig<F>) {
+fn tail_pointer_prewrite<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config: &BenchConfig<F>) {
     let engine = config.engine_factory.build();
     let ctx = Context::default();
     let cm = ConcurrencyManager::new(1.into());
@@ -71,7 +71,7 @@ fn mvcc_prewrite<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config: &Bench
         },
         |(mutations, snapshot)| {
             for (mutation, primary) in mutations {
-                let mut txn = mvcc::MvccTxn::new(snapshot.clone(), 1.into(), true, cm.clone());
+                let mut txn = tail_pointer::MvccTxn::new(snapshot.clone(), 1.into(), true, cm.clone());
                 txn.prewrite(mutation, &primary, &None, false, 0, 0, TimeStamp::default())
                     .unwrap();
             }
@@ -80,14 +80,14 @@ fn mvcc_prewrite<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config: &Bench
     )
 }
 
-fn mvcc_commit<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config: &BenchConfig<F>) {
+fn tail_pointer_commit<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config: &BenchConfig<F>) {
     let engine = config.engine_factory.build();
     let cm = ConcurrencyManager::new(1.into());
     b.iter_batched(
         || setup_prewrite(&engine, &config, 1),
         |(snapshot, tuplespaceInstanton)| {
             for key in tuplespaceInstanton {
-                let mut txn = mvcc::MvccTxn::new(snapshot.clone(), 1.into(), true, cm.clone());
+                let mut txn = tail_pointer::MvccTxn::new(snapshot.clone(), 1.into(), true, cm.clone());
                 black_box(commit(&mut txn, key, 1.into())).unwrap();
             }
         },
@@ -95,7 +95,7 @@ fn mvcc_commit<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config: &BenchCo
     );
 }
 
-fn mvcc_rollback_prewrote<E: Engine, F: EngineFactory<E>>(
+fn tail_pointer_rollback_prewrote<E: Engine, F: EngineFactory<E>>(
     b: &mut Bencher,
     config: &BenchConfig<F>,
 ) {
@@ -105,7 +105,7 @@ fn mvcc_rollback_prewrote<E: Engine, F: EngineFactory<E>>(
         || setup_prewrite(&engine, &config, 1),
         |(snapshot, tuplespaceInstanton)| {
             for key in tuplespaceInstanton {
-                let mut txn = mvcc::MvccTxn::new(snapshot.clone(), 1.into(), true, cm.clone());
+                let mut txn = tail_pointer::MvccTxn::new(snapshot.clone(), 1.into(), true, cm.clone());
                 black_box(txn.rollback(key)).unwrap();
             }
         },
@@ -113,7 +113,7 @@ fn mvcc_rollback_prewrote<E: Engine, F: EngineFactory<E>>(
     )
 }
 
-fn mvcc_rollback_conflict<E: Engine, F: EngineFactory<E>>(
+fn tail_pointer_rollback_conflict<E: Engine, F: EngineFactory<E>>(
     b: &mut Bencher,
     config: &BenchConfig<F>,
 ) {
@@ -123,7 +123,7 @@ fn mvcc_rollback_conflict<E: Engine, F: EngineFactory<E>>(
         || setup_prewrite(&engine, &config, 2),
         |(snapshot, tuplespaceInstanton)| {
             for key in tuplespaceInstanton {
-                let mut txn = mvcc::MvccTxn::new(snapshot.clone(), 1.into(), true, cm.clone());
+                let mut txn = tail_pointer::MvccTxn::new(snapshot.clone(), 1.into(), true, cm.clone());
                 black_box(txn.rollback(key)).unwrap();
             }
         },
@@ -131,7 +131,7 @@ fn mvcc_rollback_conflict<E: Engine, F: EngineFactory<E>>(
     )
 }
 
-fn mvcc_rollback_non_prewrote<E: Engine, F: EngineFactory<E>>(
+fn tail_pointer_rollback_non_prewrote<E: Engine, F: EngineFactory<E>>(
     b: &mut Bencher,
     config: &BenchConfig<F>,
 ) {
@@ -152,7 +152,7 @@ fn mvcc_rollback_non_prewrote<E: Engine, F: EngineFactory<E>>(
         },
         |(snapshot, tuplespaceInstanton)| {
             for key in tuplespaceInstanton {
-                let mut txn = mvcc::MvccTxn::new(snapshot.clone(), 1.into(), true, cm.clone());
+                let mut txn = tail_pointer::MvccTxn::new(snapshot.clone(), 1.into(), true, cm.clone());
                 black_box(txn.rollback(key)).unwrap();
             }
         },
@@ -160,7 +160,7 @@ fn mvcc_rollback_non_prewrote<E: Engine, F: EngineFactory<E>>(
     )
 }
 
-fn mvcc_reader_load_lock<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config: &BenchConfig<F>) {
+fn tail_pointer_reader_load_lock<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config: &BenchConfig<F>) {
     let engine = config.engine_factory.build();
     let ctx = Context::default();
     let test_tuplespaceInstanton: Vec<Key> = KvGenerator::with_seed(
@@ -189,7 +189,7 @@ fn mvcc_reader_load_lock<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config
     );
 }
 
-fn mvcc_reader_seek_write<E: Engine, F: EngineFactory<E>>(
+fn tail_pointer_reader_seek_write<E: Engine, F: EngineFactory<E>>(
     b: &mut Bencher,
     config: &BenchConfig<F>,
 ) {
@@ -220,28 +220,28 @@ fn mvcc_reader_seek_write<E: Engine, F: EngineFactory<E>>(
     );
 }
 
-pub fn bench_mvcc<E: Engine, F: EngineFactory<E>>(c: &mut Criterion, configs: &[BenchConfig<F>]) {
-    c.bench_function_over_inputs("mvcc_prewrite", mvcc_prewrite, configs.to_owned());
-    c.bench_function_over_inputs("mvcc_commit", mvcc_commit, configs.to_owned());
+pub fn bench_tail_pointer<E: Engine, F: EngineFactory<E>>(c: &mut Criterion, configs: &[BenchConfig<F>]) {
+    c.bench_function_over_inputs("tail_pointer_prewrite", tail_pointer_prewrite, configs.to_owned());
+    c.bench_function_over_inputs("tail_pointer_commit", tail_pointer_commit, configs.to_owned());
     c.bench_function_over_inputs(
-        "mvcc_rollback_prewrote",
-        mvcc_rollback_prewrote,
+        "tail_pointer_rollback_prewrote",
+        tail_pointer_rollback_prewrote,
         configs.to_owned(),
     );
     c.bench_function_over_inputs(
-        "mvcc_rollback_conflict",
-        mvcc_rollback_conflict,
+        "tail_pointer_rollback_conflict",
+        tail_pointer_rollback_conflict,
         configs.to_owned(),
     );
     c.bench_function_over_inputs(
-        "mvcc_rollback_non_prewrote",
-        mvcc_rollback_non_prewrote,
+        "tail_pointer_rollback_non_prewrote",
+        tail_pointer_rollback_non_prewrote,
         configs.to_owned(),
     );
-    c.bench_function_over_inputs("mvcc_load_lock", mvcc_reader_load_lock, configs.to_owned());
+    c.bench_function_over_inputs("tail_pointer_load_lock", tail_pointer_reader_load_lock, configs.to_owned());
     c.bench_function_over_inputs(
-        "mvcc_seek_write",
-        mvcc_reader_seek_write,
+        "tail_pointer_seek_write",
+        tail_pointer_reader_seek_write,
         configs.to_owned(),
     );
 }

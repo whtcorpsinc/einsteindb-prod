@@ -20,7 +20,7 @@ use fidelpb::{AnalyzeReq, AnalyzeType, ChecksumRequest, ChecksumScanOn, PosetDag
 use crate::read_pool::ReadPoolHandle;
 use crate::server::Config;
 use crate::causetStorage::kv::{self, with_tls_engine};
-use crate::causetStorage::mvcc::Error as MvccError;
+use crate::causetStorage::tail_pointer::Error as MvccError;
 use crate::causetStorage::{self, Engine, Snapshot, SnapshotStore};
 
 use crate::interlock::cache::CachedRequestHandler;
@@ -1519,6 +1519,6 @@ mod tests {
         req.set_data(posetdag.write_to_bytes().unwrap());
 
         let resp = block_on(causet.parse_and_handle_unary_request(req, None));
-        assert_eq!(resp.get_locked().get_key(), b"key");
+        assert_eq!(resp.get_daggered().get_key(), b"key");
     }
 }

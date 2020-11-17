@@ -94,7 +94,7 @@ mod tests {
     use crate::lightlikepoint::tests::*;
     use external_causetStorage::make_local_backlightlike;
     use security::*;
-    use einsteindb::causetStorage::mvcc::tests::*;
+    use einsteindb::causetStorage::tail_pointer::tests::*;
     use einsteindb::causetStorage::txn::tests::must_commit;
     use einsteindb_util::mpsc::Receiver;
     use txn_types::TimeStamp;

@@ -92,7 +92,7 @@ impl<Src: BatchFreeDaemon> BatchTopNFreeDaemon<Src> {
 
         let order_exprs_field_type: Vec<FieldType> = order_exprs
             .iter()
-            .map(|expr| expr.ret_field_type(src.schema()).clone())
+            .map(|expr| expr.ret_field_type(src.schemaReplicant()).clone())
             .collect();
 
         Self {
@@ -124,12 +124,12 @@ impl<Src: BatchFreeDaemon> BatchTopNFreeDaemon<Src> {
             order_exprs.push(RpnExpressionBuilder::build_from_expr_tree(
                 def,
                 &mut ctx,
-                src.schema().len(),
+                src.schemaReplicant().len(),
             )?);
         }
         let order_exprs_field_type: Vec<FieldType> = order_exprs
             .iter()
-            .map(|expr| expr.ret_field_type(src.schema()).clone())
+            .map(|expr| expr.ret_field_type(src.schemaReplicant()).clone())
             .collect();
 
         Ok(Self {
@@ -177,7 +177,7 @@ impl<Src: BatchFreeDaemon> BatchTopNFreeDaemon<Src> {
         ensure_PrimaryCausets_decoded(
             &mut self.context,
             &self.order_exprs,
-            self.src.schema(),
+            self.src.schemaReplicant(),
             &mut physical_PrimaryCausets,
             &logical_rows,
         )?;
@@ -194,7 +194,7 @@ impl<Src: BatchFreeDaemon> BatchTopNFreeDaemon<Src> {
             eval_exprs_decoded_no_lifetime(
                 &mut self.context,
                 &self.order_exprs,
-                self.src.schema(),
+                self.src.schemaReplicant(),
                 &pinned_source_data.physical_PrimaryCausets,
                 &pinned_source_data.logical_rows,
                 &mut self.eval_PrimaryCausets_buffer_unsafe,
@@ -300,8 +300,8 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchTopNFreeDaemon<Src> {
     type StorageStats = Src::StorageStats;
 
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        self.src.schema()
+    fn schemaReplicant(&self) -> &[FieldType] {
+        self.src.schemaReplicant()
     }
 
     #[inline]
@@ -555,7 +555,7 @@ mod tests {
 
     /// Builds an executor that will return these data:
     ///
-    /// == Schema ==
+    /// == SchemaReplicant ==
     /// Col0 (Int)      Col1(Int)       Col2(Real)
     /// == Call #1 ==
     /// NULL            -1              -1.0
@@ -851,7 +851,7 @@ mod tests {
 
     /// Builds an executor that will return these data:
     ///
-    /// == Schema ==
+    /// == SchemaReplicant ==
     /// Col0 (Bytes[Utf8Mb4GeneralCi])      Col1(Bytes[Utf8Mb4Bin])     Col2(Bytes[Binary])
     /// == Call #1 ==
     /// "aa"                                "aaa"                       "áaA"
@@ -1106,7 +1106,7 @@ mod tests {
 
     /// Builds an executor that will return these data:
     ///
-    /// == Schema ==
+    /// == SchemaReplicant ==
     /// Col0 (LongLong(Unsigned))      Col1(LongLong[Signed])       Col2(Long[Unsigned])
     /// == Call #1 ==
     /// 18,446,744,073,709,551,615     -3                           4,294,967,293

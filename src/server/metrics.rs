@@ -49,8 +49,8 @@ make_auto_flush_static_metric! {
         remove_lock_observer,
         interlock,
         interlock_stream,
-        mvcc_get_by_key,
-        mvcc_get_by_spacelike_ts,
+        tail_pointer_get_by_key,
+        tail_pointer_get_by_spacelike_ts,
         split_brane,
         read_index,
     }

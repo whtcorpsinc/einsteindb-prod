@@ -27,8 +27,8 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchStreamAggregationFreeDaemon<
     type StorageStats = Src::StorageStats;
 
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        self.0.schema()
+    fn schemaReplicant(&self) -> &[FieldType] {
+        self.0.schemaReplicant()
     }
 
     #[inline]
@@ -128,12 +128,12 @@ impl<Src: BatchFreeDaemon> BatchStreamAggregationFreeDaemon<Src> {
         group_by_exp_defs: Vec<Expr>,
         aggr_defs: Vec<Expr>,
     ) -> Result<Self> {
-        let schema_len = src.schema().len();
+        let schemaReplicant_len = src.schemaReplicant().len();
         let mut group_by_exps = Vec::with_capacity(group_by_exp_defs.len());
         let mut ctx = EvalContext::new(config.clone());
         for def in group_by_exp_defs {
             group_by_exps.push(RpnExpressionBuilder::build_from_expr_tree(
-                def, &mut ctx, schema_len,
+                def, &mut ctx, schemaReplicant_len,
             )?);
         }
 
@@ -156,7 +156,7 @@ impl<Src: BatchFreeDaemon> BatchStreamAggregationFreeDaemon<Src> {
     ) -> Result<Self> {
         let group_by_field_type: Vec<FieldType> = group_by_exps
             .iter()
-            .map(|exp| exp.ret_field_type(src.schema()).clone())
+            .map(|exp| exp.ret_field_type(src.schemaReplicant()).clone())
             .collect();
         let group_by_exps_types: Vec<EvalType> = group_by_field_type
             .iter()
@@ -192,11 +192,11 @@ impl<Src: BatchFreeDaemon> BatchStreamAggregationFreeDaemon<Src> {
 impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for BatchStreamAggregationImpl {
     #[inline]
     fn prepare_entities(&mut self, entities: &mut Entities<Src>) {
-        let src_schema = entities.src.schema();
+        let src_schemaReplicant = entities.src.schemaReplicant();
         for group_by_exp in &self.group_by_exps {
             entities
-                .schema
-                .push(group_by_exp.ret_field_type(src_schema).clone());
+                .schemaReplicant
+                .push(group_by_exp.ret_field_type(src_schemaReplicant).clone());
         }
     }
 
@@ -208,7 +208,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for BatchStreamAggrega
         input_logical_rows: &[usize],
     ) -> Result<()> {
         let context = &mut entities.context;
-        let src_schema = entities.src.schema();
+        let src_schemaReplicant = entities.src.schemaReplicant();
 
         let logical_rows_len = input_logical_rows.len();
         let group_by_len = self.group_by_exps.len();
@@ -219,14 +219,14 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for BatchStreamAggrega
         ensure_PrimaryCausets_decoded(
             context,
             &self.group_by_exps,
-            src_schema,
+            src_schemaReplicant,
             &mut input_physical_PrimaryCausets,
             input_logical_rows,
         )?;
         ensure_PrimaryCausets_decoded(
             context,
             &entities.each_aggr_exprs,
-            src_schema,
+            src_schemaReplicant,
             &mut input_physical_PrimaryCausets,
             input_logical_rows,
         )?;
@@ -236,7 +236,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for BatchStreamAggrega
             eval_exprs_decoded_no_lifetime(
                 context,
                 &self.group_by_exps,
-                src_schema,
+                src_schemaReplicant,
                 &input_physical_PrimaryCausets,
                 input_logical_rows,
                 &mut self.group_by_results_unsafe,
@@ -244,7 +244,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for BatchStreamAggrega
             eval_exprs_decoded_no_lifetime(
                 context,
                 &entities.each_aggr_exprs,
-                src_schema,
+                src_schemaReplicant,
                 &input_physical_PrimaryCausets,
                 input_logical_rows,
                 &mut self.aggr_expr_results_unsafe,
@@ -619,7 +619,7 @@ mod tests {
 
     /// Builds an executor that will return these data:
     ///
-    /// == Schema ==
+    /// == SchemaReplicant ==
     /// Col0(Bytes-utf8_general_ci)     Col1(Real)
     /// == Call #1 ==
     /// NULL                            NULL

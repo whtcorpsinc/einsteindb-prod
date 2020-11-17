@@ -1606,40 +1606,40 @@ impl Decimal {
             }
         }
         let mut d = res.map(|_| Decimal::new(int_cnt as u8, frac_cnt as u8, negative));
-        let mut inner_idx = 0;
+        let mut causet_set_idx = 0;
         let mut word_idx = int_word_cnt as usize;
         let mut word = 0;
         for c in bs[int_idx - int_cnt as usize..int_idx].iter().rev() {
-            word += u32::from(c - b'0') * TEN_POW[inner_idx];
-            inner_idx += 1;
-            if inner_idx == DIGITS_PER_WORD as usize {
+            word += u32::from(c - b'0') * TEN_POW[causet_set_idx];
+            causet_set_idx += 1;
+            if causet_set_idx == DIGITS_PER_WORD as usize {
                 //TODO overflow
                 word_idx -= 1;
                 d.word_buf[word_idx] = word;
                 word = 0;
-                inner_idx = 0;
+                causet_set_idx = 0;
             }
         }
-        if inner_idx != 0 {
+        if causet_set_idx != 0 {
             word_idx -= 1;
             d.word_buf[word_idx] = word;
         }
 
         word_idx = int_word_cnt as usize;
         word = 0;
-        inner_idx = 0;
+        causet_set_idx = 0;
         for &c in bs.iter().skip(int_idx + 1).take(frac_cnt as usize) {
             word = u32::from(c - b'0') + word * 10;
-            inner_idx += 1;
-            if inner_idx == DIGITS_PER_WORD as usize {
+            causet_set_idx += 1;
+            if causet_set_idx == DIGITS_PER_WORD as usize {
                 d.word_buf[word_idx] = word;
                 word_idx += 1;
                 word = 0;
-                inner_idx = 0;
+                causet_set_idx = 0;
             }
         }
-        if inner_idx != 0 {
-            d.word_buf[word_idx] = word * TEN_POW[DIGITS_PER_WORD as usize - inner_idx];
+        if causet_set_idx != 0 {
+            d.word_buf[word_idx] = word * TEN_POW[DIGITS_PER_WORD as usize - causet_set_idx];
         }
         if lightlike_idx < bs.len() && (bs[lightlike_idx] == b'e' || bs[lightlike_idx] == b'E') {
             let exp = convert::bytes_to_int_without_context(&bs[lightlike_idx + 1..])?;

@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use embedded_promises::{
     SolitonId,
-    TypedValue,
+    MinkowskiType,
 };
 
 use einstein_db::PartitionMap;
@@ -87,7 +87,7 @@ pub struct TxPart {
     pub partitions: Option<PartitionMap>,
     pub e: SolitonId,
     pub a: SolitonId,
-    pub v: TypedValue,
+    pub v: MinkowskiType,
     pub causetx: SolitonId,
     pub added: bool,
 }

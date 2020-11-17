@@ -1,6 +1,6 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use crate::causetStorage::mvcc::MvccReader;
+use crate::causetStorage::tail_pointer::MvccReader;
 use crate::causetStorage::txn::commands::{Command, CommandExt, ReadCommand, TypedCommand};
 use crate::causetStorage::txn::sched_pool::tls_collect_keyread_histogram_vec;
 use crate::causetStorage::txn::{LockInfo, ProcessResult, Result};

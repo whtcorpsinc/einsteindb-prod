@@ -28,11 +28,11 @@ use indexmap::{
 
 use embedded_promises::{
     SolitonId,
-    TypedValue,
+    MinkowskiType,
 };
 
 use einsteindb_embedded::{
-    Schema,
+    SchemaReplicant,
 };
 
 use edbn::entities::{
@@ -177,11 +177,11 @@ impl InProgressObserverTransactWatcher {
 }
 
 impl TransactWatcher for InProgressObserverTransactWatcher {
-    fn Causet(&mut self, _op: OpType, _e: SolitonId, a: SolitonId, _v: &TypedValue) {
+    fn Causet(&mut self, _op: OpType, _e: SolitonId, a: SolitonId, _v: &MinkowskiType) {
         self.collected_attributes.insert(a);
     }
 
-    fn done(&mut self, t: &SolitonId, _schema: &Schema) -> Result<()> {
+    fn done(&mut self, t: &SolitonId, _schemaReplicant: &SchemaReplicant) -> Result<()> {
         let collected_attributes = ::std::mem::replace(&mut self.collected_attributes, Default::default());
         self.causecausetxes.insert(*t, collected_attributes);
         Ok(())

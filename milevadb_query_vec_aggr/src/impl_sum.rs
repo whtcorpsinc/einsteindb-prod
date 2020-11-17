@@ -26,8 +26,8 @@ impl super::parser::AggrDefinitionParser for AggrFnDefinitionParserSum {
         mut root_expr: Expr,
         mut exp: RpnExpression,
         _ctx: &mut EvalContext,
-        src_schema: &[FieldType],
-        out_schema: &mut Vec<FieldType>,
+        src_schemaReplicant: &[FieldType],
+        out_schemaReplicant: &mut Vec<FieldType>,
         out_exp: &mut Vec<RpnExpression>,
     ) -> Result<Box<dyn AggrFunction>> {
         use std::convert::TryFrom;
@@ -39,10 +39,10 @@ impl super::parser::AggrDefinitionParser for AggrFnDefinitionParserSum {
         let out_et = box_try!(EvalType::try_from(out_ft.as_accessor().tp()));
 
         // The rewrite should always success.
-        super::util::rewrite_exp_for_sum_avg(src_schema, &mut exp).unwrap();
+        super::util::rewrite_exp_for_sum_avg(src_schemaReplicant, &mut exp).unwrap();
 
         let rewritten_eval_type =
-            EvalType::try_from(exp.ret_field_type(src_schema).as_accessor().tp()).unwrap();
+            EvalType::try_from(exp.ret_field_type(src_schemaReplicant).as_accessor().tp()).unwrap();
         if out_et != rewritten_eval_type {
             return Err(other_err!(
                 "Unexpected return field type {}",
@@ -51,7 +51,7 @@ impl super::parser::AggrDefinitionParser for AggrFnDefinitionParserSum {
         }
 
         // SUM outputs one PrimaryCauset.
-        out_schema.push(out_ft);
+        out_schemaReplicant.push(out_ft);
         out_exp.push(exp);
 
         // Choose a type-aware SUM implementation based on the eval type after rewriting exp.
@@ -166,7 +166,7 @@ mod tests {
             .build();
         AggrFnDefinitionParserSum.check_supported(&expr).unwrap();
 
-        let src_schema = [FieldTypeTp::VarString.into()];
+        let src_schemaReplicant = [FieldTypeTp::VarString.into()];
         let mut PrimaryCausets = LazyBatchPrimaryCausetVec::from(vec![{
             let mut col = LazyBatchPrimaryCauset::decoded_with_capacity_and_tp(0, EvalType::Bytes);
             col.mut_decoded().push_bytes(Some(b"12.5".to_vec()));
@@ -178,22 +178,22 @@ mod tests {
         }]);
         let logical_rows = vec![0, 1, 3, 4];
 
-        let mut schema = vec![];
+        let mut schemaReplicant = vec![];
         let mut exp = vec![];
         let mut ctx = EvalContext::default();
 
         let aggr_fn = AggrFnDefinitionParserSum
-            .parse(expr, &mut ctx, &src_schema, &mut schema, &mut exp)
+            .parse(expr, &mut ctx, &src_schemaReplicant, &mut schemaReplicant, &mut exp)
             .unwrap();
-        assert_eq!(schema.len(), 1);
-        assert_eq!(schema[0].as_accessor().tp(), FieldTypeTp::Double);
+        assert_eq!(schemaReplicant.len(), 1);
+        assert_eq!(schemaReplicant[0].as_accessor().tp(), FieldTypeTp::Double);
 
         assert_eq!(exp.len(), 1);
 
         let mut state = aggr_fn.create_state();
 
         let exp_result = exp[0]
-            .eval(&mut ctx, &src_schema, &mut PrimaryCausets, &logical_rows, 4)
+            .eval(&mut ctx, &src_schemaReplicant, &mut PrimaryCausets, &logical_rows, 4)
             .unwrap();
         let exp_result = exp_result.vector_value().unwrap();
         let vec = exp_result.as_ref().to_real_vec();
@@ -213,12 +213,12 @@ mod tests {
             .build();
         AggrFnDefinitionParserSum.check_supported(&expr).unwrap();
 
-        let src_schema = [FieldTypeTp::LongLong.into()];
-        let mut schema = vec![];
+        let src_schemaReplicant = [FieldTypeTp::LongLong.into()];
+        let mut schemaReplicant = vec![];
         let mut exp = vec![];
         let mut ctx = EvalContext::default();
         AggrFnDefinitionParserSum
-            .parse(expr, &mut ctx, &src_schema, &mut schema, &mut exp)
+            .parse(expr, &mut ctx, &src_schemaReplicant, &mut schemaReplicant, &mut exp)
             .unwrap_err();
     }
 }

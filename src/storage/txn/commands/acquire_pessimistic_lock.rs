@@ -4,7 +4,7 @@ use txn_types::{Key, TimeStamp};
 
 use crate::causetStorage::kv::WriteData;
 use crate::causetStorage::lock_manager::{Dagger, LockManager, WaitTimeout};
-use crate::causetStorage::mvcc::{Error as MvccError, ErrorInner as MvccErrorInner, MvccTxn};
+use crate::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner, MvccTxn};
 use crate::causetStorage::txn::commands::{
     Command, CommandExt, TypedCommand, WriteCommand, WriteContext, WriteResult,
 };
@@ -61,10 +61,10 @@ fn extract_lock_from_result<T>(res: &StorageResult<T>) -> Dagger {
         Err(StorageError(box StorageErrorInner::Txn(Error(box ErrorInner::Mvcc(MvccError(
             box MvccErrorInner::KeyIsLocked(info),
         )))))) => Dagger {
-            ts: info.get_lock_version().into(),
+            ts: info.get_dagger_version().into(),
             hash: Key::from_raw(info.get_key()).gen_hash(),
         },
-        _ => panic!("unexpected mvcc error"),
+        _ => panic!("unexpected tail_pointer error"),
     }
 }
 

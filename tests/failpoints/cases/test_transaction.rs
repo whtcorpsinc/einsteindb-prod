@@ -1,6 +1,6 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use einsteindb::causetStorage::mvcc::tests::*;
+use einsteindb::causetStorage::tail_pointer::tests::*;
 use einsteindb::causetStorage::txn::tests::must_commit;
 use einsteindb::causetStorage::TestEngineBuilder;
 

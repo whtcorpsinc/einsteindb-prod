@@ -33,7 +33,7 @@ use ::{
     RelResult,
     Row,
     Rows,
-    Schema,
+    SchemaReplicant,
     TypedIndex,
     rusqlite,
 };
@@ -61,29 +61,29 @@ pub(crate) struct ScalarTwoStagePullProjector {
 // The only output is the pull expression, and so we can directly supply the timelike_distance instanton
 // to the pull SQL.
 impl ScalarTwoStagePullProjector {
-    fn with_template(schema: &Schema, spec: Rc<FindSpec>, pull: PullOperation) -> Result<ScalarTwoStagePullProjector> {
+    fn with_template(schemaReplicant: &SchemaReplicant, spec: Rc<FindSpec>, pull: PullOperation) -> Result<ScalarTwoStagePullProjector> {
         Ok(ScalarTwoStagePullProjector {
             spec: spec,
-            puller: Puller::prepare(schema, pull.0.clone())?,
+            puller: Puller::prepare(schemaReplicant, pull.0.clone())?,
         })
     }
 
-    pub(crate) fn combine(schema: &Schema, spec: Rc<FindSpec>, mut elements: GreedoidElements) -> Result<CombinedProjection> {
+    pub(crate) fn combine(schemaReplicant: &SchemaReplicant, spec: Rc<FindSpec>, mut elements: GreedoidElements) -> Result<CombinedProjection> {
         let pull = elements.pulls.pop().expect("Expected a single pull");
-        let projector = Box::new(ScalarTwoStagePullProjector::with_template(schema, spec, pull.op)?);
+        let projector = Box::new(ScalarTwoStagePullProjector::with_template(schemaReplicant, spec, pull.op)?);
         let distinct = false;
         elements.combine(projector, distinct)
     }
 }
 
 impl Projector for ScalarTwoStagePullProjector {
-    fn project<'stmt, 's>(&self, schema: &Schema, sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
         // Scalar is pretty straightforward -- zero or one instanton, do the pull directly.
         let results =
             if let Some(r) = rows.next() {
                 let row = r?;
                 let instanton: SolitonId = row.get(0);          // This will always be 0 and a ref.
-                let bindings = self.puller.pull(schema, sqlite, once(instanton))?;
+                let bindings = self.puller.pull(schemaReplicant, sqlite, once(instanton))?;
                 let m = Binding::Map(bindings.get(&instanton).cloned().unwrap_or_else(Default::default));
                 CausetQResults::Scalar(Some(m))
             } else {
@@ -139,7 +139,7 @@ impl TupleTwoStagePullProjector {
 }
 
 impl Projector for TupleTwoStagePullProjector {
-    fn project<'stmt, 's>(&self, schema: &Schema, sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
         let results =
             if let Some(r) = rows.next() {
                 let row = r?;
@@ -147,7 +147,7 @@ impl Projector for TupleTwoStagePullProjector {
                 // Keeping the compiler happy.
                 let pull_consumers: Result<Vec<PullConsumer>> = self.pulls
                                                                     .iter()
-                                                                    .map(|op| PullConsumer::for_template(schema, op))
+                                                                    .map(|op| PullConsumer::for_template(schemaReplicant, op))
                                                                     .collect();
                 let mut pull_consumers = pull_consumers?;
 
@@ -235,7 +235,7 @@ impl RelTwoStagePullProjector {
 }
 
 impl Projector for RelTwoStagePullProjector {
-    fn project<'stmt, 's>(&self, schema: &Schema, sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
         // Allocate space for five rows to start.
         // This is better than starting off by doubling the buffer a couple of times, and will
         // rapidly grow to support larger causetq results.
@@ -244,7 +244,7 @@ impl Projector for RelTwoStagePullProjector {
 
         let pull_consumers: Result<Vec<PullConsumer>> = self.pulls
                                                             .iter()
-                                                            .map(|op| PullConsumer::for_template(schema, op))
+                                                            .map(|op| PullConsumer::for_template(schemaReplicant, op))
                                                             .collect();
         let mut pull_consumers = pull_consumers?;
 
@@ -308,8 +308,8 @@ impl CollTwoStagePullProjector {
 }
 
 impl Projector for CollTwoStagePullProjector {
-    fn project<'stmt, 's>(&self, schema: &Schema, sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
-        let mut pull_consumer = PullConsumer::for_operation(schema, &self.pull)?;
+    fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+        let mut pull_consumer = PullConsumer::for_operation(schemaReplicant, &self.pull)?;
 
         while let Some(r) = rows.next() {
             let row = r?;

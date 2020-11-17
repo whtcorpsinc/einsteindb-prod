@@ -267,7 +267,7 @@ impl FixtureBuilder {
             })
             .collect();
         BatchFixtureFreeDaemon {
-            schema: self.field_types,
+            schemaReplicant: self.field_types,
             PrimaryCausets,
         }
     }
@@ -323,7 +323,7 @@ impl FixtureBuilder {
 }
 
 pub struct BatchFixtureFreeDaemon {
-    schema: Vec<FieldType>,
+    schemaReplicant: Vec<FieldType>,
     PrimaryCausets: Vec<LazyBatchPrimaryCauset>,
 }
 
@@ -331,8 +331,8 @@ impl BatchFreeDaemon for BatchFixtureFreeDaemon {
     type StorageStats = Statistics;
 
     #[inline]
-    fn schema(&self) -> &[FieldType] {
-        &self.schema
+    fn schemaReplicant(&self) -> &[FieldType] {
+        &self.schemaReplicant
     }
 
     #[inline]

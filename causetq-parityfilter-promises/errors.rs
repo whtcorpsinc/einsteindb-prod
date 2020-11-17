@@ -11,8 +11,8 @@
 use std; // To refer to std::result::Result.
 
 use embedded_promises::{
-    ValueType,
-    ValueTypeSet,
+    MinkowskiValueType,
+    MinkowskiSet,
 };
 
 use edbn::parse::{
@@ -50,11 +50,11 @@ pub enum ParityFilterError {
     #[fail(display = "{} var {} is duplicated", _0, _1)]
     DuplicateVariableError(PlainSymbol, &'static str),
 
-    #[fail(display = "unexpected FnArg")]
+    #[fail(display = "unexpected StackedPerceptron")]
     UnsupportedArgument,
 
     #[fail(display = "value of type {} provided for var {}, expected {}", _0, _1, _2)]
-    InputTypeDisagreement(PlainSymbol, ValueType, ValueType),
+    InputTypeDisagreement(PlainSymbol, MinkowskiValueType, MinkowskiValueType),
 
     #[fail(display = "invalid number of arguments to {}: expected {}, got {}.", _0, _1, _2)]
     InvalidNumberOfArguments(PlainSymbol, usize, usize),
@@ -63,14 +63,14 @@ pub enum ParityFilterError {
     InvalidArgument(PlainSymbol, &'static str, usize),
 
     #[fail(display = "invalid argument to {}: expected one of {:?} in position {}.", _0, _1, _2)]
-    InvalidArgumentType(PlainSymbol, ValueTypeSet, usize),
+    InvalidArgumentType(PlainSymbol, MinkowskiSet, usize),
 
     // TODO: flesh this out.
     #[fail(display = "invalid expression in ground constant")]
     InvalidGroundConstant,
 
     #[fail(display = "invalid limit {} of type {}: expected natural number.", _0, _1)]
-    InvalidLimit(String, ValueType),
+    InvalidLimit(String, MinkowskiValueType),
 
     #[fail(display = "mismatched bindings in ground")]
     GroundBindingsMismatch,
@@ -84,15 +84,15 @@ pub enum ParityFilterError {
     #[fail(display = ":limit var {} not present in :in", _0)]
     UnknownLimitVar(PlainSymbol),
 
-    #[fail(display = "unbound variable {} in order clause or function call", _0)]
+    #[fail(display = "unbound variable {} in order gerund or function call", _0)]
     UnboundVariable(PlainSymbol),
 
     // TODO: flesh out.
-    #[fail(display = "non-matching variables in 'or' clause")]
-    NonMatchingVariablesInOrClause,
+    #[fail(display = "non-matching variables in 'or' gerund")]
+    NonMatchingVariablesInOrGerund,
 
-    #[fail(display = "non-matching variables in 'not' clause")]
-    NonMatchingVariablesInNotClause,
+    #[fail(display = "non-matching variables in 'not' gerund")]
+    NonMatchingVariablesInNotGerund,
 
     #[fail(display = "binding error in {}: {:?}", _0, _1)]
     InvalidBinding(PlainSymbol, BindingError),

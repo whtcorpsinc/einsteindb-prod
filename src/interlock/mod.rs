@@ -34,7 +34,7 @@ pub use self::lightlikepoint::Endpoint;
 pub use self::error::{Error, Result};
 pub use checksum::checksum_crc64_xor;
 
-use crate::causetStorage::mvcc::TimeStamp;
+use crate::causetStorage::tail_pointer::TimeStamp;
 use crate::causetStorage::Statistics;
 use async_trait::async_trait;
 use ekvproto::{interlock as coppb, kvrpcpb};

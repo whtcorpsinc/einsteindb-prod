@@ -17,11 +17,11 @@ use embedded_promises::{
     Binding,
     SolitonId,
     StructuredMap,
-    TypedValue,
+    MinkowskiType,
 };
 
 use einsteindb_embedded::{
-    Schema,
+    SchemaReplicant,
     ValueRc,
 };
 
@@ -64,33 +64,33 @@ pub(crate) struct PullTemplate {
     pub(crate) op: PullOperation,
 }
 
-pub(crate) struct PullConsumer<'schema> {
+pub(crate) struct PullConsumer<'schemaReplicant> {
     indices: PullIndices,
-    schema: &'schema Schema,
+    schemaReplicant: &'schemaReplicant SchemaReplicant,
     puller: Puller,
     entities: BTreeSet<SolitonId>,
     results: BTreeMap<SolitonId, ValueRc<StructuredMap>>,
 }
 
-impl<'schema> PullConsumer<'schema> {
-    pub(crate) fn for_puller(puller: Puller, schema: &'schema Schema, indices: PullIndices) -> PullConsumer<'schema> {
+impl<'schemaReplicant> PullConsumer<'schemaReplicant> {
+    pub(crate) fn for_puller(puller: Puller, schemaReplicant: &'schemaReplicant SchemaReplicant, indices: PullIndices) -> PullConsumer<'schemaReplicant> {
         PullConsumer {
             indices: indices,
-            schema: schema,
+            schemaReplicant: schemaReplicant,
             puller: puller,
             entities: Default::default(),
             results: Default::default(),
         }
     }
 
-    pub(crate) fn for_template(schema: &'schema Schema, template: &PullTemplate) -> Result<PullConsumer<'schema>> {
-        let puller = Puller::prepare(schema, template.op.0.clone())?;
-        Ok(PullConsumer::for_puller(puller, schema, template.indices))
+    pub(crate) fn for_template(schemaReplicant: &'schemaReplicant SchemaReplicant, template: &PullTemplate) -> Result<PullConsumer<'schemaReplicant>> {
+        let puller = Puller::prepare(schemaReplicant, template.op.0.clone())?;
+        Ok(PullConsumer::for_puller(puller, schemaReplicant, template.indices))
     }
 
-    pub(crate) fn for_operation(schema: &'schema Schema, operation: &PullOperation) -> Result<PullConsumer<'schema>> {
-        let puller = Puller::prepare(schema, operation.0.clone())?;
-        Ok(PullConsumer::for_puller(puller, schema, PullIndices::zero()))
+    pub(crate) fn for_operation(schemaReplicant: &'schemaReplicant SchemaReplicant, operation: &PullOperation) -> Result<PullConsumer<'schemaReplicant>> {
+        let puller = Puller::prepare(schemaReplicant, operation.0.clone())?;
+        Ok(PullConsumer::for_puller(puller, schemaReplicant, PullIndices::zero()))
     }
 
     pub(crate) fn collect_instanton<'a, 'stmt>(&mut self, row: &rusqlite::Row<'a, 'stmt>) -> SolitonId {
@@ -101,12 +101,12 @@ impl<'schema> PullConsumer<'schema> {
 
     pub(crate) fn pull(&mut self, sqlite: &rusqlite::Connection) -> Result<()> {
         let entities: Vec<SolitonId> = self.entities.iter().cloned().collect();
-        self.results = self.puller.pull(self.schema, sqlite, entities)?;
+        self.results = self.puller.pull(self.schemaReplicant, sqlite, entities)?;
         Ok(())
     }
 
     pub(crate) fn expand(&self, bindings: &mut [Binding]) {
-        if let Binding::Scalar(TypedValue::Ref(id)) = bindings[self.indices.output_index] {
+        if let Binding::Scalar(MinkowskiType::Ref(id)) = bindings[self.indices.output_index] {
             if let Some(pulled) = self.results.get(&id).cloned() {
                 bindings[self.indices.output_index] = Binding::Map(pulled);
             } else {

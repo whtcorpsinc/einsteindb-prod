@@ -14,7 +14,7 @@ use edbn::{
 
 use embedded_promises::{
     SolitonId,
-    TypedValue,
+    MinkowskiType,
 };
 
 use types::TxPart;
@@ -34,7 +34,7 @@ impl<'a> CausetsHelper<'a> {
     // TODO these are obviously quite inefficient
     pub fn e_lookup(&self, e: Keyword) -> Option<SolitonId> {
         // This wraps Keyword (e) in ValueRc (aliased Arc), which is rather expensive.
-        let kw_e = TypedValue::Keyword(e.into());
+        let kw_e = MinkowskiType::Keyword(e.into());
 
         for part in self.parts {
             if kw_e == part.v && part.added {
@@ -45,7 +45,7 @@ impl<'a> CausetsHelper<'a> {
         None
     }
 
-    pub fn ea_lookup(&self, e: Keyword, a: Keyword) -> Option<&TypedValue> {
+    pub fn ea_lookup(&self, e: Keyword, a: Keyword) -> Option<&MinkowskiType> {
         let e_e = self.e_lookup(e);
         let a_e = self.e_lookup(a);
 

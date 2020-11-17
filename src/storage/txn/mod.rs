@@ -42,10 +42,10 @@ pub enum ProcessResult {
         result: PrewriteResult,
     },
     MvccKey {
-        mvcc: MvccInfo,
+        tail_pointer: MvccInfo,
     },
     MvccStartTs {
-        mvcc: Option<(Key, MvccInfo)>,
+        tail_pointer: Option<(Key, MvccInfo)>,
     },
     Locks {
         locks: Vec<LockInfo>,
@@ -96,7 +96,7 @@ quick_error! {
             cause(err)
             display("{}", err)
         }
-        Mvcc(err: crate::causetStorage::mvcc::Error) {
+        Mvcc(err: crate::causetStorage::tail_pointer::Error) {
             from()
             cause(err)
             display("{}", err)

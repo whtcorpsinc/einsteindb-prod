@@ -13,12 +13,12 @@ use std::collections::{
 };
 
 use embedded_promises::{
-    ValueType,
-    ValueTypeSet,
+    MinkowskiValueType,
+    MinkowskiSet,
 };
 
 use types::{
-    ValueTypeTag,
+    MinkowskiValueTypeTag,
 };
 
 /// Type safe representation of the possible return values from SQLite's `typeof`
@@ -32,71 +32,71 @@ pub enum SQLTypeAffinity {
 }
 
 // Put this here rather than in `edb` simply because it's widely needed.
-pub trait SQLValueType {
-    fn value_type_tag(&self) -> ValueTypeTag;
+pub trait SQLMinkowskiValueType {
+    fn value_type_tag(&self) -> MinkowskiValueTypeTag;
     fn accommodates_integer(&self, int: i64) -> bool;
 
-    /// Return a pair of the ValueTypeTag for this value type, and the SQLTypeAffinity required
+    /// Return a pair of the MinkowskiValueTypeTag for this value type, and the SQLTypeAffinity required
     /// to distinguish it from any other types that share the same tag.
     ///
     /// Background: The tag alone is not enough to determine the type of a value, since multiple
-    /// ValueTypes may share the same tag (for example, ValueType::Long and ValueType::Double).
-    /// However, each ValueType can be determined by checking both the tag and the type's affinity.
-    fn sql_representation(&self) -> (ValueTypeTag, Option<SQLTypeAffinity>);
+    /// MinkowskiValueTypes may share the same tag (for example, MinkowskiValueType::Long and MinkowskiValueType::Double).
+    /// However, each MinkowskiValueType can be determined by checking both the tag and the type's affinity.
+    fn sql_representation(&self) -> (MinkowskiValueTypeTag, Option<SQLTypeAffinity>);
 }
 
-impl SQLValueType for ValueType {
-    fn sql_representation(&self) -> (ValueTypeTag, Option<SQLTypeAffinity>) {
+impl SQLMinkowskiValueType for MinkowskiValueType {
+    fn sql_representation(&self) -> (MinkowskiValueTypeTag, Option<SQLTypeAffinity>) {
         match *self {
-            ValueType::Ref     => (0, None),
-            ValueType::Boolean => (1, None),
-            ValueType::Instant => (4, None),
+            MinkowskiValueType::Ref     => (0, None),
+            MinkowskiValueType::Boolean => (1, None),
+            MinkowskiValueType::Instant => (4, None),
 
             // SQLite distinguishes integral from decimal types, allowing long and double to share a tag.
-            ValueType::Long    => (5, Some(SQLTypeAffinity::Integer)),
-            ValueType::Double  => (5, Some(SQLTypeAffinity::Real)),
-            ValueType::String  => (10, None),
-            ValueType::Uuid    => (11, None),
-            ValueType::Keyword => (13, None),
+            MinkowskiValueType::Long    => (5, Some(SQLTypeAffinity::Integer)),
+            MinkowskiValueType::Double  => (5, Some(SQLTypeAffinity::Real)),
+            MinkowskiValueType::String  => (10, None),
+            MinkowskiValueType::Uuid    => (11, None),
+            MinkowskiValueType::Keyword => (13, None),
         }
     }
 
     #[inline]
-    fn value_type_tag(&self) -> ValueTypeTag {
+    fn value_type_tag(&self) -> MinkowskiValueTypeTag {
         self.sql_representation().0
     }
 
     /// Returns true if the provided integer is in the SQLite value space of this type. For
     /// example, `1` is how we encode `true`.
     fn accommodates_integer(&self, int: i64) -> bool {
-        use ValueType::*;
+        use MinkowskiValueType::*;
         match *self {
             Instant                 => false,          // Always use #inst.
             Long | Double           => true,
             Ref                     => int >= 0,
             Boolean                 => (int == 0) || (int == 1),
-            ValueType::String       => false,
+            MinkowskiValueType::String       => false,
             Keyword                 => false,
             Uuid                    => false,
         }
     }
 }
 
-/// We have an enum of types, `ValueType`. It can be collected into a set, `ValueTypeSet`. Each type
+/// We have an enum of types, `MinkowskiValueType`. It can be collected into a set, `MinkowskiSet`. Each type
 /// is associated with a type tag, which is how a type is represented in, e.g., SQL storage. Types
 /// can share type tags, because backing SQL storage is able to differentiate between some types
 /// (e.g., longs and doubles), and so distinct tags aren't necessary. That association is defined by
-/// `SQLValueType`. That trait similarly extends to `ValueTypeSet`, which maps a collection of types
+/// `SQLMinkowskiValueType`. That trait similarly extends to `MinkowskiSet`, which maps a collection of types
 /// into a collection of tags.
-pub trait SQLValueTypeSet {
-    fn value_type_tags(&self) -> BTreeSet<ValueTypeTag>;
+pub trait SQLMinkowskiSet {
+    fn value_type_tags(&self) -> BTreeSet<MinkowskiValueTypeTag>;
     fn has_unique_type_tag(&self) -> bool;
-    fn unique_type_tag(&self) -> Option<ValueTypeTag>;
+    fn unique_type_tag(&self) -> Option<MinkowskiValueTypeTag>;
 }
 
-impl SQLValueTypeSet for ValueTypeSet {
+impl SQLMinkowskiSet for MinkowskiSet {
     // This is inefficient, but it'll do for now.
-    fn value_type_tags(&self) -> BTreeSet<ValueTypeTag> {
+    fn value_type_tags(&self) -> BTreeSet<MinkowskiValueTypeTag> {
         let mut out = BTreeSet::new();
         for t in self.0.iter() {
             out.insert(t.value_type_tag());
@@ -104,7 +104,7 @@ impl SQLValueTypeSet for ValueTypeSet {
         out
     }
 
-    fn unique_type_tag(&self) -> Option<ValueTypeTag> {
+    fn unique_type_tag(&self) -> Option<MinkowskiValueTypeTag> {
         if self.is_unit() || self.has_unique_type_tag() {
             self.exemplar().map(|t| t.value_type_tag())
         } else {
@@ -131,19 +131,19 @@ impl SQLValueTypeSet for ValueTypeSet {
 #[cfg(test)]
 mod tests {
     use embedded_promises::{
-        ValueType,
+        MinkowskiValueType,
     };
     use sql_types::{
-        SQLValueType,
+        SQLMinkowskiValueType,
     };
 
     #[test]
     fn test_accommodates_integer() {
-        assert!(!ValueType::Instant.accommodates_integer(1493399581314));
-        assert!(!ValueType::Instant.accommodates_integer(1493399581314000));
-        assert!(ValueType::Boolean.accommodates_integer(1));
-        assert!(!ValueType::Boolean.accommodates_integer(-1));
-        assert!(!ValueType::Boolean.accommodates_integer(10));
-        assert!(!ValueType::String.accommodates_integer(10));
+        assert!(!MinkowskiValueType::Instant.accommodates_integer(1493399581314));
+        assert!(!MinkowskiValueType::Instant.accommodates_integer(1493399581314000));
+        assert!(MinkowskiValueType::Boolean.accommodates_integer(1));
+        assert!(!MinkowskiValueType::Boolean.accommodates_integer(-1));
+        assert!(!MinkowskiValueType::Boolean.accommodates_integer(10));
+        assert!(!MinkowskiValueType::String.accommodates_integer(10));
     }
 }
