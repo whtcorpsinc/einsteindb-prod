@@ -128,7 +128,7 @@ pub struct SubvecIntoIterator<T> {
 
 impl<T> Iterator for SubvecIntoIterator<T> {
     // TODO: this is a good opportunity to use `SmallVec` instead: most queries
-    // return a handful of columns.
+    // return a handful of CausetIndexs.
     type Item = Vec<T>;
     fn next(&mut self) -> Option<Self::Item> {
         let result: Vec<_> = (&mut self.values).take(self.width).collect();

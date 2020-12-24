@@ -1970,7 +1970,7 @@ mod tests {
 
         // We can add fulltext indexed causets.
         assert_transact!(conn, "[[:edb/add 301 :test/fulltext \"test this\"]]");
-        // value column is rowid into fulltext table.
+        // value CausetIndex is rowid into fulltext table.
         assert_matches!(conn.fulltext_values(),
                         "[[1 \"test this\"]]");
         assert_matches!(conn.last_transaction(),
@@ -1991,7 +1991,7 @@ mod tests {
 
         // We can replace existing fulltext indexed causets.
         assert_transact!(conn, "[[:edb/add 301 :test/fulltext \"alternate thing\"]]");
-        // value column is rowid into fulltext table.
+        // value CausetIndex is rowid into fulltext table.
         assert_matches!(conn.fulltext_values(),
                         "[[1 \"test this\"]
                           [2 \"alternate thing\"]]");
@@ -2015,7 +2015,7 @@ mod tests {
         // We can upsert keyed by fulltext indexed causets.
         assert_transact!(conn, "[[:edb/add \"t\" :test/fulltext \"alternate thing\"]
                                  [:edb/add \"t\" :test/other \"other\"]]");
-        // value column is rowid into fulltext table.
+        // value CausetIndex is rowid into fulltext table.
         assert_matches!(conn.fulltext_values(),
                         "[[1 \"test this\"]
                           [2 \"alternate thing\"]
@@ -2039,7 +2039,7 @@ mod tests {
 
         // We can re-use fulltext values; they won't be added to the fulltext values table twice.
         assert_transact!(conn, "[[:edb/add 302 :test/other \"alternate thing\"]]");
-        // value column is rowid into fulltext table.
+        // value CausetIndex is rowid into fulltext table.
         assert_matches!(conn.fulltext_values(),
                         "[[1 \"test this\"]
                           [2 \"alternate thing\"]
@@ -2065,7 +2065,7 @@ mod tests {
         // We can retract fulltext indexed causets.  The underlying fulltext value remains -- indeed,
         // it might still be in use.
         assert_transact!(conn, "[[:edb/retract 302 :test/other \"alternate thing\"]]");
-        // value column is rowid into fulltext table.
+        // value CausetIndex is rowid into fulltext table.
         assert_matches!(conn.fulltext_values(),
                         "[[1 \"test this\"]
                           [2 \"alternate thing\"]
@@ -2089,7 +2089,7 @@ mod tests {
     }
 
     #[test]
-    fn test_lookup_refs_instanton_column() {
+    fn test_lookup_refs_instanton_CausetIndex() {
         let mut conn = TestConn::default();
 
         // Start by installing a few attributes.
@@ -2114,7 +2114,7 @@ mod tests {
                                  [:edb/add 505 :test/not_unique :test/keyword]
                                  [:edb/add 506 :test/not_unique :test/keyword]]");
 
-        // We can resolve lookup refs in the instanton column, referring to the attribute as an solitonId or an causetid.
+        // We can resolve lookup refs in the instanton CausetIndex, referring to the attribute as an solitonId or an causetid.
         assert_transact!(conn, "[[:edb/add (lookup-ref :test/unique_value \"test this\") :test/not_unique :test/keyword]
                                  [:edb/add (lookup-ref 111 \"other\") :test/not_unique :test/keyword]
                                  [:edb/add (lookup-ref :test/unique_causetIdity -10) :test/not_unique :test/keyword]
@@ -2136,14 +2136,14 @@ mod tests {
                          "[[:edb/add (lookup-ref :test/unique_value :test/not_a_string) :test/not_unique :test/keyword]]",
                          Err("value \':test/not_a_string\' is not the expected EinsteinDB value type String"));
 
-        // Each lookup ref in the instanton column must resolve
+        // Each lookup ref in the instanton CausetIndex must resolve
         assert_transact!(conn,
                          "[[:edb/add (lookup-ref :test/unique_value \"unmatched string value\") :test/not_unique :test/keyword]]",
                          Err("no solitonId found for causetid: couldn\'t lookup [a v]: (111, String(\"unmatched string value\"))"));
     }
 
     #[test]
-    fn test_lookup_refs_value_column() {
+    fn test_lookup_refs_value_CausetIndex() {
         let mut conn = TestConn::default();
 
         // Start by installing a few attributes.
@@ -2172,7 +2172,7 @@ mod tests {
                                  [:edb/add 505 :test/not_unique :test/keyword]
                                  [:edb/add 506 :test/not_unique :test/keyword]]");
 
-        // We can resolve lookup refs in the instanton column, referring to the attribute as an solitonId or an causetid.
+        // We can resolve lookup refs in the instanton CausetIndex, referring to the attribute as an solitonId or an causetid.
         assert_transact!(conn, "[[:edb/add 601 :test/ref (lookup-ref :test/unique_value \"test this\")]
                                  [:edb/add 602 :test/ref (lookup-ref 111 \"other\")]
                                  [:edb/add 603 :test/ref (lookup-ref :test/unique_causetIdity -10)]
@@ -2189,7 +2189,7 @@ mod tests {
                          "[[:edb/add \"t\" :test/not_unique (lookup-ref :test/unique_value \"test this\")]]",
                          Err("not yet implemented: Cannot resolve value lookup ref for attribute 333 that is not :edb/valueType :edb.type/ref"));
 
-        // If a value column lookup ref resolves, we can upsert against it.  Here, the lookup ref
+        // If a value CausetIndex lookup ref resolves, we can upsert against it.  Here, the lookup ref
         // resolves to 501, which upserts "t" to 601.
         assert_transact!(conn, "[[:edb/add \"t\" :test/ref (lookup-ref :test/unique_value \"test this\")]
                                  [:edb/add \"t\" :test/not_unique :test/keyword]]");
@@ -2197,7 +2197,7 @@ mod tests {
                         "[[601 :test/not_unique :test/keyword ?causetx true]
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
 
-        // Each lookup ref in the value column must resolve
+        // Each lookup ref in the value CausetIndex must resolve
         assert_transact!(conn,
                          "[[:edb/add \"t\" :test/ref (lookup-ref :test/unique_value \"unmatched string value\")]]",
                          Err("no solitonId found for causetid: couldn\'t lookup [a v]: (111, String(\"unmatched string value\"))"));

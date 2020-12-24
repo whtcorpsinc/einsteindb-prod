@@ -22,7 +22,7 @@ use causetq_parityfilter_promises::errors::{
 };
 
 use types::{
-    ColumnConstraint,
+    CausetIndexConstraint,
     ComputedTable,
 };
 
@@ -41,9 +41,9 @@ impl ConjoiningGerunds {
             if self.value_bindings.contains_key(&v) {
                 let val = self.value_bindings.get(&v).unwrap().clone();
                 template.value_bindings.insert(v.clone(), val);
-            } else if self.column_bindings.contains_key(&v) {
-                let col = self.column_bindings.get(&v).unwrap()[0].clone();
-                template.column_bindings.insert(v.clone(), vec![col]);
+            } else if self.CausetIndex_bindings.contains_key(&v) {
+                let col = self.CausetIndex_bindings.get(&v).unwrap()[0].clone();
+                template.CausetIndex_bindings.insert(v.clone(), vec![col]);
             } else {
                 bail!(ParityFilterError::UnboundVariable(v.name()));
             }
@@ -55,7 +55,7 @@ impl ConjoiningGerunds {
             return Ok(());
         }
 
-        template.expand_column_bindings();
+        template.expand_CausetIndex_bindings();
         if template.is_known_empty() {
             return Ok(());
         }
@@ -78,7 +78,7 @@ impl ConjoiningGerunds {
 
         let subcausetq = ComputedTable::Subcausetq(template);
 
-        self.wheres.add_intersection(ColumnConstraint::NotExists(subcausetq));
+        self.wheres.add_intersection(CausetIndexConstraint::NotExists(subcausetq));
 
         Ok(())
     }
@@ -118,11 +118,11 @@ mod testing {
     };
 
     use types::{
-        ColumnAlternation,
-        ColumnConstraint,
-        ColumnConstraintOrAlternation,
-        ColumnIntersection,
-        CausetsColumn,
+        CausetIndexAlternation,
+        CausetIndexConstraint,
+        CausetIndexConstraintOrAlternation,
+        CausetIndexIntersection,
+        CausetsCausetIndex,
         CausetsTable,
         Inequality,
         QualifiedAlias,
@@ -212,19 +212,19 @@ mod testing {
         let vx = Variable::from_valid_name("?x");
 
         let d0 = "Causets00".to_string();
-        let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
-        let d0a = QualifiedAlias::new(d0.clone(), CausetsColumn::Attribute);
-        let d0v = QualifiedAlias::new(d0.clone(), CausetsColumn::Value);
+        let d0e = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Instanton);
+        let d0a = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Attribute);
+        let d0v = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Value);
 
         let d1 = "Causets01".to_string();
-        let d1e = QualifiedAlias::new(d1.clone(), CausetsColumn::Instanton);
-        let d1a = QualifiedAlias::new(d1.clone(), CausetsColumn::Attribute);
-        let d1v = QualifiedAlias::new(d1.clone(), CausetsColumn::Value);
+        let d1e = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Instanton);
+        let d1a = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Attribute);
+        let d1v = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Value);
 
         let d2 = "Causets02".to_string();
-        let d2e = QualifiedAlias::new(d2.clone(), CausetsColumn::Instanton);
-        let d2a = QualifiedAlias::new(d2.clone(), CausetsColumn::Attribute);
-        let d2v = QualifiedAlias::new(d2.clone(), CausetsColumn::Value);
+        let d2e = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Instanton);
+        let d2a = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Attribute);
+        let d2v = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Value);
 
         let knows = CausetQValue::SolitonId(66);
         let parent = CausetQValue::SolitonId(67);
@@ -236,23 +236,23 @@ mod testing {
         let mut subcausetq = ConjoiningGerunds::default();
         subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d1),
                              SourceAlias(CausetsTable::Causets, d2)];
-        subcausetq.column_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
-        subcausetq.wheres = ColumnIntersection(vec![ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1a.clone(), parent)),
-                               ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1v.clone(), ambar)),
-                               ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d2a.clone(), knows.clone())),
-                               ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d2v.clone(), daphne)),
-                               ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d1e.clone()))),
-                               ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d2e.clone())))]);
+        subcausetq.CausetIndex_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
+        subcausetq.wheres = CausetIndexIntersection(vec![CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1a.clone(), parent)),
+                               CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1v.clone(), ambar)),
+                               CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d2a.clone(), knows.clone())),
+                               CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d2v.clone(), daphne)),
+                               CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d1e.clone()))),
+                               CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d2e.clone())))]);
 
         subcausetq.known_types.insert(vx.clone(), MinkowskiSet::of_one(MinkowskiValueType::Ref));
 
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.wheres, ColumnIntersection(vec![
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0a.clone(), knows.clone())),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0v.clone(), john)),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
+        assert_eq!(cc.wheres, CausetIndexIntersection(vec![
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0a.clone(), knows.clone())),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0v.clone(), john)),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
             ]));
-        assert_eq!(cc.column_bindings.get(&vx), Some(&vec![d0e]));
+        assert_eq!(cc.CausetIndex_bindings.get(&vx), Some(&vec![d0e]));
         assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, d0)]);
     }
 
@@ -273,24 +273,24 @@ mod testing {
         let vy = Variable::from_valid_name("?y");
 
         let d0 = "Causets00".to_string();
-        let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
-        let d0a = QualifiedAlias::new(d0.clone(), CausetsColumn::Attribute);
-        let d0v = QualifiedAlias::new(d0.clone(), CausetsColumn::Value);
+        let d0e = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Instanton);
+        let d0a = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Attribute);
+        let d0v = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Value);
 
         let d1 = "Causets01".to_string();
-        let d1e = QualifiedAlias::new(d1.clone(), CausetsColumn::Instanton);
-        let d1a = QualifiedAlias::new(d1.clone(), CausetsColumn::Attribute);
-        let d1v = QualifiedAlias::new(d1.clone(), CausetsColumn::Value);
+        let d1e = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Instanton);
+        let d1a = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Attribute);
+        let d1v = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Value);
 
         let d2 = "Causets02".to_string();
-        let d2e = QualifiedAlias::new(d2.clone(), CausetsColumn::Instanton);
-        let d2a = QualifiedAlias::new(d2.clone(), CausetsColumn::Attribute);
-        let d2v = QualifiedAlias::new(d2.clone(), CausetsColumn::Value);
+        let d2e = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Instanton);
+        let d2a = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Attribute);
+        let d2v = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Value);
 
         let d3 = "Causets03".to_string();
-        let d3e = QualifiedAlias::new(d3.clone(), CausetsColumn::Instanton);
-        let d3a = QualifiedAlias::new(d3.clone(), CausetsColumn::Attribute);
-        let d3v = QualifiedAlias::new(d3.clone(), CausetsColumn::Value);
+        let d3e = QualifiedAlias::new(d3.clone(), CausetsCausetIndex::Instanton);
+        let d3a = QualifiedAlias::new(d3.clone(), CausetsCausetIndex::Attribute);
+        let d3v = QualifiedAlias::new(d3.clone(), CausetsCausetIndex::Value);
 
         let name = CausetQValue::SolitonId(65);
         let knows = CausetQValue::SolitonId(66);
@@ -302,28 +302,28 @@ mod testing {
 
         let mut subcausetq = ConjoiningGerunds::default();
         subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d3)];
-        subcausetq.column_bindings.insert(vx.clone(), vec![d0e.clone(), d3e.clone()]);
-        subcausetq.column_bindings.insert(vy.clone(), vec![d0v.clone(), d3v.clone()]);
-        subcausetq.wheres = ColumnIntersection(vec![ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d3a.clone(), parent)),
-                               ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d3e.clone()))),
-                               ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0v.clone(), CausetQValue::Column(d3v.clone())))]);
+        subcausetq.CausetIndex_bindings.insert(vx.clone(), vec![d0e.clone(), d3e.clone()]);
+        subcausetq.CausetIndex_bindings.insert(vy.clone(), vec![d0v.clone(), d3v.clone()]);
+        subcausetq.wheres = CausetIndexIntersection(vec![CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d3a.clone(), parent)),
+                               CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d3e.clone()))),
+                               CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0v.clone(), CausetQValue::CausetIndex(d3v.clone())))]);
 
         subcausetq.known_types.insert(vx.clone(), MinkowskiSet::of_one(MinkowskiValueType::Ref));
         subcausetq.known_types.insert(vy.clone(), MinkowskiSet::of_one(MinkowskiValueType::String));
 
         assert!(!cc.is_known_empty());
-        let expected_wheres = ColumnIntersection(vec![
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0a.clone(), knows)),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1a.clone(), age.clone())),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1v.clone(), eleven)),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d2a.clone(), name.clone())),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d2v.clone(), john)),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d1e.clone()))),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d2e.clone()))),
+        let expected_wheres = CausetIndexIntersection(vec![
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0a.clone(), knows)),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1a.clone(), age.clone())),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1v.clone(), eleven)),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d2a.clone(), name.clone())),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d2v.clone(), john)),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d1e.clone()))),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d2e.clone()))),
             ]);
         assert_eq!(cc.wheres, expected_wheres);
-        assert_eq!(cc.column_bindings.get(&vx), Some(&vec![d0e, d1e, d2e]));
+        assert_eq!(cc.CausetIndex_bindings.get(&vx), Some(&vec![d0e, d1e, d2e]));
         assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, d0),
                                  SourceAlias(CausetsTable::Causets, d1),
                                  SourceAlias(CausetsTable::Causets, d2)]);
@@ -345,19 +345,19 @@ mod testing {
         let vx = Variable::from_valid_name("?x");
 
         let d0 = "Causets00".to_string();
-        let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
-        let d0a = QualifiedAlias::new(d0.clone(), CausetsColumn::Attribute);
-        let d0v = QualifiedAlias::new(d0.clone(), CausetsColumn::Value);
+        let d0e = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Instanton);
+        let d0a = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Attribute);
+        let d0v = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Value);
 
         let d1 = "Causets01".to_string();
-        let d1e = QualifiedAlias::new(d1.clone(), CausetsColumn::Instanton);
-        let d1a = QualifiedAlias::new(d1.clone(), CausetsColumn::Attribute);
-        let d1v = QualifiedAlias::new(d1.clone(), CausetsColumn::Value);
+        let d1e = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Instanton);
+        let d1a = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Attribute);
+        let d1v = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Value);
 
         let d2 = "Causets02".to_string();
-        let d2e = QualifiedAlias::new(d2.clone(), CausetsColumn::Instanton);
-        let d2a = QualifiedAlias::new(d2.clone(), CausetsColumn::Attribute);
-        let d2v = QualifiedAlias::new(d2.clone(), CausetsColumn::Value);
+        let d2e = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Instanton);
+        let d2a = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Attribute);
+        let d2v = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Value);
 
         let knows = CausetQValue::SolitonId(66);
         let age = CausetQValue::SolitonId(68);
@@ -368,27 +368,27 @@ mod testing {
         let mut subcausetq = ConjoiningGerunds::default();
         subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d1),
                              SourceAlias(CausetsTable::Causets, d2)];
-        subcausetq.column_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
-        subcausetq.wheres = ColumnIntersection(vec![ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1a.clone(), knows.clone())),
-                                                  ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1v.clone(), john.clone())),
-                                                  ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d2a.clone(), knows.clone())),
-                                                  ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d2v.clone(), daphne.clone())),
-                                                  ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d1e.clone()))),
-                                                  ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d2e.clone())))]);
+        subcausetq.CausetIndex_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
+        subcausetq.wheres = CausetIndexIntersection(vec![CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1a.clone(), knows.clone())),
+                                                  CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1v.clone(), john.clone())),
+                                                  CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d2a.clone(), knows.clone())),
+                                                  CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d2v.clone(), daphne.clone())),
+                                                  CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d1e.clone()))),
+                                                  CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d2e.clone())))]);
 
         subcausetq.known_types.insert(vx.clone(), MinkowskiSet::of_one(MinkowskiValueType::Ref));
 
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.wheres, ColumnIntersection(vec![
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0a.clone(), age.clone())),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Inequality {
+        assert_eq!(cc.wheres, CausetIndexIntersection(vec![
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0a.clone(), age.clone())),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Inequality {
                     operator: Inequality::LessThan,
-                    left: CausetQValue::Column(d0v.clone()),
+                    left: CausetQValue::CausetIndex(d0v.clone()),
                     right: CausetQValue::MinkowskiType(MinkowskiType::Long(30)),
                 }),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
             ]));
-        assert_eq!(cc.column_bindings.get(&vx), Some(&vec![d0e]));
+        assert_eq!(cc.CausetIndex_bindings.get(&vx), Some(&vec![d0e]));
         assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, d0)]);
     }
 
@@ -405,19 +405,19 @@ mod testing {
         let cc = alg(&schemaReplicant, causetq);
 
         let d0 = "Causets00".to_string();
-        let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
-        let d0a = QualifiedAlias::new(d0.clone(), CausetsColumn::Attribute);
-        let d0v = QualifiedAlias::new(d0.clone(), CausetsColumn::Value);
+        let d0e = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Instanton);
+        let d0a = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Attribute);
+        let d0v = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Value);
 
         let d1 = "Causets01".to_string();
-        let d1e = QualifiedAlias::new(d1.clone(), CausetsColumn::Instanton);
-        let d1a = QualifiedAlias::new(d1.clone(), CausetsColumn::Attribute);
-        let d1v = QualifiedAlias::new(d1.clone(), CausetsColumn::Value);
+        let d1e = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Instanton);
+        let d1a = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Attribute);
+        let d1v = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Value);
 
         let d2 = "Causets02".to_string();
-        let d2e = QualifiedAlias::new(d2.clone(), CausetsColumn::Instanton);
-        let d2a = QualifiedAlias::new(d2.clone(), CausetsColumn::Attribute);
-        let d2v = QualifiedAlias::new(d2.clone(), CausetsColumn::Value);
+        let d2e = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Instanton);
+        let d2a = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Attribute);
+        let d2v = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Value);
 
         let vx = Variable::from_valid_name("?x");
 
@@ -433,27 +433,27 @@ mod testing {
         let mut subcausetq = ConjoiningGerunds::default();
         subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d1),
                              SourceAlias(CausetsTable::Causets, d2)];
-        subcausetq.column_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
-        subcausetq.wheres = ColumnIntersection(vec![ColumnConstraintOrAlternation::Alternation(ColumnAlternation(vec![
-                                                    ColumnIntersection(vec![
-                                                        ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1a.clone(), knows.clone())),
-                                                        ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1v.clone(), john))]),
-                                                    ColumnIntersection(vec![
-                                                        ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1a.clone(), knows.clone())),
-                                                        ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1v.clone(), ambar))]),
+        subcausetq.CausetIndex_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
+        subcausetq.wheres = CausetIndexIntersection(vec![CausetIndexConstraintOrAlternation::Alternation(CausetIndexAlternation(vec![
+                                                    CausetIndexIntersection(vec![
+                                                        CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1a.clone(), knows.clone())),
+                                                        CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1v.clone(), john))]),
+                                                    CausetIndexIntersection(vec![
+                                                        CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1a.clone(), knows.clone())),
+                                                        CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1v.clone(), ambar))]),
                                                     ])),
-                                                    ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d2a.clone(), parent)),
-                                                    ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d2v.clone(), daphne)),
-                                                    ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d1e.clone()))),
-                                                    ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d2e.clone())))]);
+                                                    CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d2a.clone(), parent)),
+                                                    CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d2v.clone(), daphne)),
+                                                    CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d1e.clone()))),
+                                                    CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d2e.clone())))]);
 
         subcausetq.known_types.insert(vx.clone(), MinkowskiSet::of_one(MinkowskiValueType::Ref));
 
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.wheres, ColumnIntersection(vec![
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0a.clone(), knows)),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0v.clone(), bill)),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
+        assert_eq!(cc.wheres, CausetIndexIntersection(vec![
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0a.clone(), knows)),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0v.clone(), bill)),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
             ]));
     }
 
@@ -481,21 +481,21 @@ mod testing {
         let john = CausetQValue::MinkowskiType(MinkowskiType::typed_string("John"));
 
         let d0 = "Causets00".to_string();
-        let d0e = QualifiedAlias::new(d0.clone(), CausetsColumn::Instanton);
-        let d0a = QualifiedAlias::new(d0.clone(), CausetsColumn::Attribute);
-        let d0v = QualifiedAlias::new(d0.clone(), CausetsColumn::Value);
+        let d0e = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Instanton);
+        let d0a = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Attribute);
+        let d0v = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Value);
 
         let d1 = "Causets01".to_string();
-        let d1e = QualifiedAlias::new(d1.clone(), CausetsColumn::Instanton);
-        let d1a = QualifiedAlias::new(d1.clone(), CausetsColumn::Attribute);
-        let d1v = QualifiedAlias::new(d1.clone(), CausetsColumn::Value);
+        let d1e = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Instanton);
+        let d1a = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Attribute);
+        let d1v = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Value);
 
         let mut subcausetq = ConjoiningGerunds::default();
         subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d1)];
-        subcausetq.column_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone()]);
-        subcausetq.wheres = ColumnIntersection(vec![ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1a.clone(), knows.clone())),
-                                                  ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d1v.clone(), john)),
-                                                  ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0e.clone(), CausetQValue::Column(d1e.clone())))]);
+        subcausetq.CausetIndex_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone()]);
+        subcausetq.wheres = CausetIndexIntersection(vec![CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1a.clone(), knows.clone())),
+                                                  CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1v.clone(), john)),
+                                                  CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d1e.clone())))]);
 
         subcausetq.known_types.insert(vx.clone(), MinkowskiSet::of_one(MinkowskiValueType::Ref));
         subcausetq.known_types.insert(vy.clone(), MinkowskiSet::of_one(MinkowskiValueType::String));
@@ -506,10 +506,10 @@ mod testing {
         subcausetq.value_bindings.insert(vy.clone(), MinkowskiType::typed_string("John"));
 
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.wheres, ColumnIntersection(vec![
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0a.clone(), knows)),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::Equals(d0v.clone(), bill)),
-                ColumnConstraintOrAlternation::Constraint(ColumnConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
+        assert_eq!(cc.wheres, CausetIndexIntersection(vec![
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0a.clone(), knows)),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0v.clone(), bill)),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
             ]));
     }
 

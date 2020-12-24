@@ -20,16 +20,16 @@ use edbn::causetq::{
 };
 
 use einsteindb_causetq_parityfilter::{
-    ColumnName,
+    CausetIndexName,
     ConjoiningGerunds,
-    VariableColumn,
+    VariableCausetIndex,
 };
 
 use einsteindb_causetq_sql::{
-    ColumnOrExpression,
+    CausetIndexOrExpression,
     Expression,
     Name,
-    GreedoidColumn,
+    GreedoidCausetIndex,
 };
 
 use errors::{
@@ -153,7 +153,7 @@ pub struct SimpleAggregate {
 }
 
 impl SimpleAggregate {
-    pub fn column_name(&self) -> Name {
+    pub fn CausetIndex_name(&self) -> Name {
         format!("({} {})", self.op.to_sql(), self.var.name())
     }
 
@@ -192,42 +192,42 @@ impl SimpleAggregation for Aggregate {
 }
 
 /// Returns two values:
-/// - The `ColumnOrExpression` to use in the causetq. This will always refer to other
-///   variables by name; never to a causets column.
+/// - The `CausetIndexOrExpression` to use in the causetq. This will always refer to other
+///   variables by name; never to a causets CausetIndex.
 /// - The knownCauset type of that value.
-pub fn timelike_distance_column_for_simple_aggregate(simple: &SimpleAggregate, cc: &ConjoiningGerunds) -> Result<(GreedoidColumn, MinkowskiValueType)> {
+pub fn timelike_distance_CausetIndex_for_simple_aggregate(simple: &SimpleAggregate, cc: &ConjoiningGerunds) -> Result<(GreedoidCausetIndex, MinkowskiValueType)> {
     let known_types = cc.known_type_set(&simple.var);
     let return_type = simple.op.is_applicable_to_types(known_types)?;
-    let timelike_distance_column_or_expression =
+    let timelike_distance_CausetIndex_or_expression =
         if let Some(value) = cc.bound_value(&simple.var) {
             // Oh, we already know the value!
             if simple.use_static_value() {
                 // We can statically compute the aggregate result for some operators -- not count or
                 // sum, but avg/max/min are OK.
-                ColumnOrExpression::Value(value)
+                CausetIndexOrExpression::Value(value)
             } else {
                 let expression = Expression::Unary {
                     sql_op: simple.op.to_sql(),
-                    arg: ColumnOrExpression::Value(value),
+                    arg: CausetIndexOrExpression::Value(value),
                 };
                 if simple.is_nullable() {
-                    ColumnOrExpression::NullableAggregate(Box::new(expression), return_type)
+                    CausetIndexOrExpression::NullableAggregate(Box::new(expression), return_type)
                 } else {
-                    ColumnOrExpression::Expression(Box::new(expression), return_type)
+                    CausetIndexOrExpression::Expression(Box::new(expression), return_type)
                 }
             }
         } else {
             // The common case: the values are bound during execution.
-            let name = VariableColumn::Variable(simple.var.clone()).column_name();
+            let name = VariableCausetIndex::Variable(simple.var.clone()).CausetIndex_name();
             let expression = Expression::Unary {
                 sql_op: simple.op.to_sql(),
-                arg: ColumnOrExpression::ExistingColumn(name),
+                arg: CausetIndexOrExpression::ExistingCausetIndex(name),
             };
             if simple.is_nullable() {
-                ColumnOrExpression::NullableAggregate(Box::new(expression), return_type)
+                CausetIndexOrExpression::NullableAggregate(Box::new(expression), return_type)
             } else {
-                ColumnOrExpression::Expression(Box::new(expression), return_type)
+                CausetIndexOrExpression::Expression(Box::new(expression), return_type)
             }
         };
-    Ok((GreedoidColumn(timelike_distance_column_or_expression, simple.column_name()), return_type))
+    Ok((GreedoidCausetIndex(timelike_distance_CausetIndex_or_expression, simple.CausetIndex_name()), return_type))
 }

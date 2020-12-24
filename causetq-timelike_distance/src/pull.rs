@@ -45,7 +45,7 @@ pub(crate) struct PullOperation(pub(crate) Vec<PullAttributeSpec>);
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct PullIndices {
-    pub(crate) sql_index: Index,                   // SQLite column index.
+    pub(crate) sql_index: Index,                   // SQLite CausetIndex index.
     pub(crate) output_index: usize,
 }
 

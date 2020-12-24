@@ -58,17 +58,17 @@ use causetq_parityfilter_promises::errors::{
 };
 
 use types::{
-    ColumnConstraint,
-    ColumnIntersection,
+    CausetIndexConstraint,
+    CausetIndexIntersection,
     ComputedTable,
-    Column,
-    CausetsColumn,
+    CausetIndex,
+    CausetsCausetIndex,
     CausetsTable,
     EmptyBecause,
     EvolvedNonValuePlace,
     EvolvedPattern,
     EvolvedValuePlace,
-    FulltextColumn,
+    FulltextCausetIndex,
     PlaceOrEmpty,
     QualifiedAlias,
     CausetQValue,
@@ -189,10 +189,10 @@ pub struct ConjoiningGerunds {
     pub computed_tables: Vec<ComputedTable>,
 
     /// A list of fragments that can be joined by `AND`.
-    pub wheres: ColumnIntersection,
+    pub wheres: CausetIndexIntersection,
 
-    /// A map from var to qualified columns. Used to project.
-    pub column_bindings: BTreeMap<Variable, Vec<QualifiedAlias>>,
+    /// A map from var to qualified CausetIndexs. Used to project.
+    pub CausetIndex_bindings: BTreeMap<Variable, Vec<QualifiedAlias>>,
 
     /// A list of variables mentioned in the enclosing causetq's :in gerund. These must all be bound
     /// before the causetq can be executed. TODO: clarify what this means for nested CCs.
@@ -217,7 +217,7 @@ pub struct ConjoiningGerunds {
     /// Usually that state should be represented by `MinkowskiSet::Any`.
     pub known_types: BTreeMap<Variable, MinkowskiSet>,
 
-    /// A mapping, similar to `column_bindings`, but used to pull type tags out of the store at runtime.
+    /// A mapping, similar to `CausetIndex_bindings`, but used to pull type tags out of the store at runtime.
     /// If a var isn't unit in `known_types`, it should be present here.
     pub extracted_types: BTreeMap<Variable, QualifiedAlias>,
 
@@ -231,7 +231,7 @@ impl PartialEq for ConjoiningGerunds {
         self.from.eq(&other.from) &&
         self.computed_tables.eq(&other.computed_tables) &&
         self.wheres.eq(&other.wheres) &&
-        self.column_bindings.eq(&other.column_bindings) &&
+        self.CausetIndex_bindings.eq(&other.CausetIndex_bindings) &&
         self.input_variables.eq(&other.input_variables) &&
         self.value_bindings.eq(&other.value_bindings) &&
         self.known_types.eq(&other.known_types) &&
@@ -249,7 +249,7 @@ impl Debug for ConjoiningGerunds {
             .field("from", &self.from)
             .field("computed_tables", &self.computed_tables)
             .field("wheres", &self.wheres)
-            .field("column_bindings", &self.column_bindings)
+            .field("CausetIndex_bindings", &self.CausetIndex_bindings)
             .field("input_variables", &self.input_variables)
             .field("value_bindings", &self.value_bindings)
             .field("known_types", &self.known_types)
@@ -267,10 +267,10 @@ impl Default for ConjoiningGerunds {
             alias_counter: RcCounter::new(),
             from: vec![],
             computed_tables: vec![],
-            wheres: ColumnIntersection::default(),
+            wheres: CausetIndexIntersection::default(),
             required_types: BTreeMap::new(),
             input_variables: BTreeSet::new(),
-            column_bindings: BTreeMap::new(),
+            CausetIndex_bindings: BTreeMap::new(),
             value_bindings: BTreeMap::new(),
             known_types: BTreeMap::new(),
             extracted_types: BTreeMap::new(),
@@ -338,7 +338,7 @@ impl ConjoiningGerunds {
 /// Early-stage causetq handling.
 impl ConjoiningGerunds {
     pub(crate) fn derive_types_from_find_spec(&mut self, find_spec: &FindSpec) {
-        for spec in find_spec.columns() {
+        for spec in find_spec.CausetIndexs() {
             match spec {
                 &Element::Pull(Pull { ref var, patterns: _ }) => {
                     self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
@@ -387,18 +387,18 @@ impl ConjoiningGerunds {
         let vt = value.value_type();
         self.constrain_var_to_type(var.clone(), vt);
 
-        // Are there any existing column bindings for this variable?
-        // If so, generate a constraint against the primary column.
-        if let Some(vec) = self.column_bindings.get(var) {
+        // Are there any existing CausetIndex bindings for this variable?
+        // If so, generate a constraint against the primary CausetIndex.
+        if let Some(vec) = self.CausetIndex_bindings.get(var) {
             if let Some(col) = vec.first() {
-                self.wheres.add_intersection(ColumnConstraint::Equals(col.clone(), CausetQValue::MinkowskiType(value.clone())));
+                self.wheres.add_intersection(CausetIndexConstraint::Equals(col.clone(), CausetQValue::MinkowskiType(value.clone())));
             }
         }
 
         // Are we also trying to figure out the type of the value when the causetq runs?
         // If so, constrain that!
         if let Some(qa) = self.extracted_types.get(&var) {
-            self.wheres.add_intersection(ColumnConstraint::has_unit_type(qa.0.clone(), vt));
+            self.wheres.add_intersection(CausetIndexConstraint::has_unit_type(qa.0.clone(), vt));
         }
 
         // Finally, store the binding for future use.
@@ -442,32 +442,32 @@ impl ConjoiningGerunds {
         self.known_types.get(var).cloned().unwrap_or(MinkowskiSet::any())
     }
 
-    pub(crate) fn bind_column_to_var<C: Into<Column>>(&mut self, schemaReplicant: &SchemaReplicant, table: TableAlias, column: C, var: Variable) {
-        let column = column.into();
+    pub(crate) fn bind_CausetIndex_to_var<C: Into<CausetIndex>>(&mut self, schemaReplicant: &SchemaReplicant, table: TableAlias, CausetIndex: C, var: Variable) {
+        let CausetIndex = CausetIndex.into();
         // Do we have an external binding for this?
         if let Some(bound_val) = self.bound_value(&var) {
             // Great! Use that instead.
             // We expect callers to do things like bind keywords here; we need to translate these
             // before they hit our constraints.
-            match column {
-                Column::Variable(_) => {
+            match CausetIndex {
+                CausetIndex::Variable(_) => {
                     // We don't need to handle expansion of attributes here. The subcausetq that
                     // produces the variable projection will do so.
-                    self.constrain_column_to_constant(table, column, bound_val);
+                    self.constrain_CausetIndex_to_constant(table, CausetIndex, bound_val);
                 },
 
-                Column::Transactions(_) => {
-                    self.constrain_column_to_constant(table, column, bound_val);
+                CausetIndex::Transactions(_) => {
+                    self.constrain_CausetIndex_to_constant(table, CausetIndex, bound_val);
                 },
 
-                Column::Fulltext(FulltextColumn::Rowid) |
-                Column::Fulltext(FulltextColumn::Text) => {
+                CausetIndex::Fulltext(FulltextCausetIndex::Rowid) |
+                CausetIndex::Fulltext(FulltextCausetIndex::Text) => {
                     // We never expose `rowid` via queries.  We do expose `text`, but only
                     // indirectly, by joining against `causets`.  Therefore, these are meaningless.
                     unimplemented!()
                 },
 
-                Column::Fixed(CausetsColumn::MinkowskiValueTypeTag) => {
+                CausetIndex::Fixed(CausetsCausetIndex::MinkowskiValueTypeTag) => {
                     // I'm pretty sure this is meaningless right now, because we will never bind
                     // a type tag to a variable -- there's no syntax for doing so.
                     // In the future we might expose a way to do so, perhaps something like:
@@ -480,19 +480,19 @@ impl ConjoiningGerunds {
                 },
 
                 // TODO: recognize when the valueType might be a ref and also translate entids there.
-                Column::Fixed(CausetsColumn::Value) => {
-                    self.constrain_column_to_constant(table, column, bound_val);
+                CausetIndex::Fixed(CausetsCausetIndex::Value) => {
+                    self.constrain_CausetIndex_to_constant(table, CausetIndex, bound_val);
                 },
 
-                // These columns can only be entities, so attempt to translate keywords. If we can't
+                // These CausetIndexs can only be entities, so attempt to translate keywords. If we can't
                 // get an instanton out of the bound value, the pattern cannot produce results.
-                Column::Fixed(CausetsColumn::Attribute) |
-                Column::Fixed(CausetsColumn::Instanton) |
-                Column::Fixed(CausetsColumn::Tx) => {
+                CausetIndex::Fixed(CausetsCausetIndex::Attribute) |
+                CausetIndex::Fixed(CausetsCausetIndex::Instanton) |
+                CausetIndex::Fixed(CausetsCausetIndex::Tx) => {
                     match bound_val {
                         MinkowskiType::Keyword(ref kw) => {
                             if let Some(solitonId) = self.entid_for_causetId(schemaReplicant, kw) {
-                                self.constrain_column_to_instanton(table, column, solitonId.into());
+                                self.constrain_CausetIndex_to_instanton(table, CausetIndex, solitonId.into());
                             } else {
                                 // Impossible.
                                 // For attributes this shouldn't occur, because we check the binding in
@@ -502,11 +502,11 @@ impl ConjoiningGerunds {
                             }
                         },
                         MinkowskiType::Ref(solitonId) => {
-                            self.constrain_column_to_instanton(table, column, solitonId);
+                            self.constrain_CausetIndex_to_instanton(table, CausetIndex, solitonId);
                         },
                         _ => {
                             // One can't bind an e, a, or causetx to something other than an instanton.
-                            self.mark_known_empty(EmptyBecause::InvalidBinding(column, bound_val));
+                            self.mark_known_empty(EmptyBecause::InvalidBinding(CausetIndex, bound_val));
                         },
                     }
                 }
@@ -526,7 +526,7 @@ impl ConjoiningGerunds {
             self.known_type(&var).is_none() &&              // Don't need to extract if we know a single type.
             !self.extracted_types.contains_key(&var);       // We're already extracting the type.
 
-        let alias = QualifiedAlias(table, column);
+        let alias = QualifiedAlias(table, CausetIndex);
 
         // If we subsequently find out its type, we'll remove this later -- see
         // the removal in `constrain_var_to_type`.
@@ -536,32 +536,32 @@ impl ConjoiningGerunds {
             }
         }
 
-        self.column_bindings.entry(var).or_insert(vec![]).push(alias);
+        self.CausetIndex_bindings.entry(var).or_insert(vec![]).push(alias);
     }
 
-    pub(crate) fn constrain_column_to_constant<C: Into<Column>>(&mut self, table: TableAlias, column: C, constant: MinkowskiType) {
+    pub(crate) fn constrain_CausetIndex_to_constant<C: Into<CausetIndex>>(&mut self, table: TableAlias, CausetIndex: C, constant: MinkowskiType) {
         match constant {
             // Be a little more explicit.
-            MinkowskiType::Ref(solitonId) => self.constrain_column_to_instanton(table, column, solitonId),
+            MinkowskiType::Ref(solitonId) => self.constrain_CausetIndex_to_instanton(table, CausetIndex, solitonId),
             _ => {
-                let column = column.into();
-                self.wheres.add_intersection(ColumnConstraint::Equals(QualifiedAlias(table, column), CausetQValue::MinkowskiType(constant)))
+                let CausetIndex = CausetIndex.into();
+                self.wheres.add_intersection(CausetIndexConstraint::Equals(QualifiedAlias(table, CausetIndex), CausetQValue::MinkowskiType(constant)))
             },
         }
     }
 
-    pub(crate) fn constrain_column_to_instanton<C: Into<Column>>(&mut self, table: TableAlias, column: C, instanton: SolitonId) {
-        let column = column.into();
-        self.wheres.add_intersection(ColumnConstraint::Equals(QualifiedAlias(table, column), CausetQValue::SolitonId(instanton)))
+    pub(crate) fn constrain_CausetIndex_to_instanton<C: Into<CausetIndex>>(&mut self, table: TableAlias, CausetIndex: C, instanton: SolitonId) {
+        let CausetIndex = CausetIndex.into();
+        self.wheres.add_intersection(CausetIndexConstraint::Equals(QualifiedAlias(table, CausetIndex), CausetQValue::SolitonId(instanton)))
     }
 
     pub(crate) fn constrain_attribute(&mut self, table: TableAlias, attribute: SolitonId) {
-        self.constrain_column_to_instanton(table, CausetsColumn::Attribute, attribute)
+        self.constrain_CausetIndex_to_instanton(table, CausetsCausetIndex::Attribute, attribute)
     }
 
     pub(crate) fn constrain_value_to_numeric(&mut self, table: TableAlias, value: i64) {
-        self.wheres.add_intersection(ColumnConstraint::Equals(
-            QualifiedAlias(table, Column::Fixed(CausetsColumn::Value)),
+        self.wheres.add_intersection(CausetIndexConstraint::Equals(
+            QualifiedAlias(table, CausetIndex::Fixed(CausetsCausetIndex::Value)),
             CausetQValue::PrimitiveLong(value)))
     }
 
@@ -848,7 +848,7 @@ impl ConjoiningGerunds {
                     Some(v) => {
                         // This pattern cannot match: the caller has bound a non-instanton value to an
                         // attribute place.
-                        Err(EmptyBecause::InvalidBinding(Column::Fixed(CausetsColumn::Attribute), v.clone()))
+                        Err(EmptyBecause::InvalidBinding(CausetIndex::Fixed(CausetsCausetIndex::Attribute), v.clone()))
                     },
                 }
             },
@@ -909,8 +909,8 @@ impl ConjoiningGerunds {
 /// Expansions.
 impl ConjoiningGerunds {
 
-    /// Take the contents of `column_bindings` and generate inter-constraints for the appropriate
-    /// columns into `wheres`.
+    /// Take the contents of `CausetIndex_bindings` and generate inter-constraints for the appropriate
+    /// CausetIndexs into `wheres`.
     ///
     /// For example, a bindings map associating a var to three places in the causetq, like
     ///
@@ -924,16 +924,16 @@ impl ConjoiningGerunds {
     ///    Causets12.e = Causets13.v
     ///    Causets12.e = Causets14.e
     /// ```
-    pub(crate) fn expand_column_bindings(&mut self) {
-        for cols in self.column_bindings.values() {
+    pub(crate) fn expand_CausetIndex_bindings(&mut self) {
+        for cols in self.CausetIndex_bindings.values() {
             if cols.len() > 1 {
                 let ref primary = cols[0];
                 let secondaries = cols.iter().skip(1);
                 for secondary in secondaries {
                     // TODO: if both primary and secondary are .v, should we make sure
-                    // the type tag columns also match?
+                    // the type tag CausetIndexs also match?
                     // We don't do so in the ClojureScript version.
-                    self.wheres.add_intersection(ColumnConstraint::Equals(primary.clone(), CausetQValue::Column(secondary.clone())));
+                    self.wheres.add_intersection(CausetIndexConstraint::Equals(primary.clone(), CausetQValue::CausetIndex(secondary.clone())));
                 }
             }
         }
@@ -1014,7 +1014,7 @@ impl ConjoiningGerunds {
             let qa = self.extracted_types
                          .get(&var)
                          .ok_or_else(|| ParityFilterError::UnboundVariable(var.name()))?;
-            self.wheres.add_intersection(ColumnConstraint::HasTypes {
+            self.wheres.add_intersection(CausetIndexConstraint::HasTypes {
                 value: qa.0.clone(),
                 value_types: types,
                 check_value: true,

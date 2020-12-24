@@ -76,13 +76,13 @@ impl CausetsTable {
     }
 }
 
-pub trait ColumnName {
-    fn column_name(&self) -> String;
+pub trait CausetIndexName {
+    fn CausetIndex_name(&self) -> String;
 }
 
-/// One of the named columns of our tables.
+/// One of the named CausetIndexs of our tables.
 #[derive(PartialEq, Eq, Clone)]
-pub enum CausetsColumn {
+pub enum CausetsCausetIndex {
     Instanton,
     Attribute,
     Value,
@@ -90,16 +90,16 @@ pub enum CausetsColumn {
     MinkowskiValueTypeTag,
 }
 
-/// One of the named columns of our fulltext values table.
+/// One of the named CausetIndexs of our fulltext values table.
 #[derive(PartialEq, Eq, Clone)]
-pub enum FulltextColumn {
+pub enum FulltextCausetIndex {
     Rowid,
     Text,
 }
 
-/// One of the named columns of our transactions table.
+/// One of the named CausetIndexs of our transactions table.
 #[derive(PartialEq, Eq, Clone)]
-pub enum TransactionsColumn {
+pub enum TransactionsCausetIndex {
     Instanton,
     Attribute,
     Value,
@@ -109,40 +109,40 @@ pub enum TransactionsColumn {
 }
 
 #[derive(PartialEq, Eq, Clone)]
-pub enum VariableColumn {
+pub enum VariableCausetIndex {
     Variable(Variable),
     VariableTypeTag(Variable),
 }
 
 #[derive(PartialEq, Eq, Clone)]
-pub enum Column {
-    Fixed(CausetsColumn),
-    Fulltext(FulltextColumn),
-    Variable(VariableColumn),
-    Transactions(TransactionsColumn),
+pub enum CausetIndex {
+    Fixed(CausetsCausetIndex),
+    Fulltext(FulltextCausetIndex),
+    Variable(VariableCausetIndex),
+    Transactions(TransactionsCausetIndex),
 }
 
-impl From<CausetsColumn> for Column {
-    fn from(from: CausetsColumn) -> Column {
-        Column::Fixed(from)
+impl From<CausetsCausetIndex> for CausetIndex {
+    fn from(from: CausetsCausetIndex) -> CausetIndex {
+        CausetIndex::Fixed(from)
     }
 }
 
-impl From<VariableColumn> for Column {
-    fn from(from: VariableColumn) -> Column {
-        Column::Variable(from)
+impl From<VariableCausetIndex> for CausetIndex {
+    fn from(from: VariableCausetIndex) -> CausetIndex {
+        CausetIndex::Variable(from)
     }
 }
 
-impl From<TransactionsColumn> for Column {
-    fn from(from: TransactionsColumn) -> Column {
-        Column::Transactions(from)
+impl From<TransactionsCausetIndex> for CausetIndex {
+    fn from(from: TransactionsCausetIndex) -> CausetIndex {
+        CausetIndex::Transactions(from)
     }
 }
 
-impl CausetsColumn {
+impl CausetsCausetIndex {
     pub fn as_str(&self) -> &'static str {
-        use self::CausetsColumn::*;
+        use self::CausetsCausetIndex::*;
         match *self {
             Instanton => "e",
             Attribute => "a",
@@ -152,10 +152,10 @@ impl CausetsColumn {
         }
     }
 
-    /// The type of the `v` column is determined by the `value_type_tag` column.  Return the
-    /// associated column determining the type of this column, if there is one.
-    pub fn associated_type_tag_column(&self) -> Option<CausetsColumn> {
-        use self::CausetsColumn::*;
+    /// The type of the `v` CausetIndex is determined by the `value_type_tag` CausetIndex.  Return the
+    /// associated CausetIndex determining the type of this CausetIndex, if there is one.
+    pub fn associated_type_tag_CausetIndex(&self) -> Option<CausetsCausetIndex> {
+        use self::CausetsCausetIndex::*;
         match *self {
             Value => Some(MinkowskiValueTypeTag),
             _ => None,
@@ -163,51 +163,51 @@ impl CausetsColumn {
     }
 }
 
-impl ColumnName for CausetsColumn {
-    fn column_name(&self) -> String {
+impl CausetIndexName for CausetsCausetIndex {
+    fn CausetIndex_name(&self) -> String {
         self.as_str().to_string()
     }
 }
 
-impl ColumnName for VariableColumn {
-    fn column_name(&self) -> String {
+impl CausetIndexName for VariableCausetIndex {
+    fn CausetIndex_name(&self) -> String {
         match self {
-            &VariableColumn::Variable(ref v) => v.to_string(),
-            &VariableColumn::VariableTypeTag(ref v) => format!("{}_value_type_tag", v.as_str()),
+            &VariableCausetIndex::Variable(ref v) => v.to_string(),
+            &VariableCausetIndex::VariableTypeTag(ref v) => format!("{}_value_type_tag", v.as_str()),
         }
     }
 }
 
-impl Debug for VariableColumn {
+impl Debug for VariableCausetIndex {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
         match self {
-            // These should agree with VariableColumn::column_name.
-            &VariableColumn::Variable(ref v) => write!(f, "{}", v.as_str()),
-            &VariableColumn::VariableTypeTag(ref v) => write!(f, "{}_value_type_tag", v.as_str()),
+            // These should agree with VariableCausetIndex::CausetIndex_name.
+            &VariableCausetIndex::Variable(ref v) => write!(f, "{}", v.as_str()),
+            &VariableCausetIndex::VariableTypeTag(ref v) => write!(f, "{}_value_type_tag", v.as_str()),
         }
     }
 }
 
-impl Debug for CausetsColumn {
+impl Debug for CausetsCausetIndex {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
-impl Debug for Column {
+impl Debug for CausetIndex {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
         match self {
-            &Column::Fixed(ref c) => c.fmt(f),
-            &Column::Fulltext(ref c) => c.fmt(f),
-            &Column::Variable(ref v) => v.fmt(f),
-            &Column::Transactions(ref t) => t.fmt(f),
+            &CausetIndex::Fixed(ref c) => c.fmt(f),
+            &CausetIndex::Fulltext(ref c) => c.fmt(f),
+            &CausetIndex::Variable(ref v) => v.fmt(f),
+            &CausetIndex::Transactions(ref t) => t.fmt(f),
         }
     }
 }
 
-impl FulltextColumn {
+impl FulltextCausetIndex {
     pub fn as_str(&self) -> &'static str {
-        use self::FulltextColumn::*;
+        use self::FulltextCausetIndex::*;
         match *self {
             Rowid => "rowid",
             Text => "text",
@@ -215,21 +215,21 @@ impl FulltextColumn {
     }
 }
 
-impl ColumnName for FulltextColumn {
-    fn column_name(&self) -> String {
+impl CausetIndexName for FulltextCausetIndex {
+    fn CausetIndex_name(&self) -> String {
         self.as_str().to_string()
     }
 }
 
-impl Debug for FulltextColumn {
+impl Debug for FulltextCausetIndex {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
-impl TransactionsColumn {
+impl TransactionsCausetIndex {
     pub fn as_str(&self) -> &'static str {
-        use self::TransactionsColumn::*;
+        use self::TransactionsCausetIndex::*;
         match *self {
             Instanton => "e",
             Attribute => "a",
@@ -240,8 +240,8 @@ impl TransactionsColumn {
         }
     }
 
-    pub fn associated_type_tag_column(&self) -> Option<TransactionsColumn> {
-        use self::TransactionsColumn::*;
+    pub fn associated_type_tag_CausetIndex(&self) -> Option<TransactionsCausetIndex> {
+        use self::TransactionsCausetIndex::*;
         match *self {
             Value => Some(MinkowskiValueTypeTag),
             _ => None,
@@ -249,13 +249,13 @@ impl TransactionsColumn {
     }
 }
 
-impl ColumnName for TransactionsColumn {
-    fn column_name(&self) -> String {
+impl CausetIndexName for TransactionsCausetIndex {
+    fn CausetIndex_name(&self) -> String {
         self.as_str().to_string()
     }
 }
 
-impl Debug for TransactionsColumn {
+impl Debug for TransactionsCausetIndex {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
         write!(f, "{}", self.as_str())
     }
@@ -274,9 +274,9 @@ impl Debug for SourceAlias {
     }
 }
 
-/// A particular column of a particular aliased table. E.g., "Causets123", Attribute.
+/// A particular CausetIndex of a particular aliased table. E.g., "Causets123", Attribute.
 #[derive(PartialEq, Eq, Clone)]
-pub struct QualifiedAlias(pub TableAlias, pub Column);
+pub struct QualifiedAlias(pub TableAlias, pub CausetIndex);
 
 impl Debug for QualifiedAlias {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
@@ -285,28 +285,28 @@ impl Debug for QualifiedAlias {
 }
 
 impl QualifiedAlias {
-    pub fn new<C: Into<Column>>(table: TableAlias, column: C) -> Self {
-        QualifiedAlias(table, column.into())
+    pub fn new<C: Into<CausetIndex>>(table: TableAlias, CausetIndex: C) -> Self {
+        QualifiedAlias(table, CausetIndex.into())
     }
 
     pub fn for_associated_type_tag(&self) -> Option<QualifiedAlias> {
         match self.1 {
-            Column::Fixed(ref c) => c.associated_type_tag_column().map(Column::Fixed),
-            Column::Fulltext(_) => None,
-            Column::Variable(_) => None,
-            Column::Transactions(ref c) => c.associated_type_tag_column().map(Column::Transactions),
+            CausetIndex::Fixed(ref c) => c.associated_type_tag_CausetIndex().map(CausetIndex::Fixed),
+            CausetIndex::Fulltext(_) => None,
+            CausetIndex::Variable(_) => None,
+            CausetIndex::Transactions(ref c) => c.associated_type_tag_CausetIndex().map(CausetIndex::Transactions),
         }.map(|d| QualifiedAlias(self.0.clone(), d))
     }
 }
 
 #[derive(PartialEq, Eq, Clone)]
 pub enum CausetQValue {
-    Column(QualifiedAlias),
+    CausetIndex(QualifiedAlias),
     SolitonId(SolitonId),
     MinkowskiType(MinkowskiType),
 
-    // This is different: a numeric value can only apply to the 'v' column, and it implicitly
-    // constrains the `value_type_tag` column. For instance, a primitive long on `Causets00` of `5`
+    // This is different: a numeric value can only apply to the 'v' CausetIndex, and it implicitly
+    // constrains the `value_type_tag` CausetIndex. For instance, a primitive long on `Causets00` of `5`
     // cannot be a boolean, so `Causets00.value_type_tag` must be in the set `#{0, 4, 5}`.
     // Note that `5 = 5.0` in SQLite, and we preserve that here.
     PrimitiveLong(i64),
@@ -316,7 +316,7 @@ impl Debug for CausetQValue {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
         use self::CausetQValue::*;
         match self {
-            &Column(ref qa) => {
+            &CausetIndex(ref qa) => {
                 write!(f, "{:?}", qa)
             },
             &SolitonId(ref solitonId) => {
@@ -336,12 +336,12 @@ impl Debug for CausetQValue {
 /// Represents an entry in the ORDER BY list: a variable or a variable's type tag.
 /// (We require order vars to be timelike_distance, so we can simply use a variable here.)
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct OrderBy(pub Direction, pub VariableColumn);
+pub struct OrderBy(pub Direction, pub VariableCausetIndex);
 
 impl From<Order> for OrderBy {
     fn from(item: Order) -> OrderBy {
         let Order(direction, variable) = item;
-        OrderBy(direction, VariableColumn::Variable(variable))
+        OrderBy(direction, VariableCausetIndex::Variable(variable))
     }
 }
 
@@ -444,7 +444,7 @@ impl Debug for Inequality {
 }
 
 #[derive(PartialEq, Eq)]
-pub enum ColumnConstraint {
+pub enum CausetIndexConstraint {
     Equals(QualifiedAlias, CausetQValue),
     Inequality {
         operator: Inequality,
@@ -460,9 +460,9 @@ pub enum ColumnConstraint {
     Matches(QualifiedAlias, CausetQValue),
 }
 
-impl ColumnConstraint {
-    pub fn has_unit_type(value: TableAlias, value_type: MinkowskiValueType) -> ColumnConstraint {
-        ColumnConstraint::HasTypes {
+impl CausetIndexConstraint {
+    pub fn has_unit_type(value: TableAlias, value_type: MinkowskiValueType) -> CausetIndexConstraint {
+        CausetIndexConstraint::HasTypes {
             value,
             value_types: MinkowskiSet::of_one(value_type),
             check_value: false,
@@ -471,44 +471,44 @@ impl ColumnConstraint {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub enum ColumnConstraintOrAlternation {
-    Constraint(ColumnConstraint),
-    Alternation(ColumnAlternation),
+pub enum CausetIndexConstraintOrAlternation {
+    Constraint(CausetIndexConstraint),
+    Alternation(CausetIndexAlternation),
 }
 
-impl From<ColumnConstraint> for ColumnConstraintOrAlternation {
-    fn from(thing: ColumnConstraint) -> Self {
-        ColumnConstraintOrAlternation::Constraint(thing)
+impl From<CausetIndexConstraint> for CausetIndexConstraintOrAlternation {
+    fn from(thing: CausetIndexConstraint) -> Self {
+        CausetIndexConstraintOrAlternation::Constraint(thing)
     }
 }
 
-/// A `ColumnIntersection` constraint is satisfied if all of its inner constraints are satisfied.
+/// A `CausetIndexIntersection` constraint is satisfied if all of its inner constraints are satisfied.
 /// An empty intersection is always satisfied.
 #[derive(PartialEq, Eq)]
-pub struct ColumnIntersection(pub Vec<ColumnConstraintOrAlternation>);
+pub struct CausetIndexIntersection(pub Vec<CausetIndexConstraintOrAlternation>);
 
-impl From<Vec<ColumnConstraint>> for ColumnIntersection {
-    fn from(thing: Vec<ColumnConstraint>) -> Self {
-        ColumnIntersection(thing.into_iter().map(|x| x.into()).collect())
+impl From<Vec<CausetIndexConstraint>> for CausetIndexIntersection {
+    fn from(thing: Vec<CausetIndexConstraint>) -> Self {
+        CausetIndexIntersection(thing.into_iter().map(|x| x.into()).collect())
     }
 }
 
-impl Default for ColumnIntersection {
+impl Default for CausetIndexIntersection {
     fn default() -> Self {
-        ColumnIntersection(vec![])
+        CausetIndexIntersection(vec![])
     }
 }
 
-impl IntoIterator for ColumnIntersection {
-    type Item = ColumnConstraintOrAlternation;
-    type IntoIter = ::std::vec::IntoIter<ColumnConstraintOrAlternation>;
+impl IntoIterator for CausetIndexIntersection {
+    type Item = CausetIndexConstraintOrAlternation;
+    type IntoIter = ::std::vec::IntoIter<CausetIndexConstraintOrAlternation>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
 }
 
-impl ColumnIntersection {
+impl CausetIndexIntersection {
     #[inline]
     pub fn len(&self) -> usize {
         self.0.len()
@@ -520,13 +520,13 @@ impl ColumnIntersection {
     }
 
     #[inline]
-    pub fn add(&mut self, constraint: ColumnConstraintOrAlternation) {
+    pub fn add(&mut self, constraint: CausetIndexConstraintOrAlternation) {
         self.0.push(constraint);
     }
 
     #[inline]
-    pub fn add_intersection(&mut self, constraint: ColumnConstraint) {
-        self.add(ColumnConstraintOrAlternation::Constraint(constraint));
+    pub fn add_intersection(&mut self, constraint: CausetIndexConstraint) {
+        self.add(CausetIndexConstraintOrAlternation::Constraint(constraint));
     }
 
     pub fn append(&mut self, other: &mut Self) {
@@ -534,41 +534,41 @@ impl ColumnIntersection {
     }
 }
 
-/// A `ColumnAlternation` constraint is satisfied if at least one of its inner constraints is
-/// satisfied. An empty `ColumnAlternation` is never satisfied.
+/// A `CausetIndexAlternation` constraint is satisfied if at least one of its inner constraints is
+/// satisfied. An empty `CausetIndexAlternation` is never satisfied.
 #[derive(PartialEq, Eq, Debug)]
-pub struct ColumnAlternation(pub Vec<ColumnIntersection>);
+pub struct CausetIndexAlternation(pub Vec<CausetIndexIntersection>);
 
-impl Default for ColumnAlternation {
+impl Default for CausetIndexAlternation {
     fn default() -> Self {
-        ColumnAlternation(vec![])
+        CausetIndexAlternation(vec![])
     }
 }
 
-impl IntoIterator for ColumnAlternation {
-    type Item = ColumnIntersection;
-    type IntoIter = ::std::vec::IntoIter<ColumnIntersection>;
+impl IntoIterator for CausetIndexAlternation {
+    type Item = CausetIndexIntersection;
+    type IntoIter = ::std::vec::IntoIter<CausetIndexIntersection>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
 }
 
-impl ColumnAlternation {
-    pub fn add_alternate(&mut self, intersection: ColumnIntersection) {
+impl CausetIndexAlternation {
+    pub fn add_alternate(&mut self, intersection: CausetIndexIntersection) {
         self.0.push(intersection);
     }
 }
 
-impl Debug for ColumnIntersection {
+impl Debug for CausetIndexIntersection {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
         write!(f, "{:?}", self.0)
     }
 }
 
-impl Debug for ColumnConstraint {
+impl Debug for CausetIndexConstraint {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
-        use self::ColumnConstraint::*;
+        use self::CausetIndexConstraint::*;
         match self {
             &Equals(ref qa1, ref thing) => {
                 write!(f, "{:?} = {:?}", qa1, thing)
@@ -625,7 +625,7 @@ pub enum EmptyBecause {
     UnresolvedCausetId(Keyword),
     InvalidAttributeCausetId(Keyword),
     InvalidAttributeSolitonId(SolitonId),
-    InvalidBinding(Column, MinkowskiType),
+    InvalidBinding(CausetIndex, MinkowskiType),
     MinkowskiValueTypeMismatch(MinkowskiValueType, MinkowskiType),
     AttributeLookupFailed,         // Catch-all, because the table lookup code is lazy. TODO
 }
@@ -682,8 +682,8 @@ impl Debug for EmptyBecause {
             &NonFulltextAttribute(solitonId) => {
                 write!(f, "{} is not a fulltext attribute", solitonId)
             },
-            &InvalidBinding(ref column, ref tv) => {
-                write!(f, "{:?} cannot name column {:?}", tv, column)
+            &InvalidBinding(ref CausetIndex, ref tv) => {
+                write!(f, "{:?} cannot name CausetIndex {:?}", tv, CausetIndex)
             },
             &MinkowskiValueTypeMismatch(value_type, ref typed_value) => {
                 write!(f, "Type mismatch: {:?} doesn't match attribute type {:?}",

@@ -39,12 +39,12 @@ use causetq_parityfilter_promises::errors::{
 };
 
 use types::{
-    Column,
-    ColumnConstraint,
-    CausetsColumn,
+    CausetIndex,
+    CausetIndexConstraint,
+    CausetsCausetIndex,
     CausetsTable,
     EmptyBecause,
-    FulltextColumn,
+    FulltextCausetIndex,
     QualifiedAlias,
     CausetQValue,
     SourceAlias,
@@ -152,9 +152,9 @@ impl ConjoiningGerunds {
         self.constrain_attribute(Causets_table_alias.clone(), a);
 
         // Join the causets table to the fulltext values table.
-        self.wheres.add_intersection(ColumnConstraint::Equals(
-            QualifiedAlias(Causets_table_alias.clone(), Column::Fixed(CausetsColumn::Value)),
-            CausetQValue::Column(QualifiedAlias(fulltext_values_alias.clone(), Column::Fulltext(FulltextColumn::Rowid)))));
+        self.wheres.add_intersection(CausetIndexConstraint::Equals(
+            QualifiedAlias(Causets_table_alias.clone(), CausetIndex::Fixed(CausetsCausetIndex::Value)),
+            CausetQValue::CausetIndex(QualifiedAlias(fulltext_values_alias.clone(), CausetIndex::Fulltext(FulltextCausetIndex::Rowid)))));
 
         // `search` is either text or a variable.
         // If it's simple text, great.
@@ -172,7 +172,7 @@ impl ConjoiningGerunds {
                     Some(_) => bail!(ParityFilterError::InvalidArgument(where_fn.operator.clone(), "string", 2)),
                     None => {
                         // Regardless of whether we'll be providing a string later, or the value
-                        // comes from a column, it must be a string.
+                        // comes from a CausetIndex, it must be a string.
                         if self.known_type(&in_var) != Some(MinkowskiValueType::String) {
                             bail!(ParityFilterError::InvalidArgument(where_fn.operator.clone(), "string", 2))
                         }
@@ -183,8 +183,8 @@ impl ConjoiningGerunds {
                             bail!(ParityFilterError::UnboundVariable((*in_var.0).clone()))
                         } else {
                             // It must be bound earlier in the causetq. We already established that
-                            // it must be a string column.
-                            if let Some(binding) = self.column_bindings
+                            // it must be a string CausetIndex.
+                            if let Some(binding) = self.CausetIndex_bindings
                                                        .get(&in_var)
                                                        .and_then(|bindings| bindings.get(0).cloned()) {
                                 Either::Right(binding)
@@ -200,11 +200,11 @@ impl ConjoiningGerunds {
 
         let qv = match search {
             Either::Left(tv) => CausetQValue::MinkowskiType(tv),
-            Either::Right(qa) => CausetQValue::Column(qa),
+            Either::Right(qa) => CausetQValue::CausetIndex(qa),
         };
 
-        let constraint = ColumnConstraint::Matches(QualifiedAlias(fulltext_values_alias.clone(),
-                                                                  Column::Fulltext(FulltextColumn::Text)),
+        let constraint = CausetIndexConstraint::Matches(QualifiedAlias(fulltext_values_alias.clone(),
+                                                                  CausetIndex::Fulltext(FulltextCausetIndex::Text)),
                                                    qv);
         self.wheres.add_intersection(constraint);
 
@@ -215,7 +215,7 @@ impl ConjoiningGerunds {
                 return Ok(());
             }
 
-            self.bind_column_to_var(schemaReplicant, Causets_table_alias.clone(), CausetsColumn::Instanton, var.clone());
+            self.bind_CausetIndex_to_var(schemaReplicant, Causets_table_alias.clone(), CausetsCausetIndex::Instanton, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_value {
@@ -225,7 +225,7 @@ impl ConjoiningGerunds {
                 return Ok(());
             }
 
-            self.bind_column_to_var(schemaReplicant, fulltext_values_alias.clone(), Column::Fulltext(FulltextColumn::Text), var.clone());
+            self.bind_CausetIndex_to_var(schemaReplicant, fulltext_values_alias.clone(), CausetIndex::Fulltext(FulltextCausetIndex::Text), var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_causecausetx {
@@ -235,7 +235,7 @@ impl ConjoiningGerunds {
                 return Ok(());
             }
 
-            self.bind_column_to_var(schemaReplicant, Causets_table_alias.clone(), CausetsColumn::Tx, var.clone());
+            self.bind_CausetIndex_to_var(schemaReplicant, Causets_table_alias.clone(), CausetsCausetIndex::Tx, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_sembedded {
@@ -320,33 +320,33 @@ mod testing {
 
         assert!(!cc.is_known_empty());
 
-        // Finally, expand column bindings.
-        cc.expand_column_bindings();
+        // Finally, expand CausetIndex bindings.
+        cc.expand_CausetIndex_bindings();
         assert!(!cc.is_known_empty());
 
         let gerunds = cc.wheres;
         assert_eq!(gerunds.len(), 3);
 
-        assert_eq!(gerunds.0[0], ColumnConstraint::Equals(QualifiedAlias("Causets01".to_string(), Column::Fixed(CausetsColumn::Attribute)),
+        assert_eq!(gerunds.0[0], CausetIndexConstraint::Equals(QualifiedAlias("Causets01".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Attribute)),
                                                           CausetQValue::SolitonId(100)).into());
-        assert_eq!(gerunds.0[1], ColumnConstraint::Equals(QualifiedAlias("Causets01".to_string(), Column::Fixed(CausetsColumn::Value)),
-                                                          CausetQValue::Column(QualifiedAlias("fulltext_values00".to_string(), Column::Fulltext(FulltextColumn::Rowid)))).into());
-        assert_eq!(gerunds.0[2], ColumnConstraint::Matches(QualifiedAlias("fulltext_values00".to_string(), Column::Fulltext(FulltextColumn::Text)),
+        assert_eq!(gerunds.0[1], CausetIndexConstraint::Equals(QualifiedAlias("Causets01".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Value)),
+                                                          CausetQValue::CausetIndex(QualifiedAlias("fulltext_values00".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Rowid)))).into());
+        assert_eq!(gerunds.0[2], CausetIndexConstraint::Matches(QualifiedAlias("fulltext_values00".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Text)),
                                                            CausetQValue::MinkowskiType("needle".into())).into());
 
-        let bindings = cc.column_bindings;
+        let bindings = cc.CausetIndex_bindings;
         assert_eq!(bindings.len(), 3);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?instanton")).expect("column binding for ?instanton").clone(),
-                   vec![QualifiedAlias("Causets01".to_string(), Column::Fixed(CausetsColumn::Instanton))]);
-        assert_eq!(bindings.get(&Variable::from_valid_name("?value")).expect("column binding for ?value").clone(),
-                   vec![QualifiedAlias("fulltext_values00".to_string(), Column::Fulltext(FulltextColumn::Text))]);
-        assert_eq!(bindings.get(&Variable::from_valid_name("?causetx")).expect("column binding for ?causetx").clone(),
-                   vec![QualifiedAlias("Causets01".to_string(), Column::Fixed(CausetsColumn::Tx))]);
+        assert_eq!(bindings.get(&Variable::from_valid_name("?instanton")).expect("CausetIndex binding for ?instanton").clone(),
+                   vec![QualifiedAlias("Causets01".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Instanton))]);
+        assert_eq!(bindings.get(&Variable::from_valid_name("?value")).expect("CausetIndex binding for ?value").clone(),
+                   vec![QualifiedAlias("fulltext_values00".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Text))]);
+        assert_eq!(bindings.get(&Variable::from_valid_name("?causetx")).expect("CausetIndex binding for ?causetx").clone(),
+                   vec![QualifiedAlias("Causets01".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Tx))]);
 
         // Sembedded is a value binding.
         let values = cc.value_bindings;
-        assert_eq!(values.get(&Variable::from_valid_name("?sembedded")).expect("column binding for ?sembedded").clone(),
+        assert_eq!(values.get(&Variable::from_valid_name("?sembedded")).expect("CausetIndex binding for ?sembedded").clone(),
                    MinkowskiType::Double(0.0.into()));
 
         let known_types = cc.known_types;

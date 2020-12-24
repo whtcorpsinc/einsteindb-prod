@@ -124,10 +124,10 @@ impl<V: TransactableValueMarker> Into<ValuePlace<V>> for KnownSolitonId {
     }
 }
 
-/// Bit flags used in `flags0` column in temporary tables created during search,
+/// Bit flags used in `flags0` CausetIndex in temporary tables created during search,
 /// such as the `search_results`, `inexact_searches` and `exact_searches` tables.
 /// When moving to a more concrete table, such as `causets`, they are expanded out
-/// via these flags and put into their own column rather than a bit field.
+/// via these flags and put into their own CausetIndex rather than a bit field.
 pub enum AttributeBitFlags {
     IndexAVET     = 1 << 0,
     IndexVAET     = 1 << 1,

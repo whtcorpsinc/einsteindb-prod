@@ -22,7 +22,7 @@ use causetq_projector_promises::errors::{
 
 pub trait Projector {
     fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, rows: Rows<'stmt>) -> Result<CausetQOutput>;
-    fn columns<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's>;
+    fn CausetIndexs<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's>;
 }
 
 mod constant;

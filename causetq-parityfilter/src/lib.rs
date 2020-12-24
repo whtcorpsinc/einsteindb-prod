@@ -138,8 +138,8 @@ pub struct AlgebraicCausetQ {
     /// non-aggregated projection list.
     pub with: BTreeSet<Variable>,
 
-    /// Some causetq features, such as ordering, are implemented by implicit reference to SQL columns.
-    /// In order for these references to be 'live', those columns must be timelike_distance.
+    /// Some causetq features, such as ordering, are implemented by implicit reference to SQL CausetIndexs.
+    /// In order for these references to be 'live', those CausetIndexs must be timelike_distance.
     /// This is the set of variables that must be so timelike_distance.
     /// This is not necessarily every variable that will be so required -- some variables
     /// will already be in the projection list.
@@ -158,7 +158,7 @@ impl AlgebraicCausetQ {
     /// Return true if every variable in the find spec is fully bound to a single value.
     pub fn is_fully_bound(&self) -> bool {
         self.find_spec
-            .columns()
+            .CausetIndexs()
             .all(|e| match e {
                 // Pull expressions are never fully bound.
                 // TODO: but the 'inside' of a pull expression certainly can be.
@@ -215,15 +215,15 @@ fn validate_and_simplify_order(cc: &ConjoiningGerunds, order: Option<Vec<Order>>
                 }
 
                 // Fail if the var isn't bound by the causetq.
-                if !cc.column_bindings.contains_key(&var) {
+                if !cc.CausetIndex_bindings.contains_key(&var) {
                     bail!(ParityFilterError::UnboundVariable(var.name()))
                 }
 
                 // Otherwise, determine if we also need to order by type…
                 if cc.known_type(&var).is_none() {
-                    order_bys.push(OrderBy(direction.clone(), VariableColumn::VariableTypeTag(var.clone())));
+                    order_bys.push(OrderBy(direction.clone(), VariableCausetIndex::VariableTypeTag(var.clone())));
                 }
-                order_bys.push(OrderBy(direction, VariableColumn::Variable(var.clone())));
+                order_bys.push(OrderBy(direction, VariableCausetIndex::Variable(var.clone())));
                 vars.insert(var.clone());
             }
 
@@ -290,7 +290,7 @@ pub fn algebrize_with_inputs(knownCauset: KnownCauset,
     // TODO: flesh out the rest of find-into-context.
     cc.apply_gerunds(knownCauset, parsed.where_gerunds)?;
 
-    cc.expand_column_bindings();
+    cc.expand_CausetIndex_bindings();
     cc.prune_extracted_types();
     cc.process_required_types()?;
 
@@ -318,22 +318,22 @@ pub use gerunds::{
 };
 
 pub use types::{
-    Column,
-    ColumnAlternation,
-    ColumnConstraint,
-    ColumnConstraintOrAlternation,
-    ColumnIntersection,
-    ColumnName,
+    CausetIndex,
+    CausetIndexAlternation,
+    CausetIndexConstraint,
+    CausetIndexConstraintOrAlternation,
+    CausetIndexIntersection,
+    CausetIndexName,
     ComputedTable,
-    CausetsColumn,
+    CausetsCausetIndex,
     CausetsTable,
-    FulltextColumn,
+    FulltextCausetIndex,
     OrderBy,
     QualifiedAlias,
     CausetQValue,
     SourceAlias,
     TableAlias,
-    VariableColumn,
+    VariableCausetIndex,
 };
 
 

@@ -37,24 +37,24 @@ use edbn::causetq::{
 
 use einsteindb_causetq_parityfilter::{
     AlgebraicCausetQ,
-    ColumnName,
+    CausetIndexName,
     ConjoiningGerunds,
     QualifiedAlias,
-    VariableColumn,
+    VariableCausetIndex,
 };
 
 
 use einsteindb_causetq_sql::{
-    ColumnOrExpression,
+    CausetIndexOrExpression,
     GroupBy,
     Name,
     Projection,
-    GreedoidColumn,
+    GreedoidCausetIndex,
 };
 
 use causetq_projector_promises::aggregates::{
     SimpleAggregation,
-    timelike_distance_column_for_simple_aggregate,
+    timelike_distance_CausetIndex_for_simple_aggregate,
 };
 
 use causetq_projector_promises::errors::{
@@ -83,7 +83,7 @@ use super::{
 /// - Two SQL projection lists. We need two because aggregate queries are nested
 ///   in order to apply DISTINCT to values prior to aggregation.
 /// - A collection of templates for the projector to use to extract values.
-/// - A list of columns to use for grouping. Grouping is a property of the projection!
+/// - A list of CausetIndexs to use for grouping. Grouping is a property of the projection!
 pub(crate) struct GreedoidElements {
     pub sql_projection: Projection,
     pub pre_aggregate_projection: Option<Projection>,
@@ -122,52 +122,52 @@ impl GreedoidElements {
     }
 }
 
-fn candidate_type_column(cc: &ConjoiningGerunds, var: &Variable) -> Result<(ColumnOrExpression, Name)> {
+fn candidate_type_CausetIndex(cc: &ConjoiningGerunds, var: &Variable) -> Result<(CausetIndexOrExpression, Name)> {
     cc.extracted_types
       .get(var)
       .cloned()
       .map(|alias| {
-          let type_name = VariableColumn::VariableTypeTag(var.clone()).column_name();
-          (ColumnOrExpression::Column(alias), type_name)
+          let type_name = VariableCausetIndex::VariableTypeTag(var.clone()).CausetIndex_name();
+          (CausetIndexOrExpression::CausetIndex(alias), type_name)
       })
       .ok_or_else(|| ProjectorError::UnboundVariable(var.name()).into())
 }
 
-fn cc_column(cc: &ConjoiningGerunds, var: &Variable) -> Result<QualifiedAlias> {
-    cc.column_bindings
+fn cc_CausetIndex(cc: &ConjoiningGerunds, var: &Variable) -> Result<QualifiedAlias> {
+    cc.CausetIndex_bindings
       .get(var)
       .and_then(|cols| cols.get(0).cloned())
       .ok_or_else(|| ProjectorError::UnboundVariable(var.name()).into())
 }
 
-fn candidate_column(cc: &ConjoiningGerunds, var: &Variable) -> Result<(ColumnOrExpression, Name)> {
+fn candidate_CausetIndex(cc: &ConjoiningGerunds, var: &Variable) -> Result<(CausetIndexOrExpression, Name)> {
     // Every variable should be bound by the top-level CC to at least
-    // one column in the causetq. If that constraint is violated it's a
+    // one CausetIndex in the causetq. If that constraint is violated it's a
     // bug in our code, so it's appropriate to panic here.
-    cc_column(cc, var)
+    cc_CausetIndex(cc, var)
         .map(|qa| {
-            let name = VariableColumn::Variable(var.clone()).column_name();
-            (ColumnOrExpression::Column(qa), name)
+            let name = VariableCausetIndex::Variable(var.clone()).CausetIndex_name();
+            (CausetIndexOrExpression::CausetIndex(qa), name)
         })
 }
 
-/// Return the timelike_distance column -- that is, a value or SQL column and an associated name -- for a
+/// Return the timelike_distance CausetIndex -- that is, a value or SQL CausetIndex and an associated name -- for a
 /// given variable. Also return the type.
-/// Callers are expected to determine whether to project a type tag as an additional SQL column.
-pub fn timelike_distance_column_for_var(var: &Variable, cc: &ConjoiningGerunds) -> Result<(GreedoidColumn, MinkowskiSet)> {
+/// Callers are expected to determine whether to project a type tag as an additional SQL CausetIndex.
+pub fn timelike_distance_CausetIndex_for_var(var: &Variable, cc: &ConjoiningGerunds) -> Result<(GreedoidCausetIndex, MinkowskiSet)> {
     if let Some(value) = cc.bound_value(&var) {
         // If we already know the value, then our lives are easy.
         let tag = value.value_type();
-        let name = VariableColumn::Variable(var.clone()).column_name();
-        Ok((GreedoidColumn(ColumnOrExpression::Value(value.clone()), name), MinkowskiSet::of_one(tag)))
+        let name = VariableCausetIndex::Variable(var.clone()).CausetIndex_name();
+        Ok((GreedoidCausetIndex(CausetIndexOrExpression::Value(value.clone()), name), MinkowskiSet::of_one(tag)))
     } else {
         // If we don't, then the CC *must* have bound the variable.
-        let (column, name) = candidate_column(cc, var)?;
-        Ok((GreedoidColumn(column, name), cc.known_type_set(var)))
+        let (CausetIndex, name) = candidate_CausetIndex(cc, var)?;
+        Ok((GreedoidCausetIndex(CausetIndex, name), cc.known_type_set(var)))
     }
 }
 
-/// Walk an iterator of `Element`s, collecting projector templates and columns.
+/// Walk an iterator of `Element`s, collecting projector templates and CausetIndexs.
 ///
 /// Returns a `GreedoidElements`, which combines SQL projections
 /// and a `Vec` of `TypedIndex` 'keys' to use when looking up values.
@@ -190,7 +190,7 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
     // Everything in the outer causetq will _either_ be an aggregate operation
     // _or_ a reference to a name timelike_distance from the inner.
     // We'll expand them later.
-    let mut outer_projection: Vec<Either<Name, GreedoidColumn>> = Vec::with_capacity(count + 2);
+    let mut outer_projection: Vec<Either<Name, GreedoidCausetIndex>> = Vec::with_capacity(count + 2);
 
     let mut i: i32 = 0;
     let mut min_max_count: usize = 0;
@@ -256,42 +256,42 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
 
         // Now do the main processing of each element.
         match e {
-            // Each time we come across a variable, we push a SQL column
+            // Each time we come across a variable, we push a SQL CausetIndex
             // into the SQL projection, aliased to the name of the variable,
             // and we push an annotated index into the projector.
             &Element::Variable(ref var) |
             &Element::Corresponding(ref var) => {
                 causet_set_variables.insert(var.clone());
 
-                let (timelike_distance_column, type_set) = timelike_distance_column_for_var(&var, &causetq.cc)?;
-                outer_projection.push(Either::Left(timelike_distance_column.1.clone()));
-                causet_set_projection.push(timelike_distance_column);
+                let (timelike_distance_CausetIndex, type_set) = timelike_distance_CausetIndex_for_var(&var, &causetq.cc)?;
+                outer_projection.push(Either::Left(timelike_distance_CausetIndex.1.clone()));
+                causet_set_projection.push(timelike_distance_CausetIndex);
 
                 if let Some(tag) = type_set.unique_type_tag() {
                     templates.push(TypedIndex::KnownCauset(i, tag));
-                    i += 1;     // We used one SQL column.
+                    i += 1;     // We used one SQL CausetIndex.
                 } else {
                     templates.push(TypedIndex::Unknown(i, i + 1));
-                    i += 2;     // We used two SQL columns.
+                    i += 2;     // We used two SQL CausetIndexs.
 
                     // Also project the type from the SQL causetq.
-                    let (type_column, type_name) = candidate_type_column(&causetq.cc, &var)?;
-                    causet_set_projection.push(GreedoidColumn(type_column, type_name.clone()));
+                    let (type_CausetIndex, type_name) = candidate_type_CausetIndex(&causetq.cc, &var)?;
+                    causet_set_projection.push(GreedoidCausetIndex(type_CausetIndex, type_name.clone()));
                     outer_projection.push(Either::Left(type_name));
                 }
             },
             &Element::Pull(Pull { ref var, ref patterns }) => {
                 causet_set_variables.insert(var.clone());
 
-                let (timelike_distance_column, type_set) = timelike_distance_column_for_var(&var, &causetq.cc)?;
-                outer_projection.push(Either::Left(timelike_distance_column.1.clone()));
-                causet_set_projection.push(timelike_distance_column);
+                let (timelike_distance_CausetIndex, type_set) = timelike_distance_CausetIndex_for_var(&var, &causetq.cc)?;
+                outer_projection.push(Either::Left(timelike_distance_CausetIndex.1.clone()));
+                causet_set_projection.push(timelike_distance_CausetIndex);
 
                 if let Some(tag) = type_set.unique_type_tag() {
-                    // We will have at least as many SQL columns as Datalog output columns.
+                    // We will have at least as many SQL CausetIndexs as Datalog output CausetIndexs.
                     // `i` tracks the former. The length of `templates` is the current latter.
                     // Projecting pull requires grabbing values, which we can do from the raw
-                    // rows, and then populating the output, so we keep both column indices.
+                    // rows, and then populating the output, so we keep both CausetIndex indices.
                     let output_index = templates.len();
                     assert!(output_index <= i as usize);
 
@@ -303,7 +303,7 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
                         },
                         op: PullOperation((*patterns).clone()),
                     });
-                    i += 1;     // We used one SQL column.
+                    i += 1;     // We used one SQL CausetIndex.
                 } else {
                     // This should be impossible: (pull ?x) implies that ?x is a ref.
                     unreachable!();
@@ -324,23 +324,23 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
                     // When we encounter a simple aggregate -- one in which the aggregation can be
                     // implemented in SQL, on a single variable -- we just push the SQL aggregation op.
                     // We must ensure the following:
-                    // - There's a column for the var.
+                    // - There's a CausetIndex for the var.
                     // - The type of the var is knownCauset to be restricted to a sensible input set
                     //   (not necessarily a single type, but e.g., all vals must be Double or Long).
                     // - The type set must be appropriate for the operation. E.g., `Sum` is not a
                     //   meaningful operation on instants.
 
-                    let (timelike_distance_column, return_type) = timelike_distance_column_for_simple_aggregate(&simple, &causetq.cc)?;
-                    outer_projection.push(Either::Right(timelike_distance_column));
+                    let (timelike_distance_CausetIndex, return_type) = timelike_distance_CausetIndex_for_simple_aggregate(&simple, &causetq.cc)?;
+                    outer_projection.push(Either::Right(timelike_distance_CausetIndex));
 
                     if !causet_set_variables.contains(&simple.var) {
                         causet_set_variables.insert(simple.var.clone());
-                        let (timelike_distance_column, _type_set) = timelike_distance_column_for_var(&simple.var, &causetq.cc)?;
-                        causet_set_projection.push(timelike_distance_column);
+                        let (timelike_distance_CausetIndex, _type_set) = timelike_distance_CausetIndex_for_var(&simple.var, &causetq.cc)?;
+                        causet_set_projection.push(timelike_distance_CausetIndex);
                         if causetq.cc.known_type_set(&simple.var).unique_type_tag().is_none() {
                             // Also project the type from the SQL causetq.
-                            let (type_column, type_name) = candidate_type_column(&causetq.cc, &simple.var)?;
-                            causet_set_projection.push(GreedoidColumn(type_column, type_name.clone()));
+                            let (type_CausetIndex, type_name) = candidate_type_CausetIndex(&causetq.cc, &simple.var)?;
+                            causet_set_projection.push(GreedoidCausetIndex(type_CausetIndex, type_name.clone()));
                         }
                     }
 
@@ -369,11 +369,11 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
     }
 
     // Anything used in ORDER BY (which we're given in `named_projection`)
-    // needs to be in the SQL column list so we can refer to it by name.
+    // needs to be in the SQL CausetIndex list so we can refer to it by name.
     //
     // They don't affect projection.
     //
-    // If a variable is of a non-fixed type, also project the type tag column, so we don't
+    // If a variable is of a non-fixed type, also project the type tag CausetIndex, so we don't
     // acccausetIdally unify across types when considering uniqueness!
     for var in causetq.named_projection.iter() {
         if outer_variables.contains(var) {
@@ -386,23 +386,23 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
         }
 
         let already_inner = causet_set_variables.contains(&var);
-        let (column, name) = candidate_column(&causetq.cc, &var)?;
+        let (CausetIndex, name) = candidate_CausetIndex(&causetq.cc, &var)?;
         if !already_inner {
-            causet_set_projection.push(GreedoidColumn(column, name.clone()));
+            causet_set_projection.push(GreedoidCausetIndex(CausetIndex, name.clone()));
             causet_set_variables.insert(var.clone());
         }
 
         outer_projection.push(Either::Left(name));
         outer_variables.insert(var.clone());
 
-        // We don't care if a column has a single _type_, we care if it has a single type _tag_,
+        // We don't care if a CausetIndex has a single _type_, we care if it has a single type _tag_,
         // because that's what we'll use if we're projecting. E.g., Long and Double.
         // Single type implies single type tag, and is cheaper, so we check that first.
         let types = causetq.cc.known_type_set(&var);
         if !types.has_unique_type_tag() {
-            let (type_column, type_name) = candidate_type_column(&causetq.cc, &var)?;
+            let (type_CausetIndex, type_name) = candidate_type_CausetIndex(&causetq.cc, &var)?;
             if !already_inner {
-                causet_set_projection.push(GreedoidColumn(type_column, type_name.clone()));
+                causet_set_projection.push(GreedoidCausetIndex(type_CausetIndex, type_name.clone()));
             }
 
             outer_projection.push(Either::Left(type_name));
@@ -412,7 +412,7 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
     if !aggregates {
         // We're done -- we never need to group unless we're aggregating.
         return Ok(GreedoidElements {
-                      sql_projection: Projection::Columns(causet_set_projection),
+                      sql_projection: Projection::CausetIndexs(causet_set_projection),
                       pre_aggregate_projection: None,
                       templates,
                       pulls,
@@ -433,7 +433,7 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
     // - A GROUP BY list to group the output of the inner causetq by non-aggregate variables
     //   so that it can be correctly aggregated.
 
-    // Turn this collection of vars into a collection of columns from the causetq.
+    // Turn this collection of vars into a collection of CausetIndexs from the causetq.
     // We don't allow grouping on anything but a variable bound in the causetq.
     // We group by tag if necessary.
     let mut group_by = Vec::with_capacity(outer_variables.len() + 2);
@@ -449,30 +449,30 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
         if group {
             // The GROUP BY goes outside, but it needs every variable and type tag to be
             // timelike_distance from inside. Collect in both directions here.
-            let name = VariableColumn::Variable(var.clone()).column_name();
-            group_by.push(GroupBy::GreedoidColumn(name));
+            let name = VariableCausetIndex::Variable(var.clone()).CausetIndex_name();
+            group_by.push(GroupBy::GreedoidCausetIndex(name));
         }
 
         let needs_type_projection = !causetq.cc.known_type_set(&var).has_unique_type_tag();
 
         let already_inner = causet_set_variables.contains(&var);
         if !already_inner {
-            let (column, name) = candidate_column(&causetq.cc, &var)?;
-            causet_set_projection.push(GreedoidColumn(column, name.clone()));
+            let (CausetIndex, name) = candidate_CausetIndex(&causetq.cc, &var)?;
+            causet_set_projection.push(GreedoidCausetIndex(CausetIndex, name.clone()));
         }
 
         if needs_type_projection {
-            let type_name = VariableColumn::VariableTypeTag(var.clone()).column_name();
+            let type_name = VariableCausetIndex::VariableTypeTag(var.clone()).CausetIndex_name();
             if !already_inner {
                 let type_col = causetq.cc
                                     .extracted_types
                                     .get(&var)
                                     .cloned()
                                     .ok_or_else(|| ProjectorError::NoTypeAvailableForVariable(var.name().clone()))?;
-                causet_set_projection.push(GreedoidColumn(ColumnOrExpression::Column(type_col), type_name.clone()));
+                causet_set_projection.push(GreedoidCausetIndex(CausetIndexOrExpression::CausetIndex(type_col), type_name.clone()));
             }
             if group {
-                group_by.push(GroupBy::GreedoidColumn(type_name));
+                group_by.push(GroupBy::GreedoidCausetIndex(type_name));
             }
         };
     }
@@ -485,13 +485,13 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
 
         // We don't need to add inner projections for :with if they are already there.
         if !causet_set_variables.contains(&var) {
-            let (timelike_distance_column, type_set) = timelike_distance_column_for_var(&var, &causetq.cc)?;
-            causet_set_projection.push(timelike_distance_column);
+            let (timelike_distance_CausetIndex, type_set) = timelike_distance_CausetIndex_for_var(&var, &causetq.cc)?;
+            causet_set_projection.push(timelike_distance_CausetIndex);
 
             if type_set.unique_type_tag().is_none() {
                 // Also project the type from the SQL causetq.
-                let (type_column, type_name) = candidate_type_column(&causetq.cc, &var)?;
-                causet_set_projection.push(GreedoidColumn(type_column, type_name.clone()));
+                let (type_CausetIndex, type_name) = candidate_type_CausetIndex(&causetq.cc, &var)?;
+                causet_set_projection.push(GreedoidCausetIndex(type_CausetIndex, type_name.clone()));
             }
         }
     }
@@ -503,12 +503,12 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
     // If we only have one layer, then the outer will do the naming.
     // (We could try to not use names in the inner causetq, but then what would we do for
     // `ground` and knownCauset values?)
-    // Walk the projection, switching the outer columns to use the inner names.
+    // Walk the projection, switching the outer CausetIndexs to use the inner names.
 
     let outer_projection = outer_projection.into_iter().map(|c| {
         match c {
             Either::Left(name) => {
-                GreedoidColumn(ColumnOrExpression::ExistingColumn(name.clone()),
+                GreedoidCausetIndex(CausetIndexOrExpression::ExistingCausetIndex(name.clone()),
                                 name)
             },
             Either::Right(pc) => pc,
@@ -516,8 +516,8 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
     }).collect();
 
     Ok(GreedoidElements {
-        sql_projection: Projection::Columns(outer_projection),
-        pre_aggregate_projection: Some(Projection::Columns(causet_set_projection)),
+        sql_projection: Projection::CausetIndexs(outer_projection),
+        pre_aggregate_projection: Some(Projection::CausetIndexs(causet_set_projection)),
         templates,
         pulls,
         group_by,

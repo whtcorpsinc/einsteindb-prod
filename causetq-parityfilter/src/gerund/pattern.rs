@@ -34,8 +34,8 @@ use gerunds::{
 };
 
 use types::{
-    ColumnConstraint,
-    CausetsColumn,
+    CausetIndexConstraint,
+    CausetsCausetIndex,
     EmptyBecause,
     EvolvedNonValuePlace,
     EvolvedPattern,
@@ -115,21 +115,21 @@ impl ConjoiningGerunds {
         let schemaReplicant = knownCauset.schemaReplicant;
         match pattern.instanton {
             EvolvedNonValuePlace::Placeholder =>
-                // Placeholders don't contribute any column bindings, nor do
+                // Placeholders don't contribute any CausetIndex bindings, nor do
                 // they constrain the causetq -- there's no need to produce
                 // IS NOT NULL, because we don't store nulls in our schemaReplicant.
                 (),
             EvolvedNonValuePlace::Variable(ref v) =>
-                self.bind_column_to_var(schemaReplicant, col.clone(), CausetsColumn::Instanton, v.clone()),
+                self.bind_CausetIndex_to_var(schemaReplicant, col.clone(), CausetsCausetIndex::Instanton, v.clone()),
             EvolvedNonValuePlace::SolitonId(solitonId) =>
-                self.constrain_column_to_instanton(col.clone(), CausetsColumn::Instanton, solitonId),
+                self.constrain_CausetIndex_to_instanton(col.clone(), CausetsCausetIndex::Instanton, solitonId),
         }
 
         match pattern.attribute {
             EvolvedNonValuePlace::Placeholder =>
                 (),
             EvolvedNonValuePlace::Variable(ref v) =>
-                self.bind_column_to_var(schemaReplicant, col.clone(), CausetsColumn::Attribute, v.clone()),
+                self.bind_CausetIndex_to_var(schemaReplicant, col.clone(), CausetsCausetIndex::Attribute, v.clone()),
             EvolvedNonValuePlace::SolitonId(solitonId) => {
                 if !schemaReplicant.is_attribute(solitonId) {
                     // Furthermore, that solitonId must resolve to an attribute. If it doesn't, this
@@ -162,12 +162,12 @@ impl ConjoiningGerunds {
                     }
                 }
 
-                self.bind_column_to_var(schemaReplicant, col.clone(), CausetsColumn::Value, v.clone());
+                self.bind_CausetIndex_to_var(schemaReplicant, col.clone(), CausetsCausetIndex::Value, v.clone());
             },
             EvolvedValuePlace::SolitonId(i) => {
                 match value_type {
                     Some(MinkowskiValueType::Ref) | None => {
-                        self.constrain_column_to_instanton(col.clone(), CausetsColumn::Value, i);
+                        self.constrain_CausetIndex_to_instanton(col.clone(), CausetsCausetIndex::Value, i);
                     },
                     Some(value_type) => {
                         self.mark_known_empty(EmptyBecause::MinkowskiValueTypeMismatch(value_type, MinkowskiType::Ref(i)));
@@ -180,7 +180,7 @@ impl ConjoiningGerunds {
                 // integer. If we don't, then we must generate a more general causetq with a
                 // value_type_tag.
                 if let Some(MinkowskiValueType::Ref) = value_type {
-                    self.constrain_column_to_instanton(col.clone(), CausetsColumn::Value, i);
+                    self.constrain_CausetIndex_to_instanton(col.clone(), CausetsCausetIndex::Value, i);
                 } else {
                     // If we have a pattern like:
                     //
@@ -190,8 +190,8 @@ impl ConjoiningGerunds {
                     //
                     // We represent these constraints during execution:
                     //
-                    // - Constraining the value column to the plain numeric value '1'.
-                    // - Constraining its type column to one of a set of types.
+                    // - Constraining the value CausetIndex to the plain numeric value '1'.
+                    // - Constraining its type CausetIndex to one of a set of types.
                     //
                     // TODO: isn't there a bug here? We'll happily take a numeric value
                     // for a non-numeric attribute!
@@ -206,7 +206,7 @@ impl ConjoiningGerunds {
                 // such.
                 if let Some(MinkowskiValueType::Ref) = value_type {
                     if let Some(solitonId) = self.entid_for_causetId(schemaReplicant, kw) {
-                        self.constrain_column_to_instanton(col.clone(), CausetsColumn::Value, solitonId.into())
+                        self.constrain_CausetIndex_to_instanton(col.clone(), CausetsCausetIndex::Value, solitonId.into())
                     } else {
                         // A resolution failure means we're done here: this attribute must have an
                         // instanton value.
@@ -215,8 +215,8 @@ impl ConjoiningGerunds {
                     }
                 } else {
                     // It must be a keyword.
-                    self.constrain_column_to_constant(col.clone(), CausetsColumn::Value, MinkowskiType::Keyword(kw.clone()));
-                    self.wheres.add_intersection(ColumnConstraint::has_unit_type(col.clone(), MinkowskiValueType::Keyword));
+                    self.constrain_CausetIndex_to_constant(col.clone(), CausetsCausetIndex::Value, MinkowskiType::Keyword(kw.clone()));
+                    self.wheres.add_intersection(CausetIndexConstraint::has_unit_type(col.clone(), MinkowskiValueType::Keyword));
                 };
             },
             EvolvedValuePlace::Value(ref c) => {
@@ -236,7 +236,7 @@ impl ConjoiningGerunds {
                 // attribute, we can actually work backwards to the set of appropriate attributes
                 // from the type of the value itself! #292.
                 let typed_value_type = typed_value.value_type();
-                self.constrain_column_to_constant(col.clone(), CausetsColumn::Value, typed_value);
+                self.constrain_CausetIndex_to_constant(col.clone(), CausetsCausetIndex::Value, typed_value);
 
                 // If we can't already determine the range of values in the EDB from the attribute,
                 // then we must also constrain the type tag.
@@ -253,7 +253,7 @@ impl ConjoiningGerunds {
                 // restriction from the value type of the typed value.
                 if value_type.is_none() {
                     self.wheres.add_intersection(
-                        ColumnConstraint::has_unit_type(col.clone(), typed_value_type));
+                        CausetIndexConstraint::has_unit_type(col.clone(), typed_value_type));
                 }
             },
         }
@@ -261,10 +261,10 @@ impl ConjoiningGerunds {
         match pattern.causetx {
             EvolvedNonValuePlace::Placeholder => (),
             EvolvedNonValuePlace::Variable(ref v) => {
-                self.bind_column_to_var(schemaReplicant, col.clone(), CausetsColumn::Tx, v.clone());
+                self.bind_CausetIndex_to_var(schemaReplicant, col.clone(), CausetsCausetIndex::Tx, v.clone());
             },
             EvolvedNonValuePlace::SolitonId(solitonId) => {
-                self.constrain_column_to_instanton(col.clone(), CausetsColumn::Tx, solitonId);
+                self.constrain_CausetIndex_to_instanton(col.clone(), CausetsCausetIndex::Tx, solitonId);
             },
         }
     }
@@ -415,7 +415,7 @@ impl ConjoiningGerunds {
 
     /// Transform a pattern place into a narrower type.
     /// If that's impossible, returns Empty.
-    fn make_evolved_non_value(&self, knownCauset: &KnownCauset, col: CausetsColumn, non_value: PatternNonValuePlace) -> PlaceOrEmpty<EvolvedNonValuePlace> {
+    fn make_evolved_non_value(&self, knownCauset: &KnownCauset, col: CausetsCausetIndex, non_value: PatternNonValuePlace) -> PlaceOrEmpty<EvolvedNonValuePlace> {
         use self::PlaceOrEmpty::*;
         match non_value {
             PatternNonValuePlace::Placeholder => Place(EvolvedNonValuePlace::Placeholder),
@@ -450,17 +450,17 @@ impl ConjoiningGerunds {
     }
 
     fn make_evolved_instanton(&self, knownCauset: &KnownCauset, instanton: PatternNonValuePlace) -> PlaceOrEmpty<EvolvedNonValuePlace> {
-        self.make_evolved_non_value(knownCauset, CausetsColumn::Instanton, instanton)
+        self.make_evolved_non_value(knownCauset, CausetsCausetIndex::Instanton, instanton)
     }
 
     fn make_evolved_causecausetx(&self, knownCauset: &KnownCauset, causetx: PatternNonValuePlace) -> PlaceOrEmpty<EvolvedNonValuePlace> {
         // TODO: make sure that, if it's an solitonId, it names a causetx.
-        self.make_evolved_non_value(knownCauset, CausetsColumn::Tx, causetx)
+        self.make_evolved_non_value(knownCauset, CausetsCausetIndex::Tx, causetx)
     }
 
     pub(crate) fn make_evolved_attribute(&self, knownCauset: &KnownCauset, attribute: PatternNonValuePlace) -> PlaceOrEmpty<(EvolvedNonValuePlace, Option<MinkowskiValueType>)> {
         use self::PlaceOrEmpty::*;
-        self.make_evolved_non_value(knownCauset, CausetsColumn::Attribute, attribute)
+        self.make_evolved_non_value(knownCauset, CausetsCausetIndex::Attribute, attribute)
             .and_then(|a| {
                 // Make sure that, if it's an solitonId, it names an attribute.
                 if let EvolvedNonValuePlace::SolitonId(e) = a {
@@ -683,8 +683,8 @@ mod testing {
     };
 
     use types::{
-        Column,
-        ColumnConstraint,
+        CausetIndex,
+        CausetIndexConstraint,
         CausetsTable,
         QualifiedAlias,
         CausetQValue,
@@ -761,9 +761,9 @@ mod testing {
 
         // println!("{:#?}", cc);
 
-        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Instanton);
-        let d0_a = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Attribute);
-        let d0_v = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Value);
+        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Instanton);
+        let d0_a = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Attribute);
+        let d0_v = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Value);
 
         // After this, we know a lot of things:
         assert!(!cc.is_known_empty());
@@ -773,15 +773,15 @@ mod testing {
         assert_eq!(cc.known_type(&x).unwrap(), MinkowskiValueType::Ref);
 
         // ?x is bound to Causets0.e.
-        assert_eq!(cc.column_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
+        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
 
         // Our 'where' gerunds are two:
         // - Causets0.a = 99
         // - Causets0.v = true
         // No need for a type tag constraint, because the attribute is knownCauset.
         assert_eq!(cc.wheres, vec![
-                   ColumnConstraint::Equals(d0_a, CausetQValue::SolitonId(99)),
-                   ColumnConstraint::Equals(d0_v, CausetQValue::MinkowskiType(MinkowskiType::Boolean(true))),
+                   CausetIndexConstraint::Equals(d0_a, CausetQValue::SolitonId(99)),
+                   CausetIndexConstraint::Equals(d0_v, CausetQValue::MinkowskiType(MinkowskiType::Boolean(true))),
         ].into());
     }
 
@@ -802,8 +802,8 @@ mod testing {
 
         // println!("{:#?}", cc);
 
-        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Instanton);
-        let d0_v = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Value);
+        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Instanton);
+        let d0_v = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Value);
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, "Causets00".to_string())]);
@@ -812,15 +812,15 @@ mod testing {
         assert_eq!(cc.known_type(&x).unwrap(), MinkowskiValueType::Ref);
 
         // ?x is bound to Causets0.e.
-        assert_eq!(cc.column_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
+        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
 
         // Our 'where' gerunds are two:
         // - Causets0.v = true
         // - Causets0.value_type_tag = boolean
         // TODO: implement expand_type_tags.
         assert_eq!(cc.wheres, vec![
-                   ColumnConstraint::Equals(d0_v, CausetQValue::MinkowskiType(MinkowskiType::Boolean(true))),
-                   ColumnConstraint::has_unit_type("Causets00".to_string(), MinkowskiValueType::Boolean),
+                   CausetIndexConstraint::Equals(d0_v, CausetQValue::MinkowskiType(MinkowskiType::Boolean(true))),
+                   CausetIndexConstraint::has_unit_type("Causets00".to_string(), MinkowskiValueType::Boolean),
         ].into());
     }
 
@@ -852,8 +852,8 @@ mod testing {
 
         // println!("{:#?}", cc);
 
-        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Instanton);
-        let d0_a = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Attribute);
+        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Instanton);
+        let d0_a = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Attribute);
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, "Causets00".to_string())]);
@@ -866,9 +866,9 @@ mod testing {
         assert_eq!(cc.known_type(&v), Some(MinkowskiValueType::Boolean));
 
         // ?x is bound to Causets0.e.
-        assert_eq!(cc.column_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
+        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
         assert_eq!(cc.wheres, vec![
-                   ColumnConstraint::Equals(d0_a, CausetQValue::SolitonId(99)),
+                   CausetIndexConstraint::Equals(d0_a, CausetQValue::SolitonId(99)),
         ].into());
     }
 
@@ -895,7 +895,7 @@ mod testing {
         });
 
         assert!(cc.is_known_empty());
-        assert_eq!(cc.empty_because.unwrap(), EmptyBecause::InvalidBinding(Column::Fixed(CausetsColumn::Attribute), hello));
+        assert_eq!(cc.empty_because.unwrap(), EmptyBecause::InvalidBinding(CausetIndex::Fixed(CausetsCausetIndex::Attribute), hello));
     }
 
 
@@ -919,7 +919,7 @@ mod testing {
 
         // println!("{:#?}", cc);
 
-        let d0_e = QualifiedAlias::new("all_Causets00".to_string(), CausetsColumn::Instanton);
+        let d0_e = QualifiedAlias::new("all_Causets00".to_string(), CausetsCausetIndex::Instanton);
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.from, vec![SourceAlias(CausetsTable::AllCausets, "all_Causets00".to_string())]);
@@ -928,7 +928,7 @@ mod testing {
         assert_eq!(cc.known_type(&x).unwrap(), MinkowskiValueType::Ref);
 
         // ?x is bound to Causets0.e.
-        assert_eq!(cc.column_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
+        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
         assert_eq!(cc.wheres, vec![].into());
     }
 
@@ -950,8 +950,8 @@ mod testing {
 
         // println!("{:#?}", cc);
 
-        let d0_e = QualifiedAlias::new("all_Causets00".to_string(), CausetsColumn::Instanton);
-        let d0_v = QualifiedAlias::new("all_Causets00".to_string(), CausetsColumn::Value);
+        let d0_e = QualifiedAlias::new("all_Causets00".to_string(), CausetsCausetIndex::Instanton);
+        let d0_v = QualifiedAlias::new("all_Causets00".to_string(), CausetsCausetIndex::Value);
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.from, vec![SourceAlias(CausetsTable::AllCausets, "all_Causets00".to_string())]);
@@ -960,15 +960,15 @@ mod testing {
         assert_eq!(cc.known_type(&x).unwrap(), MinkowskiValueType::Ref);
 
         // ?x is bound to Causets0.e.
-        assert_eq!(cc.column_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
+        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
 
         // Our 'where' gerunds are two:
         // - Causets0.v = 'hello'
         // - Causets0.value_type_tag = string
         // TODO: implement expand_type_tags.
         assert_eq!(cc.wheres, vec![
-                   ColumnConstraint::Equals(d0_v, CausetQValue::MinkowskiType(MinkowskiType::typed_string("hello"))),
-                   ColumnConstraint::has_unit_type("all_Causets00".to_string(), MinkowskiValueType::String),
+                   CausetIndexConstraint::Equals(d0_v, CausetQValue::MinkowskiType(MinkowskiType::typed_string("hello"))),
+                   CausetIndexConstraint::has_unit_type("all_Causets00".to_string(), MinkowskiValueType::String),
         ].into());
     }
 
@@ -1006,16 +1006,16 @@ mod testing {
             causetx: PatternNonValuePlace::Placeholder,
         });
 
-        // Finally, expand column bindings to get the overlaps for ?x.
-        cc.expand_column_bindings();
+        // Finally, expand CausetIndex bindings to get the overlaps for ?x.
+        cc.expand_CausetIndex_bindings();
 
         println!("{:#?}", cc);
 
-        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Instanton);
-        let d0_a = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Attribute);
-        let d0_v = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Value);
-        let d1_e = QualifiedAlias::new("Causets01".to_string(), CausetsColumn::Instanton);
-        let d1_a = QualifiedAlias::new("Causets01".to_string(), CausetsColumn::Attribute);
+        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Instanton);
+        let d0_a = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Attribute);
+        let d0_v = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Value);
+        let d1_e = QualifiedAlias::new("Causets01".to_string(), CausetsCausetIndex::Instanton);
+        let d1_a = QualifiedAlias::new("Causets01".to_string(), CausetsCausetIndex::Attribute);
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.from, vec![
@@ -1027,7 +1027,7 @@ mod testing {
         assert_eq!(cc.known_type(&x).unwrap(), MinkowskiValueType::Ref);
 
         // ?x is bound to Causets0.e and Causets1.e.
-        assert_eq!(cc.column_bindings.get(&x).unwrap(),
+        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(),
                    &vec![
                        d0_e.clone(),
                        d1_e.clone(),
@@ -1039,10 +1039,10 @@ mod testing {
         // - Causets1.a = 99 (:foo/bar)
         // - Causets1.e = Causets0.e
         assert_eq!(cc.wheres, vec![
-                   ColumnConstraint::Equals(d0_a, CausetQValue::SolitonId(98)),
-                   ColumnConstraint::Equals(d0_v, CausetQValue::MinkowskiType(MinkowskiType::typed_string("idgoeshere"))),
-                   ColumnConstraint::Equals(d1_a, CausetQValue::SolitonId(99)),
-                   ColumnConstraint::Equals(d0_e, CausetQValue::Column(d1_e)),
+                   CausetIndexConstraint::Equals(d0_a, CausetQValue::SolitonId(98)),
+                   CausetIndexConstraint::Equals(d0_v, CausetQValue::MinkowskiType(MinkowskiType::typed_string("idgoeshere"))),
+                   CausetIndexConstraint::Equals(d1_a, CausetQValue::SolitonId(99)),
+                   CausetIndexConstraint::Equals(d0_e, CausetQValue::CausetIndex(d1_e)),
         ].into());
     }
 
@@ -1074,21 +1074,21 @@ mod testing {
             causetx: PatternNonValuePlace::Placeholder,
         });
 
-        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Instanton);
-        let d0_a = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Attribute);
-        let d0_v = QualifiedAlias::new("Causets00".to_string(), CausetsColumn::Value);
+        let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Instanton);
+        let d0_a = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Attribute);
+        let d0_v = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Value);
 
         // ?y has been expanded into `true`.
         assert_eq!(cc.wheres, vec![
-                   ColumnConstraint::Equals(d0_a, CausetQValue::SolitonId(99)),
-                   ColumnConstraint::Equals(d0_v, CausetQValue::MinkowskiType(MinkowskiType::Boolean(true))),
+                   CausetIndexConstraint::Equals(d0_a, CausetQValue::SolitonId(99)),
+                   CausetIndexConstraint::Equals(d0_v, CausetQValue::MinkowskiType(MinkowskiType::Boolean(true))),
         ].into());
 
         // There is no binding for ?y.
-        assert!(!cc.column_bindings.contains_key(&y));
+        assert!(!cc.CausetIndex_bindings.contains_key(&y));
 
         // ?x is bound to the instanton.
-        assert_eq!(cc.column_bindings.get(&x).unwrap(),
+        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(),
                    &vec![d0_e.clone()]);
     }
 
@@ -1200,8 +1200,8 @@ mod testing {
             causetx: PatternNonValuePlace::Placeholder,
         });
 
-        // Finally, expand column bindings to get the overlaps for ?x.
-        cc.expand_column_bindings();
+        // Finally, expand CausetIndex bindings to get the overlaps for ?x.
+        cc.expand_CausetIndex_bindings();
 
         assert!(cc.is_known_empty());
         assert_eq!(cc.empty_because.unwrap(),
@@ -1243,8 +1243,8 @@ mod testing {
             causetx: PatternNonValuePlace::Placeholder,
         });
 
-        // Finally, expand column bindings to get the overlaps for ?x.
-        cc.expand_column_bindings();
+        // Finally, expand CausetIndex bindings to get the overlaps for ?x.
+        cc.expand_CausetIndex_bindings();
 
         assert!(cc.is_known_empty());
         assert_eq!(cc.empty_because.unwrap(),

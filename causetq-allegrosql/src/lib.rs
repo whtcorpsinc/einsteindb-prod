@@ -34,13 +34,13 @@ use edbn::causetq::{
 };
 
 use einsteindb_causetq_parityfilter::{
-    Column,
+    CausetIndex,
     OrderBy,
     QualifiedAlias,
     CausetQValue,
     SourceAlias,
     TableAlias,
-    VariableColumn,
+    VariableCausetIndex,
 };
 
 use sql_promises::errors::{
@@ -64,9 +64,9 @@ use einsteindb_sql::{
 ///
 /// Eventually we might allow different translations by providing a different `CausetQBuilder`
 /// impleeinsteindbion for each storage backend. Passing `MinkowskiType`s here allows for that.
-pub enum ColumnOrExpression {
-    Column(QualifiedAlias),
-    ExistingColumn(Name),
+pub enum CausetIndexOrExpression {
+    CausetIndex(QualifiedAlias),
+    ExistingCausetIndex(Name),
     SolitonId(SolitonId),       // Because it's so common.
     Integer(i32),       // We use these for type codes etc.
     Long(i64),
@@ -78,45 +78,45 @@ pub enum ColumnOrExpression {
 }
 
 pub enum Expression {
-    Unary { sql_op: &'static str, arg: ColumnOrExpression },
+    Unary { sql_op: &'static str, arg: CausetIndexOrExpression },
 }
 
-/// `CausetQValue` and `ColumnOrExpression` are almost causetIdical… merge somehow?
-impl From<CausetQValue> for ColumnOrExpression {
+/// `CausetQValue` and `CausetIndexOrExpression` are almost causetIdical… merge somehow?
+impl From<CausetQValue> for CausetIndexOrExpression {
     fn from(v: CausetQValue) -> Self {
         match v {
-            CausetQValue::Column(c) => ColumnOrExpression::Column(c),
-            CausetQValue::SolitonId(e) => ColumnOrExpression::SolitonId(e),
-            CausetQValue::PrimitiveLong(v) => ColumnOrExpression::Long(v),
-            CausetQValue::MinkowskiType(v) => ColumnOrExpression::Value(v),
+            CausetQValue::CausetIndex(c) => CausetIndexOrExpression::CausetIndex(c),
+            CausetQValue::SolitonId(e) => CausetIndexOrExpression::SolitonId(e),
+            CausetQValue::PrimitiveLong(v) => CausetIndexOrExpression::Long(v),
+            CausetQValue::MinkowskiType(v) => CausetIndexOrExpression::Value(v),
         }
     }
 }
 
 pub type Name = String;
 
-pub struct GreedoidColumn(pub ColumnOrExpression, pub Name);
+pub struct GreedoidCausetIndex(pub CausetIndexOrExpression, pub Name);
 
 pub enum Projection {
-    Columns(Vec<GreedoidColumn>),
+    CausetIndexs(Vec<GreedoidCausetIndex>),
     Star,
     One,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum GroupBy {
-    GreedoidColumn(Name),
-    CausetQColumn(QualifiedAlias),
+    GreedoidCausetIndex(Name),
+    CausetQCausetIndex(QualifiedAlias),
     // TODO: non-timelike_distance expressions, etc.
 }
 
 impl CausetQFragment for GroupBy {
     fn push_sql(&self, out: &mut CausetQBuilder) -> BuildCausetQResult {
         match self {
-            &GroupBy::GreedoidColumn(ref name) => {
+            &GroupBy::GreedoidCausetIndex(ref name) => {
                 out.push_causetIdifier(name.as_str())
             },
-            &GroupBy::CausetQColumn(ref qa) => {
+            &GroupBy::CausetQCausetIndex(ref qa) => {
                 qualified_alias_push_sql(out, qa)
             },
         }
@@ -129,8 +129,8 @@ pub struct Op(pub &'static str);      // TODO: we can do better than this!
 pub enum Constraint {
     Infix {
         op: Op,
-        left: ColumnOrExpression,
-        right: ColumnOrExpression,
+        left: CausetIndexOrExpression,
+        right: CausetIndexOrExpression,
     },
     Or {
         constraints: Vec<Constraint>,
@@ -139,26 +139,26 @@ pub enum Constraint {
         constraints: Vec<Constraint>,
     },
     In {
-        left: ColumnOrExpression,
-        list: Vec<ColumnOrExpression>,
+        left: CausetIndexOrExpression,
+        list: Vec<CausetIndexOrExpression>,
     },
     IsNull {
-        value: ColumnOrExpression,
+        value: CausetIndexOrExpression,
     },
     IsNotNull {
-        value: ColumnOrExpression,
+        value: CausetIndexOrExpression,
     },
     NotExists {
         subcausetq: TableOrSubcausetq,
     },
     TypeCheck {
-        value: ColumnOrExpression,
+        value: CausetIndexOrExpression,
         affinity: SQLTypeAffinity
     }
 }
 
 impl Constraint {
-    pub fn not_equal(left: ColumnOrExpression, right: ColumnOrExpression) -> Constraint {
+    pub fn not_equal(left: CausetIndexOrExpression, right: CausetIndexOrExpression) -> Constraint {
         Constraint::Infix {
             op: Op("<>"),     // ANSI SQL for future-proofing!
             left: left,
@@ -166,7 +166,7 @@ impl Constraint {
         }
     }
 
-    pub fn equal(left: ColumnOrExpression, right: ColumnOrExpression) -> Constraint {
+    pub fn equal(left: CausetIndexOrExpression, right: CausetIndexOrExpression) -> Constraint {
         Constraint::Infix {
             op: Op("="),
             left: left,
@@ -174,7 +174,7 @@ impl Constraint {
         }
     }
 
-    pub fn fulltext_match(left: ColumnOrExpression, right: ColumnOrExpression) -> Constraint {
+    pub fn fulltext_match(left: CausetIndexOrExpression, right: CausetIndexOrExpression) -> Constraint {
         Constraint::Infix {
             op: Op("MATCH"), // SQLite specific!
             left: left,
@@ -239,29 +239,29 @@ pub struct SelectCausetQ {
     pub limit: Limit,
 }
 
-fn push_variable_column(qb: &mut CausetQBuilder, vc: &VariableColumn) -> BuildCausetQResult {
+fn push_variable_CausetIndex(qb: &mut CausetQBuilder, vc: &VariableCausetIndex) -> BuildCausetQResult {
     match vc {
-        &VariableColumn::Variable(ref v) => {
+        &VariableCausetIndex::Variable(ref v) => {
             qb.push_causetIdifier(v.as_str())
         },
-        &VariableColumn::VariableTypeTag(ref v) => {
+        &VariableCausetIndex::VariableTypeTag(ref v) => {
             qb.push_causetIdifier(format!("{}_value_type_tag", v.name()).as_str())
         },
     }
 }
 
-fn push_column(qb: &mut CausetQBuilder, col: &Column) -> BuildCausetQResult {
+fn push_CausetIndex(qb: &mut CausetQBuilder, col: &CausetIndex) -> BuildCausetQResult {
     match col {
-        &Column::Fixed(ref d) => {
+        &CausetIndex::Fixed(ref d) => {
             qb.push_sql(d.as_str());
             Ok(())
         },
-        &Column::Fulltext(ref d) => {
+        &CausetIndex::Fulltext(ref d) => {
             qb.push_sql(d.as_str());
             Ok(())
         },
-        &Column::Variable(ref vc) => push_variable_column(qb, vc),
-        &Column::Transactions(ref d) => {
+        &CausetIndex::Variable(ref vc) => push_variable_CausetIndex(qb, vc),
+        &CausetIndex::Transactions(ref d) => {
             qb.push_sql(d.as_str());
             Ok(())
         },
@@ -271,14 +271,14 @@ fn push_column(qb: &mut CausetQBuilder, col: &Column) -> BuildCausetQResult {
 //---------------------------------------------------------
 // Turn that representation into SQL.
 
-impl CausetQFragment for ColumnOrExpression {
+impl CausetQFragment for CausetIndexOrExpression {
     fn push_sql(&self, out: &mut CausetQBuilder) -> BuildCausetQResult {
-        use self::ColumnOrExpression::*;
+        use self::CausetIndexOrExpression::*;
         match self {
-            &Column(ref qa) => {
+            &CausetIndex(ref qa) => {
                 qualified_alias_push_sql(out, qa)
             },
-            &ExistingColumn(ref alias) => {
+            &ExistingCausetIndex(ref alias) => {
                 out.push_causetIdifier(alias.as_str())
             },
             &SolitonId(solitonId) => {
@@ -324,13 +324,13 @@ impl CausetQFragment for Projection {
         match self {
             &One => out.push_sql("1"),
             &Star => out.push_sql("*"),
-            &Columns(ref cols) => {
-                let &GreedoidColumn(ref col, ref alias) = &cols[0];
+            &CausetIndexs(ref cols) => {
+                let &GreedoidCausetIndex(ref col, ref alias) = &cols[0];
                 col.push_sql(out)?;
                 out.push_sql(" AS ");
                 out.push_causetIdifier(alias.as_str())?;
 
-                for &GreedoidColumn(ref col, ref alias) in &cols[1..] {
+                for &GreedoidCausetIndex(ref col, ref alias) in &cols[1..] {
                     out.push_sql(", ");
                     col.push_sql(out)?;
                     out.push_sql(" AS ");
@@ -443,7 +443,7 @@ impl CausetQFragment for JoinOp {
 fn qualified_alias_push_sql(out: &mut CausetQBuilder, qa: &QualifiedAlias) -> BuildCausetQResult {
     out.push_causetIdifier(qa.0.as_str())?;
     out.push_sql(".");
-    push_column(out, &qa.1)
+    push_CausetIndex(out, &qa.1)
 }
 
 // We don't own SourceAlias or CausetQFragment, so we can't implement the trait.
@@ -507,11 +507,11 @@ impl CausetQFragment for TableOrSubcausetq {
 
 impl CausetQFragment for Values {
     fn push_sql(&self, out: &mut CausetQBuilder) -> BuildCausetQResult {
-        // There are at least 3 ways to name the columns of a VALUES table:
-        // 1) the columns are named "", ":1", ":2", ... -- but this is undocumented.  See
+        // There are at least 3 ways to name the CausetIndexs of a VALUES table:
+        // 1) the CausetIndexs are named "", ":1", ":2", ... -- but this is undocumented.  See
         //    http://stackoverflow.com/a/40921724.
         // 2) A CTE ("WITH" statement) can declare the shape of the table, like "WITH
-        //    table_name(column_name, ...) AS (VALUES ...)".
+        //    table_name(CausetIndex_name, ...) AS (VALUES ...)".
         // 3) We can "UNION ALL" a dummy "SELECT" statement in place.
         //
         // We don't want to use an undocumented SQLite quirk, and we're a little concerned that some
@@ -616,7 +616,7 @@ impl CausetQFragment for SelectCausetQ {
         if !self.order.is_empty() {
             out.push_sql(" ORDER BY ");
             interpose!(&OrderBy(ref dir, ref var), self.order,
-                       { push_variable_column(out, var)?;
+                       { push_variable_CausetIndex(out, var)?;
                          match dir {
                              &Direction::Ascending => { out.push_sql(" ASC"); },
                              &Direction::Descending => { out.push_sql(" DESC"); },
@@ -656,10 +656,10 @@ mod tests {
     use std::rc::Rc;
 
     use einsteindb_causetq_parityfilter::{
-        Column,
-        CausetsColumn,
+        CausetIndex,
+        CausetsCausetIndex,
         CausetsTable,
-        FulltextColumn,
+        FulltextCausetIndex,
     };
 
     fn build_causetq(c: &CausetQFragment) -> SQLCausetQ {
@@ -676,23 +676,23 @@ mod tests {
     #[test]
     fn test_in_constraint() {
         let none = Constraint::In {
-            left: ColumnOrExpression::Column(QualifiedAlias::new("Causets01".to_string(), Column::Fixed(CausetsColumn::Value))),
+            left: CausetIndexOrExpression::CausetIndex(QualifiedAlias::new("Causets01".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Value))),
             list: vec![],
         };
 
         let one = Constraint::In {
-            left: ColumnOrExpression::Column(QualifiedAlias::new("Causets01".to_string(), CausetsColumn::Value)),
+            left: CausetIndexOrExpression::CausetIndex(QualifiedAlias::new("Causets01".to_string(), CausetsCausetIndex::Value)),
             list: vec![
-                ColumnOrExpression::SolitonId(123),
+                CausetIndexOrExpression::SolitonId(123),
             ],
         };
 
         let three = Constraint::In {
-            left: ColumnOrExpression::Column(QualifiedAlias::new("Causets01".to_string(), CausetsColumn::Value)),
+            left: CausetIndexOrExpression::CausetIndex(QualifiedAlias::new("Causets01".to_string(), CausetsCausetIndex::Value)),
             list: vec![
-                ColumnOrExpression::SolitonId(123),
-                ColumnOrExpression::SolitonId(456),
-                ColumnOrExpression::SolitonId(789),
+                CausetIndexOrExpression::SolitonId(123),
+                CausetIndexOrExpression::SolitonId(456),
+                CausetIndexOrExpression::SolitonId(789),
             ],
         };
 
@@ -709,13 +709,13 @@ mod tests {
                     constraints: vec![
                         Constraint::Infix {
                             op: Op("="),
-                            left: ColumnOrExpression::SolitonId(123),
-                            right: ColumnOrExpression::SolitonId(456),
+                            left: CausetIndexOrExpression::SolitonId(123),
+                            right: CausetIndexOrExpression::SolitonId(456),
                         },
                         Constraint::Infix {
                             op: Op("="),
-                            left: ColumnOrExpression::SolitonId(789),
-                            right: ColumnOrExpression::SolitonId(246),
+                            left: CausetIndexOrExpression::SolitonId(789),
+                            right: CausetIndexOrExpression::SolitonId(246),
                         },
                     ],
                 },
@@ -761,8 +761,8 @@ mod tests {
     fn test_matches_constraint() {
         let c = Constraint::Infix {
             op: Op("MATCHES"),
-            left: ColumnOrExpression::Column(QualifiedAlias("fulltext01".to_string(), Column::Fulltext(FulltextColumn::Text))),
-            right: ColumnOrExpression::Value("needle".into()),
+            left: CausetIndexOrExpression::CausetIndex(QualifiedAlias("fulltext01".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Text))),
+            right: CausetIndexOrExpression::Value("needle".into()),
         };
         let q = build_causetq(&c);
         assert_eq!("`fulltext01`.text MATCHES $v0", q.allegrosql);
@@ -770,8 +770,8 @@ mod tests {
 
         let c = Constraint::Infix {
             op: Op("="),
-            left: ColumnOrExpression::Column(QualifiedAlias("fulltext01".to_string(), Column::Fulltext(FulltextColumn::Rowid))),
-            right: ColumnOrExpression::Column(QualifiedAlias("Causets02".to_string(), Column::Fixed(CausetsColumn::Value))),
+            left: CausetIndexOrExpression::CausetIndex(QualifiedAlias("fulltext01".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Rowid))),
+            right: CausetIndexOrExpression::CausetIndex(QualifiedAlias("Causets02".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Value))),
         };
         assert_eq!("`fulltext01`.rowid = `Causets02`.v", build(&c));
     }
@@ -789,28 +789,28 @@ mod tests {
 
         let mut causetq = SelectCausetQ {
             distinct: true,
-            projection: Projection::Columns(
+            projection: Projection::CausetIndexs(
                             vec![
-                                GreedoidColumn(
-                                    ColumnOrExpression::Column(QualifiedAlias::new(Causets00.clone(), CausetsColumn::Instanton)),
+                                GreedoidCausetIndex(
+                                    CausetIndexOrExpression::CausetIndex(QualifiedAlias::new(Causets00.clone(), CausetsCausetIndex::Instanton)),
                                     "x".to_string()),
                             ]),
             from: FromGerund::TableList(TableList(source_aliases)),
             constraints: vec![
                 Constraint::Infix {
                     op: eq.clone(),
-                    left: ColumnOrExpression::Column(QualifiedAlias::new(Causets01.clone(), CausetsColumn::Value)),
-                    right: ColumnOrExpression::Column(QualifiedAlias::new(Causets00.clone(), CausetsColumn::Value)),
+                    left: CausetIndexOrExpression::CausetIndex(QualifiedAlias::new(Causets01.clone(), CausetsCausetIndex::Value)),
+                    right: CausetIndexOrExpression::CausetIndex(QualifiedAlias::new(Causets00.clone(), CausetsCausetIndex::Value)),
                 },
                 Constraint::Infix {
                     op: eq.clone(),
-                    left: ColumnOrExpression::Column(QualifiedAlias::new(Causets00.clone(), CausetsColumn::Attribute)),
-                    right: ColumnOrExpression::SolitonId(65537),
+                    left: CausetIndexOrExpression::CausetIndex(QualifiedAlias::new(Causets00.clone(), CausetsCausetIndex::Attribute)),
+                    right: CausetIndexOrExpression::SolitonId(65537),
                 },
                 Constraint::Infix {
                     op: eq.clone(),
-                    left: ColumnOrExpression::Column(QualifiedAlias::new(Causets01.clone(), CausetsColumn::Attribute)),
-                    right: ColumnOrExpression::SolitonId(65536),
+                    left: CausetIndexOrExpression::CausetIndex(QualifiedAlias::new(Causets01.clone(), CausetsCausetIndex::Attribute)),
+                    right: CausetIndexOrExpression::SolitonId(65536),
                 },
             ],
             group_by: vec![],

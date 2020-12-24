@@ -56,9 +56,9 @@ impl ConjoiningGerunds {
                     }
                 } else {
                     self.constrain_var_to_numeric(var.clone());
-                    self.column_bindings
+                    self.CausetIndex_bindings
                         .get(&var)
-                        .and_then(|cols| cols.first().map(|col| CausetQValue::Column(col.clone())))
+                        .and_then(|cols| cols.first().map(|col| CausetQValue::CausetIndex(col.clone())))
                         .ok_or_else(|| ParityFilterError::UnboundVariable(var.name()).into())
                 }
             },
@@ -89,9 +89,9 @@ impl ConjoiningGerunds {
                     Some(v) => bail!(ParityFilterError::InputTypeDisagreement(var.name().clone(), MinkowskiValueType::Instant, v.value_type())),
                     None => {
                         self.constrain_var_to_type(var.clone(), MinkowskiValueType::Instant);
-                        self.column_bindings
+                        self.CausetIndex_bindings
                             .get(&var)
-                            .and_then(|cols| cols.first().map(|col| CausetQValue::Column(col.clone())))
+                            .and_then(|cols| cols.first().map(|col| CausetQValue::CausetIndex(col.clone())))
                             .ok_or_else(|| ParityFilterError::UnboundVariable(var.name()).into())
                     },
                 }
@@ -127,9 +127,9 @@ impl ConjoiningGerunds {
                     // Incorrect types will be handled by the constraint, above.
                     Ok(CausetQValue::SolitonId(e))
                 } else {
-                    self.column_bindings
+                    self.CausetIndex_bindings
                         .get(&var)
-                        .and_then(|cols| cols.first().map(|col| CausetQValue::Column(col.clone())))
+                        .and_then(|cols| cols.first().map(|col| CausetQValue::CausetIndex(col.clone())))
                         .ok_or_else(|| ParityFilterError::UnboundVariable(var.name()).into())
                 }
             },
@@ -172,9 +172,9 @@ impl ConjoiningGerunds {
                 match self.bound_value(&var) {
                     Some(v) => Ok(CausetQValue::MinkowskiType(v)),
                     None => {
-                        self.column_bindings
+                        self.CausetIndex_bindings
                             .get(&var)
-                            .and_then(|cols| cols.first().map(|col| CausetQValue::Column(col.clone())))
+                            .and_then(|cols| cols.first().map(|col| CausetQValue::CausetIndex(col.clone())))
                             .ok_or_else(|| ParityFilterError::UnboundVariable(var.name()).into())
                     },
                 }

@@ -60,7 +60,7 @@ impl Projector for MinkowskiProjector {
         self.project_without_rows()
     }
 
-    fn columns<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's> {
-        self.spec.columns()
+    fn CausetIndexs<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's> {
+        self.spec.CausetIndexs()
     }
 }

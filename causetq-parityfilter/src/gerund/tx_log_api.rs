@@ -31,14 +31,14 @@ use causetq_parityfilter_promises::errors::{
 };
 
 use types::{
-    Column,
-    ColumnConstraint,
+    CausetIndex,
+    CausetIndexConstraint,
     CausetsTable,
     Inequality,
     QualifiedAlias,
     CausetQValue,
     SourceAlias,
-    TransactionsColumn,
+    TransactionsCausetIndex,
 };
 
 use KnownCauset;
@@ -117,18 +117,18 @@ impl ConjoiningGerunds {
             return Ok(());
         }
 
-        self.bind_column_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsColumn::Tx, causecausetx_var.clone());
+        self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsCausetIndex::Tx, causecausetx_var.clone());
 
-        let after_constraint = ColumnConstraint::Inequality {
+        let after_constraint = CausetIndexConstraint::Inequality {
             operator: Inequality::LessThanOrEquals,
             left: causecausetx1,
-            right: CausetQValue::Column(QualifiedAlias(transactions.clone(), Column::Transactions(TransactionsColumn::Tx))),
+            right: CausetQValue::CausetIndex(QualifiedAlias(transactions.clone(), CausetIndex::Transactions(TransactionsCausetIndex::Tx))),
         };
         self.wheres.add_intersection(after_constraint);
 
-        let before_constraint = ColumnConstraint::Inequality {
+        let before_constraint = CausetIndexConstraint::Inequality {
             operator: Inequality::LessThan,
-            left: CausetQValue::Column(QualifiedAlias(transactions.clone(), Column::Transactions(TransactionsColumn::Tx))),
+            left: CausetQValue::CausetIndex(QualifiedAlias(transactions.clone(), CausetIndex::Transactions(TransactionsCausetIndex::Tx))),
             right: causecausetx2,
         };
         self.wheres.add_intersection(before_constraint);
@@ -189,8 +189,8 @@ impl ConjoiningGerunds {
 
         self.from.push(SourceAlias(CausetsTable::Transactions, transactions.clone()));
 
-        let causecausetx_constraint = ColumnConstraint::Equals(
-            QualifiedAlias(transactions.clone(), Column::Transactions(TransactionsColumn::Tx)),
+        let causecausetx_constraint = CausetIndexConstraint::Equals(
+            QualifiedAlias(transactions.clone(), CausetIndex::Transactions(TransactionsCausetIndex::Tx)),
             causetx);
         self.wheres.add_intersection(causecausetx_constraint);
 
@@ -201,7 +201,7 @@ impl ConjoiningGerunds {
                 return Ok(());
             }
 
-            self.bind_column_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsColumn::Instanton, var.clone());
+            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsCausetIndex::Instanton, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_a {
@@ -211,11 +211,11 @@ impl ConjoiningGerunds {
                 return Ok(());
             }
 
-            self.bind_column_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsColumn::Attribute, var.clone());
+            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsCausetIndex::Attribute, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_v {
-            self.bind_column_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsColumn::Value, var.clone());
+            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsCausetIndex::Value, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_causecausetx {
@@ -227,7 +227,7 @@ impl ConjoiningGerunds {
 
             // TODO: this might be a programming error if var is our causetx argument.  Perhaps we can be
             // helpful in that case.
-            self.bind_column_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsColumn::Tx, var.clone());
+            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsCausetIndex::Tx, var.clone());
         }
 
         if let VariableOrPlaceholder::Variable(ref var) = b_op {
@@ -237,7 +237,7 @@ impl ConjoiningGerunds {
                 return Ok(());
             }
 
-            self.bind_column_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsColumn::Added, var.clone());
+            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsCausetIndex::Added, var.clone());
         }
 
         Ok(())
@@ -285,32 +285,32 @@ mod testing {
 
         assert!(!cc.is_known_empty());
 
-        // Finally, expand column bindings.
-        cc.expand_column_bindings();
+        // Finally, expand CausetIndex bindings.
+        cc.expand_CausetIndex_bindings();
         assert!(!cc.is_known_empty());
 
         let gerunds = cc.wheres;
         assert_eq!(gerunds.len(), 2);
 
         assert_eq!(gerunds.0[0],
-                   ColumnConstraint::Inequality {
+                   CausetIndexConstraint::Inequality {
                        operator: Inequality::LessThanOrEquals,
                        left: CausetQValue::MinkowskiType(MinkowskiType::Ref(1000)),
-                       right: CausetQValue::Column(QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::Tx))),
+                       right: CausetQValue::CausetIndex(QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Tx))),
                    }.into());
 
         assert_eq!(gerunds.0[1],
-                   ColumnConstraint::Inequality {
+                   CausetIndexConstraint::Inequality {
                        operator: Inequality::LessThan,
-                       left: CausetQValue::Column(QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::Tx))),
+                       left: CausetQValue::CausetIndex(QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Tx))),
                        right: CausetQValue::MinkowskiType(MinkowskiType::Ref(2000)),
                    }.into());
 
-        let bindings = cc.column_bindings;
+        let bindings = cc.CausetIndex_bindings;
         assert_eq!(bindings.len(), 1);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?causetx")).expect("column binding for ?causetx").clone(),
-                   vec![QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::Tx))]);
+        assert_eq!(bindings.get(&Variable::from_valid_name("?causetx")).expect("CausetIndex binding for ?causetx").clone(),
+                   vec![QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Tx))]);
 
         let known_types = cc.known_types;
         assert_eq!(known_types.len(), 1);
@@ -344,34 +344,34 @@ mod testing {
 
         assert!(!cc.is_known_empty());
 
-        // Finally, expand column bindings.
-        cc.expand_column_bindings();
+        // Finally, expand CausetIndex bindings.
+        cc.expand_CausetIndex_bindings();
         assert!(!cc.is_known_empty());
 
         let gerunds = cc.wheres;
         assert_eq!(gerunds.len(), 1);
 
         assert_eq!(gerunds.0[0],
-                   ColumnConstraint::Equals(QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::Tx)),
+                   CausetIndexConstraint::Equals(QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Tx)),
                                             CausetQValue::MinkowskiType(MinkowskiType::Ref(1000))).into());
 
-        let bindings = cc.column_bindings;
+        let bindings = cc.CausetIndex_bindings;
         assert_eq!(bindings.len(), 5);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?e")).expect("column binding for ?e").clone(),
-                   vec![QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::Instanton))]);
+        assert_eq!(bindings.get(&Variable::from_valid_name("?e")).expect("CausetIndex binding for ?e").clone(),
+                   vec![QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Instanton))]);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?a")).expect("column binding for ?a").clone(),
-                   vec![QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::Attribute))]);
+        assert_eq!(bindings.get(&Variable::from_valid_name("?a")).expect("CausetIndex binding for ?a").clone(),
+                   vec![QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Attribute))]);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?v")).expect("column binding for ?v").clone(),
-                   vec![QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::Value))]);
+        assert_eq!(bindings.get(&Variable::from_valid_name("?v")).expect("CausetIndex binding for ?v").clone(),
+                   vec![QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Value))]);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?causetx")).expect("column binding for ?causetx").clone(),
-                   vec![QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::Tx))]);
+        assert_eq!(bindings.get(&Variable::from_valid_name("?causetx")).expect("CausetIndex binding for ?causetx").clone(),
+                   vec![QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Tx))]);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?added")).expect("column binding for ?added").clone(),
-                   vec![QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::Added))]);
+        assert_eq!(bindings.get(&Variable::from_valid_name("?added")).expect("CausetIndex binding for ?added").clone(),
+                   vec![QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Added))]);
 
         let known_types = cc.known_types;
         assert_eq!(known_types.len(), 4);
@@ -392,6 +392,6 @@ mod testing {
         assert_eq!(extracted_types.len(), 1);
 
         assert_eq!(extracted_types.get(&Variable::from_valid_name("?v")).expect("extracted types for ?v").clone(),
-                   QualifiedAlias("transactions00".to_string(), Column::Transactions(TransactionsColumn::MinkowskiValueTypeTag)));
+                   QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::MinkowskiValueTypeTag)));
     }
 }

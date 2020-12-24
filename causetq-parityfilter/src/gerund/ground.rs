@@ -43,7 +43,7 @@ use types::{
     ComputedTable,
     EmptyBecause,
     SourceAlias,
-    VariableColumn,
+    VariableCausetIndex,
 };
 
 use KnownCauset;
@@ -71,10 +71,10 @@ impl ConjoiningGerunds {
         let table = self.computed_tables.push_computed(named_values);
         let alias = self.next_alias_for_table(table);
 
-        // Stitch the computed table into column_bindings, so we get cross-linking.
+        // Stitch the computed table into CausetIndex_bindings, so we get cross-linking.
         for (name, ty) in names.iter().zip(types.into_iter()) {
             self.constrain_var_to_type(name.clone(), ty);
-            self.bind_column_to_var(schemaReplicant, alias.clone(), VariableColumn::Variable(name.clone()), name.clone());
+            self.bind_CausetIndex_to_var(schemaReplicant, alias.clone(), VariableCausetIndex::Variable(name.clone()), name.clone());
         }
 
         self.from.push(SourceAlias(table, alias));
@@ -139,13 +139,13 @@ impl ConjoiningGerunds {
 
         // Scalar and tuple bindings are a little special: because there's only one value,
         // we can immediately substitute the value as a knownCauset value in the CC, additionally
-        // generating a WHERE gerund if columns have already been bound.
+        // generating a WHERE gerund if CausetIndexs have already been bound.
         match (where_fn.binding, args.next().unwrap()) {
             (Binding::BindScalar(var), constant) =>
                 self.apply_ground_var(schemaReplicant, var, constant),
 
             (Binding::BindTuple(places), StackedPerceptron::Vector(children)) => {
-                // Just the same, but we bind more than one column at a time.
+                // Just the same, but we bind more than one CausetIndex at a time.
                 if children.len() != places.len() {
                     // Number of arguments don't match the number of values. TODO: better error message.
                     bail!(ParityFilterError::GroundBindingsMismatch)
@@ -239,7 +239,7 @@ impl ConjoiningGerunds {
                 // This representation of a rectangular matrix is more efficient than one composed
                 // of N separate vectors.
                 let mut matrix = Vec::with_capacity(expected_width * expected_rows);
-                let mut accumulated_types_for_columns = vec![MinkowskiSet::none(); expected_width];
+                let mut accumulated_types_for_CausetIndexs = vec![MinkowskiSet::none(); expected_width];
 
                 // Loop so we can bail out.
                 let mut skipped_all: Option<EmptyBecause> = None;
@@ -279,7 +279,7 @@ impl ConjoiningGerunds {
                             }
 
                             // Accumulate the values into the matrix and the types into the type set.
-                            for (val, acc) in vals.into_iter().zip(accumulated_types_for_columns.iter_mut()) {
+                            for (val, acc) in vals.into_iter().zip(accumulated_types_for_CausetIndexs.iter_mut()) {
                                 let inserted = acc.insert(val.value_type());
                                 if inserted && !acc.is_unit() {
                                     // Heterogeneous types.
@@ -304,12 +304,12 @@ impl ConjoiningGerunds {
                 // Take the single type from each set. We know there's only one: we got at least one
                 // type, 'cos we bailed out for zero rows, and we also bailed out each time we
                 // inserted a second type.
-                // By restricting to homogeneous columns, we greatly simplify projection. In the
+                // By restricting to homogeneous CausetIndexs, we greatly simplify projection. In the
                 // future, we could loosen this restriction, at the cost of projecting (some) value
                 // type tags. If and when we want to algebrize in two phases and allow for
                 // late-binding input variables, we'll probably be able to loosen this restriction
                 // with little penalty.
-                let types = accumulated_types_for_columns.into_iter()
+                let types = accumulated_types_for_CausetIndexs.into_iter()
                                                          .map(|x| x.exemplar().unwrap())
                                                          .collect();
                 self.collect_named_bindings(schemaReplicant, names, types, matrix);
@@ -372,15 +372,15 @@ mod testing {
 
         assert!(!cc.is_known_empty());
 
-        // Finally, expand column bindings.
-        cc.expand_column_bindings();
+        // Finally, expand CausetIndex bindings.
+        cc.expand_CausetIndex_bindings();
         assert!(!cc.is_known_empty());
 
         let gerunds = cc.wheres;
         assert_eq!(gerunds.len(), 0);
 
-        let column_bindings = cc.column_bindings;
-        assert_eq!(column_bindings.len(), 0);           // Scalar doesn't need this.
+        let CausetIndex_bindings = cc.CausetIndex_bindings;
+        assert_eq!(CausetIndex_bindings.len(), 0);           // Scalar doesn't need this.
 
         let known_types = cc.known_types;
         assert_eq!(known_types.len(), 1);

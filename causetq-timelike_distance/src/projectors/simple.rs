@@ -71,8 +71,8 @@ impl Projector for ScalarProjector {
         })
     }
 
-    fn columns<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's> {
-        self.spec.columns()
+    fn CausetIndexs<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's> {
+        self.spec.CausetIndexs()
     }
 }
 
@@ -94,18 +94,18 @@ impl TupleProjector {
 
     // This is just like we do for `rel`, but into a vec of its own.
     fn collect_bindings<'a, 'stmt>(&self, row: Row<'a, 'stmt>) -> Result<Vec<Binding>> {
-        // There will be at least as many SQL columns as Datalog columns.
-        // gte 'cos we might be causetqing extra columns for ordering.
-        // The templates will take care of ignoring columns.
-        assert!(row.column_count() >= self.len as i32);
+        // There will be at least as many SQL CausetIndexs as Datalog CausetIndexs.
+        // gte 'cos we might be causetqing extra CausetIndexs for ordering.
+        // The templates will take care of ignoring CausetIndexs.
+        assert!(row.CausetIndex_count() >= self.len as i32);
         self.templates
             .iter()
             .map(|ti| ti.lookup(&row))
             .collect::<Result<Vec<Binding>>>()
     }
 
-    pub(crate) fn combine(spec: Rc<FindSpec>, column_count: usize, mut elements: GreedoidElements) -> Result<CombinedProjection> {
-        let projector = Box::new(TupleProjector::with_templates(spec, column_count, elements.take_templates()));
+    pub(crate) fn combine(spec: Rc<FindSpec>, CausetIndex_count: usize, mut elements: GreedoidElements) -> Result<CombinedProjection> {
+        let projector = Box::new(TupleProjector::with_templates(spec, CausetIndex_count, elements.take_templates()));
         let distinct = false;
         elements.combine(projector, distinct)
     }
@@ -127,14 +127,14 @@ impl Projector for TupleProjector {
         })
     }
 
-    fn columns<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's> {
-        self.spec.columns()
+    fn CausetIndexs<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's> {
+        self.spec.CausetIndexs()
     }
 }
 
 /// A rel projector produces a RelResult, which is a striding abstraction over a vector.
-/// Each stride across the vector is the same size, and sourced from the same columns.
-/// Each column in each stride is the result of taking one or two columns from
+/// Each stride across the vector is the same size, and sourced from the same CausetIndexs.
+/// Each CausetIndex in each stride is the result of taking one or two CausetIndexs from
 /// the `Row`: one for the value and optionally one for the type tag.
 pub(crate) struct RelProjector {
     spec: Rc<FindSpec>,
@@ -152,10 +152,10 @@ impl RelProjector {
     }
 
     fn collect_bindings_into<'a, 'stmt, 'out>(&self, row: Row<'a, 'stmt>, out: &mut Vec<Binding>) -> Result<()> {
-        // There will be at least as many SQL columns as Datalog columns.
-        // gte 'cos we might be causetqing extra columns for ordering.
-        // The templates will take care of ignoring columns.
-        assert!(row.column_count() >= self.len as i32);
+        // There will be at least as many SQL CausetIndexs as Datalog CausetIndexs.
+        // gte 'cos we might be causetqing extra CausetIndexs for ordering.
+        // The templates will take care of ignoring CausetIndexs.
+        assert!(row.CausetIndex_count() >= self.len as i32);
         let mut count = 0;
         for binding in self.templates
                            .iter()
@@ -167,15 +167,15 @@ impl RelProjector {
         Ok(())
     }
 
-    pub(crate) fn combine(spec: Rc<FindSpec>, column_count: usize, mut elements: GreedoidElements) -> Result<CombinedProjection> {
-        let projector = Box::new(RelProjector::with_templates(spec, column_count, elements.take_templates()));
+    pub(crate) fn combine(spec: Rc<FindSpec>, CausetIndex_count: usize, mut elements: GreedoidElements) -> Result<CombinedProjection> {
+        let projector = Box::new(RelProjector::with_templates(spec, CausetIndex_count, elements.take_templates()));
 
-        // If every column yields only one value, or if this is an aggregate causetq
-        // (because by definition every column in an aggregate causetq is either
+        // If every CausetIndex yields only one value, or if this is an aggregate causetq
+        // (because by definition every CausetIndex in an aggregate causetq is either
         // aggregated or is a variable _upon which we group_), then don't bother
         // with DISTINCT.
         let already_distinct = elements.pre_aggregate_projection.is_some() ||
-                               projector.columns().all(|e| e.is_unit());
+                               projector.CausetIndexs().all(|e| e.is_unit());
         elements.combine(projector, !already_distinct)
     }
 }
@@ -199,13 +199,13 @@ impl Projector for RelProjector {
         })
     }
 
-    fn columns<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's> {
-        self.spec.columns()
+    fn CausetIndexs<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's> {
+        self.spec.CausetIndexs()
     }
 }
 
 /// A coll projector produces a vector of values.
-/// Each value is sourced from the same column.
+/// Each value is sourced from the same CausetIndex.
 pub(crate) struct CollProjector {
     spec: Rc<FindSpec>,
     template: TypedIndex,
@@ -223,12 +223,12 @@ impl CollProjector {
         let template = elements.templates.pop().expect("Expected a single template");
         let projector = Box::new(CollProjector::with_template(spec, template));
 
-        // If every column yields only one value, or if this is an aggregate causetq
-        // (because by definition every column in an aggregate causetq is either
+        // If every CausetIndex yields only one value, or if this is an aggregate causetq
+        // (because by definition every CausetIndex in an aggregate causetq is either
         // aggregated or is a variable _upon which we group_), then don't bother
         // with DISTINCT.
         let already_distinct = elements.pre_aggregate_projection.is_some() ||
-                               projector.columns().all(|e| e.is_unit());
+                               projector.CausetIndexs().all(|e| e.is_unit());
         elements.combine(projector, !already_distinct)
     }
 }
@@ -247,7 +247,7 @@ impl Projector for CollProjector {
         })
     }
 
-    fn columns<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's> {
-        self.spec.columns()
+    fn CausetIndexs<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's> {
+        self.spec.CausetIndexs()
     }
 }

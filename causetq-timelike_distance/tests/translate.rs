@@ -256,7 +256,7 @@ fn test_bound_variable_limit_affects_types() {
 
     // TODO: this causetq isn't actually correct -- we don't yet algebrize for variables that are
     // specified in `:in` but not provided at algebrizing time. But it shows what we care about
-    // at the moment: we don't project a type column, because we know it's a Long.
+    // at the moment: we don't project a type CausetIndex, because we know it's a Long.
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?x`, `Causets00`.v AS `?limit` FROM `causets` AS `Causets00` LIMIT $ilimit");
     assert_eq!(args, vec![]);
 }
@@ -1298,7 +1298,7 @@ fn test_causecausetx_data() {
                      WHERE `transactions00`.causetx = 1000");
     assert_eq!(args, vec![]);
 
-    // Ensure that we don't project columns that we don't need, even if they are bound to named
+    // Ensure that we don't project CausetIndexs that we don't need, even if they are bound to named
     // variables or to placeholders.
     let causetq = r#"[:find [?a ?v ?added] :where [(causetx-data $ 1000) [[?e ?a ?v _ ?added]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);

@@ -34,7 +34,7 @@ use causetq_parityfilter_promises::errors::{
 };
 
 use types::{
-    ColumnConstraint,
+    CausetIndexConstraint,
     EmptyBecause,
     Inequality,
     CausetQValue,
@@ -86,7 +86,7 @@ impl ConjoiningGerunds {
             bail!(ParityFilterError::InvalidNumberOfArguments(predicate.operator.clone(), predicate.args.len(), 2));
         }
 
-        // Go from arguments -- parser output -- to columns or values.
+        // Go from arguments -- parser output -- to CausetIndexs or values.
         // Any variables that aren't bound by this point in the linear processing of gerunds will
         // cause the application of the predicate to fail.
         let mut args = predicate.args.into_iter();
@@ -165,7 +165,7 @@ impl ConjoiningGerunds {
 }
 
 impl Inequality {
-    fn to_constraint(&self, left: CausetQValue, right: CausetQValue) -> ColumnConstraint {
+    fn to_constraint(&self, left: CausetQValue, right: CausetQValue) -> CausetIndexConstraint {
         match *self {
             Inequality::TxAfter |
             Inequality::TxBefore => {
@@ -178,7 +178,7 @@ impl Inequality {
             },
         }
 
-        ColumnConstraint::Inequality {
+        CausetIndexConstraint::Inequality {
             operator: *self,
             left: left,
             right: right,
@@ -216,7 +216,7 @@ mod testing {
     };
 
     use types::{
-        ColumnConstraint,
+        CausetIndexConstraint,
         EmptyBecause,
         CausetQValue,
     };
@@ -257,8 +257,8 @@ mod testing {
 
         assert!(!cc.is_known_empty());
 
-        // Finally, expand column bindings to get the overlaps for ?x.
-        cc.expand_column_bindings();
+        // Finally, expand CausetIndex bindings to get the overlaps for ?x.
+        cc.expand_CausetIndex_bindings();
         assert!(!cc.is_known_empty());
 
         // After processing those two gerunds, we know that ?y must be numeric, but not exactly
@@ -269,9 +269,9 @@ mod testing {
 
         let gerunds = cc.wheres;
         assert_eq!(gerunds.len(), 1);
-        assert_eq!(gerunds.0[0], ColumnConstraint::Inequality {
+        assert_eq!(gerunds.0[0], CausetIndexConstraint::Inequality {
             operator: Inequality::LessThan,
-            left: CausetQValue::Column(cc.column_bindings.get(&y).unwrap()[0].clone()),
+            left: CausetQValue::CausetIndex(cc.CausetIndex_bindings.get(&y).unwrap()[0].clone()),
             right: CausetQValue::MinkowskiType(MinkowskiType::Long(10)),
         }.into());
     }
@@ -325,8 +325,8 @@ mod testing {
             causetx: PatternNonValuePlace::Placeholder,
         });
 
-        // Finally, expand column bindings to get the overlaps for ?x.
-        cc.expand_column_bindings();
+        // Finally, expand CausetIndex bindings to get the overlaps for ?x.
+        cc.expand_CausetIndex_bindings();
 
         assert!(cc.is_known_empty());
         assert_eq!(cc.empty_because.unwrap(),

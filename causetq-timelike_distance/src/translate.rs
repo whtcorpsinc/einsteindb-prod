@@ -32,38 +32,38 @@ use edbn::causetq::{
 
 use einsteindb_causetq_parityfilter::{
     AlgebraicCausetQ,
-    ColumnAlternation,
-    ColumnConstraint,
-    ColumnConstraintOrAlternation,
-    ColumnIntersection,
-    ColumnName,
+    CausetIndexAlternation,
+    CausetIndexConstraint,
+    CausetIndexConstraintOrAlternation,
+    CausetIndexIntersection,
+    CausetIndexName,
     ComputedTable,
     ConjoiningGerunds,
-    CausetsColumn,
+    CausetsCausetIndex,
     CausetsTable,
     OrderBy,
     QualifiedAlias,
     CausetQValue,
     SourceAlias,
     TableAlias,
-    VariableColumn,
+    VariableCausetIndex,
 };
 
 use ::{
     CombinedProjection,
     MinkowskiProjector,
     Projector,
-    timelike_distance_column_for_var,
+    timelike_distance_CausetIndex_for_var,
     causetq_projection,
 };
 
 use einsteindb_causetq_sql::{
-    ColumnOrExpression,
+    CausetIndexOrExpression,
     Constraint,
     FromGerund,
     GroupBy,
     Op,
-    GreedoidColumn,
+    GreedoidCausetIndex,
     Projection,
     SelectCausetQ,
     TableList,
@@ -79,17 +79,17 @@ trait ToConstraint {
     fn to_constraint(self) -> Constraint;
 }
 
-trait ToColumn {
-    fn to_column(self) -> ColumnOrExpression;
+trait ToCausetIndex {
+    fn to_CausetIndex(self) -> CausetIndexOrExpression;
 }
 
-impl ToColumn for QualifiedAlias {
-    fn to_column(self) -> ColumnOrExpression {
-        ColumnOrExpression::Column(self)
+impl ToCausetIndex for QualifiedAlias {
+    fn to_CausetIndex(self) -> CausetIndexOrExpression {
+        CausetIndexOrExpression::CausetIndex(self)
     }
 }
 
-impl ToConstraint for ColumnIntersection {
+impl ToConstraint for CausetIndexIntersection {
     fn to_constraint(self) -> Constraint {
         Constraint::And {
             constraints: self.into_iter().map(|x| x.to_constraint()).collect()
@@ -97,7 +97,7 @@ impl ToConstraint for ColumnIntersection {
     }
 }
 
-impl ToConstraint for ColumnAlternation {
+impl ToConstraint for CausetIndexAlternation {
     fn to_constraint(self) -> Constraint {
         Constraint::Or {
             constraints: self.into_iter().map(|x| x.to_constraint()).collect()
@@ -105,9 +105,9 @@ impl ToConstraint for ColumnAlternation {
     }
 }
 
-impl ToConstraint for ColumnConstraintOrAlternation {
+impl ToConstraint for CausetIndexConstraintOrAlternation {
     fn to_constraint(self) -> Constraint {
-        use self::ColumnConstraintOrAlternation::*;
+        use self::CausetIndexConstraintOrAlternation::*;
         match self {
             Alternation(alt) => alt.to_constraint(),
             Constraint(c) => c.to_constraint(),
@@ -122,15 +122,15 @@ fn affinity_count(tag: i32) -> usize {
 }
 
 fn type_constraint(table: &TableAlias, tag: i32, to_check: Option<Vec<SQLTypeAffinity>>) -> Constraint {
-    let type_column = QualifiedAlias::new(table.clone(),
-                                          CausetsColumn::MinkowskiValueTypeTag).to_column();
-    let check_type_tag = Constraint::equal(type_column, ColumnOrExpression::Integer(tag));
+    let type_CausetIndex = QualifiedAlias::new(table.clone(),
+                                          CausetsCausetIndex::MinkowskiValueTypeTag).to_CausetIndex();
+    let check_type_tag = Constraint::equal(type_CausetIndex, CausetIndexOrExpression::Integer(tag));
     if let Some(affinities) = to_check {
         let check_affinities = Constraint::Or {
             constraints: affinities.into_iter().map(|affinity| {
                 Constraint::TypeCheck {
                     value: QualifiedAlias::new(table.clone(),
-                                               CausetsColumn::Value).to_column(),
+                                               CausetsCausetIndex::Value).to_CausetIndex(),
                     affinity,
                 }
             }).collect()
@@ -160,22 +160,22 @@ fn possible_affinities(value_types: MinkowskiSet) -> HashMap<MinkowskiValueTypeT
     result
 }
 
-impl ToConstraint for ColumnConstraint {
+impl ToConstraint for CausetIndexConstraint {
     fn to_constraint(self) -> Constraint {
-        use self::ColumnConstraint::*;
+        use self::CausetIndexConstraint::*;
         match self {
             Equals(qa, CausetQValue::SolitonId(solitonId)) =>
-                Constraint::equal(qa.to_column(), ColumnOrExpression::SolitonId(solitonId)),
+                Constraint::equal(qa.to_CausetIndex(), CausetIndexOrExpression::SolitonId(solitonId)),
 
             Equals(qa, CausetQValue::MinkowskiType(tv)) =>
-                Constraint::equal(qa.to_column(), ColumnOrExpression::Value(tv)),
+                Constraint::equal(qa.to_CausetIndex(), CausetIndexOrExpression::Value(tv)),
 
-            Equals(left, CausetQValue::Column(right)) =>
-                Constraint::equal(left.to_column(), right.to_column()),
+            Equals(left, CausetQValue::CausetIndex(right)) =>
+                Constraint::equal(left.to_CausetIndex(), right.to_CausetIndex()),
 
             Equals(qa, CausetQValue::PrimitiveLong(value)) => {
-                let tag_column = qa.for_associated_type_tag().expect("an associated type tag alias").to_column();
-                let value_column = qa.to_column();
+                let tag_CausetIndex = qa.for_associated_type_tag().expect("an associated type tag alias").to_CausetIndex();
+                let value_CausetIndex = qa.to_CausetIndex();
 
                 // A bare long in a causetq might match a ref, an instant, a long (obviously), or a
                 // double. If it's negative, it can't match a ref, but that's OK -- it won't!
@@ -194,14 +194,14 @@ impl ToConstraint for ColumnConstraint {
                 if must_exclude_boolean {
                     Constraint::And {
                         constraints: vec![
-                            Constraint::equal(value_column,
-                                              ColumnOrExpression::Value(MinkowskiType::Long(value))),
-                            Constraint::not_equal(tag_column,
-                                                  ColumnOrExpression::Integer(MinkowskiValueType::Boolean.value_type_tag())),
+                            Constraint::equal(value_CausetIndex,
+                                              CausetIndexOrExpression::Value(MinkowskiType::Long(value))),
+                            Constraint::not_equal(tag_CausetIndex,
+                                                  CausetIndexOrExpression::Integer(MinkowskiValueType::Boolean.value_type_tag())),
                         ],
                     }
                 } else {
-                    Constraint::equal(value_column, ColumnOrExpression::Value(MinkowskiType::Long(value)))
+                    Constraint::equal(value_CausetIndex, CausetIndexOrExpression::Value(MinkowskiType::Long(value)))
                 }
             },
 
@@ -216,7 +216,7 @@ impl ToConstraint for ColumnConstraint {
             Matches(left, right) => {
                 Constraint::Infix {
                     op: Op("MATCH"),
-                    left: ColumnOrExpression::Column(left),
+                    left: CausetIndexOrExpression::CausetIndex(left),
                     right: right.into(),
                 }
             },
@@ -281,21 +281,21 @@ fn table_for_computed(computed: ComputedTable, alias: TableAlias) -> TableOrSubc
             projection, type_extraction, arms,
         } => {
             // The projection list for each CC must have the same shape and the same names.
-            // The values we project might be fixed or they might be columns.
+            // The values we project might be fixed or they might be CausetIndexs.
             TableOrSubcausetq::Union(
                 arms.into_iter()
                     .map(|cc| {
                         // We're going to end up with the variables being timelike_distance and also some
-                        // type tag columns.
-                        let mut columns: Vec<GreedoidColumn> = Vec::with_capacity(projection.len() + type_extraction.len());
+                        // type tag CausetIndexs.
+                        let mut CausetIndexs: Vec<GreedoidCausetIndex> = Vec::with_capacity(projection.len() + type_extraction.len());
 
-                        // For each variable, find out which column it maps to within this arm, and
+                        // For each variable, find out which CausetIndex it maps to within this arm, and
                         // project it as the variable name.
                         // E.g., SELECT Causets03.v AS `?x`.
                         for var in projection.iter() {
                             // TODO: chain results out.
-                            let (timelike_distance_column, type_set) = timelike_distance_column_for_var(var, &cc).expect("every var to be bound");
-                            columns.push(timelike_distance_column);
+                            let (timelike_distance_CausetIndex, type_set) = timelike_distance_CausetIndex_for_var(var, &cc).expect("every var to be bound");
+                            CausetIndexs.push(timelike_distance_CausetIndex);
 
                             // Similarly, project type tags if they're not knownCauset conclusively in the
                             // outer causetq.
@@ -305,7 +305,7 @@ fn table_for_computed(computed: ComputedTable, alias: TableAlias) -> TableOrSubc
                                     if let Some(tag) = type_set.unique_type_tag() {
                                         // If we know the type for sure, just project the constant.
                                         // SELECT Causets03.v AS `?x`, 10 AS `?x_value_type_tag`
-                                        ColumnOrExpression::Integer(tag)
+                                        CausetIndexOrExpression::Integer(tag)
                                     } else {
                                         // Otherwise, we'll have an established type binding! This'll be
                                         // either a causets table or, recursively, a subcausetq. Project
@@ -315,17 +315,17 @@ fn table_for_computed(computed: ComputedTable, alias: TableAlias) -> TableOrSubc
                                         let extract = cc.extracted_types
                                                         .get(var)
                                                         .expect("Expected variable to have a knownCauset type or an extracted type");
-                                        ColumnOrExpression::Column(extract.clone())
+                                        CausetIndexOrExpression::CausetIndex(extract.clone())
                                     };
-                                let type_column = VariableColumn::VariableTypeTag(var.clone());
-                                let proj = GreedoidColumn(expression, type_column.column_name());
-                                columns.push(proj);
+                                let type_CausetIndex = VariableCausetIndex::VariableTypeTag(var.clone());
+                                let proj = GreedoidCausetIndex(expression, type_CausetIndex.CausetIndex_name());
+                                CausetIndexs.push(proj);
                             }
                         }
 
                         // Each arm simply turns into a subcausetq.
                         // The SQL translation will stuff "UNION" between each arm.
-                        let projection = Projection::Columns(columns);
+                        let projection = Projection::CausetIndexs(CausetIndexs);
                         cc_to_select_causetq(projection, cc, false, vec![], None, Limit::None)
                   }).collect(),
                 alias)
@@ -336,7 +336,7 @@ fn table_for_computed(computed: ComputedTable, alias: TableAlias) -> TableOrSubc
         ComputedTable::NamedValues {
             names, values,
         } => {
-            // We assume column homogeneity, so we won't have any type tag columns.
+            // We assume CausetIndex homogeneity, so we won't have any type tag CausetIndexs.
             TableOrSubcausetq::Values(Values::Named(names, values), alias)
         },
     }
@@ -433,12 +433,12 @@ fn re_project(mut inner: SelectCausetQ, projection: Projection) -> SelectCausetQ
     use self::Projection::*;
 
     let nullable = match &projection {
-        &Columns(ref columns) => {
-            columns.iter().filter_map(|pc| {
+        &CausetIndexs(ref CausetIndexs) => {
+            CausetIndexs.iter().filter_map(|pc| {
                 match pc {
-                    &GreedoidColumn(ColumnOrExpression::NullableAggregate(_, _), ref name) => {
+                    &GreedoidCausetIndex(CausetIndexOrExpression::NullableAggregate(_, _), ref name) => {
                         Some(Constraint::IsNotNull {
-                            value: ColumnOrExpression::ExistingColumn(name.clone()),
+                            value: CausetIndexOrExpression::ExistingCausetIndex(name.clone()),
                         })
                     },
                     _ => None,

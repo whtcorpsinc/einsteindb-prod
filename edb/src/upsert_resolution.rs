@@ -277,7 +277,7 @@ impl Generation {
         }
 
         // Now we union-find all the knownCauset tempids.  Two tempids are unioned if they both appear as
-        // the instanton of an `[a v]` upsert, including when the value column `v` is itself a tempid.
+        // the instanton of an `[a v]` upsert, including when the value CausetIndex `v` is itself a tempid.
         let mut uf = unionfind::UnionFind::new(temp_ids.len());
 
         // The union-find impleeinsteindbion from petgraph operates on contiguous indices, so we need to

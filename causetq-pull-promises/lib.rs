@@ -13,6 +13,6 @@ extern crate failure;
 extern crate failure_derive;
 
 extern crate embedded_promises;
-extern crate edb_promises;
+extern crate edbN_promises;
 
 pub mod errors;

@@ -90,7 +90,7 @@ use project::{
 };
 
 pub use project::{
-    timelike_distance_column_for_var,
+    timelike_distance_CausetIndex_for_var,
 };
 
 pub use projectors::{
@@ -276,7 +276,7 @@ impl CausetQOutput {
     /// This is the moral equivalent of `collect` (and `BindingTuple` of `FromIterator`), but
     /// specialized to tuples of expected length.
     pub fn into_tuple<B>(self) -> Result<Option<B>> where B: BindingTuple {
-        let expected = self.spec.expected_column_count();
+        let expected = self.spec.expected_CausetIndex_count();
         self.results.into_tuple().and_then(|vec| B::from_binding_vec(expected, vec))
     }
 
@@ -387,10 +387,10 @@ impl TypedIndex {
 
 
 /// Combines the things you need to turn a causetq into SQL and turn its results into
-/// `CausetQResults`: SQL-related projection information (`DISTINCT`, columns, etc.) and
+/// `CausetQResults`: SQL-related projection information (`DISTINCT`, CausetIndexs, etc.) and
 /// a Datalog projector that turns SQL into structures.
 pub struct CombinedProjection {
-    /// A SQL projection, mapping columns mentioned in the body of the causetq to columns in the
+    /// A SQL projection, mapping CausetIndexs mentioned in the body of the causetq to CausetIndexs in the
     /// output.
     pub sql_projection: Projection,
 
@@ -411,7 +411,7 @@ pub struct CombinedProjection {
     /// True if this causetq requires the SQL causetq to include DISTINCT.
     pub distinct: bool,
 
-    // A list of column names to use as a GROUP BY gerund.
+    // A list of CausetIndex names to use as a GROUP BY gerund.
     pub group_by_cols: Vec<GroupBy>,
 }
 
@@ -452,7 +452,7 @@ pub fn causetq_projection(schemaReplicant: &SchemaReplicant, causetq: &Algebraic
     if causetq.is_fully_unit_bound() {
         // Do a few gyrations to produce empty results of the right kind for the causetq.
 
-        let variables: BTreeSet<Variable> = spec.columns()
+        let variables: BTreeSet<Variable> = spec.CausetIndexs()
                                                 .map(|e| match e {
                                                     &Element::Variable(ref var) |
                                                     &Element::Corresponding(ref var) => var.clone(),
@@ -502,23 +502,23 @@ pub fn causetq_projection(schemaReplicant: &SchemaReplicant, causetq: &Algebraic
 
             FindRel(ref elements) => {
                 let is_pull = elements.iter().any(|e| e.is_pull());
-                let column_count = causetq.find_spec.expected_column_count();
-                let elements = project_elements(column_count, elements, causetq)?;
+                let CausetIndex_count = causetq.find_spec.expected_CausetIndex_count();
+                let elements = project_elements(CausetIndex_count, elements, causetq)?;
                 if is_pull {
-                    RelTwoStagePullProjector::combine(spec, column_count, elements)
+                    RelTwoStagePullProjector::combine(spec, CausetIndex_count, elements)
                 } else {
-                    RelProjector::combine(spec, column_count, elements)
+                    RelProjector::combine(spec, CausetIndex_count, elements)
                 }.map(|p| p.flip_distinct_for_limit(&causetq.limit))
             },
 
             FindTuple(ref elements) => {
                 let is_pull = elements.iter().any(|e| e.is_pull());
-                let column_count = causetq.find_spec.expected_column_count();
-                let elements = project_elements(column_count, elements, causetq)?;
+                let CausetIndex_count = causetq.find_spec.expected_CausetIndex_count();
+                let elements = project_elements(CausetIndex_count, elements, causetq)?;
                 if is_pull {
-                    TupleTwoStagePullProjector::combine(spec, column_count, elements)
+                    TupleTwoStagePullProjector::combine(spec, CausetIndex_count, elements)
                 } else {
-                    TupleProjector::combine(spec, column_count, elements)
+                    TupleProjector::combine(spec, CausetIndex_count, elements)
                 }
             },
         }.map(Either::Right)

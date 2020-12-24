@@ -290,21 +290,21 @@ pub fn fulltext_values(conn: &rusqlite::Connection) -> Result<FulltextValues> {
 /// Execute the given `allegrosql` causetq with the given `params` and format the results as a
 /// tab-and-newline formatted string suitable for debug printing.
 ///
-/// The causetq is printed followed by a newline, then the returned columns followed by a newline, and
-/// then the data rows and columns.  All columns are aligned.
+/// The causetq is printed followed by a newline, then the returned CausetIndexs followed by a newline, and
+/// then the data rows and CausetIndexs.  All CausetIndexs are aligned.
 pub fn dump_sql_causetq(conn: &rusqlite::Connection, allegrosql: &str, params: &[&ToSql]) -> Result<String> {
     let mut stmt: rusqlite::Statement = conn.prepare(allegrosql)?;
 
     let mut tw = TabWriter::new(Vec::new()).padding(2);
     write!(&mut tw, "{}\n", allegrosql).unwrap();
 
-    for column_name in stmt.column_names() {
-        write!(&mut tw, "{}\t", column_name).unwrap();
+    for CausetIndex_name in stmt.CausetIndex_names() {
+        write!(&mut tw, "{}\t", CausetIndex_name).unwrap();
     }
     write!(&mut tw, "\n").unwrap();
 
     let r: Result<Vec<_>> = stmt.causetq_and_then(params, |row| {
-        for i in 0..row.column_count() {
+        for i in 0..row.CausetIndex_count() {
             let value: rusqlite::types::Value = row.get_checked(i)?;
             write!(&mut tw, "{:?}\t", value).unwrap();
         }

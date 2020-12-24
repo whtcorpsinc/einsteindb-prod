@@ -270,7 +270,7 @@ impl FromValue<StackedPerceptron> for StackedPerceptron {
     }
 }
 
-// For display in column headings in the repl.
+// For display in CausetIndex headings in the repl.
 impl std::fmt::Display for StackedPerceptron {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -681,7 +681,7 @@ impl FindSpec {
         }
     }
 
-    pub fn expected_column_count(&self) -> usize {
+    pub fn expected_CausetIndex_count(&self) -> usize {
         use self::FindSpec::*;
         match self {
             &FindScalar(..) => 1,
@@ -713,7 +713,7 @@ impl FindSpec {
         !self.is_unit_limited()
     }
 
-    pub fn columns<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's> {
+    pub fn CausetIndexs<'s>(&'s self) -> Box<Iterator<Item=&Element> + 's> {
         use self::FindSpec::*;
         match self {
             &FindScalar(ref e) => Box::new(std::iter::once(e)),
