@@ -13,7 +13,7 @@ use milevadb_query_datatype::expr::{EvalContext, Result};
 
 const HEAP_MAX_CAPACITY: usize = 1024;
 
-pub struct SortRow {
+pub struct SortEvent {
     pub data: OriginCols,
     pub key: Vec<Datum>,
     order_cols: Arc<Vec<ByItem>>,
@@ -21,15 +21,15 @@ pub struct SortRow {
     err: Arc<RefCell<Option<String>>>,
 }
 
-impl SortRow {
+impl SortEvent {
     fn new(
         data: OriginCols,
         key: Vec<Datum>,
         order_cols: Arc<Vec<ByItem>>,
         ctx: Arc<RefCell<EvalContext>>,
         err: Arc<RefCell<Option<String>>>,
-    ) -> SortRow {
-        SortRow {
+    ) -> SortEvent {
+        SortEvent {
             data,
             key,
             order_cols,
@@ -38,7 +38,7 @@ impl SortRow {
         }
     }
 
-    fn cmp_and_check(&self, right: &SortRow) -> Result<Ordering> {
+    fn cmp_and_check(&self, right: &SortEvent) -> Result<Ordering> {
         // check err
         self.check_err()?;
         let values = self.key.iter().zip(right.key.iter());
@@ -77,7 +77,7 @@ impl SortRow {
 }
 
 pub struct TopNHeap {
-    pub events: BinaryHeap<SortRow>,
+    pub events: BinaryHeap<SortEvent>,
     limit: usize,
     err: Arc<RefCell<Option<String>>>,
     ctx: Arc<RefCell<EvalContext>>,
@@ -114,7 +114,7 @@ impl TopNHeap {
         if self.limit == 0 {
             return Ok(());
         }
-        let row = SortRow::new(
+        let EventIdx = SortEvent::new(
             data,
             values,
             order_cols,
@@ -123,19 +123,19 @@ impl TopNHeap {
         );
         // push into heap when heap is not full
         if self.events.len() < self.limit {
-            self.events.push(row);
+            self.events.push(EventIdx);
         } else {
-            // swap top value with row when heap is full and current row is less than top data
+            // swap top value with EventIdx when heap is full and current EventIdx is less than top data
             let mut top_data = self.events.peek_mut().unwrap();
-            let order = row.cmp_and_check(&top_data)?;
+            let order = EventIdx.cmp_and_check(&top_data)?;
             if Ordering::Less == order {
-                *top_data = row;
+                *top_data = EventIdx;
             }
         }
         self.check_err()
     }
 
-    pub fn into_sorted_vec(self) -> Result<Vec<SortRow>> {
+    pub fn into_sorted_vec(self) -> Result<Vec<SortEvent>> {
         let sorted_data = self.events.into_sorted_vec();
         // check is needed here since err may caused by any call of cmp
         if let Some(ref err_msg) = *self.err.as_ref().borrow() {
@@ -145,8 +145,8 @@ impl TopNHeap {
     }
 }
 
-impl Ord for SortRow {
-    fn cmp(&self, right: &SortRow) -> Ordering {
+impl Ord for SortEvent {
+    fn cmp(&self, right: &SortEvent) -> Ordering {
         if let Ok(order) = self.cmp_and_check(right) {
             return order;
         }
@@ -154,16 +154,16 @@ impl Ord for SortRow {
     }
 }
 
-impl PartialEq for SortRow {
-    fn eq(&self, right: &SortRow) -> bool {
+impl PartialEq for SortEvent {
+    fn eq(&self, right: &SortEvent) -> bool {
         self.cmp(right) == Ordering::Equal
     }
 }
 
-impl Eq for SortRow {}
+impl Eq for SortEvent {}
 
-impl PartialOrd for SortRow {
-    fn partial_cmp(&self, rhs: &SortRow) -> Option<Ordering> {
+impl PartialOrd for SortEvent {
+    fn partial_cmp(&self, rhs: &SortEvent) -> Option<Ordering> {
         Some(self.cmp(rhs))
     }
 }
@@ -177,7 +177,7 @@ mod tests {
 
     use crate::OriginCols;
     use codec::prelude::NumberEncoder;
-    use milevadb_query_datatype::codec::table::RowColsDict;
+    use milevadb_query_datatype::codec::Block::EventColsDict;
     use milevadb_query_datatype::codec::Datum;
     use milevadb_query_datatype::expr::EvalContext;
     use einsteindb_util::collections::HashMap;
@@ -289,7 +289,7 @@ mod tests {
 
         for (handle, data, name, count) in test_data {
             let cur_key: Vec<Datum> = vec![name, count];
-            let row_data = RowColsDict::new(HashMap::default(), data.into_bytes());
+            let row_data = EventColsDict::new(HashMap::default(), data.into_bytes());
             topn_heap
                 .try_add_row(
                     OriginCols::new(i64::from(handle), row_data, Arc::default()),
@@ -300,10 +300,10 @@ mod tests {
         }
         let result = topn_heap.into_sorted_vec().unwrap();
         assert_eq!(result.len(), exp.len());
-        for (row, (handle, _, name, count)) in result.iter().zip(exp) {
+        for (EventIdx, (handle, _, name, count)) in result.iter().zip(exp) {
             let exp_tuplespaceInstanton: Vec<Datum> = vec![name, count];
-            assert_eq!(row.data.handle, handle);
-            assert_eq!(row.key, exp_tuplespaceInstanton);
+            assert_eq!(EventIdx.data.handle, handle);
+            assert_eq!(EventIdx.key, exp_tuplespaceInstanton);
         }
     }
 
@@ -317,7 +317,7 @@ mod tests {
             TopNHeap::new(5, Arc::new(RefCell::new(EvalContext::default()))).unwrap();
 
         let std_key: Vec<Datum> = vec![Datum::Bytes(b"aaa".to_vec()), Datum::I64(2)];
-        let row_data = RowColsDict::new(HashMap::default(), b"name:1".to_vec());
+        let row_data = EventColsDict::new(HashMap::default(), b"name:1".to_vec());
         topn_heap
             .try_add_row(
                 OriginCols::new(0 as i64, row_data, Arc::default()),
@@ -327,7 +327,7 @@ mod tests {
             .unwrap();
 
         let std_key2: Vec<Datum> = vec![Datum::Bytes(b"aaa".to_vec()), Datum::I64(3)];
-        let row_data2 = RowColsDict::new(HashMap::default(), b"name:2".to_vec());
+        let row_data2 = EventColsDict::new(HashMap::default(), b"name:2".to_vec());
         topn_heap
             .try_add_row(
                 OriginCols::new(0 as i64, row_data2, Arc::default()),
@@ -337,7 +337,7 @@ mod tests {
             .unwrap();
 
         let bad_key1: Vec<Datum> = vec![Datum::I64(2), Datum::Bytes(b"aaa".to_vec())];
-        let row_data3 = RowColsDict::new(HashMap::default(), b"name:3".to_vec());
+        let row_data3 = EventColsDict::new(HashMap::default(), b"name:3".to_vec());
 
         assert!(topn_heap
             .try_add_row(
@@ -426,7 +426,7 @@ mod tests {
 
         for (handle, data, name, count) in test_data {
             let cur_key: Vec<Datum> = vec![name, count];
-            let row_data = RowColsDict::new(HashMap::default(), data.into_bytes());
+            let row_data = EventColsDict::new(HashMap::default(), data.into_bytes());
             topn_heap
                 .try_add_row(
                     OriginCols::new(i64::from(handle), row_data, Arc::default()),
@@ -438,10 +438,10 @@ mod tests {
 
         let result = topn_heap.into_sorted_vec().unwrap();
         assert_eq!(result.len(), exp.len());
-        for (row, (handle, _, name, count)) in result.iter().zip(exp) {
+        for (EventIdx, (handle, _, name, count)) in result.iter().zip(exp) {
             let exp_tuplespaceInstanton: Vec<Datum> = vec![name, count];
-            assert_eq!(row.data.handle, handle);
-            assert_eq!(row.key, exp_tuplespaceInstanton);
+            assert_eq!(EventIdx.data.handle, handle);
+            assert_eq!(EventIdx.key, exp_tuplespaceInstanton);
         }
     }
 
@@ -461,7 +461,7 @@ mod tests {
         let mut topn_heap =
             TopNHeap::new(0, Arc::new(RefCell::new(EvalContext::default()))).unwrap();
         let cur_key: Vec<Datum> = vec![Datum::I64(1), Datum::I64(2)];
-        let row_data = RowColsDict::new(HashMap::default(), b"ssss".to_vec());
+        let row_data = EventColsDict::new(HashMap::default(), b"ssss".to_vec());
         topn_heap
             .try_add_row(
                 OriginCols::new(i64::from(1), row_data, Arc::default()),

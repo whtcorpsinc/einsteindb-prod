@@ -191,7 +191,7 @@ mod profiling {
         // passing `-- --ignored` to `cargo test -p einsteindb_alloc`.
         //
         // TODO: could probably unignore this by running a second
-        // copy of the executable with MALLOC_CONF set.
+        // copy of the execuBlock with MALLOC_CONF set.
         //
         // TODO: need a test for the dump_prof(None) case, but
         // the cleanup afterward is not simple.

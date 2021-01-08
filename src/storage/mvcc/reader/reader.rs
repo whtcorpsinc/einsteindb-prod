@@ -3,8 +3,8 @@
 use crate::causetStorage::kv::{Cursor, ScanMode, Snapshot, Statistics};
 use crate::causetStorage::tail_pointer::{default_not_found_error, Result};
 use engine_lmdb::properties::MvccProperties;
-use engine_lmdb::LmdbTablePropertiesCollection;
-use engine_promises::{IterOptions, TableProperties, TablePropertiesCollection};
+use engine_lmdb::LmdbBlockPropertiesCollection;
+use engine_promises::{IterOptions, BlockProperties, BlockPropertiesCollection};
 use engine_promises::{CAUSET_DAGGER, CAUSET_WRITE};
 use ekvproto::kvrpcpb::IsolationLevel;
 use std::borrow::Cow;
@@ -443,7 +443,7 @@ impl<S: Snapshot> MvccReader<S> {
 pub fn check_need_gc(
     safe_point: TimeStamp,
     ratio_memory_barrier: f64,
-    write_properties: &LmdbTablePropertiesCollection,
+    write_properties: &LmdbBlockPropertiesCollection,
 ) -> bool {
     // Always GC.
     if ratio_memory_barrier < 1.0 {
@@ -461,7 +461,7 @@ pub fn check_need_gc(
     }
 
     // Note: Since the properties are file-based, it can be false positive.
-    // For example, multiple files can have a different version of the same row.
+    // For example, multiple files can have a different version of the same EventIdx.
 
     // A lot of MVCC versions to GC.
     if props.num_versions as f64 > props.num_rows as f64 * ratio_memory_barrier {
@@ -472,13 +472,13 @@ pub fn check_need_gc(
         return true;
     }
 
-    // A lot of MVCC versions of a single row to GC.
+    // A lot of MVCC versions of a single EventIdx to GC.
     props.max_row_versions > GC_MAX_ROW_VERSIONS_THRESHOLD
 }
 
 fn get_tail_pointer_properties(
     safe_point: TimeStamp,
-    collection: &LmdbTablePropertiesCollection,
+    collection: &LmdbBlockPropertiesCollection,
 ) -> Option<MvccProperties> {
     if collection.is_empty() {
         return None;
@@ -513,7 +513,7 @@ mod tests {
     use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions};
     use engine_lmdb::raw_util::CAUSETOptions;
     use engine_lmdb::{Compat, LmdbSnapshot};
-    use engine_promises::{Mutable, TablePropertiesExt, WriteBatchExt};
+    use engine_promises::{MuBlock, BlockPropertiesExt, WriteBatchExt};
     use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
     use ekvproto::kvrpcpb::IsolationLevel;
     use ekvproto::metapb::{Peer, Brane};
@@ -729,7 +729,7 @@ mod tests {
         causet_opts.set_write_buffer_size(32 * 1024 * 1024);
         if with_properties {
             let f = Box::new(MvccPropertiesCollectorFactory::default());
-            causet_opts.add_table_properties_collector_factory("einsteindb.test-collector", f);
+            causet_opts.add_Block_properties_collector_factory("einsteindb.test-collector", f);
         }
         let causets_opts = vec![
             CAUSETOptions::new(CAUSET_DEFAULT, PrimaryCausetNetworkOptions::new()),

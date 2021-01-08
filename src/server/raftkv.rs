@@ -5,10 +5,10 @@ use std::io::Error as IoError;
 use std::result;
 use std::{sync::atomic::Ordering, sync::Arc, time::Duration};
 
-use engine_lmdb::{LmdbEngine, LmdbSnapshot, LmdbTablePropertiesCollection};
+use engine_lmdb::{LmdbEngine, LmdbSnapshot, LmdbBlockPropertiesCollection};
 use engine_promises::CfName;
 use engine_promises::CAUSET_DEFAULT;
-use engine_promises::{IterOptions, Peekable, ReadOptions, Snapshot, TablePropertiesExt};
+use engine_promises::{IterOptions, Peekable, ReadOptions, Snapshot, BlockPropertiesExt};
 use ekvproto::kvrpcpb::Context;
 use ekvproto::violetabft_cmdpb::{
     CmdType, DeleteConeRequest, DeleteRequest, PutRequest, VioletaBftCmdRequest, VioletaBftCmdResponse,
@@ -466,7 +466,7 @@ where
         causet: CfName,
         spacelike: &[u8],
         lightlike: &[u8],
-    ) -> kv::Result<LmdbTablePropertiesCollection> {
+    ) -> kv::Result<LmdbBlockPropertiesCollection> {
         let spacelike = tuplespaceInstanton::data_key(spacelike);
         let lightlike = tuplespaceInstanton::data_lightlike_key(lightlike);
         self.engine

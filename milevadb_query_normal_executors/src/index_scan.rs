@@ -6,10 +6,10 @@ use ekvproto::interlock::KeyCone;
 use fidelpb::PrimaryCausetInfo;
 use fidelpb::IndexScan;
 
-use super::{scan::InnerFreeDaemon, Row, ScanFreeDaemon, ScanFreeDaemonOptions};
+use super::{scan::InnerFreeDaemon, Event, ScanFreeDaemon, ScanFreeDaemonOptions};
 use milevadb_query_common::causetStorage::CausetStorage;
 use milevadb_query_common::Result;
-use milevadb_query_datatype::codec::table::{self, check_index_key};
+use milevadb_query_datatype::codec::Block::{self, check_index_key};
 use milevadb_query_datatype::expr::EvalContext;
 
 pub struct IndexInnerFreeDaemon {
@@ -36,14 +36,14 @@ impl InnerFreeDaemon for IndexInnerFreeDaemon {
         key: Vec<u8>,
         value: Vec<u8>,
         PrimaryCausets: Arc<Vec<PrimaryCausetInfo>>,
-    ) -> Result<Option<Row>> {
+    ) -> Result<Option<Event>> {
         use byteorder::{BigEndian, ReadBytesExt};
         use milevadb_query_datatype::codec::datum;
         use milevadb_query_datatype::prelude::*;
         use milevadb_query_datatype::FieldTypeFlag;
 
         check_index_key(key.as_slice())?;
-        let (mut values, handle) = box_try!(table::cut_idx_key(key, &self.col_ids));
+        let (mut values, handle) = box_try!(Block::cut_idx_key(key, &self.col_ids));
         let handle = match handle {
             None => box_try!(value.as_slice().read_i64::<BigEndian>()),
             Some(h) => h,
@@ -63,7 +63,7 @@ impl InnerFreeDaemon for IndexInnerFreeDaemon {
             let mut bytes = box_try!(datum::encode_key(ctx, &[handle_datum]));
             values.applightlike(pk_col.get_PrimaryCauset_id(), &mut bytes);
         }
-        Ok(Some(Row::origin(handle, values, PrimaryCausets)))
+        Ok(Some(Event::origin(handle, values, PrimaryCausets)))
     }
 }
 
@@ -133,15 +133,15 @@ pub mod tests {
 
     use milevadb_query_common::causetStorage::test_fixture::FixtureStorage;
     use milevadb_query_datatype::codec::datum::{self, Datum};
-    use milevadb_query_datatype::codec::table::generate_index_data_for_test;
+    use milevadb_query_datatype::codec::Block::generate_index_data_for_test;
 
-    const TABLE_ID: i64 = 1;
+    const Block_ID: i64 = 1;
     const INDEX_ID: i64 = 1;
     const KEY_NUMBER: usize = 10;
 
     // get_idx_cone get cone for index in [("abc",spacelike),("abc", lightlike))
     pub fn get_idx_cone(
-        table_id: i64,
+        Block_id: i64,
         idx_id: i64,
         spacelike: i64,
         lightlike: i64,
@@ -150,8 +150,8 @@ pub mod tests {
         unique: bool,
     ) -> KeyCone {
         let (_, spacelike_key) =
-            generate_index_data_for_test(table_id, idx_id, spacelike, val_spacelike, unique);
-        let (_, lightlike_key) = generate_index_data_for_test(table_id, idx_id, lightlike, val_lightlike, unique);
+            generate_index_data_for_test(Block_id, idx_id, spacelike, val_spacelike, unique);
+        let (_, lightlike_key) = generate_index_data_for_test(Block_id, idx_id, lightlike, val_lightlike, unique);
         let mut key_cone = KeyCone::default();
         key_cone.set_spacelike(spacelike_key);
         key_cone.set_lightlike(lightlike_key);
@@ -160,10 +160,10 @@ pub mod tests {
 
     pub fn prepare_index_data(
         key_number: usize,
-        table_id: i64,
+        Block_id: i64,
         index_id: i64,
         unique: bool,
-    ) -> TableData {
+    ) -> BlockData {
         let cols = vec![
             new_col_info(2, FieldTypeTp::VarChar),
             new_col_info(3, FieldTypeTp::NewDecimal),
@@ -175,7 +175,7 @@ pub mod tests {
         let idx_col_val = Datum::Bytes(b"abc".to_vec());
         for handle in 0..key_number {
             let (expect_row, idx_key) = generate_index_data_for_test(
-                table_id,
+                Block_id,
                 index_id,
                 handle as i64,
                 &idx_col_val,
@@ -191,7 +191,7 @@ pub mod tests {
             };
             kv_data.push((idx_key, value));
         }
-        TableData {
+        BlockData {
             kv_data,
             expect_rows,
             cols,
@@ -199,7 +199,7 @@ pub mod tests {
     }
 
     pub struct IndexTestWrapper {
-        data: TableData,
+        data: BlockData,
         pub store: FixtureStorage,
         pub scan: IndexScan,
         pub cones: Vec<KeyCone>,
@@ -209,7 +209,7 @@ pub mod tests {
     impl IndexTestWrapper {
         fn include_pk_cols() -> IndexTestWrapper {
             let unique = false;
-            let test_data = prepare_index_data(KEY_NUMBER, TABLE_ID, INDEX_ID, unique);
+            let test_data = prepare_index_data(KEY_NUMBER, Block_ID, INDEX_ID, unique);
             let mut wrapper = IndexTestWrapper::new(unique, test_data);
             let mut cols = wrapper.data.cols.clone();
             cols.push(wrapper.data.get_col_pk());
@@ -218,7 +218,7 @@ pub mod tests {
             wrapper
         }
 
-        pub fn new(unique: bool, test_data: TableData) -> IndexTestWrapper {
+        pub fn new(unique: bool, test_data: BlockData) -> IndexTestWrapper {
             let store = FixtureStorage::from(test_data.kv_data.clone());
             let mut scan = IndexScan::default();
             // prepare cols
@@ -229,7 +229,7 @@ pub mod tests {
             let val_spacelike = Datum::Bytes(b"a".to_vec());
             let val_lightlike = Datum::Bytes(b"z".to_vec());
             let cone = get_idx_cone(
-                TABLE_ID,
+                Block_ID,
                 INDEX_ID,
                 0,
                 i64::MAX,
@@ -251,12 +251,12 @@ pub mod tests {
     #[test]
     fn test_multiple_cones() {
         let unique = false;
-        let test_data = prepare_index_data(KEY_NUMBER, TABLE_ID, INDEX_ID, unique);
+        let test_data = prepare_index_data(KEY_NUMBER, Block_ID, INDEX_ID, unique);
         let mut wrapper = IndexTestWrapper::new(unique, test_data);
         let val_spacelike = Datum::Bytes(b"abc".to_vec());
         let val_lightlike = Datum::Bytes(b"abc".to_vec());
         let r1 = get_idx_cone(
-            TABLE_ID,
+            Block_ID,
             INDEX_ID,
             0,
             (KEY_NUMBER / 3) as i64,
@@ -265,7 +265,7 @@ pub mod tests {
             unique,
         );
         let r2 = get_idx_cone(
-            TABLE_ID,
+            Block_ID,
             INDEX_ID,
             (KEY_NUMBER / 3) as i64,
             (KEY_NUMBER / 2) as i64,
@@ -286,13 +286,13 @@ pub mod tests {
         .unwrap();
 
         for handle in 0..KEY_NUMBER / 2 {
-            let row = scanner.next().unwrap().unwrap().take_origin().unwrap();
-            assert_eq!(row.handle, handle as i64);
-            assert_eq!(row.data.len(), wrapper.cols.len());
+            let EventIdx = scanner.next().unwrap().unwrap().take_origin().unwrap();
+            assert_eq!(EventIdx.handle, handle as i64);
+            assert_eq!(EventIdx.data.len(), wrapper.cols.len());
             let expect_row = &wrapper.data.expect_rows[handle];
             for col in &wrapper.cols {
                 let cid = col.get_PrimaryCauset_id();
-                let v = row.data.get(cid).unwrap();
+                let v = EventIdx.data.get(cid).unwrap();
                 assert_eq!(expect_row[&cid], v.to_vec());
             }
         }
@@ -302,20 +302,20 @@ pub mod tests {
     #[test]
     fn test_unique_index_scan() {
         let unique = true;
-        let test_data = prepare_index_data(KEY_NUMBER, TABLE_ID, INDEX_ID, unique);
+        let test_data = prepare_index_data(KEY_NUMBER, Block_ID, INDEX_ID, unique);
         let mut wrapper = IndexTestWrapper::new(unique, test_data);
 
         let val_spacelike = Datum::Bytes(b"abc".to_vec());
         let val_lightlike = Datum::Bytes(b"abc".to_vec());
         // point get
-        let r1 = get_idx_cone(TABLE_ID, INDEX_ID, 0, 1, &val_spacelike, &val_lightlike, unique);
+        let r1 = get_idx_cone(Block_ID, INDEX_ID, 0, 1, &val_spacelike, &val_lightlike, unique);
         // cone seek
-        let r2 = get_idx_cone(TABLE_ID, INDEX_ID, 1, 4, &val_spacelike, &val_lightlike, unique);
+        let r2 = get_idx_cone(Block_ID, INDEX_ID, 1, 4, &val_spacelike, &val_lightlike, unique);
         // point get
-        let r3 = get_idx_cone(TABLE_ID, INDEX_ID, 4, 5, &val_spacelike, &val_lightlike, unique);
+        let r3 = get_idx_cone(Block_ID, INDEX_ID, 4, 5, &val_spacelike, &val_lightlike, unique);
         //cone seek
         let r4 = get_idx_cone(
-            TABLE_ID,
+            Block_ID,
             INDEX_ID,
             5,
             (KEY_NUMBER + 1) as i64,
@@ -324,7 +324,7 @@ pub mod tests {
             unique,
         );
         let r5 = get_idx_cone(
-            TABLE_ID,
+            Block_ID,
             INDEX_ID,
             (KEY_NUMBER + 1) as i64,
             (KEY_NUMBER + 2) as i64,
@@ -344,13 +344,13 @@ pub mod tests {
         )
         .unwrap();
         for handle in 0..KEY_NUMBER {
-            let row = scanner.next().unwrap().unwrap().take_origin().unwrap();
-            assert_eq!(row.handle, handle as i64);
-            assert_eq!(row.data.len(), 2);
+            let EventIdx = scanner.next().unwrap().unwrap().take_origin().unwrap();
+            assert_eq!(EventIdx.handle, handle as i64);
+            assert_eq!(EventIdx.data.len(), 2);
             let expect_row = &wrapper.data.expect_rows[handle];
             for col in &wrapper.cols {
                 let cid = col.get_PrimaryCauset_id();
-                let v = row.data.get(cid).unwrap();
+                let v = EventIdx.data.get(cid).unwrap();
                 assert_eq!(expect_row[&cid], v.to_vec());
             }
         }
@@ -364,14 +364,14 @@ pub mod tests {
     #[test]
     fn test_reverse_scan() {
         let unique = false;
-        let test_data = prepare_index_data(KEY_NUMBER, TABLE_ID, INDEX_ID, unique);
+        let test_data = prepare_index_data(KEY_NUMBER, Block_ID, INDEX_ID, unique);
         let mut wrapper = IndexTestWrapper::new(unique, test_data);
         wrapper.scan.set_desc(true);
 
         let val_spacelike = Datum::Bytes(b"abc".to_vec());
         let val_lightlike = Datum::Bytes(b"abc".to_vec());
         let r1 = get_idx_cone(
-            TABLE_ID,
+            Block_ID,
             INDEX_ID,
             0,
             (KEY_NUMBER / 2) as i64,
@@ -380,7 +380,7 @@ pub mod tests {
             unique,
         );
         let r2 = get_idx_cone(
-            TABLE_ID,
+            Block_ID,
             INDEX_ID,
             (KEY_NUMBER / 2) as i64,
             i64::MAX,
@@ -402,13 +402,13 @@ pub mod tests {
 
         for tid in 0..KEY_NUMBER {
             let handle = KEY_NUMBER - tid - 1;
-            let row = scanner.next().unwrap().unwrap().take_origin().unwrap();
-            assert_eq!(row.handle, handle as i64);
-            assert_eq!(row.data.len(), 2);
+            let EventIdx = scanner.next().unwrap().unwrap().take_origin().unwrap();
+            assert_eq!(EventIdx.handle, handle as i64);
+            assert_eq!(EventIdx.data.len(), 2);
             let expect_row = &wrapper.data.expect_rows[handle];
             for col in &wrapper.cols {
                 let cid = col.get_PrimaryCauset_id();
-                let v = row.data.get(cid).unwrap();
+                let v = EventIdx.data.get(cid).unwrap();
                 assert_eq!(expect_row[&cid], v.to_vec());
             }
         }
@@ -430,15 +430,15 @@ pub mod tests {
         .unwrap();
 
         for handle in 0..KEY_NUMBER {
-            let row = scanner.next().unwrap().unwrap().take_origin().unwrap();
-            assert_eq!(row.handle, handle as i64);
-            assert_eq!(row.data.len(), wrapper.cols.len());
+            let EventIdx = scanner.next().unwrap().unwrap().take_origin().unwrap();
+            assert_eq!(EventIdx.handle, handle as i64);
+            assert_eq!(EventIdx.data.len(), wrapper.cols.len());
             let expect_row = &wrapper.data.expect_rows[handle];
             let handle_datum = datum::Datum::I64(handle as i64);
             let pk = datum::encode_key(&mut EvalContext::default(), &[handle_datum]).unwrap();
             for col in &wrapper.cols {
                 let cid = col.get_PrimaryCauset_id();
-                let v = row.data.get(cid).unwrap();
+                let v = EventIdx.data.get(cid).unwrap();
                 if col.get_pk_handle() {
                     assert_eq!(pk, v.to_vec());
                     continue;

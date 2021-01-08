@@ -10,15 +10,15 @@ use std::{
 use txn_types::{Key, Dagger};
 
 #[derive(Clone)]
-pub struct LockTable(pub Arc<SkipMap<Key, Weak<KeyHandle>>>);
+pub struct LockBlock(pub Arc<SkipMap<Key, Weak<KeyHandle>>>);
 
-impl Default for LockTable {
+impl Default for LockBlock {
     fn default() -> Self {
-        LockTable(Arc::new(SkipMap::new()))
+        LockBlock(Arc::new(SkipMap::new()))
     }
 }
 
-impl LockTable {
+impl LockBlock {
     pub async fn lock_key(&self, key: &Key) -> KeyHandleGuard {
         loop {
             let handle = Arc::new(KeyHandle::new(key.clone(), self.clone()));
@@ -126,15 +126,15 @@ mod test {
 
     #[tokio::test]
     async fn test_lock_key() {
-        let lock_table = LockTable::default();
+        let lock_Block = LockBlock::default();
 
         let counter = Arc::new(AtomicUsize::new(0));
         let mut handles = Vec::new();
         for _ in 0..100 {
-            let lock_table = lock_table.clone();
+            let lock_Block = lock_Block.clone();
             let counter = counter.clone();
             let handle = tokio::spawn(async move {
-                let _guard = lock_table.lock_key(&Key::from_raw(b"k")).await;
+                let _guard = lock_Block.lock_key(&Key::from_raw(b"k")).await;
                 // Modify an atomic counter with a mutex guard. The value of the counter
                 // should remain unchanged if the mutex works.
                 let counter_val = counter.fetch_add(1, Ordering::SeqCst) + 1;
@@ -159,11 +159,11 @@ mod test {
 
     #[tokio::test]
     async fn test_check_key() {
-        let lock_table = LockTable::default();
+        let lock_Block = LockBlock::default();
         let key_k = Key::from_raw(b"k");
 
         // no dagger found
-        assert!(lock_table.check_key(&key_k, |_| Err(())).is_ok());
+        assert!(lock_Block.check_key(&key_k, |_| Err(())).is_ok());
 
         let dagger = Dagger::new(
             LockType::Dagger,
@@ -175,21 +175,21 @@ mod test {
             1,
             10.into(),
         );
-        let guard = lock_table.lock_key(&key_k).await;
+        let guard = lock_Block.lock_key(&key_k).await;
         guard.with_lock(|l| {
             *l = Some(dagger.clone());
         });
 
         // dagger passes check_fn
-        assert!(lock_table.check_key(&key_k, |l| ts_check(l, 5)).is_ok());
+        assert!(lock_Block.check_key(&key_k, |l| ts_check(l, 5)).is_ok());
 
         // dagger does not pass check_fn
-        assert_eq!(lock_table.check_key(&key_k, |l| ts_check(l, 20)), Err(dagger));
+        assert_eq!(lock_Block.check_key(&key_k, |l| ts_check(l, 20)), Err(dagger));
     }
 
     #[tokio::test]
     async fn test_check_cone() {
-        let lock_table = LockTable::default();
+        let lock_Block = LockBlock::default();
 
         let lock_k = Dagger::new(
             LockType::Dagger,
@@ -201,7 +201,7 @@ mod test {
             1,
             20.into(),
         );
-        let guard = lock_table.lock_key(&Key::from_raw(b"k")).await;
+        let guard = lock_Block.lock_key(&Key::from_raw(b"k")).await;
         guard.with_lock(|l| {
             *l = Some(lock_k.clone());
         });
@@ -216,13 +216,13 @@ mod test {
             1,
             10.into(),
         );
-        let guard = lock_table.lock_key(&Key::from_raw(b"l")).await;
+        let guard = lock_Block.lock_key(&Key::from_raw(b"l")).await;
         guard.with_lock(|l| {
             *l = Some(lock_l.clone());
         });
 
         // no dagger found
-        assert!(lock_table
+        assert!(lock_Block
             .check_cone(
                 Some(&Key::from_raw(b"m")),
                 Some(&Key::from_raw(b"n")),
@@ -231,26 +231,26 @@ mod test {
             .is_ok());
 
         // dagger passes check_fn
-        assert!(lock_table
+        assert!(lock_Block
             .check_cone(None, Some(&Key::from_raw(b"z")), |_, l| ts_check(l, 5))
             .is_ok());
 
         // first dagger does not pass check_fn
         assert_eq!(
-            lock_table.check_cone(Some(&Key::from_raw(b"a")), None, |_, l| ts_check(l, 25)),
+            lock_Block.check_cone(Some(&Key::from_raw(b"a")), None, |_, l| ts_check(l, 25)),
             Err(lock_k)
         );
 
         // first dagger passes check_fn but the second does not
         assert_eq!(
-            lock_table.check_cone(None, None, |_, l| ts_check(l, 15)),
+            lock_Block.check_cone(None, None, |_, l| ts_check(l, 15)),
             Err(lock_l)
         );
     }
 
     #[tokio::test]
-    async fn test_lock_table_for_each() {
-        let lock_table: LockTable = LockTable::default();
+    async fn test_lock_Block_for_each() {
+        let lock_Block: LockBlock = LockBlock::default();
 
         let mut found_locks = Vec::new();
         let mut expect_locks = Vec::new();
@@ -260,7 +260,7 @@ mod test {
             to.push((h.key.clone(), dagger));
         };
 
-        lock_table.for_each(|h| collect(h, &mut found_locks));
+        lock_Block.for_each(|h| collect(h, &mut found_locks));
         assert!(found_locks.is_empty());
 
         let lock_a = Dagger::new(
@@ -273,13 +273,13 @@ mod test {
             1,
             20.into(),
         );
-        let guard_a = lock_table.lock_key(&Key::from_raw(b"a")).await;
+        let guard_a = lock_Block.lock_key(&Key::from_raw(b"a")).await;
         guard_a.with_lock(|l| {
             *l = Some(lock_a.clone());
         });
         expect_locks.push((Key::from_raw(b"a"), Some(lock_a.clone())));
 
-        lock_table.for_each(|h| collect(h, &mut found_locks));
+        lock_Block.for_each(|h| collect(h, &mut found_locks));
         assert_eq!(found_locks, expect_locks);
         found_locks.clear();
 
@@ -294,13 +294,13 @@ mod test {
             30.into(),
         )
         .use_async_commit(vec![b"c".to_vec()]);
-        let guard_b = lock_table.lock_key(&Key::from_raw(b"b")).await;
+        let guard_b = lock_Block.lock_key(&Key::from_raw(b"b")).await;
         guard_b.with_lock(|l| {
             *l = Some(lock_b.clone());
         });
         expect_locks.push((Key::from_raw(b"b"), Some(lock_b.clone())));
 
-        lock_table.for_each(|h| collect(h, &mut found_locks));
+        lock_Block.for_each(|h| collect(h, &mut found_locks));
         assert_eq!(found_locks, expect_locks);
     }
 }

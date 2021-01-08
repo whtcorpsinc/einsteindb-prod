@@ -41,7 +41,7 @@ fn test_compact_lock_causet<T: Simulator>(cluster: &mut Cluster<T>) {
         let (k, v) = (format!("k{}", i), format!("value{}", i));
         cluster.must_put_causet(CAUSET_DAGGER, k.as_bytes(), v.as_bytes());
     }
-    // Generate one sst, if there are datas only in one memtable, no compactions will be triggered.
+    // Generate one sst, if there are datas only in one memBlock, no compactions will be triggered.
     flush(cluster);
 
     // Write more 40 bytes, still not reach lock_causet_compact_bytes_memory_barrier,

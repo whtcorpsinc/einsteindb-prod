@@ -6,7 +6,7 @@ use engine_promises::{IterOptions, Iteron, KvEngine, SeekKey, CAUSET_WRITE};
 use error_code::ErrorCodeExt;
 use ekvproto::metapb::Brane;
 use ekvproto::fidelpb::CheckPolicy;
-use milevadb_query_datatype::codec::table as table_codec;
+use milevadb_query_datatype::codec::Block as Block_codec;
 use einsteindb_util::keybuilder::KeyBuilder;
 use txn_types::Key;
 
@@ -17,7 +17,7 @@ use super::Host;
 
 #[derive(Default)]
 pub struct Checker {
-    first_encoded_table_prefix: Option<Vec<u8>>,
+    first_encoded_Block_prefix: Option<Vec<u8>>,
     split_key: Option<Vec<u8>>,
     policy: CheckPolicy,
 }
@@ -27,8 +27,8 @@ where
     E: KvEngine,
 {
     /// Feed tuplespaceInstanton in order to find the split key.
-    /// If `current_data_key` does not belong to `status.first_encoded_table_prefix`.
-    /// it returns the encoded table prefix of `current_data_key`.
+    /// If `current_data_key` does not belong to `status.first_encoded_Block_prefix`.
+    /// it returns the encoded Block prefix of `current_data_key`.
     fn on_kv(&mut self, _: &mut ObserverContext<'_>, entry: &KeyEntry) -> bool {
         if self.split_key.is_some() {
             return true;
@@ -36,23 +36,23 @@ where
 
         let current_encoded_key = tuplespaceInstanton::origin_key(entry.key());
 
-        let split_key = if self.first_encoded_table_prefix.is_some() {
-            if !is_same_table(
-                self.first_encoded_table_prefix.as_ref().unwrap(),
+        let split_key = if self.first_encoded_Block_prefix.is_some() {
+            if !is_same_Block(
+                self.first_encoded_Block_prefix.as_ref().unwrap(),
                 current_encoded_key,
             ) {
-                // Different tables.
+                // Different Blocks.
                 Some(current_encoded_key)
             } else {
                 None
             }
-        } else if is_table_key(current_encoded_key) {
-            // Now we meet the very first table key of this brane.
+        } else if is_Block_key(current_encoded_key) {
+            // Now we meet the very first Block key of this brane.
             Some(current_encoded_key)
         } else {
             None
         };
-        self.split_key = split_key.and_then(to_encoded_table_prefix);
+        self.split_key = split_key.and_then(to_encoded_Block_prefix);
         self.split_key.is_some()
     }
 
@@ -69,11 +69,11 @@ where
 }
 
 #[derive(Default, Clone)]
-pub struct TableCheckObserver;
+pub struct BlockCheckObserver;
 
-impl Interlock for TableCheckObserver {}
+impl Interlock for BlockCheckObserver {}
 
-impl<E> SplitCheckObserver<E> for TableCheckObserver
+impl<E> SplitCheckObserver<E> for BlockCheckObserver
 where
     E: KvEngine,
 {
@@ -84,12 +84,12 @@ where
         engine: &E,
         policy: CheckPolicy,
     ) {
-        if !host.causetg.split_brane_on_table {
+        if !host.causetg.split_brane_on_Block {
             return;
         }
         let brane = ctx.brane();
-        if is_same_table(brane.get_spacelike_key(), brane.get_lightlike_key()) {
-            // Brane is inside a table, skip for saving IO.
+        if is_same_Block(brane.get_spacelike_key(), brane.get_lightlike_key()) {
+            // Brane is inside a Block, skip for saving IO.
             return;
         }
 
@@ -110,11 +110,11 @@ where
         let encoded_spacelike_key = brane.get_spacelike_key();
         let encoded_lightlike_key = tuplespaceInstanton::origin_key(&lightlike_key);
 
-        if encoded_spacelike_key.len() < table_codec::TABLE_PREFIX_KEY_LEN
-            || encoded_lightlike_key.len() < table_codec::TABLE_PREFIX_KEY_LEN
+        if encoded_spacelike_key.len() < Block_codec::Block_PREFIX_KEY_LEN
+            || encoded_lightlike_key.len() < Block_codec::Block_PREFIX_KEY_LEN
         {
             // For now, let us scan brane if encoded_spacelike_key or encoded_lightlike_key
-            // is less than TABLE_PREFIX_KEY_LEN.
+            // is less than Block_PREFIX_KEY_LEN.
             host.add_checker(Box::new(Checker {
                 policy,
                 ..Default::default()
@@ -122,43 +122,43 @@ where
             return;
         }
 
-        let mut first_encoded_table_prefix = None;
+        let mut first_encoded_Block_prefix = None;
         let mut split_key = None;
-        // Table data spacelikes with `TABLE_PREFIX`.
-        // Find out the actual cone of this brane by comparing with `TABLE_PREFIX`.
+        // Block data spacelikes with `Block_PREFIX`.
+        // Find out the actual cone of this brane by comparing with `Block_PREFIX`.
         match (
-            encoded_spacelike_key[..table_codec::TABLE_PREFIX_LEN].cmp(table_codec::TABLE_PREFIX),
-            encoded_lightlike_key[..table_codec::TABLE_PREFIX_LEN].cmp(table_codec::TABLE_PREFIX),
+            encoded_spacelike_key[..Block_codec::Block_PREFIX_LEN].cmp(Block_codec::Block_PREFIX),
+            encoded_lightlike_key[..Block_codec::Block_PREFIX_LEN].cmp(Block_codec::Block_PREFIX),
         ) {
-            // The cone does not cover table data.
+            // The cone does not cover Block data.
             (Ordering::Less, Ordering::Less) | (Ordering::Greater, Ordering::Greater) => return,
 
-            // Following arms matches when the brane contains table data.
-            // Covers all table data.
+            // Following arms matches when the brane contains Block data.
+            // Covers all Block data.
             (Ordering::Less, Ordering::Greater) => {}
-            // The later part contains table data.
+            // The later part contains Block data.
             (Ordering::Less, Ordering::Equal) => {
-                // It spacelikes from non-table area to table area,
+                // It spacelikes from non-Block area to Block area,
                 // try to extract a split key from `encoded_lightlike_key`, and save it in status.
-                split_key = to_encoded_table_prefix(encoded_lightlike_key);
+                split_key = to_encoded_Block_prefix(encoded_lightlike_key);
             }
-            // Brane is in table area.
+            // Brane is in Block area.
             (Ordering::Equal, Ordering::Equal) => {
-                if is_same_table(encoded_spacelike_key, encoded_lightlike_key) {
-                    // Same table.
+                if is_same_Block(encoded_spacelike_key, encoded_lightlike_key) {
+                    // Same Block.
                     return;
                 } else {
-                    // Different tables.
-                    // Note that table id does not grow by 1, so have to use
-                    // `encoded_lightlike_key` to extract a table prefix.
+                    // Different Blocks.
+                    // Note that Block id does not grow by 1, so have to use
+                    // `encoded_lightlike_key` to extract a Block prefix.
                     // See more: https://github.com/whtcorpsinc/milevadb/issues/4727
-                    split_key = to_encoded_table_prefix(encoded_lightlike_key);
+                    split_key = to_encoded_Block_prefix(encoded_lightlike_key);
                 }
             }
-            // The brane spacelikes from tabel area to non-table area.
+            // The brane spacelikes from tabel area to non-Block area.
             (Ordering::Equal, Ordering::Greater) => {
                 // As the comment above, outside needs scan for finding a split key.
-                first_encoded_table_prefix = to_encoded_table_prefix(encoded_spacelike_key);
+                first_encoded_Block_prefix = to_encoded_Block_prefix(encoded_spacelike_key);
             }
             _ => panic!(
                 "spacelike_key {} and lightlike_key {} out of order",
@@ -167,7 +167,7 @@ where
             ),
         }
         host.add_checker(Box::new(Checker {
-            first_encoded_table_prefix,
+            first_encoded_Block_prefix,
             split_key,
             policy,
         }));
@@ -199,9 +199,9 @@ fn last_key_of_brane(db: &impl KvEngine, brane: &Brane) -> Result<Option<Vec<u8>
     }
 }
 
-fn to_encoded_table_prefix(encoded_key: &[u8]) -> Option<Vec<u8>> {
+fn to_encoded_Block_prefix(encoded_key: &[u8]) -> Option<Vec<u8>> {
     if let Ok(raw_key) = Key::from_encoded_slice(encoded_key).to_raw() {
-        table_codec::extract_table_prefix(&raw_key)
+        Block_codec::extract_Block_prefix(&raw_key)
             .map(|k| Key::from_raw(k).into_encoded())
             .ok()
     } else {
@@ -210,18 +210,18 @@ fn to_encoded_table_prefix(encoded_key: &[u8]) -> Option<Vec<u8>> {
 }
 
 // Encode a key like `t{i64}` will applightlike some unnecessary bytes to the output,
-// The first 10 bytes are enough to find out which table this key belongs to.
-const ENCODED_TABLE_TABLE_PREFIX: usize = table_codec::TABLE_PREFIX_KEY_LEN + 1;
+// The first 10 bytes are enough to find out which Block this key belongs to.
+const ENCODED_Block_Block_PREFIX: usize = Block_codec::Block_PREFIX_KEY_LEN + 1;
 
-fn is_table_key(encoded_key: &[u8]) -> bool {
-    encoded_key.spacelikes_with(table_codec::TABLE_PREFIX)
-        && encoded_key.len() >= ENCODED_TABLE_TABLE_PREFIX
+fn is_Block_key(encoded_key: &[u8]) -> bool {
+    encoded_key.spacelikes_with(Block_codec::Block_PREFIX)
+        && encoded_key.len() >= ENCODED_Block_Block_PREFIX
 }
 
-fn is_same_table(left_key: &[u8], right_key: &[u8]) -> bool {
-    is_table_key(left_key)
-        && is_table_key(right_key)
-        && left_key[..ENCODED_TABLE_TABLE_PREFIX] == right_key[..ENCODED_TABLE_TABLE_PREFIX]
+fn is_same_Block(left_key: &[u8], right_key: &[u8]) -> bool {
+    is_Block_key(left_key)
+        && is_Block_key(right_key)
+        && left_key[..ENCODED_Block_Block_PREFIX] == right_key[..ENCODED_Block_Block_PREFIX]
 }
 
 #[causetg(test)]
@@ -235,8 +235,8 @@ mod tests {
 
     use crate::store::{CasualMessage, SplitCheckRunner, SplitCheckTask};
     use engine_lmdb::util::new_engine;
-    use engine_promises::{SyncMutable, ALL_CAUSETS};
-    use milevadb_query_datatype::codec::table::{TABLE_PREFIX, TABLE_PREFIX_KEY_LEN};
+    use engine_promises::{SyncMuBlock, ALL_CAUSETS};
+    use milevadb_query_datatype::codec::Block::{Block_PREFIX, Block_PREFIX_KEY_LEN};
     use einsteindb_util::codec::number::NumberEncoder;
     use einsteindb_util::config::ReadableSize;
     use einsteindb_util::worker::Runnable;
@@ -245,12 +245,12 @@ mod tests {
     use super::*;
     use crate::interlock::{Config, InterlockHost};
 
-    /// Composes table record and index prefix: `t[table_id]`.
+    /// Composes Block record and index prefix: `t[Block_id]`.
     // Port from MilevaDB
-    fn gen_table_prefix(table_id: i64) -> Vec<u8> {
-        let mut buf = Vec::with_capacity(TABLE_PREFIX_KEY_LEN);
-        buf.write_all(TABLE_PREFIX).unwrap();
-        buf.encode_i64(table_id).unwrap();
+    fn gen_Block_prefix(Block_id: i64) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(Block_PREFIX_KEY_LEN);
+        buf.write_all(Block_PREFIX).unwrap();
+        buf.encode_i64(Block_id).unwrap();
         buf
     }
 
@@ -271,7 +271,7 @@ mod tests {
         // Put tuplespaceInstanton, t1_xxx, t2_xxx
         let mut data_tuplespaceInstanton = vec![];
         for i in 1..3 {
-            let mut key = gen_table_prefix(i);
+            let mut key = gen_Block_prefix(i);
             key.extlightlike_from_slice(padding);
             let k = tuplespaceInstanton::data_key(Key::from_raw(&key).as_encoded());
             engine.put_causet(CAUSET_WRITE, &k, &k).unwrap();
@@ -283,12 +283,12 @@ mod tests {
             for (spacelike_id, lightlike_id, want) in cases {
                 brane.set_spacelike_key(
                     spacelike_id
-                        .map(|id| Key::from_raw(&gen_table_prefix(id)).into_encoded())
+                        .map(|id| Key::from_raw(&gen_Block_prefix(id)).into_encoded())
                         .unwrap_or_else(Vec::new),
                 );
                 brane.set_lightlike_key(
                     lightlike_id
-                        .map(|id| Key::from_raw(&gen_table_prefix(id)).into_encoded())
+                        .map(|id| Key::from_raw(&gen_Block_prefix(id)).into_encoded())
                         .unwrap_or_else(Vec::new),
                 );
                 assert_eq!(last_key_of_brane(&engine, &brane).unwrap(), want);
@@ -308,9 +308,9 @@ mod tests {
     }
 
     #[test]
-    fn test_table_check_observer() {
+    fn test_Block_check_observer() {
         let path = Builder::new()
-            .prefix("test_table_check_observer")
+            .prefix("test_Block_check_observer")
             .temfidelir()
             .unwrap();
         let engine = new_engine(path.path().to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();
@@ -325,8 +325,8 @@ mod tests {
         let (stx, _rx) = mpsc::sync_channel(100);
 
         let mut causetg = Config::default();
-        // Enable table split.
-        causetg.split_brane_on_table = true;
+        // Enable Block split.
+        causetg.split_brane_on_Block = true;
 
         // Try to "disable" size split.
         causetg.brane_max_size = ReadableSize::gb(2);
@@ -340,7 +340,7 @@ mod tests {
 
         type Case = (Option<Vec<u8>>, Option<Vec<u8>>, Option<i64>);
         let mut check_cases = |cases: Vec<Case>| {
-            for (encoded_spacelike_key, encoded_lightlike_key, table_id) in cases {
+            for (encoded_spacelike_key, encoded_lightlike_key, Block_id) in cases {
                 brane.set_spacelike_key(encoded_spacelike_key.unwrap_or_else(Vec::new));
                 brane.set_lightlike_key(encoded_lightlike_key.unwrap_or_else(Vec::new));
                 runnable.run(SplitCheckTask::split_check(
@@ -349,8 +349,8 @@ mod tests {
                     CheckPolicy::Scan,
                 ));
 
-                if let Some(id) = table_id {
-                    let key = Key::from_raw(&gen_table_prefix(id));
+                if let Some(id) = Block_id {
+                    let key = Key::from_raw(&gen_Block_prefix(id));
                     loop {
                         match rx.try_recv() {
                             Ok((_, CasualMessage::BraneApproximateSize { .. }))
@@ -377,15 +377,15 @@ mod tests {
             }
         };
 
-        let gen_encoded_table_prefix = |table_id| {
-            let key = Key::from_raw(&gen_table_prefix(table_id));
+        let gen_encoded_Block_prefix = |Block_id| {
+            let key = Key::from_raw(&gen_Block_prefix(Block_id));
             key.into_encoded()
         };
 
         // arbitrary padding.
         let padding = b"_r00000005";
 
-        // Put some tables
+        // Put some Blocks
         // t1_xx, t3_xx
         for i in 1..4 {
             if i % 2 == 0 {
@@ -393,7 +393,7 @@ mod tests {
                 continue;
             }
 
-            let mut key = gen_table_prefix(i);
+            let mut key = gen_Block_prefix(i);
             key.extlightlike_from_slice(padding);
             let s = tuplespaceInstanton::data_key(Key::from_raw(&key).as_encoded());
             engine.put_causet(CAUSET_WRITE, &s, &s).unwrap();
@@ -403,24 +403,24 @@ mod tests {
             // ["", "") => t1
             (None, None, Some(1)),
             // ["t1", "") => t3
-            (Some(gen_encoded_table_prefix(1)), None, Some(3)),
+            (Some(gen_encoded_Block_prefix(1)), None, Some(3)),
             // ["t1", "t5") => t3
             (
-                Some(gen_encoded_table_prefix(1)),
-                Some(gen_encoded_table_prefix(5)),
+                Some(gen_encoded_Block_prefix(1)),
+                Some(gen_encoded_Block_prefix(5)),
                 Some(3),
             ),
             // ["t2", "t4") => t3
             (
-                Some(gen_encoded_table_prefix(2)),
-                Some(gen_encoded_table_prefix(4)),
+                Some(gen_encoded_Block_prefix(2)),
+                Some(gen_encoded_Block_prefix(4)),
                 Some(3),
             ),
         ]);
 
         // Put some data to t3
         for i in 1..4 {
-            let mut key = gen_table_prefix(3);
+            let mut key = gen_Block_prefix(3);
             key.extlightlike_from_slice(format!("{:?}{}", padding, i).as_bytes());
             let s = tuplespaceInstanton::data_key(Key::from_raw(&key).as_encoded());
             engine.put_causet(CAUSET_WRITE, &s, &s).unwrap();
@@ -428,13 +428,13 @@ mod tests {
 
         check_cases(vec![
             // ["t1", "") => t3
-            (Some(gen_encoded_table_prefix(1)), None, Some(3)),
+            (Some(gen_encoded_Block_prefix(1)), None, Some(3)),
             // ["t3", "") => skip
-            (Some(gen_encoded_table_prefix(3)), None, None),
+            (Some(gen_encoded_Block_prefix(3)), None, None),
             // ["t3", "t5") => skip
             (
-                Some(gen_encoded_table_prefix(3)),
-                Some(gen_encoded_table_prefix(5)),
+                Some(gen_encoded_Block_prefix(3)),
+                Some(gen_encoded_Block_prefix(5)),
                 None,
             ),
         ]);
@@ -454,17 +454,17 @@ mod tests {
             // ["", "") => t1
             (None, None, Some(1)),
             // ["", "t1"] => skip
-            (None, Some(gen_encoded_table_prefix(1)), None),
+            (None, Some(gen_encoded_Block_prefix(1)), None),
             // ["", "t3"] => t1
-            (None, Some(gen_encoded_table_prefix(3)), Some(1)),
+            (None, Some(gen_encoded_Block_prefix(3)), Some(1)),
             // ["", "s"] => skip
             (None, Some(b"s".to_vec()), None),
             // ["u", ""] => skip
             (Some(b"u".to_vec()), None, None),
             // ["t3", ""] => None
-            (Some(gen_encoded_table_prefix(3)), None, None),
+            (Some(gen_encoded_Block_prefix(3)), None, None),
             // ["t1", ""] => t3
-            (Some(gen_encoded_table_prefix(1)), None, Some(3)),
+            (Some(gen_encoded_Block_prefix(1)), None, Some(3)),
         ]);
     }
 }

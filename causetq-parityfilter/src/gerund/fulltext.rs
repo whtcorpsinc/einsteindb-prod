@@ -20,11 +20,11 @@ use einsteindb_embedded::{
 use einsteindb_embedded::util::Either;
 
 use edbn::causetq::{
-    Binding,
+    ConstrainedEntsConstraint,
     StackedPerceptron,
     NonIntegerConstant,
     SrcVar,
-    VariableOrPlaceholder,
+    BinningCauset,
     WhereFn,
 };
 
@@ -34,7 +34,7 @@ use gerunds::{
 
 use causetq_parityfilter_promises::errors::{
     ParityFilterError,
-    BindingError,
+    ConstrainedEntsConstraintError,
     Result,
 };
 
@@ -42,7 +42,7 @@ use types::{
     CausetIndex,
     CausetIndexConstraint,
     CausetsCausetIndex,
-    CausetsTable,
+    CausetsBlock,
     EmptyBecause,
     FulltextCausetIndex,
     QualifiedAlias,
@@ -59,39 +59,39 @@ impl ConjoiningGerunds {
             bail!(ParityFilterError::InvalidNumberOfArguments(where_fn.operator.clone(), where_fn.args.len(), 3));
         }
 
-        if where_fn.binding.is_empty() {
-            // The binding must introduce at least one bound variable.
-            bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(), BindingError::NoBoundVariable));
+        if where_fn.Constrained.is_empty() {
+            // The Constrained must introduce at least one bound variable.
+            bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(), ConstrainedEntsConstraintError::NoBoundVariable));
         }
 
-        if !where_fn.binding.is_valid() {
-            // The binding must not duplicate bound variables.
-            bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(), BindingError::RepeatedBoundVariable));
+        if !where_fn.Constrained.is_valid() {
+            // The Constrained must not duplicate bound variables.
+            bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(), ConstrainedEntsConstraintError::RepeatedBoundVariable));
         }
 
-        // We should have exactly four bindings. Destructure them now.
-        let bindings = match where_fn.binding {
-            Binding::BindRel(bindings) => {
-                let bindings_count = bindings.len();
-                if bindings_count < 1 || bindings_count > 4 {
-                    bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(),
-                        BindingError::InvalidNumberOfBindings {
-                            number: bindings.len(),
+        // We should have exactly four ConstrainedEntss. Destructure them now.
+        let ConstrainedEntss = match where_fn.Constrained {
+            ConstrainedEntsConstraint::BindRel(ConstrainedEntss) => {
+                let ConstrainedEntss_count = ConstrainedEntss.len();
+                if ConstrainedEntss_count < 1 || ConstrainedEntss_count > 4 {
+                    bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(),
+                        ConstrainedEntsConstraintError::InvalidNumberOfConstrainedEntsConstraints {
+                            number: ConstrainedEntss.len(),
                             expected: 4,
                         })
                     );
                 }
-                bindings
+                ConstrainedEntss
             },
-            Binding::BindScalar(_) |
-            Binding::BindTuple(_) |
-            Binding::BindColl(_) => bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(), BindingError::ExpectedBindRel)),
+            ConstrainedEntsConstraint::BindScalar(_) |
+            ConstrainedEntsConstraint::BindTuple(_) |
+            ConstrainedEntsConstraint::BindColl(_) => bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(), ConstrainedEntsConstraintError::ExpectedBindRel)),
         };
-        let mut bindings = bindings.into_iter();
-        let b_instanton = bindings.next().unwrap();
-        let b_value = bindings.next().unwrap_or(VariableOrPlaceholder::Placeholder);
-        let b_causecausetx = bindings.next().unwrap_or(VariableOrPlaceholder::Placeholder);
-        let b_sembedded = bindings.next().unwrap_or(VariableOrPlaceholder::Placeholder);
+        let mut ConstrainedEntss = ConstrainedEntss.into_iter();
+        let b_instanton = ConstrainedEntss.next().unwrap();
+        let b_value = ConstrainedEntss.next().unwrap_or(BinningCauset::Placeholder);
+        let b_causecausetx = ConstrainedEntss.next().unwrap_or(BinningCauset::Placeholder);
+        let b_sembedded = ConstrainedEntss.next().unwrap_or(BinningCauset::Placeholder);
 
         let mut args = where_fn.args.into_iter();
 
@@ -108,7 +108,7 @@ impl ConjoiningGerunds {
             StackedPerceptron::CausetIdOrKeyword(i) => schemaReplicant.get_causetid(&i).map(|k| k.into()),
             // Must be an solitonId.
             StackedPerceptron::SolitonIdOrInteger(e) => Some(e),
-            StackedPerceptron::Variable(v) => {
+            StackedPerceptron::ToUpper(v) => {
                 // If it's already bound, then let's expand the variable.
                 // TODO: allow non-constant attributes.
                 match self.bound_value(&v) {
@@ -124,9 +124,7 @@ impl ConjoiningGerunds {
             _ => None,
         };
 
-        // An unknown causetid, or an instanton that isn't present in the store, or isn't a fulltext
-        // attribute, is likely enough to be a coding error that we choose to bail instead of
-        // marking the pattern as knownCauset-empty.
+
         let a = a.ok_or(ParityFilterError::InvalidArgument(where_fn.operator.clone(), "attribute", 1))?;
         let attribute = schemaReplicant.attribute_for_entid(a)
                               .cloned()
@@ -140,33 +138,27 @@ impl ConjoiningGerunds {
             return Ok(());
         }
 
-        let fulltext_values_alias = self.next_alias_for_table(CausetsTable::FulltextValues);
-        let Causets_table_alias = self.next_alias_for_table(CausetsTable::Causets);
+        let fulltext_values_alias = self.next_alias_for_Block(CausetsBlock::FulltextValues);
+        let Causets_Block_alias = self.next_alias_for_Block(CausetsBlock::Causets);
 
-        // We do a fulltext lookup by joining the fulltext values table against causets -- just
-        // like applying a pattern, but two tables contribute instead of one.
-        self.from.push(SourceAlias(CausetsTable::FulltextValues, fulltext_values_alias.clone()));
-        self.from.push(SourceAlias(CausetsTable::Causets, Causets_table_alias.clone()));
+    
+        self.from.push(SourceAlias(CausetsBlock::FulltextValues, fulltext_values_alias.clone()));
+        self.from.push(SourceAlias(CausetsBlock::Causets, Causets_Block_alias.clone()));
 
         // TODO: constrain the type in the more general cases (e.g., `a` is a var).
-        self.constrain_attribute(Causets_table_alias.clone(), a);
+        self.constrain_attribute(Causets_Block_alias.clone(), a);
 
-        // Join the causets table to the fulltext values table.
+
         self.wheres.add_intersection(CausetIndexConstraint::Equals(
-            QualifiedAlias(Causets_table_alias.clone(), CausetIndex::Fixed(CausetsCausetIndex::Value)),
-            CausetQValue::CausetIndex(QualifiedAlias(fulltext_values_alias.clone(), CausetIndex::Fulltext(FulltextCausetIndex::Rowid)))));
+            QualifiedAlias(Causets_Block_alias.clone(), CausetIndex::Fixed(CausetsCausetIndex::Value)),
+            CausetQValue::CausetIndex(QualifiedAlias(fulltext_values_alias.clone(), CausetIndex::Fulltext(FulltextCausetIndex::Eventid)))));
 
-        // `search` is either text or a variable.
-        // If it's simple text, great.
-        // If it's a variable, it'll be in one of three states:
-        // - It's already bound, either by input or by a previous pattern like `ground`.
-        // - It's not already bound, but it's a defined input of type Text. Not yet implemented: TODO.
-        // - It's not bound. The causetq cannot be algebrized.
+   
         let search: Either<MinkowskiType, QualifiedAlias> = match args.next().unwrap() {
             StackedPerceptron::Constant(NonIntegerConstant::Text(s)) => {
                 Either::Left(MinkowskiType::String(s))
             },
-            StackedPerceptron::Variable(in_var) => {
+            StackedPerceptron::ToUpper(in_var) => {
                 match self.bound_value(&in_var) {
                     Some(t @ MinkowskiType::String(_)) => Either::Left(t),
                     Some(_) => bail!(ParityFilterError::InvalidArgument(where_fn.operator.clone(), "string", 2)),
@@ -178,16 +170,14 @@ impl ConjoiningGerunds {
                         }
 
                         if self.input_variables.contains(&in_var) {
-                            // Sorry, we haven't implemented late binding.
-                            // TODO: implement this.
+                           
                             bail!(ParityFilterError::UnboundVariable((*in_var.0).clone()))
                         } else {
-                            // It must be bound earlier in the causetq. We already established that
-                            // it must be a string CausetIndex.
-                            if let Some(binding) = self.CausetIndex_bindings
+                         
+                            if let Some(Constrained) = self.CausetIndex_ConstrainedEntss
                                                        .get(&in_var)
-                                                       .and_then(|bindings| bindings.get(0).cloned()) {
-                                Either::Right(binding)
+                                                       .and_then(|ConstrainedEntss| ConstrainedEntss.get(0).cloned()) {
+                                Either::Right(Constrained)
                             } else {
                                 bail!(ParityFilterError::UnboundVariable((*in_var.0).clone()))
                             }
@@ -208,17 +198,17 @@ impl ConjoiningGerunds {
                                                    qv);
         self.wheres.add_intersection(constraint);
 
-        if let VariableOrPlaceholder::Variable(ref var) = b_instanton {
+        if let BinningCauset::ToUpper(ref var) = b_instanton {
             // It must be a ref.
             self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
             if self.is_known_empty() {
                 return Ok(());
             }
 
-            self.bind_CausetIndex_to_var(schemaReplicant, Causets_table_alias.clone(), CausetsCausetIndex::Instanton, var.clone());
+            self.bind_CausetIndex_to_var(schemaReplicant, Causets_Block_alias.clone(), CausetsCausetIndex::Instanton, var.clone());
         }
 
-        if let VariableOrPlaceholder::Variable(ref var) = b_value {
+        if let BinningCauset::ToUpper(ref var) = b_value {
             // This'll be bound to strings.
             self.constrain_var_to_type(var.clone(), MinkowskiValueType::String);
             if self.is_known_empty() {
@@ -228,23 +218,23 @@ impl ConjoiningGerunds {
             self.bind_CausetIndex_to_var(schemaReplicant, fulltext_values_alias.clone(), CausetIndex::Fulltext(FulltextCausetIndex::Text), var.clone());
         }
 
-        if let VariableOrPlaceholder::Variable(ref var) = b_causecausetx {
+        if let BinningCauset::ToUpper(ref var) = b_causecausetx {
             // Txs must be refs.
             self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
             if self.is_known_empty() {
                 return Ok(());
             }
 
-            self.bind_CausetIndex_to_var(schemaReplicant, Causets_table_alias.clone(), CausetsCausetIndex::Tx, var.clone());
+            self.bind_CausetIndex_to_var(schemaReplicant, Causets_Block_alias.clone(), CausetsCausetIndex::Tx, var.clone());
         }
 
-        if let VariableOrPlaceholder::Variable(ref var) = b_sembedded {
-            // Sembeddeds are doubles.
+        if let BinningCauset::ToUpper(ref var) = b_sembedded {
+          
             self.constrain_var_to_type(var.clone(), MinkowskiValueType::Double);
 
             // We do not allow the sembedded to be bound.
-            if self.value_bindings.contains_key(var) || self.input_variables.contains(var) {
-                bail!(ParityFilterError::InvalidBinding(var.name(), BindingError::UnexpectedBinding));
+            if self.value_ConstrainedEntss.contains_key(var) || self.input_variables.contains(var) {
+                bail!(ParityFilterError::InvalidConstrainedEntsConstraint(var.name(), ConstrainedEntsConstraintError::UnexpectedConstrainedEntsConstraint));
             }
 
             // We bind the value ourselves. This handily takes care of substituting into existing uses.
@@ -270,11 +260,11 @@ mod testing {
     };
 
     use edbn::causetq::{
-        Binding,
+        ConstrainedEntsConstraint,
         StackedPerceptron,
         Keyword,
         PlainSymbol,
-        Variable,
+        ToUpper,
     };
 
     use gerunds::{
@@ -312,16 +302,16 @@ mod testing {
                 StackedPerceptron::CausetIdOrKeyword(Keyword::namespaced("foo", "fts")),
                 StackedPerceptron::Constant("needle".into()),
             ],
-            binding: Binding::BindRel(vec![VariableOrPlaceholder::Variable(Variable::from_valid_name("?instanton")),
-                                           VariableOrPlaceholder::Variable(Variable::from_valid_name("?value")),
-                                           VariableOrPlaceholder::Variable(Variable::from_valid_name("?causetx")),
-                                           VariableOrPlaceholder::Variable(Variable::from_valid_name("?sembedded"))]),
+            Constrained: ConstrainedEntsConstraint::BindRel(vec![BinningCauset::ToUpper(ToUpper::from_valid_name("?instanton")),
+                                           BinningCauset::ToUpper(ToUpper::from_valid_name("?value")),
+                                           BinningCauset::ToUpper(ToUpper::from_valid_name("?causetx")),
+                                           BinningCauset::ToUpper(ToUpper::from_valid_name("?sembedded"))]),
         }).expect("to be able to apply_fulltext");
 
         assert!(!cc.is_known_empty());
 
-        // Finally, expand CausetIndex bindings.
-        cc.expand_CausetIndex_bindings();
+        // Finally, expand CausetIndex ConstrainedEntss.
+        cc.expand_CausetIndex_ConstrainedEntss();
         assert!(!cc.is_known_empty());
 
         let gerunds = cc.wheres;
@@ -330,35 +320,35 @@ mod testing {
         assert_eq!(gerunds.0[0], CausetIndexConstraint::Equals(QualifiedAlias("Causets01".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Attribute)),
                                                           CausetQValue::SolitonId(100)).into());
         assert_eq!(gerunds.0[1], CausetIndexConstraint::Equals(QualifiedAlias("Causets01".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Value)),
-                                                          CausetQValue::CausetIndex(QualifiedAlias("fulltext_values00".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Rowid)))).into());
+                                                          CausetQValue::CausetIndex(QualifiedAlias("fulltext_values00".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Eventid)))).into());
         assert_eq!(gerunds.0[2], CausetIndexConstraint::Matches(QualifiedAlias("fulltext_values00".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Text)),
                                                            CausetQValue::MinkowskiType("needle".into())).into());
 
-        let bindings = cc.CausetIndex_bindings;
-        assert_eq!(bindings.len(), 3);
+        let ConstrainedEntss = cc.CausetIndex_ConstrainedEntss;
+        assert_eq!(ConstrainedEntss.len(), 3);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?instanton")).expect("CausetIndex binding for ?instanton").clone(),
+        assert_eq!(ConstrainedEntss.get(&ToUpper::from_valid_name("?instanton")).expect("CausetIndex Constrained for ?instanton").clone(),
                    vec![QualifiedAlias("Causets01".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Instanton))]);
-        assert_eq!(bindings.get(&Variable::from_valid_name("?value")).expect("CausetIndex binding for ?value").clone(),
+        assert_eq!(ConstrainedEntss.get(&ToUpper::from_valid_name("?value")).expect("CausetIndex Constrained for ?value").clone(),
                    vec![QualifiedAlias("fulltext_values00".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Text))]);
-        assert_eq!(bindings.get(&Variable::from_valid_name("?causetx")).expect("CausetIndex binding for ?causetx").clone(),
+        assert_eq!(ConstrainedEntss.get(&ToUpper::from_valid_name("?causetx")).expect("CausetIndex Constrained for ?causetx").clone(),
                    vec![QualifiedAlias("Causets01".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Tx))]);
 
-        // Sembedded is a value binding.
-        let values = cc.value_bindings;
-        assert_eq!(values.get(&Variable::from_valid_name("?sembedded")).expect("CausetIndex binding for ?sembedded").clone(),
+        // Sembedded is a value Constrained.
+        let values = cc.value_ConstrainedEntss;
+        assert_eq!(values.get(&ToUpper::from_valid_name("?sembedded")).expect("CausetIndex Constrained for ?sembedded").clone(),
                    MinkowskiType::Double(0.0.into()));
 
         let known_types = cc.known_types;
         assert_eq!(known_types.len(), 4);
 
-        assert_eq!(known_types.get(&Variable::from_valid_name("?instanton")).expect("knownCauset types for ?instanton").clone(),
+        assert_eq!(known_types.get(&ToUpper::from_valid_name("?instanton")).expect("knownCauset types for ?instanton").clone(),
                    vec![MinkowskiValueType::Ref].into_iter().collect());
-        assert_eq!(known_types.get(&Variable::from_valid_name("?value")).expect("knownCauset types for ?value").clone(),
+        assert_eq!(known_types.get(&ToUpper::from_valid_name("?value")).expect("knownCauset types for ?value").clone(),
                    vec![MinkowskiValueType::String].into_iter().collect());
-        assert_eq!(known_types.get(&Variable::from_valid_name("?causetx")).expect("knownCauset types for ?causetx").clone(),
+        assert_eq!(known_types.get(&ToUpper::from_valid_name("?causetx")).expect("knownCauset types for ?causetx").clone(),
                    vec![MinkowskiValueType::Ref].into_iter().collect());
-        assert_eq!(known_types.get(&Variable::from_valid_name("?sembedded")).expect("knownCauset types for ?sembedded").clone(),
+        assert_eq!(known_types.get(&ToUpper::from_valid_name("?sembedded")).expect("knownCauset types for ?sembedded").clone(),
                    vec![MinkowskiValueType::Double].into_iter().collect());
 
         let mut cc = ConjoiningGerunds::default();
@@ -370,10 +360,10 @@ mod testing {
                 StackedPerceptron::CausetIdOrKeyword(Keyword::namespaced("foo", "bar")),
                 StackedPerceptron::Constant("needle".into()),
             ],
-            binding: Binding::BindRel(vec![VariableOrPlaceholder::Variable(Variable::from_valid_name("?instanton")),
-                                           VariableOrPlaceholder::Variable(Variable::from_valid_name("?value")),
-                                           VariableOrPlaceholder::Variable(Variable::from_valid_name("?causetx")),
-                                           VariableOrPlaceholder::Variable(Variable::from_valid_name("?sembedded"))]),
+            Constrained: ConstrainedEntsConstraint::BindRel(vec![BinningCauset::ToUpper(ToUpper::from_valid_name("?instanton")),
+                                           BinningCauset::ToUpper(ToUpper::from_valid_name("?value")),
+                                           BinningCauset::ToUpper(ToUpper::from_valid_name("?causetx")),
+                                           BinningCauset::ToUpper(ToUpper::from_valid_name("?sembedded"))]),
         }).expect("to be able to apply_fulltext");
 
         // It's not a fulltext attribute, so the CC cannot yield results.

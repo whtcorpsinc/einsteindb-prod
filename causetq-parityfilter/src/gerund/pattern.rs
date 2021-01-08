@@ -22,11 +22,11 @@ use einsteindb_embedded::{
 
 use edbn::causetq::{
     NonIntegerConstant,
-    Pattern,
-    PatternValuePlace,
-    PatternNonValuePlace,
+    TuringString,
+    TuringStringValuePlace,
+    TuringStringNonValuePlace,
     SrcVar,
-    Variable,
+    ToUpper,
 };
 
 use gerunds::{
@@ -38,7 +38,7 @@ use types::{
     CausetsCausetIndex,
     EmptyBecause,
     EvolvedNonValuePlace,
-    EvolvedPattern,
+    EvolvedTuringString,
     EvolvedValuePlace,
     PlaceOrEmpty,
     SourceAlias,
@@ -57,19 +57,19 @@ pub fn into_typed_value(nic: NonIntegerConstant) -> MinkowskiType {
     }
 }
 
-/// Application of patterns.
+/// Application of TuringStrings.
 impl ConjoiningGerunds {
 
-    /// Apply the constraints in the provided pattern to this CC.
+    /// Apply the constraints in the provided TuringString to this CC.
     ///
     /// This is a single-pass process, which means it is naturally incomplete, failing to take into
-    /// account all information spread across two patterns.
+    /// account all information spread across two TuringStrings.
     ///
-    /// If the constraints cannot be satisfied -- for example, if this pattern includes a numeric
+    /// If the constraints cannot be satisfied -- for example, if this TuringString includes a numeric
     /// attribute and a string value -- then the `empty_because` field on the CC is flipped and
     /// the function returns.
     ///
-    /// A pattern being impossible to satisfy isn't necessarily a bad thing -- this causetq might
+    /// A TuringString being impossible to satisfy isn't necessarily a bad thing -- this causetq might
     /// have branched gerunds that apply to different knowledge bases, and might refer to
     /// vocabulary that isn't (yet) used in this one.
     ///
@@ -79,7 +79,7 @@ impl ConjoiningGerunds {
     /// There's a lot more we can do here and later by examining the
     /// attribute:
     ///
-    /// - If it's unique, and we have patterns like
+    /// - If it's unique, and we have TuringStrings like
     ///
     ///     [?x :foo/unique 5] [?x :foo/unique ?y]
     ///
@@ -89,13 +89,13 @@ impl ConjoiningGerunds {
     /// - The same, if it's cardinality-one and the instanton is knownCauset.
     ///
     /// - If there's a value index on this attribute, we might want to
-    ///   run this pattern early in the causetq.
+    ///   run this TuringString early in the causetq.
     ///
     /// - A unique-valued attribute can sometimes be rewritten into an
     ///   existence subcausetq instead of a join.
     ///
     /// This method is only public for use from `or.rs`.
-    pub(crate) fn apply_pattern_gerund_for_alias(&mut self, knownCauset: KnownCauset, pattern: &EvolvedPattern, alias: &SourceAlias) {
+    pub(crate) fn apply_TuringString_gerund_for_alias(&mut self, knownCauset: KnownCauset, TuringString: &EvolvedTuringString, alias: &SourceAlias) {
         if self.is_known_empty() {
             return;
         }
@@ -105,30 +105,30 @@ impl ConjoiningGerunds {
         // to being typed as Ref.
         // Sorry for the duplication; Rust makes it a pain to abstract this.
 
-        // The transaction part of a pattern must be an solitonId, variable, or placeholder.
-        self.constrain_to_causecausetx(&pattern.causetx);
-        self.constrain_to_ref(&pattern.instanton);
-        self.constrain_to_ref(&pattern.attribute);
+        // The transaction part of a TuringString must be an solitonId, variable, or placeholder.
+        self.constrain_to_causecausetx(&TuringString.causetx);
+        self.constrain_to_ref(&TuringString.instanton);
+        self.constrain_to_ref(&TuringString.attribute);
 
         let ref col = alias.1;
 
         let schemaReplicant = knownCauset.schemaReplicant;
-        match pattern.instanton {
+        match TuringString.instanton {
             EvolvedNonValuePlace::Placeholder =>
-                // Placeholders don't contribute any CausetIndex bindings, nor do
+                // Placeholders don't contribute any CausetIndex ConstrainedEntss, nor do
                 // they constrain the causetq -- there's no need to produce
                 // IS NOT NULL, because we don't store nulls in our schemaReplicant.
                 (),
-            EvolvedNonValuePlace::Variable(ref v) =>
+            EvolvedNonValuePlace::ToUpper(ref v) =>
                 self.bind_CausetIndex_to_var(schemaReplicant, col.clone(), CausetsCausetIndex::Instanton, v.clone()),
             EvolvedNonValuePlace::SolitonId(solitonId) =>
                 self.constrain_CausetIndex_to_instanton(col.clone(), CausetsCausetIndex::Instanton, solitonId),
         }
 
-        match pattern.attribute {
+        match TuringString.attribute {
             EvolvedNonValuePlace::Placeholder =>
                 (),
-            EvolvedNonValuePlace::Variable(ref v) =>
+            EvolvedNonValuePlace::ToUpper(ref v) =>
                 self.bind_CausetIndex_to_var(schemaReplicant, col.clone(), CausetsCausetIndex::Attribute, v.clone()),
             EvolvedNonValuePlace::SolitonId(solitonId) => {
                 if !schemaReplicant.is_attribute(solitonId) {
@@ -141,18 +141,18 @@ impl ConjoiningGerunds {
             },
         }
 
-        // Determine if the pattern's value type is knownCauset.
+        // Determine if the TuringString's value type is knownCauset.
         // We do so by examining the value place and the attribute.
         // At this point it's possible that the type of the value is
-        // inconsistent with the attribute; in that case this pattern
+        // inconsistent with the attribute; in that case this TuringString
         // cannot return results, and we short-circuit.
-        let value_type = self.get_value_type(schemaReplicant, pattern);
+        let value_type = self.get_value_type(schemaReplicant, TuringString);
 
-        match pattern.value {
+        match TuringString.value {
             EvolvedValuePlace::Placeholder =>
                 (),
 
-            EvolvedValuePlace::Variable(ref v) => {
+            EvolvedValuePlace::ToUpper(ref v) => {
                 if let Some(this_type) = value_type {
                     // Wouldn't it be nice if we didn't need to clone in the found case?
                     // It doesn't matter too much: collisons won't be too frequent.
@@ -182,7 +182,7 @@ impl ConjoiningGerunds {
                 if let Some(MinkowskiValueType::Ref) = value_type {
                     self.constrain_CausetIndex_to_instanton(col.clone(), CausetsCausetIndex::Value, i);
                 } else {
-                    // If we have a pattern like:
+                    // If we have a TuringString like:
                     //
                     //   `[123 ?a 1]`
                     //
@@ -223,7 +223,7 @@ impl ConjoiningGerunds {
                 // TODO: don't allocate.
                 let typed_value = c.clone();
                 if !typed_value.is_congruent_with(value_type) {
-                    // If the attribute and its value don't match, the pattern must fail.
+                    // If the attribute and its value don't match, the TuringString must fail.
                     // We can never have a congruence failure if `value_type` is `None`, so we
                     // forcibly unwrap here.
                     let value_type = value_type.expect("Congruence failure but couldn't unwrap");
@@ -258,9 +258,9 @@ impl ConjoiningGerunds {
             },
         }
 
-        match pattern.causetx {
+        match TuringString.causetx {
             EvolvedNonValuePlace::Placeholder => (),
-            EvolvedNonValuePlace::Variable(ref v) => {
+            EvolvedNonValuePlace::ToUpper(ref v) => {
                 self.bind_CausetIndex_to_var(schemaReplicant, col.clone(), CausetsCausetIndex::Tx, v.clone());
             },
             EvolvedNonValuePlace::SolitonId(solitonId) => {
@@ -269,7 +269,7 @@ impl ConjoiningGerunds {
         }
     }
 
-    fn reverse_lookup(&mut self, knownCauset: KnownCauset, var: &Variable, attr: SolitonId, val: &MinkowskiType) -> bool {
+    fn reverse_lookup(&mut self, knownCauset: KnownCauset, var: &ToUpper, attr: SolitonId, val: &MinkowskiType) -> bool {
         if let Some(attribute) = knownCauset.schemaReplicant.attribute_for_entid(attr) {
             let unique = attribute.unique.is_some();
             if unique {
@@ -315,20 +315,20 @@ impl ConjoiningGerunds {
     }
 
     // TODO: generalize.
-    // TODO: use constant values -- extract transformation code from apply_pattern_gerund_for_alias.
-    // TODO: loop over all patterns until no more immutable_memTcam values apply?
-    fn attempt_cache_lookup(&mut self, knownCauset: KnownCauset, pattern: &EvolvedPattern) -> bool {
+    // TODO: use constant values -- extract transformation code from apply_TuringString_gerund_for_alias.
+    // TODO: loop over all TuringStrings until no more immuBlock_memTcam values apply?
+    fn attempt_cache_lookup(&mut self, knownCauset: KnownCauset, TuringString: &EvolvedTuringString) -> bool {
         // Precondition: default source. If it's not default, don't call this.
-        assert!(pattern.source == SrcVar::DefaultSrc);
+        assert!(TuringString.source == SrcVar::DefaultSrc);
 
         let schemaReplicant = knownCauset.schemaReplicant;
 
-        if pattern.causetx != EvolvedNonValuePlace::Placeholder {
+        if TuringString.causetx != EvolvedNonValuePlace::Placeholder {
             return false;
         }
 
-        // See if we can use the immutable_memTcam.
-        match pattern.attribute {
+        // See if we can use the immuBlock_memTcam.
+        match TuringString.attribute {
             EvolvedNonValuePlace::SolitonId(attr) => {
                 if !schemaReplicant.is_attribute(attr) {
                     // Furthermore, that solitonId must resolve to an attribute. If it doesn't, this
@@ -341,17 +341,17 @@ impl ConjoiningGerunds {
                 let cached_reverse = knownCauset.is_attribute_cached_reverse(attr);
 
                 if (cached_forward || cached_reverse) &&
-                   pattern.causetx == EvolvedNonValuePlace::Placeholder {
+                   TuringString.causetx == EvolvedNonValuePlace::Placeholder {
 
                     let attribute = schemaReplicant.attribute_for_entid(attr).unwrap();
 
-                    // There are two patterns we can handle:
+                    // There are two TuringStrings we can handle:
                     //     [?e :some/unique 123 _ _]     -- reverse lookup
                     //     [123 :some/attr ?v _ _]       -- forward lookup
-                    match pattern.instanton {
+                    match TuringString.instanton {
                         // Reverse lookup.
-                        EvolvedNonValuePlace::Variable(ref var) => {
-                            match pattern.value {
+                        EvolvedNonValuePlace::ToUpper(ref var) => {
+                            match TuringString.value {
                                 // TODO: SolitonIdOrInteger etc.
                                 EvolvedValuePlace::CausetIdOrKeyword(ref kw) => {
                                     match attribute.value_type {
@@ -377,14 +377,14 @@ impl ConjoiningGerunds {
                                         return self.reverse_lookup(knownCauset, var, attr, val);
                                     }
                                 }
-                                _ => {},      // TODO: check constant values against immutable_memTcam.
+                                _ => {},      // TODO: check constant values against immuBlock_memTcam.
                             }
                         },
 
                         // Forward lookup.
                         EvolvedNonValuePlace::SolitonId(instanton) => {
-                            match pattern.value {
-                                EvolvedValuePlace::Variable(ref var) => {
+                            match TuringString.value {
+                                EvolvedValuePlace::ToUpper(ref var) => {
                                     if cached_forward {
                                         match knownCauset.get_value_for_entid(knownCauset.schemaReplicant, attr, instanton) {
                                             None => {
@@ -401,7 +401,7 @@ impl ConjoiningGerunds {
                                         }
                                     }
                                 }
-                                _ => {},      // TODO: check constant values against immutable_memTcam.
+                                _ => {},      // TODO: check constant values against immuBlock_memTcam.
                             }
                         },
                         _ => {},
@@ -413,14 +413,13 @@ impl ConjoiningGerunds {
         false
     }
 
-    /// Transform a pattern place into a narrower type.
-    /// If that's impossible, returns Empty.
-    fn make_evolved_non_value(&self, knownCauset: &KnownCauset, col: CausetsCausetIndex, non_value: PatternNonValuePlace) -> PlaceOrEmpty<EvolvedNonValuePlace> {
+
+    fn make_evolved_non_value(&self, knownCauset: &KnownCauset, col: CausetsCausetIndex, non_value: TuringStringNonValuePlace) -> PlaceOrEmpty<EvolvedNonValuePlace> {
         use self::PlaceOrEmpty::*;
         match non_value {
-            PatternNonValuePlace::Placeholder => Place(EvolvedNonValuePlace::Placeholder),
-            PatternNonValuePlace::SolitonId(e) => Place(EvolvedNonValuePlace::SolitonId(e)),
-            PatternNonValuePlace::CausetId(kw) => {
+            TuringStringNonValuePlace::Placeholder => Place(EvolvedNonValuePlace::Placeholder),
+            TuringStringNonValuePlace::SolitonId(e) => Place(EvolvedNonValuePlace::SolitonId(e)),
+            TuringStringNonValuePlace::CausetId(kw) => {
                 // Resolve the causetid.
                 if let Some(solitonId) = knownCauset.schemaReplicant.get_causetid(&kw) {
                     Place(EvolvedNonValuePlace::SolitonId(solitonId.into()))
@@ -428,10 +427,10 @@ impl ConjoiningGerunds {
                     Empty(EmptyBecause::UnresolvedCausetId((&*kw).clone()))
                 }
             },
-            PatternNonValuePlace::Variable(var) => {
+            TuringStringNonValuePlace::ToUpper(var) => {
                 // See if we have it!
                 match self.bound_value(&var) {
-                    None => Place(EvolvedNonValuePlace::Variable(var)),
+                    None => Place(EvolvedNonValuePlace::ToUpper(var)),
                     Some(MinkowskiType::Ref(solitonId)) => Place(EvolvedNonValuePlace::SolitonId(solitonId)),
                     Some(MinkowskiType::Keyword(kw)) => {
                         // We'll allow this only if it's an causetid.
@@ -442,23 +441,23 @@ impl ConjoiningGerunds {
                         }
                     },
                     Some(v) => {
-                        Empty(EmptyBecause::InvalidBinding(col.into(), v))
+                        Empty(EmptyBecause::InvalidConstrainedEntsConstraint(col.into(), v))
                     },
                 }
             },
         }
     }
 
-    fn make_evolved_instanton(&self, knownCauset: &KnownCauset, instanton: PatternNonValuePlace) -> PlaceOrEmpty<EvolvedNonValuePlace> {
+    fn make_evolved_instanton(&self, knownCauset: &KnownCauset, instanton: TuringStringNonValuePlace) -> PlaceOrEmpty<EvolvedNonValuePlace> {
         self.make_evolved_non_value(knownCauset, CausetsCausetIndex::Instanton, instanton)
     }
 
-    fn make_evolved_causecausetx(&self, knownCauset: &KnownCauset, causetx: PatternNonValuePlace) -> PlaceOrEmpty<EvolvedNonValuePlace> {
-        // TODO: make sure that, if it's an solitonId, it names a causetx.
+    fn make_evolved_causecausetx(&self, knownCauset: &KnownCauset, causetx: TuringStringNonValuePlace) -> PlaceOrEmpty<EvolvedNonValuePlace> {
+
         self.make_evolved_non_value(knownCauset, CausetsCausetIndex::Tx, causetx)
     }
 
-    pub(crate) fn make_evolved_attribute(&self, knownCauset: &KnownCauset, attribute: PatternNonValuePlace) -> PlaceOrEmpty<(EvolvedNonValuePlace, Option<MinkowskiValueType>)> {
+    pub(crate) fn make_evolved_attribute(&self, knownCauset: &KnownCauset, attribute: TuringStringNonValuePlace) -> PlaceOrEmpty<(EvolvedNonValuePlace, Option<MinkowskiValueType>)> {
         use self::PlaceOrEmpty::*;
         self.make_evolved_non_value(knownCauset, CausetsCausetIndex::Attribute, attribute)
             .and_then(|a| {
@@ -478,11 +477,11 @@ impl ConjoiningGerunds {
     pub(crate) fn make_evolved_value(&self,
                                      knownCauset: &KnownCauset,
                                      value_type: Option<MinkowskiValueType>,
-                                     value: PatternValuePlace) -> PlaceOrEmpty<EvolvedValuePlace> {
+                                     value: TuringStringValuePlace) -> PlaceOrEmpty<EvolvedValuePlace> {
         use self::PlaceOrEmpty::*;
         match value {
-            PatternValuePlace::Placeholder => Place(EvolvedValuePlace::Placeholder),
-            PatternValuePlace::SolitonIdOrInteger(e) => {
+            TuringStringValuePlace::Placeholder => Place(EvolvedValuePlace::Placeholder),
+            TuringStringValuePlace::SolitonIdOrInteger(e) => {
                 match value_type {
                     Some(MinkowskiValueType::Ref) => Place(EvolvedValuePlace::SolitonId(e)),
                     Some(MinkowskiValueType::Long) => Place(EvolvedValuePlace::Value(MinkowskiType::Long(e))),
@@ -491,7 +490,7 @@ impl ConjoiningGerunds {
                     None => Place(EvolvedValuePlace::SolitonIdOrInteger(e)),
                 }
             },
-            PatternValuePlace::CausetIdOrKeyword(kw) => {
+            TuringStringValuePlace::CausetIdOrKeyword(kw) => {
                 match value_type {
                     Some(MinkowskiValueType::Ref) => {
                         // Resolve the causetid.
@@ -512,10 +511,10 @@ impl ConjoiningGerunds {
                     },
                 }
             },
-            PatternValuePlace::Variable(var) => {
+            TuringStringValuePlace::ToUpper(var) => {
                 // See if we have it!
                 match self.bound_value(&var) {
-                    None => Place(EvolvedValuePlace::Variable(var)),
+                    None => Place(EvolvedValuePlace::ToUpper(var)),
                     Some(MinkowskiType::Ref(solitonId)) => {
                         if let Some(empty) = self.can_constrain_var_to_type(&var, MinkowskiValueType::Ref) {
                             Empty(empty)
@@ -532,14 +531,14 @@ impl ConjoiningGerunds {
                     },
                 }
             },
-            PatternValuePlace::Constant(nic) => {
+            TuringStringValuePlace::Constant(nic) => {
                 Place(EvolvedValuePlace::Value(into_typed_value(nic)))
             },
         }
     }
 
-    pub(crate) fn make_evolved_pattern(&self, knownCauset: KnownCauset, pattern: Pattern) -> PlaceOrEmpty<EvolvedPattern> {
-        let (e, a, v, causetx, source) = (pattern.instanton, pattern.attribute, pattern.value, pattern.causetx, pattern.source);
+    pub(crate) fn make_evolved_TuringString(&self, knownCauset: KnownCauset, TuringString: TuringString) -> PlaceOrEmpty<EvolvedTuringString> {
+        let (e, a, v, causetx, source) = (TuringString.instanton, TuringString.attribute, TuringString.value, TuringString.causetx, TuringString.source);
         use self::PlaceOrEmpty::*;
         match self.make_evolved_instanton(&knownCauset, e) {
             Empty(because) => Empty(because),
@@ -553,7 +552,7 @@ impl ConjoiningGerunds {
                                 match self.make_evolved_causecausetx(&knownCauset, causetx) {
                                     Empty(because) => Empty(because),
                                     Place(causetx) => {
-                                        PlaceOrEmpty::Place(EvolvedPattern {
+                                        PlaceOrEmpty::Place(EvolvedTuringString {
                                             source: source.unwrap_or(SrcVar::DefaultSrc),
                                             instanton: e,
                                             attribute: a,
@@ -570,16 +569,16 @@ impl ConjoiningGerunds {
         }
     }
 
-    /// Re-examine the pattern to see if it can be specialized or is now knownCauset to fail.
+    /// Re-examine the TuringString to see if it can be specialized or is now knownCauset to fail.
     #[allow(unused_variables)]
-    pub(crate) fn evolve_pattern(&mut self, knownCauset: KnownCauset, mut pattern: EvolvedPattern) -> PlaceOrEmpty<EvolvedPattern> {
+    pub(crate) fn evolve_TuringString(&mut self, knownCauset: KnownCauset, mut TuringString: EvolvedTuringString) -> PlaceOrEmpty<EvolvedTuringString> {
         use self::PlaceOrEmpty::*;
 
         let mut new_instanton: Option<EvolvedNonValuePlace> = None;
         let mut new_value: Option<EvolvedValuePlace> = None;
 
-        match &pattern.instanton {
-            &EvolvedNonValuePlace::Variable(ref var) => {
+        match &TuringString.instanton {
+            &EvolvedNonValuePlace::ToUpper(ref var) => {
                 // See if we have it yet!
                 match self.bound_value(&var) {
                     None => (),
@@ -597,8 +596,8 @@ impl ConjoiningGerunds {
             },
             _ => (),
         }
-        match &pattern.value {
-            &EvolvedValuePlace::Variable(ref var) => {
+        match &TuringString.value {
+            &EvolvedValuePlace::ToUpper(ref var) => {
                 // See if we have it yet!
                 match self.bound_value(&var) {
                     None => (),
@@ -612,38 +611,38 @@ impl ConjoiningGerunds {
 
 
         if let Some(e) = new_instanton {
-            pattern.instanton = e;
+            TuringString.instanton = e;
         }
         if let Some(v) = new_value {
-            pattern.value = v;
+            TuringString.value = v;
         }
-        Place(pattern)
+        Place(TuringString)
     }
 
     #[cfg(test)]
-    pub(crate) fn apply_parsed_pattern(&mut self, knownCauset: KnownCauset, pattern: Pattern) {
+    pub(crate) fn apply_parsed_TuringString(&mut self, knownCauset: KnownCauset, TuringString: TuringString) {
         use self::PlaceOrEmpty::*;
-        match self.make_evolved_pattern(knownCauset, pattern) {
+        match self.make_evolved_TuringString(knownCauset, TuringString) {
             Empty(e) => self.mark_known_empty(e),
-            Place(p) => self.apply_pattern(knownCauset, p),
+            Place(p) => self.apply_TuringString(knownCauset, p),
         };
     }
 
-    pub(crate) fn apply_pattern(&mut self, knownCauset: KnownCauset, pattern: EvolvedPattern) {
+    pub(crate) fn apply_TuringString(&mut self, knownCauset: KnownCauset, TuringString: EvolvedTuringString) {
         // For now we only support the default source.
-        if pattern.source != SrcVar::DefaultSrc {
+        if TuringString.source != SrcVar::DefaultSrc {
             unimplemented!();
         }
 
-        if self.attempt_cache_lookup(knownCauset, &pattern) {
+        if self.attempt_cache_lookup(knownCauset, &TuringString) {
             return;
         }
 
-        if let Some(alias) = self.alias_table(knownCauset.schemaReplicant, &pattern) {
-            self.apply_pattern_gerund_for_alias(knownCauset, &pattern, &alias);
+        if let Some(alias) = self.alias_Block(knownCauset.schemaReplicant, &TuringString) {
+            self.apply_TuringString_gerund_for_alias(knownCauset, &TuringString, &alias);
             self.from.push(alias);
         } else {
-            // We didn't determine a table, likely because there was a mismatch
+            // We didn't determine a Block, likely because there was a mismatch
             // between an attribute and a value.
             // We know we cannot return a result, so we short-circuit here.
             self.mark_known_empty(EmptyBecause::AttributeLookupFailed);
@@ -672,7 +671,7 @@ mod testing {
 
     use edbn::causetq::{
         Keyword,
-        Variable,
+        ToUpper,
     };
 
     use gerunds::{
@@ -685,7 +684,7 @@ mod testing {
     use types::{
         CausetIndex,
         CausetIndexConstraint,
-        CausetsTable,
+        CausetsBlock,
         QualifiedAlias,
         CausetQValue,
         SourceAlias,
@@ -708,12 +707,12 @@ mod testing {
         let schemaReplicant = SchemaReplicant::default();
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
 
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(Variable::from_valid_name("?x")),
+            instanton: TuringStringNonValuePlace::ToUpper(ToUpper::from_valid_name("?x")),
             attribute: causetid("foo", "bar"),
-            value: PatternValuePlace::Constant(NonIntegerConstant::Boolean(true)),
-            causetx: PatternNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::Constant(NonIntegerConstant::Boolean(true)),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
         assert!(cc.is_known_empty());
@@ -727,19 +726,19 @@ mod testing {
         associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "bar"), 99);
 
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(Variable::from_valid_name("?x")),
+            instanton: TuringStringNonValuePlace::ToUpper(ToUpper::from_valid_name("?x")),
             attribute: causetid("foo", "bar"),
-            value: PatternValuePlace::Constant(NonIntegerConstant::Boolean(true)),
-            causetx: PatternNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::Constant(NonIntegerConstant::Boolean(true)),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
         assert!(cc.is_known_empty());
     }
 
     #[test]
-    fn test_apply_simple_pattern() {
+    fn test_apply_simple_TuringString() {
         let mut cc = ConjoiningGerunds::default();
         let mut schemaReplicant = SchemaReplicant::default();
 
@@ -749,14 +748,14 @@ mod testing {
             ..Default::default()
         });
 
-        let x = Variable::from_valid_name("?x");
+        let x = ToUpper::from_valid_name("?x");
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
             attribute: causetid("foo", "bar"),
-            value: PatternValuePlace::Constant(NonIntegerConstant::Boolean(true)),
-            causetx: PatternNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::Constant(NonIntegerConstant::Boolean(true)),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
         // println!("{:#?}", cc);
@@ -767,13 +766,13 @@ mod testing {
 
         // After this, we know a lot of things:
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, "Causets00".to_string())]);
+        assert_eq!(cc.from, vec![SourceAlias(CausetsBlock::Causets, "Causets00".to_string())]);
 
         // ?x must be a ref.
         assert_eq!(cc.known_type(&x).unwrap(), MinkowskiValueType::Ref);
 
         // ?x is bound to Causets0.e.
-        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
+        assert_eq!(cc.CausetIndex_ConstrainedEntss.get(&x).unwrap(), &vec![d0_e.clone()]);
 
         // Our 'where' gerunds are two:
         // - Causets0.a = 99
@@ -786,18 +785,18 @@ mod testing {
     }
 
     #[test]
-    fn test_apply_unattributed_pattern() {
+    fn test_apply_unattributed_TuringString() {
         let mut cc = ConjoiningGerunds::default();
         let schemaReplicant = SchemaReplicant::default();
 
-        let x = Variable::from_valid_name("?x");
+        let x = ToUpper::from_valid_name("?x");
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
-            attribute: PatternNonValuePlace::Placeholder,
-            value: PatternValuePlace::Constant(NonIntegerConstant::Boolean(true)),
-            causetx: PatternNonValuePlace::Placeholder,
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
+            attribute: TuringStringNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::Constant(NonIntegerConstant::Boolean(true)),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
         // println!("{:#?}", cc);
@@ -806,18 +805,15 @@ mod testing {
         let d0_v = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Value);
 
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, "Causets00".to_string())]);
+        assert_eq!(cc.from, vec![SourceAlias(CausetsBlock::Causets, "Causets00".to_string())]);
 
         // ?x must be a ref.
         assert_eq!(cc.known_type(&x).unwrap(), MinkowskiValueType::Ref);
 
         // ?x is bound to Causets0.e.
-        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
+        assert_eq!(cc.CausetIndex_ConstrainedEntss.get(&x).unwrap(), &vec![d0_e.clone()]);
 
-        // Our 'where' gerunds are two:
-        // - Causets0.v = true
-        // - Causets0.value_type_tag = boolean
-        // TODO: implement expand_type_tags.
+     
         assert_eq!(cc.wheres, vec![
                    CausetIndexConstraint::Equals(d0_v, CausetQValue::MinkowskiType(MinkowskiType::Boolean(true))),
                    CausetIndexConstraint::has_unit_type("Causets00".to_string(), MinkowskiValueType::Boolean),
@@ -826,7 +822,7 @@ mod testing {
 
     /// This test ensures that we do less work if we know the attribute thanks to a var lookup.
     #[test]
-    fn test_apply_unattributed_but_bound_pattern_with_returned() {
+    fn test_apply_unattributed_but_bound_TuringString_with_returned() {
         let mut cc = ConjoiningGerunds::default();
         let mut schemaReplicant = SchemaReplicant::default();
         associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "bar"), 99);
@@ -835,19 +831,19 @@ mod testing {
             ..Default::default()
         });
 
-        let x = Variable::from_valid_name("?x");
-        let a = Variable::from_valid_name("?a");
-        let v = Variable::from_valid_name("?v");
+        let x = ToUpper::from_valid_name("?x");
+        let a = ToUpper::from_valid_name("?a");
+        let v = ToUpper::from_valid_name("?v");
 
         cc.input_variables.insert(a.clone());
-        cc.value_bindings.insert(a.clone(), MinkowskiType::typed_ns_keyword("foo", "bar"));
+        cc.value_ConstrainedEntss.insert(a.clone(), MinkowskiType::typed_ns_keyword("foo", "bar"));
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
-            attribute: PatternNonValuePlace::Variable(a.clone()),
-            value: PatternValuePlace::Variable(v.clone()),
-            causetx: PatternNonValuePlace::Placeholder,
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
+            attribute: TuringStringNonValuePlace::ToUpper(a.clone()),
+            value: TuringStringValuePlace::ToUpper(v.clone()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
         // println!("{:#?}", cc);
@@ -856,7 +852,7 @@ mod testing {
         let d0_a = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Attribute);
 
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, "Causets00".to_string())]);
+        assert_eq!(cc.from, vec![SourceAlias(CausetsBlock::Causets, "Causets00".to_string())]);
 
         // ?x must be a ref, and ?v a boolean.
         assert_eq!(cc.known_type(&x), Some(MinkowskiValueType::Ref));
@@ -866,7 +862,7 @@ mod testing {
         assert_eq!(cc.known_type(&v), Some(MinkowskiValueType::Boolean));
 
         // ?x is bound to Causets0.e.
-        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
+        assert_eq!(cc.CausetIndex_ConstrainedEntss.get(&x).unwrap(), &vec![d0_e.clone()]);
         assert_eq!(cc.wheres, vec![
                    CausetIndexConstraint::Equals(d0_a, CausetQValue::SolitonId(99)),
         ].into());
@@ -878,43 +874,43 @@ mod testing {
         let mut cc = ConjoiningGerunds::default();
         let schemaReplicant = SchemaReplicant::default();
 
-        let x = Variable::from_valid_name("?x");
-        let a = Variable::from_valid_name("?a");
-        let v = Variable::from_valid_name("?v");
+        let x = ToUpper::from_valid_name("?x");
+        let a = ToUpper::from_valid_name("?a");
+        let v = ToUpper::from_valid_name("?v");
         let hello = MinkowskiType::typed_string("hello");
 
         cc.input_variables.insert(a.clone());
-        cc.value_bindings.insert(a.clone(), hello.clone());
+        cc.value_ConstrainedEntss.insert(a.clone(), hello.clone());
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
-            attribute: PatternNonValuePlace::Variable(a.clone()),
-            value: PatternValuePlace::Variable(v.clone()),
-            causetx: PatternNonValuePlace::Placeholder,
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
+            attribute: TuringStringNonValuePlace::ToUpper(a.clone()),
+            value: TuringStringValuePlace::ToUpper(v.clone()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
         assert!(cc.is_known_empty());
-        assert_eq!(cc.empty_because.unwrap(), EmptyBecause::InvalidBinding(CausetIndex::Fixed(CausetsCausetIndex::Attribute), hello));
+        assert_eq!(cc.empty_because.unwrap(), EmptyBecause::InvalidConstrainedEntsConstraint(CausetIndex::Fixed(CausetsCausetIndex::Attribute), hello));
     }
 
 
     /// This test ensures that we causetq all_Causets if we're possibly retrieving a string.
     #[test]
-    fn test_apply_unattributed_pattern_with_returned() {
+    fn test_apply_unattributed_TuringString_with_returned() {
         let mut cc = ConjoiningGerunds::default();
         let schemaReplicant = SchemaReplicant::default();
 
-        let x = Variable::from_valid_name("?x");
-        let a = Variable::from_valid_name("?a");
-        let v = Variable::from_valid_name("?v");
+        let x = ToUpper::from_valid_name("?x");
+        let a = ToUpper::from_valid_name("?a");
+        let v = ToUpper::from_valid_name("?v");
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
-            attribute: PatternNonValuePlace::Variable(a.clone()),
-            value: PatternValuePlace::Variable(v.clone()),
-            causetx: PatternNonValuePlace::Placeholder,
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
+            attribute: TuringStringNonValuePlace::ToUpper(a.clone()),
+            value: TuringStringValuePlace::ToUpper(v.clone()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
         // println!("{:#?}", cc);
@@ -922,30 +918,30 @@ mod testing {
         let d0_e = QualifiedAlias::new("all_Causets00".to_string(), CausetsCausetIndex::Instanton);
 
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::AllCausets, "all_Causets00".to_string())]);
+        assert_eq!(cc.from, vec![SourceAlias(CausetsBlock::AllCausets, "all_Causets00".to_string())]);
 
         // ?x must be a ref.
         assert_eq!(cc.known_type(&x).unwrap(), MinkowskiValueType::Ref);
 
         // ?x is bound to Causets0.e.
-        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
+        assert_eq!(cc.CausetIndex_ConstrainedEntss.get(&x).unwrap(), &vec![d0_e.clone()]);
         assert_eq!(cc.wheres, vec![].into());
     }
 
     /// This test ensures that we causetq all_Causets if we're looking for a string.
     #[test]
-    fn test_apply_unattributed_pattern_with_string_value() {
+    fn test_apply_unattributed_TuringString_with_string_value() {
         let mut cc = ConjoiningGerunds::default();
         let schemaReplicant = SchemaReplicant::default();
 
-        let x = Variable::from_valid_name("?x");
+        let x = ToUpper::from_valid_name("?x");
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
-            attribute: PatternNonValuePlace::Placeholder,
-            value: PatternValuePlace::Constant("hello".into()),
-            causetx: PatternNonValuePlace::Placeholder,
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
+            attribute: TuringStringNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::Constant("hello".into()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
         // println!("{:#?}", cc);
@@ -954,13 +950,13 @@ mod testing {
         let d0_v = QualifiedAlias::new("all_Causets00".to_string(), CausetsCausetIndex::Value);
 
         assert!(!cc.is_known_empty());
-        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::AllCausets, "all_Causets00".to_string())]);
+        assert_eq!(cc.from, vec![SourceAlias(CausetsBlock::AllCausets, "all_Causets00".to_string())]);
 
         // ?x must be a ref.
         assert_eq!(cc.known_type(&x).unwrap(), MinkowskiValueType::Ref);
 
         // ?x is bound to Causets0.e.
-        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(), &vec![d0_e.clone()]);
+        assert_eq!(cc.CausetIndex_ConstrainedEntss.get(&x).unwrap(), &vec![d0_e.clone()]);
 
         // Our 'where' gerunds are two:
         // - Causets0.v = 'hello'
@@ -973,7 +969,7 @@ mod testing {
     }
 
     #[test]
-    fn test_apply_two_patterns() {
+    fn test_apply_two_TuringStrings() {
         let mut cc = ConjoiningGerunds::default();
         let mut schemaReplicant = SchemaReplicant::default();
 
@@ -988,26 +984,26 @@ mod testing {
             ..Default::default()
         });
 
-        let x = Variable::from_valid_name("?x");
-        let y = Variable::from_valid_name("?y");
+        let x = ToUpper::from_valid_name("?x");
+        let y = ToUpper::from_valid_name("?y");
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
             attribute: causetid("foo", "roz"),
-            value: PatternValuePlace::Constant("idgoeshere".into()),
-            causetx: PatternNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::Constant("idgoeshere".into()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
             attribute: causetid("foo", "bar"),
-            value: PatternValuePlace::Variable(y.clone()),
-            causetx: PatternNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::ToUpper(y.clone()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
-        // Finally, expand CausetIndex bindings to get the overlaps for ?x.
-        cc.expand_CausetIndex_bindings();
+        // Finally, expand CausetIndex ConstrainedEntss to get the overlaps for ?x.
+        cc.expand_CausetIndex_ConstrainedEntss();
 
         println!("{:#?}", cc);
 
@@ -1019,15 +1015,15 @@ mod testing {
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.from, vec![
-                   SourceAlias(CausetsTable::Causets, "Causets00".to_string()),
-                   SourceAlias(CausetsTable::Causets, "Causets01".to_string()),
+                   SourceAlias(CausetsBlock::Causets, "Causets00".to_string()),
+                   SourceAlias(CausetsBlock::Causets, "Causets01".to_string()),
         ]);
 
         // ?x must be a ref.
         assert_eq!(cc.known_type(&x).unwrap(), MinkowskiValueType::Ref);
 
         // ?x is bound to Causets0.e and Causets1.e.
-        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(),
+        assert_eq!(cc.CausetIndex_ConstrainedEntss.get(&x).unwrap(),
                    &vec![
                        d0_e.clone(),
                        d1_e.clone(),
@@ -1047,7 +1043,7 @@ mod testing {
     }
 
     #[test]
-    fn test_value_bindings() {
+    fn test_value_ConstrainedEntss() {
         let mut schemaReplicant = SchemaReplicant::default();
 
         associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "bar"), 99);
@@ -1056,22 +1052,22 @@ mod testing {
             ..Default::default()
         });
 
-        let x = Variable::from_valid_name("?x");
-        let y = Variable::from_valid_name("?y");
+        let x = ToUpper::from_valid_name("?x");
+        let y = ToUpper::from_valid_name("?y");
 
-        let b: BTreeMap<Variable, MinkowskiType> =
+        let b: BTreeMap<ToUpper, MinkowskiType> =
             vec![(y.clone(), MinkowskiType::Boolean(true))].into_iter().collect();
         let inputs = CausetQInputs::with_values(b);
-        let variables: BTreeSet<Variable> = vec![Variable::from_valid_name("?y")].into_iter().collect();
+        let variables: BTreeSet<ToUpper> = vec![ToUpper::from_valid_name("?y")].into_iter().collect();
         let mut cc = ConjoiningGerunds::with_inputs(variables, inputs);
 
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
             attribute: causetid("foo", "bar"),
-            value: PatternValuePlace::Variable(y.clone()),
-            causetx: PatternNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::ToUpper(y.clone()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
         let d0_e = QualifiedAlias::new("Causets00".to_string(), CausetsCausetIndex::Instanton);
@@ -1084,18 +1080,18 @@ mod testing {
                    CausetIndexConstraint::Equals(d0_v, CausetQValue::MinkowskiType(MinkowskiType::Boolean(true))),
         ].into());
 
-        // There is no binding for ?y.
-        assert!(!cc.CausetIndex_bindings.contains_key(&y));
+        // There is no Constrained for ?y.
+        assert!(!cc.CausetIndex_ConstrainedEntss.contains_key(&y));
 
         // ?x is bound to the instanton.
-        assert_eq!(cc.CausetIndex_bindings.get(&x).unwrap(),
+        assert_eq!(cc.CausetIndex_ConstrainedEntss.get(&x).unwrap(),
                    &vec![d0_e.clone()]);
     }
 
     #[test]
     /// Bind a value to a variable in a causetq where the type of the value disagrees with the type of
     /// the variable inferred from knownCauset attributes.
-    fn test_value_bindings_type_disagreement() {
+    fn test_value_ConstrainedEntss_type_disagreement() {
         let mut schemaReplicant = SchemaReplicant::default();
 
         associate_causetId(&mut schemaReplicant, Keyword::namespaced("foo", "bar"), 99);
@@ -1104,25 +1100,25 @@ mod testing {
             ..Default::default()
         });
 
-        let x = Variable::from_valid_name("?x");
-        let y = Variable::from_valid_name("?y");
+        let x = ToUpper::from_valid_name("?x");
+        let y = ToUpper::from_valid_name("?y");
 
-        let b: BTreeMap<Variable, MinkowskiType> =
+        let b: BTreeMap<ToUpper, MinkowskiType> =
             vec![(y.clone(), MinkowskiType::Long(42))].into_iter().collect();
         let inputs = CausetQInputs::with_values(b);
-        let variables: BTreeSet<Variable> = vec![Variable::from_valid_name("?y")].into_iter().collect();
+        let variables: BTreeSet<ToUpper> = vec![ToUpper::from_valid_name("?y")].into_iter().collect();
         let mut cc = ConjoiningGerunds::with_inputs(variables, inputs);
 
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
             attribute: causetid("foo", "bar"),
-            value: PatternValuePlace::Variable(y.clone()),
-            causetx: PatternNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::ToUpper(y.clone()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
-        // The type of the provided binding doesn't match the type of the attribute.
+        // The type of the provided Constrained doesn't match the type of the attribute.
         assert!(cc.is_known_empty());
     }
 
@@ -1140,33 +1136,33 @@ mod testing {
             ..Default::default()
         });
 
-        let x = Variable::from_valid_name("?x");
-        let y = Variable::from_valid_name("?y");
+        let x = ToUpper::from_valid_name("?x");
+        let y = ToUpper::from_valid_name("?y");
 
-        let b: BTreeMap<Variable, MinkowskiType> =
+        let b: BTreeMap<ToUpper, MinkowskiType> =
             vec![(y.clone(), MinkowskiType::Long(42))].into_iter().collect();
         let inputs = CausetQInputs::with_values(b);
-        let variables: BTreeSet<Variable> = vec![Variable::from_valid_name("?y")].into_iter().collect();
+        let variables: BTreeSet<ToUpper> = vec![ToUpper::from_valid_name("?y")].into_iter().collect();
         let mut cc = ConjoiningGerunds::with_inputs(variables, inputs);
 
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
             attribute: causetid("foo", "bar"),
-            value: PatternValuePlace::Variable(y.clone()),
-            causetx: PatternNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::ToUpper(y.clone()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
-        // The type of the provided binding doesn't match the type of the attribute.
+        // The type of the provided Constrained doesn't match the type of the attribute.
         assert!(cc.is_known_empty());
     }
 
     #[test]
-    /// Apply two patterns with differently typed attributes, but sharing a variable in the value
+    /// Apply two TuringStrings with differently typed attributes, but sharing a variable in the value
     /// place. No value can bind to a variable and match both types, so the CC is knownCauset to return
     /// no results.
-    fn test_apply_two_conflicting_known_patterns() {
+    fn test_apply_two_conflicting_known_TuringStrings() {
         let mut cc = ConjoiningGerunds::default();
         let mut schemaReplicant = SchemaReplicant::default();
 
@@ -1182,26 +1178,26 @@ mod testing {
             ..Default::default()
         });
 
-        let x = Variable::from_valid_name("?x");
-        let y = Variable::from_valid_name("?y");
+        let x = ToUpper::from_valid_name("?x");
+        let y = ToUpper::from_valid_name("?y");
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
             attribute: causetid("foo", "roz"),
-            value: PatternValuePlace::Variable(y.clone()),
-            causetx: PatternNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::ToUpper(y.clone()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
             attribute: causetid("foo", "bar"),
-            value: PatternValuePlace::Variable(y.clone()),
-            causetx: PatternNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::ToUpper(y.clone()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
-        // Finally, expand CausetIndex bindings to get the overlaps for ?x.
-        cc.expand_CausetIndex_bindings();
+        // Finally, expand CausetIndex ConstrainedEntss to get the overlaps for ?x.
+        cc.expand_CausetIndex_ConstrainedEntss();
 
         assert!(cc.is_known_empty());
         assert_eq!(cc.empty_because.unwrap(),
@@ -1217,34 +1213,34 @@ mod testing {
     /// This test needs range inference in order to succeed: we must deduce that ?y must
     /// simultaneously be a boolean-valued attribute and a ref-valued attribute, and thus
     /// the CC can never return results.
-    fn test_apply_two_implicitly_conflicting_patterns() {
+    fn test_apply_two_implicitly_conflicting_TuringStrings() {
         let mut cc = ConjoiningGerunds::default();
         let schemaReplicant = SchemaReplicant::default();
 
         // [:find ?x :where
         //  [?x ?y true]
         //  [?z ?y ?x]]
-        let x = Variable::from_valid_name("?x");
-        let y = Variable::from_valid_name("?y");
-        let z = Variable::from_valid_name("?z");
+        let x = ToUpper::from_valid_name("?x");
+        let y = ToUpper::from_valid_name("?y");
+        let z = ToUpper::from_valid_name("?z");
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
-            attribute: PatternNonValuePlace::Variable(y.clone()),
-            value: PatternValuePlace::Constant(NonIntegerConstant::Boolean(true)),
-            causetx: PatternNonValuePlace::Placeholder,
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
+            attribute: TuringStringNonValuePlace::ToUpper(y.clone()),
+            value: TuringStringValuePlace::Constant(NonIntegerConstant::Boolean(true)),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(z.clone()),
-            attribute: PatternNonValuePlace::Variable(y.clone()),
-            value: PatternValuePlace::Variable(x.clone()),
-            causetx: PatternNonValuePlace::Placeholder,
+            instanton: TuringStringNonValuePlace::ToUpper(z.clone()),
+            attribute: TuringStringNonValuePlace::ToUpper(y.clone()),
+            value: TuringStringValuePlace::ToUpper(x.clone()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
-        // Finally, expand CausetIndex bindings to get the overlaps for ?x.
-        cc.expand_CausetIndex_bindings();
+        // Finally, expand CausetIndex ConstrainedEntss to get the overlaps for ?x.
+        cc.expand_CausetIndex_ConstrainedEntss();
 
         assert!(cc.is_known_empty());
         assert_eq!(cc.empty_because.unwrap(),
@@ -1264,8 +1260,8 @@ mod testing {
             value_type: MinkowskiValueType::Boolean,
             ..Default::default()
         });
-        let e = Variable::from_valid_name("?e");
-        let v = Variable::from_valid_name("?v");
+        let e = ToUpper::from_valid_name("?e");
+        let v = ToUpper::from_valid_name("?v");
         let cc = alg(&schemaReplicant, causetq);
         assert_eq!(cc.known_types.get(&e), Some(&MinkowskiSet::of_one(MinkowskiValueType::Ref)));
         assert_eq!(cc.known_types.get(&v), Some(&MinkowskiSet::of_one(MinkowskiValueType::Boolean)));

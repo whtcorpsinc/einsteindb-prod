@@ -32,7 +32,7 @@ use einsteindb_embedded::{
 use edbn::causetq::{
     Keyword,
     PlainSymbol,
-    Variable,
+    ToUpper,
 };
 
 use causetq_parityfilter_promises::errors::{
@@ -113,7 +113,7 @@ fn test_instant_predicates_require_instants() {
     assert!(cc.is_known_empty());
     assert_eq!(cc.empty_because.unwrap(),
                EmptyBecause::TypeMismatch {
-                   var: Variable::from_valid_name("?t"),
+                   var: ToUpper::from_valid_name("?t"),
                    existing: MinkowskiSet::of_one(MinkowskiValueType::Instant),
                    desired: MinkowskiSet::of_numeric_types(),
     });
@@ -125,7 +125,7 @@ fn test_instant_predicates_require_instants() {
                     [(< ?t 1234512345)]]"#;
     let cc = alg(knownCauset, causetq);
     assert!(!cc.is_known_empty());
-    assert_eq!(cc.known_type(&Variable::from_valid_name("?t")).expect("?t is knownCauset"),
+    assert_eq!(cc.known_type(&ToUpper::from_valid_name("?t")).expect("?t is knownCauset"),
                MinkowskiValueType::Double);
 }
 
@@ -134,7 +134,7 @@ fn test_instant_predicates_accepts_var() {
     let schemaReplicant = prepopulated_schemaReplicant();
     let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
 
-    let instant_var = Variable::from_valid_name("?time");
+    let instant_var = ToUpper::from_valid_name("?time");
     let instant_value = MinkowskiType::Instant(DateTime::parse_from_rfc3339("2018-04-11T19:17:00.000Z")
                     .map(|t| t.with_timezone(&Utc))
                     .expect("expected valid date"));
@@ -163,7 +163,7 @@ fn test_numeric_predicates_accepts_var() {
     let schemaReplicant = prepopulated_schemaReplicant();
     let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
 
-    let numeric_var = Variable::from_valid_name("?long");
+    let numeric_var = ToUpper::from_valid_name("?long");
     let numeric_value = MinkowskiType::Long(1234567);
 
     // You can't use a string for an inequality: this is a straight-up error.

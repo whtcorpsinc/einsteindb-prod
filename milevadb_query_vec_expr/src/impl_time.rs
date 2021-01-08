@@ -412,7 +412,7 @@ mod tests {
         //
         //                    let mut causetg = EvalConfig::new();
         //                    causetg.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
-        //                        .set_sql_mode(SqlMode::NO_ZERO_DATE | SqlMode::STRICT_ALL_TABLES);
+        //                        .set_sql_mode(SqlMode::NO_ZERO_DATE | SqlMode::STRICT_ALL_BlockS);
         //                    let ctx = EvalContext::new(Arc::new(causetg));
         //
         //                    let output = RpnFnScalarEvaluator::new()
@@ -426,7 +426,7 @@ mod tests {
         {
             let mut causetg = EvalConfig::new();
             causetg.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
-                .set_sql_mode(SqlMode::NO_ZERO_DATE | SqlMode::STRICT_ALL_TABLES);
+                .set_sql_mode(SqlMode::NO_ZERO_DATE | SqlMode::STRICT_ALL_BlockS);
             let ctx = EvalContext::new(Arc::new(causetg));
 
             let output = RpnFnScalarEvaluator::new()

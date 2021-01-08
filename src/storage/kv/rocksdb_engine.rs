@@ -12,7 +12,7 @@ use engine_lmdb::raw_util::CAUSETOptions;
 use engine_lmdb::{LmdbEngine as BaseLmdbEngine, LmdbEngineIterator};
 use engine_promises::{CfName, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
 use engine_promises::{
-    Engines, IterOptions, Iterable, Iteron, KvEngine, Mutable, Peekable, ReadOptions, SeekKey,
+    Engines, IterOptions, Iterable, Iteron, KvEngine, MuBlock, Peekable, ReadOptions, SeekKey,
     WriteBatchExt,
 };
 use ekvproto::kvrpcpb::Context;

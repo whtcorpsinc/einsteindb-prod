@@ -14,10 +14,10 @@ use einsteindb::causetStorage::kv::LmdbEngine;
 use einsteindb::causetStorage::{Engine, TestEngineBuilder};
 
 #[derive(Clone)]
-pub struct ProductTable(Table);
+pub struct ProductBlock(Block);
 
-impl ProductTable {
-    pub fn new() -> ProductTable {
+impl ProductBlock {
+    pub fn new() -> ProductBlock {
         let id = PrimaryCausetBuilder::new()
             .col_type(TYPE_LONG)
             .primary_key(true)
@@ -31,19 +31,19 @@ impl ProductTable {
             .col_type(TYPE_LONG)
             .index_key(idx_id)
             .build();
-        let table = TableBuilder::new()
+        let Block = BlockBuilder::new()
             .add_col("id", id)
             .add_col("name", name)
             .add_col("count", count)
             .build();
-        ProductTable(table)
+        ProductBlock(Block)
     }
 }
 
-impl std::ops::Deref for ProductTable {
-    type Target = Table;
+impl std::ops::Deref for ProductBlock {
+    type Target = Block;
 
-    fn deref(&self) -> &Table {
+    fn deref(&self) -> &Block {
         &self.0
     }
 }
@@ -51,7 +51,7 @@ impl std::ops::Deref for ProductTable {
 pub fn init_data_with_engine_and_commit<E: Engine>(
     ctx: Context,
     engine: E,
-    tbl: &ProductTable,
+    tbl: &ProductBlock,
     vals: &[(i64, Option<&str>, i64)],
     commit: bool,
 ) -> (CausetStore<E>, Endpoint<E>) {
@@ -61,7 +61,7 @@ pub fn init_data_with_engine_and_commit<E: Engine>(
 pub fn init_data_with_details<E: Engine>(
     ctx: Context,
     engine: E,
-    tbl: &ProductTable,
+    tbl: &ProductBlock,
     vals: &[(i64, Option<&str>, i64)],
     commit: bool,
     causetg: &Config,
@@ -91,7 +91,7 @@ pub fn init_data_with_details<E: Engine>(
 }
 
 pub fn init_data_with_commit(
-    tbl: &ProductTable,
+    tbl: &ProductBlock,
     vals: &[(i64, Option<&str>, i64)],
     commit: bool,
 ) -> (CausetStore<LmdbEngine>, Endpoint<LmdbEngine>) {
@@ -99,9 +99,9 @@ pub fn init_data_with_commit(
     init_data_with_engine_and_commit(Context::default(), engine, tbl, vals, commit)
 }
 
-// This function will create a Product table and initialize with the specified data.
+// This function will create a Product Block and initialize with the specified data.
 pub fn init_with_data(
-    tbl: &ProductTable,
+    tbl: &ProductBlock,
     vals: &[(i64, Option<&str>, i64)],
 ) -> (CausetStore<LmdbEngine>, Endpoint<LmdbEngine>) {
     init_data_with_commit(tbl, vals, true)

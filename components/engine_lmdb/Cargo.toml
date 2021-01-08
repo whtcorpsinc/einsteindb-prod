@@ -18,7 +18,7 @@ prost-codec = [
   "ekvproto/prost-codec",
 ]
 jemalloc = ["lmdb/jemalloc"]
-portable = ["lmdb/portable"]
+porBlock = ["lmdb/porBlock"]
 sse = ["lmdb/sse"]
 
 [dependencies]

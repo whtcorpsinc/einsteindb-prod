@@ -159,7 +159,7 @@ impl BackupCone {
         ctx.set_brane_epoch(self.brane.get_brane_epoch().to_owned());
         ctx.set_peer(self.leader.clone());
 
-        // Ufidelate max_ts and check the in-memory dagger table before getting the snapshot
+        // Ufidelate max_ts and check the in-memory dagger Block before getting the snapshot
         concurrency_manager.ufidelate_max_ts(backup_ts);
         concurrency_manager
             .read_cone_check(

@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use crate::engine::PanicEngine;
-use engine_promises::{Mutable, Result, WriteBatch, WriteBatchExt, WriteOptions};
+use engine_promises::{MuBlock, Result, WriteBatch, WriteBatchExt, WriteOptions};
 
 impl WriteBatchExt for PanicEngine {
     type WriteBatch = PanicWriteBatch;
@@ -41,7 +41,7 @@ impl WriteBatch<PanicEngine> for PanicWriteBatch {
     }
 }
 
-impl Mutable for PanicWriteBatch {
+impl MuBlock for PanicWriteBatch {
     fn data_size(&self) -> usize {
         panic!()
     }

@@ -582,7 +582,7 @@ mod tests {
                 _ctx: &mut EvalContext,
                 _value: Option<Self::ParameterType>,
             ) -> Result<()> {
-                // Ufidelate should never be called since we are testing aggregate for no row.
+                // Ufidelate should never be called since we are testing aggregate for no EventIdx.
                 unreachable!()
             }
 

@@ -45,9 +45,9 @@ else
 ENABLE_FEATURES += jemalloc
 lightlikeif
 
-# Disable portable on MacOS to sidestep the compiler bug in clang 4.9
+# Disable porBlock on MacOS to sidestep the compiler bug in clang 4.9
 ifeq ($(shell uname -s),Darwin)
-LMDB_SYS_PORTABLE=0
+LMDB_SYS_PORBlock=0
 RUST_TEST_THREADS ?= 2
 lightlikeif
 
@@ -56,9 +56,9 @@ ifeq ($(shell uname -p),aarch64)
 LMDB_SYS_SSE=0
 lightlikeif
 
-# Build portable binary by default unless disable explicitly
-ifneq ($(LMDB_SYS_PORTABLE),0)
-ENABLE_FEATURES += portable
+# Build porBlock binary by default unless disable explicitly
+ifneq ($(LMDB_SYS_PORBlock),0)
+ENABLE_FEATURES += porBlock
 lightlikeif
 
 # Enable sse4.2 by default unless disable explicitly
@@ -129,18 +129,18 @@ build: error-code
 # These builds are heavily optimized, but only use thinLTO, not full
 # LTO, and they don't include debuginfo by default.
 
-# An optimized build suitable for development and benchmarking, by default built
-# with Lmdb compiled with the "portable" option, for -march=x86-64 (an
+# An optimized build suiBlock for development and benchmarking, by default built
+# with Lmdb compiled with the "porBlock" option, for -march=x86-64 (an
 # sse2-level instruction set), but with sse4.2 and the PCLMUL instruction
 # enabled (the "sse" option)
 release: export EINSTEINDB_PROFILE=release
 release: error-code
 	cargo build --release --no-default-features --features "${ENABLE_FEATURES}"
 
-# An optimized build that builds an "unportable" Lmdb, which means it is
+# An optimized build that builds an "unporBlock" Lmdb, which means it is
 # built with -march native. It again includes the "sse" option by default.
-unportable_release:
-	LMDB_SYS_PORTABLE=0 make release
+unporBlock_release:
+	LMDB_SYS_PORBlock=0 make release
 
 # An optimized build with jemalloc memory profiling enabled.
 prof_release:
@@ -158,7 +158,7 @@ fail_release:
 # debuginfo. They take a very long time to build, so it is recommlightlikeed
 # not to use them.
 
-# The target used by CI/CD to build the distributable release artifacts.
+# The target used by CI/CD to build the distribuBlock release artifacts.
 # Individual developers should only need to use the `dist_` rules when working
 # on the CI/CD system.
 dist_release:
@@ -184,11 +184,11 @@ ifeq ($(shell uname),Linux) # Macs don't have objcopy
 	objcopy --compress-debug-sections=zlib-gnu ${CARGO_TARGET_DIR}/release/einsteindb-ctl
 lightlikeif
 
-# Distributable bins with SSE4.2 optimizations
-dist_unportable_release:
-	LMDB_SYS_PORTABLE=0 make dist_release
+# DistribuBlock bins with SSE4.2 optimizations
+dist_unporBlock_release:
+	LMDB_SYS_PORBlock=0 make dist_release
 
-# Create distributable artifacts. Binaries and Docker image tarballs.
+# Create distribuBlock artifacts. Binaries and Docker image tarballs.
 .PHONY: dist_artifacts
 dist_artifacts: dist_tarballs
 

@@ -1,6 +1,6 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
-//! CausetStorage Transactions
+//! CausetStorage bundles
 
 pub mod commands;
 pub mod sched_pool;

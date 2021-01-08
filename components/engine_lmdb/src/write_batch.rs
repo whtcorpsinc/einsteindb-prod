@@ -5,8 +5,8 @@ use std::sync::Arc;
 use crate::engine::LmdbEngine;
 use crate::options::LmdbWriteOptions;
 use crate::util::get_causet_handle;
-use engine_promises::{self, Error, Mutable, Result, WriteBatchExt, WriteOptions};
-use lmdb::{Writable, WriteBatch as RawWriteBatch, DB};
+use engine_promises::{self, Error, MuBlock, Result, WriteBatchExt, WriteOptions};
+use lmdb::{WriBlock, WriteBatch as RawWriteBatch, DB};
 
 const WRITE_BATCH_MAX_BATCH: usize = 16;
 const WRITE_BATCH_LIMIT: usize = 16;
@@ -101,7 +101,7 @@ impl engine_promises::WriteBatch<LmdbEngine> for LmdbWriteBatch {
     }
 }
 
-impl Mutable for LmdbWriteBatch {
+impl MuBlock for LmdbWriteBatch {
     fn data_size(&self) -> usize {
         self.wb.data_size()
     }
@@ -164,7 +164,7 @@ impl Mutable for LmdbWriteBatch {
 /// into many smaller ones and then any thread could help to deal with these small WriteBatch when it
 /// is calling `AwaitState` and wait to become leader of WriteGroup. `multi_batch_write` will perform
 /// much better than traditional `pipelined_write` when EinsteinDB writes very large data into Lmdb. We
-/// will remove this feature when `unordered_write` of Lmdb becomes more stable and becomes compatible
+/// will remove this feature when `unordered_write` of Lmdb becomes more sBlock and becomes compatible
 /// with Noether.
 pub struct LmdbWriteBatchVec {
     db: Arc<DB>,
@@ -224,7 +224,7 @@ impl engine_promises::WriteBatch<LmdbEngine> for LmdbWriteBatchVec {
     }
 }
 
-impl Mutable for LmdbWriteBatchVec {
+impl MuBlock for LmdbWriteBatchVec {
     fn data_size(&self) -> usize {
         self.wbs.iter().fold(0, |a, b| a + b.data_size())
     }

@@ -162,7 +162,7 @@ impl RpnExpression {
     ) -> Result<RpnStackNode<'a>> {
         // We iterate two times. The first time we decode all referred PrimaryCausets. The second time
         // we evaluate. This is to make Rust's borrow checker happy because there will be
-        // mutable reference during the first iteration and we can't keep these references.
+        // muBlock reference during the first iteration and we can't keep these references.
         self.ensure_PrimaryCausets_decoded(ctx, schemaReplicant, input_physical_PrimaryCausets, input_logical_rows)?;
         self.eval_decoded(
             ctx,
@@ -196,7 +196,7 @@ impl RpnExpression {
 
     /// Evaluates the expression into a stack node. The input PrimaryCausets must be already decoded.
     ///
-    /// It differs from `eval` in that `eval_decoded` needn't receive a mutable reference
+    /// It differs from `eval` in that `eval_decoded` needn't receive a muBlock reference
     /// to `LazyBatchPrimaryCausetVec`. However, since `eval_decoded` doesn't decode PrimaryCausets,
     /// it will panic if referred PrimaryCausets are not decoded.
     ///
@@ -399,7 +399,7 @@ mod tests {
         assert_eq!(val.field_type().as_accessor().tp(), FieldTypeTp::Double);
     }
 
-    /// Single PrimaryCauset node but row numbers in `eval()` does not match PrimaryCauset length, should panic.
+    /// Single PrimaryCauset node but EventIdx numbers in `eval()` does not match PrimaryCauset length, should panic.
     #[test]
     fn test_eval_single_PrimaryCauset_node_mismatch_rows() {
         let (PrimaryCausets, logical_rows, schemaReplicant) = new_single_PrimaryCauset_node_fixture();
@@ -410,7 +410,7 @@ mod tests {
             .build_for_test();
         let mut ctx = EvalContext::default();
         let hooked_eval = panic_hook::recover_safe(|| {
-            // smaller row number
+            // smaller EventIdx number
             let _ = exp.eval(&mut ctx, &schemaReplicant, &mut c, &logical_rows, 4);
         });
         assert!(hooked_eval.is_err());
@@ -421,7 +421,7 @@ mod tests {
             .build_for_test();
         let mut ctx = EvalContext::default();
         let hooked_eval = panic_hook::recover_safe(|| {
-            // larger row number
+            // larger EventIdx number
             let _ = exp.eval(&mut ctx, &schemaReplicant, &mut c, &logical_rows, 6);
         });
         assert!(hooked_eval.is_err());
@@ -627,8 +627,8 @@ mod tests {
         assert_eq!(
             val.vector_value().unwrap().as_ref().to_real_vec(),
             [
-                Real::new(-5.8).ok(), // original row 2
-                Real::new(-0.5).ok(), // original row 0
+                Real::new(-5.8).ok(), // original EventIdx 2
+                Real::new(-0.5).ok(), // original EventIdx 0
             ]
         );
         assert_eq!(val.vector_value().unwrap().logical_rows(), &[0, 1]);
@@ -665,8 +665,8 @@ mod tests {
         assert_eq!(
             val.vector_value().unwrap().as_ref().to_real_vec(),
             [
-                Real::new(-3.5).ok(), // original row 1
-                Real::new(5.5).ok(),  // original row 2
+                Real::new(-3.5).ok(), // original EventIdx 1
+                Real::new(5.5).ok(),  // original EventIdx 2
             ]
         );
         assert_eq!(val.vector_value().unwrap().logical_rows(), &[0, 1]);
@@ -715,9 +715,9 @@ mod tests {
         assert_eq!(
             val.vector_value().unwrap().as_ref().to_int_vec(),
             [
-                Some(-2),  // original row 0
-                Some(22),  // original row 2
-                Some(-17), // original row 1
+                Some(-2),  // original EventIdx 0
+                Some(22),  // original EventIdx 2
+                Some(-17), // original EventIdx 1
             ]
         );
         assert_eq!(val.vector_value().unwrap().logical_rows(), &[0, 1, 2]);
@@ -1046,9 +1046,9 @@ mod tests {
         let mut PrimaryCausets = LazyBatchPrimaryCausetVec::from(vec![
             {
                 let mut col = LazyBatchPrimaryCauset::decoded_with_capacity_and_tp(3, EvalType::Int);
-                col.mut_decoded().push_int(Some(1)); // row 1
+                col.mut_decoded().push_int(Some(1)); // EventIdx 1
                 col.mut_decoded().push_int(Some(5));
-                col.mut_decoded().push_int(Some(-4)); // row 0
+                col.mut_decoded().push_int(Some(-4)); // EventIdx 0
                 col
             },
             {
@@ -1149,8 +1149,8 @@ mod tests {
 
         let mut PrimaryCausets = LazyBatchPrimaryCausetVec::from(vec![{
             let mut col = LazyBatchPrimaryCauset::decoded_with_capacity_and_tp(2, EvalType::Int);
-            col.mut_decoded().push_int(Some(1)); // row 1
-            col.mut_decoded().push_int(None); // row 0
+            col.mut_decoded().push_int(Some(1)); // EventIdx 1
+            col.mut_decoded().push_int(None); // EventIdx 0
             col
         }]);
         let schemaReplicant = &[FieldTypeTp::LongLong.into(), FieldTypeTp::Double.into()];

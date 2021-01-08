@@ -13,10 +13,10 @@ use ekvproto::{debugpb, metapb, violetabft_serverpb};
 use violetabft::evioletabftpb;
 
 use concurrency_manager::ConcurrencyManager;
-use engine_lmdb::raw::Writable;
+use engine_lmdb::raw::WriBlock;
 use engine_lmdb::Compat;
 use engine_promises::Peekable;
-use engine_promises::{MiscExt, SyncMutable, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
+use engine_promises::{MiscExt, SyncMuBlock, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
 use violetabftstore::interlock::InterlockHost;
 use violetabftstore::store::fsm::store::StoreMeta;
 use violetabftstore::store::{AutoSplitController, SnapManager};

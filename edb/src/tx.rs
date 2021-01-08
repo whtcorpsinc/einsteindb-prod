@@ -123,7 +123,7 @@ use types::{
     AVMap,
     AVPair,
     PartitionMap,
-    TransactableValue,
+    TransacBlockValue,
 };
 use upsert_resolution::{
     FinalPopulations,
@@ -136,15 +136,15 @@ use watcher::{
 /// Defines transactor's high level behaviour.
 pub(crate) enum TransactorAction {
     /// Materialize transaction into 'causets' and spacetime
-    /// views, but do not commit it into 'transactions' table.
+    /// views, but do not commit it into 'bundles' Block.
     /// Use this if you need transaction's "side-effects", but
     /// don't want its by-products to end-up in the transaction log,
     /// e.g. when rewinding.
     Materialize,
 
     /// Materialize transaction into 'causets' and spacetime
-    /// views, and also commit it into the 'transactions' table.
-    /// Use this for regular transactions.
+    /// views, and also commit it into the 'bundles' Block.
+    /// Use this for regular bundles.
     MaterializeAndCommit,
 }
 
@@ -162,7 +162,7 @@ pub struct Tx<'conn, 'a, W> where W: TransactWatcher {
 
     /// The schemaReplicant to update from the transaction entities.
     ///
-    /// Transactions only update the schemaReplicant infrequently, so we borrow this schemaReplicant until we need to
+    /// bundles only update the schemaReplicant infrequently, so we borrow this schemaReplicant until we need to
     /// modify it.
     schemaReplicant_for_mutation: Cow<'a, SchemaReplicant>,
 
@@ -178,8 +178,8 @@ pub struct Tx<'conn, 'a, W> where W: TransactWatcher {
 }
 
 /// Remove any :edb/id value from the given map notation, converting the returned value into
-/// something suitable for the instanton position rather than something suitable for a value position.
-pub fn remove_edb_id<V: TransactableValue>(map: &mut entmod::MapNotation<V>) -> Result<Option<entmod::InstantonPlace<V>>> {
+/// something suiBlock for the instanton position rather than something suiBlock for a value position.
+pub fn remove_edb_id<V: TransacBlockValue>(map: &mut entmod::MapNotation<V>) -> Result<Option<entmod::InstantonPlace<V>>> {
     // TODO: extract lazy defined constant.
     let edb_id_key = entmod::SolitonIdOrCausetId::CausetId(Keyword::namespaced("edb", "id"));
 
@@ -268,7 +268,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
     ///
     /// The `Term` instances produce share interned TempId and LookupRef handles, and we return the
     /// interned handle sets so that consumers can ensure all handles are used appropriately.
-    fn entities_into_terms_with_temp_ids_and_lookup_refs<I, V: TransactableValue>(&self, entities: I) -> Result<(Vec<TermWithTempIdsAndLookupRefs>, InternSet<TempId>, InternSet<AVPair>)> where I: IntoIterator<Item=Instanton<V>> {
+    fn entities_into_terms_with_temp_ids_and_lookup_refs<I, V: TransacBlockValue>(&self, entities: I) -> Result<(Vec<TermWithTempIdsAndLookupRefs>, InternSet<TempId>, InternSet<AVPair>)> where I: IntoIterator<Item=Instanton<V>> {
         struct InProcess<'a> {
             partition_map: &'a PartitionMap,
             schemaReplicant: &'a SchemaReplicant,
@@ -302,7 +302,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                 self.schemaReplicant.require_entid(e)
             }
 
-            fn intern_lookup_ref<W: TransactableValue>(&mut self, lookup_ref: &entmod::LookupRef<W>) -> Result<LookupRef> {
+            fn intern_lookup_ref<W: TransacBlockValue>(&mut self, lookup_ref: &entmod::LookupRef<W>) -> Result<LookupRef> {
                 let lr_a: i64 = match lookup_ref.a {
                     AttributePlace::SolitonId(entmod::SolitonIdOrCausetId::SolitonId(ref a)) => *a,
                     AttributePlace::SolitonId(entmod::SolitonIdOrCausetId::CausetId(ref a)) => self.schemaReplicant.require_entid(&a)?.into(),
@@ -319,12 +319,12 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
 
             /// Allocate private internal tempids reserved for EinsteinDB.  Internal tempids just need to be
             /// unique within one transaction; they should never escape a transaction.
-            fn allocate_einsteindb_id<W: TransactableValue>(&mut self) -> entmod::InstantonPlace<W> {
+            fn allocate_einsteindb_id<W: TransacBlockValue>(&mut self) -> entmod::InstantonPlace<W> {
                 self.einsteindb_id_count += 1;
                 entmod::InstantonPlace::TempId(TempId::Internal(self.einsteindb_id_count).into())
             }
 
-            fn instanton_e_into_term_e<W: TransactableValue>(&mut self, x: entmod::InstantonPlace<W>) -> Result<KnownSolitonIdOr<LookupRefOrTempId>> {
+            fn instanton_e_into_term_e<W: TransacBlockValue>(&mut self, x: entmod::InstantonPlace<W>) -> Result<KnownSolitonIdOr<LookupRefOrTempId>> {
                 match x {
                     entmod::InstantonPlace::SolitonId(e) => {
                         let e = match e {
@@ -359,11 +359,11 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                 Ok(a)
             }
 
-            fn instanton_e_into_term_v<W: TransactableValue>(&mut self, x: entmod::InstantonPlace<W>) -> Result<MinkowskiTypeOr<LookupRefOrTempId>> {
+            fn instanton_e_into_term_v<W: TransacBlockValue>(&mut self, x: entmod::InstantonPlace<W>) -> Result<MinkowskiTypeOr<LookupRefOrTempId>> {
                 self.instanton_e_into_term_e(x).map(|r| r.map_left(|ke| MinkowskiType::Ref(ke.0)))
             }
 
-            fn instanton_v_into_term_e<W: TransactableValue>(&mut self, x: entmod::ValuePlace<W>, backward_a: &entmod::SolitonIdOrCausetId) -> Result<KnownSolitonIdOr<LookupRefOrTempId>> {
+            fn instanton_v_into_term_e<W: TransacBlockValue>(&mut self, x: entmod::ValuePlace<W>, backward_a: &entmod::SolitonIdOrCausetId) -> Result<KnownSolitonIdOr<LookupRefOrTempId>> {
                 match backward_a.unreversed() {
                     None => {
                         bail!(DbErrorKind::NotYetImplemented(format!("Cannot explode map notation value in :attr/_reversed notation for forward attribute")));
@@ -549,7 +549,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                                 // entities that can't be reached.  If we're :edb/isComponent, then this
                                 // is not dangling.  Otherwise, the resulting map needs to have a
                                 // :edb/unique :edb.unique/causetIdity [a v] pair, so that it's reachable.
-                                // Per http://docs.Causetic.com/transactions.html: "Either the reference
+                                // Per http://docs.Causetic.com/bundles.html: "Either the reference
                                 // to the nested map must be a component attribute, or the nested map
                                 // must include a unique attribute. This constraint prevents the
                                 // acccausetIdal creation of easily-orphaned entities that have no causetIdity
@@ -625,7 +625,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
     ///
     /// This approach is explained in https://github.com/whtcorpsinc/einsteindb/wiki/Transacting.
     // TODO: move this to the transactor layer.
-    pub fn transact_entities<I, V: TransactableValue>(&mut self, entities: I) -> Result<TxReport>
+    pub fn transact_entities<I, V: TransacBlockValue>(&mut self, entities: I) -> Result<TxReport>
     where I: IntoIterator<Item=Instanton<V>> {
         // Pipeline stage 1: entities -> terms with tempids and lookup refs.
         let (terms_with_temp_ids_and_lookup_refs, tempid_set, lookup_ref_set) = self.entities_into_terms_with_temp_ids_and_lookup_refs(entities)?;
@@ -733,7 +733,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
         // store.
         let mut causecausetx_might_update_spacetime = false;
 
-        // Mutable so that we can add the transaction :edb/causecausetxInstant.
+        // MuBlock so that we can add the transaction :edb/causecausetxInstant.
         let mut aev_trie = into_aev_trie(&self.schemaReplicant, final_populations, inert_terms)?;
 
         let causecausetx_instant;
@@ -887,7 +887,7 @@ pub fn transact<'conn, 'a, I, V, W>(conn: &'conn rusqlite::Connection,
                                  watcher: W,
                                  entities: I) -> Result<(TxReport, PartitionMap, Option<SchemaReplicant>, W)>
     where I: IntoIterator<Item=Instanton<V>>,
-          V: TransactableValue,
+          V: TransacBlockValue,
           W: TransactWatcher {
 
     let mut causetx = start_causecausetx(conn, partition_map, schemaReplicant_for_mutation, schemaReplicant, watcher)?;

@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use engine_lmdb::raw::{IngestExternalFileOptions, Writable};
+use engine_lmdb::raw::{IngestExternalFileOptions, WriBlock};
 use engine_lmdb::util::get_causet_handle;
 use engine_lmdb::util::new_temp_engine;
 use engine_lmdb::LmdbEngine;
@@ -268,7 +268,7 @@ fn test_delete_files_in_cone_for_titan() {
         .unwrap();
 
     // Now the LSM structure of default causet is:
-    // memtable: [put(b_7, blob4)] (because of Noether GC)
+    // memBlock: [put(b_7, blob4)] (because of Noether GC)
     // L0: [put(1, blob2), put(2, blob3)]
     // L5: [delete(a_7)]
     // L6: [put(a_7, blob1), put(b_7, blob1)]
@@ -291,7 +291,7 @@ fn test_delete_files_in_cone_for_titan() {
     // Wait Noether to purge obsolete files
     thread::sleep(Duration::from_secs(2));
     // Now the LSM structure of default causet is:
-    // memtable: [put(b_7, blob4)] (because of Noether GC)
+    // memBlock: [put(b_7, blob4)] (because of Noether GC)
     // L0: [put(1, blob2), put(2, blob3)]
     // L5: [delete(a_7)]
     // L6: [put(a_7, blob1), put(b_7, blob1)]
@@ -322,7 +322,7 @@ fn test_delete_files_in_cone_for_titan() {
         .unwrap();
 
     // Now the LSM structure of default causet is:
-    // memtable: [put(b_7, blob4)] (because of Noether GC)
+    // memBlock: [put(b_7, blob4)] (because of Noether GC)
     // L0: [put(1, blob2), put(2, blob3)]
     // L6: [put(a_7, blob1), put(b_7, blob1)]
     // the cones of two SST files are overlapped.

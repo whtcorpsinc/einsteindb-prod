@@ -231,7 +231,7 @@ struct RpnFnAttr {
     /// Whether or not the function needs extra logic on `None` value.
     nullable: bool,
 
-    /// Whether or not to use writer / guard pattern.
+    /// Whether or not to use writer / guard TuringString.
     writer: bool,
 
     /// The maximum accepted arguments, which will be checked by the validator.

@@ -50,20 +50,20 @@ fn test_select() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     // for posetdag selection
     let req = DAGSelect::from(&product).build();
     let mut resp = handle_select(&lightlikepoint, req);
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (row, (id, name, cnt)) in spliter.zip(data) {
+    for (EventIdx, (id, name, cnt)) in spliter.zip(data) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[Datum::I64(id), name_datum, cnt.into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(result_encoded, &*expected_encoded);
     }
 }
@@ -78,7 +78,7 @@ fn test_batch_row_limit() {
     ];
     let batch_row_limit = 3;
     let Soliton_datum_limit = batch_row_limit * 3; // we have 3 fields.
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = {
         let engine = TestEngineBuilder::new().build().unwrap();
         let mut causetg = Config::default();
@@ -91,14 +91,14 @@ fn test_batch_row_limit() {
     let mut resp = handle_select(&lightlikepoint, req);
     check_Soliton_datum_count(resp.get_Solitons(), Soliton_datum_limit);
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (row, (id, name, cnt)) in spliter.zip(data) {
+    for (EventIdx, (id, name, cnt)) in spliter.zip(data) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[Datum::I64(id), name_datum, cnt.into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(result_encoded, &*expected_encoded);
     }
 }
@@ -113,7 +113,7 @@ fn test_stream_batch_row_limit() {
         (8, Some("name:2"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let stream_row_limit = 2;
     let (_, lightlikepoint) = {
         let engine = TestEngineBuilder::new().build().unwrap();
@@ -125,8 +125,8 @@ fn test_stream_batch_row_limit() {
     let req = DAGSelect::from(&product).build();
     assert_eq!(req.get_cones().len(), 1);
 
-    // only ignore first 7 bytes of the row id
-    let ignored_suffix_len = milevadb_query_datatype::codec::table::RECORD_ROW_KEY_LEN - 1;
+    // only ignore first 7 bytes of the EventIdx id
+    let ignored_suffix_len = milevadb_query_datatype::codec::Block::RECORD_ROW_KEY_LEN - 1;
 
     // `expected_cones_last_bytes` checks those assertions:
     // 1. We always fetch no more than stream_row_limit events.
@@ -164,14 +164,14 @@ fn test_stream_batch_row_limit() {
         let spliter = DAGSolitonSpliter::new(Solitons, 3);
         let j = cmp::min((i + 1) * stream_row_limit, data.len());
         let cur_data = &data[i * stream_row_limit..j];
-        for (row, &(id, name, cnt)) in spliter.zip(cur_data) {
+        for (EventIdx, &(id, name, cnt)) in spliter.zip(cur_data) {
             let name_datum = name.map(|s| s.as_bytes()).into();
             let expected_encoded = datum::encode_value(
                 &mut EvalContext::default(),
                 &[Datum::I64(id), name_datum, cnt.into()],
             )
             .unwrap();
-            let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+            let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
             assert_eq!(result_encoded, &*expected_encoded);
         }
     }
@@ -186,7 +186,7 @@ fn test_select_after_lease() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (cluster, violetabft_engine, ctx) = new_violetabft_engine(1, "");
     let (_, lightlikepoint) =
         init_data_with_engine_and_commit(ctx.clone(), violetabft_engine, &product, &data, true);
@@ -196,14 +196,14 @@ fn test_select_after_lease() {
     let req = DAGSelect::from(&product).build_with(ctx, &[0]);
     let mut resp = handle_select(&lightlikepoint, req);
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (row, (id, name, cnt)) in spliter.zip(data) {
+    for (EventIdx, (id, name, cnt)) in spliter.zip(data) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[Datum::I64(id), name_datum, cnt.into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(result_encoded, &*expected_encoded);
     }
 }
@@ -217,7 +217,7 @@ fn test_scan_detail() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = {
         let engine = TestEngineBuilder::new().build().unwrap();
         let mut causetg = Config::default();
@@ -254,7 +254,7 @@ fn test_group_by() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     // for posetdag
     let req = DAGSelect::from(&product)
@@ -267,11 +267,11 @@ fn test_group_by() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 1);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 0, Bytes);
-    for (row, name) in results.iter().zip(&[b"name:0", b"name:1", b"name:2"]) {
+    for (EventIdx, name) in results.iter().zip(&[b"name:0", b"name:1", b"name:2"]) {
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &[Datum::Bytes(name.to_vec())])
                 .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -289,7 +289,7 @@ fn test_aggr_count() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     let exp = vec![
         (Datum::Null, 1),
@@ -310,11 +310,11 @@ fn test_aggr_count() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (row, (name, cnt)) in results.iter().zip(exp) {
+    for (EventIdx, (name, cnt)) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::U64(cnt), name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -339,12 +339,12 @@ fn test_aggr_count() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (row, (gk_data, cnt)) in results.iter().zip(exp) {
+    for (EventIdx, (gk_data, cnt)) in results.iter().zip(exp) {
         let mut expected_datum = vec![Datum::U64(cnt)];
         expected_datum.extlightlike_from_slice(gk_data.as_slice());
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -366,7 +366,7 @@ fn test_aggr_first() {
         (10, None, 6),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
 
     let exp = vec![
@@ -388,11 +388,11 @@ fn test_aggr_first() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (row, (name, id)) in results.iter().zip(exp) {
+    for (EventIdx, (name, id)) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::I64(id), name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -419,11 +419,11 @@ fn test_aggr_first() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 0, Bytes);
-    for (row, (count, name)) in results.iter().zip(exp) {
+    for (EventIdx, (count, name)) in results.iter().zip(exp) {
         let expected_datum = vec![name, Datum::I64(count)];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -441,7 +441,7 @@ fn test_aggr_avg() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (mut store, lightlikepoint) = init_with_data(&product, &data);
 
     store.begin();
@@ -471,11 +471,11 @@ fn test_aggr_avg() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 2, Bytes);
-    for (row, (name, (sum, cnt))) in results.iter().zip(exp) {
+    for (EventIdx, (name, (sum, cnt))) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::U64(cnt), sum, name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -493,7 +493,7 @@ fn test_aggr_sum() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
 
     let exp = vec![
@@ -514,11 +514,11 @@ fn test_aggr_sum() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (row, (name, cnt)) in results.iter().zip(exp) {
+    for (EventIdx, (name, cnt)) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::Dec(cnt.into()), name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -536,7 +536,7 @@ fn test_aggr_extre() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (mut store, lightlikepoint) = init_with_data(&product, &data);
 
     store.begin();
@@ -582,11 +582,11 @@ fn test_aggr_extre() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 2, Bytes);
-    for (row, (name, max, min)) in results.iter().zip(exp) {
+    for (EventIdx, (name, max, min)) in results.iter().zip(exp) {
         let expected_datum = vec![max, min, name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -604,7 +604,7 @@ fn test_aggr_bit_ops() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (mut store, lightlikepoint) = init_with_data(&product, &data);
 
     store.begin();
@@ -660,11 +660,11 @@ fn test_aggr_bit_ops() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 4);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 3, Bytes);
-    for (row, (name, bitand, bitor, bitxor)) in results.iter().zip(exp) {
+    for (EventIdx, (name, bitand, bitor, bitxor)) in results.iter().zip(exp) {
         let expected_datum = vec![bitand, bitor, bitxor, name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -691,7 +691,7 @@ fn test_order_by_PrimaryCauset() {
         (2, Some("name:3"), 3),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     // for posetdag
     let req = DAGSelect::from(&product)
@@ -702,14 +702,14 @@ fn test_order_by_PrimaryCauset() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (row, (id, name, cnt)) in spliter.zip(exp) {
+    for (EventIdx, (id, name, cnt)) in spliter.zip(exp) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[i64::from(id).into(), name_datum, i64::from(cnt).into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -728,7 +728,7 @@ fn test_order_by_pk_with_select_from_index() {
         (2, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     let expect: Vec<_> = data.drain(..5).collect();
     // for posetdag
@@ -739,14 +739,14 @@ fn test_order_by_pk_with_select_from_index() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (row, (id, name, cnt)) in spliter.zip(expect) {
+    for (EventIdx, (id, name, cnt)) in spliter.zip(expect) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[name_datum, (cnt as i64).into(), (id as i64).into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -764,7 +764,7 @@ fn test_limit() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     let expect: Vec<_> = data.drain(..5).collect();
     // for posetdag
@@ -772,14 +772,14 @@ fn test_limit() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (row, (id, name, cnt)) in spliter.zip(expect) {
+    for (EventIdx, (id, name, cnt)) in spliter.zip(expect) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[id.into(), name_datum, cnt.into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -797,7 +797,7 @@ fn test_reverse() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     data.reverse();
     let expect: Vec<_> = data.drain(..5).collect();
@@ -809,14 +809,14 @@ fn test_reverse() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (row, (id, name, cnt)) in spliter.zip(expect) {
+    for (EventIdx, (id, name, cnt)) in spliter.zip(expect) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[id.into(), name_datum, cnt.into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -834,17 +834,17 @@ fn test_index() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     // for posetdag
     let req = DAGSelect::from_index(&product, &product["id"]).build();
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 1);
-    for (row, (id, _, _)) in spliter.zip(data) {
+    for (EventIdx, (id, _, _)) in spliter.zip(data) {
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &[id.into()]).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -862,7 +862,7 @@ fn test_index_reverse_limit() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     data.reverse();
     let expect: Vec<_> = data.drain(..5).collect();
@@ -875,10 +875,10 @@ fn test_index_reverse_limit() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 1);
-    for (row, (id, _, _)) in spliter.zip(expect) {
+    for (EventIdx, (id, _, _)) in spliter.zip(expect) {
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &[id.into()]).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -896,7 +896,7 @@ fn test_limit_oom() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     // for posetdag
     let req = DAGSelect::from_index(&product, &product["id"])
@@ -905,10 +905,10 @@ fn test_limit_oom() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 1);
-    for (row, (id, _, _)) in spliter.zip(data) {
+    for (EventIdx, (id, _, _)) in spliter.zip(data) {
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &[id.into()]).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -926,7 +926,7 @@ fn test_del_select() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (mut store, lightlikepoint) = init_with_data(&product, &data);
 
     store.begin();
@@ -957,7 +957,7 @@ fn test_index_group_by() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     // for posetdag
     let req = DAGSelect::from_index(&product, &product["name"])
@@ -970,11 +970,11 @@ fn test_index_group_by() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 1);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 0, Bytes);
-    for (row, name) in results.iter().zip(&[b"name:0", b"name:1", b"name:2"]) {
+    for (EventIdx, name) in results.iter().zip(&[b"name:0", b"name:1", b"name:2"]) {
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &[Datum::Bytes(name.to_vec())])
                 .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -992,7 +992,7 @@ fn test_index_aggr_count() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     // for posetdag
     let req = DAGSelect::from_index(&product, &product["name"])
@@ -1031,11 +1031,11 @@ fn test_index_aggr_count() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (row, (name, cnt)) in results.iter().zip(exp) {
+    for (EventIdx, (name, cnt)) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::U64(cnt), name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -1058,12 +1058,12 @@ fn test_index_aggr_count() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (row, (gk_data, cnt)) in results.iter().zip(exp) {
+    for (EventIdx, (gk_data, cnt)) in results.iter().zip(exp) {
         let mut expected_datum = vec![Datum::U64(cnt)];
         expected_datum.extlightlike_from_slice(gk_data.as_slice());
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -1081,7 +1081,7 @@ fn test_index_aggr_first() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
 
     let exp = vec![
@@ -1102,16 +1102,16 @@ fn test_index_aggr_first() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (row, (name, id)) in results.iter().zip(exp) {
+    for (EventIdx, (name, id)) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::I64(id), name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
 
         assert_eq!(
             &*result_encoded, &*expected_encoded,
             "exp: {:?}, got: {:?}",
-            expected_datum, row
+            expected_datum, EventIdx
         );
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
@@ -1130,7 +1130,7 @@ fn test_index_aggr_avg() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (mut store, lightlikepoint) = init_with_data(&product, &data);
 
     store.begin();
@@ -1160,11 +1160,11 @@ fn test_index_aggr_avg() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 2, Bytes);
-    for (row, (name, (sum, cnt))) in results.iter().zip(exp) {
+    for (EventIdx, (name, (sum, cnt))) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::U64(cnt), sum, name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -1182,7 +1182,7 @@ fn test_index_aggr_sum() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
 
     let exp = vec![
@@ -1203,11 +1203,11 @@ fn test_index_aggr_sum() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (row, (name, cnt)) in results.iter().zip(exp) {
+    for (EventIdx, (name, cnt)) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::Dec(cnt.into()), name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -1225,7 +1225,7 @@ fn test_index_aggr_extre() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (mut store, lightlikepoint) = init_with_data(&product, &data);
 
     store.begin();
@@ -1270,11 +1270,11 @@ fn test_index_aggr_extre() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 2, Bytes);
-    for (row, (name, max, min)) in results.iter().zip(exp) {
+    for (EventIdx, (name, max, min)) in results.iter().zip(exp) {
         let expected_datum = vec![max, min, name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -1292,7 +1292,7 @@ fn test_where() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     let cols = product.PrimaryCausets_info();
     let cond = {
@@ -1335,7 +1335,7 @@ fn test_where() {
     let req = DAGSelect::from(&product).where_expr(cond).build();
     let mut resp = handle_select(&lightlikepoint, req);
     let mut spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    let row = spliter.next().unwrap();
+    let EventIdx = spliter.next().unwrap();
     let (id, name, cnt) = data[2];
     let name_datum = name.map(|s| s.as_bytes()).into();
     let expected_encoded = datum::encode_value(
@@ -1343,7 +1343,7 @@ fn test_where() {
         &[Datum::I64(id), name_datum, cnt.into()],
     )
     .unwrap();
-    let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+    let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
     assert_eq!(&*result_encoded, &*expected_encoded);
     assert_eq!(spliter.next().is_none(), true);
 }
@@ -1358,7 +1358,7 @@ fn test_handle_truncate() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     let cols = product.PrimaryCausets_info();
     let cases = vec![
@@ -1480,7 +1480,7 @@ fn test_handle_truncate() {
         assert!(!resp.get_warnings().is_empty());
         // check data
         let mut spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-        let row = spliter.next().unwrap();
+        let EventIdx = spliter.next().unwrap();
         let (id, name, cnt) = data[2];
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
@@ -1488,7 +1488,7 @@ fn test_handle_truncate() {
             &[Datum::I64(id), name_datum, cnt.into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         assert_eq!(spliter.next().is_none(), true);
 
@@ -1511,12 +1511,12 @@ fn test_default_val() {
         (7, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let added = PrimaryCausetBuilder::new()
         .col_type(TYPE_LONG)
         .default(Datum::I64(3))
         .build();
-    let mut tbl = TableBuilder::new()
+    let mut tbl = BlockBuilder::new()
         .add_col("id", product["id"].clone())
         .add_col("name", product["name"].clone())
         .add_col("count", product["count"].clone())
@@ -1530,14 +1530,14 @@ fn test_default_val() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 4);
-    for (row, (id, name, cnt)) in spliter.zip(expect) {
+    for (EventIdx, (id, name, cnt)) in spliter.zip(expect) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[id.into(), name_datum, cnt.into(), Datum::I64(3)],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -1553,7 +1553,7 @@ fn test_output_offsets() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
 
     let req = DAGSelect::from(&product)
@@ -1561,11 +1561,11 @@ fn test_output_offsets() {
         .build();
     let mut resp = handle_select(&lightlikepoint, req);
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 1);
-    for (row, (_, name, _)) in spliter.zip(data) {
+    for (EventIdx, (_, name, _)) in spliter.zip(data) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &[name_datum]).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &row).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
     }
 }
@@ -1579,7 +1579,7 @@ fn test_key_is_locked_for_primary() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_data_with_commit(&product, &data, false);
 
     let req = DAGSelect::from(&product).build();
@@ -1597,7 +1597,7 @@ fn test_key_is_locked_for_index() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_data_with_commit(&product, &data, false);
 
     let req = DAGSelect::from_index(&product, &product["name"]).build();
@@ -1615,7 +1615,7 @@ fn test_output_counts() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
 
     let req = DAGSelect::from(&product).build();
@@ -1632,7 +1632,7 @@ fn test_exec_details() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
 
     let flags = &[0];
@@ -1655,7 +1655,7 @@ fn test_invalid_cone() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
 
     let mut select = DAGSelect::from(&product);
@@ -1668,7 +1668,7 @@ fn test_invalid_cone() {
 
 #[test]
 fn test_snapshot_failed() {
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_cluster, violetabft_engine, ctx) = new_violetabft_engine(1, "");
 
     let (_, lightlikepoint) = init_data_with_engine_and_commit(ctx, violetabft_engine, &product, &[], true);
@@ -1689,7 +1689,7 @@ fn test_cache() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_cluster, violetabft_engine, ctx) = new_violetabft_engine(1, "");
 
     let (_, lightlikepoint) =

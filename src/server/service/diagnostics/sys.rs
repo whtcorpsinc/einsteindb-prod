@@ -454,7 +454,7 @@ pub fn system_info(collector: &mut Vec<ServerInfoItem>) {
         pair.set_value(val);
         pairs.push(pair);
     }
-    // Sort pairs by key to make result stable
+    // Sort pairs by key to make result sBlock
     pairs.sort_by(|a, b| a.get_key().cmp(b.get_key()));
     let mut item = ServerInfoItem::default();
     item.set_tp("system".to_string());
@@ -496,7 +496,7 @@ pub fn process_info(collector: &mut Vec<ServerInfoItem>) {
         }
         let mut pairs = vec![];
         let infos = vec![
-            ("executable", format!("{:?}", p.exe())),
+            ("execuBlock", format!("{:?}", p.exe())),
             ("cmd", p.cmd().join(" ")),
             ("cwd", format!("{:?}", p.cwd())),
             ("spacelike-time", p.spacelike_time().to_string()),

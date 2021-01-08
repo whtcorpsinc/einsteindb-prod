@@ -9,7 +9,7 @@ use fidelpb::ByItem;
 use fidelpb::TopN;
 
 use super::topn_heap::TopNHeap;
-use super::{FreeDaemon, ExprPrimaryCausetRefVisitor, Row};
+use super::{FreeDaemon, ExprPrimaryCausetRefVisitor, Event};
 use milevadb_query_common::execute_stats::ExecuteStats;
 use milevadb_query_common::causetStorage::IntervalCone;
 use milevadb_query_common::Result;
@@ -34,10 +34,10 @@ impl OrderBy {
         })
     }
 
-    fn eval(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Vec<Datum>> {
+    fn eval(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Vec<Datum>> {
         let mut res = Vec::with_capacity(self.exprs.len());
         for expr in &self.exprs {
-            res.push(expr.eval(ctx, row)?);
+            res.push(expr.eval(ctx, EventIdx)?);
         }
         Ok(res)
     }
@@ -48,7 +48,7 @@ impl OrderBy {
 pub struct TopNFreeDaemon<Src: FreeDaemon> {
     order_by: OrderBy,
     related_cols_offset: Vec<usize>, // offset of related PrimaryCausets
-    iter: Option<IntoIter<Row>>,
+    iter: Option<IntoIter<Event>>,
     eval_ctx: Option<EvalContext>,
     eval_warnings: Option<EvalWarnings>,
     src: Src,
@@ -88,17 +88,17 @@ impl<Src: FreeDaemon> TopNFreeDaemon<Src> {
 
         let ctx = Arc::new(RefCell::new(self.eval_ctx.take().unwrap()));
         let mut heap = TopNHeap::new(self.limit, Arc::clone(&ctx))?;
-        while let Some(row) = self.src.next()? {
-            let row = row.take_origin()?;
+        while let Some(EventIdx) = self.src.next()? {
+            let EventIdx = EventIdx.take_origin()?;
             let cols =
-                row.inflate_cols_with_offsets(&mut ctx.borrow_mut(), &self.related_cols_offset)?;
+                EventIdx.inflate_cols_with_offsets(&mut ctx.borrow_mut(), &self.related_cols_offset)?;
             let ob_values = self.order_by.eval(&mut ctx.borrow_mut(), &cols)?;
-            heap.try_add_row(row, ob_values, Arc::clone(&self.order_by.items))?;
+            heap.try_add_row(EventIdx, ob_values, Arc::clone(&self.order_by.items))?;
         }
         let sort_rows = heap.into_sorted_vec()?;
-        let data: Vec<Row> = sort_rows
+        let data: Vec<Event> = sort_rows
             .into_iter()
-            .map(|sort_row| Row::Origin(sort_row.data))
+            .map(|sort_row| Event::Origin(sort_row.data))
             .collect();
         self.iter = Some(data.into_iter());
         self.eval_warnings = Some(ctx.borrow_mut().take_warnings());
@@ -109,7 +109,7 @@ impl<Src: FreeDaemon> TopNFreeDaemon<Src> {
 impl<Src: FreeDaemon> FreeDaemon for TopNFreeDaemon<Src> {
     type StorageStats = Src::StorageStats;
 
-    fn next(&mut self) -> Result<Option<Row>> {
+    fn next(&mut self) -> Result<Option<Event>> {
         if self.iter.is_none() {
             self.fetch_all()?;
         }
@@ -165,7 +165,7 @@ pub mod tests {
     use fidelpb::{Expr, ExprType};
 
     use crate::OriginCols;
-    use milevadb_query_datatype::codec::table::RowColsDict;
+    use milevadb_query_datatype::codec::Block::EventColsDict;
     use milevadb_query_datatype::codec::Datum;
 
     use super::super::tests::*;
@@ -278,7 +278,7 @@ pub mod tests {
 
         for (handle, data, name, count) in test_data {
             let ob_values: Vec<Datum> = vec![name, count];
-            let row_data = RowColsDict::new(HashMap::default(), data.into_bytes());
+            let row_data = EventColsDict::new(HashMap::default(), data.into_bytes());
             topn_heap
                 .try_add_row(
                     OriginCols::new(i64::from(handle), row_data, Arc::new(Vec::default())),
@@ -289,10 +289,10 @@ pub mod tests {
         }
         let result = topn_heap.into_sorted_vec().unwrap();
         assert_eq!(result.len(), exp.len());
-        for (row, (handle, _, name, count)) in result.iter().zip(exp) {
+        for (EventIdx, (handle, _, name, count)) in result.iter().zip(exp) {
             let exp_key: Vec<Datum> = vec![name, count];
-            assert_eq!(row.data.handle, handle);
-            assert_eq!(row.key, exp_key);
+            assert_eq!(EventIdx.data.handle, handle);
+            assert_eq!(EventIdx.key, exp_key);
         }
     }
 
@@ -306,7 +306,7 @@ pub mod tests {
             TopNHeap::new(5, Arc::new(RefCell::new(EvalContext::default()))).unwrap();
 
         let ob_values1: Vec<Datum> = vec![Datum::Bytes(b"aaa".to_vec()), Datum::I64(2)];
-        let row_data = RowColsDict::new(HashMap::default(), b"name:1".to_vec());
+        let row_data = EventColsDict::new(HashMap::default(), b"name:1".to_vec());
         topn_heap
             .try_add_row(
                 OriginCols::new(0 as i64, row_data, Arc::new(Vec::default())),
@@ -316,7 +316,7 @@ pub mod tests {
             .unwrap();
 
         let ob_values2: Vec<Datum> = vec![Datum::Bytes(b"aaa".to_vec()), Datum::I64(3)];
-        let row_data2 = RowColsDict::new(HashMap::default(), b"name:2".to_vec());
+        let row_data2 = EventColsDict::new(HashMap::default(), b"name:2".to_vec());
         topn_heap
             .try_add_row(
                 OriginCols::new(0 as i64, row_data2, Default::default()),
@@ -326,7 +326,7 @@ pub mod tests {
             .unwrap();
 
         let bad_key1: Vec<Datum> = vec![Datum::I64(2), Datum::Bytes(b"aaa".to_vec())];
-        let row_data3 = RowColsDict::new(HashMap::default(), b"name:3".to_vec());
+        let row_data3 = EventColsDict::new(HashMap::default(), b"name:3".to_vec());
 
         assert!(topn_heap
             .try_add_row(
@@ -388,7 +388,7 @@ pub mod tests {
         let cone1 = get_cone(tid, 0, 4);
         let cone2 = get_cone(tid, 5, 10);
         let key_cones = vec![cone1, cone2];
-        let ts_ect = gen_table_scan_executor(tid, cis, &raw_data, Some(key_cones));
+        let ts_ect = gen_Block_scan_executor(tid, cis, &raw_data, Some(key_cones));
 
         // init TopN meta
         let mut ob_vec = Vec::with_capacity(2);
@@ -402,13 +402,13 @@ pub mod tests {
         let mut topn_ect =
             TopNFreeDaemon::new(topn, Arc::new(EvalConfig::default()), ts_ect).unwrap();
         let mut topn_rows = Vec::with_capacity(limit as usize);
-        while let Some(row) = topn_ect.next().unwrap() {
-            topn_rows.push(row.take_origin().unwrap());
+        while let Some(EventIdx) = topn_ect.next().unwrap() {
+            topn_rows.push(EventIdx.take_origin().unwrap());
         }
         assert_eq!(topn_rows.len(), limit as usize);
         let expect_row_handles = vec![1, 3, 2, 6];
-        for (row, handle) in topn_rows.iter().zip(expect_row_handles) {
-            assert_eq!(row.handle, handle);
+        for (EventIdx, handle) in topn_rows.iter().zip(expect_row_handles) {
+            assert_eq!(EventIdx.handle, handle);
         }
         let expected_counts = vec![3, 3];
         let mut exec_stats = ExecuteStats::new(0);
@@ -434,7 +434,7 @@ pub mod tests {
         let cone1 = get_cone(tid, 0, 4);
         let cone2 = get_cone(tid, 5, 10);
         let key_cones = vec![cone1, cone2];
-        let ts_ect = gen_table_scan_executor(tid, cis, &raw_data, Some(key_cones));
+        let ts_ect = gen_Block_scan_executor(tid, cis, &raw_data, Some(key_cones));
 
         // init TopN meta
         let mut ob_vec = Vec::with_capacity(2);

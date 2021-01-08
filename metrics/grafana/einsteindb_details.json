@@ -54,7 +54,7 @@
       }
     ]
   },
-  "editable": true,
+  "ediBlock": true,
   "gnetId": null,
   "graphTooltip": 1,
   "id": null,
@@ -79,7 +79,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The causetStorage size per EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 5,
           "grid": {},
@@ -91,7 +91,7 @@
           },
           "id": 56,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": false,
@@ -176,7 +176,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The available capacity size of each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 5,
           "grid": {},
@@ -188,7 +188,7 @@
           },
           "id": 1706,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": false,
@@ -273,7 +273,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The capacity size per EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 5,
           "grid": {},
@@ -285,7 +285,7 @@
           },
           "id": 1707,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": false,
@@ -370,7 +370,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The CPU usage of each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -382,7 +382,7 @@
           },
           "id": 1708,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -467,7 +467,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The memory usage per EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -479,7 +479,7 @@
           },
           "id": 1709,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -564,7 +564,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The I/O utilization per EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -576,7 +576,7 @@
           },
           "id": 1710,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -661,7 +661,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The total bytes of read and write in each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -673,7 +673,7 @@
           },
           "id": 1711,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -767,7 +767,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The QPS per command in each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -779,7 +779,7 @@
           },
           "id": 1713,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": false,
@@ -867,7 +867,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The total number of the gRPC message failures",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -879,7 +879,7 @@
           },
           "id": 1712,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -981,7 +981,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": " \tThe number of leaders on each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -993,7 +993,7 @@
           },
           "id": 1715,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -1092,7 +1092,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of Branes on each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -1104,7 +1104,7 @@
           },
           "id": 1714,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -1189,7 +1189,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": null,
           "description": "EinsteinDB uptime since the last respacelike",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -1201,7 +1201,7 @@
           },
           "id": 4106,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": false,
@@ -1281,7 +1281,7 @@
       ],
       "repeat": null,
       "title": "Cluster",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -1341,7 +1341,7 @@
           },
           "id": 2741,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -1431,7 +1431,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "Indicates occurrences of events that make the EinsteinDB instance unavailable temporarily, such as Write Stall, Channel Full, Scheduler Busy, and Interlock Full",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -1443,7 +1443,7 @@
           },
           "id": 1584,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -1590,7 +1590,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The total number of reporting failure messages",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -1602,7 +1602,7 @@
           },
           "id": 18,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -1698,7 +1698,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of different violetabftstore errors on each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -1710,7 +1710,7 @@
           },
           "id": 1718,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -1798,7 +1798,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of scheduler errors per type on each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -1810,7 +1810,7 @@
           },
           "id": 1719,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -1898,7 +1898,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of different interlock errors on each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -1910,7 +1910,7 @@
           },
           "id": 1720,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -1998,7 +1998,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of gRPC message errors per type on each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -2010,7 +2010,7 @@
           },
           "id": 1721,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -2098,7 +2098,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The count of dropped leaders per EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -2110,7 +2110,7 @@
           },
           "id": 1722,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -2202,7 +2202,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The count of missing leaders per EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -2214,7 +2214,7 @@
           },
           "id": 1723,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -2301,7 +2301,7 @@
       ],
       "repeat": null,
       "title": "Errors",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -2321,7 +2321,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The size of each PrimaryCauset family",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 3,
           "grid": {},
@@ -2333,7 +2333,7 @@
           },
           "id": 33,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideZero": false,
@@ -2419,7 +2419,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The causetStorage size per EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 5,
           "grid": {},
@@ -2431,7 +2431,7 @@
           },
           "id": 1705,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -2559,7 +2559,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The total number of channel full errors on each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 3,
           "grid": {},
@@ -2571,7 +2571,7 @@
           },
           "id": 22,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -2667,7 +2667,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of leaders being written on each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -2679,7 +2679,7 @@
           },
           "id": 75,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -2799,7 +2799,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The approximate Brane size",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -2811,7 +2811,7 @@
           },
           "id": 1481,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -2915,7 +2915,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -2927,7 +2927,7 @@
           },
           "id": 3638,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -3015,7 +3015,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The average rate of writing bytes to Branes per EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -3027,7 +3027,7 @@
           },
           "id": 58,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -3180,7 +3180,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The average rate of written tuplespaceInstanton to Branes per EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -3192,7 +3192,7 @@
           },
           "id": 57,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -3344,7 +3344,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The ratio of request batch output to input per EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -3356,7 +3356,7 @@
           },
           "id": 3718,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -3444,7 +3444,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The size of requests into request batch per EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -3456,7 +3456,7 @@
           },
           "id": 3720,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -3538,7 +3538,7 @@
       ],
       "repeat": null,
       "title": "Server",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -3567,7 +3567,7 @@
           },
           "id": 95,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -3661,7 +3661,7 @@
           },
           "id": 107,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -3755,7 +3755,7 @@
           },
           "id": 98,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": false,
@@ -3850,7 +3850,7 @@
           },
           "id": 2532,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": false,
@@ -3945,7 +3945,7 @@
           },
           "id": 2533,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": false,
@@ -4061,7 +4061,7 @@
           },
           "id": 2534,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": false,
@@ -4150,7 +4150,7 @@
       ],
       "repeat": null,
       "title": "gRPC",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -4214,7 +4214,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The CPU utilization of violetabftstore thread",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -4226,7 +4226,7 @@
           },
           "id": 61,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -4356,7 +4356,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The CPU utilization of async apply",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -4368,7 +4368,7 @@
           },
           "id": 79,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -4497,7 +4497,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The CPU utilization of scheduler worker",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -4509,7 +4509,7 @@
           },
           "id": 64,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -4649,7 +4649,7 @@
           },
           "id": 105,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -4776,7 +4776,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The CPU utilization of the unified read pool",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -4788,7 +4788,7 @@
           },
           "id": 4287,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -4918,7 +4918,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The CPU utilization of readpool",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -4930,7 +4930,7 @@
           },
           "id": 1908,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -5079,7 +5079,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The CPU utilization of interlock",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -5091,7 +5091,7 @@
           },
           "id": 78,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -5204,7 +5204,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The CPU utilization of Lmdb",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -5216,7 +5216,7 @@
           },
           "id": 69,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -5317,7 +5317,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": " \tThe CPU utilization of split check",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -5329,7 +5329,7 @@
           },
           "id": 68,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -5423,7 +5423,7 @@
           },
           "id": 2531,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -5507,7 +5507,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The CPU utilization of snapshot worker",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -5519,7 +5519,7 @@
           },
           "id": 67,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -5602,7 +5602,7 @@
       ],
       "repeat": null,
       "title": "Thread CPU",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -5631,7 +5631,7 @@
           },
           "id": 1069,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -5724,7 +5724,7 @@
           },
           "id": 1070,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -5817,7 +5817,7 @@
           },
           "id": 1215,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -5910,7 +5910,7 @@
           },
           "id": 1396,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -5990,7 +5990,7 @@
       ],
       "repeat": null,
       "title": "FIDel",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -6076,7 +6076,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The time consumed for VioletaBft to apply logs per EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -6088,7 +6088,7 @@
           },
           "id": 32,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -6238,7 +6238,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The time consumed when VioletaBft applightlikes log on each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -6250,7 +6250,7 @@
           },
           "id": 40,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -6407,7 +6407,7 @@
           },
           "id": 3688,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -6482,7 +6482,7 @@
       ],
       "repeat": null,
       "title": "VioletaBft IO",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -6502,7 +6502,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The count of different ready type of VioletaBft",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -6514,7 +6514,7 @@
           },
           "id": 5,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -6608,7 +6608,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The time consumed by violetabftstore events (P99).99",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -6620,7 +6620,7 @@
           },
           "id": 123,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -6779,7 +6779,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The time consumed for peer processes to be ready in VioletaBft",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -6791,7 +6791,7 @@
           },
           "id": 4375,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -6880,7 +6880,7 @@
       ],
       "repeat": null,
       "title": "VioletaBft process",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -6900,7 +6900,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of VioletaBft messages sent by each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -6912,7 +6912,7 @@
           },
           "id": 1615,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -6997,7 +6997,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of VioletaBft messages flushed by each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -7009,7 +7009,7 @@
           },
           "id": 1616,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -7104,7 +7104,7 @@
           },
           "id": 106,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -7188,7 +7188,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of different types of VioletaBft messages that are sent",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -7200,7 +7200,7 @@
           },
           "id": 11,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -7285,7 +7285,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The total number of vote messages that are sent in VioletaBft",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -7297,7 +7297,7 @@
           },
           "id": 25,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -7382,7 +7382,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of dropped VioletaBft messages per type",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -7394,7 +7394,7 @@
           },
           "id": 1309,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -7474,7 +7474,7 @@
       ],
       "repeat": null,
       "title": "VioletaBft message",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -7503,7 +7503,7 @@
           },
           "id": 108,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -7588,7 +7588,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of proposals per type",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -7600,7 +7600,7 @@
           },
           "id": 7,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -7686,7 +7686,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of read proposals which are made by each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -7698,7 +7698,7 @@
           },
           "id": 119,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -7784,7 +7784,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of write proposals which are made by each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -7796,7 +7796,7 @@
           },
           "id": 120,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -7948,7 +7948,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The wait time of each proposal in each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -7960,7 +7960,7 @@
           },
           "id": 42,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -8108,7 +8108,7 @@
           "dashLength": 10,
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -8120,7 +8120,7 @@
           },
           "id": 2536,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -8212,7 +8212,7 @@
           },
           "id": 1975,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": false,
             "max": true,
@@ -8293,7 +8293,7 @@
           "dashLength": 10,
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -8305,7 +8305,7 @@
           },
           "id": 1976,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -8393,7 +8393,7 @@
       ],
       "repeat": null,
       "title": "VioletaBft propose",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -8413,7 +8413,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of admin proposals",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -8425,7 +8425,7 @@
           },
           "id": 76,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -8511,7 +8511,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of the processed apply command",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -8523,7 +8523,7 @@
           },
           "id": 77,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -8609,7 +8609,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of violetabftstore split checksss",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -8621,7 +8621,7 @@
           },
           "id": 70,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -8707,7 +8707,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The time consumed when running split check in .9999",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -8719,7 +8719,7 @@
           },
           "id": 71,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -8801,7 +8801,7 @@
       ],
       "repeat": null,
       "title": "VioletaBft admin",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -8829,7 +8829,7 @@
           },
           "id": 2292,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -8918,7 +8918,7 @@
       ],
       "repeat": null,
       "title": "Local reader",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -8946,7 +8946,7 @@
           },
           "id": 4194,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -9035,7 +9035,7 @@
           },
           "id": 4196,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -9123,7 +9123,7 @@
           },
           "id": 4198,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -9198,7 +9198,7 @@
         }
       ],
       "title": "Unified Read Pool",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -9218,7 +9218,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The total count of different kinds of commands received",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -9230,7 +9230,7 @@
           },
           "id": 2,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -9317,7 +9317,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The total number of engine asynchronous request errors",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -9329,7 +9329,7 @@
           },
           "id": 8,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -9544,7 +9544,7 @@
       ],
       "repeat": null,
       "title": "CausetStorage",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -9574,7 +9574,7 @@
           "height": "400",
           "id": 167,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -9590,7 +9590,7 @@
           "lines": true,
           "linewidth": 1,
           "links": [],
-          "maxPerRow": 1,
+          "maxPerEvent": 1,
           "nullPointMode": "null",
           "percentage": false,
           "pointradius": 5,
@@ -9677,7 +9677,7 @@
           "height": "400",
           "id": 3834,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -9693,7 +9693,7 @@
           "lines": true,
           "linewidth": 1,
           "links": [],
-          "maxPerRow": 1,
+          "maxPerEvent": 1,
           "nullPointMode": "null",
           "percentage": false,
           "pointradius": 5,
@@ -9762,7 +9762,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The count of different priority commands",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -9775,7 +9775,7 @@
           "height": "",
           "id": 1,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -9791,7 +9791,7 @@
           "lines": true,
           "linewidth": 2,
           "links": [],
-          "maxPerRow": 2,
+          "maxPerEvent": 2,
           "nullPointMode": "null",
           "percentage": false,
           "pointradius": 5,
@@ -9896,7 +9896,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The count of plightlikeing commands per EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -9909,7 +9909,7 @@
           "height": "",
           "id": 193,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -9925,7 +9925,7 @@
           "lines": true,
           "linewidth": 2,
           "links": [],
-          "maxPerRow": 2,
+          "maxPerEvent": 2,
           "nullPointMode": "null",
           "percentage": false,
           "pointradius": 5,
@@ -9999,7 +9999,7 @@
       ],
       "repeat": null,
       "title": "Scheduler",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -10029,7 +10029,7 @@
           "height": "400",
           "id": 168,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -10045,7 +10045,7 @@
           "lines": true,
           "linewidth": 1,
           "links": [],
-          "maxPerRow": 1,
+          "maxPerEvent": 1,
           "nullPointMode": "null",
           "percentage": false,
           "pointradius": 5,
@@ -10129,7 +10129,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The time consumed when executing commit command",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -10141,7 +10141,7 @@
           },
           "id": 3,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -10254,7 +10254,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The time which is caused by latch wait in commit command",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -10266,7 +10266,7 @@
           },
           "id": 194,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -10379,7 +10379,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The count of tuplespaceInstanton read by a commit command",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -10391,7 +10391,7 @@
           },
           "id": 195,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -10504,7 +10504,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The count of tuplespaceInstanton written by a commit command",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -10516,7 +10516,7 @@
           },
           "id": 373,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -10629,7 +10629,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The tuplespaceInstanton scan details of each CAUSET when executing commit command",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -10641,7 +10641,7 @@
           },
           "id": 560,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -10736,7 +10736,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The tuplespaceInstanton scan details of dagger CAUSET when executing commit command",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -10748,7 +10748,7 @@
           },
           "id": 675,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -10843,7 +10843,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The tuplespaceInstanton scan details of write CAUSET when executing commit command",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -10855,7 +10855,7 @@
           },
           "id": 829,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -10950,7 +10950,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The tuplespaceInstanton scan details of default CAUSET when executing commit command",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -10962,7 +10962,7 @@
           },
           "id": 830,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -11052,7 +11052,7 @@
       ],
       "repeat": "command",
       "title": "Scheduler - $command",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -11072,7 +11072,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of versions for each key",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -11084,7 +11084,7 @@
           },
           "id": 26,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -11247,7 +11247,7 @@
           },
           "id": 121,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -11364,7 +11364,7 @@
           },
           "id": 2224,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -11481,7 +11481,7 @@
           },
           "id": 2225,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -11566,7 +11566,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 2,
           "description": "The count of MilevaDB GC worker actions",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -11578,7 +11578,7 @@
           },
           "id": 966,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -11663,7 +11663,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The GC duration",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -11675,7 +11675,7 @@
           },
           "id": 969,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -11759,7 +11759,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "tuplespaceInstanton / second",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -11771,7 +11771,7 @@
           },
           "id": 2589,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -11863,7 +11863,7 @@
           },
           "id": 2819,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -11960,7 +11960,7 @@
           },
           "id": 2823,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -12057,7 +12057,7 @@
           },
           "id": 2821,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -12154,7 +12154,7 @@
           },
           "id": 2822,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -12246,7 +12246,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 0,
           "description": " \tThe lifetime of MilevaDB GC",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "format": "s",
           "gauge": {
@@ -12296,7 +12296,7 @@
             "lineColor": "rgb(31, 120, 193)",
             "show": false
           },
-          "tablePrimaryCauset": "",
+          "BlockPrimaryCauset": "",
           "targets": [
             {
               "expr": "max(milevadb_einsteindbclient_gc_config{type=\"einsteindb_gc_life_time\"})",
@@ -12332,7 +12332,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 0,
           "description": "The interval of MilevaDB GC",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "format": "s",
           "gauge": {
@@ -12382,7 +12382,7 @@
             "lineColor": "rgb(31, 120, 193)",
             "show": false
           },
-          "tablePrimaryCauset": "",
+          "BlockPrimaryCauset": "",
           "targets": [
             {
               "expr": "max(milevadb_einsteindbclient_gc_config{type=\"einsteindb_gc_run_interval\"})",
@@ -12408,7 +12408,7 @@
       ],
       "repeat": null,
       "title": "GC",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -12427,7 +12427,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The rate of VioletaBft snapshot messages sent",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -12439,7 +12439,7 @@
           },
           "id": 35,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": false,
@@ -12523,7 +12523,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The time consumed when handling snapshots",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -12535,7 +12535,7 @@
           },
           "id": 36,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -12635,7 +12635,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The number of snapshots in different states",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -12647,7 +12647,7 @@
           },
           "id": 38,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": false,
@@ -12732,7 +12732,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The snapshot size (P99.99).9999",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -12744,7 +12744,7 @@
           },
           "id": 44,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -12829,7 +12829,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The number of KV within a snapshot in .9999",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -12841,7 +12841,7 @@
           },
           "id": 43,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -12922,7 +12922,7 @@
       ],
       "repeat": null,
       "title": "Snapshot",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -12942,7 +12942,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of tasks handled by worker",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -12954,7 +12954,7 @@
           },
           "id": 59,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -13041,7 +13041,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": " \tCurrent plightlikeing and running tasks of worker",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -13053,7 +13053,7 @@
           },
           "id": 1395,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -13140,7 +13140,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The number of tasks handled by future_pool",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -13152,7 +13152,7 @@
           },
           "id": 1876,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -13239,7 +13239,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "Current plightlikeing and running tasks of future_pool",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -13251,7 +13251,7 @@
           },
           "id": 1877,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -13333,7 +13333,7 @@
       ],
       "repeat": null,
       "title": "Task",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -13372,7 +13372,7 @@
           "highlightCards": true,
           "id": 3062,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -13429,7 +13429,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -13441,7 +13441,7 @@
           },
           "id": 16,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": false,
@@ -13534,7 +13534,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -13546,7 +13546,7 @@
           },
           "id": 74,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -13633,7 +13633,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -13645,7 +13645,7 @@
           },
           "id": 3128,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -13732,7 +13732,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -13744,7 +13744,7 @@
           },
           "id": 52,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -13828,7 +13828,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -13840,7 +13840,7 @@
           },
           "id": 3129,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -13932,7 +13932,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -13944,7 +13944,7 @@
           },
           "id": 2118,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -14037,7 +14037,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -14049,7 +14049,7 @@
           },
           "id": 551,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -14132,7 +14132,7 @@
       ],
       "repeat": null,
       "title": "Interlock Overview",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -14152,7 +14152,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The time consumed when handling interlock requests",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -14164,7 +14164,7 @@
           },
           "id": 113,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -14257,7 +14257,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The time consumed to handle interlock requests per EinsteinDB instance (P95)",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -14269,7 +14269,7 @@
           },
           "id": 117,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -14355,7 +14355,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The time consumed when interlock requests are wait for being handled",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -14367,7 +14367,7 @@
           },
           "id": 111,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -14459,7 +14459,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The time consumed when interlock requests are wait for being handled in each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -14471,7 +14471,7 @@
           },
           "id": 116,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -14556,7 +14556,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -14568,7 +14568,7 @@
           },
           "id": 3195,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -14656,7 +14656,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The total number of DAG executors",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -14668,7 +14668,7 @@
           },
           "id": 3264,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -14755,7 +14755,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -14767,7 +14767,7 @@
           },
           "id": 552,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -14808,7 +14808,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Total Ops Details (Table Scan)",
+          "title": "Total Ops Details (Block Scan)",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -14854,7 +14854,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -14866,7 +14866,7 @@
           },
           "id": 3263,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -14953,7 +14953,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -14965,7 +14965,7 @@
           },
           "id": 122,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -15007,7 +15007,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Total Ops Details by CAUSET (Table Scan)",
+          "title": "Total Ops Details by CAUSET (Block Scan)",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -15053,7 +15053,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -15065,7 +15065,7 @@
           },
           "id": 554,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -15149,7 +15149,7 @@
         }
       ],
       "title": "Interlock Detail",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -15177,7 +15177,7 @@
           },
           "id": 2108,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -15276,7 +15276,7 @@
           },
           "id": 2258,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -15370,7 +15370,7 @@
           },
           "id": 2660,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -15464,7 +15464,7 @@
           },
           "id": 2661,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -15545,7 +15545,7 @@
       ],
       "repeat": null,
       "title": "Threads",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -15574,7 +15574,7 @@
           },
           "id": 138,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -15608,10 +15608,10 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_engine_memtable_efficiency{instance=~\"$instance\", db=\"$db\", type=\"memtable_hit\"}[1m]))",
+              "expr": "sum(rate(einsteindb_engine_memBlock_efficiency{instance=~\"$instance\", db=\"$db\", type=\"memBlock_hit\"}[1m]))",
               "format": "time_series",
               "intervalFactor": 2,
-              "leglightlikeFormat": "memtable",
+              "leglightlikeFormat": "memBlock",
               "metric": "",
               "refId": "B",
               "step": 10
@@ -15708,7 +15708,7 @@
           },
           "id": 82,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -15832,7 +15832,7 @@
           },
           "id": 129,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -15978,7 +15978,7 @@
           },
           "id": 125,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -16102,7 +16102,7 @@
           },
           "id": 139,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -16218,7 +16218,7 @@
           },
           "id": 126,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -16342,7 +16342,7 @@
           },
           "id": 130,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -16466,7 +16466,7 @@
           },
           "id": 137,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -16567,7 +16567,7 @@
           },
           "id": 135,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -16583,7 +16583,7 @@
           "lines": true,
           "linewidth": 1,
           "links": [],
-          "maxPerRow": 2,
+          "maxPerEvent": 2,
           "nullPointMode": "null",
           "percentage": false,
           "pointradius": 5,
@@ -16692,7 +16692,7 @@
           },
           "id": 128,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -16793,7 +16793,7 @@
           },
           "id": 136,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -16918,7 +16918,7 @@
           },
           "id": 140,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -17046,7 +17046,7 @@
           },
           "id": 87,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -17164,7 +17164,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The memtable size of each PrimaryCauset family",
+          "description": "The memBlock size of each PrimaryCauset family",
           "fill": 1,
           "gridPos": {
             "h": 8,
@@ -17174,7 +17174,7 @@
           },
           "id": 103,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -17208,7 +17208,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "avg(einsteindb_engine_memory_bytes{instance=~\"$instance\", db=\"$db\", type=\"mem-tables\"}) by (causet)",
+              "expr": "avg(einsteindb_engine_memory_bytes{instance=~\"$instance\", db=\"$db\", type=\"mem-Blocks\"}) by (causet)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{causet}}",
@@ -17220,7 +17220,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Memtable size",
+          "title": "MemBlock size",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -17264,7 +17264,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The hit rate of memtable",
+          "description": "The hit rate of memBlock",
           "fill": 0,
           "gridPos": {
             "h": 8,
@@ -17274,7 +17274,7 @@
           },
           "id": 88,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -17308,7 +17308,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_engine_memtable_efficiency{instance=~\"$instance\", db=\"$db\", type=\"memtable_hit\"}[1m])) / (sum(rate(einsteindb_engine_memtable_efficiency{db=\"$db\", type=\"memtable_hit\"}[1m])) + sum(rate(einsteindb_engine_memtable_efficiency{db=\"$db\", type=\"memtable_miss\"}[1m])))",
+              "expr": "sum(rate(einsteindb_engine_memBlock_efficiency{instance=~\"$instance\", db=\"$db\", type=\"memBlock_hit\"}[1m])) / (sum(rate(einsteindb_engine_memBlock_efficiency{db=\"$db\", type=\"memBlock_hit\"}[1m])) + sum(rate(einsteindb_engine_memBlock_efficiency{db=\"$db\", type=\"memBlock_miss\"}[1m])))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "hit",
@@ -17320,7 +17320,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Memtable hit",
+          "title": "MemBlock hit",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -17374,7 +17374,7 @@
           },
           "id": 102,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -17474,7 +17474,7 @@
           },
           "id": 80,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -17490,7 +17490,7 @@
           "lines": true,
           "linewidth": 1,
           "links": [],
-          "maxPerRow": 2,
+          "maxPerEvent": 2,
           "nullPointMode": "connected",
           "percentage": false,
           "pointradius": 5,
@@ -17613,7 +17613,7 @@
           "height": "",
           "id": 467,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -17780,7 +17780,7 @@
           },
           "id": 468,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -17918,7 +17918,7 @@
           "height": "",
           "id": 132,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -18041,7 +18041,7 @@
           },
           "id": 131,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -18144,7 +18144,7 @@
           "height": "",
           "id": 85,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -18256,7 +18256,7 @@
           },
           "id": 133,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -18272,7 +18272,7 @@
           "lines": true,
           "linewidth": 1,
           "links": [],
-          "maxPerRow": 2,
+          "maxPerEvent": 2,
           "nullPointMode": "null",
           "percentage": false,
           "pointradius": 5,
@@ -18382,7 +18382,7 @@
           "height": "",
           "id": 86,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -18492,7 +18492,7 @@
           },
           "id": 134,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -18508,7 +18508,7 @@
           "lines": true,
           "linewidth": 1,
           "links": [],
-          "maxPerRow": 2,
+          "maxPerEvent": 2,
           "nullPointMode": "null",
           "percentage": false,
           "pointradius": 5,
@@ -18617,7 +18617,7 @@
           },
           "id": 90,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -18736,7 +18736,7 @@
           },
           "id": 127,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -18838,7 +18838,7 @@
           },
           "id": 518,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -18940,7 +18940,7 @@
           },
           "id": 863,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -19042,7 +19042,7 @@
           },
           "id": 516,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -19144,7 +19144,7 @@
           },
           "id": 517,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -19245,7 +19245,7 @@
           },
           "id": 2002,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -19342,7 +19342,7 @@
           },
           "id": 2003,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -19446,7 +19446,7 @@
           },
           "id": 2381,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideZero": true,
@@ -19544,7 +19544,7 @@
           },
           "id": 2452,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -19645,7 +19645,7 @@
           },
           "id": 2451,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -19733,7 +19733,7 @@
       ],
       "repeat": "db",
       "title": "Lmdb - $db",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -19760,7 +19760,7 @@
           },
           "id": 3555,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -19863,7 +19863,7 @@
           },
           "id": 3557,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -19965,7 +19965,7 @@
           },
           "id": 3523,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -20062,7 +20062,7 @@
           },
           "id": 4655,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -20155,7 +20155,7 @@
           },
           "id": 4020,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -20171,7 +20171,7 @@
           "lines": true,
           "linewidth": 1,
           "links": [],
-          "maxPerRow": 2,
+          "maxPerEvent": 2,
           "nullPointMode": "connected",
           "percentage": false,
           "pointradius": 5,
@@ -20255,7 +20255,7 @@
           },
           "id": 4023,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -20376,7 +20376,7 @@
           },
           "id": 4025,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -20471,7 +20471,7 @@
           },
           "id": 3414,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -20592,7 +20592,7 @@
           },
           "id": 3446,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -20708,7 +20708,7 @@
           },
           "id": 3746,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -20807,7 +20807,7 @@
           },
           "id": 3655,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -20923,7 +20923,7 @@
           },
           "id": 3338,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -21036,7 +21036,7 @@
           },
           "id": 3412,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -21154,7 +21154,7 @@
           },
           "id": 4092,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -21272,7 +21272,7 @@
           },
           "id": 4093,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -21390,7 +21390,7 @@
           },
           "id": 3645,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -21485,7 +21485,7 @@
           },
           "id": 3643,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -21580,7 +21580,7 @@
           },
           "id": 3657,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -21696,7 +21696,7 @@
           },
           "id": 3408,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -21812,7 +21812,7 @@
           },
           "id": 3651,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -21907,7 +21907,7 @@
           },
           "id": 3653,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -22023,7 +22023,7 @@
           },
           "id": 4018,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -22119,7 +22119,7 @@
           },
           "id": 3410,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -22235,7 +22235,7 @@
           },
           "id": 3649,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -22330,7 +22330,7 @@
           },
           "id": 3340,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -22425,7 +22425,7 @@
           },
           "id": 4021,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -22541,7 +22541,7 @@
           },
           "id": 4022,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -22657,7 +22657,7 @@
           },
           "id": 3344,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -22741,7 +22741,7 @@
       ],
       "repeat": "titan_db",
       "title": "Noether - $titan_db",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -22760,7 +22760,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -22772,7 +22772,7 @@
           },
           "id": 2991,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -22866,7 +22866,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -22878,7 +22878,7 @@
           },
           "id": 2877,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": false,
@@ -22974,7 +22974,7 @@
           "id": 2993,
           "interval": "",
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": false,
@@ -23074,7 +23074,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -23086,7 +23086,7 @@
           },
           "id": 4018,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": false,
@@ -23115,7 +23115,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(max_over_time(einsteindb_lock_manager_wait_table_status{instance=~\"$instance\"}[15s])) by (type)",
+              "expr": "sum(max_over_time(einsteindb_lock_manager_wait_Block_status{instance=~\"$instance\"}[15s])) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{type}}",
@@ -23127,7 +23127,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Wait table",
+          "title": "Wait Block",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -23181,7 +23181,7 @@
           },
           "id": 2995,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -23272,7 +23272,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -23284,7 +23284,7 @@
           },
           "id": 2934,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -23371,7 +23371,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 0,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -23383,7 +23383,7 @@
           },
           "id": 4019,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": false,
@@ -23469,7 +23469,7 @@
         }
       ],
       "title": "Dagger manager",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -23496,7 +23496,7 @@
           },
           "id": 2696,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -23569,7 +23569,7 @@
       ],
       "repeat": null,
       "title": "Memory",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -23588,7 +23588,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -23600,7 +23600,7 @@
           },
           "id": 3924,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -23695,7 +23695,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -23707,7 +23707,7 @@
           },
           "id": 3926,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -23790,7 +23790,7 @@
           "dashLength": 10,
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -23802,7 +23802,7 @@
           },
           "id": 3927,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -23901,7 +23901,7 @@
           "dashLength": 10,
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -23913,7 +23913,7 @@
           },
           "id": 3928,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -24016,7 +24016,7 @@
           },
           "id": 3929,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -24119,7 +24119,7 @@
           "dashLength": 10,
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -24131,7 +24131,7 @@
           },
           "id": 3930,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -24241,7 +24241,7 @@
           },
           "id": 3931,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -24316,7 +24316,7 @@
         }
       ],
       "title": "Backup",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -24329,7 +24329,7 @@
       "id": 4466,
       "panels": [],
       "title": "Encryption",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "aliasColors": {},
@@ -24347,7 +24347,7 @@
       },
       "id": 4464,
       "leglightlike": {
-        "alignAsTable": true,
+        "alignAsBlock": true,
         "avg": false,
         "current": true,
         "max": true,
@@ -24437,7 +24437,7 @@
       },
       "id": 4554,
       "leglightlike": {
-        "alignAsTable": true,
+        "alignAsBlock": true,
         "avg": false,
         "current": true,
         "max": true,
@@ -24525,7 +24525,7 @@
       },
       "id": 4555,
       "leglightlike": {
-        "alignAsTable": true,
+        "alignAsBlock": true,
         "avg": false,
         "current": true,
         "max": false,
@@ -24615,7 +24615,7 @@
       },
       "id": 4556,
       "leglightlike": {
-        "alignAsTable": true,
+        "alignAsBlock": true,
         "avg": false,
         "current": true,
         "max": true,
@@ -24703,7 +24703,7 @@
       },
       "id": 4557,
       "leglightlike": {
-        "alignAsTable": true,
+        "alignAsBlock": true,
         "avg": false,
         "current": true,
         "max": true,
@@ -24798,7 +24798,7 @@
       },
       "id": 4559,
       "leglightlike": {
-        "alignAsTable": true,
+        "alignAsBlock": true,
         "avg": false,
         "current": true,
         "max": true,

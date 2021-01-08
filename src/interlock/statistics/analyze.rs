@@ -12,12 +12,12 @@ use rand::Rng;
 use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
 use milevadb_query_common::causetStorage::Cone;
 use milevadb_query_datatype::codec::datum::{encode_value, split_datum, Datum, NIL_FLAG};
-use milevadb_query_datatype::codec::table;
+use milevadb_query_datatype::codec::Block;
 use milevadb_query_datatype::def::Collation;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
 use milevadb_query_datatype::FieldTypeAccessor;
 use milevadb_query_vec_executors::{
-    interface::BatchFreeDaemon, runner::MAX_TIME_SLICE, BatchTableScanFreeDaemon,
+    interface::BatchFreeDaemon, runner::MAX_TIME_SLICE, BatchBlockScanFreeDaemon,
 };
 use milevadb_query_vec_expr::BATCH_MAX_SIZE;
 use fidelpb::{self, AnalyzePrimaryCausetsReq, AnalyzeIndexReq, AnalyzeReq, AnalyzeType};
@@ -107,11 +107,11 @@ impl<S: Snapshot> AnalyzeContext<S> {
             }
             let mut key = &key[..];
             if is_common_handle {
-                table::check_record_key(key)?;
-                key = &key[table::PREFIX_LEN..];
+                Block::check_record_key(key)?;
+                key = &key[Block::PREFIX_LEN..];
             } else {
-                table::check_index_key(key)?;
-                key = &key[table::PREFIX_LEN + table::ID_LEN..];
+                Block::check_index_key(key)?;
+                key = &key[Block::PREFIX_LEN + Block::ID_LEN..];
             }
             let mut datums = key;
             let mut data = Vec::with_capacity(key.len());
@@ -150,7 +150,7 @@ impl<S: Snapshot> RequestHandler for AnalyzeContext<S> {
             AnalyzeType::TypeIndex | AnalyzeType::TypeCommonHandle => {
                 let req = self.req.take_idx_req();
                 let cones = mem::replace(&mut self.cones, vec![]);
-                table::check_table_cones(&cones)?;
+                Block::check_Block_cones(&cones)?;
                 let mut scanner = ConesScanner::new(ConesScannerOptions {
                     causetStorage: self.causetStorage.take().unwrap(),
                     cones: cones
@@ -203,7 +203,7 @@ impl<S: Snapshot> RequestHandler for AnalyzeContext<S> {
 }
 
 struct SampleBuilder<S: Snapshot> {
-    data: BatchTableScanFreeDaemon<EinsteinDBStorage<SnapshotStore<S>>>,
+    data: BatchBlockScanFreeDaemon<EinsteinDBStorage<SnapshotStore<S>>>,
 
     max_bucket_size: usize,
     max_sample_size: usize,
@@ -227,7 +227,7 @@ impl<S: Snapshot> SampleBuilder<S> {
             return Err(box_err!("empty PrimaryCausets_info"));
         }
 
-        let table_scanner = BatchTableScanFreeDaemon::new(
+        let Block_scanner = BatchBlockScanFreeDaemon::new(
             causetStorage,
             Arc::new(EvalConfig::default()),
             PrimaryCausets_info.clone(),
@@ -237,7 +237,7 @@ impl<S: Snapshot> SampleBuilder<S> {
             false, // Streaming mode is not supported in Analyze request, always false here
         )?;
         Ok(Self {
-            data: table_scanner,
+            data: Block_scanner,
             max_bucket_size: req.get_bucket_size() as usize,
             max_fm_sketch_size: req.get_sketch_size() as usize,
             max_sample_size: req.get_sample_size() as usize,
@@ -311,7 +311,7 @@ impl<S: Snapshot> SampleBuilder<S> {
                             TT, match PrimaryCausets_info[i].as_accessor().collation()? {
                                 Collation::TT => {
                                     let mut mut_val = &val[..];
-                                    let decoded_val = table::decode_col_value(&mut mut_val, &mut EvalContext::default(), &PrimaryCausets_info[i])?;
+                                    let decoded_val = Block::decode_col_value(&mut mut_val, &mut EvalContext::default(), &PrimaryCausets_info[i])?;
                                     if decoded_val == Datum::Null {
                                         val
                                     } else {

@@ -243,7 +243,7 @@ pub struct Endpoint<T> {
     scan_batch_size: usize,
     tso_worker: Runtime,
     store_meta: Arc<Mutex<StoreMeta>>,
-    /// The concurrency manager for transactions. It's needed for CDC to check locks when
+    /// The concurrency manager for bundles. It's needed for CDC to check locks when
     /// calculating resolved_ts.
     concurrency_manager: ConcurrencyManager,
 

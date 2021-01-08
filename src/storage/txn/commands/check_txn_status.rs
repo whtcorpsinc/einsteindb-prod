@@ -549,7 +549,7 @@ pub mod tests {
         must_unlocked(&engine, k);
         must_get_commit_ts(&engine, k, ts(4, 0), ts(140, 0));
 
-        // Now the transactions are intersecting:
+        // Now the bundles are intersecting:
         // T1: spacelike_ts = 5, commit_ts = 15
         // T2: spacelike_ts = 20, rollback
         // T3: spacelike_ts = 4, commit_ts = 140

@@ -152,12 +152,12 @@ pub struct BatchExecuteResult {
     ///         mean that there is logical data inside.
     pub physical_PrimaryCausets: LazyBatchPrimaryCausetVec,
 
-    /// Valid row offsets in `physical_PrimaryCausets`, placed in the logical order.
+    /// Valid EventIdx offsets in `physical_PrimaryCausets`, placed in the logical order.
     pub logical_rows: Vec<usize>,
 
     /// The warnings generated during this invocation.
     // TODO: It can be more general, e.g. `ExecuteWarnings` instead of `EvalWarnings`.
-    // TODO: Should be recorded by row.
+    // TODO: Should be recorded by EventIdx.
     pub warnings: EvalWarnings,
 
     /// Whether or not there is no more data.

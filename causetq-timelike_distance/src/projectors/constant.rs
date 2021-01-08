@@ -15,7 +15,7 @@ use ::{
     FindSpec,
     CausetQOutput,
     CausetQResults,
-    Rows,
+    Events,
     SchemaReplicant,
     rusqlite,
 };
@@ -56,7 +56,7 @@ impl MinkowskiProjector {
 // TODO: a MinkowskiProjector with non-constant pull expressions.
 
 impl Projector for MinkowskiProjector {
-    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, _rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, _rows: Events<'stmt>) -> Result<CausetQOutput> {
         self.project_without_rows()
     }
 

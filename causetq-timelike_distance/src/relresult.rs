@@ -9,7 +9,7 @@
 // specific language governing permissions and limitations under the License.
 
 use embedded_promises::{
-    Binding,
+    ConstrainedEntsConstraint,
     MinkowskiType,
 };
 
@@ -27,7 +27,7 @@ use embedded_promises::{
 ///      or making a modified clone).
 ///   2. When the data you're retrieving is cheap to clone. All scalar values are relatively
 ///      cheap: they're either small values or `Rc`.
-/// - By direct reference to a row by index, using `result.row(i)`. This also returns
+/// - By direct reference to a EventIdx by index, using `result.EventIdx(i)`. This also returns
 ///   a reference.
 /// - By consuming the results using `into_iter`. This allocates short-lived vectors,
 ///   but gives you ownership of the enclosed `MinkowskiType`s.
@@ -37,7 +37,7 @@ pub struct RelResult<T> {
     pub values: Vec<T>,
 }
 
-pub type StructuredRelResult = RelResult<Binding>;
+pub type StructuredRelResult = RelResult<ConstrainedEntsConstraint>;
 
 impl<T> RelResult<T> {
     pub fn empty(width: usize) -> RelResult<T> {
@@ -60,7 +60,7 @@ impl<T> RelResult<T> {
         self.values.chunks(self.width)
     }
 
-    pub fn row(&self, index: usize) -> Option<&[T]> {
+    pub fn EventIdx(&self, index: usize) -> Option<&[T]> {
         let end = self.width * (index + 1);
         if end > self.values.len() {
             None
@@ -92,13 +92,13 @@ fn test_rel_result() {
     assert_eq!(unit.row_count(), 1);
     assert_eq!(two_by_two.row_count(), 2);
 
-    assert_eq!(empty.row(0), None);
-    assert_eq!(unit.row(1), None);
-    assert_eq!(two_by_two.row(2), None);
+    assert_eq!(empty.EventIdx(0), None);
+    assert_eq!(unit.EventIdx(1), None);
+    assert_eq!(two_by_two.EventIdx(2), None);
 
-    assert_eq!(unit.row(0), Some(vec![MinkowskiType::Long(5).into()].as_slice()));
-    assert_eq!(two_by_two.row(0), Some(vec![MinkowskiType::Long(5).into(), MinkowskiType::Boolean(true).into()].as_slice()));
-    assert_eq!(two_by_two.row(1), Some(vec![MinkowskiType::Long(-2).into(), MinkowskiType::Boolean(false).into()].as_slice()));
+    assert_eq!(unit.EventIdx(0), Some(vec![MinkowskiType::Long(5).into()].as_slice()));
+    assert_eq!(two_by_two.EventIdx(0), Some(vec![MinkowskiType::Long(5).into(), MinkowskiType::Boolean(true).into()].as_slice()));
+    assert_eq!(two_by_two.EventIdx(1), Some(vec![MinkowskiType::Long(-2).into(), MinkowskiType::Boolean(false).into()].as_slice()));
 
     let mut rr = two_by_two.rows();
     assert_eq!(rr.next(), Some(vec![MinkowskiType::Long(5).into(), MinkowskiType::Boolean(true).into()].as_slice()));
@@ -107,7 +107,7 @@ fn test_rel_result() {
 }
 
 // Primarily for testing.
-impl From<Vec<Vec<MinkowskiType>>> for RelResult<Binding> {
+impl From<Vec<Vec<MinkowskiType>>> for RelResult<ConstrainedEntsConstraint> {
     fn from(src: Vec<Vec<MinkowskiType>>) -> Self {
         if src.is_empty() {
             RelResult::empty(0)

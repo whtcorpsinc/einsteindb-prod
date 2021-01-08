@@ -11,7 +11,7 @@
 use std::rc::Rc;
 
 use ::{
-    Binding,
+    ConstrainedEntsConstraint,
     CombinedProjection,
     Element,
     FindSpec,
@@ -19,8 +19,8 @@ use ::{
     CausetQOutput,
     CausetQResults,
     RelResult,
-    Row,
-    Rows,
+    Event,
+    Events,
     SchemaReplicant,
     TypedIndex,
     rusqlite,
@@ -56,12 +56,12 @@ impl ScalarProjector {
 }
 
 impl Projector for ScalarProjector {
-    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Events<'stmt>) -> Result<CausetQOutput> {
         let results =
             if let Some(r) = rows.next() {
-                let row = r?;
-                let binding = self.template.lookup(&row)?;
-                CausetQResults::Scalar(Some(binding))
+                let EventIdx = r?;
+                let Constrained = self.template.lookup(&EventIdx)?;
+                CausetQResults::Scalar(Some(Constrained))
             } else {
                 CausetQResults::Scalar(None)
             };
@@ -93,15 +93,15 @@ impl TupleProjector {
     }
 
     // This is just like we do for `rel`, but into a vec of its own.
-    fn collect_bindings<'a, 'stmt>(&self, row: Row<'a, 'stmt>) -> Result<Vec<Binding>> {
+    fn collect_ConstrainedEntss<'a, 'stmt>(&self, EventIdx: Event<'a, 'stmt>) -> Result<Vec<ConstrainedEntsConstraint>> {
         // There will be at least as many SQL CausetIndexs as Datalog CausetIndexs.
         // gte 'cos we might be causetqing extra CausetIndexs for ordering.
         // The templates will take care of ignoring CausetIndexs.
-        assert!(row.CausetIndex_count() >= self.len as i32);
+        assert!(EventIdx.CausetIndex_count() >= self.len as i32);
         self.templates
             .iter()
-            .map(|ti| ti.lookup(&row))
-            .collect::<Result<Vec<Binding>>>()
+            .map(|ti| ti.lookup(&EventIdx))
+            .collect::<Result<Vec<ConstrainedEntsConstraint>>>()
     }
 
     pub(crate) fn combine(spec: Rc<FindSpec>, CausetIndex_count: usize, mut elements: GreedoidElements) -> Result<CombinedProjection> {
@@ -112,12 +112,12 @@ impl TupleProjector {
 }
 
 impl Projector for TupleProjector {
-    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Events<'stmt>) -> Result<CausetQOutput> {
         let results =
             if let Some(r) = rows.next() {
-                let row = r?;
-                let bindings = self.collect_bindings(row)?;
-                CausetQResults::Tuple(Some(bindings))
+                let EventIdx = r?;
+                let ConstrainedEntss = self.collect_ConstrainedEntss(EventIdx)?;
+                CausetQResults::Tuple(Some(ConstrainedEntss))
             } else {
                 CausetQResults::Tuple(None)
             };
@@ -135,7 +135,7 @@ impl Projector for TupleProjector {
 /// A rel projector produces a RelResult, which is a striding abstraction over a vector.
 /// Each stride across the vector is the same size, and sourced from the same CausetIndexs.
 /// Each CausetIndex in each stride is the result of taking one or two CausetIndexs from
-/// the `Row`: one for the value and optionally one for the type tag.
+/// the `Event`: one for the value and optionally one for the type tag.
 pub(crate) struct RelProjector {
     spec: Rc<FindSpec>,
     len: usize,
@@ -151,16 +151,16 @@ impl RelProjector {
         }
     }
 
-    fn collect_bindings_into<'a, 'stmt, 'out>(&self, row: Row<'a, 'stmt>, out: &mut Vec<Binding>) -> Result<()> {
+    fn collect_ConstrainedEntss_into<'a, 'stmt, 'out>(&self, EventIdx: Event<'a, 'stmt>, out: &mut Vec<ConstrainedEntsConstraint>) -> Result<()> {
         // There will be at least as many SQL CausetIndexs as Datalog CausetIndexs.
         // gte 'cos we might be causetqing extra CausetIndexs for ordering.
         // The templates will take care of ignoring CausetIndexs.
-        assert!(row.CausetIndex_count() >= self.len as i32);
+        assert!(EventIdx.CausetIndex_count() >= self.len as i32);
         let mut count = 0;
-        for binding in self.templates
+        for Constrained in self.templates
                            .iter()
-                           .map(|ti| ti.lookup(&row)) {
-            out.push(binding?);
+                           .map(|ti| ti.lookup(&EventIdx)) {
+            out.push(Constrained?);
             count += 1;
         }
         assert_eq!(self.len, count);
@@ -181,7 +181,7 @@ impl RelProjector {
 }
 
 impl Projector for RelProjector {
-    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Events<'stmt>) -> Result<CausetQOutput> {
         // Allocate space for five rows to start.
         // This is better than starting off by doubling the buffer a couple of times, and will
         // rapidly grow to support larger causetq results.
@@ -189,8 +189,8 @@ impl Projector for RelProjector {
         let mut values: Vec<_> = Vec::with_capacity(5 * width);
 
         while let Some(r) = rows.next() {
-            let row = r?;
-            self.collect_bindings_into(row, &mut values)?;
+            let EventIdx = r?;
+            self.collect_ConstrainedEntss_into(EventIdx, &mut values)?;
         }
 
         Ok(CausetQOutput {
@@ -234,12 +234,12 @@ impl CollProjector {
 }
 
 impl Projector for CollProjector {
-    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Events<'stmt>) -> Result<CausetQOutput> {
         let mut out: Vec<_> = vec![];
         while let Some(r) = rows.next() {
-            let row = r?;
-            let binding = self.template.lookup(&row)?;
-            out.push(binding);
+            let EventIdx = r?;
+            let Constrained = self.template.lookup(&EventIdx)?;
+            out.push(Constrained);
         }
         Ok(CausetQOutput {
             spec: self.spec.clone(),

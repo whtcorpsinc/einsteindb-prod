@@ -8,8 +8,8 @@ use milevadb_query_datatype::expr::{EvalContext, Result};
 
 impl ScalarFunc {
     #[inline]
-    pub fn bit_count(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let res = self.children[0].eval_int(ctx, row);
+    pub fn bit_count(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let res = self.children[0].eval_int(ctx, EventIdx);
         match res {
             Ok(r) => {
                 if let Some(v) = r {

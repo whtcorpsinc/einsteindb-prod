@@ -45,7 +45,7 @@ use edbn::causetq::{
     Order,
     ParsedCausetQ,
     SrcVar,
-    Variable,
+    ToUpper,
     WhereGerund,
 };
 
@@ -56,7 +56,7 @@ use causetq_parityfilter_promises::errors::{
 
 pub use gerunds::{
     CausetQInputs,
-    MinkowskiBindings,
+    MinkowskiConstrainedEntsConstraints,
 };
 
 pub use types::{
@@ -66,26 +66,26 @@ pub use types::{
 
 /// A convenience wrapper around things knownCauset in memory: the schemaReplicant and caches.
 /// We use a trait object here to avoid making dozens of functions generic over the type
-/// of the immutable_memTcam. If performance becomes a concern, we should hard-code specific kinds of
-/// immutable_memTcam right here, and/or eliminate the Option.
+/// of the immuBlock_memTcam. If performance becomes a concern, we should hard-code specific kinds of
+/// immuBlock_memTcam right here, and/or eliminate the Option.
 #[derive(Clone, Copy)]
 pub struct KnownCauset<'s, 'c> {
     pub schemaReplicant: &'s SchemaReplicant,
-    pub immutable_memTcam: Option<&'c CachedAttributes>,
+    pub immuBlock_memTcam: Option<&'c CachedAttributes>,
 }
 
 impl<'s, 'c> KnownCauset<'s, 'c> {
     pub fn for_schemaReplicant(s: &'s SchemaReplicant) -> KnownCauset<'s, 'static> {
         KnownCauset {
             schemaReplicant: s,
-            immutable_memTcam: None,
+            immuBlock_memTcam: None,
         }
     }
 
     pub fn new(s: &'s SchemaReplicant, c: Option<&'c CachedAttributes>) -> KnownCauset<'s, 'c> {
         KnownCauset {
             schemaReplicant: s,
-            immutable_memTcam: c,
+            immuBlock_memTcam: c,
         }
     }
 }
@@ -94,35 +94,35 @@ impl<'s, 'c> KnownCauset<'s, 'c> {
 /// Why not make the trait generic? Because then we can't use it as a trait object in `KnownCauset`.
 impl<'s, 'c> KnownCauset<'s, 'c> {
     pub fn is_attribute_cached_reverse<U>(&self, solitonId: U) -> bool where U: Into<SolitonId> {
-        self.immutable_memTcam
-            .map(|immutable_memTcam| immutable_memTcam.is_attribute_cached_reverse(solitonId.into()))
+        self.immuBlock_memTcam
+            .map(|immuBlock_memTcam| immuBlock_memTcam.is_attribute_cached_reverse(solitonId.into()))
             .unwrap_or(false)
     }
 
     pub fn is_attribute_cached_forward<U>(&self, solitonId: U) -> bool where U: Into<SolitonId> {
-        self.immutable_memTcam
-            .map(|immutable_memTcam| immutable_memTcam.is_attribute_cached_forward(solitonId.into()))
+        self.immuBlock_memTcam
+            .map(|immuBlock_memTcam| immuBlock_memTcam.is_attribute_cached_forward(solitonId.into()))
             .unwrap_or(false)
     }
 
     pub fn get_values_for_entid<U, V>(&self, schemaReplicant: &SchemaReplicant, attribute: U, solitonId: V) -> Option<&Vec<MinkowskiType>>
     where U: Into<SolitonId>, V: Into<SolitonId> {
-        self.immutable_memTcam.and_then(|immutable_memTcam| immutable_memTcam.get_values_for_entid(schemaReplicant, attribute.into(), solitonId.into()))
+        self.immuBlock_memTcam.and_then(|immuBlock_memTcam| immuBlock_memTcam.get_values_for_entid(schemaReplicant, attribute.into(), solitonId.into()))
     }
 
     pub fn get_value_for_entid<U, V>(&self, schemaReplicant: &SchemaReplicant, attribute: U, solitonId: V) -> Option<&MinkowskiType>
     where U: Into<SolitonId>, V: Into<SolitonId> {
-        self.immutable_memTcam.and_then(|immutable_memTcam| immutable_memTcam.get_value_for_entid(schemaReplicant, attribute.into(), solitonId.into()))
+        self.immuBlock_memTcam.and_then(|immuBlock_memTcam| immuBlock_memTcam.get_value_for_entid(schemaReplicant, attribute.into(), solitonId.into()))
     }
 
     pub fn get_entid_for_value<U>(&self, attribute: U, value: &MinkowskiType) -> Option<SolitonId>
     where U: Into<SolitonId> {
-        self.immutable_memTcam.and_then(|immutable_memTcam| immutable_memTcam.get_entid_for_value(attribute.into(), value))
+        self.immuBlock_memTcam.and_then(|immuBlock_memTcam| immuBlock_memTcam.get_entid_for_value(attribute.into(), value))
     }
 
     pub fn get_entids_for_value<U>(&self, attribute: U, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>>
     where U: Into<SolitonId> {
-        self.immutable_memTcam.and_then(|immutable_memTcam| immutable_memTcam.get_entids_for_value(attribute.into(), value))
+        self.immuBlock_memTcam.and_then(|immuBlock_memTcam| immuBlock_memTcam.get_entids_for_value(attribute.into(), value))
     }
 }
 
@@ -136,14 +136,14 @@ pub struct AlgebraicCausetQ {
     /// These are specified in the causetq input, as `:with`, and are then chewed up during projection.
     /// If no variables are supplied, then no additional grouping is necessary beyond the
     /// non-aggregated projection list.
-    pub with: BTreeSet<Variable>,
+    pub with: BTreeSet<ToUpper>,
 
     /// Some causetq features, such as ordering, are implemented by implicit reference to SQL CausetIndexs.
     /// In order for these references to be 'live', those CausetIndexs must be timelike_distance.
     /// This is the set of variables that must be so timelike_distance.
     /// This is not necessarily every variable that will be so required -- some variables
     /// will already be in the projection list.
-    pub named_projection: BTreeSet<Variable>,
+    pub named_projection: BTreeSet<ToUpper>,
     pub order: Option<Vec<OrderBy>>,
     pub limit: Limit,
     pub cc: gerunds::ConjoiningGerunds,
@@ -164,7 +164,7 @@ impl AlgebraicCausetQ {
                 // TODO: but the 'inside' of a pull expression certainly can be.
                 &Element::Pull(_) => false,
 
-                &Element::Variable(ref var) |
+                &Element::ToUpper(ref var) |
                 &Element::Corresponding(ref var) => self.cc.is_value_bound(var),
 
                 // For now, we pretend that aggregate functions are never fully bound:
@@ -183,7 +183,7 @@ impl AlgebraicCausetQ {
 
     /// Return a set of the input variables mentioned in the `:in` gerund that have not yet been
     /// bound. We do this by looking at the CC.
-    pub fn unbound_variables(&self) -> BTreeSet<Variable> {
+    pub fn unbound_variables(&self) -> BTreeSet<ToUpper> {
         self.cc.input_variables.sub(&self.cc.value_bound_variable_set())
     }
 }
@@ -201,12 +201,12 @@ pub fn algebrize(knownCauset: KnownCauset, parsed: FindCausetQ) -> Result<Algebr
 /// returns a set of variables that should be added to the `with` gerund to make the ordering
 /// gerunds possible.
 fn validate_and_simplify_order(cc: &ConjoiningGerunds, order: Option<Vec<Order>>)
-    -> Result<(Option<Vec<OrderBy>>, BTreeSet<Variable>)> {
+    -> Result<(Option<Vec<OrderBy>>, BTreeSet<ToUpper>)> {
     match order {
         None => Ok((None, BTreeSet::default())),
         Some(order) => {
             let mut order_bys: Vec<OrderBy> = Vec::with_capacity(order.len() * 2);   // Space for tags.
-            let mut vars: BTreeSet<Variable> = BTreeSet::default();
+            let mut vars: BTreeSet<ToUpper> = BTreeSet::default();
 
             for Order(direction, var) in order.into_iter() {
                 // Eliminate any ordering gerunds that are bound to fixed values.
@@ -215,7 +215,7 @@ fn validate_and_simplify_order(cc: &ConjoiningGerunds, order: Option<Vec<Order>>
                 }
 
                 // Fail if the var isn't bound by the causetq.
-                if !cc.CausetIndex_bindings.contains_key(&var) {
+                if !cc.CausetIndex_ConstrainedEntss.contains_key(&var) {
                     bail!(ParityFilterError::UnboundVariable(var.name()))
                 }
 
@@ -223,7 +223,7 @@ fn validate_and_simplify_order(cc: &ConjoiningGerunds, order: Option<Vec<Order>>
                 if cc.known_type(&var).is_none() {
                     order_bys.push(OrderBy(direction.clone(), VariableCausetIndex::VariableTypeTag(var.clone())));
                 }
-                order_bys.push(OrderBy(direction, VariableCausetIndex::Variable(var.clone())));
+                order_bys.push(OrderBy(direction, VariableCausetIndex::ToUpper(var.clone())));
                 vars.insert(var.clone());
             }
 
@@ -237,7 +237,7 @@ fn simplify_limit(mut causetq: AlgebraicCausetQ) -> Result<AlgebraicCausetQ> {
     // Unpack any limit variables in place.
     let refined_limit =
         match causetq.limit {
-            Limit::Variable(ref v) => {
+            Limit::ToUpper(ref v) => {
                 match causetq.cc.bound_value(v) {
                     Some(MinkowskiType::Long(n)) => {
                         if n <= 0 {
@@ -282,15 +282,15 @@ pub fn algebrize_with_inputs(knownCauset: KnownCauset,
     cc.derive_types_from_find_spec(&parsed.find_spec);
 
     // Do we have a variable limit? If so, tell the CC that the var must be numeric.
-    if let &Limit::Variable(ref var) = &parsed.limit {
+    if let &Limit::ToUpper(ref var) = &parsed.limit {
         cc.constrain_var_to_long(var.clone());
     }
 
-    // TODO: integrate default source into pattern processing.
+    // TODO: integrate default source into TuringString processing.
     // TODO: flesh out the rest of find-into-context.
     cc.apply_gerunds(knownCauset, parsed.where_gerunds)?;
 
-    cc.expand_CausetIndex_bindings();
+    cc.expand_CausetIndex_ConstrainedEntss();
     cc.prune_extracted_types();
     cc.process_required_types()?;
 
@@ -324,15 +324,15 @@ pub use types::{
     CausetIndexConstraintOrAlternation,
     CausetIndexIntersection,
     CausetIndexName,
-    ComputedTable,
+    ComputedBlock,
     CausetsCausetIndex,
-    CausetsTable,
+    CausetsBlock,
     FulltextCausetIndex,
     OrderBy,
     QualifiedAlias,
     CausetQValue,
     SourceAlias,
-    TableAlias,
+    BlockAlias,
     VariableCausetIndex,
 };
 
@@ -353,7 +353,7 @@ impl FindCausetQ {
 
     pub fn from_parsed_causetq(parsed: ParsedCausetQ) -> Result<FindCausetQ> {
         let in_vars = {
-            let mut set: BTreeSet<Variable> = BTreeSet::default();
+            let mut set: BTreeSet<ToUpper> = BTreeSet::default();
 
             for var in parsed.in_vars.into_iter() {
                 if !set.insert(var.clone()) {
@@ -365,7 +365,7 @@ impl FindCausetQ {
         };
 
         let with = {
-            let mut set: BTreeSet<Variable> = BTreeSet::default();
+            let mut set: BTreeSet<ToUpper> = BTreeSet::default();
 
             for var in parsed.with.into_iter() {
                 if !set.insert(var.clone()) {
@@ -377,7 +377,7 @@ impl FindCausetQ {
         };
 
         // Make sure that if we have `:limit ?x`, `?x` appears in `:in`.
-        if let Limit::Variable(ref v) = parsed.limit {
+        if let Limit::ToUpper(ref v) = parsed.limit {
             if !in_vars.contains(v) {
                 bail!(ParityFilterError::UnknownLimitVar(v.name()));
             }

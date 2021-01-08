@@ -400,7 +400,7 @@ macro_rules! build_causet_opt {
         }
         block_base_opts.set_read_amp_bytes_per_bit($opt.read_amp_bytes_per_bit);
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
-        causet_opts.set_block_based_table_factory(&block_base_opts);
+        causet_opts.set_block_based_Block_factory(&block_base_opts);
         causet_opts.set_num_levels($opt.num_levels);
         assert!($opt.compression_per_level.len() >= $opt.num_levels as usize);
         let compression_per_level = $opt.compression_per_level[..$opt.num_levels as usize].to_vec();
@@ -488,7 +488,7 @@ impl DefaultCfConfig {
             prop_size_index_distance: self.prop_size_index_distance,
             prop_tuplespaceInstanton_index_distance: self.prop_tuplespaceInstanton_index_distance,
         });
-        causet_opts.add_table_properties_collector_factory("einsteindb.cone-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.cone-properties-collector", f);
         causet_opts.set_titandb_options(&self.titan.build_opts());
         causet_opts
     }
@@ -556,16 +556,16 @@ impl WriteCfConfig {
         causet_opts
             .set_prefix_extractor("FixedSuffixSliceTransform", e)
             .unwrap();
-        // Create prefix bloom filter for memtable.
-        causet_opts.set_memtable_prefix_bloom_size_ratio(0.1);
+        // Create prefix bloom filter for memBlock.
+        causet_opts.set_memBlock_prefix_bloom_size_ratio(0.1);
         // Collects user defined properties.
         let f = Box::new(MvccPropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.tail_pointer-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.tail_pointer-properties-collector", f);
         let f = Box::new(ConePropertiesCollectorFactory {
             prop_size_index_distance: self.prop_size_index_distance,
             prop_tuplespaceInstanton_index_distance: self.prop_tuplespaceInstanton_index_distance,
         });
-        causet_opts.add_table_properties_collector_factory("einsteindb.cone-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.cone-properties-collector", f);
         causet_opts.set_titandb_options(&self.titan.build_opts());
         causet_opts
             .set_compaction_filter_factory(
@@ -634,8 +634,8 @@ impl LockCfConfig {
             prop_size_index_distance: self.prop_size_index_distance,
             prop_tuplespaceInstanton_index_distance: self.prop_tuplespaceInstanton_index_distance,
         });
-        causet_opts.add_table_properties_collector_factory("einsteindb.cone-properties-collector", f);
-        causet_opts.set_memtable_prefix_bloom_size_ratio(0.1);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.cone-properties-collector", f);
+        causet_opts.set_memBlock_prefix_bloom_size_ratio(0.1);
         causet_opts.set_titandb_options(&self.titan.build_opts());
         causet_opts
     }
@@ -694,7 +694,7 @@ impl VioletaBftCfConfig {
         causet_opts
             .set_prefix_extractor("NoopSliceTransform", f)
             .unwrap();
-        causet_opts.set_memtable_prefix_bloom_size_ratio(0.1);
+        causet_opts.set_memBlock_prefix_bloom_size_ratio(0.1);
         causet_opts.set_titandb_options(&self.titan.build_opts());
         causet_opts
     }
@@ -758,7 +758,7 @@ impl VersionCfConfig {
             prop_size_index_distance: self.prop_size_index_distance,
             prop_tuplespaceInstanton_index_distance: self.prop_tuplespaceInstanton_index_distance,
         });
-        causet_opts.add_table_properties_collector_factory("einsteindb.cone-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.cone-properties-collector", f);
         causet_opts.set_titandb_options(&self.titan.build_opts());
         causet_opts
     }
@@ -852,7 +852,7 @@ pub struct DbConfig {
     pub wal_bytes_per_sync: ReadableSize,
     #[config(skip)]
     pub max_sub_compactions: u32,
-    pub writable_file_max_buffer_size: ReadableSize,
+    pub wriBlock_file_max_buffer_size: ReadableSize,
     #[config(skip)]
     pub use_direct_io_for_flush_and_compaction: bool,
     #[config(skip)]
@@ -906,7 +906,7 @@ impl Default for DbConfig {
             bytes_per_sync: ReadableSize::mb(1),
             wal_bytes_per_sync: ReadableSize::kb(512),
             max_sub_compactions,
-            writable_file_max_buffer_size: ReadableSize::mb(1),
+            wriBlock_file_max_buffer_size: ReadableSize::mb(1),
             use_direct_io_for_flush_and_compaction: false,
             enable_pipelined_write: true,
             enable_multi_batch_write: true,
@@ -953,7 +953,7 @@ impl DbConfig {
         opts.set_bytes_per_sync(self.bytes_per_sync.0 as u64);
         opts.set_wal_bytes_per_sync(self.wal_bytes_per_sync.0 as u64);
         opts.set_max_subcompactions(self.max_sub_compactions);
-        opts.set_writable_file_max_buffer_size(self.writable_file_max_buffer_size.0 as i32);
+        opts.set_wriBlock_file_max_buffer_size(self.wriBlock_file_max_buffer_size.0 as i32);
         opts.set_use_direct_io_for_flush_and_compaction(
             self.use_direct_io_for_flush_and_compaction,
         );
@@ -1076,7 +1076,7 @@ impl VioletaBftDefaultCfConfig {
         let mut causet_opts = build_causet_opt!(self, cache);
         let f = Box::new(FixedPrefixSliceTransform::new(brane_violetabft_prefix_len()));
         causet_opts
-            .set_memtable_insert_hint_prefix_extractor("VioletaBftPrefixSliceTransform", f)
+            .set_memBlock_insert_hint_prefix_extractor("VioletaBftPrefixSliceTransform", f)
             .unwrap();
         causet_opts.set_titandb_options(&self.titan.build_opts());
         causet_opts
@@ -1124,7 +1124,7 @@ pub struct VioletaBftDbConfig {
     pub info_log_level: LogLevel,
     #[config(skip)]
     pub max_sub_compactions: u32,
-    pub writable_file_max_buffer_size: ReadableSize,
+    pub wriBlock_file_max_buffer_size: ReadableSize,
     #[config(skip)]
     pub use_direct_io_for_flush_and_compaction: bool,
     #[config(skip)]
@@ -1132,7 +1132,7 @@ pub struct VioletaBftDbConfig {
     #[config(skip)]
     pub enable_unordered_write: bool,
     #[config(skip)]
-    pub allow_concurrent_memtable_write: bool,
+    pub allow_concurrent_memBlock_write: bool,
     pub bytes_per_sync: ReadableSize,
     pub wal_bytes_per_sync: ReadableSize,
     #[config(submodule)]
@@ -1166,11 +1166,11 @@ impl Default for VioletaBftDbConfig {
             info_log_dir: "".to_owned(),
             info_log_level: LogLevel::Info,
             max_sub_compactions,
-            writable_file_max_buffer_size: ReadableSize::mb(1),
+            wriBlock_file_max_buffer_size: ReadableSize::mb(1),
             use_direct_io_for_flush_and_compaction: false,
             enable_pipelined_write: true,
             enable_unordered_write: false,
-            allow_concurrent_memtable_write: true,
+            allow_concurrent_memBlock_write: true,
             bytes_per_sync: ReadableSize::mb(1),
             wal_bytes_per_sync: ReadableSize::kb(512),
             defaultcauset: VioletaBftDefaultCfConfig::default(),
@@ -1202,13 +1202,13 @@ impl VioletaBftDbConfig {
         opts.set_info_log(VioletaBftDBLogger::default());
         opts.set_info_log_level(self.info_log_level.into());
         opts.set_max_subcompactions(self.max_sub_compactions);
-        opts.set_writable_file_max_buffer_size(self.writable_file_max_buffer_size.0 as i32);
+        opts.set_wriBlock_file_max_buffer_size(self.wriBlock_file_max_buffer_size.0 as i32);
         opts.set_use_direct_io_for_flush_and_compaction(
             self.use_direct_io_for_flush_and_compaction,
         );
         opts.enable_pipelined_write(self.enable_pipelined_write);
         opts.enable_unordered_write(self.enable_unordered_write);
-        opts.allow_concurrent_memtable_write(self.allow_concurrent_memtable_write);
+        opts.allow_concurrent_memBlock_write(self.allow_concurrent_memBlock_write);
         opts.add_event_listener(LmdbEventListener::new("violetabft"));
         opts.set_bytes_per_sync(self.bytes_per_sync.0 as u64);
         opts.set_wal_bytes_per_sync(self.wal_bytes_per_sync.0 as u64);

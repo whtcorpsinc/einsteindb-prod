@@ -45,8 +45,8 @@ impl From<u64> for WaitTimeout {
     }
 }
 
-/// `LockManager` manages transactions waiting for locks held by other transactions.
-/// It has responsibility to handle deadlocks between transactions.
+/// `LockManager` manages bundles waiting for locks held by other bundles.
+/// It has responsibility to handle deadlocks between bundles.
 pub trait LockManager: Clone + Slightlike + 'static {
     /// Transaction with `spacelike_ts` waits for `dagger` released.
     ///
@@ -64,7 +64,7 @@ pub trait LockManager: Clone + Slightlike + 'static {
         timeout: Option<WaitTimeout>,
     );
 
-    /// The locks with `lock_ts` and `hashes` are released, tries to wake up transactions.
+    /// The locks with `lock_ts` and `hashes` are released, tries to wake up bundles.
     fn wake_up(
         &self,
         lock_ts: TimeStamp,

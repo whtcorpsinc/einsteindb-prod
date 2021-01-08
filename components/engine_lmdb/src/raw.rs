@@ -13,7 +13,7 @@ pub use lmdb::{
     DBCompactionFilter, DBCompactionStyle, DBCompressionType, DBEntryType, DBInfoLogLevel,
     DBIterator, DBOptions, DBRateLimiterMode, DBRecoveryMode, DBStatisticsTickerType,
     DBNoetherDBBlobRunMode, Env, EventListener, IngestExternalFileOptions, LRUCacheOptions,
-    MemoryAllocator, PerfContext, Cone, ReadOptions, SeekKey, SliceTransform, TableFilter,
-    TablePropertiesCollector, TablePropertiesCollectorFactory, NoetherBlobIndex, NoetherDBOptions,
-    Writable, WriteOptions, DB,
+    MemoryAllocator, PerfContext, Cone, ReadOptions, SeekKey, SliceTransform, BlockFilter,
+    BlockPropertiesCollector, BlockPropertiesCollectorFactory, NoetherBlobIndex, NoetherDBOptions,
+    WriBlock, WriteOptions, DB,
 };

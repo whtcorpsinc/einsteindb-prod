@@ -1,26 +1,26 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use super::lock_table::LockTable;
+use super::lock_Block::LockBlock;
 
 use parking_lot::Mutex;
 use std::{mem, sync::Arc};
 use tokio::sync::{Mutex as AsyncMutex, MutexGuard as AsyncMutexGuard};
 use txn_types::{Key, Dagger};
 
-/// An entry in the in-memory table providing functions related to a specific
+/// An entry in the in-memory Block providing functions related to a specific
 /// key.
 pub struct KeyHandle {
     pub key: Key,
-    table: LockTable,
+    Block: LockBlock,
     mutex: AsyncMutex<()>,
     lock_store: Mutex<Option<Dagger>>,
 }
 
 impl KeyHandle {
-    pub fn new(key: Key, table: LockTable) -> Self {
+    pub fn new(key: Key, Block: LockBlock) -> Self {
         KeyHandle {
             key,
-            table,
+            Block,
             mutex: AsyncMutex::new(()),
             lock_store: Mutex::new(None),
         }
@@ -44,7 +44,7 @@ impl KeyHandle {
 
 impl Drop for KeyHandle {
     fn drop(&mut self) {
-        self.table.remove(&self.key);
+        self.Block.remove(&self.key);
     }
 }
 
@@ -88,9 +88,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_key_mutex() {
-        let table = LockTable::default();
-        let key_handle = Arc::new(KeyHandle::new(Key::from_raw(b"k"), table.clone()));
-        table
+        let Block = LockBlock::default();
+        let key_handle = Arc::new(KeyHandle::new(Key::from_raw(b"k"), Block.clone()));
+        Block
             .0
             .insert(Key::from_raw(b"k"), Arc::downgrade(&key_handle));
 
@@ -117,18 +117,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_ref_count() {
-        let table = LockTable::default();
+        let Block = LockBlock::default();
 
         let k = Key::from_raw(b"k");
 
-        let handle = Arc::new(KeyHandle::new(k.clone(), table.clone()));
-        table.0.insert(k.clone(), Arc::downgrade(&handle));
-        let lock_ref1 = table.get(&k).unwrap();
-        let lock_ref2 = table.get(&k).unwrap();
+        let handle = Arc::new(KeyHandle::new(k.clone(), Block.clone()));
+        Block.0.insert(k.clone(), Arc::downgrade(&handle));
+        let lock_ref1 = Block.get(&k).unwrap();
+        let lock_ref2 = Block.get(&k).unwrap();
         drop(handle);
         drop(lock_ref1);
-        assert!(table.get(&k).is_some());
+        assert!(Block.get(&k).is_some());
         drop(lock_ref2);
-        assert!(table.get(&k).is_none());
+        assert!(Block.get(&k).is_none());
     }
 }

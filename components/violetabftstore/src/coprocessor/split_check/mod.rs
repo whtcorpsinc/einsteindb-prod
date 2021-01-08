@@ -3,7 +3,7 @@
 mod half;
 mod tuplespaceInstanton;
 mod size;
-mod table;
+mod Block;
 
 use ekvproto::metapb::Brane;
 use ekvproto::fidelpb::CheckPolicy;
@@ -19,7 +19,7 @@ pub use self::tuplespaceInstanton::{
 pub use self::size::{
     get_brane_approximate_size, get_brane_approximate_size_causet, SizeCheckObserver,
 };
-pub use self::table::TableCheckObserver;
+pub use self::Block::BlockCheckObserver;
 
 pub struct Host<'a, E> {
     checkers: Vec<Box<dyn SplitChecker<E>>>,

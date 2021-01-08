@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use engine_lmdb::raw::DB;
 use engine_lmdb::{Compat, LmdbWriteBatch};
-use engine_promises::{Mutable, WriteBatchExt};
+use engine_promises::{MuBlock, WriteBatchExt};
 use tempfile::Builder;
 use test::Bencher;
 

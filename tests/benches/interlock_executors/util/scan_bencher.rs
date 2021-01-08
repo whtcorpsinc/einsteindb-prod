@@ -40,7 +40,7 @@ pub trait ScanFreeDaemonDAGHandlerBuilder: 'static {
     ) -> Box<dyn RequestHandler>;
 }
 
-/// Benchers shared for table scan and index scan.
+/// Benchers shared for Block scan and index scan.
 pub trait ScanBencher<P, M>: 'static
 where
     P: Copy + 'static,
@@ -220,15 +220,15 @@ where
 
 pub struct ScanDAGBencher<B: ScanFreeDaemonDAGHandlerBuilder> {
     batch: bool,
-    display_table_rows: usize,
+    display_Block_rows: usize,
     _phantom: PhantomData<B>,
 }
 
 impl<B: ScanFreeDaemonDAGHandlerBuilder> ScanDAGBencher<B> {
-    pub fn new(batch: bool, display_table_rows: usize) -> Self {
+    pub fn new(batch: bool, display_Block_rows: usize) -> Self {
         Self {
             batch,
-            display_table_rows,
+            display_Block_rows,
             _phantom: PhantomData,
         }
     }
@@ -245,7 +245,7 @@ where
             "{}/{}/with_dag/events={}",
             <B::T as StoreDescriber>::name(),
             tag,
-            self.display_table_rows
+            self.display_Block_rows
         )
     }
 
@@ -264,6 +264,6 @@ where
     }
 
     fn box_clone(&self) -> Box<dyn ScanBencher<B::P, M>> {
-        Box::new(Self::new(self.batch, self.display_table_rows))
+        Box::new(Self::new(self.batch, self.display_Block_rows))
     }
 }

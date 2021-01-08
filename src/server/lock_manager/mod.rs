@@ -44,8 +44,8 @@ fn detected_slot_idx(txn_ts: TimeStamp) -> usize {
 }
 
 /// `LockManager` has two components working in two threads:
-///   * One is the `WaiterManager` which manages transactions waiting for locks.
-///   * The other one is the `Detector` which detects deadlocks between transactions.
+///   * One is the `WaiterManager` which manages bundles waiting for locks.
+///   * The other one is the `Detector` which detects deadlocks between bundles.
 pub struct LockManager {
     waiter_mgr_worker: Option<FutureWorker<waiter_manager::Task>>,
     detector_worker: Option<FutureWorker<deadlock::Task>>,
@@ -55,7 +55,7 @@ pub struct LockManager {
 
     waiter_count: Arc<AtomicUsize>,
 
-    /// Record transactions which have sent requests to detect deadlock.
+    /// Record bundles which have sent requests to detect deadlock.
     detected: Arc<Vec<Mutex<HashSet<TimeStamp>>>>,
 }
 

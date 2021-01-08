@@ -36,7 +36,7 @@ use milevadb_query_datatype::expr::EvalContext;
 /// 1. Each aggregate function associates a state structure, storing partially computed aggregate
 ///    results.
 ///
-/// 2. The caller calls `ufidelate()` or `ufidelate_vector()` for each row to ufidelate the state.
+/// 2. The caller calls `ufidelate()` or `ufidelate_vector()` for each EventIdx to ufidelate the state.
 ///
 /// 3. The caller finally calls `push_result()` to aggregate a summary value and push it into the
 ///    given data container.
@@ -227,7 +227,7 @@ macro_rules! impl_unmatched_function_state {
 /// A helper trait that provides `ufidelate()` and `ufidelate_vector()` over a concrete type, which will
 /// be relied in `AggrFunctionState`.
 pub trait AggrFunctionStateUfidelatePartial<TT: EvaluableRef<'static>> {
-    /// Ufidelates the internal state giving one row data.
+    /// Ufidelates the internal state giving one EventIdx data.
     ///
     /// # Panics
     ///
@@ -239,7 +239,7 @@ pub trait AggrFunctionStateUfidelatePartial<TT: EvaluableRef<'static>> {
     /// This function should be called with `ufidelate` macro.
     unsafe fn ufidelate_unsafe(&mut self, ctx: &mut EvalContext, value: Option<TT>) -> Result<()>;
 
-    /// Repeatedly ufidelates the internal state giving one row data.
+    /// Repeatedly ufidelates the internal state giving one EventIdx data.
     ///
     /// # Panics
     ///

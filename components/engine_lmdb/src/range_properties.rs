@@ -3,8 +3,8 @@
 use crate::engine::LmdbEngine;
 use crate::properties::{get_cone_entries_and_versions, ConeProperties};
 use engine_promises::{
-    CAUSETHandleExt, MiscExt, Cone, ConePropertiesExt, Result, TableProperties,
-    TablePropertiesCollection, TablePropertiesExt, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_WRITE, LARGE_CAUSETS,
+    CAUSETHandleExt, MiscExt, Cone, ConePropertiesExt, Result, BlockProperties,
+    BlockPropertiesCollection, BlockPropertiesExt, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_WRITE, LARGE_CAUSETS,
 };
 use std::path::Path;
 
@@ -43,7 +43,7 @@ impl ConePropertiesExt for LmdbEngine {
         let spacelike_key = &cone.spacelike_key;
         let lightlike_key = &cone.lightlike_key;
         let mut total_tuplespaceInstanton = 0;
-        let (mem_tuplespaceInstanton, _) = box_try!(self.get_approximate_memtable_stats_causet(causetname, &cone));
+        let (mem_tuplespaceInstanton, _) = box_try!(self.get_approximate_memBlock_stats_causet(causetname, &cone));
         total_tuplespaceInstanton += mem_tuplespaceInstanton;
 
         let collection = box_try!(self.get_cone_properties_causet(causetname, spacelike_key, lightlike_key));
@@ -73,7 +73,7 @@ impl ConePropertiesExt for LmdbEngine {
                 "brane contains too many tuplespaceInstanton";
                 "brane_id" => brane_id,
                 "total_tuplespaceInstanton" => total_tuplespaceInstanton,
-                "memtable" => mem_tuplespaceInstanton,
+                "memBlock" => mem_tuplespaceInstanton,
                 "ssts_tuplespaceInstanton" => ssts,
                 "causet" => causetname,
             )
@@ -108,7 +108,7 @@ impl ConePropertiesExt for LmdbEngine {
         let spacelike_key = &cone.spacelike_key;
         let lightlike_key = &cone.lightlike_key;
         let mut total_size = 0;
-        let (_, mem_size) = box_try!(self.get_approximate_memtable_stats_causet(causetname, &cone));
+        let (_, mem_size) = box_try!(self.get_approximate_memBlock_stats_causet(causetname, &cone));
         total_size += mem_size;
 
         let collection = box_try!(self.get_cone_properties_causet(causetname, &spacelike_key, &lightlike_key));
@@ -138,7 +138,7 @@ impl ConePropertiesExt for LmdbEngine {
                 "brane size is too large";
                 "brane_id" => brane_id,
                 "total_size" => total_size,
-                "memtable" => mem_size,
+                "memBlock" => mem_size,
                 "ssts_size" => ssts,
                 "causet" => causetname,
             )

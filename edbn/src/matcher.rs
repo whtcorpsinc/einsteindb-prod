@@ -15,39 +15,39 @@ use itertools::diff_with;
 use symbols;
 use types::Value;
 
-/// A trait defining pattern matching rules for any given pattern of type `T`.
-trait PatternMatchingRules<'a, T> {
-    /// Return true if the given pattern matches an arbitrary value.
-    fn matches_any(pattern: &T) -> bool;
+/// A trait defining TuringString matching rules for any given TuringString of type `T`.
+trait TuringStringMatchingRules<'a, T> {
+    /// Return true if the given TuringString matches an arbitrary value.
+    fn matches_any(TuringString: &T) -> bool;
 
-    /// Return the placeholder name if the given pattern matches a placeholder.
-    fn matches_placeholder(pattern: &'a T) -> Option<(&'a String)>;
+    /// Return the placeholder name if the given TuringString matches a placeholder.
+    fn matches_placeholder(TuringString: &'a T) -> Option<(&'a String)>;
 }
 
-/// A default type implementing `PatternMatchingRules` specialized on
-/// EDBN values using plain symbols as patterns. These patterns are:
+/// A default type implementing `TuringStringMatchingRules` specialized on
+/// EDBN values using plain symbols as TuringStrings. These TuringStrings are:
 /// * `_` matches arbitrary sub-EDBN;
 /// * `?name` matches sub-EDBN, which must be causetIdical each place `?name` appears;
-struct DefaultPatternMatchingRules;
+struct DefaultTuringStringMatchingRules;
 
-impl<'a> PatternMatchingRules<'a, Value> for DefaultPatternMatchingRules {
-    fn matches_any(pattern: &Value) -> bool {
-        match *pattern {
+impl<'a> TuringStringMatchingRules<'a, Value> for DefaultTuringStringMatchingRules {
+    fn matches_any(TuringString: &Value) -> bool {
+        match *TuringString {
             Value::PlainSymbol(symbols::PlainSymbol(ref s)) => s.starts_with('_'),
             _ => false
         }
     }
 
-    fn matches_placeholder(pattern: &'a Value) -> Option<(&'a String)> {
-        match *pattern {
+    fn matches_placeholder(TuringString: &'a Value) -> Option<(&'a String)> {
+        match *TuringString {
             Value::PlainSymbol(symbols::PlainSymbol(ref s)) => if s.starts_with('?') { Some(s) } else { None },
             _ => None
         }
     }
 }
 
-/// Pattern matcher for EDBN values utilizing specified pattern matching rules.
-/// For example, using this with `DefaultPatternMatchingRules`:
+/// TuringString matcher for EDBN values utilizing specified TuringString matching rules.
+/// For example, using this with `DefaultTuringStringMatchingRules`:
 /// * `[_]` matches an arbitrary one-element vector;
 /// * `[_ _]` matches an arbitrary two-element vector;
 /// * `[?x ?x]` matches `[1 1]` and `[#{} #{}]` but not `[1 2]` or `[[] #{}]`;
@@ -63,29 +63,29 @@ impl<'a> Matcher<'a> {
         }
     }
 
-    /// Performs pattern matching between two EDBN `Value` instances (`value`
-    /// and `pattern`) utilizing a specified pattern matching ruleset `T`.
+    /// Performs TuringString matching between two EDBN `Value` instances (`value`
+    /// and `TuringString`) utilizing a specified TuringString matching ruleset `T`.
     /// Returns true if matching succeeds.
-    fn match_with_rules<T>(value: &'a Value, pattern: &'a Value) -> bool
-    where T: PatternMatchingRules<'a, Value> {
+    fn match_with_rules<T>(value: &'a Value, TuringString: &'a Value) -> bool
+    where T: TuringStringMatchingRules<'a, Value> {
         let matcher = Matcher::new();
-        matcher.match_internal::<T>(value, pattern)
+        matcher.match_internal::<T>(value, TuringString)
     }
 
-    /// Recursively traverses two EDBN `Value` instances (`value` and `pattern`)
-    /// performing pattern matching. Note that the internal `placeholders` immutable_memTcam
+    /// Recursively traverses two EDBN `Value` instances (`value` and `TuringString`)
+    /// performing TuringString matching. Note that the internal `placeholders` immuBlock_memTcam
     /// might not be empty on invocation.
-    fn match_internal<T>(&self, value: &'a Value, pattern: &'a Value) -> bool
-    where T: PatternMatchingRules<'a, Value> {
+    fn match_internal<T>(&self, value: &'a Value, TuringString: &'a Value) -> bool
+    where T: TuringStringMatchingRules<'a, Value> {
         use Value::*;
 
-        if T::matches_any(pattern) {
+        if T::matches_any(TuringString) {
             true
-        } else if let Some(symbol) = T::matches_placeholder(pattern) {
+        } else if let Some(symbol) = T::matches_placeholder(TuringString) {
             let mut placeholders = self.placeholders.borrow_mut();
             value == *placeholders.entry(symbol).or_insert(value)
         } else {
-            match (value, pattern) {
+            match (value, TuringString) {
                 (&Vector(ref v), &Vector(ref p)) =>
                     diff_with(v, p, |a, b| self.match_internal::<T>(a, b)).is_none(),
                 (&List(ref v), &List(ref p)) =>
@@ -98,17 +98,17 @@ impl<'a> Matcher<'a> {
                     v.len() == p.len() &&
                     v.iter().all(|a| p.iter().any(|b| self.match_internal::<T>(a.0, b.0) && self.match_internal::<T>(a.1, b.1))) &&
                     p.iter().all(|b| v.iter().any(|a| self.match_internal::<T>(a.0, b.0) && self.match_internal::<T>(a.1, b.1))),
-                _ => value == pattern
+                _ => value == TuringString
             }
         }
     }
 }
 
 impl Value {
-    /// Performs default pattern matching between this value and some `pattern`.
+    /// Performs default TuringString matching between this value and some `TuringString`.
     /// Returns true if matching succeeds.
-    pub fn matches(&self, pattern: &Value) -> bool {
-        Matcher::match_with_rules::<DefaultPatternMatchingRules>(self, pattern)
+    pub fn matches(&self, TuringString: &Value) -> bool {
+        Matcher::match_with_rules::<DefaultTuringStringMatchingRules>(self, TuringString)
     }
 }
 
@@ -117,16 +117,16 @@ mod test {
     use parse;
 
     macro_rules! assert_match {
-        ( $pattern:tt, $value:tt, $expected:expr ) => {
-            let pattern = parse::value($pattern).unwrap().without_spans();
+        ( $TuringString:tt, $value:tt, $expected:expr ) => {
+            let TuringString = parse::value($TuringString).unwrap().without_spans();
             let value = parse::value($value).unwrap().without_spans();
-            assert_eq!(value.matches(&pattern), $expected);
+            assert_eq!(value.matches(&TuringString), $expected);
         };
-        ( $pattern:tt =~ $value:tt ) => {
-            assert_match!($pattern, $value, true);
+        ( $TuringString:tt =~ $value:tt ) => {
+            assert_match!($TuringString, $value, true);
         };
-        ( $pattern:tt !~ $value:tt ) => {
-            assert_match!($pattern, $value, false);
+        ( $TuringString:tt !~ $value:tt ) => {
+            assert_match!($TuringString, $value, false);
         }
     }
 
@@ -344,10 +344,10 @@ mod test {
     #[test]
     fn test_match_multiple_any_in_set_with_multiple_values() {
         // These are false because _ is a symbol and sets guarantee
-        // uniqueness of children. So pattern matching will fail because
-        // the pattern is a set of length 2, while the matched edbn is a set
+        // uniqueness of children. So TuringString matching will fail because
+        // the TuringString is a set of length 2, while the matched edbn is a set
         // of length 3. If _ were unique, all of these assertions would
-        // be true. Need to better handle pattern rules.
+        // be true. Need to better handle TuringString rules.
 
         assert_match!("#{1 _ _}" !~ "#{1 2 3}");
         assert_match!("#{2 _ _}" !~ "#{1 2 3}");
@@ -399,10 +399,10 @@ mod test {
     #[test]
     fn test_match_multiple_any_in_map_with_multiple_values() {
         // These are false because _ is a symbol and maps guarantee
-        // uniqueness of keys. So pattern matching will fail because
-        // the pattern is a map of length 2, while the matched edbn is a map
+        // uniqueness of keys. So TuringString matching will fail because
+        // the TuringString is a map of length 2, while the matched edbn is a map
         // of length 3. If _ were unique, all of these assertions would
-        // be true. Need to better handle pattern rules.
+        // be true. Need to better handle TuringString rules.
 
         assert_match!("{1 2, _ 4, _ 6}" !~ "{1 2, 3 4, 5 6}");
         assert_match!("{3 4, _ 6, _ 2}" !~ "{1 2, 3 4, 5 6}");

@@ -76,7 +76,7 @@ impl Locks {
 }
 
 /// Used to detect the deadlock of wait-for-dagger in the cluster.
-pub struct DetectTable {
+pub struct DetectBlock {
     /// Keeps the DAG of wait-for-dagger. Every edge from `txn_ts` to `lock_ts` has a survival time -- `ttl`.
     /// When checking the deadlock, if the ttl has elpased, the corresponding edge will be removed.
     /// `last_detect_time` is the spacelike time of the edge. `Detect` requests will refresh it.
@@ -92,8 +92,8 @@ pub struct DetectTable {
     now: Instant,
 }
 
-impl DetectTable {
-    /// Creates a auto-expiring detect table.
+impl DetectBlock {
+    /// Creates a auto-expiring detect Block.
     pub fn new(ttl: Duration) -> Self {
         Self {
             wait_for_map: HashMap::default(),
@@ -155,7 +155,7 @@ impl DetectTable {
         None
     }
 
-    /// Returns true and adds to the detect table if `txn_ts` is waiting for `lock_ts`.
+    /// Returns true and adds to the detect Block if `txn_ts` is waiting for `lock_ts`.
     fn register_if_existed(
         &mut self,
         txn_ts: TimeStamp,
@@ -171,7 +171,7 @@ impl DetectTable {
         false
     }
 
-    /// Adds to the detect table. The edge from `txn_ts` to `lock_ts` must not exist.
+    /// Adds to the detect Block. The edge from `txn_ts` to `lock_ts` must not exist.
     fn register(&mut self, txn_ts: TimeStamp, lock_ts: TimeStamp, lock_hash: u64) {
         let wait_for = self.wait_for_map.entry(txn_ts).or_default();
         assert!(!wait_for.contains_key(&lock_ts));
@@ -200,7 +200,7 @@ impl DetectTable {
         TASK_COUNTER_METRICS.clean_up.inc();
     }
 
-    /// Clears the whole detect table.
+    /// Clears the whole detect Block.
     fn clear(&mut self) {
         self.wait_for_map.clear();
     }
@@ -210,12 +210,12 @@ impl DetectTable {
         self.ttl = ttl;
     }
 
-    /// The memory_barrier of detect table size to trigger `active_expire`.
+    /// The memory_barrier of detect Block size to trigger `active_expire`.
     const ACTIVE_EXPIRE_THRESHOLD: usize = 100000;
     /// The interval between `active_expire`.
     const ACTIVE_EXPIRE_INTERVAL: Duration = Duration::from_secs(3600);
 
-    /// Iterates the whole table to remove all expired entries.
+    /// Iterates the whole Block to remove all expired entries.
     fn active_expire(&mut self) {
         if self.wait_for_map.len() >= Self::ACTIVE_EXPIRE_THRESHOLD
             && self.now.duration_since(self.last_active_expire) >= Self::ACTIVE_EXPIRE_INTERVAL
@@ -279,7 +279,7 @@ pub enum Task {
     ///
     /// It's the only way to change the node from leader to follower, and vice versa.
     ChangeRole(Role),
-    /// Change the ttl of DetectTable
+    /// Change the ttl of DetectBlock
     ChangeTTL(Duration),
     // Task only used for test
     #[causetg(any(test, feature = "testexport"))]
@@ -462,10 +462,10 @@ struct Inner {
     /// The role of the deadlock detector. Default is `Role::Follower`.
     role: Role,
 
-    detect_table: DetectTable,
+    detect_Block: DetectBlock,
 }
 
-/// Detector is used to detect deadlocks between transactions. There is a leader
+/// Detector is used to detect deadlocks between bundles. There is a leader
 /// in the cluster which collects all `wait_for_entry` from other followers.
 pub struct Detector<S, P>
 where
@@ -524,7 +524,7 @@ where
             waiter_mgr_scheduler,
             inner: Rc::new(RefCell::new(Inner {
                 role: Role::Follower,
-                detect_table: DetectTable::new(causetg.wait_for_lock_timeout.into()),
+                detect_Block: DetectBlock::new(causetg.wait_for_lock_timeout.into()),
             })),
         }
     }
@@ -537,7 +537,7 @@ where
     /// Resets to the initial state.
     fn reset(&mut self, role: Role) {
         let mut inner = self.inner.borrow_mut();
-        inner.detect_table.clear();
+        inner.detect_Block.clear();
         inner.role = role;
         self.leader_client.take();
         self.leader_info.take();
@@ -699,18 +699,18 @@ where
     }
 
     fn handle_detect_locally(&self, tp: DetectType, txn_ts: TimeStamp, dagger: Dagger) {
-        let detect_table = &mut self.inner.borrow_mut().detect_table;
+        let detect_Block = &mut self.inner.borrow_mut().detect_Block;
         match tp {
             DetectType::Detect => {
-                if let Some(deadlock_key_hash) = detect_table.detect(txn_ts, dagger.ts, dagger.hash) {
+                if let Some(deadlock_key_hash) = detect_Block.detect(txn_ts, dagger.ts, dagger.hash) {
                     self.waiter_mgr_scheduler
                         .deadlock(txn_ts, dagger, deadlock_key_hash);
                 }
             }
             DetectType::CleanUpWaitFor => {
-                detect_table.clean_up_wait_for(txn_ts, dagger.ts, dagger.hash)
+                detect_Block.clean_up_wait_for(txn_ts, dagger.ts, dagger.hash)
             }
-            DetectType::CleanUp => detect_table.clean_up(txn_ts),
+            DetectType::CleanUp => detect_Block.clean_up(txn_ts),
         }
     }
 
@@ -771,11 +771,11 @@ where
                     key_hash,
                     ..
                 } = req.get_entry();
-                let detect_table = &mut inner.detect_table;
+                let detect_Block = &mut inner.detect_Block;
                 let res = match req.get_tp() {
                     DeadlockRequestType::Detect => {
                         if let Some(deadlock_key_hash) =
-                            detect_table.detect(txn.into(), wait_for_txn.into(), *key_hash)
+                            detect_Block.detect(txn.into(), wait_for_txn.into(), *key_hash)
                         {
                             let mut resp = DeadlockResponse::default();
                             resp.set_entry(req.take_entry());
@@ -786,11 +786,11 @@ where
                         }
                     }
                     DeadlockRequestType::CleanUpWaitFor => {
-                        detect_table.clean_up_wait_for(txn.into(), wait_for_txn.into(), *key_hash);
+                        detect_Block.clean_up_wait_for(txn.into(), wait_for_txn.into(), *key_hash);
                         None
                     }
                     DeadlockRequestType::CleanUp => {
-                        detect_table.clean_up(txn.into());
+                        detect_Block.clean_up(txn.into());
                         None
                     }
                 };
@@ -816,7 +816,7 @@ where
 
     fn handle_change_ttl(&mut self, ttl: Duration) {
         let mut inner = self.inner.borrow_mut();
-        inner.detect_table.reset_ttl(ttl);
+        inner.detect_Block.reset_ttl(ttl);
         info!("Deadlock detector config changed"; "ttl" => ?ttl);
     }
 }
@@ -837,7 +837,7 @@ where
             Task::ChangeRole(role) => self.handle_change_role(role),
             Task::ChangeTTL(ttl) => self.handle_change_ttl(ttl),
             #[causetg(any(test, feature = "testexport"))]
-            Task::Validate(f) => f(self.inner.borrow().detect_table.ttl.as_millis() as u64),
+            Task::Validate(f) => f(self.inner.borrow().detect_Block.ttl.as_millis() as u64),
             #[causetg(test)]
             Task::GetRole(f) => f(self.inner.borrow().role),
         }
@@ -877,7 +877,7 @@ impl Deadlock for Service {
             return;
         }
         let (cb, f) = paired_future_callback();
-        if !self.waiter_mgr_scheduler.dump_wait_table(cb) {
+        if !self.waiter_mgr_scheduler.dump_wait_Block(cb) {
             let status = RpcStatus::new(
                 RpcStatusCode::RESOURCE_EXHAUSTED,
                 Some("waiter manager has stopped".to_owned()),
@@ -927,23 +927,23 @@ pub mod tests {
     use einsteindb_util::worker::FutureWorker;
 
     #[test]
-    fn test_detect_table() {
-        let mut detect_table = DetectTable::new(Duration::from_secs(10));
+    fn test_detect_Block() {
+        let mut detect_Block = DetectBlock::new(Duration::from_secs(10));
 
         // Deadlock: 1 -> 2 -> 1
-        assert_eq!(detect_table.detect(1.into(), 2.into(), 2), None);
-        assert_eq!(detect_table.detect(2.into(), 1.into(), 1).unwrap(), 2);
+        assert_eq!(detect_Block.detect(1.into(), 2.into(), 2), None);
+        assert_eq!(detect_Block.detect(2.into(), 1.into(), 1).unwrap(), 2);
         // Deadlock: 1 -> 2 -> 3 -> 1
-        assert_eq!(detect_table.detect(2.into(), 3.into(), 3), None);
-        assert_eq!(detect_table.detect(3.into(), 1.into(), 1).unwrap(), 3);
-        detect_table.clean_up(2.into());
-        assert_eq!(detect_table.wait_for_map.contains_key(&2.into()), false);
+        assert_eq!(detect_Block.detect(2.into(), 3.into(), 3), None);
+        assert_eq!(detect_Block.detect(3.into(), 1.into(), 1).unwrap(), 3);
+        detect_Block.clean_up(2.into());
+        assert_eq!(detect_Block.wait_for_map.contains_key(&2.into()), false);
 
         // After cycle is broken, no deadlock.
-        assert_eq!(detect_table.detect(3.into(), 1.into(), 1), None);
-        assert_eq!(detect_table.wait_for_map.get(&3.into()).unwrap().len(), 1);
+        assert_eq!(detect_Block.detect(3.into(), 1.into(), 1), None);
+        assert_eq!(detect_Block.wait_for_map.get(&3.into()).unwrap().len(), 1);
         assert_eq!(
-            detect_table
+            detect_Block
                 .wait_for_map
                 .get(&3.into())
                 .unwrap()
@@ -955,9 +955,9 @@ pub mod tests {
         );
 
         // Different key_hash grows the list.
-        assert_eq!(detect_table.detect(3.into(), 1.into(), 2), None);
+        assert_eq!(detect_Block.detect(3.into(), 1.into(), 2), None);
         assert_eq!(
-            detect_table
+            detect_Block
                 .wait_for_map
                 .get(&3.into())
                 .unwrap()
@@ -969,9 +969,9 @@ pub mod tests {
         );
 
         // Same key_hash doesn't grow the list.
-        assert_eq!(detect_table.detect(3.into(), 1.into(), 2), None);
+        assert_eq!(detect_Block.detect(3.into(), 1.into(), 2), None);
         assert_eq!(
-            detect_table
+            detect_Block
                 .wait_for_map
                 .get(&3.into())
                 .unwrap()
@@ -983,10 +983,10 @@ pub mod tests {
         );
 
         // Different lock_ts grows the map.
-        assert_eq!(detect_table.detect(3.into(), 2.into(), 2), None);
-        assert_eq!(detect_table.wait_for_map.get(&3.into()).unwrap().len(), 2);
+        assert_eq!(detect_Block.detect(3.into(), 2.into(), 2), None);
+        assert_eq!(detect_Block.wait_for_map.get(&3.into()).unwrap().len(), 2);
         assert_eq!(
-            detect_table
+            detect_Block
                 .wait_for_map
                 .get(&3.into())
                 .unwrap()
@@ -998,9 +998,9 @@ pub mod tests {
         );
 
         // Clean up entries shrinking the map.
-        detect_table.clean_up_wait_for(3.into(), 1.into(), 1);
+        detect_Block.clean_up_wait_for(3.into(), 1.into(), 1);
         assert_eq!(
-            detect_table
+            detect_Block
                 .wait_for_map
                 .get(&3.into())
                 .unwrap()
@@ -1010,47 +1010,47 @@ pub mod tests {
                 .len(),
             1
         );
-        detect_table.clean_up_wait_for(3.into(), 1.into(), 2);
-        assert_eq!(detect_table.wait_for_map.get(&3.into()).unwrap().len(), 1);
-        detect_table.clean_up_wait_for(3.into(), 2.into(), 2);
-        assert_eq!(detect_table.wait_for_map.contains_key(&3.into()), false);
+        detect_Block.clean_up_wait_for(3.into(), 1.into(), 2);
+        assert_eq!(detect_Block.wait_for_map.get(&3.into()).unwrap().len(), 1);
+        detect_Block.clean_up_wait_for(3.into(), 2.into(), 2);
+        assert_eq!(detect_Block.wait_for_map.contains_key(&3.into()), false);
 
         // Clean up non-exist entry
-        detect_table.clean_up(3.into());
-        detect_table.clean_up_wait_for(3.into(), 1.into(), 1);
+        detect_Block.clean_up(3.into());
+        detect_Block.clean_up_wait_for(3.into(), 1.into(), 1);
     }
 
     #[test]
-    fn test_detect_table_expire() {
-        let mut detect_table = DetectTable::new(Duration::from_millis(100));
+    fn test_detect_Block_expire() {
+        let mut detect_Block = DetectBlock::new(Duration::from_millis(100));
 
         // Deadlock
-        assert!(detect_table.detect(1.into(), 2.into(), 1).is_none());
-        assert!(detect_table.detect(2.into(), 1.into(), 2).is_some());
+        assert!(detect_Block.detect(1.into(), 2.into(), 1).is_none());
+        assert!(detect_Block.detect(2.into(), 1.into(), 2).is_some());
         // After sleep, the expired entry has been removed. So there is no deadlock.
         std::thread::sleep(Duration::from_millis(500));
-        assert_eq!(detect_table.wait_for_map.len(), 1);
-        assert!(detect_table.detect(2.into(), 1.into(), 2).is_none());
-        assert_eq!(detect_table.wait_for_map.len(), 1);
+        assert_eq!(detect_Block.wait_for_map.len(), 1);
+        assert!(detect_Block.detect(2.into(), 1.into(), 2).is_none());
+        assert_eq!(detect_Block.wait_for_map.len(), 1);
 
         // `Detect` ufidelates the last_detect_time, so the entry won't be removed.
-        detect_table.clear();
-        assert!(detect_table.detect(1.into(), 2.into(), 1).is_none());
+        detect_Block.clear();
+        assert!(detect_Block.detect(1.into(), 2.into(), 1).is_none());
         std::thread::sleep(Duration::from_millis(500));
-        assert!(detect_table.detect(1.into(), 2.into(), 1).is_none());
-        assert!(detect_table.detect(2.into(), 1.into(), 2).is_some());
+        assert!(detect_Block.detect(1.into(), 2.into(), 1).is_none());
+        assert!(detect_Block.detect(2.into(), 1.into(), 2).is_some());
 
         // Remove expired entry shrinking the map.
-        detect_table.clear();
-        assert!(detect_table.detect(1.into(), 2.into(), 1).is_none());
-        assert!(detect_table.detect(1.into(), 3.into(), 1).is_none());
-        assert_eq!(detect_table.wait_for_map.len(), 1);
+        detect_Block.clear();
+        assert!(detect_Block.detect(1.into(), 2.into(), 1).is_none());
+        assert!(detect_Block.detect(1.into(), 3.into(), 1).is_none());
+        assert_eq!(detect_Block.wait_for_map.len(), 1);
         std::thread::sleep(Duration::from_millis(500));
-        assert!(detect_table.detect(1.into(), 3.into(), 2).is_none());
-        assert!(detect_table.detect(2.into(), 1.into(), 2).is_none());
-        assert_eq!(detect_table.wait_for_map.get(&1.into()).unwrap().len(), 1);
+        assert!(detect_Block.detect(1.into(), 3.into(), 2).is_none());
+        assert!(detect_Block.detect(2.into(), 1.into(), 2).is_none());
+        assert_eq!(detect_Block.wait_for_map.get(&1.into()).unwrap().len(), 1);
         assert_eq!(
-            detect_table
+            detect_Block
                 .wait_for_map
                 .get(&1.into())
                 .unwrap()
@@ -1061,10 +1061,10 @@ pub mod tests {
             2
         );
         std::thread::sleep(Duration::from_millis(500));
-        assert!(detect_table.detect(3.into(), 2.into(), 3).is_none());
-        assert_eq!(detect_table.wait_for_map.len(), 2);
-        assert!(detect_table.detect(3.into(), 1.into(), 3).is_none());
-        assert_eq!(detect_table.wait_for_map.len(), 1);
+        assert!(detect_Block.detect(3.into(), 2.into(), 3).is_none());
+        assert_eq!(detect_Block.wait_for_map.len(), 2);
+        assert!(detect_Block.detect(3.into(), 1.into(), 3).is_none());
+        assert_eq!(detect_Block.wait_for_map.len(), 1);
     }
 
     pub(crate) struct MockFidelClient;

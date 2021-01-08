@@ -3,9 +3,9 @@
 use test_interlock::*;
 use einsteindb::causetStorage::LmdbEngine;
 
-/// Builds a fixture table, which contains two PrimaryCausets: id, foo and there is an index over
+/// Builds a fixture Block, which contains two PrimaryCausets: id, foo and there is an index over
 /// `foo` PrimaryCauset.
-pub fn table_with_2_PrimaryCausets_and_one_index(events: usize) -> (i64, Table, CausetStore<LmdbEngine>) {
+pub fn Block_with_2_PrimaryCausets_and_one_index(events: usize) -> (i64, Block, CausetStore<LmdbEngine>) {
     let index_id = next_id();
     let id = PrimaryCausetBuilder::new()
         .col_type(TYPE_LONG)
@@ -15,7 +15,7 @@ pub fn table_with_2_PrimaryCausets_and_one_index(events: usize) -> (i64, Table, 
         .col_type(TYPE_LONG)
         .index_key(index_id)
         .build();
-    let table = TableBuilder::new()
+    let Block = BlockBuilder::new()
         .add_col("id", id)
         .add_col("foo", foo)
         .build();
@@ -23,7 +23,7 @@ pub fn table_with_2_PrimaryCausets_and_one_index(events: usize) -> (i64, Table, 
     let store = crate::util::FixtureBuilder::new(events)
         .push_PrimaryCauset_i64_0_n()
         .push_PrimaryCauset_i64_random()
-        .build_store(&table, &["id", "foo"]);
+        .build_store(&Block, &["id", "foo"]);
 
-    (index_id, table, store)
+    (index_id, Block, store)
 }

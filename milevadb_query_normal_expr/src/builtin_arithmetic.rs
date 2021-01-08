@@ -11,9 +11,9 @@ use crate::ScalarFunc;
 use milevadb_query_datatype::expr::{Error, EvalContext, Result};
 
 impl ScalarFunc {
-    pub fn plus_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let lhs = try_opt!(self.children[0].eval_real(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_real(ctx, row));
+    pub fn plus_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let lhs = try_opt!(self.children[0].eval_real(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_real(ctx, EventIdx));
         let res = lhs + rhs;
         if !res.is_finite() {
             return Err(Error::overflow("DOUBLE", &format!("({} + {})", lhs, rhs)));
@@ -24,17 +24,17 @@ impl ScalarFunc {
     pub fn plus_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let lhs = try_opt!(self.children[0].eval_decimal(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_decimal(ctx, row));
+        let lhs = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_decimal(ctx, EventIdx));
         let result: Result<Decimal> = lhs.add(&rhs).into();
         result.map(|t| Some(Cow::Owned(t)))
     }
 
-    pub fn plus_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let lhs = try_opt!(self.children[0].eval_int(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn plus_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let lhs = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         let lus = self.children[0].is_unsigned();
         let rus = self.children[1].is_unsigned();
         let res = match (lus, rus) {
@@ -68,9 +68,9 @@ impl ScalarFunc {
             .map(Some)
     }
 
-    pub fn minus_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let lhs = try_opt!(self.children[0].eval_real(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_real(ctx, row));
+    pub fn minus_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let lhs = try_opt!(self.children[0].eval_real(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_real(ctx, EventIdx));
         let res = lhs - rhs;
         if !res.is_finite() {
             return Err(Error::overflow("DOUBLE", &format!("({} - {})", lhs, rhs)));
@@ -81,17 +81,17 @@ impl ScalarFunc {
     pub fn minus_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let lhs = try_opt!(self.children[0].eval_decimal(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_decimal(ctx, row));
+        let lhs = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_decimal(ctx, EventIdx));
         let result: Result<Decimal> = lhs.sub(&rhs).into();
         result.map(Cow::Owned).map(Some)
     }
 
-    pub fn minus_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let lhs = try_opt!(self.children[0].eval_int(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn minus_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let lhs = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         let lus = self.children[0].is_unsigned();
         let rus = self.children[1].is_unsigned();
         let data_type = if lus | rus {
@@ -123,9 +123,9 @@ impl ScalarFunc {
             .map(Some)
     }
 
-    pub fn multiply_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let lhs = try_opt!(self.children[0].eval_real(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_real(ctx, row));
+    pub fn multiply_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let lhs = try_opt!(self.children[0].eval_real(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_real(ctx, EventIdx));
         let res = lhs * rhs;
         if !res.is_finite() {
             return Err(Error::overflow("DOUBLE", &format!("({} * {})", lhs, rhs)));
@@ -136,17 +136,17 @@ impl ScalarFunc {
     pub fn multiply_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let lhs = try_opt!(self.children[0].eval_decimal(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_decimal(ctx, row));
+        let lhs = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_decimal(ctx, EventIdx));
         let result: Result<Decimal> = lhs.mul(&rhs).into();
         result.map(Cow::Owned).map(Some)
     }
 
-    pub fn multiply_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let lhs = try_opt!(self.children[0].eval_int(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn multiply_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let lhs = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         let lus = self.children[0].is_unsigned();
         let rus = self.children[1].is_unsigned();
         let u64_mul_i64 = |u, s| {
@@ -169,19 +169,19 @@ impl ScalarFunc {
     pub fn multiply_int_unsigned(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<i64>> {
-        let lhs = try_opt!(self.children[0].eval_int(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_int(ctx, row));
+        let lhs = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         let res = (lhs as u64).checked_mul(rhs as u64).map(|t| t as i64);
         // TODO: output expression in error when PrimaryCauset's name pushed down.
         res.ok_or_else(|| Error::overflow("BIGINT UNSIGNED", &format!("({} * {})", lhs, rhs)))
             .map(Some)
     }
 
-    pub fn divide_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let lhs = try_opt!(self.children[0].eval_real(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_real(ctx, row));
+    pub fn divide_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let lhs = try_opt!(self.children[0].eval_real(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_real(ctx, EventIdx));
         if rhs == 0f64 {
             return ctx.handle_division_by_zero().map(|()| None);
         }
@@ -196,10 +196,10 @@ impl ScalarFunc {
     pub fn divide_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let lhs = try_opt!(self.children[0].eval_decimal(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_decimal(ctx, row));
+        let lhs = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_decimal(ctx, EventIdx));
         let overflow = Error::overflow("DECIMAL", &format!("({} / {})", lhs, rhs));
         match lhs.as_ref() / rhs.as_ref() {
             Some(v) => match v {
@@ -211,14 +211,14 @@ impl ScalarFunc {
         }
     }
 
-    pub fn int_divide_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let rhs = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn int_divide_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let rhs = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         if rhs == 0 {
             return Ok(None);
         }
         let rus = self.children[1].is_unsigned();
 
-        let lhs = try_opt!(self.children[0].eval_int(ctx, row));
+        let lhs = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         let lus = self.children[0].is_unsigned();
 
         let res = match (lus, rus) {
@@ -230,8 +230,8 @@ impl ScalarFunc {
         res.map(Some)
     }
 
-    pub fn int_divide_decimal(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        match self.divide_decimal(ctx, row) {
+    pub fn int_divide_decimal(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        match self.divide_decimal(ctx, EventIdx) {
             Ok(Some(v)) => match v.as_i64() {
                 Res::Ok(v_i64) => Ok(Some(v_i64)),
                 Res::Truncated(v_i64) => Ok(Some(v_i64)),
@@ -242,12 +242,12 @@ impl ScalarFunc {
         }
     }
 
-    pub fn mod_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let rhs = try_opt!(self.children[1].eval_real(ctx, row));
+    pub fn mod_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let rhs = try_opt!(self.children[1].eval_real(ctx, EventIdx));
         if rhs == 0f64 {
             return Ok(None);
         }
-        let lhs = try_opt!(self.children[0].eval_real(ctx, row));
+        let lhs = try_opt!(self.children[0].eval_real(ctx, EventIdx));
 
         let res = lhs % rhs;
         Ok(Some(res))
@@ -256,10 +256,10 @@ impl ScalarFunc {
     pub fn mod_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let rhs = try_opt!(self.children[1].eval_decimal(ctx, row));
-        let lhs = try_opt!(self.children[0].eval_decimal(ctx, row));
+        let rhs = try_opt!(self.children[1].eval_decimal(ctx, EventIdx));
+        let lhs = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         let overflow = Error::overflow("DECIMAL", &format!("({} % {})", lhs, rhs));
         match lhs.into_owned() % rhs.into_owned() {
             Some(v) => match v {
@@ -271,14 +271,14 @@ impl ScalarFunc {
         }
     }
 
-    pub fn mod_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let rhs = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn mod_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let rhs = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         if rhs == 0 {
             return Ok(None);
         }
         let rus = self.children[1].is_unsigned();
 
-        let lhs = try_opt!(self.children[0].eval_int(ctx, row));
+        let lhs = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         let lus = self.children[0].is_unsigned();
 
         let res = match (lus, rus) {
@@ -1104,19 +1104,19 @@ mod tests {
             (Flag::empty(), SqlMode::empty(), true, true), //warning
             (
                 Flag::IN_UFIDelATE_OR_DELETE_STMT,
-                SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_TABLES,
+                SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS,
                 false,
                 false,
             ), //error
             (
                 Flag::IN_UFIDelATE_OR_DELETE_STMT,
-                SqlMode::STRICT_ALL_TABLES,
+                SqlMode::STRICT_ALL_BlockS,
                 true,
                 false,
             ), //ok
             (
                 Flag::IN_UFIDelATE_OR_DELETE_STMT | Flag::DIVIDED_BY_ZERO_AS_WARNING,
-                SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_TABLES,
+                SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS,
                 true,
                 true,
             ), //warning

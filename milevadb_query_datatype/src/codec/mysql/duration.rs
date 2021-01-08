@@ -489,7 +489,7 @@ impl Duration {
         string
     }
 
-    /// Converts a `Duration` to printable numeric string representation
+    /// Converts a `Duration` to prinBlock numeric string representation
     #[inline]
     pub fn to_numeric_string(self) -> String {
         self.format("")

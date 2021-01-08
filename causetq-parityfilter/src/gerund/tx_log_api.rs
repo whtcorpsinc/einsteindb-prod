@@ -13,10 +13,10 @@ use embedded_promises::{
 };
 
 use edbn::causetq::{
-    Binding,
+    ConstrainedEntsConstraint,
     StackedPerceptron,
     SrcVar,
-    VariableOrPlaceholder,
+    BinningCauset,
     WhereFn,
 };
 
@@ -26,19 +26,19 @@ use gerunds::{
 
 use causetq_parityfilter_promises::errors::{
     ParityFilterError,
-    BindingError,
+    ConstrainedEntsConstraintError,
     Result,
 };
 
 use types::{
     CausetIndex,
     CausetIndexConstraint,
-    CausetsTable,
+    CausetsBlock,
     Inequality,
     QualifiedAlias,
     CausetQValue,
     SourceAlias,
-    TransactionsCausetIndex,
+    bundlesCausetIndex,
 };
 
 use KnownCauset;
@@ -48,7 +48,7 @@ impl ConjoiningGerunds {
     //
     // The log API includes two convenience functions that are available within causetq. The causetx-ids
     // function takes arguments similar to causecausetxRange above, but returns a collection of transaction
-    // instanton ids. You will typically use the collection binding form [?causetx …] to capture the
+    // instanton ids. You will typically use the collection Constrained form [?causetx …] to capture the
     // results.
     //
     // [(causetx-ids ?log ?causecausetx1 ?causecausetx2) [?causetx ...]]
@@ -57,48 +57,47 @@ impl ConjoiningGerunds {
     // TODO: allow causecausetx2 to be missing (no before constraint).
     // TODO: allow causecausetxK arguments to be instants.
     // TODO: allow arbitrary additional attribute arguments that restrict the causetx-ids to those
-    // transactions that impact one of the given attributes.
+    // bundles that impact one of the given attributes.
     pub(crate) fn apply_causecausetx_ids(&mut self, knownCauset: KnownCauset, where_fn: WhereFn) -> Result<()> {
         if where_fn.args.len() != 3 {
             bail!(ParityFilterError::InvalidNumberOfArguments(where_fn.operator.clone(), where_fn.args.len(), 3));
         }
 
-        if where_fn.binding.is_empty() {
-            // The binding must introduce at least one bound variable.
-            bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(), BindingError::NoBoundVariable));
+        if where_fn.Constrained.is_empty() {
+            // The Constrained must introduce at least one bound variable.
+            bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(), ConstrainedEntsConstraintError::NoBoundVariable));
         }
 
-        if !where_fn.binding.is_valid() {
-            // The binding must not duplicate bound variables.
-            bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(), BindingError::RepeatedBoundVariable));
+        if !where_fn.Constrained.is_valid() {
+            // The Constrained must not duplicate bound variables.
+            bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(), ConstrainedEntsConstraintError::RepeatedBoundVariable));
         }
 
-        // We should have exactly one binding. Destructure it now.
-        let causecausetx_var = match where_fn.binding {
-            Binding::BindRel(bindings) => {
-                let bindings_count = bindings.len();
-                if bindings_count != 1 {
-                    bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(),
-                                                    BindingError::InvalidNumberOfBindings {
-                                                        number: bindings_count,
+        // We should have exactly one Constrained. Destructure it now.
+        let causecausetx_var = match where_fn.Constrained {
+            ConstrainedEntsConstraint::BindRel(ConstrainedEntss) => {
+                let ConstrainedEntss_count = ConstrainedEntss.len();
+                if ConstrainedEntss_count != 1 {
+                    bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(),
+                                                    ConstrainedEntsConstraintError::InvalidNumberOfConstrainedEntsConstraints {
+                                                        number: ConstrainedEntss_count,
                                                         expected: 1,
                                                     }));
                 }
-                match bindings.into_iter().next().unwrap() {
-                    VariableOrPlaceholder::Placeholder => unreachable!("binding.is_empty()!"),
-                    VariableOrPlaceholder::Variable(v) => v,
+                match ConstrainedEntss.into_iter().next().unwrap() {
+                    BinningCauset::Placeholder => unreachable!("Constrained.is_empty()!"),
+                    BinningCauset::ToUpper(v) => v,
                 }
             },
-            Binding::BindColl(v) => v,
-            Binding::BindScalar(_) |
-            Binding::BindTuple(_) => {
-                bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(), BindingError::ExpectedBindRelOrBindColl))
+            ConstrainedEntsConstraint::BindColl(v) => v,
+            ConstrainedEntsConstraint::BindScalar(_) |
+            ConstrainedEntsConstraint::BindTuple(_) => {
+                bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(), ConstrainedEntsConstraintError::ExpectedBindRelOrBindColl))
             },
         };
 
         let mut args = where_fn.args.into_iter();
 
-        // TODO: process source variables.
         match args.next().unwrap() {
             StackedPerceptron::SrcVar(SrcVar::DefaultSrc) => {},
             _ => bail!(ParityFilterError::InvalidArgument(where_fn.operator.clone(), "source variable", 0)),
@@ -107,9 +106,9 @@ impl ConjoiningGerunds {
         let causecausetx1 = self.resolve_causecausetx_argument(&knownCauset.schemaReplicant, &where_fn.operator, 1, args.next().unwrap())?;
         let causecausetx2 = self.resolve_causecausetx_argument(&knownCauset.schemaReplicant, &where_fn.operator, 2, args.next().unwrap())?;
 
-        let transactions = self.next_alias_for_table(CausetsTable::Transactions);
+        let bundles = self.next_alias_for_Block(CausetsBlock::bundles);
 
-        self.from.push(SourceAlias(CausetsTable::Transactions, transactions.clone()));
+        self.from.push(SourceAlias(CausetsBlock::bundles, bundles.clone()));
 
         // Bound variable must be a ref.
         self.constrain_var_to_type(causecausetx_var.clone(), MinkowskiValueType::Ref);
@@ -117,18 +116,18 @@ impl ConjoiningGerunds {
             return Ok(());
         }
 
-        self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsCausetIndex::Tx, causecausetx_var.clone());
+        self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, bundles.clone(), bundlesCausetIndex::Tx, causecausetx_var.clone());
 
         let after_constraint = CausetIndexConstraint::Inequality {
             operator: Inequality::LessThanOrEquals,
             left: causecausetx1,
-            right: CausetQValue::CausetIndex(QualifiedAlias(transactions.clone(), CausetIndex::Transactions(TransactionsCausetIndex::Tx))),
+            right: CausetQValue::CausetIndex(QualifiedAlias(bundles.clone(), CausetIndex::bundles(bundlesCausetIndex::Tx))),
         };
         self.wheres.add_intersection(after_constraint);
 
         let before_constraint = CausetIndexConstraint::Inequality {
             operator: Inequality::LessThan,
-            left: CausetQValue::CausetIndex(QualifiedAlias(transactions.clone(), CausetIndex::Transactions(TransactionsCausetIndex::Tx))),
+            left: CausetQValue::CausetIndex(QualifiedAlias(bundles.clone(), CausetIndex::bundles(bundlesCausetIndex::Tx))),
             right: causecausetx2,
         };
         self.wheres.add_intersection(before_constraint);
@@ -141,39 +140,38 @@ impl ConjoiningGerunds {
             bail!(ParityFilterError::InvalidNumberOfArguments(where_fn.operator.clone(), where_fn.args.len(), 2));
         }
 
-        if where_fn.binding.is_empty() {
-            // The binding must introduce at least one bound variable.
-            bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(), BindingError::NoBoundVariable));
+        if where_fn.Constrained.is_empty() {
+    
+            bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(), ConstrainedEntsConstraintError::NoBoundVariable));
         }
 
-        if !where_fn.binding.is_valid() {
-            // The binding must not duplicate bound variables.
-            bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(), BindingError::RepeatedBoundVariable));
+        if !where_fn.Constrained.is_valid() {
+            // The Constrained must not duplicate bound variables.
+            bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(), ConstrainedEntsConstraintError::RepeatedBoundVariable));
         }
 
-        // We should have at most five bindings. Destructure them now.
-        let bindings = match where_fn.binding {
-            Binding::BindRel(bindings) => {
-                let bindings_count = bindings.len();
-                if bindings_count < 1 || bindings_count > 5 {
-                    bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(),
-                                                    BindingError::InvalidNumberOfBindings {
-                                                        number: bindings.len(),
+        let ConstrainedEntss = match where_fn.Constrained {
+            ConstrainedEntsConstraint::BindRel(ConstrainedEntss) => {
+                let ConstrainedEntss_count = ConstrainedEntss.len();
+                if ConstrainedEntss_count < 1 || ConstrainedEntss_count > 5 {
+                    bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(),
+                                                    ConstrainedEntsConstraintError::InvalidNumberOfConstrainedEntsConstraints {
+                                                        number: ConstrainedEntss.len(),
                                                         expected: 5,
                                                     }));
                 }
-                bindings
+                ConstrainedEntss
             },
-            Binding::BindScalar(_) |
-            Binding::BindTuple(_) |
-            Binding::BindColl(_) => bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(), BindingError::ExpectedBindRel)),
+            ConstrainedEntsConstraint::BindScalar(_) |
+            ConstrainedEntsConstraint::BindTuple(_) |
+            ConstrainedEntsConstraint::BindColl(_) => bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(), ConstrainedEntsConstraintError::ExpectedBindRel)),
         };
-        let mut bindings = bindings.into_iter();
-        let b_e = bindings.next().unwrap_or(VariableOrPlaceholder::Placeholder);
-        let b_a = bindings.next().unwrap_or(VariableOrPlaceholder::Placeholder);
-        let b_v = bindings.next().unwrap_or(VariableOrPlaceholder::Placeholder);
-        let b_causecausetx = bindings.next().unwrap_or(VariableOrPlaceholder::Placeholder);
-        let b_op = bindings.next().unwrap_or(VariableOrPlaceholder::Placeholder);
+        let mut ConstrainedEntss = ConstrainedEntss.into_iter();
+        let b_e = ConstrainedEntss.next().unwrap_or(BinningCauset::Placeholder);
+        let b_a = ConstrainedEntss.next().unwrap_or(BinningCauset::Placeholder);
+        let b_v = ConstrainedEntss.next().unwrap_or(BinningCauset::Placeholder);
+        let b_causecausetx = ConstrainedEntss.next().unwrap_or(BinningCauset::Placeholder);
+        let b_op = ConstrainedEntss.next().unwrap_or(BinningCauset::Placeholder);
 
         let mut args = where_fn.args.into_iter();
 
@@ -185,40 +183,40 @@ impl ConjoiningGerunds {
 
         let causetx = self.resolve_causecausetx_argument(&knownCauset.schemaReplicant, &where_fn.operator, 1, args.next().unwrap())?;
 
-        let transactions = self.next_alias_for_table(CausetsTable::Transactions);
+        let bundles = self.next_alias_for_Block(CausetsBlock::bundles);
 
-        self.from.push(SourceAlias(CausetsTable::Transactions, transactions.clone()));
+        self.from.push(SourceAlias(CausetsBlock::bundles, bundles.clone()));
 
         let causecausetx_constraint = CausetIndexConstraint::Equals(
-            QualifiedAlias(transactions.clone(), CausetIndex::Transactions(TransactionsCausetIndex::Tx)),
+            QualifiedAlias(bundles.clone(), CausetIndex::bundles(bundlesCausetIndex::Tx)),
             causetx);
         self.wheres.add_intersection(causecausetx_constraint);
 
-        if let VariableOrPlaceholder::Variable(ref var) = b_e {
+        if let BinningCauset::ToUpper(ref var) = b_e {
             // It must be a ref.
             self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
             if self.is_known_empty() {
                 return Ok(());
             }
 
-            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsCausetIndex::Instanton, var.clone());
+            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, bundles.clone(), bundlesCausetIndex::Instanton, var.clone());
         }
 
-        if let VariableOrPlaceholder::Variable(ref var) = b_a {
+        if let BinningCauset::ToUpper(ref var) = b_a {
             // It must be a ref.
             self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
             if self.is_known_empty() {
                 return Ok(());
             }
 
-            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsCausetIndex::Attribute, var.clone());
+            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, bundles.clone(), bundlesCausetIndex::Attribute, var.clone());
         }
 
-        if let VariableOrPlaceholder::Variable(ref var) = b_v {
-            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsCausetIndex::Value, var.clone());
+        if let BinningCauset::ToUpper(ref var) = b_v {
+            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, bundles.clone(), bundlesCausetIndex::Value, var.clone());
         }
 
-        if let VariableOrPlaceholder::Variable(ref var) = b_causecausetx {
+        if let BinningCauset::ToUpper(ref var) = b_causecausetx {
             // It must be a ref.
             self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
             if self.is_known_empty() {
@@ -227,17 +225,17 @@ impl ConjoiningGerunds {
 
             // TODO: this might be a programming error if var is our causetx argument.  Perhaps we can be
             // helpful in that case.
-            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsCausetIndex::Tx, var.clone());
+            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, bundles.clone(), bundlesCausetIndex::Tx, var.clone());
         }
 
-        if let VariableOrPlaceholder::Variable(ref var) = b_op {
+        if let BinningCauset::ToUpper(ref var) = b_op {
             // It must be a boolean.
             self.constrain_var_to_type(var.clone(), MinkowskiValueType::Boolean);
             if self.is_known_empty() {
                 return Ok(());
             }
 
-            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, transactions.clone(), TransactionsCausetIndex::Added, var.clone());
+            self.bind_CausetIndex_to_var(knownCauset.schemaReplicant, bundles.clone(), bundlesCausetIndex::Added, var.clone());
         }
 
         Ok(())
@@ -258,10 +256,10 @@ mod testing {
     };
 
     use edbn::causetq::{
-        Binding,
+        ConstrainedEntsConstraint,
         StackedPerceptron,
         PlainSymbol,
-        Variable,
+        ToUpper,
     };
 
     #[test]
@@ -279,14 +277,14 @@ mod testing {
                 StackedPerceptron::SolitonIdOrInteger(1000),
                 StackedPerceptron::SolitonIdOrInteger(2000),
             ],
-            binding: Binding::BindRel(vec![VariableOrPlaceholder::Variable(Variable::from_valid_name("?causetx")),
+            Constrained: ConstrainedEntsConstraint::BindRel(vec![BinningCauset::ToUpper(ToUpper::from_valid_name("?causetx")),
             ]),
         }).expect("to be able to apply_causecausetx_ids");
 
         assert!(!cc.is_known_empty());
 
-        // Finally, expand CausetIndex bindings.
-        cc.expand_CausetIndex_bindings();
+        // Finally, expand CausetIndex ConstrainedEntss.
+        cc.expand_CausetIndex_ConstrainedEntss();
         assert!(!cc.is_known_empty());
 
         let gerunds = cc.wheres;
@@ -296,26 +294,26 @@ mod testing {
                    CausetIndexConstraint::Inequality {
                        operator: Inequality::LessThanOrEquals,
                        left: CausetQValue::MinkowskiType(MinkowskiType::Ref(1000)),
-                       right: CausetQValue::CausetIndex(QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Tx))),
+                       right: CausetQValue::CausetIndex(QualifiedAlias("bundles00".to_string(), CausetIndex::bundles(bundlesCausetIndex::Tx))),
                    }.into());
 
         assert_eq!(gerunds.0[1],
                    CausetIndexConstraint::Inequality {
                        operator: Inequality::LessThan,
-                       left: CausetQValue::CausetIndex(QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Tx))),
+                       left: CausetQValue::CausetIndex(QualifiedAlias("bundles00".to_string(), CausetIndex::bundles(bundlesCausetIndex::Tx))),
                        right: CausetQValue::MinkowskiType(MinkowskiType::Ref(2000)),
                    }.into());
 
-        let bindings = cc.CausetIndex_bindings;
-        assert_eq!(bindings.len(), 1);
+        let ConstrainedEntss = cc.CausetIndex_ConstrainedEntss;
+        assert_eq!(ConstrainedEntss.len(), 1);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?causetx")).expect("CausetIndex binding for ?causetx").clone(),
-                   vec![QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Tx))]);
+        assert_eq!(ConstrainedEntss.get(&ToUpper::from_valid_name("?causetx")).expect("CausetIndex Constrained for ?causetx").clone(),
+                   vec![QualifiedAlias("bundles00".to_string(), CausetIndex::bundles(bundlesCausetIndex::Tx))]);
 
         let known_types = cc.known_types;
         assert_eq!(known_types.len(), 1);
 
-        assert_eq!(known_types.get(&Variable::from_valid_name("?causetx")).expect("knownCauset types for ?causetx").clone(),
+        assert_eq!(known_types.get(&ToUpper::from_valid_name("?causetx")).expect("knownCauset types for ?causetx").clone(),
                    vec![MinkowskiValueType::Ref].into_iter().collect());
     }
 
@@ -333,65 +331,65 @@ mod testing {
                 StackedPerceptron::SrcVar(SrcVar::DefaultSrc),
                 StackedPerceptron::SolitonIdOrInteger(1000),
             ],
-            binding: Binding::BindRel(vec![
-                VariableOrPlaceholder::Variable(Variable::from_valid_name("?e")),
-                VariableOrPlaceholder::Variable(Variable::from_valid_name("?a")),
-                VariableOrPlaceholder::Variable(Variable::from_valid_name("?v")),
-                VariableOrPlaceholder::Variable(Variable::from_valid_name("?causetx")),
-                VariableOrPlaceholder::Variable(Variable::from_valid_name("?added")),
+            Constrained: ConstrainedEntsConstraint::BindRel(vec![
+                BinningCauset::ToUpper(ToUpper::from_valid_name("?e")),
+                BinningCauset::ToUpper(ToUpper::from_valid_name("?a")),
+                BinningCauset::ToUpper(ToUpper::from_valid_name("?v")),
+                BinningCauset::ToUpper(ToUpper::from_valid_name("?causetx")),
+                BinningCauset::ToUpper(ToUpper::from_valid_name("?added")),
             ]),
         }).expect("to be able to apply_causecausetx_data");
 
         assert!(!cc.is_known_empty());
 
-        // Finally, expand CausetIndex bindings.
-        cc.expand_CausetIndex_bindings();
+        // Finally, expand CausetIndex ConstrainedEntss.
+        cc.expand_CausetIndex_ConstrainedEntss();
         assert!(!cc.is_known_empty());
 
         let gerunds = cc.wheres;
         assert_eq!(gerunds.len(), 1);
 
         assert_eq!(gerunds.0[0],
-                   CausetIndexConstraint::Equals(QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Tx)),
+                   CausetIndexConstraint::Equals(QualifiedAlias("bundles00".to_string(), CausetIndex::bundles(bundlesCausetIndex::Tx)),
                                             CausetQValue::MinkowskiType(MinkowskiType::Ref(1000))).into());
 
-        let bindings = cc.CausetIndex_bindings;
-        assert_eq!(bindings.len(), 5);
+        let ConstrainedEntss = cc.CausetIndex_ConstrainedEntss;
+        assert_eq!(ConstrainedEntss.len(), 5);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?e")).expect("CausetIndex binding for ?e").clone(),
-                   vec![QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Instanton))]);
+        assert_eq!(ConstrainedEntss.get(&ToUpper::from_valid_name("?e")).expect("CausetIndex Constrained for ?e").clone(),
+                   vec![QualifiedAlias("bundles00".to_string(), CausetIndex::bundles(bundlesCausetIndex::Instanton))]);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?a")).expect("CausetIndex binding for ?a").clone(),
-                   vec![QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Attribute))]);
+        assert_eq!(ConstrainedEntss.get(&ToUpper::from_valid_name("?a")).expect("CausetIndex Constrained for ?a").clone(),
+                   vec![QualifiedAlias("bundles00".to_string(), CausetIndex::bundles(bundlesCausetIndex::Attribute))]);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?v")).expect("CausetIndex binding for ?v").clone(),
-                   vec![QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Value))]);
+        assert_eq!(ConstrainedEntss.get(&ToUpper::from_valid_name("?v")).expect("CausetIndex Constrained for ?v").clone(),
+                   vec![QualifiedAlias("bundles00".to_string(), CausetIndex::bundles(bundlesCausetIndex::Value))]);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?causetx")).expect("CausetIndex binding for ?causetx").clone(),
-                   vec![QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Tx))]);
+        assert_eq!(ConstrainedEntss.get(&ToUpper::from_valid_name("?causetx")).expect("CausetIndex Constrained for ?causetx").clone(),
+                   vec![QualifiedAlias("bundles00".to_string(), CausetIndex::bundles(bundlesCausetIndex::Tx))]);
 
-        assert_eq!(bindings.get(&Variable::from_valid_name("?added")).expect("CausetIndex binding for ?added").clone(),
-                   vec![QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::Added))]);
+        assert_eq!(ConstrainedEntss.get(&ToUpper::from_valid_name("?added")).expect("CausetIndex Constrained for ?added").clone(),
+                   vec![QualifiedAlias("bundles00".to_string(), CausetIndex::bundles(bundlesCausetIndex::Added))]);
 
         let known_types = cc.known_types;
         assert_eq!(known_types.len(), 4);
 
-        assert_eq!(known_types.get(&Variable::from_valid_name("?e")).expect("knownCauset types for ?e").clone(),
+        assert_eq!(known_types.get(&ToUpper::from_valid_name("?e")).expect("knownCauset types for ?e").clone(),
                    vec![MinkowskiValueType::Ref].into_iter().collect());
 
-        assert_eq!(known_types.get(&Variable::from_valid_name("?a")).expect("knownCauset types for ?a").clone(),
+        assert_eq!(known_types.get(&ToUpper::from_valid_name("?a")).expect("knownCauset types for ?a").clone(),
                    vec![MinkowskiValueType::Ref].into_iter().collect());
 
-        assert_eq!(known_types.get(&Variable::from_valid_name("?causetx")).expect("knownCauset types for ?causetx").clone(),
+        assert_eq!(known_types.get(&ToUpper::from_valid_name("?causetx")).expect("knownCauset types for ?causetx").clone(),
                    vec![MinkowskiValueType::Ref].into_iter().collect());
 
-        assert_eq!(known_types.get(&Variable::from_valid_name("?added")).expect("knownCauset types for ?added").clone(),
+        assert_eq!(known_types.get(&ToUpper::from_valid_name("?added")).expect("knownCauset types for ?added").clone(),
                    vec![MinkowskiValueType::Boolean].into_iter().collect());
 
         let extracted_types = cc.extracted_types;
         assert_eq!(extracted_types.len(), 1);
 
-        assert_eq!(extracted_types.get(&Variable::from_valid_name("?v")).expect("extracted types for ?v").clone(),
-                   QualifiedAlias("transactions00".to_string(), CausetIndex::Transactions(TransactionsCausetIndex::MinkowskiValueTypeTag)));
+        assert_eq!(extracted_types.get(&ToUpper::from_valid_name("?v")).expect("extracted types for ?v").clone(),
+                   QualifiedAlias("bundles00".to_string(), CausetIndex::bundles(bundlesCausetIndex::MinkowskiValueTypeTag)));
     }
 }

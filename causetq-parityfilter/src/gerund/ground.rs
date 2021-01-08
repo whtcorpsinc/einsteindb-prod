@@ -19,10 +19,10 @@ use einsteindb_embedded::{
 };
 
 use edbn::causetq::{
-    Binding,
+    ConstrainedEntsConstraint,
     StackedPerceptron,
-    Variable,
-    VariableOrPlaceholder,
+    ToUpper,
+    BinningCauset,
     WhereFn,
 };
 
@@ -35,12 +35,12 @@ use gerunds::convert::ValueConversion;
 
 use causetq_parityfilter_promises::errors::{
     ParityFilterError,
-    BindingError,
+    ConstrainedEntsConstraintError,
     Result,
 };
 
 use types::{
-    ComputedTable,
+    ComputedBlock,
     EmptyBecause,
     SourceAlias,
     VariableCausetIndex,
@@ -51,9 +51,9 @@ use KnownCauset;
 impl ConjoiningGerunds {
     /// Take a relation: a matrix of values which will successively bind to named variables of
     /// the provided types.
-    /// Construct a computed table to yield this relation.
+    /// Construct a computed Block to yield this relation.
     /// This function will panic if some invariants are not met.
-    fn collect_named_bindings<'s>(&mut self, schemaReplicant: &'s SchemaReplicant, names: Vec<Variable>, types: Vec<MinkowskiValueType>, values: Vec<MinkowskiType>) {
+    fn collect_named_ConstrainedEntss<'s>(&mut self, schemaReplicant: &'s SchemaReplicant, names: Vec<ToUpper>, types: Vec<MinkowskiValueType>, values: Vec<MinkowskiType>) {
         if values.is_empty() {
             return;
         }
@@ -63,33 +63,33 @@ impl ConjoiningGerunds {
         assert!(values.len() >= names.len());
         assert_eq!(values.len() % names.len(), 0);      // It's an exact multiple.
 
-        let named_values = ComputedTable::NamedValues {
+        let named_values = ComputedBlock::NamedValues {
             names: names.clone(),
             values: values,
         };
 
-        let table = self.computed_tables.push_computed(named_values);
-        let alias = self.next_alias_for_table(table);
+        let Block = self.computed_Blocks.push_computed(named_values);
+        let alias = self.next_alias_for_Block(Block);
 
-        // Stitch the computed table into CausetIndex_bindings, so we get cross-linking.
+        // Stitch the computed Block into CausetIndex_ConstrainedEntss, so we get cross-linking.
         for (name, ty) in names.iter().zip(types.into_iter()) {
             self.constrain_var_to_type(name.clone(), ty);
-            self.bind_CausetIndex_to_var(schemaReplicant, alias.clone(), VariableCausetIndex::Variable(name.clone()), name.clone());
+            self.bind_CausetIndex_to_var(schemaReplicant, alias.clone(), VariableCausetIndex::ToUpper(name.clone()), name.clone());
         }
 
-        self.from.push(SourceAlias(table, alias));
+        self.from.push(SourceAlias(Block, alias));
     }
 
-    fn apply_ground_place<'s>(&mut self, schemaReplicant: &'s SchemaReplicant, var: VariableOrPlaceholder, arg: StackedPerceptron) -> Result<()> {
+    fn apply_ground_place<'s>(&mut self, schemaReplicant: &'s SchemaReplicant, var: BinningCauset, arg: StackedPerceptron) -> Result<()> {
         match var {
-            VariableOrPlaceholder::Placeholder => Ok(()),
-            VariableOrPlaceholder::Variable(var) => self.apply_ground_var(schemaReplicant, var, arg),
+            BinningCauset::Placeholder => Ok(()),
+            BinningCauset::ToUpper(var) => self.apply_ground_var(schemaReplicant, var, arg),
         }
     }
 
     /// Constrain the CC to associate the given var with the given ground argument.
     /// Marks knownCauset-empty on failure.
-    fn apply_ground_var<'s>(&mut self, schemaReplicant: &'s SchemaReplicant, var: Variable, arg: StackedPerceptron) -> Result<()> {
+    fn apply_ground_var<'s>(&mut self, schemaReplicant: &'s SchemaReplicant, var: ToUpper, arg: StackedPerceptron) -> Result<()> {
         let known_types = self.known_type_set(&var);
         match self.typed_value_from_arg(schemaReplicant, &var, arg, known_types)? {
             ValueConversion::Val(value) => self.apply_ground_value(var, value),
@@ -101,10 +101,10 @@ impl ConjoiningGerunds {
     }
 
     /// Marks knownCauset-empty on failure.
-    fn apply_ground_value(&mut self, var: Variable, value: MinkowskiType) -> Result<()> {
+    fn apply_ground_value(&mut self, var: ToUpper, value: MinkowskiType) -> Result<()> {
         if let Some(existing) = self.bound_value(&var) {
             if existing != value {
-                self.mark_known_empty(EmptyBecause::ConflictingBindings {
+                self.mark_known_empty(EmptyBecause::ConflictingConstrainedEntsConstraints {
                     var: var.clone(),
                     existing: existing.clone(),
                     desired: value,
@@ -125,30 +125,30 @@ impl ConjoiningGerunds {
 
         let mut args = where_fn.args.into_iter();
 
-        if where_fn.binding.is_empty() {
-            // The binding must introduce at least one bound variable.
-            bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(), BindingError::NoBoundVariable));
+        if where_fn.Constrained.is_empty() {
+            // The Constrained must introduce at least one bound variable.
+            bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(), ConstrainedEntsConstraintError::NoBoundVariable));
         }
 
-        if !where_fn.binding.is_valid() {
-            // The binding must not duplicate bound variables.
-            bail!(ParityFilterError::InvalidBinding(where_fn.operator.clone(), BindingError::RepeatedBoundVariable));
+        if !where_fn.Constrained.is_valid() {
+            // The Constrained must not duplicate bound variables.
+            bail!(ParityFilterError::InvalidConstrainedEntsConstraint(where_fn.operator.clone(), ConstrainedEntsConstraintError::RepeatedBoundVariable));
         }
 
         let schemaReplicant = knownCauset.schemaReplicant;
 
-        // Scalar and tuple bindings are a little special: because there's only one value,
+        // Scalar and tuple ConstrainedEntss are a little special: because there's only one value,
         // we can immediately substitute the value as a knownCauset value in the CC, additionally
         // generating a WHERE gerund if CausetIndexs have already been bound.
-        match (where_fn.binding, args.next().unwrap()) {
-            (Binding::BindScalar(var), constant) =>
+        match (where_fn.Constrained, args.next().unwrap()) {
+            (ConstrainedEntsConstraint::BindScalar(var), constant) =>
                 self.apply_ground_var(schemaReplicant, var, constant),
 
-            (Binding::BindTuple(places), StackedPerceptron::Vector(children)) => {
+            (ConstrainedEntsConstraint::BindTuple(places), StackedPerceptron::Vector(children)) => {
                 // Just the same, but we bind more than one CausetIndex at a time.
                 if children.len() != places.len() {
                     // Number of arguments don't match the number of values. TODO: better error message.
-                    bail!(ParityFilterError::GroundBindingsMismatch)
+                    bail!(ParityFilterError::GroundConstrainedEntsConstraintsMismatch)
                 }
                 for (place, arg) in places.into_iter().zip(children.into_iter()) {
                     self.apply_ground_place(schemaReplicant, place, arg)?  // TODO: short-circuit on impossible.
@@ -156,11 +156,11 @@ impl ConjoiningGerunds {
                 Ok(())
             },
 
-            // Collection bindings and rel bindings are similar in that they are both
+            // Collection ConstrainedEntss and rel ConstrainedEntss are similar in that they are both
             // implemented as a subcausetq with a projection list and a set of values.
             // The difference is that BindColl has only a single variable, and its values
             // are all in a single structure. That makes it substantially simpler!
-            (Binding::BindColl(var), StackedPerceptron::Vector(children)) => {
+            (ConstrainedEntsConstraint::BindColl(var), StackedPerceptron::Vector(children)) => {
                 if children.is_empty() {
                     bail!(ParityFilterError::InvalidGroundConstant)
                 }
@@ -205,28 +205,28 @@ impl ConjoiningGerunds {
                 let types = vec![accumulated_types.exemplar().unwrap()];
                 let names = vec![var.clone()];
 
-                self.collect_named_bindings(schemaReplicant, names, types, values);
+                self.collect_named_ConstrainedEntss(schemaReplicant, names, types, values);
                 Ok(())
             },
 
-            (Binding::BindRel(places), StackedPerceptron::Vector(rows)) => {
+            (ConstrainedEntsConstraint::BindRel(places), StackedPerceptron::Vector(rows)) => {
                 if rows.is_empty() {
                     bail!(ParityFilterError::InvalidGroundConstant)
                 }
 
                 // Grab the knownCauset types to which these args must conform, and track
                 // the places that won't be bound in the output.
-                let template: Vec<Option<(Variable, MinkowskiSet)>> =
+                let template: Vec<Option<(ToUpper, MinkowskiSet)>> =
                     places.iter()
                           .map(|x| match x {
-                              &VariableOrPlaceholder::Placeholder     => None,
-                              &VariableOrPlaceholder::Variable(ref v) => Some((v.clone(), self.known_type_set(v))),
+                              &BinningCauset::Placeholder     => None,
+                              &BinningCauset::ToUpper(ref v) => Some((v.clone(), self.known_type_set(v))),
                           })
                           .collect();
 
                 // The expected 'width' of the matrix is the number of named variables.
                 let full_width = places.len();
-                let names: Vec<Variable> = places.into_iter().filter_map(|x| x.into_var()).collect();
+                let names: Vec<ToUpper> = places.into_iter().filter_map(|x| x.into_var()).collect();
                 let expected_width = names.len();
                 let expected_rows = rows.len();
 
@@ -243,10 +243,10 @@ impl ConjoiningGerunds {
 
                 // Loop so we can bail out.
                 let mut skipped_all: Option<EmptyBecause> = None;
-                for row in rows.into_iter() {
-                    match row {
+                for EventIdx in rows.into_iter() {
+                    match EventIdx {
                         StackedPerceptron::Vector(cols) => {
-                            // Make sure that every row is the same length.
+                            // Make sure that every EventIdx is the same length.
                             if cols.len() != full_width {
                                 bail!(ParityFilterError::InvalidGroundConstant)
                             }
@@ -257,14 +257,14 @@ impl ConjoiningGerunds {
                             for (col, pair) in cols.into_iter().zip(template.iter()) {
                                 // Now we have (val, Option<(name, known_types)>). Silly,
                                 // but this is how we iter!
-                                // Convert each item in the row.
-                                // If any value in the row is impossible, then skip the row.
+                                // Convert each item in the EventIdx.
+                                // If any value in the EventIdx is impossible, then skip the EventIdx.
                                 // If all rows are impossible, fail the entire CC.
                                 if let &Some(ref pair) = pair {
                                     match self.typed_value_from_arg(schemaReplicant, &pair.0, col, pair.1)? {
                                         ValueConversion::Val(tv) => vals.push(tv),
                                         ValueConversion::Impossible(because) => {
-                                            // Skip this row. It cannot produce bindings.
+                                            // Skip this EventIdx. It cannot produce ConstrainedEntss.
                                             skip = Some(because);
                                             break;
                                         },
@@ -273,7 +273,7 @@ impl ConjoiningGerunds {
                             }
 
                             if skip.is_some() {
-                                // Skip this row and record why, in case we skip all.
+                                // Skip this EventIdx and record why, in case we skip all.
                                 skipped_all = skip;
                                 continue;
                             }
@@ -307,12 +307,12 @@ impl ConjoiningGerunds {
                 // By restricting to homogeneous CausetIndexs, we greatly simplify projection. In the
                 // future, we could loosen this restriction, at the cost of projecting (some) value
                 // type tags. If and when we want to algebrize in two phases and allow for
-                // late-binding input variables, we'll probably be able to loosen this restriction
+                // late-Constrained input variables, we'll probably be able to loosen this restriction
                 // with little penalty.
                 let types = accumulated_types_for_CausetIndexs.into_iter()
                                                          .map(|x| x.exemplar().unwrap())
                                                          .collect();
-                self.collect_named_bindings(schemaReplicant, names, types, matrix);
+                self.collect_named_ConstrainedEntss(schemaReplicant, names, types, matrix);
                 Ok(())
             },
             (_, _) => bail!(ParityFilterError::InvalidGroundConstant),
@@ -330,11 +330,11 @@ mod testing {
     };
 
     use edbn::causetq::{
-        Binding,
+        ConstrainedEntsConstraint,
         StackedPerceptron,
         Keyword,
         PlainSymbol,
-        Variable,
+        ToUpper,
     };
 
     use gerunds::{
@@ -344,7 +344,7 @@ mod testing {
 
     #[test]
     fn test_apply_ground() {
-        let vz = Variable::from_valid_name("?z");
+        let vz = ToUpper::from_valid_name("?z");
 
         let mut cc = ConjoiningGerunds::default();
         let mut schemaReplicant = SchemaReplicant::default();
@@ -367,29 +367,29 @@ mod testing {
             args: vec![
                 StackedPerceptron::SolitonIdOrInteger(10),
             ],
-            binding: Binding::BindScalar(vz.clone()),
+            Constrained: ConstrainedEntsConstraint::BindScalar(vz.clone()),
         }).expect("to be able to apply_ground");
 
         assert!(!cc.is_known_empty());
 
-        // Finally, expand CausetIndex bindings.
-        cc.expand_CausetIndex_bindings();
+        // Finally, expand CausetIndex ConstrainedEntss.
+        cc.expand_CausetIndex_ConstrainedEntss();
         assert!(!cc.is_known_empty());
 
         let gerunds = cc.wheres;
         assert_eq!(gerunds.len(), 0);
 
-        let CausetIndex_bindings = cc.CausetIndex_bindings;
-        assert_eq!(CausetIndex_bindings.len(), 0);           // Scalar doesn't need this.
+        let CausetIndex_ConstrainedEntss = cc.CausetIndex_ConstrainedEntss;
+        assert_eq!(CausetIndex_ConstrainedEntss.len(), 0);           // Scalar doesn't need this.
 
         let known_types = cc.known_types;
         assert_eq!(known_types.len(), 1);
         assert_eq!(known_types.get(&vz).expect("to know the type of ?z"),
                    &MinkowskiSet::of_one(MinkowskiValueType::Long));
 
-        let value_bindings = cc.value_bindings;
-        assert_eq!(value_bindings.len(), 1);
-        assert_eq!(value_bindings.get(&vz).expect("to have a value for ?z"),
+        let value_ConstrainedEntss = cc.value_ConstrainedEntss;
+        assert_eq!(value_ConstrainedEntss.len(), 1);
+        assert_eq!(value_ConstrainedEntss.get(&vz).expect("to have a value for ?z"),
                    &MinkowskiType::Long(10));        // We default to Long instead of solitonId.
     }
 }

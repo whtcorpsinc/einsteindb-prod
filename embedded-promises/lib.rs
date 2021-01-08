@@ -71,7 +71,7 @@ use edbn::entities::{
     InstantonPlace,
     SolitonIdOrCausetId,
     ValuePlace,
-    TransactableValueMarker,
+    TransacBlockValueMarker,
 };
 
 pub mod values;
@@ -106,7 +106,7 @@ impl From<KnownSolitonId> for SolitonId {
     }
 }
 
-impl<V: TransactableValueMarker> Into<InstantonPlace<V>> for KnownSolitonId {
+impl<V: TransacBlockValueMarker> Into<InstantonPlace<V>> for KnownSolitonId {
     fn into(self) -> InstantonPlace<V> {
         InstantonPlace::SolitonId(SolitonIdOrCausetId::SolitonId(self.0))
     }
@@ -118,15 +118,15 @@ impl Into<AttributePlace> for KnownSolitonId {
     }
 }
 
-impl<V: TransactableValueMarker> Into<ValuePlace<V>> for KnownSolitonId {
+impl<V: TransacBlockValueMarker> Into<ValuePlace<V>> for KnownSolitonId {
     fn into(self) -> ValuePlace<V> {
         ValuePlace::SolitonId(SolitonIdOrCausetId::SolitonId(self.0))
     }
 }
 
-/// Bit flags used in `flags0` CausetIndex in temporary tables created during search,
-/// such as the `search_results`, `inexact_searches` and `exact_searches` tables.
-/// When moving to a more concrete table, such as `causets`, they are expanded out
+/// Bit flags used in `flags0` CausetIndex in temporary Blocks created during search,
+/// such as the `search_results`, `inexact_searches` and `exact_searches` Blocks.
+/// When moving to a more concrete Block, such as `causets`, they are expanded out
 /// via these flags and put into their own CausetIndex rather than a bit field.
 pub enum AttributeBitFlags {
     IndexAVET     = 1 << 0,
@@ -209,7 +209,7 @@ pub struct Attribute {
 }
 
 impl Attribute {
-    /// Combine several attribute flags into a bitfield used in temporary search tables.
+    /// Combine several attribute flags into a bitfield used in temporary search Blocks.
     pub fn flags(&self) -> u8 {
         let mut flags: u8 = 0;
 
@@ -403,7 +403,7 @@ impl fmt::Display for MinkowskiValueType {
 }
 
 /// `MinkowskiType` is the value type for programmatic use in transaction builders.
-impl TransactableValueMarker for MinkowskiType {}
+impl TransacBlockValueMarker for MinkowskiType {}
 
 /// Represents a value that can be stored in a EinsteinDB store.
 // TODO: expand to include :edb.type/uri. https://github.com/whtcorpsinc/einsteindb/issues/201
@@ -419,7 +419,7 @@ pub enum MinkowskiType {
     // TODO: &str throughout?
     String(ValueRc<String>),
     Keyword(ValueRc<Keyword>),
-    Uuid(Uuid),                        // It's only 128 bits, so this should be acceptable to clone.
+    Uuid(Uuid),                        // It's only 128 bits, so this should be accepBlock to clone.
 }
 
 impl From<KnownSolitonId> for MinkowskiType {
@@ -716,82 +716,82 @@ impl MicrosecondPrecision for DateTime<Utc> {
 /// * Single structured values, for single-valued component attributes or nested expressions.
 /// * Single typed values, for simple attributes.
 ///
-/// The `Binding` enum defines these three options.
+/// The `ConstrainedEntsConstraint` enum defines these three options.
 ///
 /// Causetic also supports structured inputs; at present EinsteinDB does not, but this type
 /// would also serve that purpose.
 ///
-/// Note that maps are not ordered, and so `Binding` is neither `Ord` nor `PartialOrd`.
+/// Note that maps are not ordered, and so `ConstrainedEntsConstraint` is neither `Ord` nor `PartialOrd`.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Binding {
+pub enum ConstrainedEntsConstraint {
     Scalar(MinkowskiType),
-    Vec(ValueRc<Vec<Binding>>),
+    Vec(ValueRc<Vec<ConstrainedEntsConstraint>>),
     Map(ValueRc<StructuredMap>),
 }
 
-impl<T> From<T> for Binding where T: Into<MinkowskiType> {
+impl<T> From<T> for ConstrainedEntsConstraint where T: Into<MinkowskiType> {
     fn from(value: T) -> Self {
-        Binding::Scalar(value.into())
+        ConstrainedEntsConstraint::Scalar(value.into())
     }
 }
 
-impl From<StructuredMap> for Binding {
+impl From<StructuredMap> for ConstrainedEntsConstraint {
     fn from(value: StructuredMap) -> Self {
-        Binding::Map(ValueRc::new(value))
+        ConstrainedEntsConstraint::Map(ValueRc::new(value))
     }
 }
 
-impl From<Vec<Binding>> for Binding {
-    fn from(value: Vec<Binding>) -> Self {
-        Binding::Vec(ValueRc::new(value))
+impl From<Vec<ConstrainedEntsConstraint>> for ConstrainedEntsConstraint {
+    fn from(value: Vec<ConstrainedEntsConstraint>) -> Self {
+        ConstrainedEntsConstraint::Vec(ValueRc::new(value))
     }
 }
 
-impl Binding {
+impl ConstrainedEntsConstraint {
     pub fn into_scalar(self) -> Option<MinkowskiType> {
         match self {
-            Binding::Scalar(v) => Some(v),
+            ConstrainedEntsConstraint::Scalar(v) => Some(v),
             _ => None,
         }
     }
 
-    pub fn into_vec(self) -> Option<ValueRc<Vec<Binding>>> {
+    pub fn into_vec(self) -> Option<ValueRc<Vec<ConstrainedEntsConstraint>>> {
         match self {
-            Binding::Vec(v) => Some(v),
+            ConstrainedEntsConstraint::Vec(v) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_map(self) -> Option<ValueRc<StructuredMap>> {
         match self {
-            Binding::Map(v) => Some(v),
+            ConstrainedEntsConstraint::Map(v) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_scalar(&self) -> Option<&MinkowskiType> {
         match self {
-            &Binding::Scalar(ref v) => Some(v),
+            &ConstrainedEntsConstraint::Scalar(ref v) => Some(v),
             _ => None,
         }
     }
 
-    pub fn as_vec(&self) -> Option<&Vec<Binding>> {
+    pub fn as_vec(&self) -> Option<&Vec<ConstrainedEntsConstraint>> {
         match self {
-            &Binding::Vec(ref v) => Some(v),
+            &ConstrainedEntsConstraint::Vec(ref v) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_map(&self) -> Option<&StructuredMap> {
         match self {
-            &Binding::Map(ref v) => Some(v),
+            &ConstrainedEntsConstraint::Map(ref v) => Some(v),
             _ => None,
         }
     }
 }
 
-/// A pull expression expands a binding into a structure. The returned structure
+/// A pull expression expands a Constrained into a structure. The returned structure
 /// associates attributes named in the input or retrieved from the store with values.
 /// This association is a `StructuredMap`.
 ///
@@ -802,10 +802,10 @@ impl Binding {
 /// We entirely support the former, and partially support the latter -- you can alias
 /// using a different keyword only.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct StructuredMap(pub IndexMap<ValueRc<Keyword>, Binding>);
+pub struct StructuredMap(pub IndexMap<ValueRc<Keyword>, ConstrainedEntsConstraint>);
 
 impl Deref for StructuredMap {
-    type Target = IndexMap<ValueRc<Keyword>, Binding>;
+    type Target = IndexMap<ValueRc<Keyword>, ConstrainedEntsConstraint>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -813,19 +813,19 @@ impl Deref for StructuredMap {
 }
 
 impl StructuredMap {
-    pub fn insert<N, B>(&mut self, name: N, value: B) where N: Into<ValueRc<Keyword>>, B: Into<Binding> {
+    pub fn insert<N, B>(&mut self, name: N, value: B) where N: Into<ValueRc<Keyword>>, B: Into<ConstrainedEntsConstraint> {
         self.0.insert(name.into(), value.into());
     }
 }
 
-impl From<IndexMap<ValueRc<Keyword>, Binding>> for StructuredMap {
-    fn from(src: IndexMap<ValueRc<Keyword>, Binding>) -> Self {
+impl From<IndexMap<ValueRc<Keyword>, ConstrainedEntsConstraint>> for StructuredMap {
+    fn from(src: IndexMap<ValueRc<Keyword>, ConstrainedEntsConstraint>) -> Self {
         StructuredMap(src)
     }
 }
 
 // Mostly for testing.
-impl<T> From<Vec<(Keyword, T)>> for StructuredMap where T: Into<Binding> {
+impl<T> From<Vec<(Keyword, T)>> for StructuredMap where T: Into<ConstrainedEntsConstraint> {
     fn from(value: Vec<(Keyword, T)>) -> Self {
         let mut sm = StructuredMap::default();
         for (k, v) in value.into_iter() {
@@ -835,7 +835,7 @@ impl<T> From<Vec<(Keyword, T)>> for StructuredMap where T: Into<Binding> {
     }
 }
 
-impl Binding {
+impl ConstrainedEntsConstraint {
     /// Returns true if the provided type is `Some` and matches this value's type, or if the
     /// provided type is `None`.
     #[inline]
@@ -850,10 +850,10 @@ impl Binding {
 
     pub fn value_type(&self) -> Option<MinkowskiValueType> {
         match self {
-            &Binding::Scalar(ref v) => Some(v.value_type()),
+            &ConstrainedEntsConstraint::Scalar(ref v) => Some(v.value_type()),
 
-            &Binding::Map(_) => None,
-            &Binding::Vec(_) => None,
+            &ConstrainedEntsConstraint::Map(_) => None,
+            &ConstrainedEntsConstraint::Vec(_) => None,
         }
     }
 }
@@ -863,157 +863,157 @@ pub fn now() -> DateTime<Utc> {
     Utc::now().microsecond_precision()
 }
 
-impl Binding {
+impl ConstrainedEntsConstraint {
     pub fn into_known_entid(self) -> Option<KnownSolitonId> {
         match self {
-            Binding::Scalar(MinkowskiType::Ref(v)) => Some(KnownSolitonId(v)),
+            ConstrainedEntsConstraint::Scalar(MinkowskiType::Ref(v)) => Some(KnownSolitonId(v)),
             _ => None,
         }
     }
 
     pub fn into_entid(self) -> Option<SolitonId> {
         match self {
-            Binding::Scalar(MinkowskiType::Ref(v)) => Some(v),
+            ConstrainedEntsConstraint::Scalar(MinkowskiType::Ref(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_kw(self) -> Option<ValueRc<Keyword>> {
         match self {
-            Binding::Scalar(MinkowskiType::Keyword(v)) => Some(v),
+            ConstrainedEntsConstraint::Scalar(MinkowskiType::Keyword(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_boolean(self) -> Option<bool> {
         match self {
-            Binding::Scalar(MinkowskiType::Boolean(v)) => Some(v),
+            ConstrainedEntsConstraint::Scalar(MinkowskiType::Boolean(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_long(self) -> Option<i64> {
         match self {
-            Binding::Scalar(MinkowskiType::Long(v)) => Some(v),
+            ConstrainedEntsConstraint::Scalar(MinkowskiType::Long(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_double(self) -> Option<f64> {
         match self {
-            Binding::Scalar(MinkowskiType::Double(v)) => Some(v.into_inner()),
+            ConstrainedEntsConstraint::Scalar(MinkowskiType::Double(v)) => Some(v.into_inner()),
             _ => None,
         }
     }
 
     pub fn into_instant(self) -> Option<DateTime<Utc>> {
         match self {
-            Binding::Scalar(MinkowskiType::Instant(v)) => Some(v),
+            ConstrainedEntsConstraint::Scalar(MinkowskiType::Instant(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_timestamp(self) -> Option<i64> {
         match self {
-            Binding::Scalar(MinkowskiType::Instant(v)) => Some(v.timestamp()),
+            ConstrainedEntsConstraint::Scalar(MinkowskiType::Instant(v)) => Some(v.timestamp()),
             _ => None,
         }
     }
 
     pub fn into_string(self) -> Option<ValueRc<String>> {
         match self {
-            Binding::Scalar(MinkowskiType::String(v)) => Some(v),
+            ConstrainedEntsConstraint::Scalar(MinkowskiType::String(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_uuid(self) -> Option<Uuid> {
         match self {
-            Binding::Scalar(MinkowskiType::Uuid(v)) => Some(v),
+            ConstrainedEntsConstraint::Scalar(MinkowskiType::Uuid(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_uuid_string(self) -> Option<String> {
         match self {
-            Binding::Scalar(MinkowskiType::Uuid(v)) => Some(v.hyphenated().to_string()),
+            ConstrainedEntsConstraint::Scalar(MinkowskiType::Uuid(v)) => Some(v.hyphenated().to_string()),
             _ => None,
         }
     }
 
     pub fn into_c_string(self) -> Option<*mut c_char> {
         match self {
-            Binding::Scalar(v) => v.into_c_string(),
+            ConstrainedEntsConstraint::Scalar(v) => v.into_c_string(),
             _ => None,
         }
     }
 
     pub fn into_kw_c_string(self) -> Option<*mut c_char> {
         match self {
-            Binding::Scalar(v) => v.into_kw_c_string(),
+            ConstrainedEntsConstraint::Scalar(v) => v.into_kw_c_string(),
             _ => None,
         }
     }
 
     pub fn into_uuid_c_string(self) -> Option<*mut c_char> {
         match self {
-            Binding::Scalar(v) => v.into_uuid_c_string(),
+            ConstrainedEntsConstraint::Scalar(v) => v.into_uuid_c_string(),
             _ => None,
         }
     }
 
     pub fn as_entid(&self) -> Option<&SolitonId> {
         match self {
-            &Binding::Scalar(MinkowskiType::Ref(ref v)) => Some(v),
+            &ConstrainedEntsConstraint::Scalar(MinkowskiType::Ref(ref v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_kw(&self) -> Option<&ValueRc<Keyword>> {
         match self {
-            &Binding::Scalar(MinkowskiType::Keyword(ref v)) => Some(v),
+            &ConstrainedEntsConstraint::Scalar(MinkowskiType::Keyword(ref v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_boolean(&self) -> Option<&bool> {
         match self {
-            &Binding::Scalar(MinkowskiType::Boolean(ref v)) => Some(v),
+            &ConstrainedEntsConstraint::Scalar(MinkowskiType::Boolean(ref v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_long(&self) -> Option<&i64> {
         match self {
-            &Binding::Scalar(MinkowskiType::Long(ref v)) => Some(v),
+            &ConstrainedEntsConstraint::Scalar(MinkowskiType::Long(ref v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_double(&self) -> Option<&f64> {
         match self {
-            &Binding::Scalar(MinkowskiType::Double(ref v)) => Some(&v.0),
+            &ConstrainedEntsConstraint::Scalar(MinkowskiType::Double(ref v)) => Some(&v.0),
             _ => None,
         }
     }
 
     pub fn as_instant(&self) -> Option<&DateTime<Utc>> {
         match self {
-            &Binding::Scalar(MinkowskiType::Instant(ref v)) => Some(v),
+            &ConstrainedEntsConstraint::Scalar(MinkowskiType::Instant(ref v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_string(&self) -> Option<&ValueRc<String>> {
         match self {
-            &Binding::Scalar(MinkowskiType::String(ref v)) => Some(v),
+            &ConstrainedEntsConstraint::Scalar(MinkowskiType::String(ref v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_uuid(&self) -> Option<&Uuid> {
         match self {
-            &Binding::Scalar(MinkowskiType::Uuid(ref v)) => Some(v),
+            &ConstrainedEntsConstraint::Scalar(MinkowskiType::Uuid(ref v)) => Some(v),
             _ => None,
         }
     }

@@ -9,7 +9,7 @@ use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, SplitRequest};
 use std::result::Result as StdResult;
 
 /// `SplitObserver` adjusts the split key so that it won't separate
-/// the data of a row into two brane. It adjusts the key according
+/// the data of a EventIdx into two brane. It adjusts the key according
 /// to the key format of `MilevaDB`.
 #[derive(Clone)]
 pub struct SplitObserver;
@@ -156,7 +156,7 @@ mod tests {
     use byteorder::{BigEndian, WriteBytesExt};
     use ekvproto::metapb::Brane;
     use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, SplitRequest};
-    use milevadb_query_datatype::codec::{datum, table, Datum};
+    use milevadb_query_datatype::codec::{datum, Block, Datum};
     use milevadb_query_datatype::expr::EvalContext;
     use einsteindb_util::codec::bytes::encode_bytes;
 
@@ -180,16 +180,16 @@ mod tests {
         req
     }
 
-    fn new_row_key(table_id: i64, row_id: i64, version_id: u64) -> Vec<u8> {
-        let mut key = table::encode_row_key(table_id, row_id);
+    fn new_row_key(Block_id: i64, row_id: i64, version_id: u64) -> Vec<u8> {
+        let mut key = Block::encode_row_key(Block_id, row_id);
         key = encode_bytes(&key);
         key.write_u64::<BigEndian>(version_id).unwrap();
         key
     }
 
-    fn new_index_key(table_id: i64, idx_id: i64, datums: &[Datum], version_id: u64) -> Vec<u8> {
-        let mut key = table::encode_index_seek_key(
-            table_id,
+    fn new_index_key(Block_id: i64, idx_id: i64, datums: &[Datum], version_id: u64) -> Vec<u8> {
+        let mut key = Block::encode_index_seek_key(
+            Block_id,
             idx_id,
             &datum::encode_key(&mut EvalContext::default(), datums).unwrap(),
         );
@@ -274,7 +274,7 @@ mod tests {
         split_tuplespaceInstanton.push(key);
         expected_tuplespaceInstanton.push(expected_key.clone());
 
-        // Split at table prefix.
+        // Split at Block prefix.
         key = encode_bytes(b"t\x80\x00\x00\x00\x00\x00\x00\xee");
         split_tuplespaceInstanton.push(key.clone());
         expected_tuplespaceInstanton.push(key);

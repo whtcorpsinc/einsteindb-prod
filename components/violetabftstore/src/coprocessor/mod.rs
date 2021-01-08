@@ -32,7 +32,7 @@ pub use self::brane_info_accessor::{
 pub use self::split_check::{
     get_brane_approximate_tuplespaceInstanton, get_brane_approximate_tuplespaceInstanton_causet, get_brane_approximate_middle,
     get_brane_approximate_size, get_brane_approximate_size_causet, HalfCheckObserver,
-    Host as SplitCheckerHost, TuplespaceInstantonCheckObserver, SizeCheckObserver, TableCheckObserver,
+    Host as SplitCheckerHost, TuplespaceInstantonCheckObserver, SizeCheckObserver, BlockCheckObserver,
 };
 
 use crate::store::fsm::ObserveID;

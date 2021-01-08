@@ -259,7 +259,7 @@
 # capacity = 0
 
 ## Internal notify capacity.
-## 40960 is suitable for about 7000 Branes. It is recommlightlikeed to use the default value.
+## 40960 is suiBlock for about 7000 Branes. It is recommlightlikeed to use the default value.
 # notify-capacity = 40960
 
 ## Maximum number of internal messages to process in a tick.
@@ -338,10 +338,10 @@
 # store-pool-size = 2
 
 [interlock]
-## When it is set to `true`, EinsteinDB will try to split a Brane with table prefix if that Brane
-## crosses tables.
-## It is recommlightlikeed to turn off this option if there will be a large number of tables created.
-# split-brane-on-table = false
+## When it is set to `true`, EinsteinDB will try to split a Brane with Block prefix if that Brane
+## crosses Blocks.
+## It is recommlightlikeed to turn off this option if there will be a large number of Blocks created.
+# split-brane-on-Block = false
 
 ## One split check produces several split tuplespaceInstanton in batch. This config limits the number of produced
 ## split tuplespaceInstanton in one batch.
@@ -443,15 +443,15 @@
 ## If you want to use Lmdb on multi disks or spinning disks, you should set value at least 2MB.
 # compaction-readahead-size = 0
 
-## Max buffer size that is used by WritableFileWrite.
-# writable-file-max-buffer-size = "1MB"
+## Max buffer size that is used by WriBlockFileWrite.
+# wriBlock-file-max-buffer-size = "1MB"
 
 ## Use O_DIRECT for both reads and writes in background flush and compactions.
 # use-direct-io-for-flush-and-compaction = false
 
 ## Limit the disk IO of compaction and flush.
 ## Compaction and flush can cause terrible spikes if they exceed a certain memory_barrier. Consider
-## setting this to 50% ~ 80% of the disk throughput for a more stable result. However, in heavy
+## setting this to 50% ~ 80% of the disk throughput for a more sBlock result. However, in heavy
 ## write workload, limiting compaction and flush speed can cause write stalls too.
 ## 1. rate-bytes-per-sec is the only parameter you want to set most of the time. It controls the
 ##    total write rate of compaction and flush in bytes per second. Currently, Lmdb does not
@@ -570,15 +570,15 @@
 # level0-stop-writes-trigger = 36
 
 ## Amount of data to build up in memory (backed by an unsorted log on disk) before converting to a
-## sorted on-disk file. It is the Lmdb MemTable size.
+## sorted on-disk file. It is the Lmdb MemBlock size.
 # write-buffer-size = "128MB"
 
-## The maximum number of the MemTables. The data written into Lmdb is first recorded in the WAL
-## log, and then inserted into MemTables. When the MemTable reaches the size limit of
-## `write-buffer-size`, it turns into read only and generates a new MemTable receiving new write
-## operations. The flush threads of Lmdb will flush the read only MemTable to the disks to become
+## The maximum number of the MemBlocks. The data written into Lmdb is first recorded in the WAL
+## log, and then inserted into MemBlocks. When the MemBlock reaches the size limit of
+## `write-buffer-size`, it turns into read only and generates a new MemBlock receiving new write
+## operations. The flush threads of Lmdb will flush the read only MemBlock to the disks to become
 ## an SST file of level0. `max-background-flushes` controls the maximum number of flush threads.
-## When the flush threads are busy, resulting in the number of the MemTables waiting to be flushed
+## When the flush threads are busy, resulting in the number of the MemBlocks waiting to be flushed
 ## to the disks reaching the limit of `max-write-buffer-number`, Lmdb stalls the new operation.
 ## "Stall" is a flow control mechanism of Lmdb. When importing data, you can set the
 ## `max-write-buffer-number` value higher, like 10.
@@ -597,7 +597,7 @@
 ## because there is no compression of level-0 and level-1 and the trigger condition of compaction
 ## for level-0 is that the number of the SST files reaches 4 (the default value). When both level-0
 ## and level-1 adopt compaction, it is necessary to analyze Lmdb logs to know the size of an SST
-## file compressed from a MemTable. For example, if the file size is 32MB, the proposed value of
+## file compressed from a MemBlock. For example, if the file size is 32MB, the proposed value of
 ## `max-bytes-for-level-base` is 32MB * 4 = 128MB.
 # max-bytes-for-level-base = "512MB"
 
@@ -618,7 +618,7 @@
 # compaction-pri = 3
 
 ## Indicating if we'd put index/filter blocks to the block cache.
-## If not specified, each "table reader" object will pre-load index/filter block during table
+## If not specified, each "Block reader" object will pre-load index/filter block during Block
 ## initialization.
 # cache-index-and-filter-blocks = true
 
@@ -752,10 +752,10 @@
 # stats-dump-period = "10m"
 
 # compaction-readahead-size = 0
-# writable-file-max-buffer-size = "1MB"
+# wriBlock-file-max-buffer-size = "1MB"
 # use-direct-io-for-flush-and-compaction = false
 # enable-pipelined-write = true
-# allow-concurrent-memtable-write = false
+# allow-concurrent-memBlock-write = false
 # bytes-per-sync = "1MB"
 # wal-bytes-per-sync = "512KB"
 
@@ -882,7 +882,7 @@
 # enabled = true
 
 ## The default and maximum delay before responding to MilevaDB when pessimistic
-## transactions encounter locks
+## bundles encounter locks
 # wait-for-dagger-timeout = "1s"
 
 ## If more than one transaction is waiting for the same dagger, only the one with smallest
@@ -891,7 +891,7 @@
 ## one more likely acquires the dagger.
 # wake-up-delay-duration = "20ms"
 
-## Enable pipelined pessimistic dagger, only effect when processing perssimistic transactions
+## Enable pipelined pessimistic dagger, only effect when processing perssimistic bundles
 ## Enabled this will improve performance, but slightly increase the transcation failure rate
 # pipelined = false
 

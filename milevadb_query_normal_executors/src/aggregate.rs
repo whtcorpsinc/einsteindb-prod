@@ -160,7 +160,7 @@ impl AggrFunc for First {
         }
         if args.len() != 1 {
             return Err(other_err!(
-                "Wrong number of args for AggFuncFirstRow: {}",
+                "Wrong number of args for AggFuncFirstEvent: {}",
                 args.len()
             ));
         }

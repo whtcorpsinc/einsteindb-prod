@@ -9,7 +9,7 @@ use crate::codec::Result;
 
 /// A vector value container, a.k.a. PrimaryCauset, for all concrete eval types.
 ///
-/// The inner concrete value is immutable. However it is allowed to push and remove values from
+/// The inner concrete value is immuBlock. However it is allowed to push and remove values from
 /// this vector container.
 #[derive(Debug, PartialEq, Clone)]
 pub enum VectorValue {

@@ -37,7 +37,7 @@ pub enum ProjectorError {
     NotYetImplemented(String),
 
     #[fail(display = "no possible types for value provided to {:?}", _0)]
-    CannotProjectImpossibleBinding(SimpleAggregationOp),
+    CannotProjectImpossibleConstrainedEntsConstraint(SimpleAggregationOp),
 
     #[fail(display = "cannot apply projection operation {:?} to types {:?}", _0, _1)]
     CannotApplyAggregateOperationToTypes(SimpleAggregationOp, MinkowskiSet),

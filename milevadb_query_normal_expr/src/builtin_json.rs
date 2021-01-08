@@ -14,10 +14,10 @@ impl ScalarFunc {
     pub fn json_tuplespaceInstanton<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        let j = try_opt!(self.children[0].eval_json(ctx, row));
-        let parser = JsonFuncArgsParser::new(row);
+        let j = try_opt!(self.children[0].eval_json(ctx, EventIdx));
+        let parser = JsonFuncArgsParser::new(EventIdx);
         if let Some(path_exprs) = parser.get_path_exprs(ctx, &self.children[1..])? {
             return Ok(j.as_ref().as_ref().tuplespaceInstanton(&path_exprs)?.map(Cow::Owned));
         }
@@ -28,9 +28,9 @@ impl ScalarFunc {
     pub fn json_depth<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<i64>> {
-        let j = try_opt!(self.children[0].eval_json(ctx, row));
+        let j = try_opt!(self.children[0].eval_json(ctx, EventIdx));
         Ok(Some(j.as_ref().as_ref().depth()?))
     }
 
@@ -38,9 +38,9 @@ impl ScalarFunc {
     pub fn json_type<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let j = try_opt!(self.children[0].eval_json(ctx, row));
+        let j = try_opt!(self.children[0].eval_json(ctx, EventIdx));
         Ok(Some(Cow::Borrowed(j.as_ref().as_ref().json_type())))
     }
 
@@ -48,9 +48,9 @@ impl ScalarFunc {
     pub fn json_unquote<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let j = try_opt!(self.children[0].eval_json(ctx, row));
+        let j = try_opt!(self.children[0].eval_json(ctx, EventIdx));
         j.as_ref()
             .as_ref()
             .unquote()
@@ -61,9 +61,9 @@ impl ScalarFunc {
     pub fn json_array<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        let parser = JsonFuncArgsParser::new(row);
+        let parser = JsonFuncArgsParser::new(EventIdx);
         let elems = try_opt!(self
             .children
             .iter()
@@ -75,12 +75,12 @@ impl ScalarFunc {
     pub fn json_object<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
         let mut pairs = BTreeMap::new();
-        let parser = JsonFuncArgsParser::new(row);
+        let parser = JsonFuncArgsParser::new(EventIdx);
         for Soliton in self.children.Solitons(2) {
-            let key = try_opt!(Soliton[0].eval_string_and_decode(ctx, row)).into_owned();
+            let key = try_opt!(Soliton[0].eval_string_and_decode(ctx, EventIdx)).into_owned();
             let val = try_opt!(parser.get_json(ctx, &Soliton[1]));
             pairs.insert(key, val);
         }
@@ -90,11 +90,11 @@ impl ScalarFunc {
     pub fn json_extract<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
         // TODO: We can cache the PathExpressions if children are Constant.
-        let j = try_opt!(self.children[0].eval_json(ctx, row));
-        let parser = JsonFuncArgsParser::new(row);
+        let j = try_opt!(self.children[0].eval_json(ctx, EventIdx));
+        let parser = JsonFuncArgsParser::new(EventIdx);
         let path_exprs: Vec<_> = try_opt!(parser.get_path_exprs(ctx, &self.children[1..]));
         Ok(j.as_ref().as_ref().extract(&path_exprs)?.map(Cow::Owned))
     }
@@ -102,10 +102,10 @@ impl ScalarFunc {
     pub fn json_length<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<i64>> {
-        let j = try_opt!(self.children[0].eval_json(ctx, row));
-        let parser = JsonFuncArgsParser::new(row);
+        let j = try_opt!(self.children[0].eval_json(ctx, EventIdx));
+        let parser = JsonFuncArgsParser::new(EventIdx);
         let path_exprs: Vec<_> = match parser.get_path_exprs(ctx, &self.children[1..])? {
             Some(list) => list,
             None => return Ok(None),
@@ -117,36 +117,36 @@ impl ScalarFunc {
     pub fn json_set<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        self.json_modify(ctx, row, ModifyType::Set)
+        self.json_modify(ctx, EventIdx, ModifyType::Set)
     }
 
     #[inline]
     pub fn json_insert<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        self.json_modify(ctx, row, ModifyType::Insert)
+        self.json_modify(ctx, EventIdx, ModifyType::Insert)
     }
 
     #[inline]
     pub fn json_replace<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        self.json_modify(ctx, row, ModifyType::Replace)
+        self.json_modify(ctx, EventIdx, ModifyType::Replace)
     }
 
     pub fn json_remove<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        let j = try_opt!(self.children[0].eval_json(ctx, row)).into_owned();
-        let parser = JsonFuncArgsParser::new(row);
+        let j = try_opt!(self.children[0].eval_json(ctx, EventIdx)).into_owned();
+        let parser = JsonFuncArgsParser::new(EventIdx);
         let path_exprs: Vec<_> = try_opt!(parser.get_path_exprs(ctx, &self.children[1..]));
         j.as_ref()
             .remove(&path_exprs)
@@ -157,11 +157,11 @@ impl ScalarFunc {
     pub fn json_merge<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        let parser = JsonFuncArgsParser::new(row);
+        let parser = JsonFuncArgsParser::new(EventIdx);
         let mut jsons = vec![];
-        let head = try_opt!(self.children[0].eval_json(ctx, row)).into_owned();
+        let head = try_opt!(self.children[0].eval_json(ctx, EventIdx)).into_owned();
         jsons.push(head);
         for e in &self.children[1..] {
             let j = try_opt!(parser.get_json_not_none(ctx, e));
@@ -174,11 +174,11 @@ impl ScalarFunc {
     fn json_modify<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
         mt: ModifyType,
     ) -> Result<Option<Cow<'a, Json>>> {
-        let j = try_opt!(self.children[0].eval_json(ctx, row)).into_owned();
-        let parser = JsonFuncArgsParser::new(row);
+        let j = try_opt!(self.children[0].eval_json(ctx, EventIdx)).into_owned();
+        let parser = JsonFuncArgsParser::new(EventIdx);
         let mut path_exprs = Vec::with_capacity(self.children.len() / 2);
         let mut values = Vec::with_capacity(self.children.len() / 2);
         for Soliton in self.children[1..].Solitons(2) {
@@ -193,13 +193,13 @@ impl ScalarFunc {
 }
 
 struct JsonFuncArgsParser<'a> {
-    row: &'a [Datum],
+    EventIdx: &'a [Datum],
 }
 
 impl<'a> JsonFuncArgsParser<'a> {
     #[inline]
-    fn new(row: &'a [Datum]) -> Self {
-        JsonFuncArgsParser { row }
+    fn new(EventIdx: &'a [Datum]) -> Self {
+        JsonFuncArgsParser { EventIdx }
     }
 
     fn get_path_expr(
@@ -207,7 +207,7 @@ impl<'a> JsonFuncArgsParser<'a> {
         ctx: &mut EvalContext,
         e: &Expression,
     ) -> Result<Option<PathExpression>> {
-        let s = try_opt!(e.eval_string_and_decode(ctx, self.row));
+        let s = try_opt!(e.eval_string_and_decode(ctx, self.EventIdx));
         let expr = parse_json_path_expr(&s)?;
         Ok(Some(expr))
     }
@@ -222,13 +222,13 @@ impl<'a> JsonFuncArgsParser<'a> {
 
     fn get_json(&self, ctx: &mut EvalContext, e: &Expression) -> Result<Option<Json>> {
         let j = e
-            .eval_json(ctx, self.row)?
+            .eval_json(ctx, self.EventIdx)?
             .map_or(Json::none(), |x| Ok(Cow::into_owned(x)))?;
         Ok(Some(j))
     }
 
     fn get_json_not_none(&self, ctx: &mut EvalContext, e: &Expression) -> Result<Option<Json>> {
-        let j = try_opt!(e.eval_json(ctx, self.row)).into_owned();
+        let j = try_opt!(e.eval_json(ctx, self.EventIdx)).into_owned();
         Ok(Some(j))
     }
 }

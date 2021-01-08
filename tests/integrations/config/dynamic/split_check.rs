@@ -81,7 +81,7 @@ fn test_ufidelate_split_check_config() {
     let change = {
         let mut m = std::collections::HashMap::new();
         m.insert(
-            "interlock.split_brane_on_table".to_owned(),
+            "interlock.split_brane_on_Block".to_owned(),
             "true".to_owned(),
         );
         m.insert("interlock.batch_split_limit".to_owned(), "123".to_owned());
@@ -96,7 +96,7 @@ fn test_ufidelate_split_check_config() {
     // config should be ufidelated
     let cop_config = {
         let mut cop_config = causetg.interlock;
-        cop_config.split_brane_on_table = true;
+        cop_config.split_brane_on_Block = true;
         cop_config.batch_split_limit = 123;
         cop_config.brane_split_tuplespaceInstanton = 12345;
         cop_config

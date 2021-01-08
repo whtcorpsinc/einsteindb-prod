@@ -14,8 +14,8 @@ use codec::prelude::NumberDecoder;
 use milevadb_query_common::causetStorage::{IntervalCone, CausetStorage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
-use milevadb_query_datatype::codec::table::{check_index_key, MAX_OLD_ENCODED_VALUE_LEN};
-use milevadb_query_datatype::codec::{datum, table};
+use milevadb_query_datatype::codec::Block::{check_index_key, MAX_OLD_ENCODED_VALUE_LEN};
+use milevadb_query_datatype::codec::{datum, Block};
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
 
 use DecodeHandleStrategy::*;
@@ -49,7 +49,7 @@ impl<S: CausetStorage> BatchIndexScanFreeDaemon<S> {
         // - scan from a non-unique index
         // - scan from a unique index with like: where unique-index like xxx
         //
-        // Note 2: Unlike table scan executor, the accepted `PrimaryCausets_info` of index scan executor is
+        // Note 2: Unlike Block scan executor, the accepted `PrimaryCausets_info` of index scan executor is
         // strictly stipulated. The order of PrimaryCausets in the schemaReplicant must be the same as index data
         // stored and if PK handle is needed it must be placed as the last one.
         //
@@ -150,10 +150,10 @@ enum DecodeHandleStrategy {
 }
 
 struct IndexScanFreeDaemonImpl {
-    /// See `TableScanFreeDaemonImpl`'s `context`.
+    /// See `BlockScanFreeDaemonImpl`'s `context`.
     context: EvalContext,
 
-    /// See `TableScanFreeDaemonImpl`'s `schemaReplicant`.
+    /// See `BlockScanFreeDaemonImpl`'s `schemaReplicant`.
     schemaReplicant: Vec<FieldType>,
 
     /// ID of interested PrimaryCausets (exclude PK handle PrimaryCauset).
@@ -177,7 +177,7 @@ impl ScanFreeDaemonImpl for IndexScanFreeDaemonImpl {
 
     /// Constructs empty PrimaryCausets, with PK containing int handle in decoded format and the rest in raw format.
     ///
-    /// Note: the structure of the constructed PrimaryCauset is the same as table scan executor but due
+    /// Note: the structure of the constructed PrimaryCauset is the same as Block scan executor but due
     /// to different reasons.
     fn build_PrimaryCauset_vec(&self, scan_rows: usize) -> LazyBatchPrimaryCausetVec {
         let PrimaryCausets_len = self.schemaReplicant.len();
@@ -261,9 +261,9 @@ impl ScanFreeDaemonImpl for IndexScanFreeDaemonImpl {
         PrimaryCausets: &mut LazyBatchPrimaryCausetVec,
     ) -> Result<()> {
         check_index_key(key)?;
-        key = &key[table::PREFIX_LEN + table::ID_LEN..];
+        key = &key[Block::PREFIX_LEN + Block::ID_LEN..];
         if value.len() > MAX_OLD_ENCODED_VALUE_LEN {
-            if value[0] <= 1 && value[1] == table::INDEX_VALUE_COMMON_HANDLE_FLAG {
+            if value[0] <= 1 && value[1] == Block::INDEX_VALUE_COMMON_HANDLE_FLAG {
                 if self.decode_handle_strategy != DecodeCommonHandle {
                     return Err(other_err!("Expect to decode index values with common handles in `DecodeCommonHandle` mode."));
                 }
@@ -312,15 +312,15 @@ impl IndexScanFreeDaemonImpl {
         value: &[u8],
         PrimaryCausets: &mut LazyBatchPrimaryCausetVec,
     ) -> Result<()> {
-        use milevadb_query_datatype::codec::row::v2::{RowSlice, V1CompatibleEncoder};
+        use milevadb_query_datatype::codec::EventIdx::v2::{EventSlice, V1CompatibleEncoder};
 
-        let row = RowSlice::from_bytes(value)?;
+        let EventIdx = EventSlice::from_bytes(value)?;
         for (idx, col_id) in self.PrimaryCausets_id_without_handle.iter().enumerate() {
-            if let Some((spacelike, offset)) = row.search_in_non_null_ids(*col_id)? {
+            if let Some((spacelike, offset)) = EventIdx.search_in_non_null_ids(*col_id)? {
                 let mut buffer_to_write = PrimaryCausets[idx].mut_raw().begin_concat_extlightlike();
                 buffer_to_write
-                    .write_v2_as_datum(&row.values()[spacelike..offset], &self.schemaReplicant[idx])?;
-            } else if row.search_in_null_ids(*col_id) {
+                    .write_v2_as_datum(&EventIdx.values()[spacelike..offset], &self.schemaReplicant[idx])?;
+            } else if EventIdx.search_in_null_ids(*col_id) {
                 PrimaryCausets[idx].mut_raw().push(datum::DATUM_DATA_NULL);
             } else {
                 return Err(other_err!("Unexpected missing PrimaryCauset {}", col_id));
@@ -506,14 +506,14 @@ mod tests {
     use milevadb_query_datatype::codec::data_type::*;
     use milevadb_query_datatype::codec::{
         datum,
-        row::v2::encoder_for_test::{PrimaryCauset, RowEncoder},
-        table, Datum,
+        EventIdx::v2::encoder_for_test::{PrimaryCauset, EventEncoder},
+        Block, Datum,
     };
     use milevadb_query_datatype::expr::EvalConfig;
 
     #[test]
     fn test_basic() {
-        const TABLE_ID: i64 = 3;
+        const Block_ID: i64 = 3;
         const INDEX_ID: i64 = 42;
         let mut ctx = EvalContext::default();
 
@@ -563,7 +563,7 @@ mod tests {
                 .iter()
                 .map(|datums| {
                     let index_data = datum::encode_key(&mut ctx, datums).unwrap();
-                    let key = table::encode_index_seek_key(TABLE_ID, INDEX_ID, &index_data);
+                    let key = Block::encode_index_seek_key(Block_ID, INDEX_ID, &index_data);
                     let value = vec![];
                     (key, value)
                 })
@@ -577,10 +577,10 @@ mod tests {
             let key_cones = vec![{
                 let mut cone = KeyCone::default();
                 let spacelike_data = datum::encode_key(&mut ctx, &[Datum::Min]).unwrap();
-                let spacelike_key = table::encode_index_seek_key(TABLE_ID, INDEX_ID, &spacelike_data);
+                let spacelike_key = Block::encode_index_seek_key(Block_ID, INDEX_ID, &spacelike_data);
                 cone.set_spacelike(spacelike_key);
                 let lightlike_data = datum::encode_key(&mut ctx, &[Datum::Max]).unwrap();
-                let lightlike_key = table::encode_index_seek_key(TABLE_ID, INDEX_ID, &lightlike_data);
+                let lightlike_key = Block::encode_index_seek_key(Block_ID, INDEX_ID, &lightlike_data);
                 cone.set_lightlike(lightlike_key);
                 cone
             }];
@@ -629,10 +629,10 @@ mod tests {
             let key_cones = vec![{
                 let mut cone = KeyCone::default();
                 let spacelike_data = datum::encode_key(&mut ctx, &[Datum::I64(2)]).unwrap();
-                let spacelike_key = table::encode_index_seek_key(TABLE_ID, INDEX_ID, &spacelike_data);
+                let spacelike_key = Block::encode_index_seek_key(Block_ID, INDEX_ID, &spacelike_data);
                 cone.set_spacelike(spacelike_key);
                 let lightlike_data = datum::encode_key(&mut ctx, &[Datum::I64(6)]).unwrap();
-                let lightlike_key = table::encode_index_seek_key(TABLE_ID, INDEX_ID, &lightlike_data);
+                let lightlike_key = Block::encode_index_seek_key(Block_ID, INDEX_ID, &lightlike_data);
                 cone.set_lightlike(lightlike_key);
                 cone
             }];
@@ -689,7 +689,7 @@ mod tests {
                 .iter()
                 .map(|datums| {
                     let index_data = datum::encode_key(&mut ctx, &datums[0..2]).unwrap();
-                    let key = table::encode_index_seek_key(TABLE_ID, INDEX_ID, &index_data);
+                    let key = Block::encode_index_seek_key(Block_ID, INDEX_ID, &index_data);
                     // PK handle in the value
                     let mut value = vec![];
                     value
@@ -707,7 +707,7 @@ mod tests {
             let key_cones = vec![{
                 let mut cone = KeyCone::default();
                 let spacelike_data = datum::encode_key(&mut ctx, &[Datum::I64(5)]).unwrap();
-                let spacelike_key = table::encode_index_seek_key(TABLE_ID, INDEX_ID, &spacelike_data);
+                let spacelike_key = Block::encode_index_seek_key(Block_ID, INDEX_ID, &spacelike_data);
                 cone.set_spacelike(spacelike_key);
                 cone.set_lightlike(cone.get_spacelike().to_vec());
                 convert_to_prefix_next(cone.mut_lightlike());
@@ -764,7 +764,7 @@ mod tests {
                 let mut cone = KeyCone::default();
                 let spacelike_data =
                     datum::encode_key(&mut ctx, &[Datum::I64(5), Datum::F64(5.1)]).unwrap();
-                let spacelike_key = table::encode_index_seek_key(TABLE_ID, INDEX_ID, &spacelike_data);
+                let spacelike_key = Block::encode_index_seek_key(Block_ID, INDEX_ID, &spacelike_data);
                 cone.set_spacelike(spacelike_key);
                 cone.set_lightlike(cone.get_spacelike().to_vec());
                 convert_to_prefix_next(cone.mut_lightlike());
@@ -817,7 +817,7 @@ mod tests {
 
     #[test]
     fn test_unique_common_handle_index() {
-        const TABLE_ID: i64 = 3;
+        const Block_ID: i64 = 3;
         const INDEX_ID: i64 = 42;
         let PrimaryCausets_info = vec![
             {
@@ -870,7 +870,7 @@ mod tests {
         value_prefix.extlightlike(common_handle);
 
         let index_data = datum::encode_key(&mut EvalContext::default(), &datums[0..2]).unwrap();
-        let key = table::encode_index_seek_key(TABLE_ID, INDEX_ID, &index_data);
+        let key = Block::encode_index_seek_key(Block_ID, INDEX_ID, &index_data);
 
         let key_cones = vec![{
             let mut cone = KeyCone::default();
@@ -972,7 +972,7 @@ mod tests {
 
     #[test]
     fn test_old_collation_non_unique_common_handle_index() {
-        const TABLE_ID: i64 = 3;
+        const Block_ID: i64 = 3;
         const INDEX_ID: i64 = 42;
         let PrimaryCausets_info = vec![
             {
@@ -1011,7 +1011,7 @@ mod tests {
         .unwrap();
 
         let index_data = datum::encode_key(&mut EvalContext::default(), &datums[0..1]).unwrap();
-        let mut key = table::encode_index_seek_key(TABLE_ID, INDEX_ID, &index_data);
+        let mut key = Block::encode_index_seek_key(Block_ID, INDEX_ID, &index_data);
         key.extlightlike(common_handle);
 
         let key_cones = vec![{
@@ -1068,7 +1068,7 @@ mod tests {
 
     #[test]
     fn test_new_collation_unique_int_handle_index() {
-        const TABLE_ID: i64 = 3;
+        const Block_ID: i64 = 3;
         const INDEX_ID: i64 = 42;
         let PrimaryCausets_info = vec![
             {
@@ -1102,7 +1102,7 @@ mod tests {
         let PrimaryCausets = vec![PrimaryCauset::new(1, 2), PrimaryCauset::new(2, 3.0), PrimaryCauset::new(3, 4)];
         let datums = vec![Datum::U64(2), Datum::F64(3.0), Datum::U64(4)];
         let index_data = datum::encode_key(&mut EvalContext::default(), &datums[0..2]).unwrap();
-        let key = table::encode_index_seek_key(TABLE_ID, INDEX_ID, &index_data);
+        let key = Block::encode_index_seek_key(Block_ID, INDEX_ID, &index_data);
 
         let mut restore_data = vec![];
         restore_data
@@ -1165,7 +1165,7 @@ mod tests {
 
     #[test]
     fn test_new_collation_non_unique_int_handle_index() {
-        const TABLE_ID: i64 = 3;
+        const Block_ID: i64 = 3;
         const INDEX_ID: i64 = 42;
         let PrimaryCausets_info = vec![
             {
@@ -1199,7 +1199,7 @@ mod tests {
         let PrimaryCausets = vec![PrimaryCauset::new(1, 2), PrimaryCauset::new(2, 3.0), PrimaryCauset::new(3, 4)];
         let datums = vec![Datum::U64(2), Datum::F64(3.0), Datum::U64(4)];
         let index_data = datum::encode_key(&mut EvalContext::default(), &datums).unwrap();
-        let key = table::encode_index_seek_key(TABLE_ID, INDEX_ID, &index_data);
+        let key = Block::encode_index_seek_key(Block_ID, INDEX_ID, &index_data);
 
         let mut restore_data = vec![];
         restore_data
@@ -1259,7 +1259,7 @@ mod tests {
 
     #[test]
     fn test_new_collation_non_unique_common_handle_index() {
-        const TABLE_ID: i64 = 3;
+        const Block_ID: i64 = 3;
         const INDEX_ID: i64 = 42;
         let PrimaryCausets_info = vec![
             {
@@ -1292,7 +1292,7 @@ mod tests {
         let PrimaryCausets = vec![PrimaryCauset::new(1, 2), PrimaryCauset::new(2, 3), PrimaryCauset::new(3, 4.0)];
         let datums = vec![Datum::U64(2), Datum::U64(3), Datum::F64(4.0)];
         let index_data = datum::encode_key(&mut EvalContext::default(), &datums).unwrap();
-        let key = table::encode_index_seek_key(TABLE_ID, INDEX_ID, &index_data);
+        let key = Block::encode_index_seek_key(Block_ID, INDEX_ID, &index_data);
 
         let mut restore_data = vec![];
         restore_data

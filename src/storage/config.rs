@@ -46,7 +46,7 @@ pub struct Config {
     // Reserve disk space to make einsteindb would have enough space to compact when disk is full.
     pub reserve_space: ReadableSize,
     // If this option is enabled, prewrite will support async commit and locks in the in-memory
-    // dagger table are checked for reading requests.
+    // dagger Block are checked for reading requests.
     // CAUTION: This feature is not ready for production and this option may be removed in the
     // future.
     #[config(skip)]

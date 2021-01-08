@@ -1,6 +1,6 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-//! A compatible layer for converting V2 row datum into V1 row datum.
+//! A compatible layer for converting V2 EventIdx datum into V1 EventIdx datum.
 
 use crate::{FieldTypeAccessor, FieldTypeTp};
 use codec::number::NumberCodec;
@@ -18,7 +18,7 @@ fn decode_v2_u64(v: &[u8]) -> Result<u64> {
         4 => Ok(u64::from(NumberCodec::decode_u32_le(v))),
         8 => Ok(u64::from(NumberCodec::decode_u64_le(v))),
         _ => Err(Error::InvalidDataType(
-            "Failed to decode row v2 data as u64".to_owned(),
+            "Failed to decode EventIdx v2 data as u64".to_owned(),
         )),
     }
 }
@@ -32,7 +32,7 @@ fn decode_v2_i64(v: &[u8]) -> Result<i64> {
         4 => Ok(i64::from(NumberCodec::decode_u32_le(v) as i32)),
         8 => Ok(NumberCodec::decode_u64_le(v) as i64),
         _ => Err(Error::InvalidDataType(
-            "Failed to decode row v2 data as i64".to_owned(),
+            "Failed to decode EventIdx v2 data as i64".to_owned(),
         )),
     }
 }

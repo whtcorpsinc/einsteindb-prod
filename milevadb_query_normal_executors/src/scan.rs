@@ -5,16 +5,16 @@ use std::sync::Arc;
 use ekvproto::interlock::KeyCone;
 use fidelpb::PrimaryCausetInfo;
 
-use super::{FreeDaemon, Row};
+use super::{FreeDaemon, Event};
 use milevadb_query_common::execute_stats::ExecuteStats;
 use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
 use milevadb_query_common::causetStorage::{IntervalCone, Cone, CausetStorage};
 use milevadb_query_common::Result;
-use milevadb_query_datatype::codec::table;
+use milevadb_query_datatype::codec::Block;
 use milevadb_query_datatype::expr::{EvalContext, EvalWarnings};
 
 // an InnerFreeDaemon is used in ScanFreeDaemon,
-// hold the different logics between table scan and index scan
+// hold the different logics between Block scan and index scan
 pub trait InnerFreeDaemon: Slightlike {
     fn decode_row(
         &self,
@@ -22,10 +22,10 @@ pub trait InnerFreeDaemon: Slightlike {
         key: Vec<u8>,
         value: Vec<u8>,
         PrimaryCausets: Arc<Vec<PrimaryCausetInfo>>,
-    ) -> Result<Option<Row>>;
+    ) -> Result<Option<Event>>;
 }
 
-// FreeDaemon for table scan and index scan
+// FreeDaemon for Block scan and index scan
 pub struct ScanFreeDaemon<S: CausetStorage, T: InnerFreeDaemon> {
     inner: T,
     context: EvalContext,
@@ -59,7 +59,7 @@ impl<S: CausetStorage, T: InnerFreeDaemon> ScanFreeDaemon<S, T> {
             is_scanned_cone_aware,
         }: ScanFreeDaemonOptions<S, T>,
     ) -> Result<Self> {
-        box_try!(table::check_table_cones(&key_cones));
+        box_try!(Block::check_Block_cones(&key_cones));
         if is_backward {
             key_cones.reverse();
         }
@@ -87,7 +87,7 @@ impl<S: CausetStorage, T: InnerFreeDaemon> ScanFreeDaemon<S, T> {
 impl<S: CausetStorage, T: InnerFreeDaemon> FreeDaemon for ScanFreeDaemon<S, T> {
     type StorageStats = S::Statistics;
 
-    fn next(&mut self) -> Result<Option<Row>> {
+    fn next(&mut self) -> Result<Option<Event>> {
         let some_row = self.scanner.next()?;
         if let Some((key, value)) = some_row {
             self.inner

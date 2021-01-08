@@ -2,9 +2,9 @@
 
 //! This `encoder` module is only used for test, so the implementation is very straightforward.
 //!
-//! According to https://github.com/whtcorpsinc/milevadb/blob/master/docs/design/2018-07-19-row-format.md
+//! According to https://github.com/whtcorpsinc/milevadb/blob/master/docs/design/2018-07-19-EventIdx-format.md
 //!
-//! The row format is:
+//! The EventIdx format is:
 //!
 //! | version | flag | number_of_non_null_PrimaryCausets | number_of_null_PrimaryCausets | non_null_PrimaryCauset_ids | null_PrimaryCauset_ids | value_offsets | values |
 //! |---------| ---- | -------------------------- | ---------------------- | ------------------- | --------------- | ------------- | ------ |
@@ -82,7 +82,7 @@ impl PrimaryCauset {
     }
 }
 
-pub trait RowEncoder: NumberEncoder {
+pub trait EventEncoder: NumberEncoder {
     fn write_row(&mut self, ctx: &mut EvalContext, PrimaryCausets: Vec<PrimaryCauset>) -> Result<()> {
         let mut is_big = false;
         let mut null_ids = Vec::with_capacity(PrimaryCausets.len());
@@ -165,7 +165,7 @@ pub trait RowEncoder: NumberEncoder {
     }
 }
 
-impl<T: BufferWriter> RowEncoder for T {}
+impl<T: BufferWriter> EventEncoder for T {}
 
 pub trait ScalarValueEncoder: NumberEncoder + DecimalEncoder + JsonEncoder {
     #[inline]
@@ -217,7 +217,7 @@ impl<T: BufferWriter> ScalarValueEncoder for T {}
 
 #[causetg(test)]
 mod tests {
-    use super::{PrimaryCauset, RowEncoder};
+    use super::{PrimaryCauset, EventEncoder};
     use crate::codec::{
         data_type::ScalarValue,
         mysql::{duration::NANOS_PER_SEC, Decimal, Duration, Json, Time},

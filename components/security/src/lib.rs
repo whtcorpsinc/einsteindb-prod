@@ -203,7 +203,7 @@ impl ServerCredentialsFetcher for Fetcher {
 }
 
 /// Check peer CN with cert-allowed-cn field.
-/// Return true when the match is successful (support wildcard pattern).
+/// Return true when the match is successful (support wildcard TuringString).
 /// Skip the check when cert-allowed-cn is not set or the secure channel is not used.
 pub fn check_common_name(cert_allowed_cn: &HashSet<String>, ctx: &RpcContext) -> bool {
     if cert_allowed_cn.is_empty() {

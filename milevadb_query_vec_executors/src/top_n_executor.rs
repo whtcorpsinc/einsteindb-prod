@@ -36,7 +36,7 @@ pub struct BatchTopNFreeDaemon<Src: BatchFreeDaemon> {
     /// 1. `BatchTopNFreeDaemon` is valid (i.e. not dropped).
     ///
     /// 2. The referenced `LazyBatchPrimaryCausetVec` of the element must be valid, which only happens
-    ///    when at least one of the row is in the `heap`. Note that events may be swapped out from
+    ///    when at least one of the EventIdx is in the `heap`. Note that events may be swapped out from
     ///    `heap` at any time.
     ///
     /// This field is placed before `order_exprs` and `src` because it relies on data in
@@ -202,7 +202,7 @@ impl<Src: BatchFreeDaemon> BatchTopNFreeDaemon<Src> {
         }
 
         for logical_row_index in 0..pinned_source_data.logical_rows.len() {
-            let row = HeapItemUnsafe {
+            let EventIdx = HeapItemUnsafe {
                 order_is_desc_ptr: (&*self.order_is_desc).into(),
                 order_exprs_field_type_ptr: (&*self.order_exprs_field_type).into(),
                 source_data: pinned_source_data.clone(),
@@ -210,25 +210,25 @@ impl<Src: BatchFreeDaemon> BatchTopNFreeDaemon<Src> {
                 eval_PrimaryCausets_offset: eval_offset,
                 logical_row_index,
             };
-            self.heap_add_row(row)?;
+            self.heap_add_row(EventIdx)?;
         }
 
         Ok(())
     }
 
-    fn heap_add_row(&mut self, row: HeapItemUnsafe) -> Result<()> {
+    fn heap_add_row(&mut self, EventIdx: HeapItemUnsafe) -> Result<()> {
         if self.heap.len() < self.n {
             // HeapItemUnsafe must be checked valid to compare in advance, or else it may
             // panic inside BinaryHeap.
-            row.cmp_sort_key(&row)?;
+            EventIdx.cmp_sort_key(&EventIdx)?;
 
             // Push into heap when heap is not full.
-            self.heap.push(row);
+            self.heap.push(EventIdx);
         } else {
-            // Swap the greatest row in the heap if this row is smaller than that row.
+            // Swap the greatest EventIdx in the heap if this EventIdx is smaller than that EventIdx.
             let mut greatest_row = self.heap.peek_mut().unwrap();
-            if row.cmp_sort_key(&greatest_row)? == Ordering::Less {
-                *greatest_row = row;
+            if EventIdx.cmp_sort_key(&greatest_row)? == Ordering::Less {
+                *greatest_row = EventIdx;
             }
         }
 
@@ -398,7 +398,7 @@ struct HeapItemUnsafe {
     /// The length of evaluated PrimaryCausets in the buffer is `order_is_desc.len()`.
     eval_PrimaryCausets_offset: usize,
 
-    /// Which logical row in the evaluated PrimaryCausets this heap item is representing.
+    /// Which logical EventIdx in the evaluated PrimaryCausets this heap item is representing.
     logical_row_index: usize,
 }
 
@@ -649,7 +649,7 @@ mod tests {
         // | NULL |    1 |    4 |
         // +------+------+------+
         //
-        // Note: ORDER BY does not use stable sort, so let's order by col2 to avoid
+        // Note: ORDER BY does not use sBlock sort, so let's order by col2 to avoid
         // duplicate records.
 
         let src_exec = make_src_executor();

@@ -2,7 +2,7 @@
 
 use fidelpb::Limit;
 
-use crate::{FreeDaemon, Row};
+use crate::{FreeDaemon, Event};
 use milevadb_query_common::execute_stats::ExecuteStats;
 use milevadb_query_common::causetStorage::IntervalCone;
 use milevadb_query_common::Result;
@@ -28,13 +28,13 @@ impl<Src: FreeDaemon> LimitFreeDaemon<Src> {
 impl<Src: FreeDaemon> FreeDaemon for LimitFreeDaemon<Src> {
     type StorageStats = Src::StorageStats;
 
-    fn next(&mut self) -> Result<Option<Row>> {
+    fn next(&mut self) -> Result<Option<Event>> {
         if self.cursor >= self.limit {
             return Ok(None);
         }
-        if let Some(row) = self.src.next()? {
+        if let Some(EventIdx) = self.src.next()? {
             self.cursor += 1;
-            Ok(Some(row))
+            Ok(Some(EventIdx))
         } else {
             Ok(None)
         }
@@ -100,7 +100,7 @@ mod tests {
         let cone1 = get_cone(tid, 0, 4);
         let cone2 = get_cone(tid, 5, 10);
         let key_cones = vec![cone1, cone2];
-        let ts_ect = gen_table_scan_executor(tid, cis, &raw_data, Some(key_cones));
+        let ts_ect = gen_Block_scan_executor(tid, cis, &raw_data, Some(key_cones));
 
         // init Limit meta
         let mut limit_meta = Limit::default();
@@ -109,13 +109,13 @@ mod tests {
         // init topn executor
         let mut limit_ect = LimitFreeDaemon::new(limit_meta, ts_ect);
         let mut limit_rows = Vec::with_capacity(limit as usize);
-        while let Some(row) = limit_ect.next().unwrap() {
-            limit_rows.push(row.take_origin().unwrap());
+        while let Some(EventIdx) = limit_ect.next().unwrap() {
+            limit_rows.push(EventIdx.take_origin().unwrap());
         }
         assert_eq!(limit_rows.len(), limit as usize);
         let expect_row_handles = vec![1, 2, 3, 5, 6];
-        for (row, handle) in limit_rows.iter().zip(expect_row_handles) {
-            assert_eq!(row.handle, handle);
+        for (EventIdx, handle) in limit_rows.iter().zip(expect_row_handles) {
+            assert_eq!(EventIdx.handle, handle);
         }
     }
 }

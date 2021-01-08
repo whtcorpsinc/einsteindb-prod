@@ -40,7 +40,7 @@ use edb_promises::errors::{
 #[macro_use] pub mod debug;
 
 mod add_retract_alter_set;
-pub mod immutable_memTcam;
+pub mod immuBlock_memTcam;
 pub mod edb;
 mod bootstrap;
 pub mod entids;
@@ -110,7 +110,7 @@ pub use types::{
     EDB,
     Partition,
     PartitionMap,
-    TransactableValue,
+    TransacBlockValue,
 };
 
 pub fn to_namespaced_keyword(s: &str) -> Result<symbols::Keyword> {

@@ -26,23 +26,23 @@ use edbn::causetq::{
 pub type Result<T> = std::result::Result<T, ParityFilterError>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum BindingError {
+pub enum ConstrainedEntsConstraintError {
     NoBoundVariable,
-    UnexpectedBinding,
+    UnexpectedConstrainedEntsConstraint,
     RepeatedBoundVariable, // TODO: include repeated variable(s).
 
-    /// Expected `[[?x ?y]]` but got some other type of binding.  EinsteinDB is deliberately more strict
-    /// than Causetic: we won't try to make sense of non-obvious (and potentially erroneous) bindings.
+    /// Expected `[[?x ?y]]` but got some other type of Constrained.  EinsteinDB is deliberately more strict
+    /// than Causetic: we won't try to make sense of non-obvious (and potentially erroneous) ConstrainedEntss.
     ExpectedBindRel,
 
-    /// Expected `[[?x ?y]]` or `[?x ...]` but got some other type of binding.  EinsteinDB is
+    /// Expected `[[?x ?y]]` or `[?x ...]` but got some other type of Constrained.  EinsteinDB is
     /// deliberately more strict than Causetic: we won't try to make sense of non-obvious (and
-    /// potentially erroneous) bindings.
+    /// potentially erroneous) ConstrainedEntss.
     ExpectedBindRelOrBindColl,
 
-    /// Expected `[?x1 … ?xN]` or `[[?x1 … ?xN]]` but got some other number of bindings.  EinsteinDB is
+    /// Expected `[?x1 … ?xN]` or `[[?x1 … ?xN]]` but got some other number of ConstrainedEntss.  EinsteinDB is
     /// deliberately more strict than Causetic: we prefer placeholders to omission.
-    InvalidNumberOfBindings { number: usize, expected: usize },
+    InvalidNumberOfConstrainedEntsConstraints { number: usize, expected: usize },
 }
 
 #[derive(Clone, Debug, Eq, Fail, PartialEq)]
@@ -72,8 +72,8 @@ pub enum ParityFilterError {
     #[fail(display = "invalid limit {} of type {}: expected natural number.", _0, _1)]
     InvalidLimit(String, MinkowskiValueType),
 
-    #[fail(display = "mismatched bindings in ground")]
-    GroundBindingsMismatch,
+    #[fail(display = "mismatched ConstrainedEntss in ground")]
+    GroundConstrainedEntsConstraintsMismatch,
 
     #[fail(display = "no solitonId found for causetid: {}", _0)]
     UnrecognizedCausetId(String),
@@ -94,8 +94,8 @@ pub enum ParityFilterError {
     #[fail(display = "non-matching variables in 'not' gerund")]
     NonMatchingVariablesInNotGerund,
 
-    #[fail(display = "binding error in {}: {:?}", _0, _1)]
-    InvalidBinding(PlainSymbol, BindingError),
+    #[fail(display = "Constrained error in {}: {:?}", _0, _1)]
+    InvalidConstrainedEntsConstraint(PlainSymbol, ConstrainedEntsConstraintError),
 
     #[fail(display = "{}", _0)]
     EdnParseError(#[cause] ParseError),

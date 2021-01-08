@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 use std::u64;
 
 use engine_promises::CAUSET_VIOLETABFT;
-use engine_promises::{Engines, KvEngine, Mutable, VioletaBftEngine};
+use engine_promises::{Engines, KvEngine, MuBlock, VioletaBftEngine};
 use ekvproto::violetabft_serverpb::{PeerState, VioletaBftApplyState, BraneLocalState};
 use violetabft::evioletabftpb::Snapshot as VioletaBftSnapshot;
 
@@ -739,7 +739,7 @@ mod tests {
     use engine_lmdb::raw::PrimaryCausetNetworkOptions;
     use engine_lmdb::LmdbEngine;
     use engine_promises::{
-        CAUSETHandleExt, CAUSETNamesExt, CompactExt, MiscExt, Mutable, Peekable, SyncMutable, WriteBatchExt,
+        CAUSETHandleExt, CAUSETNamesExt, CompactExt, MiscExt, MuBlock, Peekable, SyncMuBlock, WriteBatchExt,
     };
     use engine_promises::{Engines, KvEngine};
     use engine_promises::{CAUSET_DEFAULT, CAUSET_VIOLETABFT};
@@ -1031,7 +1031,7 @@ mod tests {
         wait_apply_finish(1);
 
         // the plightlikeing apply task should be finished and snapshots are ingested.
-        // note that when ingest sst, it may flush memtable if overlap,
+        // note that when ingest sst, it may flush memBlock if overlap,
         // so here will two level 0 files.
         assert_eq!(
             engine_lmdb::util::get_causet_num_files_at_level(engine.kv.as_inner(), causet, 0).unwrap(),

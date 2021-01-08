@@ -1524,7 +1524,7 @@ pub mod tests {
     use engine_lmdb::raw_util::CAUSETOptions;
     use engine_lmdb::{Compat, LmdbEngine, LmdbSnapshot};
     use engine_promises::Engines;
-    use engine_promises::{Iterable, Peekable, SyncMutable};
+    use engine_promises::{Iterable, Peekable, SyncMuBlock};
     use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
     use ekvproto::metapb::{Peer, Brane};
     use ekvproto::violetabft_serverpb::{

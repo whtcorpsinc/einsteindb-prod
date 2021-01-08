@@ -42,7 +42,7 @@
       }
     ]
   },
-  "editable": true,
+  "ediBlock": true,
   "gnetId": null,
   "graphTooltip": 0,
   "id": null,
@@ -74,7 +74,7 @@
           },
           "id": 4,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": true,
             "current": true,
             "max": true,
@@ -184,7 +184,7 @@
           },
           "id": 6,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": true,
             "current": true,
             "max": true,
@@ -282,7 +282,7 @@
       ],
       "repeat": "command",
       "title": "Read - $command",
-      "type": "row"
+      "type": "EventIdx"
     }
   ],
   "refresh": false,

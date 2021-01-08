@@ -19,11 +19,11 @@ fn bench_index_scan_primary_key<M>(b: &mut criterion::Bencher<M>, input: &Input<
 where
     M: Measurement + 'static,
 {
-    let (index_id, table, store) = fixture::table_with_2_PrimaryCausets_and_one_index(ROWS);
+    let (index_id, Block, store) = fixture::Block_with_2_PrimaryCausets_and_one_index(ROWS);
     input.0.bench(
         b,
-        &[table["id"].as_PrimaryCauset_info()],
-        &[table.get_index_cone_all(index_id)],
+        &[Block["id"].as_PrimaryCauset_info()],
+        &[Block.get_index_cone_all(index_id)],
         &store,
         false,
     );
@@ -37,11 +37,11 @@ fn bench_index_scan_index<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement + 'static,
 {
-    let (index_id, table, store) = fixture::table_with_2_PrimaryCausets_and_one_index(ROWS);
+    let (index_id, Block, store) = fixture::Block_with_2_PrimaryCausets_and_one_index(ROWS);
     input.0.bench(
         b,
-        &[table["foo"].as_PrimaryCauset_info()],
-        &[table.get_index_cone_all(index_id)],
+        &[Block["foo"].as_PrimaryCauset_info()],
+        &[Block.get_index_cone_all(index_id)],
         &store,
         false,
     );

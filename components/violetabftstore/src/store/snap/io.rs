@@ -10,7 +10,7 @@ use encryption::{
 };
 use engine_promises::{
     CfName, EncryptionKeyManager, Error as EngineError, ImportExt, IngestExternalFileOptions,
-    Iterable, KvEngine, Mutable, SstWriter, SstWriterBuilder,
+    Iterable, KvEngine, MuBlock, SstWriter, SstWriterBuilder,
 };
 use ekvproto::encryptionpb::EncryptionMethod;
 use einsteindb_util::codec::bytes::{BytesEncoder, CompactBytesFromFileDecoder};

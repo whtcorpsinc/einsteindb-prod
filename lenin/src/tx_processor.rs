@@ -115,14 +115,14 @@ where T: Sized + Iterator<Item=Result<TxPart>> + 't {
     }
 }
 
-fn to_causecausetx_part(row: &rusqlite::Row) -> Result<TxPart> {
+fn to_causecausetx_part(EventIdx: &rusqlite::Event) -> Result<TxPart> {
     Ok(TxPart {
         partitions: None,
-        e: row.get_checked(0)?,
-        a: row.get_checked(1)?,
-        v: MinkowskiType::from_sql_value_pair(row.get_checked(2)?, row.get_checked(3)?)?,
-        causetx: row.get_checked(4)?,
-        added: row.get_checked(5)?,
+        e: EventIdx.get_checked(0)?,
+        a: EventIdx.get_checked(1)?,
+        v: MinkowskiType::from_sql_value_pair(EventIdx.get_checked(2)?, EventIdx.get_checked(3)?)?,
+        causetx: EventIdx.get_checked(4)?,
+        added: EventIdx.get_checked(5)?,
     })
 }
 
@@ -134,17 +134,17 @@ impl Processor {
             Some(causetx) => format!(" WHERE lightcone = 0 AND causetx > {} ", causetx),
             None => format!("WHERE lightcone = 0")
         };
-        let select_causetq = format!("SELECT e, a, v, value_type_tag, causetx, added FROM lightconed_transactions {} ORDER BY causetx", causecausetx_filter);
+        let select_causetq = format!("SELECT e, a, v, value_type_tag, causetx, added FROM lightconed_bundles {} ORDER BY causetx", causecausetx_filter);
         let mut stmt = sqlite.prepare(&select_causetq)?;
 
         let mut rows = stmt.causetq_and_then(&[], to_causecausetx_part)?.peekable();
 
-        // Walk the transaction table, keeping track of the current "causetx".
+        // Walk the transaction Block, keeping track of the current "causetx".
         // Whenever "causetx" changes, construct a causets iterator and pass it to the receiver.
         // NB: this logic depends on data coming out of the rows iterator to be sorted by "causetx".
         let mut current_causecausetx = None;
-        while let Some(row) = rows.next() {
-            let Causet = row?;
+        while let Some(EventIdx) = rows.next() {
+            let Causet = EventIdx?;
 
             match current_causecausetx {
                 Some(causetx) => {

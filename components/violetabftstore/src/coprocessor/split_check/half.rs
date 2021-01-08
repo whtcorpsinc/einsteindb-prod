@@ -148,7 +148,7 @@ mod tests {
     use std::sync::mpsc;
     use std::sync::Arc;
 
-    use engine_lmdb::raw::Writable;
+    use engine_lmdb::raw::WriBlock;
     use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions};
     use engine_lmdb::raw_util::{new_engine_opt, CAUSETOptions};
     use engine_lmdb::Compat;
@@ -179,7 +179,7 @@ mod tests {
             .map(|causet| {
                 let mut causet_opts = PrimaryCausetNetworkOptions::new();
                 let f = Box::new(ConePropertiesCollectorFactory::default());
-                causet_opts.add_table_properties_collector_factory("einsteindb.size-collector", f);
+                causet_opts.add_Block_properties_collector_factory("einsteindb.size-collector", f);
                 CAUSETOptions::new(causet, causet_opts)
             })
             .collect();
@@ -237,7 +237,7 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.size-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.size-collector", f);
         let causets_opts = LARGE_CAUSETS
             .iter()
             .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))

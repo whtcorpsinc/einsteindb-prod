@@ -9,12 +9,12 @@ use milevadb_query_datatype::codec::Datum;
 use milevadb_query_datatype::expr::{Error, EvalContext, Result};
 
 impl ScalarFunc {
-    pub fn logical_and(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let arg0 = self.children[0].eval_int(ctx, row)?;
+    pub fn logical_and(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let arg0 = self.children[0].eval_int(ctx, EventIdx)?;
         if arg0.map_or(false, |v| v == 0) {
             return Ok(Some(0));
         }
-        let arg1 = self.children[1].eval_int(ctx, row)?;
+        let arg1 = self.children[1].eval_int(ctx, EventIdx)?;
         if arg1.map_or(false, |v| v == 0) {
             return Ok(Some(0));
         }
@@ -24,12 +24,12 @@ impl ScalarFunc {
         Ok(Some(1))
     }
 
-    pub fn logical_or(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let arg0 = self.children[0].eval_int(ctx, row)?;
+    pub fn logical_or(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let arg0 = self.children[0].eval_int(ctx, EventIdx)?;
         if arg0.map_or(false, |v| v != 0) {
             return Ok(Some(1));
         }
-        let arg1 = try_opt!(self.children[1].eval_int(ctx, row));
+        let arg1 = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         if arg1 != 0 {
             Ok(Some(1))
         } else {
@@ -37,19 +37,19 @@ impl ScalarFunc {
         }
     }
 
-    pub fn logical_xor(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let arg0 = try_opt!(self.children[0].eval_int(ctx, row));
-        let arg1 = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn logical_xor(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let arg0 = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let arg1 = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         Ok(Some(((arg0 == 0) ^ (arg1 == 0)) as i64))
     }
 
     pub fn int_is_true(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
         keep_null: bool,
     ) -> Result<Option<i64>> {
-        let input = self.children[0].eval_int(ctx, row)?;
+        let input = self.children[0].eval_int(ctx, EventIdx)?;
         Ok(if keep_null {
             input.map(|v| (v != 0) as i64)
         } else {
@@ -60,10 +60,10 @@ impl ScalarFunc {
     pub fn real_is_true(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
         keep_null: bool,
     ) -> Result<Option<i64>> {
-        let input = self.children[0].eval_real(ctx, row)?;
+        let input = self.children[0].eval_real(ctx, EventIdx)?;
         Ok(if keep_null {
             input.map(|i| (i != 0f64) as i64)
         } else {
@@ -74,10 +74,10 @@ impl ScalarFunc {
     pub fn decimal_is_true(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
         keep_null: bool,
     ) -> Result<Option<i64>> {
-        let input = self.children[0].eval_decimal(ctx, row)?;
+        let input = self.children[0].eval_decimal(ctx, EventIdx)?;
         Ok(if keep_null {
             input.map(|dec| !dec.is_zero() as i64)
         } else {
@@ -88,10 +88,10 @@ impl ScalarFunc {
     pub fn int_is_false(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
         keep_null: bool,
     ) -> Result<Option<i64>> {
-        let input = self.children[0].eval_int(ctx, row)?;
+        let input = self.children[0].eval_int(ctx, EventIdx)?;
         Ok(if keep_null {
             input.map(|i| (i == 0) as i64)
         } else {
@@ -102,10 +102,10 @@ impl ScalarFunc {
     pub fn real_is_false(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
         keep_null: bool,
     ) -> Result<Option<i64>> {
-        let input = self.children[0].eval_real(ctx, row)?;
+        let input = self.children[0].eval_real(ctx, EventIdx)?;
         Ok(if keep_null {
             input.map(|v| (v == 0f64) as i64)
         } else {
@@ -116,10 +116,10 @@ impl ScalarFunc {
     pub fn decimal_is_false(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
         keep_null: bool,
     ) -> Result<Option<i64>> {
-        let input = self.children[0].eval_decimal(ctx, row)?;
+        let input = self.children[0].eval_decimal(ctx, EventIdx)?;
         Ok(if keep_null {
             input.map(|v| v.is_zero() as i64)
         } else {
@@ -127,25 +127,25 @@ impl ScalarFunc {
         })
     }
 
-    pub fn unary_not_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let arg = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn unary_not_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let arg = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         Ok(Some((arg == 0f64) as i64))
     }
 
-    pub fn unary_not_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let arg = try_opt!(self.children[0].eval_int(ctx, row));
+    pub fn unary_not_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let arg = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         Ok(Some((arg == 0) as i64))
     }
 
-    pub fn unary_not_decimal(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let arg = try_opt!(self.children[0].eval_decimal(ctx, row));
+    pub fn unary_not_decimal(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let arg = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         Ok(Some(arg.is_zero() as i64))
     }
 
-    pub fn unary_minus_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
+    pub fn unary_minus_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
         use std::cmp::Ordering::*;
 
-        let val = try_opt!(self.children[0].eval_int(ctx, row));
+        let val = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         if self.children[0].is_unsigned() {
             let uval = val as u64;
             match uval.cmp(&(i64::MAX as u64 + 1)) {
@@ -162,78 +162,78 @@ impl ScalarFunc {
     pub fn unary_minus_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let dec = try_opt!(self.children[0].eval_decimal(ctx, row)).into_owned();
+        let dec = try_opt!(self.children[0].eval_decimal(ctx, EventIdx)).into_owned();
         Ok(Some(Cow::Owned(-dec)))
     }
 
-    pub fn unary_minus_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let val = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn unary_minus_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let val = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         Ok(Some(-val))
     }
 
-    pub fn decimal_is_null(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let arg = self.children[0].eval_decimal(ctx, row)?;
+    pub fn decimal_is_null(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let arg = self.children[0].eval_decimal(ctx, EventIdx)?;
         Ok(Some(arg.is_none() as i64))
     }
 
-    pub fn int_is_null(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let arg = self.children[0].eval_int(ctx, row)?;
+    pub fn int_is_null(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let arg = self.children[0].eval_int(ctx, EventIdx)?;
         Ok(Some(arg.is_none() as i64))
     }
 
-    pub fn real_is_null(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let arg = self.children[0].eval_real(ctx, row)?;
+    pub fn real_is_null(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let arg = self.children[0].eval_real(ctx, EventIdx)?;
         Ok(Some(arg.is_none() as i64))
     }
 
-    pub fn string_is_null(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let arg = self.children[0].eval_string(ctx, row)?;
+    pub fn string_is_null(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let arg = self.children[0].eval_string(ctx, EventIdx)?;
         Ok(Some(arg.is_none() as i64))
     }
 
-    pub fn time_is_null(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let arg = self.children[0].eval_time(ctx, row)?;
+    pub fn time_is_null(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let arg = self.children[0].eval_time(ctx, EventIdx)?;
         Ok(Some(arg.is_none() as i64))
     }
 
-    pub fn duration_is_null(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let arg = self.children[0].eval_duration(ctx, row)?;
+    pub fn duration_is_null(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let arg = self.children[0].eval_duration(ctx, EventIdx)?;
         Ok(Some(arg.is_none() as i64))
     }
 
-    pub fn json_is_null(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let arg = self.children[0].eval_json(ctx, row)?;
+    pub fn json_is_null(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let arg = self.children[0].eval_json(ctx, EventIdx)?;
         Ok(Some(arg.is_none() as i64))
     }
 
-    pub fn bit_and(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let lhs = try_opt!(self.children[0].eval_int(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn bit_and(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let lhs = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         Ok(Some(lhs & rhs))
     }
 
-    pub fn bit_or(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let lhs = try_opt!(self.children[0].eval_int(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn bit_or(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let lhs = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         Ok(Some(lhs | rhs))
     }
 
-    pub fn bit_xor(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let lhs = try_opt!(self.children[0].eval_int(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn bit_xor(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let lhs = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         Ok(Some(lhs ^ rhs))
     }
 
-    pub fn bit_neg(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let lhs = try_opt!(self.children[0].eval_int(ctx, row));
+    pub fn bit_neg(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let lhs = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         Ok(Some(!lhs))
     }
 
-    pub fn left_shift(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let lhs = try_opt!(self.children[0].eval_int(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn left_shift(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let lhs = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         let ret = if rhs as u64 >= 64 {
             0
         } else {
@@ -242,9 +242,9 @@ impl ScalarFunc {
         Ok(Some(ret as i64))
     }
 
-    pub fn right_shift(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let lhs = try_opt!(self.children[0].eval_int(ctx, row));
-        let rhs = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn right_shift(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let lhs = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let rhs = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         let ret = if rhs as u64 >= 64 {
             0
         } else {

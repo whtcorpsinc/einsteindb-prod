@@ -247,7 +247,7 @@ fn test_serde_custom_einsteindb_config() {
         bytes_per_sync: ReadableSize::mb(1),
         wal_bytes_per_sync: ReadableSize::kb(32),
         max_sub_compactions: 12,
-        writable_file_max_buffer_size: ReadableSize::mb(12),
+        wriBlock_file_max_buffer_size: ReadableSize::mb(12),
         use_direct_io_for_flush_and_compaction: true,
         enable_pipelined_write: false,
         enable_multi_batch_write: false,
@@ -535,11 +535,11 @@ fn test_serde_custom_einsteindb_config() {
         info_log_keep_log_file_num: 1000,
         info_log_dir: "/var".to_owned(),
         max_sub_compactions: 12,
-        writable_file_max_buffer_size: ReadableSize::mb(12),
+        wriBlock_file_max_buffer_size: ReadableSize::mb(12),
         use_direct_io_for_flush_and_compaction: true,
         enable_pipelined_write: false,
         enable_unordered_write: false,
-        allow_concurrent_memtable_write: false,
+        allow_concurrent_memBlock_write: false,
         bytes_per_sync: ReadableSize::mb(1),
         wal_bytes_per_sync: ReadableSize::kb(32),
         defaultcauset: VioletaBftDefaultCfConfig {
@@ -609,7 +609,7 @@ fn test_serde_custom_einsteindb_config() {
         },
     };
     value.interlock = CopConfig {
-        split_brane_on_table: false,
+        split_brane_on_Block: false,
         batch_split_limit: 1,
         brane_max_size: ReadableSize::mb(12),
         brane_split_size: ReadableSize::mb(12),

@@ -21,7 +21,7 @@ pub trait WriteBatchExt: Sized {
     fn write_batch_with_cap(&self, cap: usize) -> Self::WriteBatch;
 }
 
-pub trait Mutable: Slightlike {
+pub trait MuBlock: Slightlike {
     fn data_size(&self) -> usize;
     fn count(&self) -> usize;
     fn is_empty(&self) -> bool;
@@ -48,7 +48,7 @@ pub trait Mutable: Slightlike {
     }
 }
 
-pub trait WriteBatch<E: WriteBatchExt + Sized>: Mutable {
+pub trait WriteBatch<E: WriteBatchExt + Sized>: MuBlock {
     fn with_capacity(e: &E, cap: usize) -> Self;
     fn write_to_engine(&self, e: &E, opts: &WriteOptions) -> Result<()>;
 }

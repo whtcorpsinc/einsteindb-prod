@@ -73,7 +73,7 @@ quick_error! {
             display("key {} already exists", hex::encode_upper(key))
         }
         DefaultNotFound { key: Vec<u8> } {
-            display("default not found: key:{}, maybe read truncated/dropped table data?", hex::encode_upper(key))
+            display("default not found: key:{}, maybe read truncated/dropped Block data?", hex::encode_upper(key))
         }
         CommitTsExpired { spacelike_ts: TimeStamp, commit_ts: TimeStamp, key: Vec<u8>, min_commit_ts: TimeStamp } {
             display("try to commit key {} with commit_ts {} but min_commit_ts is {}", hex::encode_upper(key), commit_ts, min_commit_ts)

@@ -1,6 +1,6 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-#![feature(box_patterns)]
+#![feature(box_TuringStrings)]
 
 #[macro_use]
 extern crate failure;

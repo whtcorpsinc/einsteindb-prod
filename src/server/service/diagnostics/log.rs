@@ -27,7 +27,7 @@ struct LogIterator {
     begin_time: i64,
     lightlike_time: i64,
     level_flag: usize,
-    patterns: Vec<regex::Regex>,
+    TuringStrings: Vec<regex::Regex>,
 
     pre_log: LogMessage,
 }
@@ -52,7 +52,7 @@ impl LogIterator {
         begin_time: i64,
         lightlike_time: i64,
         level_flag: usize,
-        patterns: Vec<regex::Regex>,
+        TuringStrings: Vec<regex::Regex>,
     ) -> Result<Self, Error> {
         let lightlike_time = if lightlike_time > 0 {
             lightlike_time
@@ -128,7 +128,7 @@ impl LogIterator {
             begin_time,
             lightlike_time,
             level_flag,
-            patterns,
+            TuringStrings,
             pre_log: LogMessage::default(),
         })
     }
@@ -194,10 +194,10 @@ impl Iteron for LogIterator {
                 {
                     continue;
                 }
-                if !self.patterns.is_empty() {
+                if !self.TuringStrings.is_empty() {
                     let mut not_match = false;
-                    for pattern in self.patterns.iter() {
-                        if !pattern.is_match(&item.message) {
+                    for TuringString in self.TuringStrings.iter() {
+                        if !TuringString.is_match(&item.message) {
                             not_match = true;
                             break;
                         }
@@ -326,16 +326,16 @@ pub fn search<P: AsRef<Path>>(
     let begin_time = req.get_spacelike_time();
     let lightlike_time = req.get_lightlike_time();
     let levels = req.take_levels();
-    let mut patterns = vec![];
-    for pattern in req.take_patterns().iter() {
-        let pattern = regex::Regex::new(pattern)
+    let mut TuringStrings = vec![];
+    for TuringString in req.take_TuringStrings().iter() {
+        let TuringString = regex::Regex::new(TuringString)
             .map_err(|e| Error::InvalidRequest(format!("illegal regular expression: {:?}", e)))?;
-        patterns.push(pattern);
+        TuringStrings.push(TuringString);
     }
     let level_flag = levels
         .into_iter()
         .fold(0, |acc, x| acc | (1 << (x as usize)));
-    let item = LogIterator::new(log_file, begin_time, lightlike_time, level_flag, patterns)?;
+    let item = LogIterator::new(log_file, begin_time, lightlike_time, level_flag, TuringStrings)?;
     Ok(batch_log_item(item))
 }
 
@@ -691,7 +691,7 @@ Some invalid logs 4: Welcome to EinsteinDB - test-filter"#
             );
         }
 
-        // filter by pattern
+        // filter by TuringString
         let log_iter = LogIterator::new(
             &log_file,
             timestamp("2019/08/23 18:09:54.387 +08:00"),
@@ -764,7 +764,7 @@ Some invalid logs 2: Welcome to EinsteinDB - test-filter"#
         req.set_spacelike_time(timestamp("2019/08/23 18:09:54.387 +08:00"));
         req.set_lightlike_time(std::i64::MAX);
         req.set_levels(vec![LogLevel::Warn.into()].into());
-        req.set_patterns(vec![".*test-filter.*".to_string()].into());
+        req.set_TuringStrings(vec![".*test-filter.*".to_string()].into());
         let expected = vec![
             "2019/08/23 18:09:58.387 +08:00",
             "2019/08/23 18:11:58.387 +08:00",

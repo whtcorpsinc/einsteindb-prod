@@ -75,7 +75,7 @@ prost-codec = [
 ]
 jemalloc = ["einsteindb/jemalloc"]
 sse = ["einsteindb/sse"]
-portable = ["einsteindb/portable"]
+porBlock = ["einsteindb/porBlock"]
 
 [deplightlikeencies]
 fail = { version = "0.3", optional = true }

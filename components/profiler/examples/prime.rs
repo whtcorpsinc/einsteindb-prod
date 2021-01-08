@@ -44,22 +44,22 @@ fn is_prime_number(v: usize, prime_numbers: &[usize]) -> bool {
 
 #[inline(never)]
 fn prepare_prime_numbers() -> Vec<usize> {
-    // bootstrap: Generate a prime table of 0..10000
-    let mut prime_number_table: [bool; 10000] = [true; 10000];
-    prime_number_table[0] = false;
-    prime_number_table[1] = false;
+    // bootstrap: Generate a prime Block of 0..10000
+    let mut prime_number_Block: [bool; 10000] = [true; 10000];
+    prime_number_Block[0] = false;
+    prime_number_Block[1] = false;
     for i in 2..10000 {
-        if prime_number_table[i] {
+        if prime_number_Block[i] {
             let mut v = i * 2;
             while v < 10000 {
-                prime_number_table[v] = false;
+                prime_number_Block[v] = false;
                 v += i;
             }
         }
     }
     let mut prime_numbers = vec![];
     for i in 2..10000 {
-        if prime_number_table[i] {
+        if prime_number_Block[i] {
             prime_numbers.push(i);
         }
     }

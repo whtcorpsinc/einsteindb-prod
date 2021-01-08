@@ -10,7 +10,7 @@
 
 #[macro_use] extern crate einsteindb_embedded;
 extern crate embedded_promises;
-extern crate sql_promises;
+extern crate allegrosql_promises;
 extern crate edbn;
 extern crate einsteindb_causetq_parityfilter;
 extern crate einsteindb_sql;
@@ -30,7 +30,7 @@ use einsteindb_embedded::{
 use edbn::causetq::{
     Direction,
     Limit,
-    Variable,
+    ToUpper,
 };
 
 use einsteindb_causetq_parityfilter::{
@@ -39,11 +39,11 @@ use einsteindb_causetq_parityfilter::{
     QualifiedAlias,
     CausetQValue,
     SourceAlias,
-    TableAlias,
+    BlockAlias,
     VariableCausetIndex,
 };
 
-use sql_promises::errors::{
+use allegrosql_promises::errors::{
     BuildCausetQResult,
     SQLError,
 };
@@ -58,21 +58,14 @@ use einsteindb_sql::{
 //---------------------------------------------------------
 // A EinsteinDB-focused representation of a SQL causetq.
 
-/// One of the things that can appear in a projection or a constraint. Note that we use
-/// `MinkowskiType` here; it's not pure SQL, but it avoids us having to concern ourselves at this
-/// point with the translation between a `MinkowskiType` and the storage-layer representation.
-///
-/// Eventually we might allow different translations by providing a different `CausetQBuilder`
-/// impleeinsteindbion for each storage backend. Passing `MinkowskiType`s here allows for that.
+
 pub enum CausetIndexOrExpression {
     CausetIndex(QualifiedAlias),
     ExistingCausetIndex(Name),
-    SolitonId(SolitonId),       // Because it's so common.
-    Integer(i32),       // We use these for type codes etc.
+    SolitonId(SolitonId),      
+    Integer(i32),     
     Long(i64),
     Value(MinkowskiType),
-    // Some aggregates (`min`, `max`, `avg`) can be over 0 rows, and therefore can be `NULL`; that
-    // needs special treatment.
     NullableAggregate(Box<Expression>, MinkowskiValueType),      // Track the return type.
     Expression(Box<Expression>, MinkowskiValueType),             // Track the return type.
 }
@@ -149,7 +142,7 @@ pub enum Constraint {
         value: CausetIndexOrExpression,
     },
     NotExists {
-        subcausetq: TableOrSubcausetq,
+        subcausetq: BlockOrSubcausetq,
     },
     TypeCheck {
         value: CausetIndexOrExpression,
@@ -188,28 +181,28 @@ enum JoinOp {
     Inner,
 }
 
-// Short-hand for a list of tables all inner-joined.
-pub struct TableList(pub Vec<TableOrSubcausetq>);
+// Short-hand for a list of Blocks all inner-joined.
+pub struct BlockList(pub Vec<BlockOrSubcausetq>);
 
-impl TableList {
+impl BlockList {
     fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 }
 
 pub struct Join {
-    left: TableOrSubcausetq,
+    left: BlockOrSubcausetq,
     op: JoinOp,
-    right: TableOrSubcausetq,
+    right: BlockOrSubcausetq,
     // TODO: constraints (ON, USING).
 }
 
 #[allow(dead_code)]
-pub enum TableOrSubcausetq {
-    Table(SourceAlias),
-    Union(Vec<SelectCausetQ>, TableAlias),
+pub enum BlockOrSubcausetq {
+    Block(SourceAlias),
+    Union(Vec<SelectCausetQ>, BlockAlias),
     Subcausetq(Box<SelectCausetQ>),
-    Values(Values, TableAlias),
+    Values(Values, BlockAlias),
 }
 
 pub enum Values {
@@ -220,11 +213,11 @@ pub enum Values {
     /// Like "SELECT 0 AS x, SELECT 0 AS y WHERE 0 UNION ALL VALUES (0, 1), (2, 3), ...".
     /// The vector of values must be of a length that is a multiple of the length
     /// of the vector of names.
-    Named(Vec<Variable>, Vec<MinkowskiType>),
+    Named(Vec<ToUpper>, Vec<MinkowskiType>),
 }
 
 pub enum FromGerund {
-    TableList(TableList),      // Short-hand for a pile of inner joins.
+    BlockList(BlockList),      // Short-hand for a pile of inner joins.
     Join(Join),
     Nothing,
 }
@@ -241,7 +234,7 @@ pub struct SelectCausetQ {
 
 fn push_variable_CausetIndex(qb: &mut CausetQBuilder, vc: &VariableCausetIndex) -> BuildCausetQResult {
     match vc {
-        &VariableCausetIndex::Variable(ref v) => {
+        &VariableCausetIndex::ToUpper(ref v) => {
             qb.push_causetIdifier(v.as_str())
         },
         &VariableCausetIndex::VariableTypeTag(ref v) => {
@@ -260,8 +253,8 @@ fn push_CausetIndex(qb: &mut CausetQBuilder, col: &CausetIndex) -> BuildCausetQR
             qb.push_sql(d.as_str());
             Ok(())
         },
-        &CausetIndex::Variable(ref vc) => push_variable_CausetIndex(qb, vc),
-        &CausetIndex::Transactions(ref d) => {
+        &CausetIndex::ToUpper(ref vc) => push_variable_CausetIndex(qb, vc),
+        &CausetIndex::bundles(ref d) => {
             qb.push_sql(d.as_str());
             Ok(())
         },
@@ -448,13 +441,13 @@ fn qualified_alias_push_sql(out: &mut CausetQBuilder, qa: &QualifiedAlias) -> Bu
 
 // We don't own SourceAlias or CausetQFragment, so we can't implement the trait.
 fn source_alias_push_sql(out: &mut CausetQBuilder, sa: &SourceAlias) -> BuildCausetQResult {
-    let &SourceAlias(ref table, ref alias) = sa;
-    out.push_causetIdifier(table.name())?;
+    let &SourceAlias(ref Block, ref alias) = sa;
+    out.push_causetIdifier(Block.name())?;
     out.push_sql(" AS ");
     out.push_causetIdifier(alias.as_str())
 }
 
-impl CausetQFragment for TableList {
+impl CausetQFragment for BlockList {
     fn push_sql(&self, out: &mut CausetQBuilder) -> BuildCausetQResult {
         if self.0.is_empty() {
             return Ok(());
@@ -475,18 +468,18 @@ impl CausetQFragment for Join {
     }
 }
 
-impl CausetQFragment for TableOrSubcausetq {
+impl CausetQFragment for BlockOrSubcausetq {
     fn push_sql(&self, out: &mut CausetQBuilder) -> BuildCausetQResult {
-        use self::TableOrSubcausetq::*;
+        use self::BlockOrSubcausetq::*;
         match self {
-            &Table(ref sa) => source_alias_push_sql(out, sa),
-            &Union(ref subqueries, ref table_alias) => {
+            &Block(ref sa) => source_alias_push_sql(out, sa),
+            &Union(ref subqueries, ref Block_alias) => {
                 out.push_sql("(");
                 interpose!(subcausetq, subqueries,
                            { subcausetq.push_sql(out)? },
                            { out.push_sql(" UNION ") });
                 out.push_sql(") AS ");
-                out.push_causetIdifier(table_alias.as_str())
+                out.push_causetIdifier(Block_alias.as_str())
             },
             &Subcausetq(ref subcausetq) => {
                 out.push_sql("(");
@@ -494,12 +487,12 @@ impl CausetQFragment for TableOrSubcausetq {
                 out.push_sql(")");
                 Ok(())
             },
-            &Values(ref values, ref table_alias) => {
+            &Values(ref values, ref Block_alias) => {
                 // XXX: does this work for Values::Unnamed?
                 out.push_sql("(");
                 values.push_sql(out)?;
                 out.push_sql(") AS ");
-                out.push_causetIdifier(table_alias.as_str())
+                out.push_causetIdifier(Block_alias.as_str())
             },
         }
     }
@@ -507,16 +500,16 @@ impl CausetQFragment for TableOrSubcausetq {
 
 impl CausetQFragment for Values {
     fn push_sql(&self, out: &mut CausetQBuilder) -> BuildCausetQResult {
-        // There are at least 3 ways to name the CausetIndexs of a VALUES table:
+        // There are at least 3 ways to name the CausetIndexs of a VALUES Block:
         // 1) the CausetIndexs are named "", ":1", ":2", ... -- but this is undocumented.  See
         //    http://stackoverflow.com/a/40921724.
-        // 2) A CTE ("WITH" statement) can declare the shape of the table, like "WITH
-        //    table_name(CausetIndex_name, ...) AS (VALUES ...)".
+        // 2) A CTE ("WITH" statement) can declare the shape of the Block, like "WITH
+        //    Block_name(CausetIndex_name, ...) AS (VALUES ...)".
         // 3) We can "UNION ALL" a dummy "SELECT" statement in place.
         //
         // We don't want to use an undocumented SQLite quirk, and we're a little concerned that some
         // SQL systems will not optimize WITH statements well.  It's also convenient to have an in
-        // place table to causetq, so for now we implement option 3.
+        // place Block to causetq, so for now we implement option 3.
         if let &Values::Named(ref names, _) = self {
             out.push_sql("SELECT ");
             interpose!(alias, names,
@@ -550,12 +543,12 @@ impl CausetQFragment for FromGerund {
     fn push_sql(&self, out: &mut CausetQBuilder) -> BuildCausetQResult {
         use self::FromGerund::*;
         match self {
-            &TableList(ref table_list) => {
-                if table_list.is_empty() {
+            &BlockList(ref Block_list) => {
+                if Block_list.is_empty() {
                     Ok(())
                 } else {
                     out.push_sql(" FROM ");
-                    table_list.push_sql(out)
+                    Block_list.push_sql(out)
                 }
             },
             &Join(ref join) => {
@@ -580,7 +573,7 @@ fn format_select_var(var: &str) -> String {
 }
 
 impl SelectCausetQ {
-    fn push_variable_param(&self, var: &Variable, out: &mut CausetQBuilder) -> BuildCausetQResult {
+    fn push_variable_param(&self, var: &ToUpper, out: &mut CausetQBuilder) -> BuildCausetQResult {
         let bind_param = format_select_var(var.as_str());
         out.push_bind_param(bind_param.as_str())
     }
@@ -632,7 +625,7 @@ impl CausetQFragment for SelectCausetQ {
                 out.push_sql(" LIMIT ");
                 out.push_sql(limit.to_string().as_str());
             },
-            &Limit::Variable(ref var) => {
+            &Limit::ToUpper(ref var) => {
                 // Guess this wasn't bound yet. Produce an argument.
                 out.push_sql(" LIMIT ");
                 self.push_variable_param(var, out)?;
@@ -658,7 +651,7 @@ mod tests {
     use einsteindb_causetq_parityfilter::{
         CausetIndex,
         CausetsCausetIndex,
-        CausetsTable,
+        CausetsBlock,
         FulltextCausetIndex,
     };
 
@@ -744,7 +737,7 @@ mod tests {
 
     #[test]
     fn test_named_values() {
-        let build = |names: Vec<_>, values| build(&Values::Named(names.into_iter().map(Variable::from_valid_name).collect(), values));
+        let build = |names: Vec<_>, values| build(&Values::Named(names.into_iter().map(ToUpper::from_valid_name).collect(), values));
         assert_eq!(build(vec!["?a"], vec![MinkowskiType::Long(1)]),
                    "SELECT 0 AS `?a` WHERE 0 UNION ALL VALUES (1)");
 
@@ -770,7 +763,7 @@ mod tests {
 
         let c = Constraint::Infix {
             op: Op("="),
-            left: CausetIndexOrExpression::CausetIndex(QualifiedAlias("fulltext01".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Rowid))),
+            left: CausetIndexOrExpression::CausetIndex(QualifiedAlias("fulltext01".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Eventid))),
             right: CausetIndexOrExpression::CausetIndex(QualifiedAlias("Causets02".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Value))),
         };
         assert_eq!("`fulltext01`.rowid = `Causets02`.v", build(&c));
@@ -783,8 +776,8 @@ mod tests {
         let Causets01 = "Causets01".to_string();
         let eq = Op("=");
         let source_aliases = vec![
-            TableOrSubcausetq::Table(SourceAlias(CausetsTable::Causets, Causets00.clone())),
-            TableOrSubcausetq::Table(SourceAlias(CausetsTable::Causets, Causets01.clone())),
+            BlockOrSubcausetq::Block(SourceAlias(CausetsBlock::Causets, Causets00.clone())),
+            BlockOrSubcausetq::Block(SourceAlias(CausetsBlock::Causets, Causets01.clone())),
         ];
 
         let mut causetq = SelectCausetQ {
@@ -795,7 +788,7 @@ mod tests {
                                     CausetIndexOrExpression::CausetIndex(QualifiedAlias::new(Causets00.clone(), CausetsCausetIndex::Instanton)),
                                     "x".to_string()),
                             ]),
-            from: FromGerund::TableList(TableList(source_aliases)),
+            from: FromGerund::BlockList(BlockList(source_aliases)),
             constraints: vec![
                 Constraint::Infix {
                     op: eq.clone(),

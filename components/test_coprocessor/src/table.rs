@@ -7,11 +7,11 @@ use std::collections::BTreeMap;
 use ekvproto::interlock::KeyCone;
 use fidelpb::{self, PrimaryCausetInfo};
 
-use milevadb_query_datatype::codec::table;
+use milevadb_query_datatype::codec::Block;
 use einsteindb_util::codec::number::NumberEncoder;
 
 #[derive(Clone)]
-pub struct Table {
+pub struct Block {
     pub id: i64,
     pub(crate) handle_id: i64,
     pub(crate) PrimaryCausets: Vec<(String, PrimaryCauset)>,
@@ -24,29 +24,29 @@ fn normalize_PrimaryCauset_name(name: impl std::borrow::Borrow<str>) -> String {
     name.borrow().to_lowercase()
 }
 
-impl Table {
-    /// Get a PrimaryCauset reference in the table by PrimaryCauset id.
+impl Block {
+    /// Get a PrimaryCauset reference in the Block by PrimaryCauset id.
     pub fn PrimaryCauset_by_id(&self, id: i64) -> Option<&PrimaryCauset> {
         let idx = self.PrimaryCauset_index_by_id.get(&id);
         idx.map(|idx| &self.PrimaryCausets[*idx].1)
     }
 
-    /// Get a PrimaryCauset reference in the table by PrimaryCauset name (case insensitive).
+    /// Get a PrimaryCauset reference in the Block by PrimaryCauset name (case insensitive).
     pub fn PrimaryCauset_by_name(&self, name: impl std::borrow::Borrow<str>) -> Option<&PrimaryCauset> {
         let normalized_name = normalize_PrimaryCauset_name(name);
         let idx = self.PrimaryCauset_index_by_name.get(&normalized_name);
         idx.map(|idx| &self.PrimaryCausets[*idx].1)
     }
 
-    /// Create `fidelpb::TableInfo` from current table.
-    pub fn table_info(&self) -> fidelpb::TableInfo {
-        let mut info = fidelpb::TableInfo::default();
-        info.set_table_id(self.id);
+    /// Create `fidelpb::BlockInfo` from current Block.
+    pub fn Block_info(&self) -> fidelpb::BlockInfo {
+        let mut info = fidelpb::BlockInfo::default();
+        info.set_Block_id(self.id);
         info.set_PrimaryCausets(self.PrimaryCausets_info().into());
         info
     }
 
-    /// Create `Vec<PrimaryCausetInfo>` from current table's PrimaryCausets.
+    /// Create `Vec<PrimaryCausetInfo>` from current Block's PrimaryCausets.
     pub fn PrimaryCausets_info(&self) -> Vec<PrimaryCausetInfo> {
         self.PrimaryCausets
             .iter()
@@ -54,10 +54,10 @@ impl Table {
             .collect()
     }
 
-    /// Create `fidelpb::IndexInfo` from current table.
+    /// Create `fidelpb::IndexInfo` from current Block.
     pub fn index_info(&self, index: i64, store_handle: bool) -> fidelpb::IndexInfo {
         let mut idx_info = fidelpb::IndexInfo::default();
-        idx_info.set_table_id(self.id);
+        idx_info.set_Block_id(self.id);
         idx_info.set_index_id(index);
         let mut has_pk = false;
         for col_id in &self.idxs[&index] {
@@ -81,17 +81,17 @@ impl Table {
         idx_info
     }
 
-    /// Create a `KeyCone` which select all records in current table.
+    /// Create a `KeyCone` which select all records in current Block.
     pub fn get_record_cone_all(&self) -> KeyCone {
         let mut cone = KeyCone::default();
-        cone.set_spacelike(table::encode_row_key(self.id, std::i64::MIN));
-        cone.set_lightlike(table::encode_row_key(self.id, std::i64::MAX));
+        cone.set_spacelike(Block::encode_row_key(self.id, std::i64::MIN));
+        cone.set_lightlike(Block::encode_row_key(self.id, std::i64::MAX));
         cone
     }
 
-    /// Create a `KeyCone` which select one row in current table.
+    /// Create a `KeyCone` which select one EventIdx in current Block.
     pub fn get_record_cone_one(&self, handle_id: i64) -> KeyCone {
-        let spacelike_key = table::encode_row_key(self.id, handle_id);
+        let spacelike_key = Block::encode_row_key(self.id, handle_id);
         let mut lightlike_key = spacelike_key.clone();
         milevadb_query_common::util::convert_to_prefix_next(&mut lightlike_key);
         let mut cone = KeyCone::default();
@@ -100,20 +100,20 @@ impl Table {
         cone
     }
 
-    /// Create a `KeyCone` which select all index records of a specified index in current table.
+    /// Create a `KeyCone` which select all index records of a specified index in current Block.
     pub fn get_index_cone_all(&self, idx: i64) -> KeyCone {
         let mut cone = KeyCone::default();
         let mut buf = Vec::with_capacity(8);
         buf.encode_i64(::std::i64::MIN).unwrap();
-        cone.set_spacelike(table::encode_index_seek_key(self.id, idx, &buf));
+        cone.set_spacelike(Block::encode_index_seek_key(self.id, idx, &buf));
         buf.clear();
         buf.encode_i64(::std::i64::MAX).unwrap();
-        cone.set_lightlike(table::encode_index_seek_key(self.id, idx, &buf));
+        cone.set_lightlike(Block::encode_index_seek_key(self.id, idx, &buf));
         cone
     }
 }
 
-impl<T: std::borrow::Borrow<str>> std::ops::Index<T> for Table {
+impl<T: std::borrow::Borrow<str>> std::ops::Index<T> for Block {
     type Output = PrimaryCauset;
 
     fn index(&self, key: T) -> &PrimaryCauset {
@@ -121,20 +121,20 @@ impl<T: std::borrow::Borrow<str>> std::ops::Index<T> for Table {
     }
 }
 
-pub struct TableBuilder {
+pub struct BlockBuilder {
     handle_id: i64,
     PrimaryCausets: Vec<(String, PrimaryCauset)>,
 }
 
-impl TableBuilder {
-    pub fn new() -> TableBuilder {
-        TableBuilder {
+impl BlockBuilder {
+    pub fn new() -> BlockBuilder {
+        BlockBuilder {
             handle_id: -1,
             PrimaryCausets: Vec::new(),
         }
     }
 
-    pub fn add_col(mut self, name: impl std::borrow::Borrow<str>, col: PrimaryCauset) -> TableBuilder {
+    pub fn add_col(mut self, name: impl std::borrow::Borrow<str>, col: PrimaryCauset) -> BlockBuilder {
         use std::cmp::Ordering::*;
 
         if col.index == 0 {
@@ -153,7 +153,7 @@ impl TableBuilder {
         self
     }
 
-    pub fn build(mut self) -> Table {
+    pub fn build(mut self) -> Block {
         if self.handle_id <= 0 {
             self.handle_id = next_id();
         }
@@ -181,7 +181,7 @@ impl TableBuilder {
             val.push(self.handle_id);
         }
 
-        Table {
+        Block {
             id: next_id(),
             handle_id: self.handle_id,
             PrimaryCausets: self.PrimaryCausets,

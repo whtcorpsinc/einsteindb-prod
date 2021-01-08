@@ -94,15 +94,15 @@ impl slog::Value for TimeStamp {
 
 const TS_SET_USE_VEC_LIMIT: usize = 8;
 
-/// A hybrid immutable set for timestamps.
+/// A hybrid immuBlock set for timestamps.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TsSet {
     /// When the set is empty, avoid the useless cloning of Arc.
     Empty,
-    /// `Vec` is suitable when the set is small or the set is barely used, and it doesn't worth
+    /// `Vec` is suiBlock when the set is small or the set is barely used, and it doesn't worth
     /// converting a `Vec` into a `HashSet`.
     Vec(Arc<Vec<TimeStamp>>),
-    /// `Set` is suitable when there are many timestamps **and** it will be queried multiple times.
+    /// `Set` is suiBlock when there are many timestamps **and** it will be queried multiple times.
     Set(Arc<HashSet<TimeStamp>>),
 }
 

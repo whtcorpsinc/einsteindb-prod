@@ -7,7 +7,7 @@ use protobuf::Message;
 use ekvproto::interlock::{KeyCone, Request};
 use ekvproto::kvrpcpb::Context;
 use fidelpb::PrimaryCausetInfo;
-use fidelpb::{Aggregation, ExecType, FreeDaemon, IndexScan, Limit, Selection, TableScan, TopN};
+use fidelpb::{Aggregation, ExecType, FreeDaemon, IndexScan, Limit, Selection, BlockScan, TopN};
 use fidelpb::{ByItem, Expr, ExprType};
 use fidelpb::{Soliton, PosetDagRequest};
 
@@ -27,42 +27,42 @@ pub struct DAGSelect {
 }
 
 impl DAGSelect {
-    pub fn from(table: &Table) -> DAGSelect {
+    pub fn from(Block: &Block) -> DAGSelect {
         let mut exec = FreeDaemon::default();
-        exec.set_tp(ExecType::TypeTableScan);
-        let mut tbl_scan = TableScan::default();
-        let mut table_info = table.table_info();
-        tbl_scan.set_table_id(table_info.get_table_id());
-        let PrimaryCausets_info = table_info.take_PrimaryCausets();
+        exec.set_tp(ExecType::TypeBlockScan);
+        let mut tbl_scan = BlockScan::default();
+        let mut Block_info = Block.Block_info();
+        tbl_scan.set_Block_id(Block_info.get_Block_id());
+        let PrimaryCausets_info = Block_info.take_PrimaryCausets();
         tbl_scan.set_PrimaryCausets(PrimaryCausets_info);
         exec.set_tbl_scan(tbl_scan);
 
         DAGSelect {
             execs: vec![exec],
-            cols: table.PrimaryCausets_info(),
+            cols: Block.PrimaryCausets_info(),
             order_by: vec![],
             limit: None,
             aggregate: vec![],
             group_by: vec![],
-            key_cone: table.get_record_cone_all(),
+            key_cone: Block.get_record_cone_all(),
             output_offsets: None,
         }
     }
 
-    pub fn from_index(table: &Table, index: &PrimaryCauset) -> DAGSelect {
+    pub fn from_index(Block: &Block, index: &PrimaryCauset) -> DAGSelect {
         let idx = index.index;
         let mut exec = FreeDaemon::default();
         exec.set_tp(ExecType::TypeIndexScan);
         let mut scan = IndexScan::default();
-        let mut index_info = table.index_info(idx, true);
-        scan.set_table_id(index_info.get_table_id());
+        let mut index_info = Block.index_info(idx, true);
+        scan.set_Block_id(index_info.get_Block_id());
         scan.set_index_id(idx);
 
         let PrimaryCausets_info = index_info.take_PrimaryCausets();
         scan.set_PrimaryCausets(PrimaryCausets_info.clone());
         exec.set_idx_scan(scan);
 
-        let cone = table.get_index_cone_all(idx);
+        let cone = Block.get_index_cone_all(idx);
         DAGSelect {
             execs: vec![exec],
             cols: PrimaryCausets_info.to_vec(),

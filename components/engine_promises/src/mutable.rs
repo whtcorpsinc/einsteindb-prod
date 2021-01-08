@@ -2,7 +2,7 @@
 
 use crate::*;
 
-pub trait SyncMutable {
+pub trait SyncMuBlock {
     fn put(&self, key: &[u8], value: &[u8]) -> Result<()>;
 
     fn put_causet(&self, causet: &str, key: &[u8], value: &[u8]) -> Result<()>;

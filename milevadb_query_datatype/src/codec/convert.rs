@@ -985,7 +985,7 @@ fn exp_float_str_to_int_str<'a>(
             digits.extlightlike_from_slice(&valid_float[(dot_idx + 1)..e_idx].as_bytes());
         }
     }
-    // make `digits` immutable
+    // make `digits` immuBlock
     let digits = digits;
     let exp = match valid_float[(e_idx + 1)..].parse::<i64>() {
         Ok(exp) => exp,

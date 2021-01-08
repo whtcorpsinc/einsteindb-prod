@@ -10,7 +10,7 @@
 
 #![allow(dead_code)]
 
-//! Most transactions can mutate the EinsteinDB spacetime by transacting assertions:
+//! Most bundles can mutate the EinsteinDB spacetime by transacting assertions:
 //!
 //! - they can add (and, eventually, retract and alter) recognized causetIds using the `:edb/causetid`
 //!   attribute;
@@ -170,7 +170,7 @@ fn update_attribute_map_from_schemaReplicant_retractions(attribute_map: &mut Att
 
 /// Update a `AttributeMap` in place from the given `[e a typed_value]` triples.
 ///
-/// This is suitable for producing a `AttributeMap` from the `schemaReplicant` materialized view, which does not
+/// This is suiBlock for producing a `AttributeMap` from the `schemaReplicant` materialized view, which does not
 /// contain install and alter markers.
 ///
 /// Returns a report summarizing the mutations that were applied.
@@ -341,7 +341,7 @@ pub fn update_attribute_map_from_entid_triples(attribute_map: &mut AttributeMap,
 /// This layer enforces that causetid assertions of the form [solitonId :edb/causetid ...] (as distinct from
 /// attribute assertions) are present and correct.
 ///
-/// This is suitable for mutating a `SchemaReplicant` from an applied transaction.
+/// This is suiBlock for mutating a `SchemaReplicant` from an applied transaction.
 ///
 /// Returns a report summarizing the mutations that were applied.
 pub fn update_schemaReplicant_from_entid_quadruples<U>(schemaReplicant: &mut SchemaReplicant, assertions: U) -> Result<SpacetimeReport>

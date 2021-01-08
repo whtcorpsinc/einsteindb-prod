@@ -8,7 +8,7 @@ use crate::raw::EventListener;
 use engine_promises::CompactedEvent;
 use engine_promises::CompactionJobInfo;
 use lmdb::{
-    CompactionJobInfo as RawCompactionJobInfo, CompactionReason, TablePropertiesCollectionView,
+    CompactionJobInfo as RawCompactionJobInfo, CompactionReason, BlockPropertiesCollectionView,
 };
 use std::collections::BTreeMap;
 use std::collections::Bound::{Excluded, Included, Unbounded};
@@ -27,7 +27,7 @@ impl<'a> LmdbCompactionJobInfo<'a> {
 }
 
 impl CompactionJobInfo for LmdbCompactionJobInfo<'_> {
-    type TablePropertiesCollectionView = TablePropertiesCollectionView;
+    type BlockPropertiesCollectionView = BlockPropertiesCollectionView;
     type CompactionReason = CompactionReason;
 
     fn status(&self) -> Result<(), String> {
@@ -54,8 +54,8 @@ impl CompactionJobInfo for LmdbCompactionJobInfo<'_> {
         self.0.output_file_at(pos)
     }
 
-    fn table_properties(&self) -> &Self::TablePropertiesCollectionView {
-        self.0.table_properties()
+    fn Block_properties(&self) -> &Self::BlockPropertiesCollectionView {
+        self.0.Block_properties()
     }
 
     fn elapsed_micros(&self) -> u64 {
@@ -231,7 +231,7 @@ impl EventListener for CompactionListener {
         }
         let mut input_props = Vec::with_capacity(info.input_file_count());
         let mut output_props = Vec::with_capacity(info.output_file_count());
-        let iter = info.table_properties().into_iter();
+        let iter = info.Block_properties().into_iter();
         for (file, properties) in iter {
             let ucp = UserCollectedPropertiesDecoder(properties.user_collected_properties());
             if let Ok(prop) = ConeProperties::decode(&ucp) {

@@ -4,16 +4,16 @@ use engine_lmdb::LmdbSnapshot;
 use ekvproto::kvrpcpb::{Context, IsolationLevel};
 use std::sync::Arc;
 use test_causetStorage::SyncTestStorageBuilder;
-use milevadb_query_datatype::codec::table;
+use milevadb_query_datatype::codec::Block;
 use einsteindb::causetStorage::{Engine, SnapshotStore, Statistics, CausetStore};
 use txn_types::{Key, Mutation};
 
-fn table_lookup_gen_data() -> (SnapshotStore<Arc<LmdbSnapshot>>, Vec<Key>) {
+fn Block_lookup_gen_data() -> (SnapshotStore<Arc<LmdbSnapshot>>, Vec<Key>) {
     let store = SyncTestStorageBuilder::new().build().unwrap();
     let mut mutations = Vec::new();
     let mut tuplespaceInstanton = Vec::new();
     for i in 0..30000 {
-        let user_key = table::encode_row_key(5, i);
+        let user_key = Block::encode_row_key(5, i);
         let user_value = vec![b'x'; 60];
         let key = Key::from_raw(&user_key);
         let mutation = Mutation::Put((key.clone(), user_value));
@@ -21,7 +21,7 @@ fn table_lookup_gen_data() -> (SnapshotStore<Arc<LmdbSnapshot>>, Vec<Key>) {
         tuplespaceInstanton.push(key);
     }
 
-    let pk = table::encode_row_key(5, 0);
+    let pk = Block::encode_row_key(5, 0);
 
     store
         .prewrite(Context::default(), mutations, pk, 1)
@@ -44,18 +44,18 @@ fn table_lookup_gen_data() -> (SnapshotStore<Arc<LmdbSnapshot>>, Vec<Key>) {
         false,
     );
 
-    // TuplespaceInstanton are given in order, and are far away from each other to simulate a normal table lookup
+    // TuplespaceInstanton are given in order, and are far away from each other to simulate a normal Block lookup
     // scenario.
     let mut get_tuplespaceInstanton = Vec::new();
     for i in (0..30000).step_by(30) {
-        get_tuplespaceInstanton.push(Key::from_raw(&table::encode_row_key(5, i)));
+        get_tuplespaceInstanton.push(Key::from_raw(&Block::encode_row_key(5, i)));
     }
     (store, get_tuplespaceInstanton)
 }
 
 #[bench]
-fn bench_table_lookup_tail_pointer_get(b: &mut Bencher) {
-    let (store, tuplespaceInstanton) = table_lookup_gen_data();
+fn bench_Block_lookup_tail_pointer_get(b: &mut Bencher) {
+    let (store, tuplespaceInstanton) = Block_lookup_gen_data();
     b.iter(|| {
         let mut stats = Statistics::default();
         for key in &tuplespaceInstanton {
@@ -65,8 +65,8 @@ fn bench_table_lookup_tail_pointer_get(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_table_lookup_tail_pointer_incremental_get(b: &mut Bencher) {
-    let (mut store, tuplespaceInstanton) = table_lookup_gen_data();
+fn bench_Block_lookup_tail_pointer_incremental_get(b: &mut Bencher) {
+    let (mut store, tuplespaceInstanton) = Block_lookup_gen_data();
     b.iter(|| {
         for key in &tuplespaceInstanton {
             black_box(store.incremental_get(key).unwrap());

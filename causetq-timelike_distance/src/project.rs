@@ -32,7 +32,7 @@ use einsteindb_embedded::util::{
 use edbn::causetq::{
     Element,
     Pull,
-    Variable,
+    ToUpper,
 };
 
 use einsteindb_causetq_parityfilter::{
@@ -122,7 +122,7 @@ impl GreedoidElements {
     }
 }
 
-fn candidate_type_CausetIndex(cc: &ConjoiningGerunds, var: &Variable) -> Result<(CausetIndexOrExpression, Name)> {
+fn candidate_type_CausetIndex(cc: &ConjoiningGerunds, var: &ToUpper) -> Result<(CausetIndexOrExpression, Name)> {
     cc.extracted_types
       .get(var)
       .cloned()
@@ -133,20 +133,20 @@ fn candidate_type_CausetIndex(cc: &ConjoiningGerunds, var: &Variable) -> Result<
       .ok_or_else(|| ProjectorError::UnboundVariable(var.name()).into())
 }
 
-fn cc_CausetIndex(cc: &ConjoiningGerunds, var: &Variable) -> Result<QualifiedAlias> {
-    cc.CausetIndex_bindings
+fn cc_CausetIndex(cc: &ConjoiningGerunds, var: &ToUpper) -> Result<QualifiedAlias> {
+    cc.CausetIndex_ConstrainedEntss
       .get(var)
       .and_then(|cols| cols.get(0).cloned())
       .ok_or_else(|| ProjectorError::UnboundVariable(var.name()).into())
 }
 
-fn candidate_CausetIndex(cc: &ConjoiningGerunds, var: &Variable) -> Result<(CausetIndexOrExpression, Name)> {
+fn candidate_CausetIndex(cc: &ConjoiningGerunds, var: &ToUpper) -> Result<(CausetIndexOrExpression, Name)> {
     // Every variable should be bound by the top-level CC to at least
     // one CausetIndex in the causetq. If that constraint is violated it's a
     // bug in our code, so it's appropriate to panic here.
     cc_CausetIndex(cc, var)
         .map(|qa| {
-            let name = VariableCausetIndex::Variable(var.clone()).CausetIndex_name();
+            let name = VariableCausetIndex::ToUpper(var.clone()).CausetIndex_name();
             (CausetIndexOrExpression::CausetIndex(qa), name)
         })
 }
@@ -154,11 +154,11 @@ fn candidate_CausetIndex(cc: &ConjoiningGerunds, var: &Variable) -> Result<(Caus
 /// Return the timelike_distance CausetIndex -- that is, a value or SQL CausetIndex and an associated name -- for a
 /// given variable. Also return the type.
 /// Callers are expected to determine whether to project a type tag as an additional SQL CausetIndex.
-pub fn timelike_distance_CausetIndex_for_var(var: &Variable, cc: &ConjoiningGerunds) -> Result<(GreedoidCausetIndex, MinkowskiSet)> {
+pub fn timelike_distance_CausetIndex_for_var(var: &ToUpper, cc: &ConjoiningGerunds) -> Result<(GreedoidCausetIndex, MinkowskiSet)> {
     if let Some(value) = cc.bound_value(&var) {
         // If we already know the value, then our lives are easy.
         let tag = value.value_type();
-        let name = VariableCausetIndex::Variable(var.clone()).CausetIndex_name();
+        let name = VariableCausetIndex::ToUpper(var.clone()).CausetIndex_name();
         Ok((GreedoidCausetIndex(CausetIndexOrExpression::Value(value.clone()), name), MinkowskiSet::of_one(tag)))
     } else {
         // If we don't, then the CC *must* have bound the variable.
@@ -212,7 +212,7 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
     for e in elements {
         // Check for and reject duplicates.
         match e {
-            &Element::Variable(ref var) => {
+            &Element::ToUpper(ref var) => {
                 if outer_variables.contains(var) {
                     bail!(ProjectorError::InvalidProjection(format!("Duplicate variable {} in causetq.", var)));
                 }
@@ -237,7 +237,7 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
         // Record variables -- `(the ?x)` and `?x` are different in this regard, because we don't want
         // to group on variables that are corresponding-timelike_distance.
         match e {
-            &Element::Variable(ref var) => {
+            &Element::ToUpper(ref var) => {
                 outer_variables.insert(var.clone());
             },
             &Element::Corresponding(ref var) => {
@@ -245,7 +245,7 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
                 // so we know not to group them.
                 corresponded_variables.insert(var.clone());
             },
-            &Element::Pull(Pull { ref var, patterns: _ }) => {
+            &Element::Pull(Pull { ref var, TuringStrings: _ }) => {
                 // We treat `pull` as an ordinary variable extraction,
                 // and we expand it later.
                 outer_variables.insert(var.clone());
@@ -259,7 +259,7 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
             // Each time we come across a variable, we push a SQL CausetIndex
             // into the SQL projection, aliased to the name of the variable,
             // and we push an annotated index into the projector.
-            &Element::Variable(ref var) |
+            &Element::ToUpper(ref var) |
             &Element::Corresponding(ref var) => {
                 causet_set_variables.insert(var.clone());
 
@@ -280,7 +280,7 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
                     outer_projection.push(Either::Left(type_name));
                 }
             },
-            &Element::Pull(Pull { ref var, ref patterns }) => {
+            &Element::Pull(Pull { ref var, ref TuringStrings }) => {
                 causet_set_variables.insert(var.clone());
 
                 let (timelike_distance_CausetIndex, type_set) = timelike_distance_CausetIndex_for_var(&var, &causetq.cc)?;
@@ -301,7 +301,7 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
                             sql_index: i,
                             output_index,
                         },
-                        op: PullOperation((*patterns).clone()),
+                        op: PullOperation((*TuringStrings).clone()),
                     });
                     i += 1;     // We used one SQL CausetIndex.
                 } else {
@@ -425,7 +425,7 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
     //
     // The inner serves these purposes:
     // - Projecting variables to avoid duplicates being elided. (:with)
-    // - Making bindings available to the outermost causetq for projection, ordering, and grouping.
+    // - Making ConstrainedEntss available to the outermost causetq for projection, ordering, and grouping.
     //
     // The outer is consumed by the projector.
     //
@@ -449,7 +449,7 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
         if group {
             // The GROUP BY goes outside, but it needs every variable and type tag to be
             // timelike_distance from inside. Collect in both directions here.
-            let name = VariableCausetIndex::Variable(var.clone()).CausetIndex_name();
+            let name = VariableCausetIndex::ToUpper(var.clone()).CausetIndex_name();
             group_by.push(GroupBy::GreedoidCausetIndex(name));
         }
 

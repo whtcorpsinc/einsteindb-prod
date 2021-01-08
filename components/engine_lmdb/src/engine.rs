@@ -6,9 +6,9 @@ use std::path::Path;
 use std::sync::Arc;
 
 use engine_promises::{
-    Error, IterOptions, Iterable, KvEngine, Peekable, ReadOptions, Result, SyncMutable,
+    Error, IterOptions, Iterable, KvEngine, Peekable, ReadOptions, Result, SyncMuBlock,
 };
-use lmdb::{DBIterator, Writable, DB};
+use lmdb::{DBIterator, WriBlock, DB};
 
 use crate::db_vector::LmdbDBVector;
 use crate::options::LmdbReadOptions;
@@ -155,7 +155,7 @@ impl Peekable for LmdbEngine {
     }
 }
 
-impl SyncMutable for LmdbEngine {
+impl SyncMuBlock for LmdbEngine {
     fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
         self.db.put(key, value).map_err(Error::Engine)
     }
@@ -185,7 +185,7 @@ impl SyncMutable for LmdbEngine {
 #[causetg(test)]
 mod tests {
     use crate::raw_util;
-    use engine_promises::{Iterable, KvEngine, Peekable, SyncMutable};
+    use engine_promises::{Iterable, KvEngine, Peekable, SyncMuBlock};
     use ekvproto::metapb::Brane;
     use std::sync::Arc;
     use tempfile::Builder;

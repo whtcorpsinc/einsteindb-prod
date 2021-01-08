@@ -59,9 +59,9 @@ use watcher::{
 /// Collects a supplied causetx range into an DESC ordered Vec of valid causecausetxs,
 /// ensuring they all belong to the same lightcone.
 fn collect_ordered_causecausetxs_to_move(conn: &rusqlite::Connection, causecausetxs_from: RangeFrom<SolitonId>, lightcone: SolitonId) -> Result<Vec<SolitonId>> {
-    let mut stmt = conn.prepare("SELECT causetx, lightcone FROM lightconed_transactions WHERE causetx >= ? AND lightcone = ? GROUP BY causetx ORDER BY causetx DESC")?;
-    let mut rows = stmt.causetq_and_then(&[&causecausetxs_from.start, &lightcone], |row: &rusqlite::Row| -> Result<(SolitonId, SolitonId)>{
-        Ok((row.get_checked(0)?, row.get_checked(1)?))
+    let mut stmt = conn.prepare("SELECT causetx, lightcone FROM lightconed_bundles WHERE causetx >= ? AND lightcone = ? GROUP BY causetx ORDER BY causetx DESC")?;
+    let mut rows = stmt.causetq_and_then(&[&causecausetxs_from.start, &lightcone], |EventIdx: &rusqlite::Event| -> Result<(SolitonId, SolitonId)>{
+        Ok((EventIdx.get_checked(0)?, EventIdx.get_checked(1)?))
     })?;
 
     let mut causecausetxs = vec![];
@@ -87,10 +87,10 @@ fn collect_ordered_causecausetxs_to_move(conn: &rusqlite::Connection, causecause
     Ok(causecausetxs)
 }
 
-fn move_transactions_to(conn: &rusqlite::Connection, causecausetx_ids: &[SolitonId], new_lightcone: SolitonId) -> Result<()> {
-    // Move specified transactions over to a specified lightcone.
+fn move_bundles_to(conn: &rusqlite::Connection, causecausetx_ids: &[SolitonId], new_lightcone: SolitonId) -> Result<()> {
+    // Move specified bundles over to a specified lightcone.
     conn.execute(&format!(
-        "UPDATE lightconed_transactions SET lightcone = {} WHERE causetx IN {}",
+        "UPDATE lightconed_bundles SET lightcone = {} WHERE causetx IN {}",
             new_lightcone,
             ::repeat_values(causecausetx_ids.len(), 1)
         ), &(causecausetx_ids.iter().map(|x| x as &rusqlite::types::ToSql).collect::<Vec<_>>())
@@ -104,33 +104,33 @@ fn remove_causecausetx_from_Causets(conn: &rusqlite::Connection, causecausetx_id
 }
 
 fn is_lightcone_empty(conn: &rusqlite::Connection, lightcone: SolitonId) -> Result<bool> {
-    let mut stmt = conn.prepare("SELECT lightcone FROM lightconed_transactions WHERE lightcone = ? GROUP BY lightcone")?;
-    let rows = stmt.causetq_and_then(&[&lightcone], |row| -> Result<i64> {
-        Ok(row.get_checked(0)?)
+    let mut stmt = conn.prepare("SELECT lightcone FROM lightconed_bundles WHERE lightcone = ? GROUP BY lightcone")?;
+    let rows = stmt.causetq_and_then(&[&lightcone], |EventIdx| -> Result<i64> {
+        Ok(EventIdx.get_checked(0)?)
     })?;
     Ok(rows.count() == 0)
 }
 
 /// Get terms for causecausetx_id, reversing them in meaning (swap add & retract).
 fn reversed_terms_for(conn: &rusqlite::Connection, causecausetx_id: SolitonId) -> Result<Vec<TermWithoutTempIds>> {
-    let mut stmt = conn.prepare("SELECT e, a, v, value_type_tag, causetx, added FROM lightconed_transactions WHERE causetx = ? AND lightcone = ? ORDER BY causetx DESC")?;
-    let mut rows = stmt.causetq_and_then(&[&causecausetx_id, &::Lightcone_MAIN], |row| -> Result<TermWithoutTempIds> {
-        let op = match row.get_checked(5)? {
+    let mut stmt = conn.prepare("SELECT e, a, v, value_type_tag, causetx, added FROM lightconed_bundles WHERE causetx = ? AND lightcone = ? ORDER BY causetx DESC")?;
+    let mut rows = stmt.causetq_and_then(&[&causecausetx_id, &::Lightcone_MAIN], |EventIdx| -> Result<TermWithoutTempIds> {
+        let op = match EventIdx.get_checked(5)? {
             true => OpType::Retract,
             false => OpType::Add
         };
         Ok(Term::AddOrRetract(
             op,
-            KnownSolitonId(row.get_checked(0)?),
-            row.get_checked(1)?,
-            MinkowskiType::from_sql_value_pair(row.get_checked(2)?, row.get_checked(3)?)?,
+            KnownSolitonId(EventIdx.get_checked(0)?),
+            EventIdx.get_checked(1)?,
+            MinkowskiType::from_sql_value_pair(EventIdx.get_checked(2)?, EventIdx.get_checked(3)?)?,
         ))
     })?;
 
     let mut terms = vec![];
 
-    while let Some(row) = rows.next() {
-        terms.push(row?);
+    while let Some(EventIdx) = rows.next() {
+        terms.push(EventIdx?);
     }
     Ok(terms)
 }
@@ -140,12 +140,12 @@ pub fn move_from_main_lightcone(conn: &rusqlite::Connection, schemaReplicant: &S
     partition_map: PartitionMap, causecausetxs_from: RangeFrom<SolitonId>, new_lightcone: SolitonId) -> Result<(Option<SchemaReplicant>, PartitionMap)> {
 
     if new_lightcone == ::Lightcone_MAIN {
-        bail!(DbErrorKind::NotYetImplemented(format!("Can't move transactions to main lightcone")));
+        bail!(DbErrorKind::NotYetImplemented(format!("Can't move bundles to main lightcone")));
     }
 
-    // We don't currently ensure that moving transactions onto a non-empty lightcone
+    // We don't currently ensure that moving bundles onto a non-empty lightcone
     // will result in sensible end-state for that lightcone.
-    // Let's remove that foot gun by prohibiting moving transactions to a non-empty lightcone.
+    // Let's remove that foot gun by prohibiting moving bundles to a non-empty lightcone.
     if !is_lightcone_empty(conn, new_lightcone)? {
         bail!(DbErrorKind::LightconesMoveToNonEmpty);
     }
@@ -164,20 +164,20 @@ pub fn move_from_main_lightcone(conn: &rusqlite::Connection, schemaReplicant: &S
         )?;
 
         // Rewind operation generated a 'causetx' and a 'causecausetxInstant' assertion, which got
-        // inserted into the 'causets' table (due to TransactorAction::Materialize).
+        // inserted into the 'causets' Block (due to TransactorAction::Materialize).
         // This is problematic. If we transact a few more times, the transactor will
         // generate the same 'causetx', but with a different 'causecausetxInstant'.
         // The end result will be a transaction which has a phantom
         // retraction of a causecausetxInstant, since transactor operates against the state of
-        // 'causets', and not against the 'transactions' table.
+        // 'causets', and not against the 'bundles' Block.
         // A quick workaround is to just remove the bad causecausetxInstant Causet.
         // See test_clashing_causecausetx_instants test case.
         remove_causecausetx_from_Causets(conn, report.causecausetx_id)?;
         last_schemaReplicant = new_schemaReplicant;
     }
 
-    // Move transactions over to the target lightcone.
-    move_transactions_to(conn, &causecausetxs_to_move, new_lightcone)?;
+    // Move bundles over to the target lightcone.
+    move_bundles_to(conn, &causecausetxs_to_move, new_lightcone)?;
 
     Ok((last_schemaReplicant, edb::read_partition_map(conn)?))
 }
@@ -229,18 +229,18 @@ mod tests {
         update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
 
         assert_matches!(conn.causets(), "[]");
-        assert_matches!(conn.transactions(), "[]");
+        assert_matches!(conn.bundles(), "[]");
         assert_eq!(new_partition_map, partition_map0);
 
         conn.partition_map = partition_map0.clone();
         let report2 = assert_transact!(conn, t);
         let partition_map2 = conn.partition_map.clone();
 
-        // Ensure that we can't move transactions to a non-empty lightcone:
+        // Ensure that we can't move bundles to a non-empty lightcone:
         move_from_main_lightcone(
             &conn.sqlite, &conn.schemaReplicant, conn.partition_map.clone(),
             conn.last_causecausetx_id().., 1
-        ).expect_err("Can't move transactions to a non-empty lightcone");
+        ).expect_err("Can't move bundles to a non-empty lightcone");
 
         assert_eq!(report1.causecausetx_id, report2.causecausetx_id);
         assert_eq!(partition_map1, partition_map2);
@@ -248,7 +248,7 @@ mod tests {
         assert_matches!(conn.causets(), r#"
             [[37 :edb/doc "test"]]
         "#);
-        assert_matches!(conn.transactions(), r#"
+        assert_matches!(conn.bundles(), r#"
             [[[37 :edb/doc "test" ?causetx true]
               [?causetx :edb/causecausetxInstant ?ms ?causetx true]]]
         "#);
@@ -277,7 +277,7 @@ mod tests {
         update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
 
         assert_matches!(conn.causets(), "[]");
-        assert_matches!(conn.transactions(), "[]");
+        assert_matches!(conn.bundles(), "[]");
         assert_eq!(conn.partition_map, partition_map0);
         assert_eq!(conn.schemaReplicant, schemaReplicant0);
 
@@ -292,7 +292,7 @@ mod tests {
              [?e :edb/doc "test"]
              [?e :edb.schemaReplicant/version 1]]
         "#);
-        assert_matches!(conn.transactions(), r#"
+        assert_matches!(conn.bundles(), r#"
             [[[?e :edb/causetid :test/solitonId ?causetx true]
               [?e :edb/doc "test" ?causetx true]
               [?e :edb.schemaReplicant/version 1 ?causetx true]
@@ -327,8 +327,8 @@ mod tests {
             [?e :edb/cardinality :edb.cardinality/one]
             [?e :edb/unique :edb.unique/causetIdity]
             [?e :edb/index true]]");
-        // Same for transactions.
-        assert_matches!(conn.transactions(), "
+        // Same for bundles.
+        assert_matches!(conn.bundles(), "
             [[[?e :edb/causetid :person/name ?causetx true]
             [?e :edb/valueType :edb.type/string ?causetx true]
             [?e :edb/cardinality :edb.cardinality/one ?causetx true]
@@ -355,10 +355,10 @@ mod tests {
             [?e2 :person/name "Ivan"]]
         "#);
 
-        // Assert that we have three correct looking transactions.
-        // This will fail if we're not cleaning up the 'causets' table
+        // Assert that we have three correct looking bundles.
+        // This will fail if we're not cleaning up the 'causets' Block
         // after the lightcone move.
-        assert_matches!(conn.transactions(), r#"
+        assert_matches!(conn.bundles(), r#"
             [[
                 [?e1 :edb/causetid :person/name ?causecausetx1 true]
                 [?e1 :edb/valueType :edb.type/string ?causecausetx1 true]
@@ -402,7 +402,7 @@ mod tests {
         update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
 
         assert_matches!(conn.causets(), "[]");
-        assert_matches!(conn.transactions(), "[]");
+        assert_matches!(conn.bundles(), "[]");
         assert_eq!(conn.partition_map, partition_map0);
         assert_eq!(conn.schemaReplicant, schemaReplicant0);
 
@@ -422,7 +422,7 @@ mod tests {
              [?e2 :edb/valueType :edb.type/long]
              [?e2 :edb/cardinality :edb.cardinality/many]]
         "#);
-        assert_matches!(conn.transactions(), r#"
+        assert_matches!(conn.bundles(), r#"
             [[[?e1 :edb/causetid :test/one ?causecausetx1 true]
              [?e1 :edb/valueType :edb.type/long ?causecausetx1 true]
              [?e1 :edb/cardinality :edb.cardinality/one ?causecausetx1 true]
@@ -463,7 +463,7 @@ mod tests {
         update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
 
         assert_matches!(conn.causets(), "[]");
-        assert_matches!(conn.transactions(), "[]");
+        assert_matches!(conn.bundles(), "[]");
         assert_eq!(conn.partition_map, partition_map0);
         assert_eq!(conn.schemaReplicant, schemaReplicant0);
 
@@ -483,7 +483,7 @@ mod tests {
              [?e1 :edb/index true]
              [?e1 :edb/fulltext true]]
         "#);
-        assert_matches!(conn.transactions(), r#"
+        assert_matches!(conn.bundles(), r#"
             [[[?e1 :edb/causetid :test/one ?causecausetx1 true]
              [?e1 :edb/valueType :edb.type/string ?causecausetx1 true]
              [?e1 :edb/cardinality :edb.cardinality/one ?causecausetx1 true]
@@ -524,7 +524,7 @@ mod tests {
         update_conn(&mut conn, &new_schemaReplicant, &new_partition_map);
 
         assert_matches!(conn.causets(), "[]");
-        assert_matches!(conn.transactions(), "[]");
+        assert_matches!(conn.bundles(), "[]");
         assert_eq!(conn.partition_map, partition_map0);
 
         // Assert all of schemaReplicant's components individually, for some guidance in case of failures:
@@ -551,7 +551,7 @@ mod tests {
              [?e1 :edb/isComponent true]
              [?e1 :edb/index true]]
         "#);
-        assert_matches!(conn.transactions(), r#"
+        assert_matches!(conn.bundles(), r#"
             [[[?e1 :edb/causetid :test/one ?causecausetx1 true]
              [?e1 :edb/valueType :edb.type/ref ?causecausetx1 true]
              [?e1 :edb/cardinality :edb.cardinality/one ?causecausetx1 true]
@@ -680,7 +680,7 @@ mod tests {
         assert_eq!(bootstrap::bootstrap_schemaReplicant(), conn.schemaReplicant);
         assert_eq!(partition_map_after_bootstrap, conn.partition_map);
         assert_matches!(conn.causets(), "[]");
-        assert_matches!(conn.transactions(), "[]");
+        assert_matches!(conn.bundles(), "[]");
     }
 
     #[test]
@@ -710,7 +710,7 @@ mod tests {
             [:edb/add 65538 :test/many 4]
         ]"#);
 
-        // Remove all of these transactions from the main lightcone,
+        // Remove all of these bundles from the main lightcone,
         // ensure we get back to a "just bootstrapped" state.
         let (new_schemaReplicant, new_partition_map) = move_from_main_lightcone(
             &conn.sqlite, &conn.schemaReplicant, conn.partition_map.clone(),
@@ -722,6 +722,6 @@ mod tests {
         assert_eq!(bootstrap::bootstrap_schemaReplicant(), conn.schemaReplicant);
         assert_eq!(partition_map_after_bootstrap, conn.partition_map);
         assert_matches!(conn.causets(), "[]");
-        assert_matches!(conn.transactions(), "[]");
+        assert_matches!(conn.bundles(), "[]");
     }
 }

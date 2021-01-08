@@ -5,7 +5,7 @@ use super::peer_causetStorage::{
 };
 use super::util::new_peer;
 use crate::Result;
-use engine_promises::{Engines, KvEngine, Mutable, VioletaBftEngine};
+use engine_promises::{Engines, KvEngine, MuBlock, VioletaBftEngine};
 use engine_promises::{CAUSET_DEFAULT, CAUSET_VIOLETABFT};
 
 use ekvproto::metapb;

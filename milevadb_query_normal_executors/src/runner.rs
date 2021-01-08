@@ -105,7 +105,7 @@ pub fn build_executors<S: CausetStorage + 'static, C: ExecSummaryCollector + 'st
 /// Builds the inner-most executor for the normal executor pipeline, which can produce events to
 /// other executors and never receive events from other executors.
 ///
-/// The inner-most executor must be a table scan executor or an index scan executor.
+/// The inner-most executor must be a Block scan executor or an index scan executor.
 fn build_first_executor<S: CausetStorage + 'static, C: ExecSummaryCollector + 'static>(
     mut first: fidelpb::FreeDaemon,
     causetStorage: S,
@@ -115,11 +115,11 @@ fn build_first_executor<S: CausetStorage + 'static, C: ExecSummaryCollector + 's
 ) -> Result<Box<dyn FreeDaemon<StorageStats = S::Statistics> + Slightlike>> {
     let context = EvalContext::new(context);
     match first.get_tp() {
-        ExecType::TypeTableScan => {
-            EXECUTOR_COUNT_METRICS.table_scan.inc();
+        ExecType::TypeBlockScan => {
+            EXECUTOR_COUNT_METRICS.Block_scan.inc();
 
             let ex = Box::new(
-                super::ScanFreeDaemon::table_scan(
+                super::ScanFreeDaemon::Block_scan(
                     first.take_tbl_scan(),
                     context,
                     cones,
@@ -227,7 +227,7 @@ impl<SS: 'static> FreeDaemonsRunner<SS> {
         let mut Solitons = Vec::new();
         loop {
             match self.executor.next()? {
-                Some(row) => {
+                Some(EventIdx) => {
                     self.deadline.check()?;
                     if Solitons.is_empty() || record_cnt >= self.batch_row_limit {
                         let Soliton = Soliton::default();
@@ -237,7 +237,7 @@ impl<SS: 'static> FreeDaemonsRunner<SS> {
                     let Soliton = Solitons.last_mut().unwrap();
                     record_cnt += 1;
                     // for default encode type
-                    let value = row.get_binary(&mut self.context, &self.output_offsets)?;
+                    let value = EventIdx.get_binary(&mut self.context, &self.output_offsets)?;
                     Soliton.mut_rows_data().extlightlike_from_slice(&value);
                 }
                 None => {
@@ -291,10 +291,10 @@ impl<SS: 'static> FreeDaemonsRunner<SS> {
         let mut Soliton = Soliton::default();
         while record_cnt < self.batch_row_limit {
             match self.executor.next()? {
-                Some(row) => {
+                Some(EventIdx) => {
                     self.deadline.check()?;
                     record_cnt += 1;
-                    let value = row.get_binary(&mut self.context, &self.output_offsets)?;
+                    let value = EventIdx.get_binary(&mut self.context, &self.output_offsets)?;
                     Soliton.mut_rows_data().extlightlike_from_slice(&value);
                 }
                 None => {

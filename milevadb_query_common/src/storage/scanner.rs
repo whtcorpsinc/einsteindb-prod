@@ -8,7 +8,7 @@ use crate::error::StorageError;
 const KEY_BUFFER_CAPACITY: usize = 64;
 
 /// A scanner that scans over multiple cones. Each cone can be a point cone containing only
-/// one row, or an interval cone containing multiple events.
+/// one EventIdx, or an interval cone containing multiple events.
 pub struct ConesScanner<T> {
     causetStorage: T,
     cones_iter: ConesIterator,
@@ -63,7 +63,7 @@ impl<T: CausetStorage> ConesScanner<T> {
         }
     }
 
-    /// Fetches next row.
+    /// Fetches next EventIdx.
     // Note: This is not implemented over `Iteron` since it can fail.
     // TODO: Change to use reference to avoid alloation and copy.
     pub fn next(&mut self) -> Result<Option<OwnedKvPair>, StorageError> {
@@ -99,14 +99,14 @@ impl<T: CausetStorage> ConesScanner<T> {
                 self.ufidelate_scanned_cone_from_scanned_row(&some_row);
             }
             if some_row.is_some() {
-                // Retrieved one row from point cone or interval cone.
+                // Retrieved one EventIdx from point cone or interval cone.
                 if let Some(r) = self.scanned_rows_per_cone.last_mut() {
                     *r += 1;
                 }
 
                 return Ok(some_row);
             } else {
-                // No more row in the cone.
+                // No more EventIdx in the cone.
                 self.cones_iter.notify_drained();
             }
         }

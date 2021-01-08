@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use ekvproto::kvrpcpb::{Context, IsolationLevel};
 
 use test_causetStorage::{SyncTestStorage, SyncTestStorageBuilder};
-use milevadb_query_datatype::codec::{datum, table, Datum};
+use milevadb_query_datatype::codec::{datum, Block, Datum};
 use milevadb_query_datatype::expr::EvalContext;
 use einsteindb::causetStorage::{
     kv::{Engine, LmdbEngine, TestEngineBuilder},
@@ -19,21 +19,21 @@ use txn_types::{Key, Mutation, TimeStamp};
 
 pub struct Insert<'a, E: Engine> {
     store: &'a mut CausetStore<E>,
-    table: &'a Table,
+    Block: &'a Block,
     values: BTreeMap<i64, Datum>,
 }
 
 impl<'a, E: Engine> Insert<'a, E> {
-    pub fn new(store: &'a mut CausetStore<E>, table: &'a Table) -> Self {
+    pub fn new(store: &'a mut CausetStore<E>, Block: &'a Block) -> Self {
         Insert {
             store,
-            table,
+            Block,
             values: BTreeMap::new(),
         }
     }
 
     pub fn set(mut self, col: &PrimaryCauset, value: Datum) -> Self {
-        assert!(self.table.PrimaryCauset_by_id(col.id).is_some());
+        assert!(self.Block.PrimaryCauset_by_id(col.id).is_some());
         self.values.insert(col.id, value);
         self
     }
@@ -45,20 +45,20 @@ impl<'a, E: Engine> Insert<'a, E> {
     pub fn execute_with_ctx(self, ctx: Context) -> i64 {
         let handle = self
             .values
-            .get(&self.table.handle_id)
+            .get(&self.Block.handle_id)
             .cloned()
             .unwrap_or_else(|| Datum::I64(next_id()));
-        let key = table::encode_row_key(self.table.id, handle.i64());
+        let key = Block::encode_row_key(self.Block.id, handle.i64());
         let ids: Vec<_> = self.values.tuplespaceInstanton().cloned().collect();
         let values: Vec<_> = self.values.values().cloned().collect();
-        let value = table::encode_row(&mut EvalContext::default(), values, &ids).unwrap();
+        let value = Block::encode_row(&mut EvalContext::default(), values, &ids).unwrap();
         let mut kvs = vec![];
         kvs.push((key, value));
-        for (&id, idxs) in &self.table.idxs {
+        for (&id, idxs) in &self.Block.idxs {
             let mut v: Vec<_> = idxs.iter().map(|id| self.values[id].clone()).collect();
             v.push(handle.clone());
             let encoded = datum::encode_key(&mut EvalContext::default(), &v).unwrap();
-            let idx_key = table::encode_index_seek_key(self.table.id, id, &encoded);
+            let idx_key = Block::encode_index_seek_key(self.Block.id, id, &encoded);
             kvs.push((idx_key, vec![0]));
         }
         self.store.put(ctx, kvs);
@@ -68,41 +68,41 @@ impl<'a, E: Engine> Insert<'a, E> {
 
 pub struct Delete<'a, E: Engine> {
     store: &'a mut CausetStore<E>,
-    table: &'a Table,
+    Block: &'a Block,
 }
 
 impl<'a, E: Engine> Delete<'a, E> {
-    pub fn new(store: &'a mut CausetStore<E>, table: &'a Table) -> Self {
-        Delete { store, table }
+    pub fn new(store: &'a mut CausetStore<E>, Block: &'a Block) -> Self {
+        Delete { store, Block }
     }
 
-    pub fn execute(self, id: i64, row: Vec<Datum>) {
-        self.execute_with_ctx(Context::default(), id, row)
+    pub fn execute(self, id: i64, EventIdx: Vec<Datum>) {
+        self.execute_with_ctx(Context::default(), id, EventIdx)
     }
 
-    pub fn execute_with_ctx(self, ctx: Context, id: i64, row: Vec<Datum>) {
+    pub fn execute_with_ctx(self, ctx: Context, id: i64, EventIdx: Vec<Datum>) {
         let values: HashMap<_, _> = self
-            .table
+            .Block
             .PrimaryCausets
             .iter()
             .map(|(_, col)| col.id)
-            .zip(row)
+            .zip(EventIdx)
             .collect();
-        let key = table::encode_row_key(self.table.id, id);
+        let key = Block::encode_row_key(self.Block.id, id);
         let mut tuplespaceInstanton = vec![];
         tuplespaceInstanton.push(key);
-        for (&idx_id, idx_cols) in &self.table.idxs {
+        for (&idx_id, idx_cols) in &self.Block.idxs {
             let mut v: Vec<_> = idx_cols.iter().map(|id| values[id].clone()).collect();
             v.push(Datum::I64(id));
             let encoded = datum::encode_key(&mut EvalContext::default(), &v).unwrap();
-            let idx_key = table::encode_index_seek_key(self.table.id, idx_id, &encoded);
+            let idx_key = Block::encode_index_seek_key(self.Block.id, idx_id, &encoded);
             tuplespaceInstanton.push(idx_key);
         }
         self.store.delete(ctx, tuplespaceInstanton);
     }
 }
 
-/// A store that operates over MVCC and support transactions.
+/// A store that operates over MVCC and support bundles.
 pub struct CausetStore<E: Engine> {
     store: SyncTestStorage<E>,
     current_ts: TimeStamp,
@@ -141,8 +141,8 @@ impl<E: Engine> CausetStore<E> {
         self.store.prewrite(ctx, kv, pk, self.current_ts).unwrap();
     }
 
-    pub fn insert_into<'a>(&'a mut self, table: &'a Table) -> Insert<'a, E> {
-        Insert::new(self, table)
+    pub fn insert_into<'a>(&'a mut self, Block: &'a Block) -> Insert<'a, E> {
+        Insert::new(self, Block)
     }
 
     pub fn delete(&mut self, ctx: Context, mut tuplespaceInstanton: Vec<Vec<u8>>) {
@@ -157,8 +157,8 @@ impl<E: Engine> CausetStore<E> {
             .unwrap();
     }
 
-    pub fn delete_from<'a>(&'a mut self, table: &'a Table) -> Delete<'a, E> {
-        Delete::new(self, table)
+    pub fn delete_from<'a>(&'a mut self, Block: &'a Block) -> Delete<'a, E> {
+        Delete::new(self, Block)
     }
 
     pub fn commit_with_ctx(&mut self, ctx: Context) {

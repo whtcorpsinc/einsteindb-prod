@@ -134,7 +134,7 @@ mod tests {
     use byteorder::{BigEndian, WriteBytesExt};
     use engine_lmdb::util::new_engine;
     use engine_lmdb::{LmdbEngine, LmdbSnapshot};
-    use engine_promises::{KvEngine, SyncMutable, CAUSET_DEFAULT, CAUSET_VIOLETABFT};
+    use engine_promises::{KvEngine, SyncMuBlock, CAUSET_DEFAULT, CAUSET_VIOLETABFT};
     use ekvproto::metapb::*;
     use std::sync::mpsc;
     use std::time::Duration;

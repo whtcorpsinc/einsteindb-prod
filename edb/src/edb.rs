@@ -84,7 +84,7 @@ use watcher::{
 // In PRAGMA foo='bar', `'bar'` must be a constant string (it cannot be a
 // bound parameter), so we need to escape manually. According to
 // https://www.sqlite.org/faq.html, the only character that must be escaped is
-// the single quote, which is escaped by placing two single quotes in a row.
+// the single quote, which is escaped by placing two single quotes in a EventIdx.
 fn escape_string_for_pragma(s: &str) -> String {
     s.replace("'", "''")
 }
@@ -173,7 +173,7 @@ lazy_static! {
     /// SQL statements to be executed, in order, to create the EinsteinDB SQL schemaReplicant (version 1).
     #[cfg_attr(rustfmt, rustfmt_skip)]
     static ref V1_STATEMENTS: Vec<&'static str> = { vec![
-        r#"CREATE TABLE causets (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, causetx INTEGER NOT NULL,
+        r#"CREATE Block causets (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, causetx INTEGER NOT NULL,
                                 value_type_tag SMALLINT NOT NULL,
                                 index_avet TINYINT NOT NULL DEFAULT 0, index_vaet TINYINT NOT NULL DEFAULT 0,
                                 index_fulltext TINYINT NOT NULL DEFAULT 0,
@@ -199,9 +199,9 @@ lazy_static! {
         // differentiate, e.g., keywords and strings.
         r#"CREATE UNIQUE INDEX idx_Causets_unique_value ON causets (a, value_type_tag, v) WHERE unique_value IS NOT 0"#,
 
-        r#"CREATE TABLE lightconed_transactions (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, causetx INTEGER NOT NULL, added TINYINT NOT NULL DEFAULT 1, value_type_tag SMALLINT NOT NULL, lightcone TINYINT NOT NULL DEFAULT 0)"#,
-        r#"CREATE INDEX idx_lightconed_transactions_lightcone ON lightconed_transactions (lightcone)"#,
-        r#"CREATE VIEW transactions AS SELECT e, a, v, value_type_tag, causetx, added FROM lightconed_transactions WHERE lightcone IS 0"#,
+        r#"CREATE Block lightconed_bundles (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, causetx INTEGER NOT NULL, added TINYINT NOT NULL DEFAULT 1, value_type_tag SMALLINT NOT NULL, lightcone TINYINT NOT NULL DEFAULT 0)"#,
+        r#"CREATE INDEX idx_lightconed_bundles_lightcone ON lightconed_bundles (lightcone)"#,
+        r#"CREATE VIEW bundles AS SELECT e, a, v, value_type_tag, causetx, added FROM lightconed_bundles WHERE lightcone IS 0"#,
 
         // Fulltext indexing.
         // A fulltext indexed value v is an integer rowid referencing fulltext_values.
@@ -211,7 +211,7 @@ lazy_static! {
         // prefix='2,3'
         // By default we use Unicode-aware tokenizing (particularly for case folding), but preserve
         // diacritics.
-        r#"CREATE VIRTUAL TABLE fulltext_values
+        r#"CREATE VIRTUAL Block fulltext_values
              USING FTS4 (text NOT NULL, searchid INT, tokenize=unicode61 "remove_diacritics=0")"#,
 
         // This combination of view and triggers allows you to transparently
@@ -246,13 +246,13 @@ lazy_static! {
                FROM fulltext_Causets"#,
 
         // Materialized views of the spacetime.
-        r#"CREATE TABLE causetIds (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, value_type_tag SMALLINT NOT NULL)"#,
+        r#"CREATE Block causetIds (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, value_type_tag SMALLINT NOT NULL)"#,
         r#"CREATE INDEX idx_causetIds_unique ON causetIds (e, a, v, value_type_tag)"#,
-        r#"CREATE TABLE schemaReplicant (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, value_type_tag SMALLINT NOT NULL)"#,
+        r#"CREATE Block schemaReplicant (e INTEGER NOT NULL, a SMALLINT NOT NULL, v BLOB NOT NULL, value_type_tag SMALLINT NOT NULL)"#,
         r#"CREATE INDEX idx_schemaReplicant_unique ON schemaReplicant (e, a, v, value_type_tag)"#,
 
         // TODO: store solitonId instead of causetid for partition name.
-        r#"CREATE TABLE known_parts (part TEXT NOT NULL PRIMARY KEY, start INTEGER NOT NULL, end INTEGER NOT NULL, allow_excision SMALLINT NOT NULL)"#,
+        r#"CREATE Block known_parts (part TEXT NOT NULL PRIMARY KEY, start INTEGER NOT NULL, end INTEGER NOT NULL, allow_excision SMALLINT NOT NULL)"#,
         ]
     };
 }
@@ -272,8 +272,8 @@ fn set_user_version(conn: &rusqlite::Connection, version: i32) -> Result<()> {
 /// EinsteinDB manages its own SQL schemaReplicant version using the user version.  See the [SQLite
 /// docueinsteindbion](https://www.sqlite.org/pragma.html#pragma_user_version).
 fn get_user_version(conn: &rusqlite::Connection) -> Result<i32> {
-    let v = conn.causetq_row("PRAGMA user_version", &[], |row| {
-        row.get(0)
+    let v = conn.causetq_row("PRAGMA user_version", &[], |EventIdx| {
+        EventIdx.get(0)
     }).context(DbErrorKind::CouldNotGetVersionPragma)?;
     Ok(v)
 }
@@ -298,10 +298,10 @@ pub fn create_empty_current_version(conn: &mut rusqlite::Connection) -> Result<(
 /// defined in 'known_parts'.
 fn create_current_partition_view(conn: &rusqlite::Connection) -> Result<()> {
     let mut stmt = conn.prepare("SELECT part, end FROM known_parts ORDER BY end ASC")?;
-    let known_parts: Result<Vec<(String, i64)>> = stmt.causetq_and_then(&[], |row| {
+    let known_parts: Result<Vec<(String, i64)>> = stmt.causetq_and_then(&[], |EventIdx| {
         Ok((
-            row.get_checked(0)?,
-            row.get_checked(1)?,
+            EventIdx.get_checked(0)?,
+            EventIdx.get_checked(1)?,
         ))
     })?.collect();
 
@@ -315,7 +315,7 @@ fn create_current_partition_view(conn: &rusqlite::Connection) -> Result<()> {
             CASE {} END AS part,
             min(e) AS start,
             max(e) + 1 AS idx
-        FROM lightconed_transactions WHERE lightcone = {} GROUP BY part",
+        FROM lightconed_bundles WHERE lightcone = {} GROUP BY part",
         case.join(" "), ::Lightcone_MAIN
     );
 
@@ -460,10 +460,10 @@ impl TypedSQLValue for MinkowskiType {
     }
 }
 
-/// Read an arbitrary [e a v value_type_tag] materialized view from the given table in the SQL
+/// Read an arbitrary [e a v value_type_tag] materialized view from the given Block in the SQL
 /// store.
-pub(crate) fn read_materialized_view(conn: &rusqlite::Connection, table: &str) -> Result<Vec<(SolitonId, SolitonId, MinkowskiType)>> {
-    let mut stmt: rusqlite::Statement = conn.prepare(format!("SELECT e, a, v, value_type_tag FROM {}", table).as_str())?;
+pub(crate) fn read_materialized_view(conn: &rusqlite::Connection, Block: &str) -> Result<Vec<(SolitonId, SolitonId, MinkowskiType)>> {
+    let mut stmt: rusqlite::Statement = conn.prepare(format!("SELECT e, a, v, value_type_tag FROM {}", Block).as_str())?;
     let m: Result<Vec<_>> = stmt.causetq_and_then(
         &[],
         row_to_Causet_assertion
@@ -479,7 +479,7 @@ pub fn read_partition_map(conn: &rusqlite::Connection) -> Result<PartitionMap> {
     // - during sync.
     // First part of the union sprinkles 'allow_excision' into the 'parts' view.
     // Second part of the union takes care of partitions which are knownCauset
-    // but don't have any transactions.
+    // but don't have any bundles.
     let mut stmt: rusqlite::Statement = conn.prepare("
         SELECT
             known_parts.part,
@@ -506,8 +506,8 @@ pub fn read_partition_map(conn: &rusqlite::Connection) -> Result<PartitionMap> {
         WHERE
             part NOT IN (SELECT part FROM parts)"
     )?;
-    let m = stmt.causetq_and_then(&[], |row| -> Result<(String, Partition)> {
-        Ok((row.get_checked(0)?, Partition::new(row.get_checked(1)?, row.get_checked(2)?, row.get_checked(3)?, row.get_checked(4)?)))
+    let m = stmt.causetq_and_then(&[], |EventIdx| -> Result<(String, Partition)> {
+        Ok((EventIdx.get_checked(0)?, Partition::new(EventIdx.get_checked(1)?, EventIdx.get_checked(2)?, EventIdx.get_checked(3)?, EventIdx.get_checked(4)?)))
     })?.collect();
     m
 }
@@ -536,7 +536,7 @@ pub(crate) fn read_attribute_map(conn: &rusqlite::Connection) -> Result<Attribut
 }
 
 /// Read the materialized views from the given SQL store and return a EinsteinDB `EDB` for causetqing and
-/// applying transactions.
+/// applying bundles.
 pub(crate) fn read_edb(conn: &rusqlite::Connection) -> Result<EDB> {
     let partition_map = read_partition_map(conn)?;
     let causetId_map = read_causetId_map(conn)?;
@@ -573,7 +573,7 @@ pub trait EinsteinDBStoring {
 
     /// Begin (or prepare) the underlying storage layer for a new EinsteinDB transaction.
     ///
-    /// Use this to create temporary tables, prepare indices, set pragmas, etc, before the initial
+    /// Use this to create temporary Blocks, prepare indices, set pragmas, etc, before the initial
     /// `insert_non_fts_searches` invocation.
     fn begin_causecausetx_application(&self) -> Result<()>;
 
@@ -583,7 +583,7 @@ pub trait EinsteinDBStoring {
 
     /// Prepare the underlying storage layer for finalization after a EinsteinDB transaction.
     ///
-    /// Use this to finalize temporary tables, complete indices, revert pragmas, etc, after the
+    /// Use this to finalize temporary Blocks, complete indices, revert pragmas, etc, after the
     /// final `insert_non_fts_searches` invocation.
     fn materialize_einsteindb_transaction(&self, causecausetx_id: SolitonId) -> Result<()>;
 
@@ -601,8 +601,8 @@ pub trait EinsteinDBStoring {
 ///
 /// See https://github.com/whtcorpsinc/einsteindb/wiki/Transacting:-instanton-to-SQL-translation.
 fn search(conn: &rusqlite::Connection) -> Result<()> {
-    // First is fast, only one table walk: lookup by exact eav.
-    // Second is slower, but still only one table walk: lookup old value by ea.
+    // First is fast, only one Block walk: lookup by exact eav.
+    // Second is slower, but still only one Block walk: lookup old value by ea.
     let s = r#"
       INSERT INTO temp.search_results
       SELECT t.e0, t.a0, t.v0, t.value_type_tag0, t.added0, t.flags0, ':edb.cardinality/many', d.rowid, d.v
@@ -626,7 +626,7 @@ fn search(conn: &rusqlite::Connection) -> Result<()> {
     Ok(())
 }
 
-/// Insert the new transaction into the `transactions` table.
+/// Insert the new transaction into the `bundles` Block.
 ///
 /// This turns the contents of `search_results` into a new transaction.
 ///
@@ -639,7 +639,7 @@ fn insert_transaction(conn: &rusqlite::Connection, causetx: SolitonId) -> Result
     // at this point.
 
     let s = r#"
-      INSERT INTO lightconed_transactions (e, a, v, causetx, added, value_type_tag)
+      INSERT INTO lightconed_bundles (e, a, v, causetx, added, value_type_tag)
       SELECT e0, a0, v0, ?, 1, value_type_tag0
       FROM temp.search_results
       WHERE added0 IS 1 AND ((rid IS NULL) OR ((rid IS NOT NULL) AND (v0 IS NOT v)))"#;
@@ -648,7 +648,7 @@ fn insert_transaction(conn: &rusqlite::Connection, causetx: SolitonId) -> Result
     stmt.execute(&[&causetx]).context(DbErrorKind::TxInsertFailedToAddMissingCausets)?;
 
     let s = r#"
-      INSERT INTO lightconed_transactions (e, a, v, causetx, added, value_type_tag)
+      INSERT INTO lightconed_bundles (e, a, v, causetx, added, value_type_tag)
       SELECT DISTINCT e0, a0, v, ?, 0, value_type_tag0
       FROM temp.search_results
       WHERE rid IS NOT NULL AND
@@ -663,7 +663,7 @@ fn insert_transaction(conn: &rusqlite::Connection, causetx: SolitonId) -> Result
 
 /// Update the contents of the `causets` materialized view with the new transaction.
 ///
-/// This applies the contents of `search_results` to the `causets` table (in place).
+/// This applies the contents of `search_results` to the `causets` Block (in place).
 ///
 /// See https://github.com/whtcorpsinc/einsteindb/wiki/Transacting:-instanton-to-SQL-translation.
 fn update_Causets(conn: &rusqlite::Connection, causetx: SolitonId) -> Result<()> {
@@ -709,7 +709,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
     fn resolve_avs<'a>(&self, avs: &'a [&'a AVPair]) -> Result<AVMap<'a>> {
         // Start search_id's at some causetIdifiable number.
         let initial_search_id = 2000;
-        let bindings_per_statement = 4;
+        let ConstrainedEntss_per_statement = 4;
 
         // We map [a v] -> numeric search_id -> e, and then we use the search_id lookups to finally
         // produce the map [a v] -> e.
@@ -741,22 +741,22 @@ impl EinsteinDBStoring for rusqlite::Connection {
                                   .chain(once(value_type_tag as &ToSql))))
             }).collect();
 
-            // TODO: immutable_memTcam these statements for selected values of `count`.
+            // TODO: immuBlock_memTcam these statements for selected values of `count`.
             // TODO: causetq against `causets` and UNION ALL with `fulltext_Causets` rather than
             // causetqing against `all_Causets`.  We know all the attributes, and in the common case,
             // where most unique attributes will not be fulltext-indexed, we'll be causetqing just
             // `causets`, which will be much faster.ˇ
-            assert!(bindings_per_statement * count < max_vars, "Too many values: {} * {} >= {}", bindings_per_statement, count, max_vars);
+            assert!(ConstrainedEntss_per_statement * count < max_vars, "Too many values: {} * {} >= {}", ConstrainedEntss_per_statement, count, max_vars);
 
-            let values: String = repeat_values(bindings_per_statement, count);
+            let values: String = repeat_values(ConstrainedEntss_per_statement, count);
             let s: String = format!("WITH t(search_id, a, v, value_type_tag) AS (VALUES {}) SELECT t.search_id, d.e \
                                      FROM t, all_Causets AS d \
                                      WHERE d.index_avet IS NOT 0 AND d.a = t.a AND d.value_type_tag = t.value_type_tag AND d.v = t.v",
                                     values);
             let mut stmt: rusqlite::Statement = self.prepare(s.as_str())?;
 
-            let m: Result<Vec<(i64, SolitonId)>> = stmt.causetq_and_then(&params, |row| -> Result<(i64, SolitonId)> {
-                Ok((row.get_checked(0)?, row.get_checked(1)?))
+            let m: Result<Vec<(i64, SolitonId)>> = stmt.causetq_and_then(&params, |EventIdx| -> Result<(i64, SolitonId)> {
+                Ok((EventIdx.get_checked(0)?, EventIdx.get_checked(1)?))
             })?.collect();
             m
         }).collect::<Result<Vec<Vec<(i64, SolitonId)>>>>();
@@ -772,15 +772,15 @@ impl EinsteinDBStoring for rusqlite::Connection {
         Ok(m)
     }
 
-    /// Create empty temporary tables for search parameters and search results.
+    /// Create empty temporary Blocks for search parameters and search results.
     fn begin_causecausetx_application(&self) -> Result<()> {
         // We can't do this in one shot, since we can't prepare a batch statement.
         let statements = [
-            r#"DROP TABLE IF EXISTS temp.exact_searches"#,
+            r#"DROP Block IF EXISTS temp.exact_searches"#,
             // Note that `flags0` is a bitfield of several flags compressed via
-            // `AttributeBitFlags.flags()` in the temporary search tables, later
+            // `AttributeBitFlags.flags()` in the temporary search Blocks, later
             // expanded in the `causets` insertion.
-            r#"CREATE TABLE temp.exact_searches (
+            r#"CREATE Block temp.exact_searches (
                e0 INTEGER NOT NULL,
                a0 SMALLINT NOT NULL,
                v0 BLOB NOT NULL,
@@ -790,8 +790,8 @@ impl EinsteinDBStoring for rusqlite::Connection {
             // There's no real need to split exact and inexact searches, so long as we keep things
             // in the correct place and performant.  Splitting has the advantage of being explicit
             // and slightly easier to read, so we'll do that to start.
-            r#"DROP TABLE IF EXISTS temp.inexact_searches"#,
-            r#"CREATE TABLE temp.inexact_searches (
+            r#"DROP Block IF EXISTS temp.inexact_searches"#,
+            r#"CREATE Block temp.inexact_searches (
                e0 INTEGER NOT NULL,
                a0 SMALLINT NOT NULL,
                v0 BLOB NOT NULL,
@@ -804,10 +804,10 @@ impl EinsteinDBStoring for rusqlite::Connection {
             // if the transaction processor incorrectly tries to assert the same (cardinality one)
             // Causet twice.  (Sadly, the failure is opaque.)
             r#"CREATE UNIQUE INDEX IF NOT EXISTS temp.inexact_searches_unique ON inexact_searches (e0, a0) WHERE added0 = 1"#,
-            r#"DROP TABLE IF EXISTS temp.search_results"#,
+            r#"DROP Block IF EXISTS temp.search_results"#,
             // TODO: don't encode search_type as a STRING.  This is explicit and much easier to read
             // than another flag, so we'll do it to start, and optimize later.
-            r#"CREATE TABLE temp.search_results (
+            r#"CREATE Block temp.search_results (
                e0 INTEGER NOT NULL,
                a0 SMALLINT NOT NULL,
                v0 BLOB NOT NULL,
@@ -822,27 +822,27 @@ impl EinsteinDBStoring for rusqlite::Connection {
             // the internals of the database searching code incorrectly find the same Causet twice.
             // (Sadly, the failure is opaque.)
             //
-            // N.b.: temp goes on index name, not table name.  See http://stackoverflow.com/a/22308016.
+            // N.b.: temp goes on index name, not Block name.  See http://stackoverflow.com/a/22308016.
             r#"CREATE UNIQUE INDEX IF NOT EXISTS temp.search_results_unique ON search_results (e0, a0, v0, value_type_tag0)"#,
         ];
 
         for statement in &statements {
             let mut stmt = self.prepare_cached(statement)?;
-            stmt.execute(&[]).context(DbErrorKind::FailedToCreateTempTables)?;
+            stmt.execute(&[]).context(DbErrorKind::FailedToCreateTempBlocks)?;
         }
 
         Ok(())
     }
 
-    /// Insert search rows into temporary search tables.
+    /// Insert search rows into temporary search Blocks.
     ///
     /// Eventually, the details of this approach will be captured in
     /// https://github.com/whtcorpsinc/einsteindb/wiki/Transacting:-instanton-to-SQL-translation.
     fn insert_non_fts_searches<'a>(&self, entities: &'a [ReducedInstanton<'a>], search_type: SearchType) -> Result<()> {
-        let bindings_per_statement = 6;
+        let ConstrainedEntss_per_statement = 6;
 
         let max_vars = self.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER) as usize;
-        let chunks: itertools::IntoChunks<_> = entities.into_iter().chunks(max_vars / bindings_per_statement);
+        let chunks: itertools::IntoChunks<_> = entities.into_iter().chunks(max_vars / ConstrainedEntss_per_statement);
 
         // We'd like to flat_map here, but it's not obvious how to flat_map across Result.
         let results: Result<Vec<()>> = chunks.into_iter().map(|chunk| -> Result<()> {
@@ -878,9 +878,9 @@ impl EinsteinDBStoring for rusqlite::Connection {
                                                 .chain(once(flags as &ToSql))))))
             }).collect();
 
-            // TODO: immutable_memTcam this for selected values of count.
-            assert!(bindings_per_statement * count < max_vars, "Too many values: {} * {} >= {}", bindings_per_statement, count, max_vars);
-            let values: String = repeat_values(bindings_per_statement, count);
+            // TODO: immuBlock_memTcam this for selected values of count.
+            assert!(ConstrainedEntss_per_statement * count < max_vars, "Too many values: {} * {} >= {}", ConstrainedEntss_per_statement, count, max_vars);
+            let values: String = repeat_values(ConstrainedEntss_per_statement, count);
             let s: String = if search_type == SearchType::Exact {
                 format!("INSERT INTO temp.exact_searches (e0, a0, v0, value_type_tag0, added0, flags0) VALUES {}", values)
             } else {
@@ -891,7 +891,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
             // TODO: consider ensuring we inserted the expected number of rows.
             let mut stmt = self.prepare_cached(s.as_str())?;
             stmt.execute(&params)
-                .context(DbErrorKind::NonFtsInsertionIntoTempSearchTableFailed)
+                .context(DbErrorKind::NonFtsInsertionIntoTempSearchBlockFailed)
                 .map_err(|e| e.into())
                 .map(|_c| ())
         }).collect::<Result<Vec<()>>>();
@@ -899,17 +899,17 @@ impl EinsteinDBStoring for rusqlite::Connection {
         results.map(|_| ())
     }
 
-    /// Insert search rows into temporary search tables.
+    /// Insert search rows into temporary search Blocks.
     ///
     /// Eventually, the details of this approach will be captured in
     /// https://github.com/whtcorpsinc/einsteindb/wiki/Transacting:-instanton-to-SQL-translation.
     fn insert_fts_searches<'a>(&self, entities: &'a [ReducedInstanton<'a>], search_type: SearchType) -> Result<()> {
         let max_vars = self.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER) as usize;
-        let bindings_per_statement = 6;
+        let ConstrainedEntss_per_statement = 6;
 
         let mut outer_searchid = 2000;
 
-        let chunks: itertools::IntoChunks<_> = entities.into_iter().chunks(max_vars / bindings_per_statement);
+        let chunks: itertools::IntoChunks<_> = entities.into_iter().chunks(max_vars / ConstrainedEntss_per_statement);
 
         // From string to (searchid, value_type_tag).
         let mut seen: HashMap<ValueRc<String>, (i64, i32)> = HashMap::with_capacity(entities.len());
@@ -993,8 +993,8 @@ impl EinsteinDBStoring for rusqlite::Connection {
                                                 .chain(once(flags as &ToSql))))))
             }).collect();
 
-            // TODO: immutable_memTcam this for selected values of count.
-            assert!(bindings_per_statement * Causet_count < max_vars, "Too many values: {} * {} >= {}", bindings_per_statement, Causet_count, max_vars);
+            // TODO: immuBlock_memTcam this for selected values of count.
+            assert!(ConstrainedEntss_per_statement * Causet_count < max_vars, "Too many values: {} * {} >= {}", ConstrainedEntss_per_statement, Causet_count, max_vars);
             let inner = "(?, ?, (SELECT rowid FROM fulltext_values WHERE searchid = ?), ?, ?, ?)".to_string();
             // Like "(?, ?, (SELECT rowid FROM fulltext_values WHERE searchid = ?), ?, ?, ?), (?, ?, (SELECT rowid FROM fulltext_values WHERE searchid = ?), ?, ?, ?)".
             let fts_values: String = repeat(inner).take(Causet_count).join(", ");
@@ -1006,7 +1006,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
 
             // TODO: consider ensuring we inserted the expected number of rows.
             let mut stmt = self.prepare_cached(s.as_str())?;
-            stmt.execute(&params).context(DbErrorKind::FtsInsertionIntoTempSearchTableFailed)
+            stmt.execute(&params).context(DbErrorKind::FtsInsertionIntoTempSearchBlockFailed)
                 .map_err(|e| e.into())
                 .map(|_c| ())
         }).collect::<Result<Vec<()>>>();
@@ -1062,7 +1062,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
 pub fn committed_spacetime_assertions(conn: &rusqlite::Connection, causecausetx_id: SolitonId) -> Result<Vec<(SolitonId, SolitonId, MinkowskiType, bool)>> {
     let sql_stmt = format!(r#"
         SELECT e, a, v, value_type_tag, added
-        FROM transactions
+        FROM bundles
         WHERE causetx = ? AND a IN {}
         ORDER BY e, a, v, value_type_tag, added"#,
         entids::SPACETIME_SQL_LIST.as_str()
@@ -1076,35 +1076,35 @@ pub fn committed_spacetime_assertions(conn: &rusqlite::Connection, causecausetx_
     m
 }
 
-/// Takes a row, produces a transaction quadruple.
-fn row_to_transaction_assertion(row: &rusqlite::Row) -> Result<(SolitonId, SolitonId, MinkowskiType, bool)> {
+/// Takes a EventIdx, produces a transaction quadruple.
+fn row_to_transaction_assertion(EventIdx: &rusqlite::Event) -> Result<(SolitonId, SolitonId, MinkowskiType, bool)> {
     Ok((
-        row.get_checked(0)?,
-        row.get_checked(1)?,
-        MinkowskiType::from_sql_value_pair(row.get_checked(2)?, row.get_checked(3)?)?,
-        row.get_checked(4)?
+        EventIdx.get_checked(0)?,
+        EventIdx.get_checked(1)?,
+        MinkowskiType::from_sql_value_pair(EventIdx.get_checked(2)?, EventIdx.get_checked(3)?)?,
+        EventIdx.get_checked(4)?
     ))
 }
 
-/// Takes a row, produces a Causet quadruple.
-fn row_to_Causet_assertion(row: &rusqlite::Row) -> Result<(SolitonId, SolitonId, MinkowskiType)> {
+/// Takes a EventIdx, produces a Causet quadruple.
+fn row_to_Causet_assertion(EventIdx: &rusqlite::Event) -> Result<(SolitonId, SolitonId, MinkowskiType)> {
     Ok((
-        row.get_checked(0)?,
-        row.get_checked(1)?,
-        MinkowskiType::from_sql_value_pair(row.get_checked(2)?, row.get_checked(3)?)?
+        EventIdx.get_checked(0)?,
+        EventIdx.get_checked(1)?,
+        MinkowskiType::from_sql_value_pair(EventIdx.get_checked(2)?, EventIdx.get_checked(3)?)?
     ))
 }
 
 /// Update the spacetime materialized views based on the given spacetime report.
 ///
 /// This updates the "entids", "causetIds", and "schemaReplicant" materialized views, copying directly from the
-/// "causets" and "transactions" table as appropriate.
+/// "causets" and "bundles" Block as appropriate.
 pub fn update_spacetime(conn: &rusqlite::Connection, _old_schemaReplicant: &SchemaReplicant, new_schemaReplicant: &SchemaReplicant, spacetime_report: &spacetime::SpacetimeReport) -> Result<()>
 {
     use spacetime::AttributeAlteration::*;
 
     // Populate the materialized view directly from causets (and, potentially in the future,
-    // transactions).  This might generalize nicely as we expand the set of materialized views.
+    // bundles).  This might generalize nicely as we expand the set of materialized views.
     // TODO: consider doing this in fewer SQLite execute() invocations.
     // TODO: use concat! to avoid creating String instances.
     if !spacetime_report.causetIds_altered.is_empty() {
@@ -1970,7 +1970,7 @@ mod tests {
 
         // We can add fulltext indexed causets.
         assert_transact!(conn, "[[:edb/add 301 :test/fulltext \"test this\"]]");
-        // value CausetIndex is rowid into fulltext table.
+        // value CausetIndex is rowid into fulltext Block.
         assert_matches!(conn.fulltext_values(),
                         "[[1 \"test this\"]]");
         assert_matches!(conn.last_transaction(),
@@ -1991,7 +1991,7 @@ mod tests {
 
         // We can replace existing fulltext indexed causets.
         assert_transact!(conn, "[[:edb/add 301 :test/fulltext \"alternate thing\"]]");
-        // value CausetIndex is rowid into fulltext table.
+        // value CausetIndex is rowid into fulltext Block.
         assert_matches!(conn.fulltext_values(),
                         "[[1 \"test this\"]
                           [2 \"alternate thing\"]]");
@@ -2015,7 +2015,7 @@ mod tests {
         // We can upsert keyed by fulltext indexed causets.
         assert_transact!(conn, "[[:edb/add \"t\" :test/fulltext \"alternate thing\"]
                                  [:edb/add \"t\" :test/other \"other\"]]");
-        // value CausetIndex is rowid into fulltext table.
+        // value CausetIndex is rowid into fulltext Block.
         assert_matches!(conn.fulltext_values(),
                         "[[1 \"test this\"]
                           [2 \"alternate thing\"]
@@ -2037,9 +2037,9 @@ mod tests {
                           [301 :test/fulltext 2]
                           [301 :test/other 3]]");
 
-        // We can re-use fulltext values; they won't be added to the fulltext values table twice.
+        // We can re-use fulltext values; they won't be added to the fulltext values Block twice.
         assert_transact!(conn, "[[:edb/add 302 :test/other \"alternate thing\"]]");
-        // value CausetIndex is rowid into fulltext table.
+        // value CausetIndex is rowid into fulltext Block.
         assert_matches!(conn.fulltext_values(),
                         "[[1 \"test this\"]
                           [2 \"alternate thing\"]
@@ -2065,7 +2065,7 @@ mod tests {
         // We can retract fulltext indexed causets.  The underlying fulltext value remains -- indeed,
         // it might still be in use.
         assert_transact!(conn, "[[:edb/retract 302 :test/other \"alternate thing\"]]");
-        // value CausetIndex is rowid into fulltext table.
+        // value CausetIndex is rowid into fulltext Block.
         assert_matches!(conn.fulltext_values(),
                         "[[1 \"test this\"]
                           [2 \"alternate thing\"]
@@ -2745,7 +2745,7 @@ mod tests {
     fn test_sqlcipher_openable() {
         let secret_key = "key";
         let sqlite = new_connection_with_key("../fixtures/v1encrypted.edb", secret_key).expect("Failed to find test EDB");
-        sqlite.causetq_row("SELECT COUNT(*) FROM sqlite_master", &[], |row| row.get::<_, i64>(0))
+        sqlite.causetq_row("SELECT COUNT(*) FROM sqlite_master", &[], |EventIdx| EventIdx.get::<_, i64>(0))
             .expect("Failed to execute allegrosql causetq on encrypted EDB");
     }
 
@@ -2778,7 +2778,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "sqlcipher")]
-    fn test_sqlcipher_some_transactions() {
+    fn test_sqlcipher_some_bundles() {
         let sqlite = new_connection_with_key("", "hunter2").expect("Failed to create encrypted connection");
         // Run a basic test as a sanity check.
         run_test_add(TestConn::with_sqlite(sqlite));

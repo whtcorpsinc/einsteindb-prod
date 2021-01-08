@@ -10,15 +10,15 @@ use crossbeam::atomic::AtomicCell;
 #[causetg(feature = "prost-codec")]
 use ekvproto::cdcpb::{
     event::{
-        row::OpType as EventRowOpType, Entries as EventEntries, Event as Event_oneof_event,
-        LogType as EventLogType, Row as EventRow,
+        EventIdx::OpType as EventEventOpType, Entries as EventEntries, Event as Event_oneof_event,
+        LogType as EventLogType, Event as EventEvent,
     },
     Compatibility, DuplicateRequest as ErrorDuplicateRequest, Error as EventError, Event,
 };
 #[causetg(not(feature = "prost-codec"))]
 use ekvproto::cdcpb::{
     Compatibility, DuplicateRequest as ErrorDuplicateRequest, Error as EventError, Event,
-    EventEntries, EventLogType, EventRow, EventRowOpType, Event_oneof_event,
+    EventEntries, EventLogType, EventEvent, EventEventOpType, Event_oneof_event,
 };
 use ekvproto::errorpb;
 use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
@@ -473,60 +473,60 @@ impl Delegate {
                     dagger,
                     old_value,
                 }) => {
-                    let mut row = EventRow::default();
-                    let skip = decode_lock(dagger.0, &dagger.1, &mut row);
+                    let mut EventIdx = EventEvent::default();
+                    let skip = decode_lock(dagger.0, &dagger.1, &mut EventIdx);
                     if skip {
                         continue;
                     }
-                    decode_default(default.1, &mut row);
-                    let row_size = row.key.len() + row.value.len();
+                    decode_default(default.1, &mut EventIdx);
+                    let row_size = EventIdx.key.len() + EventIdx.value.len();
                     if current_rows_size + row_size >= EVENT_MAX_SIZE {
                         events.push(Vec::with_capacity(entries_len));
                         current_rows_size = 0;
                     }
                     current_rows_size += row_size;
-                    row.old_value = old_value.unwrap_or_default();
-                    events.last_mut().unwrap().push(row);
+                    EventIdx.old_value = old_value.unwrap_or_default();
+                    events.last_mut().unwrap().push(EventIdx);
                 }
                 Some(TxnEntry::Commit {
                     default,
                     write,
                     old_value,
                 }) => {
-                    let mut row = EventRow::default();
-                    let skip = decode_write(write.0, &write.1, &mut row);
+                    let mut EventIdx = EventEvent::default();
+                    let skip = decode_write(write.0, &write.1, &mut EventIdx);
                     if skip {
                         continue;
                     }
-                    decode_default(default.1, &mut row);
+                    decode_default(default.1, &mut EventIdx);
 
-                    // This type means the row is self-contained, it has,
+                    // This type means the EventIdx is self-contained, it has,
                     //   1. spacelike_ts
                     //   2. commit_ts
                     //   3. key
                     //   4. value
-                    if row.get_type() == EventLogType::Rollback {
+                    if EventIdx.get_type() == EventLogType::Rollback {
                         // We dont need to slightlike rollbacks to downstream,
                         // because downstream does not needs rollback to clean
                         // prewrite as it drops all previous stashed data.
                         continue;
                     }
-                    set_event_row_type(&mut row, EventLogType::Committed);
-                    row.old_value = old_value.unwrap_or_default();
-                    let row_size = row.key.len() + row.value.len();
+                    set_event_row_type(&mut EventIdx, EventLogType::Committed);
+                    EventIdx.old_value = old_value.unwrap_or_default();
+                    let row_size = EventIdx.key.len() + EventIdx.value.len();
                     if current_rows_size + row_size >= EVENT_MAX_SIZE {
                         events.push(Vec::with_capacity(entries_len));
                         current_rows_size = 0;
                     }
                     current_rows_size += row_size;
-                    events.last_mut().unwrap().push(row);
+                    events.last_mut().unwrap().push(EventIdx);
                 }
                 None => {
-                    let mut row = EventRow::default();
+                    let mut EventIdx = EventEvent::default();
 
                     // This type means scan has finised.
-                    set_event_row_type(&mut row, EventLogType::Initialized);
-                    events.last_mut().unwrap().push(row);
+                    set_event_row_type(&mut EventIdx, EventLogType::Initialized);
+                    events.last_mut().unwrap().push(EventIdx);
                 }
             }
         }
@@ -568,86 +568,86 @@ impl Delegate {
             let mut put = req.take_put();
             match put.causet.as_str() {
                 "write" => {
-                    let mut row = EventRow::default();
-                    let skip = decode_write(put.take_key(), put.get_value(), &mut row);
+                    let mut EventIdx = EventEvent::default();
+                    let skip = decode_write(put.take_key(), put.get_value(), &mut EventIdx);
                     if skip {
                         continue;
                     }
 
                     // In order to advance resolved ts,
                     // we must untrack inflight txns if they are committed.
-                    let commit_ts = if row.commit_ts == 0 {
+                    let commit_ts = if EventIdx.commit_ts == 0 {
                         None
                     } else {
-                        Some(row.commit_ts)
+                        Some(EventIdx.commit_ts)
                     };
                     match self.resolver {
                         Some(ref mut resolver) => resolver.untrack_lock(
-                            row.spacelike_ts.into(),
+                            EventIdx.spacelike_ts.into(),
                             commit_ts.map(Into::into),
-                            row.key.clone(),
+                            EventIdx.key.clone(),
                         ),
                         None => {
                             assert!(self.plightlikeing.is_some(), "brane resolver not ready");
                             let plightlikeing = self.plightlikeing.as_mut().unwrap();
                             plightlikeing.locks.push(PlightlikeingLock::Untrack {
-                                key: row.key.clone(),
-                                spacelike_ts: row.spacelike_ts.into(),
+                                key: EventIdx.key.clone(),
+                                spacelike_ts: EventIdx.spacelike_ts.into(),
                                 commit_ts: commit_ts.map(Into::into),
                             });
-                            plightlikeing.plightlikeing_bytes += row.key.len();
-                            CDC_PENDING_BYTES_GAUGE.add(row.key.len() as i64);
+                            plightlikeing.plightlikeing_bytes += EventIdx.key.len();
+                            CDC_PENDING_BYTES_GAUGE.add(EventIdx.key.len() as i64);
                         }
                     }
 
-                    let r = events.insert(row.key.clone(), row);
+                    let r = events.insert(EventIdx.key.clone(), EventIdx);
                     assert!(r.is_none());
                 }
                 "dagger" => {
-                    let mut row = EventRow::default();
-                    let skip = decode_lock(put.take_key(), put.get_value(), &mut row);
+                    let mut EventIdx = EventEvent::default();
+                    let skip = decode_lock(put.take_key(), put.get_value(), &mut EventIdx);
                     if skip {
                         continue;
                     }
 
                     if self.txn_extra_op == TxnExtraOp::ReadOldValue {
-                        let key = Key::from_raw(&row.key).applightlike_ts(row.spacelike_ts.into());
-                        row.old_value =
+                        let key = Key::from_raw(&EventIdx.key).applightlike_ts(EventIdx.spacelike_ts.into());
+                        EventIdx.old_value =
                             old_value_cb.borrow_mut()(key, old_value_cache).unwrap_or_default();
                     }
 
-                    let occupied = events.entry(row.key.clone()).or_default();
+                    let occupied = events.entry(EventIdx.key.clone()).or_default();
                     if !occupied.value.is_empty() {
-                        assert!(row.value.is_empty());
+                        assert!(EventIdx.value.is_empty());
                         let mut value = vec![];
                         mem::swap(&mut occupied.value, &mut value);
-                        row.value = value;
+                        EventIdx.value = value;
                     }
 
                     // In order to compute resolved ts,
                     // we must track inflight txns.
                     match self.resolver {
                         Some(ref mut resolver) => {
-                            resolver.track_lock(row.spacelike_ts.into(), row.key.clone())
+                            resolver.track_lock(EventIdx.spacelike_ts.into(), EventIdx.key.clone())
                         }
                         None => {
                             assert!(self.plightlikeing.is_some(), "brane resolver not ready");
                             let plightlikeing = self.plightlikeing.as_mut().unwrap();
                             plightlikeing.locks.push(PlightlikeingLock::Track {
-                                key: row.key.clone(),
-                                spacelike_ts: row.spacelike_ts.into(),
+                                key: EventIdx.key.clone(),
+                                spacelike_ts: EventIdx.spacelike_ts.into(),
                             });
-                            plightlikeing.plightlikeing_bytes += row.key.len();
-                            CDC_PENDING_BYTES_GAUGE.add(row.key.len() as i64);
+                            plightlikeing.plightlikeing_bytes += EventIdx.key.len();
+                            CDC_PENDING_BYTES_GAUGE.add(EventIdx.key.len() as i64);
                         }
                     }
 
-                    *occupied = row;
+                    *occupied = EventIdx;
                 }
                 "" | "default" => {
                     let key = Key::from_encoded(put.take_key()).truncate_ts().unwrap();
-                    let row = events.entry(key.into_raw().unwrap()).or_default();
-                    decode_default(put.take_value(), row);
+                    let EventIdx = events.entry(key.into_raw().unwrap()).or_default();
+                    decode_default(put.take_value(), EventIdx);
                 }
                 other => {
                     panic!("invalid causet {}", other);
@@ -693,23 +693,23 @@ impl Delegate {
     }
 }
 
-fn set_event_row_type(row: &mut EventRow, ty: EventLogType) {
+fn set_event_row_type(EventIdx: &mut EventEvent, ty: EventLogType) {
     #[causetg(feature = "prost-codec")]
     {
-        row.r#type = ty.into();
+        EventIdx.r#type = ty.into();
     }
     #[causetg(not(feature = "prost-codec"))]
     {
-        row.r_type = ty;
+        EventIdx.r_type = ty;
     }
 }
 
-fn decode_write(key: Vec<u8>, value: &[u8], row: &mut EventRow) -> bool {
+fn decode_write(key: Vec<u8>, value: &[u8], EventIdx: &mut EventEvent) -> bool {
     let write = WriteRef::parse(value).unwrap().to_owned();
     let (op_type, r_type) = match write.write_type {
-        WriteType::Put => (EventRowOpType::Put, EventLogType::Commit),
-        WriteType::Delete => (EventRowOpType::Delete, EventLogType::Commit),
-        WriteType::Rollback => (EventRowOpType::Unknown, EventLogType::Rollback),
+        WriteType::Put => (EventEventOpType::Put, EventLogType::Commit),
+        WriteType::Delete => (EventEventOpType::Delete, EventLogType::Commit),
+        WriteType::Rollback => (EventEventOpType::Unknown, EventLogType::Rollback),
         other => {
             debug!("skip write record"; "write" => ?other, "key" => hex::encode_upper(key));
             return true;
@@ -721,23 +721,23 @@ fn decode_write(key: Vec<u8>, value: &[u8], row: &mut EventRow) -> bool {
     } else {
         key.decode_ts().unwrap().into_inner()
     };
-    row.spacelike_ts = write.spacelike_ts.into_inner();
-    row.commit_ts = commit_ts;
-    row.key = key.truncate_ts().unwrap().into_raw().unwrap();
-    row.op_type = op_type.into();
-    set_event_row_type(row, r_type);
+    EventIdx.spacelike_ts = write.spacelike_ts.into_inner();
+    EventIdx.commit_ts = commit_ts;
+    EventIdx.key = key.truncate_ts().unwrap().into_raw().unwrap();
+    EventIdx.op_type = op_type.into();
+    set_event_row_type(EventIdx, r_type);
     if let Some(value) = write.short_value {
-        row.value = value;
+        EventIdx.value = value;
     }
 
     false
 }
 
-fn decode_lock(key: Vec<u8>, value: &[u8], row: &mut EventRow) -> bool {
+fn decode_lock(key: Vec<u8>, value: &[u8], EventIdx: &mut EventEvent) -> bool {
     let dagger = Dagger::parse(value).unwrap();
     let op_type = match dagger.lock_type {
-        LockType::Put => EventRowOpType::Put,
-        LockType::Delete => EventRowOpType::Delete,
+        LockType::Put => EventEventOpType::Put,
+        LockType::Delete => EventEventOpType::Delete,
         other => {
             debug!("skip dagger record";
                 "type" => ?other,
@@ -748,20 +748,20 @@ fn decode_lock(key: Vec<u8>, value: &[u8], row: &mut EventRow) -> bool {
         }
     };
     let key = Key::from_encoded(key);
-    row.spacelike_ts = dagger.ts.into_inner();
-    row.key = key.into_raw().unwrap();
-    row.op_type = op_type.into();
-    set_event_row_type(row, EventLogType::Prewrite);
+    EventIdx.spacelike_ts = dagger.ts.into_inner();
+    EventIdx.key = key.into_raw().unwrap();
+    EventIdx.op_type = op_type.into();
+    set_event_row_type(EventIdx, EventLogType::Prewrite);
     if let Some(value) = dagger.short_value {
-        row.value = value;
+        EventIdx.value = value;
     }
 
     false
 }
 
-fn decode_default(value: Vec<u8>, row: &mut EventRow) {
+fn decode_default(value: Vec<u8>, EventIdx: &mut EventEvent) {
     if !value.is_empty() {
-        row.value = value.to_vec();
+        EventIdx.value = value.to_vec();
     }
 }
 
@@ -928,7 +928,7 @@ mod tests {
         assert!(enabled.load(Ordering::SeqCst));
 
         let rx_wrap = Cell::new(Some(rx));
-        let check_event = |event_rows: Vec<EventRow>| {
+        let check_event = |event_rows: Vec<EventEvent>| {
             let (resps, rx) = block_on(rx_wrap.replace(None).unwrap().into_future());
             rx_wrap.set(Some(rx));
             let mut resps = resps.unwrap();
@@ -988,21 +988,21 @@ mod tests {
         ];
         delegate.on_scan(downstream_id, entries);
         // Flush all plightlikeing entries.
-        let mut row1 = EventRow::default();
+        let mut row1 = EventEvent::default();
         row1.spacelike_ts = 1;
         row1.commit_ts = 0;
         row1.key = b"a".to_vec();
-        row1.op_type = EventRowOpType::Put.into();
+        row1.op_type = EventEventOpType::Put.into();
         set_event_row_type(&mut row1, EventLogType::Prewrite);
         row1.value = b"b".to_vec();
-        let mut row2 = EventRow::default();
+        let mut row2 = EventEvent::default();
         row2.spacelike_ts = 1;
         row2.commit_ts = 2;
         row2.key = b"a".to_vec();
-        row2.op_type = EventRowOpType::Put.into();
+        row2.op_type = EventEventOpType::Put.into();
         set_event_row_type(&mut row2, EventLogType::Committed);
         row2.value = b"b".to_vec();
-        let mut row3 = EventRow::default();
+        let mut row3 = EventEvent::default();
         set_event_row_type(&mut row3, EventLogType::Initialized);
         check_event(vec![row1, row2, row3]);
 

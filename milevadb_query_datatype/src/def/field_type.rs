@@ -184,7 +184,7 @@ pub trait FieldTypeAccessor {
         self as &dyn FieldTypeAccessor
     }
 
-    /// Convert mutable reference to `FieldTypeAccessor` interface.
+    /// Convert muBlock reference to `FieldTypeAccessor` interface.
     fn as_mut_accessor(&mut self) -> &mut dyn FieldTypeAccessor
     where
         Self: Sized,

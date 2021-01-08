@@ -67,7 +67,7 @@ use einsteindb_util::collections::HashMap;
 /// CausetStore Transaction scheduler commands.
 ///
 /// Learn more about our transaction system at
-/// [Deep Dive EinsteinDB: Distributed Transactions](https://einsteindb.org/docs/deep-dive/distributed-transaction/introduction/)
+/// [Deep Dive EinsteinDB: Distributed bundles](https://einsteindb.org/docs/deep-dive/distributed-transaction/introduction/)
 ///
 /// These are typically scheduled and used through the [`CausetStorage`](crate::causetStorage::CausetStorage) with functions like
 /// [`prewrite`](prewrite::Prewrite) trait and are executed asynchronously.
@@ -361,7 +361,7 @@ impl ReleasedLocks {
         }
     }
 
-    // Wake up pessimistic transactions that waiting for these locks.
+    // Wake up pessimistic bundles that waiting for these locks.
     pub fn wake_up<L: LockManager>(self, lock_mgr: &L) {
         lock_mgr.wake_up(self.spacelike_ts, self.hashes, self.commit_ts, self.pessimistic);
     }

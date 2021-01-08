@@ -105,52 +105,52 @@ impl Expression {
         }
     }
 
-    fn eval_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
+    fn eval_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
         match *self {
             Expression::Constant(ref constant) => constant.eval_int(),
-            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_int(row),
-            Expression::ScalarFn(ref f) => f.eval_int(ctx, row),
+            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_int(EventIdx),
+            Expression::ScalarFn(ref f) => f.eval_int(ctx, EventIdx),
         }
     }
 
-    fn eval_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
+    fn eval_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
         match *self {
             Expression::Constant(ref constant) => constant.eval_real(),
-            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_real(row),
-            Expression::ScalarFn(ref f) => f.eval_real(ctx, row),
+            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_real(EventIdx),
+            Expression::ScalarFn(ref f) => f.eval_real(ctx, EventIdx),
         }
     }
 
     fn eval_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
         match *self {
             Expression::Constant(ref constant) => constant.eval_decimal(),
-            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_decimal(row),
-            Expression::ScalarFn(ref f) => f.eval_decimal(ctx, row),
+            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_decimal(EventIdx),
+            Expression::ScalarFn(ref f) => f.eval_decimal(ctx, EventIdx),
         }
     }
 
     fn eval_string<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
         match *self {
             Expression::Constant(ref constant) => constant.eval_string(),
-            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_string(ctx, row),
-            Expression::ScalarFn(ref f) => f.eval_bytes(ctx, row),
+            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_string(ctx, EventIdx),
+            Expression::ScalarFn(ref f) => f.eval_bytes(ctx, EventIdx),
         }
     }
 
     fn eval_string_and_decode<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, str>>> {
-        let bytes = try_opt!(self.eval_string(ctx, row));
+        let bytes = try_opt!(self.eval_string(ctx, EventIdx));
         let charset = self.field_type().get_charset();
         if charset::UTF8_CHARSETS.contains(&charset) {
             let s = match bytes {
@@ -165,36 +165,36 @@ impl Expression {
     fn eval_time<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
         match *self {
             Expression::Constant(ref constant) => constant.eval_time(),
-            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_time(row),
-            Expression::ScalarFn(ref f) => f.eval_time(ctx, row),
+            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_time(EventIdx),
+            Expression::ScalarFn(ref f) => f.eval_time(ctx, EventIdx),
         }
     }
 
     fn eval_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Duration>> {
         match *self {
             Expression::Constant(ref constant) => constant.eval_duration(),
-            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_duration(row),
-            Expression::ScalarFn(ref f) => f.eval_duration(ctx, row),
+            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_duration(EventIdx),
+            Expression::ScalarFn(ref f) => f.eval_duration(ctx, EventIdx),
         }
     }
 
     fn eval_json<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
         match *self {
             Expression::Constant(ref constant) => constant.eval_json(),
-            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_json(row),
-            Expression::ScalarFn(ref f) => f.eval_json(ctx, row),
+            Expression::PrimaryCausetRef(ref PrimaryCauset) => PrimaryCauset.eval_json(EventIdx),
+            Expression::ScalarFn(ref f) => f.eval_json(ctx, EventIdx),
         }
     }
 
@@ -208,11 +208,11 @@ impl Expression {
 }
 
 impl Expression {
-    pub fn eval(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Datum> {
+    pub fn eval(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Datum> {
         match *self {
             Expression::Constant(ref constant) => Ok(constant.eval()),
-            Expression::PrimaryCausetRef(ref PrimaryCauset) => Ok(PrimaryCauset.eval(row)),
-            Expression::ScalarFn(ref f) => f.eval(ctx, row),
+            Expression::PrimaryCausetRef(ref PrimaryCauset) => Ok(PrimaryCauset.eval(EventIdx)),
+            Expression::ScalarFn(ref f) => f.eval(ctx, EventIdx),
         }
     }
 

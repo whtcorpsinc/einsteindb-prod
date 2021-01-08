@@ -64,10 +64,10 @@ struct DeserializableTransaction {
 }
 
 #[derive(Deserialize)]
-struct SerializedTransactions {
+struct Serializedbundles {
     limit: i64,
     from: Uuid,
-    transactions: Vec<Uuid>,
+    bundles: Vec<Uuid>,
 }
 
 pub struct RemoteClient {
@@ -156,7 +156,7 @@ impl RemoteClient {
         Ok(())
     }
 
-    fn get_transactions(&self, parent_uuid: &Uuid) -> Result<Vec<Uuid>> {
+    fn get_bundles(&self, parent_uuid: &Uuid) -> Result<Vec<Uuid>> {
         let mut embedded = Core::new()?;
         // TODO https://github.com/whtcorpsinc/einsteindb/issues/569
         // let client = hyper::Client::configure()
@@ -166,7 +166,7 @@ impl RemoteClient {
 
         d(&format!("client"));
 
-        let uri = format!("{}/transactions?from={}", self.bound_base_uri(), parent_uuid);
+        let uri = format!("{}/bundles?from={}", self.bound_base_uri(), parent_uuid);
         let uri = uri.parse()?;
 
         d(&format!("parsed uri {:?}", uri));
@@ -175,7 +175,7 @@ impl RemoteClient {
             println!("Response: {}", res.status());
 
             res.body().concat2().and_then(move |body| {
-                let json: SerializedTransactions = serde_json::from_slice(&body).map_err(|e| {
+                let json: Serializedbundles = serde_json::from_slice(&body).map_err(|e| {
                     std::io::Error::new(std::io::ErrorKind::Other, e)
                 })?;
                 Ok(json)
@@ -184,9 +184,9 @@ impl RemoteClient {
 
         d(&format!("running..."));
 
-        let transactions_json = embedded.run(work)?;
-        d(&format!("got transactions: {:?}", &transactions_json.transactions));
-        Ok(transactions_json.transactions)
+        let bundles_json = embedded.run(work)?;
+        d(&format!("got bundles: {:?}", &bundles_json.bundles));
+        Ok(bundles_json.bundles)
     }
 
     fn get_chunks(&self, transaction_uuid: &Uuid) -> Result<Vec<Uuid>> {
@@ -199,7 +199,7 @@ impl RemoteClient {
 
         d(&format!("client"));
 
-        let uri = format!("{}/transactions/{}", self.bound_base_uri(), transaction_uuid);
+        let uri = format!("{}/bundles/{}", self.bound_base_uri(), transaction_uuid);
         let uri = uri.parse()?;
 
         d(&format!("parsed uri {:?}", uri));
@@ -274,11 +274,11 @@ impl GlobalTransactionLog for RemoteClient {
         self.put(uri, json, StatusCode::NoContent)
     }
 
-    /// Slurp transactions and causets after `causetx`, returning them as owned data.
+    /// Slurp bundles and causets after `causetx`, returning them as owned data.
     ///
     /// This is inefficient but convenient for development.
-    fn transactions_after(&self, causetx: &Uuid) -> Result<Vec<Tx>> {
-        let new_causecausetxs = self.get_transactions(causetx)?;
+    fn bundles_after(&self, causetx: &Uuid) -> Result<Vec<Tx>> {
+        let new_causecausetxs = self.get_bundles(causetx)?;
         let mut causecausetx_list = Vec::new();
 
         for causetx in new_causecausetxs {
@@ -311,7 +311,7 @@ impl GlobalTransactionLog for RemoteClient {
             chunks: chunks
         };
 
-        let uri = format!("{}/transactions/{}", self.bound_base_uri(), transaction_uuid);
+        let uri = format!("{}/bundles/{}", self.bound_base_uri(), transaction_uuid);
         let json = serde_json::to_string(&transaction)?;
         d(&format!("serialized transaction: {:?}", json));
         self.put(uri, json, StatusCode::Created)

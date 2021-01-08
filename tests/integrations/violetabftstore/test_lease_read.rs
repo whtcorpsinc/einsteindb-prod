@@ -36,7 +36,7 @@ fn test_renew_lease<T: Simulator>(cluster: &mut Cluster<T>) {
     // Avoid triggering the log compaction in this test case.
     cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 100;
     // Increase the VioletaBft tick interval to make this test case running reliably.
-    // Use large election timeout to make leadership stable.
+    // Use large election timeout to make leadership sBlock.
     configure_for_lease_read(cluster, Some(50), Some(10_000));
     // Override max leader lease to 2 seconds.
     let max_lease = Duration::from_secs(2);

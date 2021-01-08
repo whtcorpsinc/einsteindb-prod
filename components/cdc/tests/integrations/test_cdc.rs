@@ -12,7 +12,7 @@ use grpcio::WriteFlags;
 use ekvproto::cdcpb::*;
 #[causetg(feature = "prost-codec")]
 use ekvproto::cdcpb::{
-    event::{row::OpType as EventRowOpType, Event as Event_oneof_event, LogType as EventLogType},
+    event::{EventIdx::OpType as EventEventOpType, Event as Event_oneof_event, LogType as EventLogType},
     ChangeDataEvent,
 };
 use ekvproto::kvrpcpb::*;
@@ -444,14 +444,14 @@ fn test_cdc_scan() {
             assert!(es.entries.len() == 2, "{:?}", es);
             let e = &es.entries[0];
             assert_eq!(e.get_type(), EventLogType::Prewrite, "{:?}", es);
-            assert_eq!(e.get_op_type(), EventRowOpType::Delete, "{:?}", es);
+            assert_eq!(e.get_op_type(), EventEventOpType::Delete, "{:?}", es);
             assert_eq!(e.spacelike_ts, spacelike_ts3.into_inner(), "{:?}", es);
             assert_eq!(e.commit_ts, 0, "{:?}", es);
             assert_eq!(e.key, k, "{:?}", es);
             assert!(e.value.is_empty(), "{:?}", es);
             let e = &es.entries[1];
             assert_eq!(e.get_type(), EventLogType::Committed, "{:?}", es);
-            assert_eq!(e.get_op_type(), EventRowOpType::Put, "{:?}", es);
+            assert_eq!(e.get_op_type(), EventEventOpType::Put, "{:?}", es);
             assert_eq!(e.spacelike_ts, spacelike_ts2.into_inner(), "{:?}", es);
             assert_eq!(e.commit_ts, commit_ts2.into_inner(), "{:?}", es);
             assert_eq!(e.key, k, "{:?}", es);
@@ -804,15 +804,15 @@ fn test_old_value_basic() {
         for event in events.into_iter() {
             match event.event.unwrap() {
                 Event_oneof_event::Entries(mut es) => {
-                    for row in es.take_entries().to_vec() {
-                        if row.get_type() == EventLogType::Prewrite {
-                            if row.get_spacelike_ts() == m2_spacelike_ts.into_inner()
-                                || row.get_spacelike_ts() == m3_spacelike_ts.into_inner()
+                    for EventIdx in es.take_entries().to_vec() {
+                        if EventIdx.get_type() == EventLogType::Prewrite {
+                            if EventIdx.get_spacelike_ts() == m2_spacelike_ts.into_inner()
+                                || EventIdx.get_spacelike_ts() == m3_spacelike_ts.into_inner()
                             {
-                                assert_eq!(row.get_old_value(), b"v1");
+                                assert_eq!(EventIdx.get_old_value(), b"v1");
                                 event_count += 1;
-                            } else if row.get_spacelike_ts() == m5_spacelike_ts.into_inner() {
-                                assert_eq!(row.get_old_value(), vec![b'3'; 5120].as_slice());
+                            } else if EventIdx.get_spacelike_ts() == m5_spacelike_ts.into_inner() {
+                                assert_eq!(EventIdx.get_old_value(), vec![b'3'; 5120].as_slice());
                                 event_count += 1;
                             }
                         }
@@ -835,21 +835,21 @@ fn test_old_value_basic() {
         for e in event.events.into_iter() {
             match e.event.unwrap() {
                 Event_oneof_event::Entries(mut es) => {
-                    for row in es.take_entries().to_vec() {
-                        if row.get_type() == EventLogType::Committed
-                            && row.get_spacelike_ts() == m1_spacelike_ts.into_inner()
+                    for EventIdx in es.take_entries().to_vec() {
+                        if EventIdx.get_type() == EventLogType::Committed
+                            && EventIdx.get_spacelike_ts() == m1_spacelike_ts.into_inner()
                         {
-                            assert_eq!(row.get_old_value(), b"");
+                            assert_eq!(EventIdx.get_old_value(), b"");
                             event_count += 1;
-                        } else if row.get_type() == EventLogType::Committed
-                            && row.get_spacelike_ts() == m3_spacelike_ts.into_inner()
+                        } else if EventIdx.get_type() == EventLogType::Committed
+                            && EventIdx.get_spacelike_ts() == m3_spacelike_ts.into_inner()
                         {
-                            assert_eq!(row.get_old_value(), b"v1");
+                            assert_eq!(EventIdx.get_old_value(), b"v1");
                             event_count += 1;
-                        } else if row.get_type() == EventLogType::Prewrite
-                            && row.get_spacelike_ts() == m5_spacelike_ts.into_inner()
+                        } else if EventIdx.get_type() == EventLogType::Prewrite
+                            && EventIdx.get_spacelike_ts() == m5_spacelike_ts.into_inner()
                         {
-                            assert_eq!(row.get_old_value(), vec![b'3'; 5120]);
+                            assert_eq!(EventIdx.get_old_value(), vec![b'3'; 5120]);
                             event_count += 1;
                         }
                     }

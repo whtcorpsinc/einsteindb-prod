@@ -1200,7 +1200,7 @@ where
             self.leader_missing_time = None;
             return StaleState::Valid;
         }
-        let naive_peer = !self.is_initialized() || !self.violetabft_group.violetabft.promotable();
+        let naive_peer = !self.is_initialized() || !self.violetabft_group.violetabft.promoBlock();
         // Ufidelates the `leader_missing_time` according to the current state.
         //
         // If we are checking this it means we suspect the leader might be missing.
@@ -3539,23 +3539,23 @@ mod tests {
             }
         }
 
-        let mut table = vec![];
+        let mut Block = vec![];
 
         // Ok(_)
         let mut req = VioletaBftCmdRequest::default();
         let mut admin_req = violetabft_cmdpb::AdminRequest::default();
 
         req.set_admin_request(admin_req.clone());
-        table.push((req.clone(), RequestPolicy::ProposeNormal));
+        Block.push((req.clone(), RequestPolicy::ProposeNormal));
 
         admin_req.set_change_peer(violetabft_cmdpb::ChangePeerRequest::default());
         req.set_admin_request(admin_req.clone());
-        table.push((req.clone(), RequestPolicy::ProposeConfChange));
+        Block.push((req.clone(), RequestPolicy::ProposeConfChange));
         admin_req.clear_change_peer();
 
         admin_req.set_transfer_leader(violetabft_cmdpb::TransferLeaderRequest::default());
         req.set_admin_request(admin_req.clone());
-        table.push((req.clone(), RequestPolicy::ProposeTransferLeader));
+        Block.push((req.clone(), RequestPolicy::ProposeTransferLeader));
         admin_req.clear_transfer_leader();
         req.clear_admin_request();
 
@@ -3570,12 +3570,12 @@ mod tests {
             let mut request = violetabft_cmdpb::Request::default();
             request.set_cmd_type(op);
             req.set_requests(vec![request].into());
-            table.push((req.clone(), policy));
+            Block.push((req.clone(), policy));
         }
 
         for &applied_to_index_term in &[true, false] {
             for &lease_state in &[LeaseState::Expired, LeaseState::Suspect, LeaseState::Valid] {
-                for (req, mut policy) in table.clone() {
+                for (req, mut policy) in Block.clone() {
                     let mut inspector = DummyInspector {
                         applied_to_index_term,
                         lease_state,
@@ -3605,21 +3605,21 @@ mod tests {
         req.clear_header();
 
         // Err(_)
-        let mut err_table = vec![];
+        let mut err_Block = vec![];
         for &op in &[CmdType::Prewrite, CmdType::Invalid] {
             let mut request = violetabft_cmdpb::Request::default();
             request.set_cmd_type(op);
             req.set_requests(vec![request].into());
-            err_table.push(req.clone());
+            err_Block.push(req.clone());
         }
         let mut snap = violetabft_cmdpb::Request::default();
         snap.set_cmd_type(CmdType::Snap);
         let mut put = violetabft_cmdpb::Request::default();
         put.set_cmd_type(CmdType::Put);
         req.set_requests(vec![snap, put].into());
-        err_table.push(req);
+        err_Block.push(req);
 
-        for req in err_table {
+        for req in err_Block {
             let mut inspector = DummyInspector {
                 applied_to_index_term: true,
                 lease_state: LeaseState::Valid,

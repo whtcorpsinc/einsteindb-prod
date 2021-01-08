@@ -314,11 +314,11 @@ impl<E: KvEngine> InterlockHost<E> {
             200,
             BoxSplitCheckObserver::new(TuplespaceInstantonCheckObserver::new(ch)),
         );
-        // TableCheckObserver has higher priority than SizeCheckObserver.
+        // BlockCheckObserver has higher priority than SizeCheckObserver.
         registry.register_split_check_observer(100, BoxSplitCheckObserver::new(HalfCheckObserver));
         registry.register_split_check_observer(
             400,
-            BoxSplitCheckObserver::new(TableCheckObserver::default()),
+            BoxSplitCheckObserver::new(BlockCheckObserver::default()),
         );
         InterlockHost { registry }
     }

@@ -11,7 +11,7 @@ use crate::errors::Result;
 use crate::iterable::{Iterable, Iteron};
 use crate::options::IterOptions;
 use crate::cone::Cone;
-use crate::write_batch::{Mutable, WriteBatchExt};
+use crate::write_batch::{MuBlock, WriteBatchExt};
 
 use einsteindb_util::keybuilder::KeyBuilder;
 
@@ -104,14 +104,14 @@ pub trait MiscExt: Iterable + WriteBatchExt + CAUSETNamesExt {
         Ok(())
     }
 
-    /// Return the approximate number of records and size in the cone of memtables of the causet.
-    fn get_approximate_memtable_stats_causet(&self, causet: &str, cone: &Cone) -> Result<(u64, u64)>;
+    /// Return the approximate number of records and size in the cone of memBlocks of the causet.
+    fn get_approximate_memBlock_stats_causet(&self, causet: &str, cone: &Cone) -> Result<(u64, u64)>;
 
     fn ingest_maybe_slowdown_writes(&self, causet: &str) -> Result<bool>;
 
     /// Gets total used size of lmdb engine, including:
     /// *  total size (bytes) of all SST files.
-    /// *  total size (bytes) of active and unflushed immutable memtables.
+    /// *  total size (bytes) of active and unflushed immuBlock memBlocks.
     /// *  total size (bytes) of all blob files.
     ///
     fn get_engine_used_size(&self) -> Result<u64>;

@@ -6,52 +6,52 @@ use engine_promises::DecodeProperties;
 use engine_promises::Cone;
 use engine_promises::{Error, Result};
 use engine_promises::{
-    TableProperties, TablePropertiesCollectionIter, TablePropertiesKey, UserCollectedProperties,
+    BlockProperties, BlockPropertiesCollectionIter, BlockPropertiesKey, UserCollectedProperties,
 };
-use engine_promises::{TablePropertiesCollection, TablePropertiesExt};
-use lmdb::table_properties_rc as raw;
+use engine_promises::{BlockPropertiesCollection, BlockPropertiesExt};
+use lmdb::Block_properties_rc as raw;
 use std::ops::Deref;
 
-impl TablePropertiesExt for LmdbEngine {
-    type TablePropertiesCollection = LmdbTablePropertiesCollection;
-    type TablePropertiesCollectionIter = LmdbTablePropertiesCollectionIter;
-    type TablePropertiesKey = LmdbTablePropertiesKey;
-    type TableProperties = LmdbTableProperties;
+impl BlockPropertiesExt for LmdbEngine {
+    type BlockPropertiesCollection = LmdbBlockPropertiesCollection;
+    type BlockPropertiesCollectionIter = LmdbBlockPropertiesCollectionIter;
+    type BlockPropertiesKey = LmdbBlockPropertiesKey;
+    type BlockProperties = LmdbBlockProperties;
     type UserCollectedProperties = LmdbUserCollectedProperties;
 
-    fn get_properties_of_tables_in_cone(
+    fn get_properties_of_Blocks_in_cone(
         &self,
         causet: &Self::CAUSETHandle,
         cones: &[Cone],
-    ) -> Result<Self::TablePropertiesCollection> {
+    ) -> Result<Self::BlockPropertiesCollection> {
         // FIXME: extra allocation
         let cones: Vec<_> = cones.iter().map(util::cone_to_rocks_cone).collect();
         let raw = self
             .as_inner()
-            .get_properties_of_tables_in_cone_rc(causet.as_inner(), &cones);
+            .get_properties_of_Blocks_in_cone_rc(causet.as_inner(), &cones);
         let raw = raw.map_err(Error::Engine)?;
-        Ok(LmdbTablePropertiesCollection::from_raw(raw))
+        Ok(LmdbBlockPropertiesCollection::from_raw(raw))
     }
 }
 
-pub struct LmdbTablePropertiesCollection(raw::TablePropertiesCollection);
+pub struct LmdbBlockPropertiesCollection(raw::BlockPropertiesCollection);
 
-impl LmdbTablePropertiesCollection {
-    fn from_raw(raw: raw::TablePropertiesCollection) -> LmdbTablePropertiesCollection {
-        LmdbTablePropertiesCollection(raw)
+impl LmdbBlockPropertiesCollection {
+    fn from_raw(raw: raw::BlockPropertiesCollection) -> LmdbBlockPropertiesCollection {
+        LmdbBlockPropertiesCollection(raw)
     }
 }
 
 impl
-    TablePropertiesCollection<
-        LmdbTablePropertiesCollectionIter,
-        LmdbTablePropertiesKey,
-        LmdbTableProperties,
+    BlockPropertiesCollection<
+        LmdbBlockPropertiesCollectionIter,
+        LmdbBlockPropertiesKey,
+        LmdbBlockProperties,
         LmdbUserCollectedProperties,
-    > for LmdbTablePropertiesCollection
+    > for LmdbBlockPropertiesCollection
 {
-    fn iter(&self) -> LmdbTablePropertiesCollectionIter {
-        LmdbTablePropertiesCollectionIter(self.0.iter())
+    fn iter(&self) -> LmdbBlockPropertiesCollectionIter {
+        LmdbBlockPropertiesCollectionIter(self.0.iter())
     }
 
     fn len(&self) -> usize {
@@ -59,32 +59,32 @@ impl
     }
 }
 
-pub struct LmdbTablePropertiesCollectionIter(raw::TablePropertiesCollectionIter);
+pub struct LmdbBlockPropertiesCollectionIter(raw::BlockPropertiesCollectionIter);
 
 impl
-    TablePropertiesCollectionIter<
-        LmdbTablePropertiesKey,
-        LmdbTableProperties,
+    BlockPropertiesCollectionIter<
+        LmdbBlockPropertiesKey,
+        LmdbBlockProperties,
         LmdbUserCollectedProperties,
-    > for LmdbTablePropertiesCollectionIter
+    > for LmdbBlockPropertiesCollectionIter
 {
 }
 
-impl Iteron for LmdbTablePropertiesCollectionIter {
-    type Item = (LmdbTablePropertiesKey, LmdbTableProperties);
+impl Iteron for LmdbBlockPropertiesCollectionIter {
+    type Item = (LmdbBlockPropertiesKey, LmdbBlockProperties);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0
             .next()
-            .map(|(key, props)| (LmdbTablePropertiesKey(key), LmdbTableProperties(props)))
+            .map(|(key, props)| (LmdbBlockPropertiesKey(key), LmdbBlockProperties(props)))
     }
 }
 
-pub struct LmdbTablePropertiesKey(raw::TablePropertiesKey);
+pub struct LmdbBlockPropertiesKey(raw::BlockPropertiesKey);
 
-impl TablePropertiesKey for LmdbTablePropertiesKey {}
+impl BlockPropertiesKey for LmdbBlockPropertiesKey {}
 
-impl Deref for LmdbTablePropertiesKey {
+impl Deref for LmdbBlockPropertiesKey {
     type Target = str;
 
     fn deref(&self) -> &str {
@@ -92,9 +92,9 @@ impl Deref for LmdbTablePropertiesKey {
     }
 }
 
-pub struct LmdbTableProperties(raw::TableProperties);
+pub struct LmdbBlockProperties(raw::BlockProperties);
 
-impl TableProperties<LmdbUserCollectedProperties> for LmdbTableProperties {
+impl BlockProperties<LmdbUserCollectedProperties> for LmdbBlockProperties {
     fn num_entries(&self) -> u64 {
         self.0.num_entries()
     }

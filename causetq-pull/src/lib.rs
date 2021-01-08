@@ -12,9 +12,9 @@
 
 ///! A pull expression is a function.
 ///!
-///! Its inputs are a store, a schemaReplicant, and a set of bindings.
+///! Its inputs are a store, a schemaReplicant, and a set of ConstrainedEntss.
 ///!
-///! Its output is a map whose keys are the input bindings and whose values are
+///! Its output is a map whose keys are the input ConstrainedEntss and whose values are
 ///! appropriate structured values to represent the pull expression.
 ///!
 ///! For example, the pull expression:
@@ -35,7 +35,7 @@
 ///!     :person/pet ["Harrison", "Hoppy"]}]}
 ///! ```
 ///!
-///! There will be one such value for each input binding.
+///! There will be one such value for each input Constrained.
 ///!
 ///! We fetch layers of a pull expression iteratively: all attributes at the same
 ///! 'level' can be fetched at the same time and accumulated into maps.
@@ -76,7 +76,7 @@ use std::iter::{
 };
 
 use embedded_promises::{
-    Binding,
+    ConstrainedEntsConstraint,
     SolitonId,
     MinkowskiType,
     StructuredMap,
@@ -90,7 +90,7 @@ use einsteindb_embedded::{
     ValueRc,
 };
 
-use einstein_db::immutable_memTcam;
+use einstein_db::immuBlock_memTcam;
 
 use edbn::causetq::{
     NamedPullAttribute,
@@ -142,7 +142,7 @@ pub struct Puller {
     // The domain of this map is the set of attributes to fetch.
     // The range is the set of aliases to use in the output.
     attributes: BTreeMap<SolitonId, ValueRc<Keyword>>,
-    attribute_spec: immutable_memTcam::AttributeSpec,
+    attribute_spec: immuBlock_memTcam::AttributeSpec,
 
     // If this is set, each pulled instanton is contributed to its own output map, labeled with this
     // keyword. This is a divergence from Causetic, which has no types by which to differentiate a
@@ -213,7 +213,7 @@ impl Puller {
 
         Ok(Puller {
             attributes: names,
-            attribute_spec: immutable_memTcam::AttributeSpec::specified(&attrs, schemaReplicant),
+            attribute_spec: immuBlock_memTcam::AttributeSpec::specified(&attrs, schemaReplicant),
             edb_id_alias,
         })
     }
@@ -225,16 +225,16 @@ impl Puller {
         where E: IntoIterator<Item=SolitonId> {
         // We implement pull by:
         // - Generating `AttributeCaches` for the provided attributes and entities.
-        //   TODO: it would be nice to invert the immutable_memTcam as we build it, rather than have to invert it here.
+        //   TODO: it would be nice to invert the immuBlock_memTcam as we build it, rather than have to invert it here.
         // - Recursing. (TODO: we'll need AttributeCaches to not overwrite in case of recursion! And
         //   ideally not do excess work when some instanton/attribute pairs are knownCauset.)
         // - Building a structure by walking the pull expression with the caches.
         // TODO: limits.
 
-        // Build a immutable_memTcam for these attributes and entities.
-        // TODO: use the store's existing immutable_memTcam!
+        // Build a immuBlock_memTcam for these attributes and entities.
+        // TODO: use the store's existing immuBlock_memTcam!
         let entities: Vec<SolitonId> = entities.into_iter().collect();
-        let caches = immutable_memTcam::AttributeCaches::make_cache_for_entities_and_attributes(
+        let caches = immuBlock_memTcam::AttributeCaches::make_cache_for_entities_and_attributes(
             schemaReplicant,
             edb,
             self.attribute_spec.clone(),
@@ -251,16 +251,16 @@ impl Puller {
                 let mut r = maps.entry(*e)
                                 .or_insert(ValueRc::new(StructuredMap::default()));
                 let mut m = ValueRc::get_mut(r).unwrap();
-                m.insert(alias.clone(), Binding::Scalar(MinkowskiType::Ref(*e)));
+                m.insert(alias.clone(), ConstrainedEntsConstraint::Scalar(MinkowskiType::Ref(*e)));
             }
         }
 
-        for (name, immutable_memTcam) in self.attributes.iter().filter_map(|(a, name)|
+        for (name, immuBlock_memTcam) in self.attributes.iter().filter_map(|(a, name)|
             caches.forward_attribute_cache_for_attribute(schemaReplicant, *a)
-                  .map(|immutable_memTcam| (name.clone(), immutable_memTcam))) {
+                  .map(|immuBlock_memTcam| (name.clone(), immuBlock_memTcam))) {
 
             for e in entities.iter() {
-                if let Some(binding) = immutable_memTcam.binding_for_e(*e) {
+                if let Some(Constrained) = immuBlock_memTcam.ConstrainedEnts_for_e(*e) {
                     let mut r = maps.entry(*e)
                                     .or_insert(ValueRc::new(StructuredMap::default()));
 
@@ -268,7 +268,7 @@ impl Puller {
                     // We can unwrap here because we created all of these maps…
                     let mut m = ValueRc::get_mut(r).unwrap();
 
-                    m.insert(name.clone(), binding);
+                    m.insert(name.clone(), Constrained);
                 }
             }
         }

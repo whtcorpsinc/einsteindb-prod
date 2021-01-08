@@ -42,7 +42,7 @@
       }
     ]
   },
-  "editable": true,
+  "ediBlock": true,
   "gnetId": null,
   "graphTooltip": 0,
   "id": null,
@@ -107,7 +107,7 @@
           },
           "id": 3,
           "leglightlike": {
-            "alignAsTable": false,
+            "alignAsBlock": false,
             "avg": false,
             "current": false,
             "hideEmpty": false,
@@ -378,7 +378,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "MilevaDB current connection counts",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -390,7 +390,7 @@
           },
           "id": 1,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": false,
@@ -559,7 +559,7 @@
           },
           "id": 2,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -646,7 +646,7 @@
       ],
       "repeat": null,
       "title": "MilevaDB-Server",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -699,7 +699,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": null,
           "description": "The time cost of parsing SQL to AST",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -712,7 +712,7 @@
           "id": 4,
           "interval": "",
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": true,
             "current": true,
             "hideEmpty": true,
@@ -803,7 +803,7 @@
       ],
       "repeat": null,
       "title": "Parse",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -856,7 +856,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": null,
           "description": "The time cost of building the query plan",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -869,7 +869,7 @@
           "id": 5,
           "interval": "",
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": true,
             "current": true,
             "hideEmpty": true,
@@ -960,7 +960,7 @@
       ],
       "repeat": null,
       "title": "Compile",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -988,7 +988,7 @@
           },
           "id": 30,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": false,
             "max": false,
@@ -1123,7 +1123,7 @@
           },
           "id": 6,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": false,
             "max": false,
@@ -1250,7 +1250,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "MilevaDB transaction retry histogram bucket statistics",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -1262,7 +1262,7 @@
           },
           "id": 7,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": false,
             "max": false,
@@ -1361,7 +1361,7 @@
       ],
       "repeat": null,
       "title": "Transaction",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -1380,7 +1380,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "kv command durations statistics by command type",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -1392,7 +1392,7 @@
           },
           "id": 10,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -1473,7 +1473,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "kv command durations statistics by command type",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -1485,7 +1485,7 @@
           },
           "id": 11,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -1601,7 +1601,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "dagger resolve times",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -1613,7 +1613,7 @@
           },
           "id": 8,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": false,
             "hideEmpty": true,
@@ -1705,7 +1705,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "kv command durations statistics by command type",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -1717,7 +1717,7 @@
           },
           "id": 69,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -1842,7 +1842,7 @@
           },
           "id": 9,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": false,
             "hideEmpty": true,
@@ -1927,7 +1927,7 @@
       ],
       "repeat": null,
       "title": "KV",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -1946,7 +1946,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The duration of a client calling GetTSAsync until received the TS result.",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -2084,7 +2084,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The duration of a client slightlikeing TSO request until received the response.",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -2193,7 +2193,7 @@
       ],
       "repeat": null,
       "title": "FIDel Client",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -2222,7 +2222,7 @@
           },
           "id": 29,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": false,
@@ -2351,7 +2351,7 @@
           },
           "id": 14,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -2438,7 +2438,7 @@
       ],
       "repeat": null,
       "title": "gRPC",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -2491,7 +2491,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "the time which is caused by latch wait ",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -2503,7 +2503,7 @@
           },
           "id": 15,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -2656,7 +2656,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The CPU utilization of scheduler worker",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -2668,7 +2668,7 @@
           },
           "id": 16,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -2762,7 +2762,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The time consumed when executing commit command",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -2774,7 +2774,7 @@
           },
           "id": 67,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -2864,7 +2864,7 @@
       ],
       "repeat": null,
       "title": "Scheduler",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -2916,7 +2916,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The wait time of each proposal",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -2928,7 +2928,7 @@
           },
           "id": 19,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -3064,7 +3064,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The CPU utilization of violetabftstore thread",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 0,
           "grid": {},
@@ -3076,7 +3076,7 @@
           },
           "id": 21,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -3171,7 +3171,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The time consumed by processing asynchronous write requests",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -3183,7 +3183,7 @@
           },
           "id": 65,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "hideEmpty": true,
@@ -3280,7 +3280,7 @@
       ],
       "repeat": null,
       "title": "violetabftstore",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -3332,7 +3332,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The time consumed when VioletaBft applightlikes log on each EinsteinDB instance",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -3344,7 +3344,7 @@
           },
           "id": 32,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -3444,7 +3444,7 @@
           },
           "id": 63,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -3554,7 +3554,7 @@
       ],
       "repeat": null,
       "title": "Lmdb-VioletaBft",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -3607,7 +3607,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The time consumed when apply log requests are wait for being handled",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -3619,7 +3619,7 @@
           },
           "id": 49,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -3744,7 +3744,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "description": "The time consumed when VioletaBft applies log",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -3756,7 +3756,7 @@
           },
           "id": 22,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -3874,7 +3874,7 @@
           },
           "id": 51,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -4023,7 +4023,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
           "description": "The CPU utilization of async apply",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 1,
           "grid": {},
@@ -4035,7 +4035,7 @@
           },
           "id": 47,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": false,
             "current": true,
             "max": true,
@@ -4124,7 +4124,7 @@
       ],
       "repeat": null,
       "title": "Lmdb-KV",
-      "type": "row"
+      "type": "EventIdx"
     },
     {
       "collapsed": true,
@@ -4144,7 +4144,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 2,
           "description": "Shows average latency for Reads and Writes IO Devices.  Higher than typical latency for highly loaded causetStorage indicates saturation (overload) and is frequent cause of performance problems.  Higher than normal latency also can indicate internal causetStorage problems.",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 2,
           "grid": {},
@@ -4156,7 +4156,7 @@
           },
           "id": 55,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": true,
             "current": false,
             "hideEmpty": true,
@@ -4248,7 +4248,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 2,
           "description": "Shows amount of physical IOs (reads and writes) different devices are serving. Spikes in number of IOs served often corresponds to performance problems due to IO subsystem overload.",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 2,
           "grid": {},
@@ -4260,7 +4260,7 @@
           },
           "id": 57,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": true,
             "current": false,
             "hideEmpty": false,
@@ -4352,7 +4352,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 2,
           "description": "Shows volume of reads and writes the causetStorage is handling. This can be better measure of IO capacity usage for network attached and SSD causetStorage as it is often bandwidth limited.  Amount of data being written to the disk can be used to estimate Flash causetStorage life time.",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 2,
           "grid": {},
@@ -4364,7 +4364,7 @@
           },
           "id": 59,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": true,
             "current": false,
             "hideEmpty": false,
@@ -4456,7 +4456,7 @@
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 2,
           "description": "Shows how much disk was loaded for reads or writes as average number of outstanding requests at different period of time.  High disk load is a good measure of actual causetStorage utilization. Different causetStorage types handle load differently - some will show latency increases on low loads others can handle higher load with no problems.",
-          "editable": true,
+          "ediBlock": true,
           "error": false,
           "fill": 2,
           "grid": {},
@@ -4468,7 +4468,7 @@
           },
           "id": 61,
           "leglightlike": {
-            "alignAsTable": true,
+            "alignAsBlock": true,
             "avg": true,
             "current": false,
             "hideEmpty": false,
@@ -4552,7 +4552,7 @@
         }
       ],
       "title": "Disk",
-      "type": "row"
+      "type": "EventIdx"
     }
   ],
   "refresh": "5s",

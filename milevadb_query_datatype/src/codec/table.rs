@@ -19,55 +19,55 @@ use einsteindb_util::collections::{HashMap, HashSet};
 
 // handle or index id
 pub const ID_LEN: usize = 8;
-pub const PREFIX_LEN: usize = TABLE_PREFIX_LEN + ID_LEN /*table_id*/ + SEP_LEN;
+pub const PREFIX_LEN: usize = Block_PREFIX_LEN + ID_LEN /*Block_id*/ + SEP_LEN;
 pub const RECORD_ROW_KEY_LEN: usize = PREFIX_LEN + ID_LEN;
-pub const TABLE_PREFIX: &[u8] = b"t";
+pub const Block_PREFIX: &[u8] = b"t";
 pub const RECORD_PREFIX_SEP: &[u8] = b"_r";
 pub const INDEX_PREFIX_SEP: &[u8] = b"_i";
 pub const SEP_LEN: usize = 2;
-pub const TABLE_PREFIX_LEN: usize = 1;
-pub const TABLE_PREFIX_KEY_LEN: usize = TABLE_PREFIX_LEN + ID_LEN;
+pub const Block_PREFIX_LEN: usize = 1;
+pub const Block_PREFIX_KEY_LEN: usize = Block_PREFIX_LEN + ID_LEN;
 // the maximum len of the old encoding of index value.
 pub const MAX_OLD_ENCODED_VALUE_LEN: usize = 9;
 
 /// Flag that indicate if the index value has common handle.
 pub const INDEX_VALUE_COMMON_HANDLE_FLAG: u8 = 127;
 
-/// `TableEncoder` encodes the table record/index prefix.
-trait TableEncoder: NumberEncoder {
-    fn applightlike_table_record_prefix(&mut self, table_id: i64) -> Result<()> {
-        self.write_bytes(TABLE_PREFIX)?;
-        self.write_i64(table_id)?;
+/// `BlockEncoder` encodes the Block record/index prefix.
+trait BlockEncoder: NumberEncoder {
+    fn applightlike_Block_record_prefix(&mut self, Block_id: i64) -> Result<()> {
+        self.write_bytes(Block_PREFIX)?;
+        self.write_i64(Block_id)?;
         self.write_bytes(RECORD_PREFIX_SEP).map_err(Error::from)
     }
 
-    fn applightlike_table_index_prefix(&mut self, table_id: i64) -> Result<()> {
-        self.write_bytes(TABLE_PREFIX)?;
-        self.write_i64(table_id)?;
+    fn applightlike_Block_index_prefix(&mut self, Block_id: i64) -> Result<()> {
+        self.write_bytes(Block_PREFIX)?;
+        self.write_i64(Block_id)?;
         self.write_bytes(INDEX_PREFIX_SEP).map_err(Error::from)
     }
 }
 
-impl<T: BufferWriter> TableEncoder for T {}
+impl<T: BufferWriter> BlockEncoder for T {}
 
-/// Extracts table prefix from table record or index.
+/// Extracts Block prefix from Block record or index.
 #[inline]
-pub fn extract_table_prefix(key: &[u8]) -> Result<&[u8]> {
-    if !key.spacelikes_with(TABLE_PREFIX) || key.len() < TABLE_PREFIX_KEY_LEN {
+pub fn extract_Block_prefix(key: &[u8]) -> Result<&[u8]> {
+    if !key.spacelikes_with(Block_PREFIX) || key.len() < Block_PREFIX_KEY_LEN {
         Err(invalid_type!(
             "record key or index key expected, but got {:?}",
             key
         ))
     } else {
-        Ok(&key[..TABLE_PREFIX_KEY_LEN])
+        Ok(&key[..Block_PREFIX_KEY_LEN])
     }
 }
 
-/// Checks if the cone is for table record or index.
-pub fn check_table_cones(cones: &[KeyCone]) -> Result<()> {
+/// Checks if the cone is for Block record or index.
+pub fn check_Block_cones(cones: &[KeyCone]) -> Result<()> {
     for cone in cones {
-        extract_table_prefix(cone.get_spacelike())?;
-        extract_table_prefix(cone.get_lightlike())?;
+        extract_Block_prefix(cone.get_spacelike())?;
+        extract_Block_prefix(cone.get_lightlike())?;
         if cone.get_spacelike() >= cone.get_lightlike() {
             return Err(invalid_type!(
                 "invalid cone,cone.spacelike should be smaller than cone.lightlike, but got [{:?},{:?})",
@@ -90,11 +90,11 @@ pub fn check_index_key(key: &[u8]) -> Result<()> {
 }
 
 /// `check_key_type` checks if the key is the type we want, `wanted_type` should be
-/// `table::RECORD_PREFIX_SEP` or `table::INDEX_PREFIX_SEP` .
+/// `Block::RECORD_PREFIX_SEP` or `Block::INDEX_PREFIX_SEP` .
 #[inline]
 fn check_key_type(key: &[u8], wanted_type: &[u8]) -> Result<()> {
     let mut buf = key;
-    if buf.read_bytes(TABLE_PREFIX_LEN)? != TABLE_PREFIX {
+    if buf.read_bytes(Block_PREFIX_LEN)? != Block_PREFIX {
         return Err(invalid_type!(
             "record or index key expected, but got {}",
             hex::encode_upper(key)
@@ -113,10 +113,10 @@ fn check_key_type(key: &[u8], wanted_type: &[u8]) -> Result<()> {
     }
 }
 
-/// Decodes table ID from the key.
-pub fn decode_table_id(key: &[u8]) -> Result<i64> {
+/// Decodes Block ID from the key.
+pub fn decode_Block_id(key: &[u8]) -> Result<i64> {
     let mut buf = key;
-    if buf.read_bytes(TABLE_PREFIX_LEN)? != TABLE_PREFIX {
+    if buf.read_bytes(Block_PREFIX_LEN)? != Block_PREFIX {
         return Err(invalid_type!(
             "record key expected, but got {}",
             hex::encode_upper(key)
@@ -135,18 +135,18 @@ pub fn flatten(ctx: &mut EvalContext, data: Datum) -> Result<Datum> {
     }
 }
 
-// `encode_row` encodes row data and PrimaryCauset ids into a slice of byte.
-// Row layout: colID1, value1, colID2, value2, .....
-pub fn encode_row(ctx: &mut EvalContext, row: Vec<Datum>, col_ids: &[i64]) -> Result<Vec<u8>> {
-    if row.len() != col_ids.len() {
+// `encode_row` encodes EventIdx data and PrimaryCauset ids into a slice of byte.
+// Event layout: colID1, value1, colID2, value2, .....
+pub fn encode_row(ctx: &mut EvalContext, EventIdx: Vec<Datum>, col_ids: &[i64]) -> Result<Vec<u8>> {
+    if EventIdx.len() != col_ids.len() {
         return Err(box_err!(
             "data and PrimaryCausetID count not match {} vs {}",
-            row.len(),
+            EventIdx.len(),
             col_ids.len()
         ));
     }
-    let mut values = Vec::with_capacity(cmp::max(row.len() * 2, 1));
-    for (&id, col) in col_ids.iter().zip(row) {
+    let mut values = Vec::with_capacity(cmp::max(EventIdx.len() * 2, 1));
+    for (&id, col) in col_ids.iter().zip(EventIdx) {
         values.push(Datum::I64(id));
         let fc = flatten(ctx, col)?;
         values.push(fc);
@@ -157,26 +157,26 @@ pub fn encode_row(ctx: &mut EvalContext, row: Vec<Datum>, col_ids: &[i64]) -> Re
     datum::encode_value(ctx, &values)
 }
 
-/// `encode_row_key` encodes the table id and record handle into a byte array.
-pub fn encode_row_key(table_id: i64, handle: i64) -> Vec<u8> {
+/// `encode_row_key` encodes the Block id and record handle into a byte array.
+pub fn encode_row_key(Block_id: i64, handle: i64) -> Vec<u8> {
     let mut key = Vec::with_capacity(RECORD_ROW_KEY_LEN);
     // can't panic
-    key.applightlike_table_record_prefix(table_id).unwrap();
+    key.applightlike_Block_record_prefix(Block_id).unwrap();
     key.write_i64(handle).unwrap();
     key
 }
 
-pub fn encode_common_handle_for_test(table_id: i64, handle: &[u8]) -> Vec<u8> {
+pub fn encode_common_handle_for_test(Block_id: i64, handle: &[u8]) -> Vec<u8> {
     let mut key = Vec::with_capacity(PREFIX_LEN + handle.len());
-    key.applightlike_table_record_prefix(table_id).unwrap();
+    key.applightlike_Block_record_prefix(Block_id).unwrap();
     key.extlightlike(handle);
     key
 }
 
-/// `encode_PrimaryCauset_key` encodes the table id, row handle and PrimaryCauset id into a byte array.
-pub fn encode_PrimaryCauset_key(table_id: i64, handle: i64, PrimaryCauset_id: i64) -> Vec<u8> {
+/// `encode_PrimaryCauset_key` encodes the Block id, EventIdx handle and PrimaryCauset id into a byte array.
+pub fn encode_PrimaryCauset_key(Block_id: i64, handle: i64, PrimaryCauset_id: i64) -> Vec<u8> {
     let mut key = Vec::with_capacity(RECORD_ROW_KEY_LEN + ID_LEN);
-    key.applightlike_table_record_prefix(table_id).unwrap();
+    key.applightlike_Block_record_prefix(Block_id).unwrap();
     key.write_i64(handle).unwrap();
     key.write_i64(PrimaryCauset_id).unwrap();
     key
@@ -199,9 +199,9 @@ pub fn decode_common_handle(mut key: &[u8]) -> Result<&[u8]> {
 }
 
 /// `encode_index_seek_key` encodes an index value to byte array.
-pub fn encode_index_seek_key(table_id: i64, idx_id: i64, encoded: &[u8]) -> Vec<u8> {
+pub fn encode_index_seek_key(Block_id: i64, idx_id: i64, encoded: &[u8]) -> Vec<u8> {
     let mut key = Vec::with_capacity(PREFIX_LEN + ID_LEN + encoded.len());
-    key.applightlike_table_index_prefix(table_id).unwrap();
+    key.applightlike_Block_index_prefix(Block_id).unwrap();
     key.write_i64(idx_id).unwrap();
     key.write_all(encoded).unwrap();
     key
@@ -293,7 +293,7 @@ pub fn decode_col_value(
 
 // `decode_row` decodes a byte slice into datums.
 // TODO: We should only decode PrimaryCausets in the cols map.
-// Row layout: colID1, value1, colID2, value2, .....
+// Event layout: colID1, value1, colID2, value2, .....
 pub fn decode_row(
     data: &mut BytesSlice<'_>,
     ctx: &mut EvalContext,
@@ -304,49 +304,49 @@ pub fn decode_row(
         return Ok(HashMap::default());
     }
     if values.len() & 1 == 1 {
-        return Err(box_err!("decoded row values' length should be even!"));
+        return Err(box_err!("decoded EventIdx values' length should be even!"));
     }
-    let mut row = HashMap::with_capacity_and_hasher(cols.len(), Default::default());
+    let mut EventIdx = HashMap::with_capacity_and_hasher(cols.len(), Default::default());
     let mut drain = values.drain(..);
     loop {
         let id = match drain.next() {
-            None => return Ok(row),
+            None => return Ok(EventIdx),
             Some(id) => id.i64(),
         };
         let v = drain.next().unwrap();
         if let Some(ci) = cols.get(&id) {
             let v = unflatten(ctx, v, ci)?;
-            row.insert(id, v);
+            EventIdx.insert(id, v);
         }
     }
 }
 
-/// `RowColMeta` saves the PrimaryCauset meta of the row.
+/// `EventColMeta` saves the PrimaryCauset meta of the EventIdx.
 #[derive(Debug)]
-pub struct RowColMeta {
+pub struct EventColMeta {
     offset: usize,
     length: usize,
 }
 
-/// `RowColsDict` stores the row data and a map mapping PrimaryCauset ID to its meta.
+/// `EventColsDict` stores the EventIdx data and a map mapping PrimaryCauset ID to its meta.
 #[derive(Debug)]
-pub struct RowColsDict {
-    // data of current row
+pub struct EventColsDict {
+    // data of current EventIdx
     pub value: Vec<u8>,
     // cols contains meta of each PrimaryCauset in the format of:
     // (col_id1,(offset1,len1)),(col_id2,(offset2,len2),...)
-    pub cols: HashMap<i64, RowColMeta>,
+    pub cols: HashMap<i64, EventColMeta>,
 }
 
-impl RowColMeta {
-    pub fn new(offset: usize, length: usize) -> RowColMeta {
-        RowColMeta { offset, length }
+impl EventColMeta {
+    pub fn new(offset: usize, length: usize) -> EventColMeta {
+        EventColMeta { offset, length }
     }
 }
 
-impl RowColsDict {
-    pub fn new(cols: HashMap<i64, RowColMeta>, value: Vec<u8>) -> RowColsDict {
-        RowColsDict { value, cols }
+impl EventColsDict {
+    pub fn new(cols: HashMap<i64, EventColMeta>, value: Vec<u8>) -> EventColsDict {
+        EventColsDict { value, cols }
     }
 
     /// Returns the total count of the PrimaryCausets.
@@ -369,12 +369,12 @@ impl RowColsDict {
         None
     }
 
-    /// Applightlikes a PrimaryCauset to the row.
+    /// Applightlikes a PrimaryCauset to the EventIdx.
     pub fn applightlike(&mut self, cid: i64, value: &mut Vec<u8>) {
         let offset = self.value.len();
         let length = value.len();
         self.value.applightlike(value);
-        self.cols.insert(cid, RowColMeta::new(offset, length));
+        self.cols.insert(cid, EventColMeta::new(offset, length));
     }
 
     /// Gets binary of cols, keeps the original order, and returns one slice and cols' lightlike offsets.
@@ -396,28 +396,28 @@ impl RowColsDict {
     }
 }
 
-/// `cut_row` cuts the encoded row into (col_id,offset,length)
-///  and returns interested PrimaryCausets' meta in RowColsDict
+/// `cut_row` cuts the encoded EventIdx into (col_id,offset,length)
+///  and returns interested PrimaryCausets' meta in EventColsDict
 ///
-/// Encoded row can be either in row format v1 or v2.
+/// Encoded EventIdx can be either in EventIdx format v1 or v2.
 ///
 /// `col_ids` must be consistent with `cols`. Otherwise the result is undefined.
 pub fn cut_row(
     data: Vec<u8>,
     col_ids: &HashSet<i64>,
     cols: Arc<Vec<PrimaryCausetInfo>>,
-) -> Result<RowColsDict> {
+) -> Result<EventColsDict> {
     if cols.is_empty() || data.is_empty() || (data.len() == 1 && data[0] == datum::NIL_FLAG) {
-        return Ok(RowColsDict::new(HashMap::default(), data));
+        return Ok(EventColsDict::new(HashMap::default(), data));
     }
     match data[0] {
-        crate::codec::row::v2::CODEC_VERSION => cut_row_v2(data, cols),
+        crate::codec::EventIdx::v2::CODEC_VERSION => cut_row_v2(data, cols),
         _ => cut_row_v1(data, col_ids),
     }
 }
 
-/// Cuts a non-empty row in row format v1.
-fn cut_row_v1(data: Vec<u8>, cols: &HashSet<i64>) -> Result<RowColsDict> {
+/// Cuts a non-empty EventIdx in EventIdx format v1.
+fn cut_row_v1(data: Vec<u8>, cols: &HashSet<i64>) -> Result<EventColsDict> {
     let meta_map = {
         let mut meta_map = HashMap::with_capacity_and_hasher(cols.len(), Default::default());
         let length = data.len();
@@ -427,24 +427,24 @@ fn cut_row_v1(data: Vec<u8>, cols: &HashSet<i64>) -> Result<RowColsDict> {
             let offset = length - tmp_data.len();
             let (val, rem) = datum::split_datum(tmp_data, false)?;
             if cols.contains(&id) {
-                meta_map.insert(id, RowColMeta::new(offset, val.len()));
+                meta_map.insert(id, EventColMeta::new(offset, val.len()));
             }
             tmp_data = rem;
         }
         meta_map
     };
-    Ok(RowColsDict::new(meta_map, data))
+    Ok(EventColsDict::new(meta_map, data))
 }
 
-/// Cuts a non-empty row in row format v2 and encodes into v1 format.
-fn cut_row_v2(data: Vec<u8>, cols: Arc<Vec<PrimaryCausetInfo>>) -> Result<RowColsDict> {
+/// Cuts a non-empty EventIdx in EventIdx format v2 and encodes into v1 format.
+fn cut_row_v2(data: Vec<u8>, cols: Arc<Vec<PrimaryCausetInfo>>) -> Result<EventColsDict> {
     use crate::codec::datum_codec::{PrimaryCausetIdDatumEncoder, EvaluableDatumEncoder};
-    use crate::codec::row::v2::{RowSlice, V1CompatibleEncoder};
+    use crate::codec::EventIdx::v2::{EventSlice, V1CompatibleEncoder};
 
     let mut meta_map = HashMap::with_capacity_and_hasher(cols.len(), Default::default());
     let mut result = Vec::with_capacity(data.len() + cols.len() * 8);
 
-    let row_slice = RowSlice::from_bytes(&data)?;
+    let row_slice = EventSlice::from_bytes(&data)?;
     for col in cols.iter() {
         let id = col.get_PrimaryCauset_id();
         if let Some((spacelike, offset)) = row_slice.search_in_non_null_ids(id)? {
@@ -454,7 +454,7 @@ fn cut_row_v2(data: Vec<u8>, cols: Arc<Vec<PrimaryCausetInfo>>) -> Result<RowCol
             result.write_v2_as_datum(v2_datum, col)?;
             meta_map.insert(
                 id,
-                RowColMeta::new(result_offset, result.len() - result_offset),
+                EventColMeta::new(result_offset, result.len() - result_offset),
             );
         } else if row_slice.search_in_null_ids(id) {
             result.write_PrimaryCauset_id_datum(id)?;
@@ -462,18 +462,18 @@ fn cut_row_v2(data: Vec<u8>, cols: Arc<Vec<PrimaryCausetInfo>>) -> Result<RowCol
             result.write_evaluable_datum_null()?;
             meta_map.insert(
                 id,
-                RowColMeta::new(result_offset, result.len() - result_offset),
+                EventColMeta::new(result_offset, result.len() - result_offset),
             );
         } else {
             // Otherwise the PrimaryCauset does not exist.
         }
     }
-    Ok(RowColsDict::new(meta_map, result))
+    Ok(EventColsDict::new(meta_map, result))
 }
 
-/// `cut_idx_key` cuts the encoded index key into RowColsDict and handle .
-pub fn cut_idx_key(key: Vec<u8>, col_ids: &[i64]) -> Result<(RowColsDict, Option<i64>)> {
-    let mut meta_map: HashMap<i64, RowColMeta> =
+/// `cut_idx_key` cuts the encoded index key into EventColsDict and handle .
+pub fn cut_idx_key(key: Vec<u8>, col_ids: &[i64]) -> Result<(EventColsDict, Option<i64>)> {
+    let mut meta_map: HashMap<i64, EventColMeta> =
         HashMap::with_capacity_and_hasher(col_ids.len(), Default::default());
     let handle = {
         let mut tmp_data: &[u8] = &key[PREFIX_LEN + ID_LEN..];
@@ -482,7 +482,7 @@ pub fn cut_idx_key(key: Vec<u8>, col_ids: &[i64]) -> Result<(RowColsDict, Option
         for &id in col_ids {
             let offset = length - tmp_data.len();
             let (val, rem) = datum::split_datum(tmp_data, false)?;
-            meta_map.insert(id, RowColMeta::new(offset, val.len()));
+            meta_map.insert(id, EventColMeta::new(offset, val.len()));
             tmp_data = rem;
         }
 
@@ -492,11 +492,11 @@ pub fn cut_idx_key(key: Vec<u8>, col_ids: &[i64]) -> Result<(RowColsDict, Option
             Some(tmp_data.read_datum()?.i64())
         }
     };
-    Ok((RowColsDict::new(meta_map, key), handle))
+    Ok((EventColsDict::new(meta_map, key), handle))
 }
 
 pub fn generate_index_data_for_test(
-    table_id: i64,
+    Block_id: i64,
     index_id: i64,
     handle: i64,
     col_val: &Datum,
@@ -518,7 +518,7 @@ pub fn generate_index_data_for_test(
         v.push(Datum::I64(handle));
     }
     let encoded = datum::encode_key(&mut EvalContext::default(), &v).unwrap();
-    let idx_key = encode_index_seek_key(table_id, index_id, &encoded);
+    let idx_key = encode_index_seek_key(Block_id, index_id, &encoded);
     (expect_row, idx_key)
 }
 
@@ -534,7 +534,7 @@ mod tests {
 
     use super::*;
 
-    const TABLE_ID: i64 = 1;
+    const Block_ID: i64 = 1;
     const INDEX_ID: i64 = 1;
 
     #[test]
@@ -573,15 +573,15 @@ mod tests {
         assert_eq!(tests, decode_index_key(&mut ctx, &encoded, &types).unwrap());
     }
 
-    fn to_hash_map(row: &RowColsDict) -> HashMap<i64, Vec<u8>> {
-        let mut data = HashMap::with_capacity_and_hasher(row.cols.len(), Default::default());
-        if row.is_empty() {
+    fn to_hash_map(EventIdx: &EventColsDict) -> HashMap<i64, Vec<u8>> {
+        let mut data = HashMap::with_capacity_and_hasher(EventIdx.cols.len(), Default::default());
+        if EventIdx.is_empty() {
             return data;
         }
-        for (key, meta) in &row.cols {
+        for (key, meta) in &EventIdx.cols {
             data.insert(
                 *key,
-                row.value[meta.offset..(meta.offset + meta.length)].to_vec(),
+                EventIdx.value[meta.offset..(meta.offset + meta.length)].to_vec(),
             );
         }
         data
@@ -591,7 +591,7 @@ mod tests {
         let is_empty_row =
             col_id_set.is_empty() || bs.is_empty() || (bs.len() == 1 && bs[0] == datum::NIL_FLAG);
         let res = if is_empty_row {
-            RowColsDict::new(HashMap::default(), bs.to_vec())
+            EventColsDict::new(HashMap::default(), bs.to_vec())
         } else {
             cut_row_v1(bs.to_vec(), col_id_set).unwrap()
         };
@@ -619,7 +619,7 @@ mod tests {
             6 => duration_col
         ];
 
-        let mut row = map![
+        let mut EventIdx = map![
             1 => Datum::I64(100),
             2 => Datum::Bytes(b"abc".to_vec()),
             3 => Datum::Dec(10.into()),
@@ -628,9 +628,9 @@ mod tests {
         ];
 
         let mut ctx = EvalContext::default();
-        let col_ids: Vec<_> = row.iter().map(|(&id, _)| id).collect();
-        let col_values: Vec<_> = row.iter().map(|(_, v)| v.clone()).collect();
-        let mut col_encoded: HashMap<_, _> = row
+        let col_ids: Vec<_> = EventIdx.iter().map(|(&id, _)| id).collect();
+        let col_values: Vec<_> = EventIdx.iter().map(|(_, v)| v.clone()).collect();
+        let mut col_encoded: HashMap<_, _> = EventIdx
             .iter()
             .map(|(k, v)| {
                 let f = super::flatten(&mut ctx, v.clone()).unwrap();
@@ -643,7 +643,7 @@ mod tests {
         assert!(!bs.is_empty());
         let mut ctx = EvalContext::default();
         let r = decode_row(&mut bs.as_slice(), &mut ctx, &cols).unwrap();
-        assert_eq!(row, r);
+        assert_eq!(EventIdx, r);
 
         let mut datums: HashMap<_, _>;
         datums = cut_row_as_owned(&bs, &col_id_set);
@@ -651,7 +651,7 @@ mod tests {
 
         cols.insert(4, FieldTypeTp::Float.into());
         let r = decode_row(&mut bs.as_slice(), &mut ctx, &cols).unwrap();
-        assert_eq!(row, r);
+        assert_eq!(EventIdx, r);
 
         col_id_set.insert(4);
         datums = cut_row_as_owned(&bs, &col_id_set);
@@ -660,8 +660,8 @@ mod tests {
         cols.remove(&4);
         cols.remove(&3);
         let r = decode_row(&mut bs.as_slice(), &mut ctx, &cols).unwrap();
-        row.remove(&3);
-        assert_eq!(row, r);
+        EventIdx.remove(&3);
+        assert_eq!(EventIdx, r);
 
         col_id_set.remove(&3);
         col_id_set.remove(&4);
@@ -745,7 +745,7 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_table_prefix() {
+    fn test_extract_Block_prefix() {
         let cases = vec![
             (vec![], None),
             (b"a\x80\x00\x00\x00\x00\x00\x00\x01".to_vec(), None),
@@ -760,51 +760,51 @@ mod tests {
             ),
         ];
         for (input, output) in cases {
-            assert_eq!(extract_table_prefix(&input).ok().map(From::from), output);
+            assert_eq!(extract_Block_prefix(&input).ok().map(From::from), output);
         }
     }
 
     #[test]
-    fn test_check_table_cone() {
+    fn test_check_Block_cone() {
         let small_key = b"t\x80\x00\x00\x00\x00\x00\x00\x01a".to_vec();
         let large_key = b"t\x80\x00\x00\x00\x00\x00\x00\x01b".to_vec();
         let mut cone = KeyCone::default();
         cone.set_spacelike(small_key.clone());
         cone.set_lightlike(large_key.clone());
-        assert!(check_table_cones(&[cone]).is_ok());
+        assert!(check_Block_cones(&[cone]).is_ok());
         //test cone.spacelike > cone.lightlike
         let mut cone = KeyCone::default();
         cone.set_lightlike(small_key.clone());
         cone.set_spacelike(large_key);
-        assert!(check_table_cones(&[cone]).is_err());
+        assert!(check_Block_cones(&[cone]).is_err());
 
         // test invalid lightlike
         let mut cone = KeyCone::default();
         cone.set_spacelike(small_key);
         cone.set_lightlike(b"xx".to_vec());
-        assert!(check_table_cones(&[cone]).is_err());
+        assert!(check_Block_cones(&[cone]).is_err());
     }
 
     #[test]
-    fn test_decode_table_id() {
+    fn test_decode_Block_id() {
         let tests = vec![0, 2, 3, 1024, i64::MAX];
         for &tid in &tests {
             let k = encode_row_key(tid, 1);
-            assert_eq!(tid, decode_table_id(&k).unwrap());
+            assert_eq!(tid, decode_Block_id(&k).unwrap());
             let k = encode_index_seek_key(tid, 1, &k);
-            assert_eq!(tid, decode_table_id(&k).unwrap());
-            assert!(decode_table_id(b"xxx").is_err());
+            assert_eq!(tid, decode_Block_id(&k).unwrap());
+            assert!(decode_Block_id(b"xxx").is_err());
         }
     }
 
     #[test]
     fn test_check_key_type() {
-        let record_key = encode_row_key(TABLE_ID, 1);
+        let record_key = encode_row_key(Block_ID, 1);
         assert!(check_key_type(&record_key.as_slice(), RECORD_PREFIX_SEP).is_ok());
         assert!(check_key_type(&record_key.as_slice(), INDEX_PREFIX_SEP).is_err());
 
         let (_, index_key) =
-            generate_index_data_for_test(TABLE_ID, INDEX_ID, 1, &Datum::I64(1), true);
+            generate_index_data_for_test(Block_ID, INDEX_ID, 1, &Datum::I64(1), true);
         assert!(check_key_type(&index_key.as_slice(), RECORD_PREFIX_SEP).is_err());
         assert!(check_key_type(&index_key.as_slice(), INDEX_PREFIX_SEP).is_ok());
 

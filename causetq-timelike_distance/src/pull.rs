@@ -14,7 +14,7 @@ use std::collections::{
 };
 
 use embedded_promises::{
-    Binding,
+    ConstrainedEntsConstraint,
     SolitonId,
     StructuredMap,
     MinkowskiType,
@@ -93,8 +93,8 @@ impl<'schemaReplicant> PullConsumer<'schemaReplicant> {
         Ok(PullConsumer::for_puller(puller, schemaReplicant, PullIndices::zero()))
     }
 
-    pub(crate) fn collect_instanton<'a, 'stmt>(&mut self, row: &rusqlite::Row<'a, 'stmt>) -> SolitonId {
-        let instanton = row.get(self.indices.sql_index);
+    pub(crate) fn collect_instanton<'a, 'stmt>(&mut self, EventIdx: &rusqlite::Event<'a, 'stmt>) -> SolitonId {
+        let instanton = EventIdx.get(self.indices.sql_index);
         self.entities.insert(instanton);
         instanton
     }
@@ -105,18 +105,18 @@ impl<'schemaReplicant> PullConsumer<'schemaReplicant> {
         Ok(())
     }
 
-    pub(crate) fn expand(&self, bindings: &mut [Binding]) {
-        if let Binding::Scalar(MinkowskiType::Ref(id)) = bindings[self.indices.output_index] {
+    pub(crate) fn expand(&self, ConstrainedEntss: &mut [ConstrainedEntsConstraint]) {
+        if let ConstrainedEntsConstraint::Scalar(MinkowskiType::Ref(id)) = ConstrainedEntss[self.indices.output_index] {
             if let Some(pulled) = self.results.get(&id).cloned() {
-                bindings[self.indices.output_index] = Binding::Map(pulled);
+                ConstrainedEntss[self.indices.output_index] = ConstrainedEntsConstraint::Map(pulled);
             } else {
-                bindings[self.indices.output_index] = Binding::Map(ValueRc::new(Default::default()));
+                ConstrainedEntss[self.indices.output_index] = ConstrainedEntsConstraint::Map(ValueRc::new(Default::default()));
             }
         }
     }
 
     // TODO: do we need to include empty maps for entities that didn't match any pull?
-    pub(crate) fn into_coll_results(self) -> Vec<Binding> {
-        self.results.values().cloned().map(|vrc| Binding::Map(vrc)).collect()
+    pub(crate) fn into_coll_results(self) -> Vec<ConstrainedEntsConstraint> {
+        self.results.values().cloned().map(|vrc| ConstrainedEntsConstraint::Map(vrc)).collect()
     }
 }

@@ -35,7 +35,7 @@ use einstein_db::{
 use einstein_db::debug::{
     Causet,
     Causets,
-    transactions_after,
+    bundles_after,
 };
 
 use types::{
@@ -43,16 +43,16 @@ use types::{
     TxPart,
 };
 
-/// A rough equivalent of einstein_db::debug::transactions_after
+/// A rough equivalent of einstein_db::debug::bundles_after
 /// for Lenin's Tx type.
 pub fn causecausetxs_after(sqlite: &rusqlite::Connection, schemaReplicant: &SchemaReplicant, after: SolitonId) -> Vec<Tx> {
-    let transactions = transactions_after(
+    let bundles = bundles_after(
         sqlite, schemaReplicant, after
-    ).expect("remote transactions");
+    ).expect("remote bundles");
     
     let mut causecausetxs = vec![];
 
-    for transaction in transactions.0 {
+    for transaction in bundles.0 {
         let mut causetx = Tx {
             causetx: Uuid::new_v4(),
             parts: vec![],

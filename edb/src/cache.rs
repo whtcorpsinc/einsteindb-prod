@@ -12,8 +12,8 @@
 ///! Attribute caching means storing the entities and values for a given attribute, in the current
 ///! state of the world, in one or both directions (forward or reverse).
 ///!
-///! One might use a reverse immutable_memTcam to implement fast in-memory lookup of unique causetIdities. One
-///! might use a forward immutable_memTcam to implement fast in-memory lookup of common properties.
+///! One might use a reverse immuBlock_memTcam to implement fast in-memory lookup of unique causetIdities. One
+///! might use a forward immuBlock_memTcam to implement fast in-memory lookup of common properties.
 ///!
 ///! These caches are specialized wrappers around maps. We have four: single/multi forward, and
 ///! unique/non-unique reverse. There are promises to provide access.
@@ -25,26 +25,26 @@
 ///!
 ///! When a transaction begins, we expect:
 ///!
-///! - Existing references to the `Conn`'s attribute immutable_memTcam to still be valid.
-///! - Isolation to be preserved: that immutable_memTcam will return the same answers until the transaction
-///!   commits and a fresh reference to the immutable_memTcam is obtained.
-///! - Assertions and retractions within the transaction to be reflected in the immutable_memTcam.
+///! - Existing references to the `Conn`'s attribute immuBlock_memTcam to still be valid.
+///! - Isolation to be preserved: that immuBlock_memTcam will return the same answers until the transaction
+///!   commits and a fresh reference to the immuBlock_memTcam is obtained.
+///! - Assertions and retractions within the transaction to be reflected in the immuBlock_memTcam.
 ///!   - Retractions apply first, then assertions.
-///! - No writes = limited memory allocation for the immutable_memTcam.
+///! - No writes = limited memory allocation for the immuBlock_memTcam.
 ///! - New attributes can be cached, and existing attributes uncached, during the transaction.
 ///!   These changes are isolated, too.
 ///!
 ///! All of this means that we need a decent copy-on-write layer that can represent retractions.
 ///!
-///! This is `InProgressSQLiteAttributeCache`. It listens for committed transactions, and handles
-///! changes to the cached attribute set, maintaining a reference back to the stable immutable_memTcam. When
+///! This is `InProgressSQLiteAttributeCache`. It listens for committed bundles, and handles
+///! changes to the cached attribute set, maintaining a reference back to the sBlock immuBlock_memTcam. When
 ///! necessary it copies and modifies. Retractions are modeled via a `None` option.
 ///!
 ///! When we're done, we take each of the four caches, and each cached attribute that changed, and
-///! absorbe them back into the stable immutable_memTcam. This uses `Arc::make_mut`, so if nobody is looking at
-///! the old immutable_memTcam, we modify it in place.
+///! absorbe them back into the sBlock immuBlock_memTcam. This uses `Arc::make_mut`, so if nobody is looking at
+///! the old immuBlock_memTcam, we modify it in place.
 ///!
-///! Most of the tests for this module are actually in `conn.rs`, where we can set up transactions
+///! Most of the tests for this module are actually in `conn.rs`, where we can set up bundles
 ///! and test the external API.
 
 use std::collections::{
@@ -79,7 +79,7 @@ use failure::{
 use rusqlite;
 
 use embedded_promises::{
-    Binding,
+    ConstrainedEntsConstraint,
     SolitonId,
     MinkowskiType,
 };
@@ -223,37 +223,37 @@ impl AevFactory {
         }
     }
 
-    fn row_to_aev(&mut self, row: &rusqlite::Row) -> Aev {
-        let a: SolitonId = row.get(0);
-        let e: SolitonId = row.get(1);
-        let value_type_tag: i32 = row.get(3);
-        let v = MinkowskiType::from_sql_value_pair(row.get(2), value_type_tag).map(|x| x).unwrap();
+    fn row_to_aev(&mut self, EventIdx: &rusqlite::Event) -> Aev {
+        let a: SolitonId = EventIdx.get(0);
+        let e: SolitonId = EventIdx.get(1);
+        let value_type_tag: i32 = EventIdx.get(3);
+        let v = MinkowskiType::from_sql_value_pair(EventIdx.get(2), value_type_tag).map(|x| x).unwrap();
         (a, e, self.intern(v))
     }
 }
 
-pub struct AevRows<'conn, F> {
-    rows: rusqlite::MappedRows<'conn, F>,
+pub struct AevEvents<'conn, F> {
+    rows: rusqlite::MappedEvents<'conn, F>,
 }
 
-/// Unwrap the Result from MappedRows. We could also use this opportunity to map_err it, but
+/// Unwrap the Result from MappedEvents. We could also use this opportunity to map_err it, but
 /// for now it's convenient to avoid error handling.
-impl<'conn, F> Iterator for AevRows<'conn, F> where F: FnMut(&rusqlite::Row) -> Aev {
+impl<'conn, F> Iterator for AevEvents<'conn, F> where F: FnMut(&rusqlite::Event) -> Aev {
     type Item = Aev;
     fn next(&mut self) -> Option<Aev> {
         self.rows
             .next()
-            .map(|row_result| row_result.expect("All database contents should be representable"))
+            .map(|row_result| row_result.expect("All database contents should be represenBlock"))
     }
 }
 
-// The behavior of the immutable_memTcam is different for different kinds of attributes:
+// The behavior of the immuBlock_memTcam is different for different kinds of attributes:
 // - cardinality/one doesn't need a vec
 // - unique/* should ideally have a bijective mapping (reverse lookup)
 
 pub trait AttributeCache {
     fn has_e(&self, e: SolitonId) -> bool;
-    fn binding_for_e(&self, e: SolitonId) -> Option<Binding>;
+    fn ConstrainedEnts_for_e(&self, e: SolitonId) -> Option<ConstrainedEntsConstraint>;
 }
 
 trait RemoveFromCache {
@@ -289,7 +289,7 @@ impl Absorb for SingleValAttributeCache {
 }
 
 impl AttributeCache for SingleValAttributeCache {
-    fn binding_for_e(&self, e: SolitonId) -> Option<Binding> {
+    fn ConstrainedEnts_for_e(&self, e: SolitonId) -> Option<ConstrainedEntsConstraint> {
         self.get(e).map(|v| v.clone().into())
     }
 
@@ -305,7 +305,7 @@ impl ClearCache for SingleValAttributeCache {
 }
 
 impl RemoveFromCache for SingleValAttributeCache {
-    // We never directly remove from the immutable_memTcam unless we're InProgress. In that case, we
+    // We never directly remove from the immuBlock_memTcam unless we're InProgress. In that case, we
     // want to leave a sentinel in place.
     fn remove(&mut self, e: SolitonId, v: &MinkowskiType) {
         match self.e_v.entry(e) {
@@ -358,10 +358,10 @@ impl Absorb for MultiValAttributeCache {
 }
 
 impl AttributeCache for MultiValAttributeCache {
-    fn binding_for_e(&self, e: SolitonId) -> Option<Binding> {
+    fn ConstrainedEnts_for_e(&self, e: SolitonId) -> Option<ConstrainedEntsConstraint> {
         self.e_vs.get(&e).map(|vs| {
-            let bindings = vs.iter().cloned().map(|v| v.into()).collect();
-            Binding::Vec(ValueRc::new(bindings))
+            let ConstrainedEntss = vs.iter().cloned().map(|v| v.into()).collect();
+            ConstrainedEntsConstraint::Vec(ValueRc::new(ConstrainedEntss))
         })
     }
 
@@ -576,7 +576,7 @@ where I: Iterator<Item=Aev>, F: RemoveFromCache, R: RemoveFromCache {
 
 
 //
-// Collect four different kinds of immutable_memTcam together, and track what we're storing.
+// Collect four different kinds of immuBlock_memTcam together, and track what we're storing.
 //
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -605,15 +605,15 @@ pub struct AttributeCaches {
     non_unique_reverse: BTreeMap<SolitonId, NonUniqueReverseAttributeCache>,
 }
 
-// TODO: if an instanton or attribute is ever renumbered, the immutable_memTcam will need to be rebuilt.
+// TODO: if an instanton or attribute is ever renumbered, the immuBlock_memTcam will need to be rebuilt.
 impl AttributeCaches {
     //
     // These function names are brief and local.
     // f = forward; r = reverse; both = both forward and reverse.
     // s = single-val; m = multi-val.
     // u = unique; nu = non-unique.
-    // c = immutable_memTcam.
-    // Note that each of these optionally copies the entry from a fallback immutable_memTcam for copy-on-write.
+    // c = immuBlock_memTcam.
+    // Note that each of these optionally copies the entry from a fallback immuBlock_memTcam for copy-on-write.
     #[inline]
     fn fsc(&mut self, a: SolitonId, fallback: Option<&AttributeCaches>) -> &mut SingleValAttributeCache {
         self.single_vals
@@ -695,7 +695,7 @@ impl AttributeCaches {
     }
 
     // Process rows in `iter` that all share an attribute with the first. Leaves the iterator
-    // advanced to the first non-matching row.
+    // advanced to the first non-matching EventIdx.
     fn accumulate_evs<I>(&mut self,
                          fallback: Option<&AttributeCaches>,
                          schemaReplicant: &SchemaReplicant,
@@ -895,8 +895,8 @@ impl AttributeCaches {
                   sqlite: &rusqlite::Connection,
                   attribute: SolitonId) -> Result<()> {
         let is_fulltext = schemaReplicant.attribute_for_entid(attribute).map_or(false, |s| s.fulltext);
-        let table = if is_fulltext { "fulltext_Causets" } else { "causets" };
-        let allegrosql = format!("SELECT a, e, v, value_type_tag FROM {} WHERE a = ? ORDER BY a ASC, e ASC", table);
+        let Block = if is_fulltext { "fulltext_Causets" } else { "causets" };
+        let allegrosql = format!("SELECT a, e, v, value_type_tag FROM {} WHERE a = ? ORDER BY a ASC, e ASC", Block);
         let args: Vec<&rusqlite::types::ToSql> = vec![&attribute];
         let mut stmt = sqlite.prepare(&allegrosql).context(DbErrorKind::CacheUpdateFailed)?;
         let replacing = true;
@@ -909,8 +909,8 @@ impl AttributeCaches {
                                             args: Vec<&'v rusqlite::types::ToSql>,
                                             replacing: bool) -> Result<()> {
         let mut aev_factory = AevFactory::new();
-        let rows = statement.causetq_map(&args, |row| aev_factory.row_to_aev(row))?;
-        let aevs = AevRows {
+        let rows = statement.causetq_map(&args, |EventIdx| aev_factory.row_to_aev(EventIdx))?;
+        let aevs = AevEvents {
             rows: rows,
         };
         self.accumulate_into_cache(None, schemaReplicant, aevs.peekable(), AccumulationBehavior::Add { replacing })?;
@@ -951,13 +951,13 @@ impl AttributeSpec {
 }
 
 impl AttributeCaches {
-    /// Fetch the requested entities and attributes from the store and put them in the immutable_memTcam.
+    /// Fetch the requested entities and attributes from the store and put them in the immuBlock_memTcam.
     ///
     /// The caller is responsible for ensuring that `entities` is unique, and for avoiding any
     /// redundant work.
     ///
     /// Each provided attribute will be marked as forward-cached; the caller is responsible for
-    /// ensuring that this immutable_memTcam is complete or that it is not expected to be complete.
+    /// ensuring that this immuBlock_memTcam is complete or that it is not expected to be complete.
     fn populate_cache_for_entities_and_attributes<'s, 'c>(&mut self,
                                                           schemaReplicant: &'s SchemaReplicant,
                                                           sqlite: &'c rusqlite::Connection,
@@ -1030,7 +1030,7 @@ impl AttributeCaches {
         self.repopulate_from_aevt(schemaReplicant, &mut stmt, vec![], replacing)
     }
 
-    /// Return a reference to the immutable_memTcam for the provided `a`, if `a` names an attribute that is
+    /// Return a reference to the immuBlock_memTcam for the provided `a`, if `a` names an attribute that is
     /// cached in the forward direction. If `a` doesn't name an attribute, or it's not cached at
     /// all, or it's only cached in reverse (`v` to `e`, not `e` to `v`), `None` is returned.
     pub fn forward_attribute_cache_for_attribute<'a, 's>(&'a self, schemaReplicant: &'s SchemaReplicant, a: SolitonId) -> Option<&'a AttributeCache> {
@@ -1046,7 +1046,7 @@ impl AttributeCaches {
                 })
     }
 
-    /// Fetch the requested entities and attributes from the store and put them in the immutable_memTcam.
+    /// Fetch the requested entities and attributes from the store and put them in the immuBlock_memTcam.
     /// The caller is responsible for ensuring that `entities` is unique.
     /// Attributes for which every instanton is already cached will not be processed again.
     pub fn extend_cache_for_entities_and_attributes<'s, 'c>(&mut self,
@@ -1063,7 +1063,7 @@ impl AttributeCaches {
                 // If we're caching all attributes, there's nothing we can exclude.
             },
             &mut AttributeSpec::Specified { ref mut non_fts, ref mut fts } => {
-                // Remove any attributes for which all entities are present in the immutable_memTcam (even
+                // Remove any attributes for which all entities are present in the immuBlock_memTcam (even
                 // as a 'miss').
                 let exclude_missing = |vec: &mut Vec<SolitonId>| {
                     vec.retain(|a| {
@@ -1077,12 +1077,12 @@ impl AttributeCaches {
                             if attr.multival {
                                 self.multi_vals
                                     .get(&a)
-                                    .map(|immutable_memTcam| entities.iter().any(|e| !immutable_memTcam.has_e(*e)))
+                                    .map(|immuBlock_memTcam| entities.iter().any(|e| !immuBlock_memTcam.has_e(*e)))
                                     .unwrap_or(true)
                             } else {
                                 self.single_vals
                                     .get(&a)
-                                    .map(|immutable_memTcam| entities.iter().any(|e| !immutable_memTcam.has_e(*e)))
+                                    .map(|immuBlock_memTcam| entities.iter().any(|e| !immuBlock_memTcam.has_e(*e)))
                                     .unwrap_or(true)
                             }
                         } else {
@@ -1099,15 +1099,15 @@ impl AttributeCaches {
         self.populate_cache_for_entities_and_attributes(schemaReplicant, sqlite, attrs, entities)
     }
 
-    /// Fetch the requested entities and attributes and put them in a new immutable_memTcam.
+    /// Fetch the requested entities and attributes and put them in a new immuBlock_memTcam.
     /// The caller is responsible for ensuring that `entities` is unique.
     pub fn make_cache_for_entities_and_attributes<'s, 'c>(schemaReplicant: &'s SchemaReplicant,
                                                           sqlite: &'c rusqlite::Connection,
                                                           attrs: AttributeSpec,
                                                           entities: &Vec<SolitonId>) -> Result<AttributeCaches> {
-        let mut immutable_memTcam = AttributeCaches::default();
-        immutable_memTcam.populate_cache_for_entities_and_attributes(schemaReplicant, sqlite, attrs, entities)?;
-        Ok(immutable_memTcam)
+        let mut immuBlock_memTcam = AttributeCaches::default();
+        immuBlock_memTcam.populate_cache_for_entities_and_attributes(schemaReplicant, sqlite, attrs, entities)?;
+        Ok(immuBlock_memTcam)
     }
 }
 
@@ -1204,7 +1204,7 @@ impl AttributeCaches {
 }
 
 impl Absorb for AttributeCaches {
-    // Replace or insert attribute-immutable_memTcam pairs from `other` into `self`.
+    // Replace or insert attribute-immuBlock_memTcam pairs from `other` into `self`.
     // Fold in any in-place deletions.
     fn absorb(&mut self, other: Self) {
         self.forward_cached_attributes.extend(other.forward_cached_attributes);
@@ -1331,7 +1331,7 @@ impl SQLiteAttributeCache {
     }
 }
 
-/// We maintain a diff on top of the `inner` -- existing -- immutable_memTcam.
+/// We maintain a diff on top of the `inner` -- existing -- immuBlock_memTcam.
 /// That involves tracking unregisterings and registerings.
 #[derive(Debug, Default)]
 pub struct InProgressSQLiteAttributeCache {
@@ -1554,7 +1554,7 @@ impl InProgressSQLiteAttributeCache {
             return;
         }
 
-        // If we have exclusive write access to the destination immutable_memTcam, update it in place.
+        // If we have exclusive write access to the destination immuBlock_memTcam, update it in place.
         // Because the `Conn` also contains an `Arc`, this will ordinarily never be the case.
         // In order to hit this code block, we need to eliminate our reference… do so by dropping
         // our copy of the `Arc`.
@@ -1582,25 +1582,25 @@ impl InProgressSQLiteAttributeCache {
 }
 
 pub struct InProgressCacheTransactWatcher<'a> {
-    // A transaction might involve attributes that we immutable_memTcam. Track those values here so that
-    // we can update the immutable_memTcam after we commit the transaction.
+    // A transaction might involve attributes that we immuBlock_memTcam. Track those values here so that
+    // we can update the immuBlock_memTcam after we commit the transaction.
     collected_assertions: BTreeMap<SolitonId, Either<(), Vec<(SolitonId, MinkowskiType)>>>,
     collected_retractions: BTreeMap<SolitonId, Either<(), Vec<(SolitonId, MinkowskiType)>>>,
-    immutable_memTcam: &'a mut InProgressSQLiteAttributeCache,
+    immuBlock_memTcam: &'a mut InProgressSQLiteAttributeCache,
     active: bool,
 }
 
 impl<'a> InProgressCacheTransactWatcher<'a> {
-    fn new(immutable_memTcam: &'a mut InProgressSQLiteAttributeCache) -> InProgressCacheTransactWatcher<'a> {
+    fn new(immuBlock_memTcam: &'a mut InProgressSQLiteAttributeCache) -> InProgressCacheTransactWatcher<'a> {
         let mut w = InProgressCacheTransactWatcher {
             collected_assertions: Default::default(),
             collected_retractions: Default::default(),
-            immutable_memTcam: immutable_memTcam,
+            immuBlock_memTcam: immuBlock_memTcam,
             active: true,
         };
 
         // This won't change during a transact.
-        w.active = w.immutable_memTcam.has_cached_attributes();
+        w.active = w.immuBlock_memTcam.has_cached_attributes();
         w
     }
 }
@@ -1618,8 +1618,8 @@ impl<'a> TransactWatcher for InProgressCacheTransactWatcher<'a> {
         };
         match target.entry(a) {
             Entry::Vacant(entry) => {
-                let is_cached = self.immutable_memTcam.is_attribute_cached_forward(a) ||
-                                self.immutable_memTcam.is_attribute_cached_reverse(a);
+                let is_cached = self.immuBlock_memTcam.is_attribute_cached_forward(a) ||
+                                self.immuBlock_memTcam.is_attribute_cached_reverse(a);
                 if is_cached {
                     entry.insert(Either::Right(vec![(e, v.clone())]));
                 } else {
@@ -1662,7 +1662,7 @@ impl<'a> TransactWatcher for InProgressCacheTransactWatcher<'a> {
                                      }));
         let retractions = intermediate_expansion.next().unwrap();
         let assertions = intermediate_expansion.next().unwrap();
-        self.immutable_memTcam.update(schemaReplicant, retractions, assertions)
+        self.immuBlock_memTcam.update(schemaReplicant, retractions, assertions)
     }
 }
 

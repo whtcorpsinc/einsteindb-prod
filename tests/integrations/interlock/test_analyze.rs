@@ -22,7 +22,7 @@ fn new_analyze_req(data: Vec<u8>, cone: KeyCone, spacelike_ts: u64) -> Request {
 }
 
 fn new_analyze_PrimaryCauset_req(
-    table: &Table,
+    Block: &Block,
     PrimaryCausets_info_len: usize,
     bucket_size: i64,
     fm_sketch_size: i64,
@@ -31,7 +31,7 @@ fn new_analyze_PrimaryCauset_req(
     cm_sketch_width: i32,
 ) -> Request {
     let mut col_req = AnalyzePrimaryCausetsReq::default();
-    col_req.set_PrimaryCausets_info(table.PrimaryCausets_info()[..PrimaryCausets_info_len].into());
+    col_req.set_PrimaryCausets_info(Block.PrimaryCausets_info()[..PrimaryCausets_info_len].into());
     col_req.set_bucket_size(bucket_size);
     col_req.set_sketch_size(fm_sketch_size);
     col_req.set_sample_size(sample_size);
@@ -42,13 +42,13 @@ fn new_analyze_PrimaryCauset_req(
     analy_req.set_col_req(col_req);
     new_analyze_req(
         analy_req.write_to_bytes().unwrap(),
-        table.get_record_cone_all(),
+        Block.get_record_cone_all(),
         next_id() as u64,
     )
 }
 
 fn new_analyze_index_req(
-    table: &Table,
+    Block: &Block,
     bucket_size: i64,
     idx: i64,
     cm_sketch_depth: i32,
@@ -64,7 +64,7 @@ fn new_analyze_index_req(
     analy_req.set_idx_req(idx_req);
     new_analyze_req(
         analy_req.write_to_bytes().unwrap(),
-        table.get_index_cone_all(idx),
+        Block.get_index_cone_all(idx),
         next_id() as u64,
     )
 }
@@ -78,7 +78,7 @@ fn test_analyze_PrimaryCauset_with_lock() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     for &iso_level in &[IsolationLevel::Si, IsolationLevel::Rc] {
         let (_, lightlikepoint) = init_data_with_commit(&product, &data, false);
 
@@ -113,7 +113,7 @@ fn test_analyze_PrimaryCauset() {
         (5, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_data_with_commit(&product, &data, true);
 
     let req = new_analyze_PrimaryCauset_req(&product, 3, 3, 3, 3, 4, 32);
@@ -143,7 +143,7 @@ fn test_analyze_single_primary_PrimaryCauset() {
         (5, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_data_with_commit(&product, &data, true);
 
     let req = new_analyze_PrimaryCauset_req(&product, 1, 3, 3, 3, 4, 32);
@@ -167,7 +167,7 @@ fn test_analyze_index_with_lock() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     for &iso_level in &[IsolationLevel::Si, IsolationLevel::Rc] {
         let (_, lightlikepoint) = init_data_with_commit(&product, &data, false);
 
@@ -202,7 +202,7 @@ fn test_analyze_index() {
         (5, None, 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_data_with_commit(&product, &data, true);
 
     let req = new_analyze_index_req(&product, 3, product["name"].index, 4, 32);
@@ -228,7 +228,7 @@ fn test_invalid_cone() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_data_with_commit(&product, &data, true);
     let mut req = new_analyze_index_req(&product, 3, product["name"].index, 4, 32);
     let mut key_cone = KeyCone::default();

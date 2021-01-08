@@ -11,9 +11,9 @@ use einsteindb_util::worker::Scheduler;
 #[serde(default)]
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
-    /// When it is true, it will try to split a brane with table prefix if
-    /// that brane crosses tables.
-    pub split_brane_on_table: bool,
+    /// When it is true, it will try to split a brane with Block prefix if
+    /// that brane crosses Blocks.
+    pub split_brane_on_Block: bool,
 
     /// For once split check, there are several split_key produced for batch.
     /// batch_split_limit limits the number of produced split-key for one batch.
@@ -58,7 +58,7 @@ impl Default for Config {
     fn default() -> Config {
         let split_size = ReadableSize::mb(SPLIT_SIZE_MB);
         Config {
-            split_brane_on_table: false,
+            split_brane_on_Block: false,
             batch_split_limit: BATCH_SPLIT_LIMIT,
             brane_split_size: split_size,
             brane_max_size: split_size / 2 * 3,

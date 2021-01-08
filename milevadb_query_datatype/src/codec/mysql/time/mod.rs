@@ -577,8 +577,8 @@ impl Time {
 fn handle_zero_date(ctx: &mut EvalContext, mut args: TimeArgs) -> Result<Option<TimeArgs>> {
     let sql_mode = ctx.causetg.sql_mode;
     let flags = ctx.causetg.flag;
-    let strict_mode = sql_mode.contains(SqlMode::STRICT_ALL_TABLES)
-        | sql_mode.contains(SqlMode::STRICT_TRANS_TABLES);
+    let strict_mode = sql_mode.contains(SqlMode::STRICT_ALL_BlockS)
+        | sql_mode.contains(SqlMode::STRICT_TRANS_BlockS);
     let no_zero_date = sql_mode.contains(SqlMode::NO_ZERO_DATE);
     let ignore_truncate = flags.contains(Flag::IGNORE_TRUNCATE);
 
@@ -597,8 +597,8 @@ fn handle_zero_in_date(ctx: &mut EvalContext, mut args: TimeArgs) -> Result<Opti
     let sql_mode = ctx.causetg.sql_mode;
     let flags = ctx.causetg.flag;
 
-    let strict_mode = sql_mode.contains(SqlMode::STRICT_ALL_TABLES)
-        | sql_mode.contains(SqlMode::STRICT_TRANS_TABLES);
+    let strict_mode = sql_mode.contains(SqlMode::STRICT_ALL_BlockS)
+        | sql_mode.contains(SqlMode::STRICT_TRANS_BlockS);
     let no_zero_in_date = sql_mode.contains(SqlMode::NO_ZERO_IN_DATE);
     let ignore_truncate = flags.contains(Flag::IGNORE_TRUNCATE);
 
@@ -1428,15 +1428,15 @@ impl Time {
 
     pub fn date_format(self, layout: &str) -> Result<String> {
         let mut ret = String::new();
-        let mut pattern_match = false;
+        let mut TuringString_match = false;
         for b in layout.chars() {
-            if pattern_match {
+            if TuringString_match {
                 self.write_date_format_segment(b, &mut ret)?;
-                pattern_match = false;
+                TuringString_match = false;
                 continue;
             }
             if b == '%' {
-                pattern_match = true;
+                TuringString_match = true;
             } else {
                 ret.push(b);
             }
@@ -1444,7 +1444,7 @@ impl Time {
         Ok(ret)
     }
 
-    /// Converts a `DateTime` to printable string representation
+    /// Converts a `DateTime` to prinBlock string representation
     #[inline]
     pub fn to_numeric_string(self) -> String {
         let mut buffer = String::with_capacity(15);
@@ -1760,7 +1760,7 @@ mod tests {
             let mut flags = Flag::empty();
 
             if config.strict_mode {
-                sql_mode |= SqlMode::STRICT_ALL_TABLES;
+                sql_mode |= SqlMode::STRICT_ALL_BlockS;
             }
             if config.allow_invalid_date {
                 sql_mode |= SqlMode::INVALID_DATES;
@@ -2290,7 +2290,7 @@ mod tests {
 
     #[test]
     fn test_codec_timestamp() -> Result<()> {
-        let tz_table = vec!["Etc/GMT+11", "Etc/GMT0", "Etc/GMT-5", "UTC", "Universal"];
+        let tz_Block = vec!["Etc/GMT+11", "Etc/GMT0", "Etc/GMT-5", "UTC", "Universal"];
 
         let cases = vec![
             ("0000-00-00 00:00:00", 0),
@@ -2304,7 +2304,7 @@ mod tests {
             ("2007-08-01 00:00:00.999999", MAX_FSP),
         ];
 
-        for tz in tz_table {
+        for tz in tz_Block {
             for &(case, fsp) in cases.iter() {
                 let mut ctx = EvalContext::from(TimeEnv {
                     time_zone: Tz::from_tz_name(tz),

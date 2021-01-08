@@ -280,7 +280,7 @@ impl<S: Snapshot> CausetStore for SnapshotStore<S> {
         }
 
         let mut order_and_tuplespaceInstanton: Vec<_> = tuplespaceInstanton.iter().enumerate().collect();
-        order_and_tuplespaceInstanton.sort_unstable_by(|(_, a), (_, b)| a.cmp(b));
+        order_and_tuplespaceInstanton.sort_unsBlock_by(|(_, a), (_, b)| a.cmp(b));
 
         let mut point_getter = PointGetterBuilder::new(self.snapshot.clone(), self.spacelike_ts)
             .fill_cache(self.fill_cache)

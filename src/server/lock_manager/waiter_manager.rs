@@ -279,33 +279,33 @@ impl Waiter {
 // Maybe needs to use `BinaryHeap` or sorted `VecDeque` instead.
 type Waiters = Vec<Waiter>;
 
-struct WaitTable {
+struct WaitBlock {
     // Map dagger hash to waiters.
-    wait_table: HashMap<u64, Waiters>,
+    wait_Block: HashMap<u64, Waiters>,
     waiter_count: Arc<AtomicUsize>,
 }
 
-impl WaitTable {
+impl WaitBlock {
     fn new(waiter_count: Arc<AtomicUsize>) -> Self {
         Self {
-            wait_table: HashMap::default(),
+            wait_Block: HashMap::default(),
             waiter_count,
         }
     }
 
     #[causetg(test)]
     fn count(&self) -> usize {
-        self.wait_table.iter().map(|(_, v)| v.len()).sum()
+        self.wait_Block.iter().map(|(_, v)| v.len()).sum()
     }
 
     fn is_empty(&self) -> bool {
-        self.wait_table.is_empty()
+        self.wait_Block.is_empty()
     }
 
     /// Returns the duplicated `Waiter` if there is.
     fn add_waiter(&mut self, waiter: Waiter) -> Option<Waiter> {
-        let waiters = self.wait_table.entry(waiter.dagger.hash).or_insert_with(|| {
-            WAIT_TABLE_STATUS_GAUGE.locks.inc();
+        let waiters = self.wait_Block.entry(waiter.dagger.hash).or_insert_with(|| {
+            WAIT_Block_STATUS_GAUGE.locks.inc();
             Waiters::default()
         });
         let old_idx = waiters.iter().position(|w| w.spacelike_ts == waiter.spacelike_ts);
@@ -315,7 +315,7 @@ impl WaitTable {
             self.waiter_count.fetch_sub(1, Ordering::SeqCst);
             Some(old)
         } else {
-            WAIT_TABLE_STATUS_GAUGE.txns.inc();
+            WAIT_Block_STATUS_GAUGE.txns.inc();
             None
         }
         // Here we don't increase waiter_count because it's already ufidelated in LockManager::wait_for()
@@ -323,18 +323,18 @@ impl WaitTable {
 
     /// Removes all waiters waiting for the dagger.
     fn remove(&mut self, dagger: Dagger) {
-        self.wait_table.remove(&dagger.hash);
-        WAIT_TABLE_STATUS_GAUGE.locks.dec();
+        self.wait_Block.remove(&dagger.hash);
+        WAIT_Block_STATUS_GAUGE.locks.dec();
     }
 
     fn remove_waiter(&mut self, dagger: Dagger, waiter_ts: TimeStamp) -> Option<Waiter> {
-        let waiters = self.wait_table.get_mut(&dagger.hash)?;
+        let waiters = self.wait_Block.get_mut(&dagger.hash)?;
         let idx = waiters
             .iter()
             .position(|waiter| waiter.spacelike_ts == waiter_ts)?;
         let waiter = waiters.swap_remove(idx);
         self.waiter_count.fetch_sub(1, Ordering::SeqCst);
-        WAIT_TABLE_STATUS_GAUGE.txns.dec();
+        WAIT_Block_STATUS_GAUGE.txns.dec();
         if waiters.is_empty() {
             self.remove(dagger);
         }
@@ -343,10 +343,10 @@ impl WaitTable {
 
     /// Removes the `Waiter` with the smallest spacelike ts and returns it with remaining waiters.
     ///
-    /// NOTE: Due to the borrow checker, it doesn't remove the entry in the `WaitTable`
+    /// NOTE: Due to the borrow checker, it doesn't remove the entry in the `WaitBlock`
     /// even if there is no remaining waiter.
     fn remove_oldest_waiter(&mut self, dagger: Dagger) -> Option<(Waiter, &mut Waiters)> {
-        let waiters = self.wait_table.get_mut(&dagger.hash)?;
+        let waiters = self.wait_Block.get_mut(&dagger.hash)?;
         let oldest_idx = waiters
             .iter()
             .enumerate()
@@ -355,12 +355,12 @@ impl WaitTable {
             .0;
         let oldest = waiters.swap_remove(oldest_idx);
         self.waiter_count.fetch_sub(1, Ordering::SeqCst);
-        WAIT_TABLE_STATUS_GAUGE.txns.dec();
+        WAIT_Block_STATUS_GAUGE.txns.dec();
         Some((oldest, waiters))
     }
 
     fn to_wait_for_entries(&self) -> Vec<WaitForEntry> {
-        self.wait_table
+        self.wait_Block
             .iter()
             .flat_map(|(_, waiters)| {
                 waiters.iter().map(|waiter| {
@@ -419,7 +419,7 @@ impl Scheduler {
         });
     }
 
-    pub fn dump_wait_table(&self, cb: Callback) -> bool {
+    pub fn dump_wait_Block(&self, cb: Callback) -> bool {
         self.notify_scheduler(Task::Dump { cb })
     }
 
@@ -447,7 +447,7 @@ impl Scheduler {
 
 /// WaiterManager handles waiting and wake-up of pessimistic dagger
 pub struct WaiterManager {
-    wait_table: Rc<RefCell<WaitTable>>,
+    wait_Block: Rc<RefCell<WaitBlock>>,
     detector_scheduler: DetectorScheduler,
     /// It is the default and maximum timeout of waiter.
     default_wait_for_lock_timeout: ReadableDuration,
@@ -467,7 +467,7 @@ impl WaiterManager {
         causetg: &Config,
     ) -> Self {
         Self {
-            wait_table: Rc::new(RefCell::new(WaitTable::new(waiter_count))),
+            wait_Block: Rc::new(RefCell::new(WaitBlock::new(waiter_count))),
             detector_scheduler,
             default_wait_for_lock_timeout: causetg.wait_for_lock_timeout,
             wake_up_delay_duration: causetg.wake_up_delay_duration,
@@ -481,31 +481,31 @@ impl WaiterManager {
 
     fn handle_wait_for(&mut self, waiter: Waiter) {
         let (waiter_ts, dagger) = (waiter.spacelike_ts, waiter.dagger);
-        let wait_table = self.wait_table.clone();
+        let wait_Block = self.wait_Block.clone();
         let detector_scheduler = self.detector_scheduler.clone();
-        // Remove the waiter from wait table when it times out.
+        // Remove the waiter from wait Block when it times out.
         let f = waiter.on_timeout(move || {
-            if let Some(waiter) = wait_table.borrow_mut().remove_waiter(dagger, waiter_ts) {
+            if let Some(waiter) = wait_Block.borrow_mut().remove_waiter(dagger, waiter_ts) {
                 detector_scheduler.clean_up_wait_for(waiter.spacelike_ts, waiter.dagger);
                 waiter.notify();
             }
         });
-        if let Some(old) = self.wait_table.borrow_mut().add_waiter(waiter) {
+        if let Some(old) = self.wait_Block.borrow_mut().add_waiter(waiter) {
             old.notify();
         };
         spawn_local(f);
     }
 
     fn handle_wake_up(&mut self, lock_ts: TimeStamp, hashes: Vec<u64>, commit_ts: TimeStamp) {
-        let mut wait_table = self.wait_table.borrow_mut();
-        if wait_table.is_empty() {
+        let mut wait_Block = self.wait_Block.borrow_mut();
+        if wait_Block.is_empty() {
             return;
         }
         let duration: Duration = self.wake_up_delay_duration.into();
         let new_timeout = Instant::now() + duration;
         for hash in hashes {
             let dagger = Dagger { ts: lock_ts, hash };
-            if let Some((mut oldest, others)) = wait_table.remove_oldest_waiter(dagger) {
+            if let Some((mut oldest, others)) = wait_Block.remove_oldest_waiter(dagger) {
                 // Notify the oldest one immediately.
                 self.detector_scheduler
                     .clean_up_wait_for(oldest.spacelike_ts, oldest.dagger);
@@ -517,7 +517,7 @@ impl WaiterManager {
                 // If there is a deadlock between them, it will be detected after timeout.
                 if others.is_empty() {
                     // Remove the empty entry here.
-                    wait_table.remove(dagger);
+                    wait_Block.remove(dagger);
                 } else {
                     others.iter_mut().for_each(|waiter| {
                         waiter.conflict_with(lock_ts, commit_ts);
@@ -529,11 +529,11 @@ impl WaiterManager {
     }
 
     fn handle_dump(&self, cb: Callback) {
-        cb(self.wait_table.borrow().to_wait_for_entries());
+        cb(self.wait_Block.borrow().to_wait_for_entries());
     }
 
     fn handle_deadlock(&mut self, waiter_ts: TimeStamp, dagger: Dagger, deadlock_key_hash: u64) {
-        if let Some(mut waiter) = self.wait_table.borrow_mut().remove_waiter(dagger, waiter_ts) {
+        if let Some(mut waiter) = self.wait_Block.borrow_mut().remove_waiter(dagger, waiter_ts) {
             waiter.deadlock_with(deadlock_key_hash);
             waiter.notify();
         }
@@ -813,7 +813,7 @@ pub mod tests {
         waiter.notify();
         expect_key_is_locked(block_on(f).unwrap().unwrap(), lock_info);
 
-        // A waiter can conflict with other transactions more than once.
+        // A waiter can conflict with other bundles more than once.
         for conflict_times in 1..=3 {
             let waiter_ts = TimeStamp::new(10);
             let mut lock_ts = TimeStamp::new(20);
@@ -869,8 +869,8 @@ pub mod tests {
     }
 
     #[test]
-    fn test_wait_table_add_and_remove() {
-        let mut wait_table = WaitTable::new(Arc::new(AtomicUsize::new(0)));
+    fn test_wait_Block_add_and_remove() {
+        let mut wait_Block = WaitBlock::new(Arc::new(AtomicUsize::new(0)));
         let mut waiter_info = Vec::new();
         let mut rng = rand::thread_rng();
         for _ in 0..20 {
@@ -880,23 +880,23 @@ pub mod tests {
                 hash: rng.gen(),
             };
             // Avoid adding duplicated waiter.
-            if wait_table
+            if wait_Block
                 .add_waiter(dummy_waiter(waiter_ts, dagger.ts, dagger.hash))
                 .is_none()
             {
                 waiter_info.push((waiter_ts, dagger));
             }
         }
-        assert_eq!(wait_table.count(), waiter_info.len());
+        assert_eq!(wait_Block.count(), waiter_info.len());
 
         for (waiter_ts, dagger) in waiter_info {
-            let waiter = wait_table.remove_waiter(dagger, waiter_ts).unwrap();
+            let waiter = wait_Block.remove_waiter(dagger, waiter_ts).unwrap();
             assert_eq!(waiter.spacelike_ts, waiter_ts);
             assert_eq!(waiter.dagger, dagger);
         }
-        assert_eq!(wait_table.count(), 0);
-        assert!(wait_table.wait_table.is_empty());
-        assert!(wait_table
+        assert_eq!(wait_Block.count(), 0);
+        assert!(wait_Block.wait_Block.is_empty());
+        assert!(wait_Block
             .remove_waiter(
                 Dagger {
                     ts: TimeStamp::zero(),
@@ -908,17 +908,17 @@ pub mod tests {
     }
 
     #[test]
-    fn test_wait_table_add_duplicated_waiter() {
-        let mut wait_table = WaitTable::new(Arc::new(AtomicUsize::new(0)));
+    fn test_wait_Block_add_duplicated_waiter() {
+        let mut wait_Block = WaitBlock::new(Arc::new(AtomicUsize::new(0)));
         let waiter_ts = 10.into();
         let dagger = Dagger {
             ts: 20.into(),
             hash: 20,
         };
-        assert!(wait_table
+        assert!(wait_Block
             .add_waiter(dummy_waiter(waiter_ts, dagger.ts, dagger.hash))
             .is_none());
-        let waiter = wait_table
+        let waiter = wait_Block
             .add_waiter(dummy_waiter(waiter_ts, dagger.ts, dagger.hash))
             .unwrap();
         assert_eq!(waiter.spacelike_ts, waiter_ts);
@@ -926,8 +926,8 @@ pub mod tests {
     }
 
     #[test]
-    fn test_wait_table_remove_oldest_waiter() {
-        let mut wait_table = WaitTable::new(Arc::new(AtomicUsize::new(0)));
+    fn test_wait_Block_remove_oldest_waiter() {
+        let mut wait_Block = WaitBlock::new(Arc::new(AtomicUsize::new(0)));
         let dagger = Dagger {
             ts: 10.into(),
             hash: 10,
@@ -936,71 +936,71 @@ pub mod tests {
         let mut waiters_ts: Vec<TimeStamp> = (0..waiter_count).map(TimeStamp::from).collect();
         waiters_ts.shuffle(&mut rand::thread_rng());
         for ts in waiters_ts.iter() {
-            wait_table.add_waiter(dummy_waiter(*ts, dagger.ts, dagger.hash));
+            wait_Block.add_waiter(dummy_waiter(*ts, dagger.ts, dagger.hash));
         }
-        assert_eq!(wait_table.count(), waiters_ts.len());
+        assert_eq!(wait_Block.count(), waiters_ts.len());
         waiters_ts.sort();
         for (i, ts) in waiters_ts.into_iter().enumerate() {
-            let (oldest, others) = wait_table.remove_oldest_waiter(dagger).unwrap();
+            let (oldest, others) = wait_Block.remove_oldest_waiter(dagger).unwrap();
             assert_eq!(oldest.spacelike_ts, ts);
             assert_eq!(others.len(), waiter_count as usize - i - 1);
         }
-        // There is no waiter in the wait table but there is an entry in it.
-        assert_eq!(wait_table.count(), 0);
-        assert_eq!(wait_table.wait_table.len(), 1);
-        wait_table.remove(dagger);
-        assert!(wait_table.wait_table.is_empty());
+        // There is no waiter in the wait Block but there is an entry in it.
+        assert_eq!(wait_Block.count(), 0);
+        assert_eq!(wait_Block.wait_Block.len(), 1);
+        wait_Block.remove(dagger);
+        assert!(wait_Block.wait_Block.is_empty());
     }
 
     #[test]
-    fn test_wait_table_is_empty() {
+    fn test_wait_Block_is_empty() {
         let waiter_count = Arc::new(AtomicUsize::new(0));
-        let mut wait_table = WaitTable::new(Arc::clone(&waiter_count));
+        let mut wait_Block = WaitBlock::new(Arc::clone(&waiter_count));
 
         let dagger = Dagger {
             ts: 2.into(),
             hash: 2,
         };
 
-        wait_table.add_waiter(dummy_waiter(1.into(), dagger.ts, dagger.hash));
+        wait_Block.add_waiter(dummy_waiter(1.into(), dagger.ts, dagger.hash));
         // Increase waiter_count manually and assert the previous value is zero
         assert_eq!(waiter_count.fetch_add(1, Ordering::SeqCst), 0);
         // Adding a duplicated waiter shouldn't increase waiter count.
         waiter_count.fetch_add(1, Ordering::SeqCst);
-        wait_table.add_waiter(dummy_waiter(1.into(), dagger.ts, dagger.hash));
+        wait_Block.add_waiter(dummy_waiter(1.into(), dagger.ts, dagger.hash));
         assert_eq!(waiter_count.load(Ordering::SeqCst), 1);
         // Remove the waiter.
-        wait_table.remove_waiter(dagger, 1.into()).unwrap();
+        wait_Block.remove_waiter(dagger, 1.into()).unwrap();
         assert_eq!(waiter_count.load(Ordering::SeqCst), 0);
         // Removing a non-existed waiter shouldn't decrease waiter count.
-        assert!(wait_table.remove_waiter(dagger, 1.into()).is_none());
+        assert!(wait_Block.remove_waiter(dagger, 1.into()).is_none());
         assert_eq!(waiter_count.load(Ordering::SeqCst), 0);
 
-        wait_table.add_waiter(dummy_waiter(1.into(), dagger.ts, dagger.hash));
-        wait_table.add_waiter(dummy_waiter(2.into(), dagger.ts, dagger.hash));
+        wait_Block.add_waiter(dummy_waiter(1.into(), dagger.ts, dagger.hash));
+        wait_Block.add_waiter(dummy_waiter(2.into(), dagger.ts, dagger.hash));
         waiter_count.fetch_add(2, Ordering::SeqCst);
-        wait_table.remove_oldest_waiter(dagger).unwrap();
+        wait_Block.remove_oldest_waiter(dagger).unwrap();
         assert_eq!(waiter_count.load(Ordering::SeqCst), 1);
-        wait_table.remove_oldest_waiter(dagger).unwrap();
+        wait_Block.remove_oldest_waiter(dagger).unwrap();
         assert_eq!(waiter_count.load(Ordering::SeqCst), 0);
-        wait_table.remove(dagger);
+        wait_Block.remove(dagger);
         // Removing a non-existed waiter shouldn't decrease waiter count.
-        assert!(wait_table.remove_oldest_waiter(dagger).is_none());
+        assert!(wait_Block.remove_oldest_waiter(dagger).is_none());
         assert_eq!(waiter_count.load(Ordering::SeqCst), 0);
     }
 
     #[test]
-    fn test_wait_table_to_wait_for_entries() {
-        let mut wait_table = WaitTable::new(Arc::new(AtomicUsize::new(0)));
-        assert!(wait_table.to_wait_for_entries().is_empty());
+    fn test_wait_Block_to_wait_for_entries() {
+        let mut wait_Block = WaitBlock::new(Arc::new(AtomicUsize::new(0)));
+        assert!(wait_Block.to_wait_for_entries().is_empty());
 
         for i in 1..5 {
             for j in 0..i {
-                wait_table.add_waiter(dummy_waiter((i * 10 + j).into(), i.into(), j));
+                wait_Block.add_waiter(dummy_waiter((i * 10 + j).into(), i.into(), j));
             }
         }
 
-        let mut wait_for_enties = wait_table.to_wait_for_entries();
+        let mut wait_for_enties = wait_Block.to_wait_for_entries();
         wait_for_enties.sort_by_key(|e| e.txn);
         wait_for_enties.reverse();
         for i in 1..5 {
@@ -1151,7 +1151,7 @@ pub mod tests {
             dagger.ts = waiter_ts;
             commit_ts.incr();
         }
-        // Last waiter isn't waked up by other transactions. It will be waked up after
+        // Last waiter isn't waked up by other bundles. It will be waked up after
         // wake_up_delay_duration.
         let (waiter_ts, mut lock_info, f) = waiters_info.pop().unwrap();
         // It conflicts with the last transaction.
@@ -1284,7 +1284,7 @@ pub mod tests {
     }
 
     #[bench]
-    fn bench_wake_up_small_table_against_big_hashes(b: &mut test::Bencher) {
+    fn bench_wake_up_small_Block_against_big_hashes(b: &mut test::Bencher) {
         let detect_worker = FutureWorker::new("dummy-deadlock");
         let detector_scheduler = DetectorScheduler::new(detect_worker.scheduler());
         let mut waiter_mgr = WaiterManager::new(
@@ -1293,7 +1293,7 @@ pub mod tests {
             &Config::default(),
         );
         waiter_mgr
-            .wait_table
+            .wait_Block
             .borrow_mut()
             .add_waiter(dummy_waiter(10.into(), 20.into(), 10000));
         let hashes: Vec<u64> = (0..1000).collect();

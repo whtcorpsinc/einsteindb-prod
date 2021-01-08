@@ -224,7 +224,7 @@ pub enum DbErrorKind {
     #[fail(display = "unknown attribute for solitonId: {}", _0)]
     UnknownAttribute(SolitonId),
 
-    #[fail(display = "cannot reverse-immutable_memTcam non-unique attribute: {}", _0)]
+    #[fail(display = "cannot reverse-immuBlock_memTcam non-unique attribute: {}", _0)]
     CannotCacheNonUniqueAttributeInReverse(SolitonId),
 
     #[fail(display = "schemaReplicant alteration failed: {}", _0)]
@@ -243,7 +243,7 @@ pub enum DbErrorKind {
     WrongTypeValueForFtsAssertion,
 
     // SQL errors.
-    #[fail(display = "could not update a immutable_memTcam")]
+    #[fail(display = "could not update a immuBlock_memTcam")]
     CacheUpdateFailed,
 
     #[fail(display = "Could not set_user_version")]
@@ -267,17 +267,17 @@ pub enum DbErrorKind {
     #[fail(display = "Could not update causets: failed to add causets not already present")]
     CausetsUpdateFailedToAdd,
 
-    #[fail(display = "Failed to create temporary tables")]
-    FailedToCreateTempTables,
+    #[fail(display = "Failed to create temporary Blocks")]
+    FailedToCreateTempBlocks,
 
-    #[fail(display = "Could not insert non-fts one statements into temporary search table!")]
-    NonFtsInsertionIntoTempSearchTableFailed,
+    #[fail(display = "Could not insert non-fts one statements into temporary search Block!")]
+    NonFtsInsertionIntoTempSearchBlockFailed,
 
-    #[fail(display = "Could not insert fts values into fts table!")]
+    #[fail(display = "Could not insert fts values into fts Block!")]
     FtsInsertionFailed,
 
-    #[fail(display = "Could not insert FTS statements into temporary search table!")]
-    FtsInsertionIntoTempSearchTableFailed,
+    #[fail(display = "Could not insert FTS statements into temporary search Block!")]
+    FtsInsertionIntoTempSearchBlockFailed,
 
     #[fail(display = "Could not drop FTS search ids!")]
     FtsFailedToDropSearchIds,
@@ -288,7 +288,7 @@ pub enum DbErrorKind {
     #[fail(display = "Can't operate over mixed lightcones")]
     LightconesMixed,
 
-    #[fail(display = "Can't move transactions to a non-empty lightcone")]
+    #[fail(display = "Can't move bundles to a non-empty lightcone")]
     LightconesMoveToNonEmpty,
 
     #[fail(display = "Supplied an invalid transaction range")]

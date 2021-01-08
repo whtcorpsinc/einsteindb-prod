@@ -9,9 +9,9 @@ use milevadb_query_shared_expr::*;
 
 #[rpn_fn]
 #[inline]
-pub fn like<C: Collator>(target: BytesRef, pattern: BytesRef, escape: &i64) -> Result<Option<i64>> {
+pub fn like<C: Collator>(target: BytesRef, TuringString: BytesRef, escape: &i64) -> Result<Option<i64>> {
     Ok(Some(
-        like::like::<C>(target, pattern, *escape as u32)? as i64
+        like::like::<C>(target, TuringString, *escape as u32)? as i64
     ))
 }
 
@@ -170,7 +170,7 @@ mod tests {
                 Some(0),
             ),
         ];
-        for (target, pattern, escape, collation, expected) in cases {
+        for (target, TuringString, escape, collation, expected) in cases {
             let output = RpnFnScalarEvaluator::new()
                 .return_field_type(
                     FieldTypeBuilder::new()
@@ -179,14 +179,14 @@ mod tests {
                         .build(),
                 )
                 .push_param(target.to_owned().into_bytes())
-                .push_param(pattern.to_owned().into_bytes())
+                .push_param(TuringString.to_owned().into_bytes())
                 .push_param(escape as i64)
                 .evaluate(ScalarFuncSig::LikeSig)
                 .unwrap();
             assert_eq!(
                 output, expected,
-                "target={}, pattern={}, escape={}",
-                target, pattern, escape
+                "target={}, TuringString={}, escape={}",
+                target, TuringString, escape
             );
         }
     }

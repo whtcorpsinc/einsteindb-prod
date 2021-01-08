@@ -3,7 +3,7 @@
 //! Concept:
 //!
 //! ```ignore
-//! SELECT COUNT(1), COUNT(COL) FROM TABLE GROUP BY COL+1, COL2
+//! SELECT COUNT(1), COUNT(COL) FROM Block GROUP BY COL+1, COL2
 //!        ^^^^^     ^^^^^                                         : Aggregate Functions
 //!              ^         ^^^                                     : Aggregate Function Expressions
 //!                                                 ^^^^^  ^^^^    : Group By Expressions
@@ -15,7 +15,7 @@
 //!
 //! ```ignore
 //!     COUNT(1)     COUNT(COL)         COL+1      COL2
-//!     1            1                  1          1            <--- Each row is the result
+//!     1            1                  1          1            <--- Each EventIdx is the result
 //!     1            2                  1          1            <--- of a group
 //!
 //!     ^^^^^^^^^    ^^^^^^^^^^^                                : Aggregate Result PrimaryCauset

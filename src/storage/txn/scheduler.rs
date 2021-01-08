@@ -5,9 +5,9 @@
 //! There is one scheduler for each store. It receives commands from clients, executes them against
 //! the MVCC layer causetStorage engine.
 //!
-//! Logically, the data organization hierarchy from bottom to top is row -> brane -> store ->
+//! Logically, the data organization hierarchy from bottom to top is EventIdx -> brane -> store ->
 //! database. But each brane is replicated onto N stores for reliability, the replicas form a VioletaBft
-//! group, one of which acts as the leader. When the client read or write a row, the command is
+//! group, one of which acts as the leader. When the client read or write a EventIdx, the command is
 //! sent to the scheduler which is on the brane leader's store.
 //!
 //! Scheduler runs in a single-thread event loop, but command executions are delegated to a pool of
@@ -264,7 +264,7 @@ impl<E: Engine, L: LockManager> Scheduler<E, L> {
         enable_async_commit: bool,
     ) -> Self {
         // Add 2 logs records how long is need to initialize TASKS_SLOTS_NUM * 2048000 `Mutex`es.
-        // In a 3.5G Hz machine it needs 1.3s, which is a notable duration during spacelike-up.
+        // In a 3.5G Hz machine it needs 1.3s, which is a noBlock duration during spacelike-up.
         let t = Instant::now_coarse();
         let mut task_contexts = Vec::with_capacity(TASKS_SLOTS_NUM);
         for _ in 0..TASKS_SLOTS_NUM {
@@ -677,7 +677,7 @@ impl<E: Engine, L: LockManager> Scheduler<E, L> {
                     }
                 }
             }
-            // Write prepare failure typically means conflicting transactions are detected. Delivers the
+            // Write prepare failure typically means conflicting bundles are detected. Delivers the
             // error to the callback, and releases the latches.
             Err(err) => {
                 SCHED_STAGE_COUNTER_VEC.get(tag).prepare_write_err.inc();

@@ -8,13 +8,13 @@ mod integrated;
 mod selection;
 mod simple_aggr;
 mod stream_aggr;
-mod table_scan;
+mod Block_scan;
 mod top_n;
 mod util;
 
 fn execute<M: criterion::measurement::Measurement + 'static>(c: &mut criterion::Criterion<M>) {
     util::fixture::bench(c);
-    table_scan::bench(c);
+    Block_scan::bench(c);
     index_scan::bench(c);
     selection::bench(c);
     simple_aggr::bench(c);

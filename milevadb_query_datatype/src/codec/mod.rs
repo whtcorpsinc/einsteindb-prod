@@ -23,8 +23,8 @@ pub mod datum_codec;
 pub mod error;
 pub mod mysql;
 mod overflow;
-pub mod row;
-pub mod table;
+pub mod EventIdx;
+pub mod Block;
 
 pub use self::datum::Datum;
 pub use self::error::{Error, Result};

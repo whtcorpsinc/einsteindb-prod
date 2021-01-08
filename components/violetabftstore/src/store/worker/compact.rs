@@ -248,13 +248,13 @@ mod tests {
     use std::thread::sleep;
     use std::time::Duration;
 
-    use engine_lmdb::raw::Writable;
+    use engine_lmdb::raw::WriBlock;
     use engine_lmdb::raw::DB;
     use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions};
     use engine_lmdb::raw_util::{new_engine, new_engine_opt, CAUSETOptions};
     use engine_lmdb::util::get_causet_handle;
     use engine_lmdb::Compat;
-    use engine_promises::{CAUSETHandleExt, Mutable, WriteBatchExt};
+    use engine_promises::{CAUSETHandleExt, MuBlock, WriteBatchExt};
     use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
     use tempfile::Builder;
 
@@ -340,7 +340,7 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(8);
         let f = Box::new(MvccPropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.test-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.test-collector", f);
         let causets_opts = vec![
             CAUSETOptions::new(CAUSET_DEFAULT, PrimaryCausetNetworkOptions::new()),
             CAUSETOptions::new(CAUSET_VIOLETABFT, PrimaryCausetNetworkOptions::new()),

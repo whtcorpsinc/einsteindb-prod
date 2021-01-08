@@ -62,7 +62,7 @@ impl ConjoiningGerunds {
 
     fn potential_types(&self, schemaReplicant: &SchemaReplicant, fn_arg: &StackedPerceptron) -> Result<MinkowskiSet> {
         match fn_arg {
-            &StackedPerceptron::Variable(ref v) => Ok(self.known_type_set(v)),
+            &StackedPerceptron::ToUpper(ref v) => Ok(self.known_type_set(v)),
             _ => fn_arg.potential_types(schemaReplicant),
         }
     }
@@ -202,11 +202,11 @@ mod testing {
     use edbn::causetq::{
         StackedPerceptron,
         Keyword,
-        Pattern,
-        PatternNonValuePlace,
-        PatternValuePlace,
+        TuringString,
+        TuringStringNonValuePlace,
+        TuringStringValuePlace,
         PlainSymbol,
-        Variable,
+        ToUpper,
     };
 
     use gerunds::{
@@ -222,7 +222,7 @@ mod testing {
     };
 
     #[test]
-    /// Apply two patterns: a pattern and a numeric predicate.
+    /// Apply two TuringStrings: a TuringString and a numeric predicate.
     /// Verify that after application of the predicate we know that the value
     /// must be numeric.
     fn test_apply_inequality() {
@@ -235,15 +235,15 @@ mod testing {
             ..Default::default()
         });
 
-        let x = Variable::from_valid_name("?x");
-        let y = Variable::from_valid_name("?y");
+        let x = ToUpper::from_valid_name("?x");
+        let y = ToUpper::from_valid_name("?y");
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
-            attribute: PatternNonValuePlace::Placeholder,
-            value: PatternValuePlace::Variable(y.clone()),
-            causetx: PatternNonValuePlace::Placeholder,
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
+            attribute: TuringStringNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::ToUpper(y.clone()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
         assert!(!cc.is_known_empty());
 
@@ -252,13 +252,13 @@ mod testing {
         assert!(cc.apply_inequality(knownCauset, comp, Predicate {
              operator: op,
              args: vec![
-                StackedPerceptron::Variable(Variable::from_valid_name("?y")), StackedPerceptron::SolitonIdOrInteger(10),
+                StackedPerceptron::ToUpper(ToUpper::from_valid_name("?y")), StackedPerceptron::SolitonIdOrInteger(10),
             ]}).is_ok());
 
         assert!(!cc.is_known_empty());
 
-        // Finally, expand CausetIndex bindings to get the overlaps for ?x.
-        cc.expand_CausetIndex_bindings();
+        // Finally, expand CausetIndex ConstrainedEntss to get the overlaps for ?x.
+        cc.expand_CausetIndex_ConstrainedEntss();
         assert!(!cc.is_known_empty());
 
         // After processing those two gerunds, we know that ?y must be numeric, but not exactly
@@ -271,15 +271,15 @@ mod testing {
         assert_eq!(gerunds.len(), 1);
         assert_eq!(gerunds.0[0], CausetIndexConstraint::Inequality {
             operator: Inequality::LessThan,
-            left: CausetQValue::CausetIndex(cc.CausetIndex_bindings.get(&y).unwrap()[0].clone()),
+            left: CausetQValue::CausetIndex(cc.CausetIndex_ConstrainedEntss.get(&y).unwrap()[0].clone()),
             right: CausetQValue::MinkowskiType(MinkowskiType::Long(10)),
         }.into());
     }
 
     #[test]
-    /// Apply three patterns: an unbound pattern to establish a value var,
-    /// a predicate to constrain the val to numeric types, and a third pattern to conflict with the
-    /// numeric types and cause the pattern to fail.
+    /// Apply three TuringStrings: an unbound TuringString to establish a value var,
+    /// a predicate to constrain the val to numeric types, and a third TuringString to conflict with the
+    /// numeric types and cause the TuringString to fail.
     fn test_apply_conflict_with_numeric_range() {
         let mut cc = ConjoiningGerunds::default();
         let mut schemaReplicant = SchemaReplicant::default();
@@ -296,15 +296,15 @@ mod testing {
             ..Default::default()
         });
 
-        let x = Variable::from_valid_name("?x");
-        let y = Variable::from_valid_name("?y");
+        let x = ToUpper::from_valid_name("?x");
+        let y = ToUpper::from_valid_name("?y");
         let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
-            attribute: PatternNonValuePlace::Placeholder,
-            value: PatternValuePlace::Variable(y.clone()),
-            causetx: PatternNonValuePlace::Placeholder,
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
+            attribute: TuringStringNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::ToUpper(y.clone()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
         assert!(!cc.is_known_empty());
 
@@ -313,20 +313,20 @@ mod testing {
         assert!(cc.apply_inequality(knownCauset, comp, Predicate {
              operator: op,
              args: vec![
-                StackedPerceptron::Variable(Variable::from_valid_name("?y")), StackedPerceptron::SolitonIdOrInteger(10),
+                StackedPerceptron::ToUpper(ToUpper::from_valid_name("?y")), StackedPerceptron::SolitonIdOrInteger(10),
             ]}).is_ok());
 
         assert!(!cc.is_known_empty());
-        cc.apply_parsed_pattern(knownCauset, Pattern {
+        cc.apply_parsed_TuringString(knownCauset, TuringString {
             source: None,
-            instanton: PatternNonValuePlace::Variable(x.clone()),
+            instanton: TuringStringNonValuePlace::ToUpper(x.clone()),
             attribute: causetid("foo", "roz"),
-            value: PatternValuePlace::Variable(y.clone()),
-            causetx: PatternNonValuePlace::Placeholder,
+            value: TuringStringValuePlace::ToUpper(y.clone()),
+            causetx: TuringStringNonValuePlace::Placeholder,
         });
 
-        // Finally, expand CausetIndex bindings to get the overlaps for ?x.
-        cc.expand_CausetIndex_bindings();
+        // Finally, expand CausetIndex ConstrainedEntss to get the overlaps for ?x.
+        cc.expand_CausetIndex_ConstrainedEntss();
 
         assert!(cc.is_known_empty());
         assert_eq!(cc.empty_because.unwrap(),

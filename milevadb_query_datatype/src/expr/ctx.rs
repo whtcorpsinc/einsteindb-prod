@@ -11,8 +11,8 @@ use fidelpb::PosetDagRequest;
 bitflags! {
     /// Please refer to SQLMode in `mysql/const.go` in repo `whtcorpsinc/parser` for details.
     pub struct SqlMode: u64 {
-        const STRICT_TRANS_TABLES = 1 << 22;
-        const STRICT_ALL_TABLES = 1 << 23;
+        const STRICT_TRANS_BlockS = 1 << 22;
+        const STRICT_ALL_BlockS = 1 << 23;
         const NO_ZERO_IN_DATE = 1 << 24;
         const NO_ZERO_DATE = 1 << 25;
         const INVALID_DATES = 1 << 26;
@@ -53,9 +53,9 @@ bitflags! {
 }
 
 impl SqlMode {
-    /// Returns if 'STRICT_TRANS_TABLES' or 'STRICT_ALL_TABLES' mode is set.
+    /// Returns if 'STRICT_TRANS_BlockS' or 'STRICT_ALL_BlockS' mode is set.
     pub fn is_strict(self) -> bool {
-        self.contains(SqlMode::STRICT_TRANS_TABLES) || self.contains(SqlMode::STRICT_ALL_TABLES)
+        self.contains(SqlMode::STRICT_TRANS_BlockS) || self.contains(SqlMode::STRICT_ALL_BlockS)
     }
 }
 
@@ -313,7 +313,7 @@ impl EvalContext {
     }
 
     /// Indicates whether values less than 0 should be clipped to 0 for unsigned
-    /// integer types. This is the case for `insert`, `ufidelate`, `alter table` and
+    /// integer types. This is the case for `insert`, `ufidelate`, `alter Block` and
     /// `load data infile` statements, when not in strict SQL mode.
     /// see https://dev.mysql.com/doc/refman/5.7/en/out-of-cone-and-overflow.html
     pub fn should_clip_to_zero(&self) -> bool {
@@ -382,19 +382,19 @@ mod tests {
             ), //warning
             (
                 Flag::IN_UFIDelATE_OR_DELETE_STMT,
-                SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_TABLES,
+                SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS,
                 false,
                 true,
             ), //error
             (
                 Flag::IN_UFIDelATE_OR_DELETE_STMT,
-                SqlMode::STRICT_ALL_TABLES,
+                SqlMode::STRICT_ALL_BlockS,
                 true,
                 true,
             ), //ok
             (
                 Flag::IN_UFIDelATE_OR_DELETE_STMT | Flag::DIVIDED_BY_ZERO_AS_WARNING,
-                SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_TABLES,
+                SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS,
                 true,
                 false,
             ), //warning
@@ -424,7 +424,7 @@ mod tests {
             let mut causetg = EvalConfig::new();
             causetg.set_flag(flag);
             if strict_sql_mode {
-                causetg.sql_mode.insert(SqlMode::STRICT_ALL_TABLES);
+                causetg.sql_mode.insert(SqlMode::STRICT_ALL_BlockS);
             }
             let mut ctx = EvalContext::new(Arc::new(causetg));
             assert_eq!(ctx.handle_invalid_time_error(err).is_ok(), is_ok);

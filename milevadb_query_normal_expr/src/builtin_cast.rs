@@ -16,12 +16,12 @@ use milevadb_query_datatype::expr::Flag;
 use milevadb_query_datatype::expr::{Error, EvalContext, Result};
 
 impl ScalarFunc {
-    pub fn cast_int_as_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        self.children[0].eval_int(ctx, row)
+    pub fn cast_int_as_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        self.children[0].eval_int(ctx, EventIdx)
     }
 
-    pub fn cast_real_as_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let val = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn cast_real_as_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let val = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         if self
             .field_type
             .as_accessor()
@@ -36,8 +36,8 @@ impl ScalarFunc {
         }
     }
 
-    pub fn cast_decimal_as_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let val = try_opt!(self.children[0].eval_decimal(ctx, row));
+    pub fn cast_decimal_as_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let val = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         let val = val.into_owned().round(0, RoundMode::HalfEven).unwrap();
         let (overflow, res) = if self
             .field_type
@@ -62,11 +62,11 @@ impl ScalarFunc {
         Ok(Some(res))
     }
 
-    pub fn cast_str_as_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
+    pub fn cast_str_as_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
         if self.children[0].field_type().is_hybrid() {
-            return self.children[0].eval_int(ctx, row);
+            return self.children[0].eval_int(ctx, EventIdx);
         }
-        let val = try_opt!(self.children[0].eval_string(ctx, row));
+        let val = try_opt!(self.children[0].eval_string(ctx, EventIdx));
         let is_negative = match val.iter().find(|x| !x.is_ascii_whitespace()) {
             Some(&b'-') => true,
             _ => false,
@@ -114,8 +114,8 @@ impl ScalarFunc {
         }
     }
 
-    pub fn cast_time_as_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let val: Cow<Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn cast_time_as_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let val: Cow<Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         let dec: Decimal = val.convert(ctx)?;
         let dec = dec
             .round(mysql::DEFAULT_FSP as i8, RoundMode::HalfEven)
@@ -127,9 +127,9 @@ impl ScalarFunc {
     pub fn cast_duration_as_int(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<i64>> {
-        let val: Duration = try_opt!(self.children[0].eval_duration(ctx, row));
+        let val: Duration = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
         let dec: Decimal = val.convert(ctx)?;
         let dec = dec
             .round(mysql::DEFAULT_FSP as i8, RoundMode::HalfEven)
@@ -138,8 +138,8 @@ impl ScalarFunc {
         Ok(Some(res))
     }
 
-    pub fn cast_json_as_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let val: Cow<Json> = try_opt!(self.children[0].eval_json(ctx, row));
+    pub fn cast_json_as_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let val: Cow<Json> = try_opt!(self.children[0].eval_json(ctx, EventIdx));
         let res = if self.field_type.is_unsigned() {
             val.to_uint(ctx, FieldTypeTp::LongLong)? as i64
         } else {
@@ -148,8 +148,8 @@ impl ScalarFunc {
         Ok(Some(res))
     }
 
-    pub fn cast_int_as_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let val = try_opt!(self.children[0].eval_int(ctx, row));
+    pub fn cast_int_as_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let val = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         let val = if !self.children[0].is_unsigned() {
             val as f64
         } else {
@@ -162,8 +162,8 @@ impl ScalarFunc {
         )?))
     }
 
-    pub fn cast_real_as_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let val = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn cast_real_as_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let val = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         Ok(Some(produce_float_with_specified_tp(
             ctx,
             &self.field_type,
@@ -174,9 +174,9 @@ impl ScalarFunc {
     pub fn cast_decimal_as_real(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<f64>> {
-        let val: Cow<Decimal> = try_opt!(self.children[0].eval_decimal(ctx, row));
+        let val: Cow<Decimal> = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         let res = val.convert(ctx)?;
         Ok(Some(produce_float_with_specified_tp(
             ctx,
@@ -185,11 +185,11 @@ impl ScalarFunc {
         )?))
     }
 
-    pub fn cast_str_as_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
+    pub fn cast_str_as_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
         if self.children[0].field_type().is_hybrid() {
-            return self.children[0].eval_real(ctx, row);
+            return self.children[0].eval_real(ctx, EventIdx);
         }
-        let val: Cow<[u8]> = try_opt!(self.children[0].eval_string(ctx, row));
+        let val: Cow<[u8]> = try_opt!(self.children[0].eval_string(ctx, EventIdx));
         let res: f64 = val.convert(ctx)?;
         Ok(Some(produce_float_with_specified_tp(
             ctx,
@@ -198,8 +198,8 @@ impl ScalarFunc {
         )?))
     }
 
-    pub fn cast_time_as_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let val: Cow<Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn cast_time_as_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let val: Cow<Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         let res = val.convert(ctx)?;
         Ok(Some(produce_float_with_specified_tp(
             ctx,
@@ -211,9 +211,9 @@ impl ScalarFunc {
     pub fn cast_duration_as_real(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<f64>> {
-        let val: Duration = try_opt!(self.children[0].eval_duration(ctx, row));
+        let val: Duration = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
         let val: Decimal = val.convert(ctx)?;
         let res = val.convert(ctx)?;
         Ok(Some(produce_float_with_specified_tp(
@@ -223,8 +223,8 @@ impl ScalarFunc {
         )?))
     }
 
-    pub fn cast_json_as_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let val: Cow<Json> = try_opt!(self.children[0].eval_json(ctx, row));
+    pub fn cast_json_as_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let val: Cow<Json> = try_opt!(self.children[0].eval_json(ctx, EventIdx));
         let val = val.convert(ctx)?;
         Ok(Some(produce_float_with_specified_tp(
             ctx,
@@ -236,9 +236,9 @@ impl ScalarFunc {
     pub fn cast_int_as_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let val = try_opt!(self.children[0].eval_int(ctx, row));
+        let val = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         let field_type = self.children[0].field_type();
         let res = if !field_type
             .as_accessor()
@@ -256,9 +256,9 @@ impl ScalarFunc {
     pub fn cast_real_as_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let val: f64 = try_opt!(self.children[0].eval_real(ctx, row));
+        let val: f64 = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         let res: Decimal = val.convert(ctx)?;
         self.produce_dec_with_specified_tp(ctx, Cow::Owned(res))
             .map(Some)
@@ -267,21 +267,21 @@ impl ScalarFunc {
     pub fn cast_decimal_as_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let val = try_opt!(self.children[0].eval_decimal(ctx, row));
+        let val = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         self.produce_dec_with_specified_tp(ctx, val).map(Some)
     }
 
     pub fn cast_str_as_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
         let dec = if self.children[0].field_type().is_hybrid() {
-            try_opt!(self.children[0].eval_decimal(ctx, row))
+            try_opt!(self.children[0].eval_decimal(ctx, EventIdx))
         } else {
-            let val: Cow<[u8]> = try_opt!(self.children[0].eval_string(ctx, row));
+            let val: Cow<[u8]> = try_opt!(self.children[0].eval_string(ctx, EventIdx));
             Cow::Owned(val.convert(ctx)?)
         };
         self.produce_dec_with_specified_tp(ctx, dec).map(Some)
@@ -290,9 +290,9 @@ impl ScalarFunc {
     pub fn cast_time_as_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let val: Cow<Time> = try_opt!(self.children[0].eval_time(ctx, row));
+        let val: Cow<Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         let dec: Decimal = val.convert(ctx)?;
         self.produce_dec_with_specified_tp(ctx, Cow::Owned(dec))
             .map(Some)
@@ -301,9 +301,9 @@ impl ScalarFunc {
     pub fn cast_duration_as_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let val: Duration = try_opt!(self.children[0].eval_duration(ctx, row));
+        let val: Duration = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
         let dec: Decimal = val.convert(ctx)?;
         self.produce_dec_with_specified_tp(ctx, Cow::Owned(dec))
             .map(Some)
@@ -312,9 +312,9 @@ impl ScalarFunc {
     pub fn cast_json_as_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let val: Cow<Json> = try_opt!(self.children[0].eval_json(ctx, row));
+        let val: Cow<Json> = try_opt!(self.children[0].eval_json(ctx, EventIdx));
         let dec: Decimal = val.convert(ctx)?;
         self.produce_dec_with_specified_tp(ctx, Cow::Owned(dec))
             .map(Some)
@@ -323,9 +323,9 @@ impl ScalarFunc {
     pub fn cast_int_as_str<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let val = try_opt!(self.children[0].eval_int(ctx, row));
+        let val = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         let s = if self.children[0].is_unsigned() {
             let uval = val as u64;
             format!("{}", uval)
@@ -339,9 +339,9 @@ impl ScalarFunc {
     pub fn cast_real_as_str<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let val: f64 = try_opt!(self.children[0].eval_real(ctx, row));
+        let val: f64 = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         let val = if self.children[0].field_type().as_accessor().tp() == FieldTypeTp::Float {
             let val = val as f32;
             val.to_string()
@@ -355,9 +355,9 @@ impl ScalarFunc {
     pub fn cast_decimal_as_str<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let val = try_opt!(self.children[0].eval_decimal(ctx, row));
+        let val = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         let s = val.to_string();
         self.produce_str_with_specified_tp(ctx, Cow::Owned(s.into_bytes()))
             .map(Some)
@@ -366,18 +366,18 @@ impl ScalarFunc {
     pub fn cast_str_as_str<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let val = try_opt!(self.children[0].eval_string(ctx, row));
+        let val = try_opt!(self.children[0].eval_string(ctx, EventIdx));
         self.produce_str_with_specified_tp(ctx, val).map(Some)
     }
 
     pub fn cast_time_as_str<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let val = try_opt!(self.children[0].eval_time(ctx, row));
+        let val = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         let s = format!("{}", val);
         self.produce_str_with_specified_tp(ctx, Cow::Owned(s.into_bytes()))
             .map(Some)
@@ -386,9 +386,9 @@ impl ScalarFunc {
     pub fn cast_duration_as_str<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let val = try_opt!(self.children[0].eval_duration(ctx, row));
+        let val = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
         let s = format!("{}", val);
         self.produce_str_with_specified_tp(ctx, Cow::Owned(s.into_bytes()))
             .map(Some)
@@ -397,9 +397,9 @@ impl ScalarFunc {
     pub fn cast_json_as_str<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let val = try_opt!(self.children[0].eval_json(ctx, row));
+        let val = try_opt!(self.children[0].eval_json(ctx, EventIdx));
         let s = val.to_string();
         self.produce_str_with_specified_tp(ctx, Cow::Owned(s.into_bytes()))
             .map(Some)
@@ -408,9 +408,9 @@ impl ScalarFunc {
     pub fn cast_int_as_time<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let val = try_opt!(self.children[0].eval_int(ctx, row));
+        let val = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         let time_type: TimeType = self.field_type.as_accessor().tp().try_into()?;
         let fsp = self.field_type.get_decimal() as i8;
         Time::parse_from_i64(ctx, val, time_type, fsp)
@@ -421,9 +421,9 @@ impl ScalarFunc {
     pub fn cast_real_as_time<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let val = try_opt!(self.children[0].eval_real(ctx, row));
+        let val = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         let s = format!("{}", val);
         Ok(Some(self.produce_time_with_str(ctx, &s)?))
     }
@@ -431,9 +431,9 @@ impl ScalarFunc {
     pub fn cast_decimal_as_time<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let val = try_opt!(self.children[0].eval_decimal(ctx, row));
+        let val = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         let s = val.to_string();
         Ok(Some(self.produce_time_with_float_str(ctx, &s)?))
     }
@@ -441,18 +441,18 @@ impl ScalarFunc {
     pub fn cast_str_as_time<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let val = try_opt!(self.children[0].eval_string_and_decode(ctx, row));
+        let val = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
         Ok(Some(self.produce_time_with_str(ctx, &val)?))
     }
 
     pub fn cast_time_as_time<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let val = try_opt!(self.children[0].eval_time(ctx, row));
+        let val = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         let mut val = val.into_owned();
         val.round_frac(ctx, self.field_type.decimal() as i8)?;
         // TODO: milevadb only ufidelate tp when tp is Date
@@ -463,9 +463,9 @@ impl ScalarFunc {
     pub fn cast_duration_as_time<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let val = try_opt!(self.children[0].eval_duration(ctx, row));
+        let val = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
         let val = Time::from_duration(ctx, val, self.field_type.as_accessor().tp().try_into()?)?;
         val.round_frac(ctx, self.field_type.decimal() as i8)?;
         Ok(Some(Cow::Owned(val)))
@@ -474,9 +474,9 @@ impl ScalarFunc {
     pub fn cast_json_as_time<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let val = try_opt!(self.children[0].eval_json(ctx, row));
+        let val = try_opt!(self.children[0].eval_json(ctx, EventIdx));
         let s = val.as_ref().as_ref().unquote()?;
         Ok(Some(self.produce_time_with_str(ctx, &s)?))
     }
@@ -484,9 +484,9 @@ impl ScalarFunc {
     pub fn cast_int_as_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Duration>> {
-        let val = try_opt!(self.children[0].eval_int(ctx, row));
+        let val = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         let s = format!("{}", val);
         // TODO: port NumberToDuration from milevadb.
         match Duration::parse(ctx, s.as_bytes(), self.field_type.decimal() as i8) {
@@ -505,9 +505,9 @@ impl ScalarFunc {
     pub fn cast_real_as_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Duration>> {
-        let val = try_opt!(self.children[0].eval_real(ctx, row));
+        let val = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         let s = format!("{}", val);
         let dur = Duration::parse(ctx, s.as_bytes(), self.field_type.decimal() as i8)?;
         Ok(Some(dur))
@@ -516,9 +516,9 @@ impl ScalarFunc {
     pub fn cast_decimal_as_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Duration>> {
-        let val = try_opt!(self.children[0].eval_decimal(ctx, row));
+        let val = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         let s = val.to_string();
         let dur = Duration::parse(ctx, s.as_bytes(), self.field_type.decimal() as i8)?;
         Ok(Some(dur))
@@ -527,9 +527,9 @@ impl ScalarFunc {
     pub fn cast_str_as_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Duration>> {
-        let val = try_opt!(self.children[0].eval_string(ctx, row));
+        let val = try_opt!(self.children[0].eval_string(ctx, EventIdx));
         let dur = Duration::parse(ctx, val.as_ref(), self.field_type.decimal() as i8)?;
         Ok(Some(dur))
     }
@@ -537,9 +537,9 @@ impl ScalarFunc {
     pub fn cast_time_as_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Duration>> {
-        let val: Cow<Time> = try_opt!(self.children[0].eval_time(ctx, row));
+        let val: Cow<Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         let dur: Duration = val.convert(ctx)?;
         let res = dur.round_frac(self.field_type.decimal() as i8)?;
         Ok(Some(res))
@@ -548,9 +548,9 @@ impl ScalarFunc {
     pub fn cast_duration_as_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Duration>> {
-        let val = try_opt!(self.children[0].eval_duration(ctx, row));
+        let val = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
         let res = val.round_frac(self.field_type.decimal() as i8)?;
         Ok(Some(res))
     }
@@ -558,9 +558,9 @@ impl ScalarFunc {
     pub fn cast_json_as_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Duration>> {
-        let val = try_opt!(self.children[0].eval_json(ctx, row));
+        let val = try_opt!(self.children[0].eval_json(ctx, EventIdx));
         let s = val.as_ref().as_ref().unquote()?;
         // TODO: milevadb would handle truncate here
         let d = Duration::parse(ctx, s.as_bytes(), self.field_type.decimal() as i8)?;
@@ -570,9 +570,9 @@ impl ScalarFunc {
     pub fn cast_int_as_json<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        let val = try_opt!(self.children[0].eval_int(ctx, row));
+        let val = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         let flag = self.children[0].field_type().as_accessor().flag();
         let j = if flag.contains(FieldTypeFlag::IS_BOOLEAN) {
             Json::from_bool(val != 0)?
@@ -587,9 +587,9 @@ impl ScalarFunc {
     pub fn cast_real_as_json<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        let val = try_opt!(self.children[0].eval_real(ctx, row));
+        let val = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         let j = Json::from_f64(val)?;
         Ok(Some(Cow::Owned(j)))
     }
@@ -597,9 +597,9 @@ impl ScalarFunc {
     pub fn cast_decimal_as_json<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        let val: Cow<Decimal> = try_opt!(self.children[0].eval_decimal(ctx, row));
+        let val: Cow<Decimal> = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         let val: f64 = val.convert(ctx)?;
         let j = Json::from_f64(val)?;
         Ok(Some(Cow::Owned(j)))
@@ -608,9 +608,9 @@ impl ScalarFunc {
     pub fn cast_str_as_json<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        let val = try_opt!(self.children[0].eval_string_and_decode(ctx, row));
+        let val = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
         if self
             .field_type
             .as_accessor()
@@ -627,9 +627,9 @@ impl ScalarFunc {
     pub fn cast_time_as_json<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        let val = try_opt!(self.children[0].eval_time(ctx, row));
+        let val = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         let mut val = val.into_owned();
         if val.get_time_type() == TimeType::DateTime || val.get_time_type() == TimeType::Timestamp {
             val = val.round_frac(ctx, mysql::MAX_FSP)?;
@@ -641,9 +641,9 @@ impl ScalarFunc {
     pub fn cast_duration_as_json<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        let mut val = try_opt!(self.children[0].eval_duration(ctx, row));
+        let mut val = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
         val = val.maximize_fsp();
         let s = format!("{}", val);
         Ok(Some(Cow::Owned(Json::from_string(s)?)))
@@ -652,9 +652,9 @@ impl ScalarFunc {
     pub fn cast_json_as_json<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        self.children[0].eval_json(ctx, row)
+        self.children[0].eval_json(ctx, EventIdx)
     }
 
     fn produce_dec_with_specified_tp<'a, 'b: 'a>(

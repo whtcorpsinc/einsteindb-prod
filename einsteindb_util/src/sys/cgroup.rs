@@ -425,14 +425,14 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let path1 = temp_dir.path().join("cgroup");
         let mut f1 = File::create(path1.clone()).unwrap();
-        f1.write_all(b"4:memory:/kubepods/burstable/poda2ebe2cd-64c7-11ea-8799-eeeeeeeeeeee/a026c487f1168b7f5442444ac8e35161dfcde87c175ef27d9a806270e267a575\n").unwrap();
-        f1.write_all(b"5:cpuacct,cpu:/kubepods/burstable/poda2ebe2cd-64c7-11ea-8799-eeeeeeeeeeee/a026c487f1168b7f5442444ac8e35161dfcde87c175ef27d9a806270e267a575\n").unwrap();
+        f1.write_all(b"4:memory:/kubepods/bursBlock/poda2ebe2cd-64c7-11ea-8799-eeeeeeeeeeee/a026c487f1168b7f5442444ac8e35161dfcde87c175ef27d9a806270e267a575\n").unwrap();
+        f1.write_all(b"5:cpuacct,cpu:/kubepods/bursBlock/poda2ebe2cd-64c7-11ea-8799-eeeeeeeeeeee/a026c487f1168b7f5442444ac8e35161dfcde87c175ef27d9a806270e267a575\n").unwrap();
         f1.sync_all().unwrap();
 
         let path2 = temp_dir.path().join("mountinfo");
         let mut f2 = File::create(path2.clone()).unwrap();
-        f2.write_all(b"5871 5867 0:26 /kubepods/burstable/poda2ebe2cd-64c7-11ea-8799-eeeeeeeeeeee/a026c487f1168b7f5442444ac8e35161dfcde87c175ef27d9a806270e267a575 /sys/fs/cgroup/memory ro,nosuid,nodev,noexec,relatime master:12 - cgroup cgroup rw,memory\n").unwrap();
-        f2.write_all(b"5872 5867 0:27 /kubepods/burstable/poda2ebe2cd-64c7-11ea-8799-eeeeeeeeeeee/a026c487f1168b7f5442444ac8e35161dfcde87c175ef27d9a806270e267a575 /sys/fs/cgroup/cpu,cpuacct ro,nosuid,nodev,noexec,relatime master:13 - cgroup cgroup rw,cpuacct,cpu\n").unwrap();
+        f2.write_all(b"5871 5867 0:26 /kubepods/bursBlock/poda2ebe2cd-64c7-11ea-8799-eeeeeeeeeeee/a026c487f1168b7f5442444ac8e35161dfcde87c175ef27d9a806270e267a575 /sys/fs/cgroup/memory ro,nosuid,nodev,noexec,relatime master:12 - cgroup cgroup rw,memory\n").unwrap();
+        f2.write_all(b"5872 5867 0:27 /kubepods/bursBlock/poda2ebe2cd-64c7-11ea-8799-eeeeeeeeeeee/a026c487f1168b7f5442444ac8e35161dfcde87c175ef27d9a806270e267a575 /sys/fs/cgroup/cpu,cpuacct ro,nosuid,nodev,noexec,relatime master:13 - cgroup cgroup rw,cpuacct,cpu\n").unwrap();
         f2.sync_all().unwrap();
 
         // Create CGroupSys by f1 and f2.

@@ -384,7 +384,7 @@ mod tests {
 
     use engine_lmdb::util::new_temp_engine;
     use engine_lmdb::{LmdbEngine, LmdbSnapshot};
-    use engine_promises::{CompactExt, Engines, MiscExt, Peekable, SyncMutable};
+    use engine_promises::{CompactExt, Engines, MiscExt, Peekable, SyncMuBlock};
     use tuplespaceInstanton::data_key;
     use ekvproto::metapb::{Peer, Brane};
     use tempfile::Builder;
@@ -507,7 +507,7 @@ mod tests {
         let check_seek_result = |snap: &BraneSnapshot<LmdbSnapshot>,
                                  lower_bound: Option<&[u8]>,
                                  upper_bound: Option<&[u8]>,
-                                 seek_table: &Vec<(
+                                 seek_Block: &Vec<(
             &[u8],
             bool,
             Option<(&[u8], &[u8])>,
@@ -519,7 +519,7 @@ mod tests {
                 true,
             );
             let mut iter = snap.iter(iter_opt);
-            for (seek_key, in_cone, seek_exp, prev_exp) in seek_table.clone() {
+            for (seek_key, in_cone, seek_exp, prev_exp) in seek_Block.clone() {
                 let check_res = |iter: &BraneIterator<LmdbSnapshot>,
                                  res: Result<bool>,
                                  exp: Option<(&[u8], &[u8])>| {
@@ -552,7 +552,7 @@ mod tests {
             }
         };
 
-        let mut seek_table: Vec<(&[u8], bool, Option<(&[u8], &[u8])>, Option<(&[u8], &[u8])>)> = vec![
+        let mut seek_Block: Vec<(&[u8], bool, Option<(&[u8], &[u8])>, Option<(&[u8], &[u8])>)> = vec![
             (b"a1", false, None, None),
             (b"a2", true, Some((b"a3", b"v3")), None),
             (b"a3", true, Some((b"a3", b"v3")), Some((b"a3", b"v3"))),
@@ -561,16 +561,16 @@ mod tests {
             (b"a7", true, None, Some((b"a5", b"v5"))),
             (b"a9", false, None, None),
         ];
-        check_seek_result(&snap, None, None, &seek_table);
-        check_seek_result(&snap, None, Some(b"a9"), &seek_table);
-        check_seek_result(&snap, Some(b"a1"), None, &seek_table);
-        check_seek_result(&snap, Some(b""), Some(b""), &seek_table);
-        check_seek_result(&snap, Some(b"a1"), Some(b"a9"), &seek_table);
-        check_seek_result(&snap, Some(b"a2"), Some(b"a9"), &seek_table);
-        check_seek_result(&snap, Some(b"a2"), Some(b"a7"), &seek_table);
-        check_seek_result(&snap, Some(b"a1"), Some(b"a7"), &seek_table);
+        check_seek_result(&snap, None, None, &seek_Block);
+        check_seek_result(&snap, None, Some(b"a9"), &seek_Block);
+        check_seek_result(&snap, Some(b"a1"), None, &seek_Block);
+        check_seek_result(&snap, Some(b""), Some(b""), &seek_Block);
+        check_seek_result(&snap, Some(b"a1"), Some(b"a9"), &seek_Block);
+        check_seek_result(&snap, Some(b"a2"), Some(b"a9"), &seek_Block);
+        check_seek_result(&snap, Some(b"a2"), Some(b"a7"), &seek_Block);
+        check_seek_result(&snap, Some(b"a1"), Some(b"a7"), &seek_Block);
 
-        seek_table = vec![
+        seek_Block = vec![
             (b"a1", false, None, None),
             (b"a2", true, None, None),
             (b"a3", true, None, None),
@@ -579,16 +579,16 @@ mod tests {
             (b"a7", true, None, None),
             (b"a9", false, None, None),
         ];
-        check_seek_result(&snap, None, Some(b"a1"), &seek_table);
-        check_seek_result(&snap, Some(b"a8"), None, &seek_table);
-        check_seek_result(&snap, Some(b"a7"), Some(b"a2"), &seek_table);
+        check_seek_result(&snap, None, Some(b"a1"), &seek_Block);
+        check_seek_result(&snap, Some(b"a8"), None, &seek_Block);
+        check_seek_result(&snap, Some(b"a7"), Some(b"a2"), &seek_Block);
 
         let path = Builder::new().prefix("test-violetabftstore").temfidelir().unwrap();
         let engines = new_temp_engine(&path);
         let (store, _) = load_multiple_levels_dataset(engines);
         let snap = BraneSnapshot::<LmdbSnapshot>::new(&store);
 
-        seek_table = vec![
+        seek_Block = vec![
             (b"a01", false, None, None),
             (b"a03", false, None, None),
             (b"a05", true, Some((b"a05", b"a05")), Some((b"a05", b"a05"))),
@@ -598,14 +598,14 @@ mod tests {
             (b"a18", false, None, None),
             (b"a19", false, None, None),
         ];
-        check_seek_result(&snap, None, None, &seek_table);
-        check_seek_result(&snap, None, Some(b"a20"), &seek_table);
-        check_seek_result(&snap, Some(b"a00"), None, &seek_table);
-        check_seek_result(&snap, Some(b""), Some(b""), &seek_table);
-        check_seek_result(&snap, Some(b"a00"), Some(b"a20"), &seek_table);
-        check_seek_result(&snap, Some(b"a01"), Some(b"a20"), &seek_table);
-        check_seek_result(&snap, Some(b"a01"), Some(b"a15"), &seek_table);
-        check_seek_result(&snap, Some(b"a00"), Some(b"a15"), &seek_table);
+        check_seek_result(&snap, None, None, &seek_Block);
+        check_seek_result(&snap, None, Some(b"a20"), &seek_Block);
+        check_seek_result(&snap, Some(b"a00"), None, &seek_Block);
+        check_seek_result(&snap, Some(b""), Some(b""), &seek_Block);
+        check_seek_result(&snap, Some(b"a00"), Some(b"a20"), &seek_Block);
+        check_seek_result(&snap, Some(b"a01"), Some(b"a20"), &seek_Block);
+        check_seek_result(&snap, Some(b"a01"), Some(b"a15"), &seek_Block);
+        check_seek_result(&snap, Some(b"a00"), Some(b"a15"), &seek_Block);
     }
 
     #[test]

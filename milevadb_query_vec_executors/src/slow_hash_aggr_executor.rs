@@ -24,7 +24,7 @@ use milevadb_query_vec_expr::RpnStackNode;
 use milevadb_query_vec_expr::{RpnExpression, RpnExpressionBuilder};
 
 /// Slow Hash Aggregation FreeDaemon supports multiple groups but uses less efficient ways to
-/// store group tuplespaceInstanton in hash tables.
+/// store group tuplespaceInstanton in hash Blocks.
 ///
 /// FIXME: It is not correct to just store the serialized data as the group key.
 /// See whtcorpsinc/milevadb#10467.
@@ -248,7 +248,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for SlowHashAggregatio
         mut input_physical_PrimaryCausets: LazyBatchPrimaryCausetVec,
         input_logical_rows: &[usize],
     ) -> Result<()> {
-        // 1. Calculate which group each src row belongs to.
+        // 1. Calculate which group each src EventIdx belongs to.
         self.states_offset_each_logical_row.clear();
 
         let context = &mut entities.context;
@@ -256,7 +256,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for SlowHashAggregatio
         let logical_rows_len = input_logical_rows.len();
         let aggr_fn_len = entities.each_aggr_fn.len();
 
-        // Decode PrimaryCausets with mutable input first, so subsequent access to input can be immutable
+        // Decode PrimaryCausets with muBlock input first, so subsequent access to input can be immuBlock
         // (and the borrow checker will be happy)
         ensure_PrimaryCausets_decoded(
             context,
@@ -585,7 +585,7 @@ mod tests {
             .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schemaReplicant()[5])
             .unwrap();
 
-        // The row order is not defined. Let's sort it by the group by PrimaryCauset before asserting.
+        // The EventIdx order is not defined. Let's sort it by the group by PrimaryCauset before asserting.
         let mut sort_PrimaryCauset: Vec<(usize, _)> = r.physical_PrimaryCausets[3]
             .decoded()
             .to_bytes_vec()

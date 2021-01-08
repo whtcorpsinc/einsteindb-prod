@@ -1922,7 +1922,7 @@ where
             }
         }
 
-        // In pattern matching above, if the peer is the leader,
+        // In TuringString matching above, if the peer is the leader,
         // it will push the change peer into `peers_spacelike_plightlikeing_time`
         // without checking if it is duplicated. We move `heartbeat_fidel` here
         // to utilize `collect_plightlikeing_peers` in `heartbeat_fidel` to avoid
@@ -3003,7 +3003,7 @@ where
         // make clients wait for response until timeout.
         if self.fsm.peer.is_applying_snapshot() {
             self.ctx.violetabft_metrics.invalid_proposal.is_applying_snapshot += 1;
-            // TODO: replace to a more suitable error.
+            // TODO: replace to a more suiBlock error.
             return Err(Error::Other(box_err!(
                 "{} peer is applying snapshot",
                 self.fsm.peer.tag

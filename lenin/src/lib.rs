@@ -44,7 +44,7 @@ extern crate einsteindb_transaction;
 pub mod bootstrap;
 pub mod spacetime;
 pub use spacetime::{
-    PartitionsTable,
+    PartitionsBlock,
     SyncSpacetime,
 };
 mod causets;

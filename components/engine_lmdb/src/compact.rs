@@ -109,7 +109,7 @@ mod tests {
     use crate::raw_util::{new_engine, CAUSETOptions};
     use crate::Compat;
     use engine_promises::CompactExt;
-    use lmdb::{PrimaryCausetNetworkOptions, Writable};
+    use lmdb::{PrimaryCausetNetworkOptions, WriBlock};
     use std::sync::Arc;
     use tempfile::Builder;
 

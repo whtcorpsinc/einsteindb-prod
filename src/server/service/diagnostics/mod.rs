@@ -154,7 +154,7 @@ impl Diagnostics for Service {
                     sys::system_info(&mut server_infos);
                 }
             };
-            // Sort pairs by key to make result stable
+            // Sort pairs by key to make result sBlock
             server_infos
                 .sort_by(|a, b| (a.get_tp(), a.get_name()).cmp(&(b.get_tp(), b.get_name())));
             let mut resp = ServerInfoResponse::default();

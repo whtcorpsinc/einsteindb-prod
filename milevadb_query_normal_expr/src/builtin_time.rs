@@ -16,15 +16,15 @@ impl ScalarFunc {
     pub fn date_format<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+        let t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.invalid_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
                 .map(|_| None);
         }
-        let format_mask: Cow<'a, str> = try_opt!(self.children[1].eval_string_and_decode(ctx, row));
+        let format_mask: Cow<'a, str> = try_opt!(self.children[1].eval_string_and_decode(ctx, EventIdx));
         let t = t.date_format(&format_mask);
         if let Err(err) = t {
             return ctx.handle_invalid_time_error(err).map(|_| None);
@@ -36,9 +36,9 @@ impl ScalarFunc {
     pub fn date<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let mut t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+        let mut t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
@@ -50,32 +50,32 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn hour(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let dur = try_opt!(self.children[0].eval_duration(ctx, row));
+    pub fn hour(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let dur = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
         Ok(Some(i64::from(dur.hours())))
     }
 
     #[inline]
-    pub fn minute(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let dur = try_opt!(self.children[0].eval_duration(ctx, row));
+    pub fn minute(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let dur = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
         Ok(Some(i64::from(dur.minutes())))
     }
 
     #[inline]
-    pub fn second(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let dur = try_opt!(self.children[0].eval_duration(ctx, row));
+    pub fn second(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let dur = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
         Ok(Some(i64::from(dur.secs())))
     }
 
     #[inline]
-    pub fn time_to_sec(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let dur = try_opt!(self.children[0].eval_duration(ctx, row));
+    pub fn time_to_sec(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let dur = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
         Ok(Some(dur.to_secs()))
     }
 
     #[inline]
-    pub fn micro_second(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let dur = try_opt!(self.children[0].eval_duration(ctx, row));
+    pub fn micro_second(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let dur = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
         Ok(Some(i64::from(dur.subsec_micros())))
     }
 
@@ -83,9 +83,9 @@ impl ScalarFunc {
     pub fn month<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<i64>> {
-        let t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+        let t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
             if ctx.causetg.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
                 return ctx
@@ -101,9 +101,9 @@ impl ScalarFunc {
     pub fn month_name<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+        let t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         let month = t.month() as usize;
         if t.is_zero() && ctx.causetg.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
             return ctx
@@ -122,9 +122,9 @@ impl ScalarFunc {
     pub fn day_name<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+        let t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
@@ -136,8 +136,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn day_of_month(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn day_of_month(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
             if ctx.causetg.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
                 return ctx
@@ -151,8 +151,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn day_of_week(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn day_of_week(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
@@ -163,8 +163,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn day_of_year(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn day_of_year(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
@@ -175,8 +175,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn year(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn year(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
             if ctx.causetg.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
                 return ctx
@@ -192,9 +192,9 @@ impl ScalarFunc {
     pub fn last_day<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let mut t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+        let mut t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.month() == 0 {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
@@ -205,21 +205,21 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn week_with_mode(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn week_with_mode(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
                 .map(|_| None);
         }
-        let mode: i64 = try_opt!(self.children[1].eval_int(ctx, row));
+        let mode: i64 = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         let week = t.week(WeekMode::from_bits_truncate(mode as u32));
         Ok(Some(i64::from(week)))
     }
 
     #[inline]
-    pub fn week_without_mode(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn week_without_mode(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
@@ -230,8 +230,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn week_day(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn week_day(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
@@ -242,8 +242,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn week_of_year(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn week_of_year(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
@@ -253,14 +253,14 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn year_week_with_mode(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn year_week_with_mode(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
                 .map(|_| None);
         }
-        let mode = match self.children[1].eval_int(ctx, row) {
+        let mode = match self.children[1].eval_int(ctx, EventIdx) {
             Err(e) => return Err(e),
             Ok(None) => 0,
             Ok(Some(num)) => num,
@@ -277,9 +277,9 @@ impl ScalarFunc {
     pub fn year_week_without_mode(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<i64>> {
-        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
@@ -293,27 +293,27 @@ impl ScalarFunc {
         Ok(Some(result))
     }
 
-    pub fn period_add(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let p = try_opt!(self.children[0].eval_int(ctx, row));
+    pub fn period_add(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let p = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         if p == 0 {
             return Ok(Some(0));
         }
-        let n = try_opt!(self.children[1].eval_int(ctx, row));
+        let n = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         let (month, _) = (i64::from(Time::period_to_month(p as u64) as i32)).overflowing_add(n);
         Ok(Some(Time::month_to_period(u64::from(month as u32)) as i64))
     }
 
-    pub fn period_diff(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let p1 = try_opt!(self.children[0].eval_int(ctx, row));
-        let p2 = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn period_diff(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let p1 = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let p2 = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         Ok(Some(
             Time::period_to_month(p1 as u64) as i64 - Time::period_to_month(p2 as u64) as i64,
         ))
     }
 
     #[inline]
-    pub fn to_days(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn to_days(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.invalid_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
@@ -323,8 +323,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn to_seconds(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn to_seconds(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.invalid_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
@@ -334,14 +334,14 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn date_diff(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let lhs: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, row));
+    pub fn date_diff(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let lhs: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if lhs.invalid_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", lhs)))
                 .map(|_| None);
         }
-        let rhs: Cow<'_, Time> = try_opt!(self.children[1].eval_time(ctx, row));
+        let rhs: Cow<'_, Time> = try_opt!(self.children[1].eval_time(ctx, EventIdx));
         if rhs.invalid_zero() {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", rhs)))
@@ -354,10 +354,10 @@ impl ScalarFunc {
     pub fn add_datetime_and_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let arg0: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, row));
-        let arg1 = try_opt!(self.children[1].eval_duration(ctx, row));
+        let arg0: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
+        let arg1 = try_opt!(self.children[1].eval_duration(ctx, EventIdx));
         let overflow = Error::overflow("TIME", &format!("({} + {})", &arg0, &arg1));
         let mut res = match arg0.into_owned().checked_add(ctx, arg1) {
             Some(res) => res,
@@ -371,10 +371,10 @@ impl ScalarFunc {
     pub fn add_datetime_and_string<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let arg0: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, row));
-        let arg1: Cow<'a, [u8]> = try_opt!(self.children[1].eval_string(ctx, row));
+        let arg0: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
+        let arg1: Cow<'a, [u8]> = try_opt!(self.children[1].eval_string(ctx, EventIdx));
         let s = std::str::from_utf8(&arg1)?;
         let arg1 = match MyDuration::parse(ctx, &arg1, Time::parse_fsp(s)) {
             Ok(arg1) => arg1,
@@ -402,10 +402,10 @@ impl ScalarFunc {
     pub fn add_duration_and_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<MyDuration>> {
-        let arg0 = try_opt!(self.children[0].eval_duration(ctx, row));
-        let arg1 = try_opt!(self.children[1].eval_duration(ctx, row));
+        let arg0 = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
+        let arg1 = try_opt!(self.children[1].eval_duration(ctx, EventIdx));
         let overflow = Error::overflow("DURATION", &format!("({} + {})", &arg0, &arg1));
         let res = match arg0.checked_add(arg1) {
             Some(res) => res,
@@ -418,10 +418,10 @@ impl ScalarFunc {
     pub fn add_duration_and_string<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<MyDuration>> {
-        let arg0 = try_opt!(self.children[0].eval_duration(ctx, row));
-        let arg1: Cow<'a, [u8]> = try_opt!(self.children[1].eval_string(ctx, row));
+        let arg0 = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
+        let arg1: Cow<'a, [u8]> = try_opt!(self.children[1].eval_string(ctx, EventIdx));
         let s = std::str::from_utf8(&arg1)?;
         let arg1 = match MyDuration::parse(ctx, &arg1, Time::parse_fsp(s)) {
             Ok(arg1) => arg1,
@@ -448,10 +448,10 @@ impl ScalarFunc {
     pub fn add_date_and_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let date = try_opt!(self.children[0].eval_duration(ctx, row));
-        let duration = try_opt!(self.children[1].eval_duration(ctx, row));
+        let date = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
+        let duration = try_opt!(self.children[1].eval_duration(ctx, EventIdx));
         let overflow = Error::overflow("DURATION", &format!("({} - {})", &date, &duration));
         let res = date.checked_add(duration).ok_or(overflow)?;
         Ok(Some(Cow::Owned(res.to_string().into_bytes())))
@@ -461,10 +461,10 @@ impl ScalarFunc {
     pub fn add_date_and_string<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let date = try_opt!(self.children[0].eval_duration(ctx, row));
-        let string = try_opt!(self.children[1].eval_string(ctx, row));
+        let date = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
+        let string = try_opt!(self.children[1].eval_string(ctx, EventIdx));
         let s = std::str::from_utf8(&string)?;
         let string = match MyDuration::parse(ctx, &string, Time::parse_fsp(s)) {
             Ok(string) => string,
@@ -479,10 +479,10 @@ impl ScalarFunc {
     pub fn sub_datetime_and_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let arg0: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, row));
-        let arg1 = try_opt!(self.children[1].eval_duration(ctx, row));
+        let arg0: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
+        let arg1 = try_opt!(self.children[1].eval_duration(ctx, EventIdx));
         let overflow = Error::overflow("TIME", &format!("({} - {})", &arg0, &arg1));
         let mut res = match arg0.into_owned().checked_sub(ctx, arg1) {
             Some(res) => res,
@@ -496,10 +496,10 @@ impl ScalarFunc {
     pub fn sub_datetime_and_string<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let arg0: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, row));
-        let arg1: Cow<'a, [u8]> = try_opt!(self.children[1].eval_string(ctx, row));
+        let arg0: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
+        let arg1: Cow<'a, [u8]> = try_opt!(self.children[1].eval_string(ctx, EventIdx));
         let s = std::str::from_utf8(&arg1)?;
         let arg1 = match MyDuration::parse(ctx, &arg1, Time::parse_fsp(s)) {
             Ok(arg1) => arg1,
@@ -527,10 +527,10 @@ impl ScalarFunc {
     pub fn sub_duration_and_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<MyDuration>> {
-        let d0 = try_opt!(self.children[0].eval_duration(ctx, row));
-        let d1 = try_opt!(self.children[1].eval_duration(ctx, row));
+        let d0 = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
+        let d1 = try_opt!(self.children[1].eval_duration(ctx, EventIdx));
         let diff = match d0.to_nanos().checked_sub(d1.to_nanos()) {
             Some(result) => result,
             None => return Err(Error::overflow("DURATION", &format!("({} - {})", &d0, &d1))),
@@ -543,10 +543,10 @@ impl ScalarFunc {
     pub fn sub_duration_and_string<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<MyDuration>> {
-        let arg0 = try_opt!(self.children[0].eval_duration(ctx, row));
-        let arg1: Cow<'a, [u8]> = try_opt!(self.children[1].eval_string(ctx, row));
+        let arg0 = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
+        let arg1: Cow<'a, [u8]> = try_opt!(self.children[1].eval_string(ctx, EventIdx));
         let s = std::str::from_utf8(&arg1)?;
         let arg1 = match MyDuration::parse(ctx, &arg1, Time::parse_fsp(s)) {
             Ok(arg1) => arg1,
@@ -573,10 +573,10 @@ impl ScalarFunc {
     pub fn sub_date_and_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let date = try_opt!(self.children[0].eval_duration(ctx, row));
-        let duration = try_opt!(self.children[1].eval_duration(ctx, row));
+        let date = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
+        let duration = try_opt!(self.children[1].eval_duration(ctx, EventIdx));
         let overflow = Error::overflow("DURATION", &format!("({} - {})", &date, &duration));
         let res = date.checked_sub(duration).ok_or(overflow)?;
         Ok(Some(Cow::Owned(res.to_string().into_bytes())))
@@ -586,10 +586,10 @@ impl ScalarFunc {
     pub fn sub_date_and_string<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let date = try_opt!(self.children[0].eval_duration(ctx, row));
-        let string = try_opt!(self.children[1].eval_string(ctx, row));
+        let date = try_opt!(self.children[0].eval_duration(ctx, EventIdx));
+        let string = try_opt!(self.children[1].eval_string(ctx, EventIdx));
         let s = std::str::from_utf8(&string)?;
         let string = match MyDuration::parse(ctx, &string, Time::parse_fsp(s)) {
             Ok(string) => string,
@@ -613,9 +613,9 @@ impl ScalarFunc {
     pub fn from_days<'a>(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let days = try_opt!(self.children[0].eval_int(ctx, row)) as u32;
+        let days = try_opt!(self.children[0].eval_int(ctx, EventIdx)) as u32;
         let time = Time::from_days(ctx, days)?;
         Ok(Some(Cow::Owned(time)))
     }
@@ -624,10 +624,10 @@ impl ScalarFunc {
     pub fn make_date<'a>(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        let mut year = try_opt!(self.children[0].eval_int(ctx, row));
-        let mut day = try_opt!(self.children[1].eval_int(ctx, row));
+        let mut year = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let mut day = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         if day <= 0 || year < 0 || year > 9999 || day > 366 * 9999 {
             return Ok(None);
         }
@@ -774,7 +774,7 @@ mod tests {
         // test zero case
         let mut causetg = EvalConfig::new();
         causetg.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
-            .set_sql_mode(SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_TABLES);
+            .set_sql_mode(SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS);
         ctx = EvalContext::new(Arc::new(causetg));
         test_err_case_two_arg(
             &mut ctx,
@@ -801,7 +801,7 @@ mod tests {
         // test zero case
         let mut causetg = EvalConfig::new();
         causetg.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
-            .set_sql_mode(SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_TABLES);
+            .set_sql_mode(SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS);
         ctx = EvalContext::new(Arc::new(causetg));
         let datetime =
             Datum::Time(Time::parse_datetime(&mut ctx, "0000-00-00 00:00:00", 6, true).unwrap());
@@ -1501,7 +1501,7 @@ mod tests {
 
         let mut causetg = EvalConfig::new();
         causetg.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
-            .set_sql_mode(SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_TABLES);
+            .set_sql_mode(SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS);
 
         test_err_case_two_arg(&mut ctx, ScalarFuncSig::DateDiff, Datum::Null, Datum::Null);
     }

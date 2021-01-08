@@ -4,10 +4,10 @@ use fidelpb::PrimaryCausetInfo;
 use fidelpb::{ByItem, Expr};
 use fidelpb::{ExecType, FreeDaemon as PbFreeDaemon, TopN};
 
-/// Builds a table scan executor descriptor.
-pub fn table_scan(PrimaryCausets_info: &[PrimaryCausetInfo]) -> PbFreeDaemon {
+/// Builds a Block scan executor descriptor.
+pub fn Block_scan(PrimaryCausets_info: &[PrimaryCausetInfo]) -> PbFreeDaemon {
     let mut exec = PbFreeDaemon::default();
-    exec.set_tp(ExecType::TypeTableScan);
+    exec.set_tp(ExecType::TypeBlockScan);
     exec.mut_tbl_scan()
         .set_PrimaryCausets(PrimaryCausets_info.to_vec().into());
     exec

@@ -13,46 +13,46 @@ use milevadb_query_datatype::expr::Flag;
 use milevadb_query_datatype::expr::{EvalContext, Result};
 
 impl PrimaryCauset {
-    pub fn eval(&self, row: &[Datum]) -> Datum {
-        row[self.offset].clone()
+    pub fn eval(&self, EventIdx: &[Datum]) -> Datum {
+        EventIdx[self.offset].clone()
     }
 
     #[inline]
-    pub fn eval_int(&self, row: &[Datum]) -> Result<Option<i64>> {
-        row[self.offset].as_int()
+    pub fn eval_int(&self, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        EventIdx[self.offset].as_int()
     }
 
     #[inline]
-    pub fn eval_real(&self, row: &[Datum]) -> Result<Option<f64>> {
-        row[self.offset].as_real()
+    pub fn eval_real(&self, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        EventIdx[self.offset].as_real()
     }
 
     #[inline]
-    pub fn eval_decimal<'a>(&self, row: &'a [Datum]) -> Result<Option<Cow<'a, Decimal>>> {
-        row[self.offset].as_decimal()
+    pub fn eval_decimal<'a>(&self, EventIdx: &'a [Datum]) -> Result<Option<Cow<'a, Decimal>>> {
+        EventIdx[self.offset].as_decimal()
     }
 
     #[inline]
     pub fn eval_string<'a>(
         &self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        if let Datum::Null = row[self.offset] {
+        if let Datum::Null = EventIdx[self.offset] {
             return Ok(None);
         }
         if self.field_type.is_hybrid() {
-            let s = row[self.offset].to_string()?.into_bytes();
+            let s = EventIdx[self.offset].to_string()?.into_bytes();
             return Ok(Some(Cow::Owned(s)));
         }
 
         if !ctx.causetg.flag.contains(Flag::PAD_CHAR_TO_FULL_LENGTH)
             || self.field_type.as_accessor().tp() != FieldTypeTp::String
         {
-            return row[self.offset].as_string();
+            return EventIdx[self.offset].as_string();
         }
 
-        let res = row[self.offset].as_string()?.unwrap();
+        let res = EventIdx[self.offset].as_string()?.unwrap();
         let cur_len = str::from_utf8(res.as_ref())?.chars().count();
         // FIXME: flen() can be -1 (UNSPECIFIED_LENGTH)
         let flen = self.field_type.flen() as usize;
@@ -66,18 +66,18 @@ impl PrimaryCauset {
     }
 
     #[inline]
-    pub fn eval_time<'a>(&self, row: &'a [Datum]) -> Result<Option<Cow<'a, Time>>> {
-        row[self.offset].as_time()
+    pub fn eval_time<'a>(&self, EventIdx: &'a [Datum]) -> Result<Option<Cow<'a, Time>>> {
+        EventIdx[self.offset].as_time()
     }
 
     #[inline]
-    pub fn eval_duration<'a>(&self, row: &'a [Datum]) -> Result<Option<Duration>> {
-        row[self.offset].as_duration()
+    pub fn eval_duration<'a>(&self, EventIdx: &'a [Datum]) -> Result<Option<Duration>> {
+        EventIdx[self.offset].as_duration()
     }
 
     #[inline]
-    pub fn eval_json<'a>(&self, row: &'a [Datum]) -> Result<Option<Cow<'a, Json>>> {
-        row[self.offset].as_json()
+    pub fn eval_json<'a>(&self, EventIdx: &'a [Datum]) -> Result<Option<Cow<'a, Json>>> {
+        EventIdx[self.offset].as_json()
     }
 }
 
@@ -124,11 +124,11 @@ mod tests {
         let e = Expression::build(&mut ctx, c).unwrap();
         // test without pad_char_to_full_length
         let s = "你好".as_bytes().to_owned();
-        let row = vec![Datum::Bytes(s.clone())];
-        let res = e.eval_string(&mut ctx, &row).unwrap().unwrap();
+        let EventIdx = vec![Datum::Bytes(s.clone())];
+        let res = e.eval_string(&mut ctx, &EventIdx).unwrap().unwrap();
         assert_eq!(res.to_owned(), s);
         // test with pad_char_to_full_length
-        let res = e.eval_string(&mut pad_char_ctx, &row).unwrap().unwrap();
+        let res = e.eval_string(&mut pad_char_ctx, &EventIdx).unwrap().unwrap();
         let s = str::from_utf8(res.as_ref()).unwrap();
         assert_eq!(s.chars().count(), flen as usize);
     }
@@ -139,7 +139,7 @@ mod tests {
         let s = "你好".as_bytes().to_owned();
         let dur = Duration::parse(&mut EvalContext::default(), b"01:00:00", 0).unwrap();
 
-        let row = vec![
+        let EventIdx = vec![
             Datum::Null,
             Datum::I64(-30),
             Datum::U64(u64::MAX),
@@ -160,27 +160,27 @@ mod tests {
         ];
 
         let mut ctx = EvalContext::default();
-        for (ii, exp) in expecteds.iter().enumerate().take(row.len()) {
+        for (ii, exp) in expecteds.iter().enumerate().take(EventIdx.len()) {
             let c = col_expr(ii as i64);
             let expr = Expression::build(&mut ctx, c).unwrap();
 
-            let int = expr.eval_int(&mut ctx, &row).unwrap_or(None);
-            let real = expr.eval_real(&mut ctx, &row).unwrap_or(None);
+            let int = expr.eval_int(&mut ctx, &EventIdx).unwrap_or(None);
+            let real = expr.eval_real(&mut ctx, &EventIdx).unwrap_or(None);
             let dec = expr
-                .eval_decimal(&mut ctx, &row)
+                .eval_decimal(&mut ctx, &EventIdx)
                 .unwrap_or(None)
                 .map(|t| t.into_owned());
             let string = expr
-                .eval_string(&mut ctx, &row)
+                .eval_string(&mut ctx, &EventIdx)
                 .unwrap_or(None)
                 .map(|t| t.into_owned());
             let time = expr
-                .eval_time(&mut ctx, &row)
+                .eval_time(&mut ctx, &EventIdx)
                 .unwrap_or(None)
                 .map(|t| t.into_owned());
-            let dur = expr.eval_duration(&mut ctx, &row).unwrap_or(None);
+            let dur = expr.eval_duration(&mut ctx, &EventIdx).unwrap_or(None);
             let json = expr
-                .eval_json(&mut ctx, &row)
+                .eval_json(&mut ctx, &EventIdx)
                 .unwrap_or(None)
                 .map(|t| t.into_owned());
 
@@ -192,7 +192,7 @@ mod tests {
     #[test]
     fn test_hybrid_type() {
         let mut ctx = EvalContext::default();
-        let row = vec![Datum::I64(12)];
+        let EventIdx = vec![Datum::I64(12)];
         let hybrid_cases = vec![FieldTypeTp::Enum, FieldTypeTp::Bit, FieldTypeTp::Set];
         let in_hybrid_cases = vec![
             FieldTypeTp::JSON,
@@ -205,7 +205,7 @@ mod tests {
             field_tp.as_mut_accessor().set_tp(tp);
             c.set_field_type(field_tp);
             let e = Expression::build(&mut ctx, c).unwrap();
-            let res = e.eval_string(&mut ctx, &row).unwrap().unwrap();
+            let res = e.eval_string(&mut ctx, &EventIdx).unwrap().unwrap();
             assert_eq!(res.as_ref(), b"12");
         }
 
@@ -215,7 +215,7 @@ mod tests {
             field_tp.as_mut_accessor().set_tp(tp);
             c.set_field_type(field_tp);
             let e = Expression::build(&mut ctx, c).unwrap();
-            let res = e.eval_string(&mut ctx, &row);
+            let res = e.eval_string(&mut ctx, &EventIdx);
             assert!(res.is_err());
         }
     }

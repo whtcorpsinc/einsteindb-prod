@@ -11,12 +11,12 @@ use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::LazyBatchPrimaryCausetVec;
 use milevadb_query_datatype::expr::EvalContext;
 
-/// Common interfaces for table scan and index scan implementations.
+/// Common interfaces for Block scan and index scan implementations.
 pub trait ScanFreeDaemonImpl: Slightlike {
     /// Gets the schemaReplicant.
     fn schemaReplicant(&self) -> &[FieldType];
 
-    /// Gets a mutable reference of the executor context.
+    /// Gets a muBlock reference of the executor context.
     fn mut_context(&mut self) -> &mut EvalContext;
 
     fn build_PrimaryCauset_vec(&self, scan_rows: usize) -> LazyBatchPrimaryCausetVec;
@@ -33,8 +33,8 @@ pub trait ScanFreeDaemonImpl: Slightlike {
     ) -> Result<()>;
 }
 
-/// A shared executor implementation for both table scan and index scan. Implementation differences
-/// between table scan and index scan are further given via `ScanFreeDaemonImpl`.
+/// A shared executor implementation for both Block scan and index scan. Implementation differences
+/// between Block scan and index scan are further given via `ScanFreeDaemonImpl`.
 pub struct ScanFreeDaemon<S: CausetStorage, I: ScanFreeDaemonImpl> {
     /// The internal scanning implementation.
     imp: I,
@@ -42,8 +42,8 @@ pub struct ScanFreeDaemon<S: CausetStorage, I: ScanFreeDaemonImpl> {
     /// The scanner that scans over cones.
     scanner: ConesScanner<S>,
 
-    /// A flag indicating whether this executor is lightlikeed. When table is drained or there was an
-    /// error scanning the table, this flag will be set to `true` and `next_batch` should be never
+    /// A flag indicating whether this executor is lightlikeed. When Block is drained or there was an
+    /// error scanning the Block, this flag will be set to `true` and `next_batch` should be never
     /// called again.
     is_lightlikeed: bool,
 }
@@ -70,7 +70,7 @@ impl<S: CausetStorage, I: ScanFreeDaemonImpl> ScanFreeDaemon<S, I> {
             is_scanned_cone_aware,
         }: ScanFreeDaemonOptions<S, I>,
     ) -> Result<Self> {
-        milevadb_query_datatype::codec::table::check_table_cones(&key_cones)?;
+        milevadb_query_datatype::codec::Block::check_Block_cones(&key_cones)?;
         if is_backward {
             key_cones.reverse();
         }
@@ -103,7 +103,7 @@ impl<S: CausetStorage, I: ScanFreeDaemonImpl> ScanFreeDaemon<S, I> {
         for _ in 0..scan_rows {
             let some_row = self.scanner.next()?;
             if let Some((key, value)) = some_row {
-                // Retrieved one row from point cone or non-point cone.
+                // Retrieved one EventIdx from point cone or non-point cone.
 
                 if let Err(e) = self.imp.process_kv_pair(&key, &value, PrimaryCausets) {
                     // When there are errors in `process_kv_pair`, PrimaryCausets' length may not be

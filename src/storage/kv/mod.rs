@@ -11,7 +11,7 @@ use std::fmt;
 use std::time::Duration;
 use std::{error, ptr, result};
 
-use engine_lmdb::LmdbTablePropertiesCollection;
+use engine_lmdb::LmdbBlockPropertiesCollection;
 use engine_promises::{CfName, CAUSET_DEFAULT};
 use engine_promises::{IterOptions, KvEngine as LocalEngine, ReadOptions};
 use futures::prelude::*;
@@ -150,7 +150,7 @@ pub trait Engine: Slightlike + Clone + 'static {
         self.write(ctx, WriteData::from_modifies(vec![Modify::Delete(causet, key)]))
     }
 
-    fn get_properties(&self, spacelike: &[u8], lightlike: &[u8]) -> Result<LmdbTablePropertiesCollection> {
+    fn get_properties(&self, spacelike: &[u8], lightlike: &[u8]) -> Result<LmdbBlockPropertiesCollection> {
         self.get_properties_causet(CAUSET_DEFAULT, spacelike, lightlike)
     }
 
@@ -159,7 +159,7 @@ pub trait Engine: Slightlike + Clone + 'static {
         _: CfName,
         _spacelike: &[u8],
         _lightlike: &[u8],
-    ) -> Result<LmdbTablePropertiesCollection> {
+    ) -> Result<LmdbBlockPropertiesCollection> {
         Err(box_err!("no user properties"))
     }
 }

@@ -1,14 +1,14 @@
 [package]
-name = "einsteindb"
+name = "einsteindb-prod"
 version = "0.0.1-alpha"
 authors = ["WHTCORPS INC"]
 description = "MemCAM inspired Distributed Relativistic Semi-Relational Allegro SQL"
 license = "Apache-2.0"
 keywords = ["einsteindb", "distributed-systems", "violetabft"]
 homepage = "https://einsteindb.com"
-repository = "https://github.com/whtcorpsinc/einsteindb/"
+repository = "https://github.com/whtcorpsinc/einsteindb-prod/"
 readme = "README.md"
-edition = "2018"
+edition = "2020"
 publish = false
 
 [features]
@@ -19,7 +19,7 @@ default = ["protobuf-codec", "bundled_sqlite3", "syncable"]
 tcmalloc = ["einsteindb_alloc/tcmalloc"]
 jemalloc = ["einsteindb_alloc/jemalloc", "engine_lmdb/jemalloc"]
 mimalloc = ["einsteindb_alloc/mimalloc"]
-portable = ["engine_lmdb/portable"]
+porBlock = ["engine_lmdb/porBlock"]
 sse = ["engine_lmdb/sse"]
 mem-profiling = ["einsteindb_alloc/mem-profiling"]
 failpoints = ["fail/failpoints", "violetabftstore/failpoints"]
@@ -55,15 +55,14 @@ protobuf-codec = [
 ]
 testexport = ["violetabftstore/testexport"]
 
-# for testing configure propegate to other crates
-# https://stackoverflow.com/questions/41700543/can-we-share-test-utilites-between-crates
+
 testing = []
 
 [lib]
 name = "einsteindb"
 
 [dependencies]
-async-stream = "0.2"
+async-stream = "0.3.0"
 async-trait = "0.1"
 backtrace = "0.3"
 batch-system = { path = "components/batch-system", default-features = false }
@@ -75,15 +74,15 @@ codec = { path = "components/codec" }
 concurrency_manager = { path = "components/concurrency_manager" }
 configuration = { path = "components/configuration" }
 crc32fast = "1.2"
-crc64fast = "0.1"
-crossbeam = "0.7.2"
+crc64fast = "1.0.0"
+crossbeam = "0.8.0"
 derive_more = "0.99.3"
 encryption = { path = "components/encryption" }
 engine_panic = { path = "components/engine_panic", optional = true }
 engine_lmdb = { path = "components/engine_lmdb" }
 engine_promises = { path = "components/engine_promises" }
 error_code = { path = "components/error_code" }
-fail = "0.3"
+fail = "0.4.0"
 failure = "0.1"
 fs2 = "0.4"
 futures = { version = "0.3", features = ["thread-pool", "compat"] }
@@ -91,10 +90,10 @@ futures-executor = "0.3.1"
 futures-util = { version = "0.3.1", default-features = false, features = ["io", "async-await"] }
 grpcio = { version = "0.6", default-features = false, features = ["openssl-vlightlikeored"] }
 hex = "0.4"
-hyper-tls = "0.4"
-itertools = "0.8"
+hyper-tls = "0.5.0"
+itertools = "0.10.0"
 openssl = "0.10"
-hyper = "0.13"
+hyper = "0.14.2"
 hyper-openssl = "0.8"
 http = "0"
 into_other = { path = "components/into_other" }
@@ -105,17 +104,17 @@ libc = "0.2"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
 log_wrappers = { path = "components/log_wrappers" }
 mime = "0.3.13"
-more-asserts = "0.1"
+more-asserts = "0.2.1"
 murmur3 = "0.5.1"
 nom = { version = "5.1.0", default-features = false, features = ["std"] }
 num_cpus = "1"
 fidel_client = { path = "components/fidel_client" }
 pin-project = "0.4.8"
 pnet_datalink = "0.23"
-prost = "0.6"
+prost = "0.7.0"
 pprof = { version = "^0.3.14", features = ["flamegraph", "protobuf"] }
 protobuf = "2.8"
-quick-error = "1.2.3"
+quick-error = "2.0.0"
 violetabft = { version = "0.6.0-alpha", default-features = false }
 violetabftstore = { path = "components/violetabftstore" }
 violetabft_log_engine = { path = "components/violetabft_log_engine" }

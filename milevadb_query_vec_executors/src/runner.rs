@@ -61,7 +61,7 @@ pub struct BatchFreeDaemonsRunner<SS> {
 
     /// The encoding method for the response.
     /// Possible encoding methods are:
-    /// 1. default: result is encoded row by row using datum format.
+    /// 1. default: result is encoded EventIdx by EventIdx using datum format.
     /// 2. Soliton: result is encoded PrimaryCauset by PrimaryCauset using Soliton format.
     encode_type: EncodeType,
 }
@@ -73,10 +73,10 @@ impl BatchFreeDaemonsRunner<()> {
     pub fn check_supported(exec_descriptors: &[fidelpb::FreeDaemon]) -> Result<()> {
         for ed in exec_descriptors {
             match ed.get_tp() {
-                ExecType::TypeTableScan => {
+                ExecType::TypeBlockScan => {
                     let descriptor = ed.get_tbl_scan();
-                    BatchTableScanFreeDaemon::check_supported(&descriptor)
-                        .map_err(|e| other_err!("BatchTableScanFreeDaemon: {}", e))?;
+                    BatchBlockScanFreeDaemon::check_supported(&descriptor)
+                        .map_err(|e| other_err!("BatchBlockScanFreeDaemon: {}", e))?;
                 }
                 ExecType::TypeIndexScan => {
                     let descriptor = ed.get_idx_scan();
@@ -146,15 +146,15 @@ pub fn build_executors<S: CausetStorage + 'static>(
     let mut summary_slot_index = 0;
 
     match first_ed.get_tp() {
-        ExecType::TypeTableScan => {
-            EXECUTOR_COUNT_METRICS.batch_table_scan.inc();
+        ExecType::TypeBlockScan => {
+            EXECUTOR_COUNT_METRICS.batch_Block_scan.inc();
 
             let mut descriptor = first_ed.take_tbl_scan();
             let PrimaryCausets_info = descriptor.take_PrimaryCausets().into();
             let primary_PrimaryCauset_ids = descriptor.take_primary_PrimaryCauset_ids().into();
 
             executor = Box::new(
-                BatchTableScanFreeDaemon::new(
+                BatchBlockScanFreeDaemon::new(
                     causetStorage,
                     config.clone(),
                     PrimaryCausets_info,

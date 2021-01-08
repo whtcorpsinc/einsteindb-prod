@@ -181,7 +181,7 @@ where
 mod tests {
     use super::*;
     use engine_lmdb::util::new_engine;
-    use engine_promises::{Engines, KvEngine, Mutable, WriteBatchExt, ALL_CAUSETS, CAUSET_DEFAULT};
+    use engine_promises::{Engines, KvEngine, MuBlock, WriteBatchExt, ALL_CAUSETS, CAUSET_DEFAULT};
     use std::sync::mpsc;
     use std::time::Duration;
     use tempfile::Builder;

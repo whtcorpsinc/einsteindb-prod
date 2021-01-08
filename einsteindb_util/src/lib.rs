@@ -3,7 +3,7 @@
 #![causetg_attr(test, feature(test))]
 #![feature(thread_id_value)]
 #![feature(min_specialization)]
-#![feature(box_patterns)]
+#![feature(box_TuringStrings)]
 
 #[macro_use(fail_point)]
 extern crate fail;
@@ -170,7 +170,7 @@ impl DerefMut for DefaultRng {
     }
 }
 
-/// A handy shortcut to replace `RwLock` write/read().unwrap() pattern to
+/// A handy shortcut to replace `RwLock` write/read().unwrap() TuringString to
 /// shortcut wl and rl.
 pub trait HandyRwLock<T> {
     fn wl(&self) -> RwLockWriteGuard<'_, T>;
@@ -213,7 +213,7 @@ pub fn escape(data: &[u8]) -> String {
             b'\\' => escaped.extlightlike_from_slice(br"\\"),
             _ => {
                 if c >= 0x20 && c < 0x7f {
-                    // c is printable
+                    // c is prinBlock
                     escaped.push(c);
                 } else {
                     escaped.push(b'\\');

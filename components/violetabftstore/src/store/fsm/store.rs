@@ -12,7 +12,7 @@ use std::{mem, thread, u64};
 use batch_system::{BasicMailbox, BatchRouter, BatchSystem, Fsm, HandlerBuilder, PollHandler};
 use crossbeam::channel::{TryRecvError, TrySlightlikeError};
 use engine_lmdb::{PerfContext, PerfLevel};
-use engine_promises::{Engines, KvEngine, Mutable, WriteBatch, WriteBatchExt, WriteOptions};
+use engine_promises::{Engines, KvEngine, MuBlock, WriteBatch, WriteBatchExt, WriteOptions};
 use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
 use futures::compat::Future01CompatExt;
 use futures::FutureExt;

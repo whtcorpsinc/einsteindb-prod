@@ -10,7 +10,7 @@ use indexmap::map::Entry as OrderMapEntry;
 use indexmap::IndexMap as OrderMap;
 
 use super::aggregate::{self, AggrFunc};
-use super::{FreeDaemon, ExprPrimaryCausetRefVisitor, Row};
+use super::{FreeDaemon, ExprPrimaryCausetRefVisitor, Event};
 use milevadb_query_common::execute_stats::ExecuteStats;
 use milevadb_query_common::causetStorage::IntervalCone;
 use milevadb_query_common::Result;
@@ -44,10 +44,10 @@ impl AggFuncExpr {
         })
     }
 
-    fn eval_args(&mut self, ctx: &mut EvalContext, row: &[Datum]) -> Result<()> {
+    fn eval_args(&mut self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<()> {
         self.eval_buffer.clear();
         for arg in &self.args {
-            self.eval_buffer.push(arg.eval(ctx, row)?);
+            self.eval_buffer.push(arg.eval(ctx, EventIdx)?);
         }
         Ok(())
     }
@@ -58,9 +58,9 @@ impl dyn AggrFunc {
         &mut self,
         ctx: &mut EvalContext,
         expr: &mut AggFuncExpr,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<()> {
-        expr.eval_args(ctx, row)?;
+        expr.eval_args(ctx, EventIdx)?;
         self.ufidelate(ctx, &mut expr.eval_buffer)?;
         Ok(())
     }
@@ -98,22 +98,22 @@ impl<Src: FreeDaemon> AggFreeDaemon<Src> {
     }
 
     fn next(&mut self) -> Result<Option<Vec<Datum>>> {
-        if let Some(row) = self.src.next()? {
-            let row = row.take_origin()?;
-            row.inflate_cols_with_offsets(&mut self.ctx, &self.related_cols_offset)
+        if let Some(EventIdx) = self.src.next()? {
+            let EventIdx = EventIdx.take_origin()?;
+            EventIdx.inflate_cols_with_offsets(&mut self.ctx, &self.related_cols_offset)
                 .map(Some)
         } else {
             Ok(None)
         }
     }
 
-    fn get_group_by_cols(&mut self, row: &[Datum]) -> Result<Vec<Datum>> {
+    fn get_group_by_cols(&mut self, EventIdx: &[Datum]) -> Result<Vec<Datum>> {
         if self.group_by.is_empty() {
             return Ok(Vec::default());
         }
         let mut vals = Vec::with_capacity(self.group_by.len());
         for expr in &self.group_by {
-            let v = expr.eval(&mut self.ctx, row)?;
+            let v = expr.eval(&mut self.ctx, EventIdx)?;
             vals.push(v);
         }
         Ok(vals)
@@ -174,8 +174,8 @@ impl<Src: FreeDaemon> HashAggFreeDaemon<Src> {
         })
     }
 
-    fn get_group_key(&mut self, row: &[Datum]) -> Result<Vec<u8>> {
-        let group_by_cols = self.inner.get_group_by_cols(row)?;
+    fn get_group_key(&mut self, EventIdx: &[Datum]) -> Result<Vec<u8>> {
+        let group_by_cols = self.inner.get_group_by_cols(EventIdx)?;
         if group_by_cols.is_empty() {
             let single_group = Datum::Bytes(SINGLE_GROUP.to_vec());
             return Ok(box_try!(datum::encode_value(
@@ -215,7 +215,7 @@ impl<Src: FreeDaemon> HashAggFreeDaemon<Src> {
 impl<Src: FreeDaemon> FreeDaemon for HashAggFreeDaemon<Src> {
     type StorageStats = Src::StorageStats;
 
-    fn next(&mut self) -> Result<Option<Row>> {
+    fn next(&mut self) -> Result<Option<Event>> {
         if !self.inner.executed {
             self.aggregate()?;
             self.inner.executed = true;
@@ -232,12 +232,12 @@ impl<Src: FreeDaemon> FreeDaemon for HashAggFreeDaemon<Src> {
                 }
 
                 if !self.inner.group_by.is_empty() {
-                    Ok(Some(Row::agg(
+                    Ok(Some(Event::agg(
                         aggr_cols,
                         mem::replace(&mut group_key, Vec::new()),
                     )))
                 } else {
-                    Ok(Some(Row::agg(aggr_cols, Vec::default())))
+                    Ok(Some(Event::agg(aggr_cols, Vec::default())))
                 }
             }
             None => Ok(None),
@@ -278,7 +278,7 @@ impl<Src: FreeDaemon> FreeDaemon for HashAggFreeDaemon<Src> {
 impl<Src: FreeDaemon> FreeDaemon for StreamAggFreeDaemon<Src> {
     type StorageStats = Src::StorageStats;
 
-    fn next(&mut self) -> Result<Option<Row>> {
+    fn next(&mut self) -> Result<Option<Event>> {
         if self.inner.executed {
             return Ok(None);
         }
@@ -375,8 +375,8 @@ impl<Src: FreeDaemon> StreamAggFreeDaemon<Src> {
         })
     }
 
-    fn meet_new_group(&mut self, row: &[Datum]) -> Result<bool> {
-        let mut cur_group_by_cols = self.inner.get_group_by_cols(row)?;
+    fn meet_new_group(&mut self, EventIdx: &[Datum]) -> Result<bool> {
+        let mut cur_group_by_cols = self.inner.get_group_by_cols(EventIdx)?;
         if cur_group_by_cols.is_empty() {
             return Ok(false);
         }
@@ -400,7 +400,7 @@ impl<Src: FreeDaemon> StreamAggFreeDaemon<Src> {
     }
 
     // get_partial_result gets a result for the same group.
-    fn get_partial_result(&mut self) -> Result<Row> {
+    fn get_partial_result(&mut self) -> Result<Event> {
         let mut cols = Vec::with_capacity(2 * self.agg_funcs.len() + self.cur_group_row.len());
         // Calculate all aggregation funcutions.
         for (i, agg_func) in self.agg_funcs.iter_mut().enumerate() {
@@ -416,7 +416,7 @@ impl<Src: FreeDaemon> StreamAggFreeDaemon<Src> {
         }
 
         self.count += 1;
-        Ok(Row::agg(cols, Vec::default()))
+        Ok(Event::agg(cols, Vec::default()))
     }
 }
 
@@ -435,7 +435,7 @@ mod tests {
     use super::*;
     use milevadb_query_datatype::codec::datum::{self, Datum};
     use milevadb_query_datatype::codec::mysql::decimal::Decimal;
-    use milevadb_query_datatype::codec::table;
+    use milevadb_query_datatype::codec::Block;
 
     fn build_group_by(col_ids: &[i64]) -> Vec<Expr> {
         let mut group_by = Vec::with_capacity(col_ids.len());
@@ -456,7 +456,7 @@ mod tests {
     }
 
     pub fn generate_index_data(
-        table_id: i64,
+        Block_id: i64,
         index_id: i64,
         handle: i64,
         idx_vals: Vec<(i64, Datum)>,
@@ -472,29 +472,29 @@ mod tests {
             .collect();
         v.push(Datum::I64(handle));
         let encoded = datum::encode_key(&mut ctx, &v).unwrap();
-        let idx_key = table::encode_index_seek_key(table_id, index_id, &encoded);
+        let idx_key = Block::encode_index_seek_key(Block_id, index_id, &encoded);
         (expect_row, idx_key)
     }
 
     pub fn prepare_index_data(
-        table_id: i64,
+        Block_id: i64,
         index_id: i64,
         cols: Vec<PrimaryCausetInfo>,
         idx_vals: Vec<Vec<(i64, Datum)>>,
-    ) -> TableData {
+    ) -> BlockData {
         let mut kv_data = Vec::new();
         let mut expect_rows = Vec::new();
 
         let mut handle = 1;
         for val in idx_vals {
             let (expect_row, idx_key) =
-                generate_index_data(table_id, index_id, i64::from(handle), val);
+                generate_index_data(Block_id, index_id, i64::from(handle), val);
             expect_rows.push(expect_row);
             let value = vec![1; 0];
             kv_data.push((idx_key, value));
             handle += 1;
         }
-        TableData {
+        BlockData {
             kv_data,
             expect_rows,
             cols,
@@ -519,7 +519,7 @@ mod tests {
         let agg_funcs = build_aggr_func(&funcs);
         aggregation.set_agg_func(agg_funcs.into());
 
-        // test no row
+        // test no EventIdx
         let idx_vals = vec![];
         let idx_data = prepare_index_data(tid, idx_id, col_infos.clone(), idx_vals);
         let idx_row_cnt = idx_data.kv_data.len();
@@ -543,8 +543,8 @@ mod tests {
         .unwrap();
         let expect_row_cnt = 0;
         let mut row_data = Vec::with_capacity(1);
-        while let Some(Row::Agg(row)) = agg_ect.next().unwrap() {
-            row_data.push(row.value);
+        while let Some(Event::Agg(EventIdx)) = agg_ect.next().unwrap() {
+            row_data.push(EventIdx.value);
         }
         assert_eq!(row_data.len(), expect_row_cnt);
         let expected_counts = vec![idx_row_cnt];
@@ -552,7 +552,7 @@ mod tests {
         agg_ect.collect_exec_stats(&mut exec_stats);
         assert_eq!(expected_counts, exec_stats.scanned_rows_per_cone);
 
-        // test one row
+        // test one EventIdx
         let idx_vals = vec![vec![
             (2, Datum::Bytes(b"a".to_vec())),
             (3, Datum::Dec(12.into())),
@@ -579,8 +579,8 @@ mod tests {
         .unwrap();
         let expect_row_cnt = 1;
         let mut row_data = Vec::with_capacity(expect_row_cnt);
-        while let Some(Row::Agg(row)) = agg_ect.next().unwrap() {
-            row_data.push(row.get_binary(&mut EvalContext::default()).unwrap());
+        while let Some(Event::Agg(EventIdx)) = agg_ect.next().unwrap() {
+            row_data.push(EventIdx.get_binary(&mut EvalContext::default()).unwrap());
         }
         assert_eq!(row_data.len(), expect_row_cnt);
         let expect_row_data = vec![(
@@ -592,8 +592,8 @@ mod tests {
             Decimal::from(12),
         )];
         let expect_col_cnt = 6;
-        for (row, expect_cols) in row_data.into_iter().zip(expect_row_data) {
-            let ds = datum::decode(&mut row.as_slice()).unwrap();
+        for (EventIdx, expect_cols) in row_data.into_iter().zip(expect_row_data) {
+            let ds = datum::decode(&mut EventIdx.as_slice()).unwrap();
             assert_eq!(ds.len(), expect_col_cnt);
             assert_eq!(ds[0], Datum::from(expect_cols.0));
         }
@@ -633,8 +633,8 @@ mod tests {
         .unwrap();
         let expect_row_cnt = 4;
         let mut row_data = Vec::with_capacity(expect_row_cnt);
-        while let Some(Row::Agg(row)) = agg_ect.next().unwrap() {
-            row_data.push(row.get_binary(&mut EvalContext::default()).unwrap());
+        while let Some(Event::Agg(EventIdx)) = agg_ect.next().unwrap() {
+            row_data.push(EventIdx.get_binary(&mut EvalContext::default()).unwrap());
         }
         assert_eq!(row_data.len(), expect_row_cnt);
         let expect_row_data = vec![
@@ -672,8 +672,8 @@ mod tests {
             ),
         ];
         let expect_col_cnt = 6;
-        for (row, expect_cols) in row_data.into_iter().zip(expect_row_data) {
-            let ds = datum::decode(&mut row.as_slice()).unwrap();
+        for (EventIdx, expect_cols) in row_data.into_iter().zip(expect_row_data) {
+            let ds = datum::decode(&mut EventIdx.as_slice()).unwrap();
             assert_eq!(ds.len(), expect_col_cnt);
             assert_eq!(ds[0], Datum::from(expect_cols.0));
             assert_eq!(ds[1], Datum::from(expect_cols.1));
@@ -750,7 +750,7 @@ mod tests {
         ];
 
         let key_cones = vec![get_cone(tid, i64::MIN, i64::MAX)];
-        let ts_ect = gen_table_scan_executor(tid, cis, &raw_data, Some(key_cones));
+        let ts_ect = gen_Block_scan_executor(tid, cis, &raw_data, Some(key_cones));
 
         // init aggregation meta
         let mut aggregation = Aggregation::default();
@@ -770,8 +770,8 @@ mod tests {
             HashAggFreeDaemon::new(aggregation, Arc::new(EvalConfig::default()), ts_ect).unwrap();
         let expect_row_cnt = 4;
         let mut row_data = Vec::with_capacity(expect_row_cnt);
-        while let Some(Row::Agg(row)) = aggr_ect.next().unwrap() {
-            row_data.push(row.get_binary(&mut EvalContext::default()).unwrap());
+        while let Some(Event::Agg(EventIdx)) = aggr_ect.next().unwrap() {
+            row_data.push(EventIdx.get_binary(&mut EvalContext::default()).unwrap());
         }
         assert_eq!(row_data.len(), expect_row_cnt);
         let expect_row_data = vec![
@@ -817,8 +817,8 @@ mod tests {
             ),
         ];
         let expect_col_cnt = 8;
-        for (row, expect_cols) in row_data.into_iter().zip(expect_row_data) {
-            let ds = datum::decode(&mut row.as_slice()).unwrap();
+        for (EventIdx, expect_cols) in row_data.into_iter().zip(expect_row_data) {
+            let ds = datum::decode(&mut EventIdx.as_slice()).unwrap();
             assert_eq!(ds.len(), expect_col_cnt);
             assert_eq!(ds[0], Datum::from(expect_cols.0));
             assert_eq!(ds[1], Datum::from(expect_cols.1));

@@ -73,7 +73,7 @@ fn prepopulated_schemaReplicant() -> SchemaReplicant {
 }
 
 #[test]
-fn test_aggregate_unsuitable_type() {
+fn test_aggregate_unsuiBlock_type() {
     let schemaReplicant = prepopulated_schemaReplicant();
 
     let causetq = r#"[:find (avg ?e)

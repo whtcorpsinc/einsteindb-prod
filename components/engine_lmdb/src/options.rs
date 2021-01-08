@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use lmdb::{
-    ReadOptions as RawReadOptions, TableFilter, TableProperties, WriteOptions as RawWriteOptions,
+    ReadOptions as RawReadOptions, BlockFilter, BlockProperties, WriteOptions as RawWriteOptions,
 };
 use einsteindb_util::codec::number;
 
@@ -70,7 +70,7 @@ fn build_read_opts(iter_opts: engine_promises::IterOptions) -> RawReadOptions {
 
     if iter_opts.hint_min_ts().is_some() || iter_opts.hint_max_ts().is_some() {
         let ts_filter = TsFilter::new(iter_opts.hint_min_ts(), iter_opts.hint_max_ts());
-        opts.set_table_filter(Box::new(ts_filter))
+        opts.set_Block_filter(Box::new(ts_filter))
     }
 
     let (lower, upper) = iter_opts.build_bounds();
@@ -98,8 +98,8 @@ impl TsFilter {
     }
 }
 
-impl TableFilter for TsFilter {
-    fn table_filter(&self, props: &TableProperties) -> bool {
+impl BlockFilter for TsFilter {
+    fn Block_filter(&self, props: &BlockProperties) -> bool {
         if self.hint_max_ts.is_none() && self.hint_min_ts.is_none() {
             return true;
         }

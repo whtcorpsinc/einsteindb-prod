@@ -523,7 +523,7 @@ impl<'a, S: 'a + Snapshot> CursorBuilder<'a, S> {
 #[causetg(test)]
 mod tests {
     use engine_lmdb::{LmdbEngine, LmdbSnapshot};
-    use engine_promises::{Engines, IterOptions, SyncMutable};
+    use engine_promises::{Engines, IterOptions, SyncMuBlock};
     use tuplespaceInstanton::data_key;
     use ekvproto::metapb::{Peer, Brane};
     use tempfile::Builder;

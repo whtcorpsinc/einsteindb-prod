@@ -12,7 +12,7 @@ use engine_lmdb::raw::{
 };
 use engine_lmdb::{LmdbEngine, LmdbEngineIterator, LmdbWriteBatch};
 use engine_promises::{
-    IterOptions, Iterable, Iteron, MiscExt, Mutable, SeekKey, WriteBatchExt, WriteOptions,
+    IterOptions, Iterable, Iteron, MiscExt, MuBlock, SeekKey, WriteBatchExt, WriteOptions,
     CAUSET_WRITE,
 };
 use fidel_client::ClusterVersion;
@@ -319,7 +319,7 @@ pub mod tests {
     use engine_lmdb::raw::CompactOptions;
     use engine_lmdb::util::get_causet_handle;
     use engine_lmdb::LmdbEngine;
-    use engine_promises::{MiscExt, Peekable, SyncMutable};
+    use engine_promises::{MiscExt, Peekable, SyncMuBlock};
     use txn_types::TimeStamp;
 
     // Use a dagger to protect concurrent compactions.

@@ -60,8 +60,8 @@ const U64_TEN_POWS: [u64; 20] = [
 
 impl ScalarFunc {
     #[inline]
-    pub fn abs_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let n = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn abs_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let n = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         Ok(Some(n.abs()))
     }
 
@@ -69,16 +69,16 @@ impl ScalarFunc {
     pub fn abs_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let d = try_opt!(self.children[0].eval_decimal(ctx, row));
+        let d = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         let result: Result<Decimal> = d.into_owned().abs().into();
         result.map(|t| Some(Cow::Owned(t)))
     }
 
     #[inline]
-    pub fn abs_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let n = try_opt!(self.children[0].eval_int(ctx, row));
+    pub fn abs_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let n = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         if n == i64::MIN {
             return Err(Error::overflow("BIGINT", &format!("abs({})", n)));
         }
@@ -86,19 +86,19 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn abs_uint(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        self.children[0].eval_int(ctx, row)
+    pub fn abs_uint(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        self.children[0].eval_int(ctx, EventIdx)
     }
 
     #[inline]
-    pub fn ceil_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let n = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn ceil_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let n = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         Ok(Some(n.ceil()))
     }
 
     #[inline]
-    pub fn ceil_dec_to_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let d = try_opt!(self.children[0].eval_decimal(ctx, row));
+    pub fn ceil_dec_to_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let d = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         let d: Result<Decimal> = d.ceil().into();
         d.and_then(|dec| dec.as_i64_with_ctx(ctx)).map(Some)
     }
@@ -107,27 +107,27 @@ impl ScalarFunc {
     pub fn ceil_dec_to_dec<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let d = try_opt!(self.children[0].eval_decimal(ctx, row));
+        let d = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         let result: Result<Decimal> = d.ceil().into();
         result.map(|t| Some(Cow::Owned(t)))
     }
 
     #[inline]
-    pub fn ceil_int_to_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        self.children[0].eval_int(ctx, row)
+    pub fn ceil_int_to_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        self.children[0].eval_int(ctx, EventIdx)
     }
 
     #[inline]
-    pub fn floor_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let n = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn floor_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let n = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         Ok(Some(n.floor()))
     }
 
     #[inline]
-    pub fn floor_dec_to_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let d = try_opt!(self.children[0].eval_decimal(ctx, row));
+    pub fn floor_dec_to_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let d = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         let d: Result<Decimal> = d.floor().into();
         d.and_then(|dec| dec.as_i64_with_ctx(ctx)).map(Some)
     }
@@ -136,21 +136,21 @@ impl ScalarFunc {
     pub fn floor_dec_to_dec<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let d = try_opt!(self.children[0].eval_decimal(ctx, row));
+        let d = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         let result: Result<Decimal> = d.floor().into();
         result.map(|t| Some(Cow::Owned(t)))
     }
 
     #[inline]
-    pub fn floor_int_to_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        self.children[0].eval_int(ctx, row)
+    pub fn floor_int_to_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        self.children[0].eval_int(ctx, EventIdx)
     }
 
     #[inline]
-    pub fn log2(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let n = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn log2(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let n = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         let res = n.log2();
         if res.is_finite() {
             Ok(Some(res))
@@ -160,8 +160,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn log10(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let n = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn log10(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let n = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         let res = n.log10();
         if res.is_finite() {
             Ok(Some(res))
@@ -171,8 +171,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn log_1_arg(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let n = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn log_1_arg(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let n = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         let res = n.ln();
         if res.is_finite() {
             Ok(Some(res))
@@ -182,9 +182,9 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn log_2_args(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let base = try_opt!(self.children[0].eval_real(ctx, row));
-        let n = try_opt!(self.children[1].eval_real(ctx, row));
+    pub fn log_2_args(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let base = try_opt!(self.children[0].eval_real(ctx, EventIdx));
+        let n = try_opt!(self.children[1].eval_real(ctx, EventIdx));
         let res = n.log(base);
         if res.is_finite() {
             Ok(Some(res))
@@ -208,9 +208,9 @@ impl ScalarFunc {
     pub fn rand_with_seed_first_gen(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<f64>> {
-        let seed = match self.children[0].eval_int(ctx, row)? {
+        let seed = match self.children[0].eval_int(ctx, EventIdx)? {
             Some(v) => Some(v),
             _ => None,
         };
@@ -220,23 +220,23 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn crc32(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let d = try_opt!(self.children[0].eval_string(ctx, row));
+    pub fn crc32(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let d = try_opt!(self.children[0].eval_string(ctx, EventIdx));
         Ok(Some(i64::from(calc_crc32_bytes(&d))))
     }
 
     #[inline]
-    pub fn round_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        self.children[0].eval_int(ctx, row)
+    pub fn round_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        self.children[0].eval_int(ctx, EventIdx)
     }
 
     #[inline]
     pub fn round_dec<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let number = try_opt!(self.children[0].eval_decimal(ctx, row));
+        let number = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
         let result: Result<Decimal> = number
             .into_owned()
             .round(DEFAULT_FSP, RoundMode::HalfEven)
@@ -245,15 +245,15 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn round_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let number = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn round_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let number = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         Ok(Some(number.round()))
     }
 
     #[inline]
-    pub fn round_with_frac_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let number = try_opt!(self.children[0].eval_int(ctx, row));
-        let digits = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn round_with_frac_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let number = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let digits = try_opt!(self.children[1].eval_int(ctx, EventIdx));
 
         if digits >= 0 {
             Ok(Some(number))
@@ -268,10 +268,10 @@ impl ScalarFunc {
     pub fn round_with_frac_real(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<f64>> {
-        let number = try_opt!(self.children[0].eval_real(ctx, row));
-        let digits = try_opt!(self.children[1].eval_int(ctx, row));
+        let number = try_opt!(self.children[0].eval_real(ctx, EventIdx));
+        let digits = try_opt!(self.children[1].eval_int(ctx, EventIdx));
 
         let power = 10.0_f64.powi(-digits as i32);
         let frac = number / power;
@@ -282,10 +282,10 @@ impl ScalarFunc {
     pub fn round_with_frac_dec<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        let number = try_opt!(self.children[0].eval_decimal(ctx, row));
-        let digits = try_opt!(self.children[1].eval_int(ctx, row));
+        let number = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
+        let digits = try_opt!(self.children[1].eval_int(ctx, EventIdx));
 
         let result: Result<Decimal> = number
             .into_owned()
@@ -295,8 +295,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn sign(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let f = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn sign(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let f = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         if f > 0f64 {
             Ok(Some(1))
         } else if f == 0f64 {
@@ -307,8 +307,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn sqrt(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let f = try_opt!(self.children[0].eval_real(ctx, row)) as f64;
+    pub fn sqrt(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let f = try_opt!(self.children[0].eval_real(ctx, EventIdx)) as f64;
         if f < 0f64 {
             Ok(None)
         } else {
@@ -317,40 +317,40 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn cos(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let n = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn cos(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let n = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         Ok(Some(n.cos()))
     }
 
     #[inline]
-    pub fn tan(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let n = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn tan(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let n = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         Ok(Some(n.tan()))
     }
 
     #[inline]
-    pub fn atan_1_arg(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let f = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn atan_1_arg(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let f = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         Ok(Some(f.atan()))
     }
 
     #[inline]
-    pub fn atan_2_args(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let y = try_opt!(self.children[0].eval_real(ctx, row));
-        let x = try_opt!(self.children[1].eval_real(ctx, row));
+    pub fn atan_2_args(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let y = try_opt!(self.children[0].eval_real(ctx, EventIdx));
+        let x = try_opt!(self.children[1].eval_real(ctx, EventIdx));
         Ok(Some(y.atan2(x)))
     }
 
     #[inline]
-    pub fn sin(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let n = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn sin(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let n = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         Ok(Some(n.sin()))
     }
 
     #[inline]
-    pub fn pow(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let x = try_opt!(self.children[0].eval_real(ctx, row));
-        let y = try_opt!(self.children[1].eval_real(ctx, row));
+    pub fn pow(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let x = try_opt!(self.children[0].eval_real(ctx, EventIdx));
+        let y = try_opt!(self.children[1].eval_real(ctx, EventIdx));
         let pow = x.pow(y);
         if pow.is_infinite() || pow.is_nan() {
             return Err(Error::overflow("DOUBLE", &format!("{}.pow({})", x, y)));
@@ -359,8 +359,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn asin(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let n = try_opt!(self.children[0].eval_real(ctx, row)) as f64;
+    pub fn asin(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let n = try_opt!(self.children[0].eval_real(ctx, EventIdx)) as f64;
         if n >= -1f64 && n <= 1f64 {
             Ok(Some(n.asin()))
         } else {
@@ -369,8 +369,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn acos(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let n = try_opt!(self.children[0].eval_real(ctx, row)) as f64;
+    pub fn acos(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let n = try_opt!(self.children[0].eval_real(ctx, EventIdx)) as f64;
         if n >= -1f64 && n <= 1f64 {
             Ok(Some(n.acos()))
         } else {
@@ -379,8 +379,8 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn cot(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let n = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn cot(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let n = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         let tan = n.tan();
         if tan != 0.0 {
             let cot = 1.0 / tan;
@@ -392,15 +392,15 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn degrees(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let n = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn degrees(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let n = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         Ok(Some(n.to_degrees()))
     }
 
     #[inline]
-    pub fn truncate_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let x = try_opt!(self.children[0].eval_int(ctx, row));
-        let d = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn truncate_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let x = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let d = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         let d = if self.children[1].is_unsigned() { 0 } else { d };
         if d >= 0 {
             Ok(Some(x))
@@ -414,9 +414,9 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn truncate_uint(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
-        let x = try_opt!(self.children[0].eval_int(ctx, row));
-        let d = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn truncate_uint(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+        let x = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let d = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         let d = if self.children[1].is_unsigned() { 0 } else { d };
         if d >= 0 {
             Ok(Some(x))
@@ -431,9 +431,9 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn truncate_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let x = try_opt!(self.children[0].eval_real(ctx, row));
-        let d = try_opt!(self.children[1].eval_int(ctx, row));
+    pub fn truncate_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let x = try_opt!(self.children[0].eval_real(ctx, EventIdx));
+        let d = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         let d = if self.children[1].is_unsigned() {
             (d as u64).min(i32::max_value() as u64) as i32
         } else if d >= 0 {
@@ -457,10 +457,10 @@ impl ScalarFunc {
     pub fn truncate_decimal(
         &self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<Cow<'_, Decimal>>> {
-        let x = try_opt!(self.children[0].eval_decimal(ctx, row));
-        let d = try_opt!(self.children[1].eval_int(ctx, row));
+        let x = try_opt!(self.children[0].eval_decimal(ctx, EventIdx));
+        let d = try_opt!(self.children[1].eval_int(ctx, EventIdx));
         let d = if self.children[1].is_unsigned() {
             (d as u64).min(127) as i8
         } else if d >= 0 {
@@ -473,14 +473,14 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn radians(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let x = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn radians(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let x = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         Ok(Some(x * f64::consts::PI / 180_f64))
     }
 
     #[inline]
-    pub fn exp(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
-        let x = try_opt!(self.children[0].eval_real(ctx, row));
+    pub fn exp(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+        let x = try_opt!(self.children[0].eval_real(ctx, EventIdx));
         let r = x.exp();
         if r.is_infinite() || r.is_nan() {
             return Err(Error::overflow("DOUBLE", &format!("exp({})", x)));
@@ -492,12 +492,12 @@ impl ScalarFunc {
     pub fn conv<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &'a [Datum],
+        EventIdx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
         use milevadb_query_shared_expr::conv::conv as conv_impl;
-        let n = try_opt!(self.children[0].eval_string_and_decode(ctx, row));
-        let from_base = try_opt!(self.children[1].eval_int(ctx, row));
-        let to_base = try_opt!(self.children[2].eval_int(ctx, row));
+        let n = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
+        let from_base = try_opt!(self.children[1].eval_int(ctx, EventIdx));
+        let to_base = try_opt!(self.children[2].eval_int(ctx, EventIdx));
         Ok(conv_impl(n.as_ref(), from_base, to_base).map(Cow::Owned))
     }
 }

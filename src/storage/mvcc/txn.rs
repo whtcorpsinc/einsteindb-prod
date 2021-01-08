@@ -78,7 +78,7 @@ impl MissingLockAction {
 }
 
 /// `ReleasedLock` contains the information of the dagger released by `commit`, `rollback` and so on.
-/// It's used by `LockManager` to wake up transactions waiting for locks.
+/// It's used by `LockManager` to wake up bundles waiting for locks.
 #[derive(Debug, PartialEq)]
 pub struct ReleasedLock {
     /// The hash value of the dagger.
@@ -113,7 +113,7 @@ pub struct MvccTxn<S: Snapshot> {
     pub(crate) collapse_rollback: bool,
     pub extra_op: ExtraOp,
     // `concurrency_manager` is used to set memory locks for prewritten tuplespaceInstanton.
-    // Prewritten locks of async commit transactions should be visible to
+    // Prewritten locks of async commit bundles should be visible to
     // readers before they are written to the engine.
     pub(crate) concurrency_manager: ConcurrencyManager,
     // After locks are stored in memory in prewrite, the KeyHandleGuard
@@ -408,16 +408,16 @@ impl<S: Snapshot> MvccTxn<S> {
         Ok(())
     }
 
-    // Pessimistic transactions only acquire pessimistic locks on row tuplespaceInstanton.
+    // Pessimistic bundles only acquire pessimistic locks on EventIdx tuplespaceInstanton.
     // The corrsponding index tuplespaceInstanton are not locked until pessimistic prewrite.
     // It's possible that dagger conflict occours on them, but the isolation is
-    // guaranteed by pessimistic locks on row tuplespaceInstanton, so let MilevaDB resolves these
+    // guaranteed by pessimistic locks on EventIdx tuplespaceInstanton, so let MilevaDB resolves these
     // locks immediately.
     fn handle_non_pessimistic_lock_conflict(&self, key: Key, dagger: Dagger) -> Result<()> {
         // The previous pessimistic transaction has been committed or aborted.
         // Resolve it immediately.
         //
-        // Because the row key is locked, the optimistic transaction will
+        // Because the EventIdx key is locked, the optimistic transaction will
         // abort. Resolve it immediately.
         let mut info = dagger.into_lock_info(key.into_raw()?);
         // Set ttl to 0 so MilevaDB will resolve dagger immediately.
@@ -496,7 +496,7 @@ impl<S: Snapshot> MvccTxn<S> {
         }
 
         if let Some((commit_ts, write)) = self.reader.seek_write(&key, TimeStamp::max())? {
-            // The isolation level of pessimistic transactions is RC. `for_ufidelate_ts` is
+            // The isolation level of pessimistic bundles is RC. `for_ufidelate_ts` is
             // the commit_ts of the data this transaction read. If exists a commit version
             // whose commit timestamp is larger than current `for_ufidelate_ts`, the
             // transaction should retry to get the latest data.
@@ -1334,7 +1334,7 @@ mod tests {
 
         // Rollback dagger
         must_rollback(&engine, k, 15);
-        // Rollbacks of optimistic transactions needn't be protected
+        // Rollbacks of optimistic bundles needn't be protected
         must_get_rollback_protected(&engine, k, 15, false);
     }
 
@@ -1441,11 +1441,11 @@ mod tests {
         // TTL expired. The dagger should be removed.
         must_cleanup(&engine, k, ts(10, 0), ts(120, 0));
         must_unlocked(&engine, k);
-        // Rollbacks of optimistic transactions needn't be protected
+        // Rollbacks of optimistic bundles needn't be protected
         must_get_rollback_protected(&engine, k, ts(10, 0), false);
         must_get_rollback_ts(&engine, k, ts(10, 0));
 
-        // Rollbacks of primary tuplespaceInstanton in pessimistic transactions should be protected
+        // Rollbacks of primary tuplespaceInstanton in pessimistic bundles should be protected
         must_acquire_pessimistic_lock(&engine, k, k, ts(11, 1), ts(12, 1));
         must_cleanup(&engine, k, ts(11, 1), ts(120, 0));
         must_get_rollback_protected(&engine, k, ts(11, 1), true);
@@ -1555,7 +1555,7 @@ mod tests {
         must_prewrite_put(&engine, k, v4, k, 55);
         must_rollback(&engine, k, 55);
 
-        // Transactions:
+        // bundles:
         // spacelikeTS commitTS Command
         // --
         // 55      -        PUT "x55" (Rollback)
@@ -2084,7 +2084,7 @@ mod tests {
 
         // Prewrite on non-pessimistic key meets write with larger commit_ts than current
         // for_ufidelate_ts (non-pessimistic data conflict).
-        // Normally non-pessimistic tuplespaceInstanton in pessimistic transactions are used when we are sure that
+        // Normally non-pessimistic tuplespaceInstanton in pessimistic bundles are used when we are sure that
         // there won't be conflicts. So this case is also not checked, and prewrite will succeeed.
         must_pessimistic_prewrite_put(&engine, k, v, k, 47, 48, false);
         must_locked(&engine, k, 47);
@@ -2294,7 +2294,7 @@ mod tests {
     fn test_non_pessimistic_lock_conflict_with_pessismitic_txn() {
         let engine = TestEngineBuilder::new().build().unwrap();
 
-        // k1 is a row key, k2 is the corresponding index key.
+        // k1 is a EventIdx key, k2 is the corresponding index key.
         let (k1, v1) = (b"k1", b"v1");
         let (k2, v2) = (b"k2", b"v2");
         let (k3, v3) = (b"k3", b"v3");

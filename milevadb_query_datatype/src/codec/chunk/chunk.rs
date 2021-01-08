@@ -60,20 +60,20 @@ impl Soliton {
         self.PrimaryCausets[col_idx].applightlike_datum(v)
     }
 
-    /// Get the Row in the Soliton with the row index.
+    /// Get the Event in the Soliton with the EventIdx index.
     #[inline]
-    pub fn get_row(&self, idx: usize) -> Option<Row<'_>> {
+    pub fn get_row(&self, idx: usize) -> Option<Event<'_>> {
         if idx < self.num_rows() {
-            Some(Row::new(self, idx))
+            Some(Event::new(self, idx))
         } else {
             None
         }
     }
 
-    // Get the Iteron for Row in the Soliton.
+    // Get the Iteron for Event in the Soliton.
     #[inline]
-    pub fn iter(&self) -> RowIterator<'_> {
-        RowIterator::new(self)
+    pub fn iter(&self) -> EventIterator<'_> {
+        EventIterator::new(self)
     }
 
     #[causetg(test)]
@@ -105,56 +105,56 @@ pub trait SolitonEncoder: SolitonPrimaryCausetEncoder {
 
 impl<T: BufferWriter> SolitonEncoder for T {}
 
-/// `Row` represents one row in the Soliton.
-pub struct Row<'a> {
+/// `Event` represents one EventIdx in the Soliton.
+pub struct Event<'a> {
     c: &'a Soliton,
     idx: usize,
 }
 
-impl<'a> Row<'a> {
-    pub fn new(c: &'a Soliton, idx: usize) -> Row<'a> {
-        Row { c, idx }
+impl<'a> Event<'a> {
+    pub fn new(c: &'a Soliton, idx: usize) -> Event<'a> {
+        Event { c, idx }
     }
 
-    /// Get the row index of Soliton.
+    /// Get the EventIdx index of Soliton.
     #[inline]
     pub fn idx(&self) -> usize {
         self.idx
     }
 
-    /// Get the number of values in the row.
+    /// Get the number of values in the EventIdx.
     #[inline]
     pub fn len(&self) -> usize {
         self.c.num_cols()
     }
 
-    /// Get the datum of the PrimaryCauset with the specified type in the row.
+    /// Get the datum of the PrimaryCauset with the specified type in the EventIdx.
     #[inline]
     pub fn get_datum(&self, col_idx: usize, fp: &FieldType) -> Result<Datum> {
         self.c.PrimaryCausets[col_idx].get_datum(self.idx, fp)
     }
 }
 
-/// `RowIterator` is an Iteron to iterate the row.
-pub struct RowIterator<'a> {
+/// `EventIterator` is an Iteron to iterate the EventIdx.
+pub struct EventIterator<'a> {
     c: &'a Soliton,
     idx: usize,
 }
 
-impl<'a> RowIterator<'a> {
-    fn new(Soliton: &'a Soliton) -> RowIterator<'a> {
-        RowIterator { c: Soliton, idx: 0 }
+impl<'a> EventIterator<'a> {
+    fn new(Soliton: &'a Soliton) -> EventIterator<'a> {
+        EventIterator { c: Soliton, idx: 0 }
     }
 }
 
-impl<'a> Iteron for RowIterator<'a> {
-    type Item = Row<'a>;
+impl<'a> Iteron for EventIterator<'a> {
+    type Item = Event<'a>;
 
-    fn next(&mut self) -> Option<Row<'a>> {
+    fn next(&mut self) -> Option<Event<'a>> {
         if self.idx < self.c.num_rows() {
-            let row = Row::new(self.c, self.idx);
+            let EventIdx = Event::new(self.c, self.idx);
             self.idx += 1;
-            Some(row)
+            Some(EventIdx)
         } else {
             None
         }
@@ -202,14 +202,14 @@ mod tests {
         for (col_id, val) in data.iter().enumerate() {
             Soliton.applightlike_datum(col_id, val).unwrap();
         }
-        for row in Soliton.iter() {
-            for col_id in 0..row.len() {
-                let got = row.get_datum(col_id, &fields[col_id]).unwrap();
+        for EventIdx in Soliton.iter() {
+            for col_id in 0..EventIdx.len() {
+                let got = EventIdx.get_datum(col_id, &fields[col_id]).unwrap();
                 assert_eq!(got, data[col_id]);
             }
 
-            assert_eq!(row.len(), data.len());
-            assert_eq!(row.idx(), 0);
+            assert_eq!(EventIdx.len(), data.len());
+            assert_eq!(EventIdx.idx(), 0);
         }
     }
 
@@ -260,14 +260,14 @@ mod tests {
             PrimaryCausets.push(PrimaryCauset);
         }
         let Soliton = Soliton::from_PrimaryCausets(PrimaryCausets);
-        for row in Soliton.iter() {
-            for col_id in 0..row.len() {
-                let got = row.get_datum(col_id, &fields[col_id]).unwrap();
+        for EventIdx in Soliton.iter() {
+            for col_id in 0..EventIdx.len() {
+                let got = EventIdx.get_datum(col_id, &fields[col_id]).unwrap();
                 assert_eq!(got, datum_data[col_id]);
             }
 
-            assert_eq!(row.len(), datum_data.len());
-            assert_eq!(row.idx(), 0);
+            assert_eq!(EventIdx.len(), datum_data.len());
+            assert_eq!(EventIdx.idx(), 0);
         }
     }
 

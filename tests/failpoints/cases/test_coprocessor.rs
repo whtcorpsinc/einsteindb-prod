@@ -9,7 +9,7 @@ use test_causetStorage::*;
 
 #[test]
 fn test_deadline() {
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
@@ -22,7 +22,7 @@ fn test_deadline() {
 #[test]
 fn test_deadline_2() {
     // It should not even take any snapshots when request is outdated from the beginning.
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
@@ -44,7 +44,7 @@ fn test_deadline_3() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = {
         let engine = einsteindb::causetStorage::TestEngineBuilder::new().build().unwrap();
         let mut causetg = einsteindb::server::Config::default();
@@ -68,7 +68,7 @@ fn test_deadline_3() {
 
 #[test]
 fn test_parse_request_failed() {
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
@@ -81,7 +81,7 @@ fn test_parse_request_failed() {
 #[test]
 fn test_parse_request_failed_2() {
     // It should not even take any snapshots when parse failed.
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
@@ -94,7 +94,7 @@ fn test_parse_request_failed_2() {
 
 #[test]
 fn test_readpool_full() {
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
@@ -106,7 +106,7 @@ fn test_readpool_full() {
 
 #[test]
 fn test_snapshot_failed() {
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
@@ -118,7 +118,7 @@ fn test_snapshot_failed() {
 
 #[test]
 fn test_snapshot_failed_2() {
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
@@ -132,7 +132,7 @@ fn test_snapshot_failed_2() {
 fn test_causetStorage_error() {
     let data = vec![(1, Some("name:0"), 2), (2, Some("name:4"), 3)];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_, lightlikepoint) = init_with_data(&product, &data);
     let req = DAGSelect::from(&product).build();
 
@@ -151,7 +151,7 @@ fn test_brane_error_in_scan() {
         (5, Some("name:1"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (_cluster, violetabft_engine, mut ctx) = new_violetabft_engine(1, "");
     ctx.set_isolation_level(IsolationLevel::Si);
 

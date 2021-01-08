@@ -3,7 +3,7 @@
 use criterion::{Bencher, Criterion};
 use ekvproto::deadlock::*;
 use rand::prelude::*;
-use einsteindb::server::lock_manager::deadlock::DetectTable;
+use einsteindb::server::lock_manager::deadlock::DetectBlock;
 use einsteindb_util::time::Duration;
 
 struct DetectGenerator {
@@ -55,11 +55,11 @@ struct Config {
 }
 
 fn bench_detect(b: &mut Bencher, causetg: &Config) {
-    let mut detect_table = DetectTable::new(causetg.ttl);
+    let mut detect_Block = DetectBlock::new(causetg.ttl);
     let mut generator = DetectGenerator::new(causetg.cone);
     b.iter(|| {
         for entry in generator.generate(causetg.n) {
-            detect_table.detect(
+            detect_Block.detect(
                 entry.get_txn().into(),
                 entry.get_wait_for_txn().into(),
                 entry.get_key_hash(),

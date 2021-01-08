@@ -21,28 +21,28 @@ impl ScalarFunc {
     pub fn md5<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, row));
+        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
         hex_digest(MessageDigest::md5(), &input).map(|digest| Some(Cow::Owned(digest)))
     }
 
     pub fn sha1<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, row));
+        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
         hex_digest(MessageDigest::sha1(), &input).map(|digest| Some(Cow::Owned(digest)))
     }
 
     pub fn sha2<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, row));
-        let hash_length = try_opt!(self.children[1].eval_int(ctx, row));
+        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+        let hash_length = try_opt!(self.children[1].eval_int(ctx, EventIdx));
 
         let sha2 = match hash_length {
             SHA0 | SHA256 => MessageDigest::sha256(),
@@ -62,10 +62,10 @@ impl ScalarFunc {
     pub fn compress<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
         use byteorder::{ByteOrder, LittleEndian};
-        let input = try_opt!(self.children[0].eval_string(ctx, row));
+        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
 
         // according to MySQL doc: Empty strings are stored as empty strings.
         if input.is_empty() {
@@ -93,10 +93,10 @@ impl ScalarFunc {
     pub fn uncompress<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
         use byteorder::{ByteOrder, LittleEndian};
-        let input = try_opt!(self.children[0].eval_string(ctx, row));
+        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
         if input.is_empty() {
             return Ok(Some(Cow::Borrowed(b"")));
         }
@@ -126,9 +126,9 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn uncompressed_length(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
+    pub fn uncompressed_length(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
         use byteorder::{ByteOrder, LittleEndian};
-        let input = try_opt!(self.children[0].eval_string(ctx, row));
+        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
         if input.is_empty() {
             return Ok(Some(0));
         }
@@ -143,9 +143,9 @@ impl ScalarFunc {
     pub fn random_bytes<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let length = try_opt!(self.children[0].eval_int(ctx, row));
+        let length = try_opt!(self.children[0].eval_int(ctx, EventIdx));
         if length < 1 || length > MAX_RAND_BYTES_LENGTH {
             return Err(Error::overflow("length", "random_bytes"));
         }
@@ -156,9 +156,9 @@ impl ScalarFunc {
     pub fn password<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        row: &[Datum],
+        EventIdx: &[Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let pass = try_opt!(self.children[0].eval_string(ctx, row));
+        let pass = try_opt!(self.children[0].eval_string(ctx, EventIdx));
         if pass.len() == 0 {
             return Ok(Some(Cow::Owned(vec![])));
         }

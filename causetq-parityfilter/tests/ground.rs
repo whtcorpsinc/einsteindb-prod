@@ -31,16 +31,16 @@ use einsteindb_embedded::{
 use edbn::causetq::{
     Keyword,
     PlainSymbol,
-    Variable,
+    ToUpper,
 };
 
 use causetq_parityfilter_promises::errors::{
     ParityFilterError,
-    BindingError,
+    ConstrainedEntsConstraintError,
 };
 
 use einsteindb_causetq_parityfilter::{
-    ComputedTable,
+    ComputedBlock,
     KnownCauset,
     CausetQInputs,
 };
@@ -126,8 +126,8 @@ fn test_ground_coll_skips_impossible() {
     let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
     let cc = alg(knownCauset, &q);
     assert!(cc.empty_because.is_none());
-    assert_eq!(cc.computed_tables[0], ComputedTable::NamedValues {
-        names: vec![Variable::from_valid_name("?x")],
+    assert_eq!(cc.computed_Blocks[0], ComputedBlock::NamedValues {
+        names: vec![ToUpper::from_valid_name("?x")],
         values: vec![MinkowskiType::Ref(5), MinkowskiType::Ref(11)],
     });
 }
@@ -148,8 +148,8 @@ fn test_ground_rel_skips_impossible() {
     let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
     let cc = alg(knownCauset, &q);
     assert!(cc.empty_because.is_none());
-    assert_eq!(cc.computed_tables[0], ComputedTable::NamedValues {
-        names: vec![Variable::from_valid_name("?x"), Variable::from_valid_name("?p")],
+    assert_eq!(cc.computed_Blocks[0], ComputedBlock::NamedValues {
+        names: vec![ToUpper::from_valid_name("?x"), ToUpper::from_valid_name("?p")],
         values: vec![MinkowskiType::Ref(5), MinkowskiType::Ref(7), MinkowskiType::Ref(11), MinkowskiType::Ref(12)],
     });
 }
@@ -186,8 +186,8 @@ fn test_ground_tuple_placeholders() {
     let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
     let cc = alg(knownCauset, &q);
     assert!(cc.empty_because.is_none());
-    assert_eq!(cc.bound_value(&Variable::from_valid_name("?x")), Some(MinkowskiType::Ref(8)));
-    assert_eq!(cc.bound_value(&Variable::from_valid_name("?p")), Some(MinkowskiType::Ref(3)));
+    assert_eq!(cc.bound_value(&ToUpper::from_valid_name("?x")), Some(MinkowskiType::Ref(8)));
+    assert_eq!(cc.bound_value(&ToUpper::from_valid_name("?p")), Some(MinkowskiType::Ref(3)));
 }
 
 #[test]
@@ -197,8 +197,8 @@ fn test_ground_rel_placeholders() {
     let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
     let cc = alg(knownCauset, &q);
     assert!(cc.empty_because.is_none());
-    assert_eq!(cc.computed_tables[0], ComputedTable::NamedValues {
-        names: vec![Variable::from_valid_name("?x"), Variable::from_valid_name("?p")],
+    assert_eq!(cc.computed_Blocks[0], ComputedBlock::NamedValues {
+        names: vec![ToUpper::from_valid_name("?x"), ToUpper::from_valid_name("?p")],
         values: vec![
             MinkowskiType::Ref(8),
             MinkowskiType::Ref(3),
@@ -227,8 +227,8 @@ fn test_ground_tuple_infers_types() {
     let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
     let cc = alg(knownCauset, &q);
     assert!(cc.empty_because.is_none());
-    assert_eq!(cc.bound_value(&Variable::from_valid_name("?x")), Some(MinkowskiType::Ref(8)));
-    assert_eq!(cc.bound_value(&Variable::from_valid_name("?v")), Some(MinkowskiType::Long(10)));
+    assert_eq!(cc.bound_value(&ToUpper::from_valid_name("?x")), Some(MinkowskiType::Ref(8)));
+    assert_eq!(cc.bound_value(&ToUpper::from_valid_name("?v")), Some(MinkowskiType::Long(10)));
 }
 
 // We determine the types of variables in the causetq in an early first pass, and thus we can
@@ -251,8 +251,8 @@ fn test_ground_rel_infers_types() {
     let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
     let cc = alg(knownCauset, &q);
     assert!(cc.empty_because.is_none());
-    assert_eq!(cc.computed_tables[0], ComputedTable::NamedValues {
-        names: vec![Variable::from_valid_name("?x"), Variable::from_valid_name("?v")],
+    assert_eq!(cc.computed_Blocks[0], ComputedBlock::NamedValues {
+        names: vec![ToUpper::from_valid_name("?x"), ToUpper::from_valid_name("?v")],
         values: vec![MinkowskiType::Ref(8), MinkowskiType::Long(10)],
     });
 }
@@ -281,7 +281,7 @@ fn test_ground_tuple_duplicate_vars() {
     let schemaReplicant = prepopulated_schemaReplicant();
     let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
     assert_eq!(bails(knownCauset, &q),
-               ParityFilterError::InvalidBinding(PlainSymbol::plain("ground"), BindingError::RepeatedBoundVariable));
+               ParityFilterError::InvalidConstrainedEntsConstraint(PlainSymbol::plain("ground"), ConstrainedEntsConstraintError::RepeatedBoundVariable));
 }
 
 #[test]
@@ -290,7 +290,7 @@ fn test_ground_rel_duplicate_vars() {
     let schemaReplicant = prepopulated_schemaReplicant();
     let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
     assert_eq!(bails(knownCauset, &q),
-               ParityFilterError::InvalidBinding(PlainSymbol::plain("ground"), BindingError::RepeatedBoundVariable));
+               ParityFilterError::InvalidConstrainedEntsConstraint(PlainSymbol::plain("ground"), ConstrainedEntsConstraintError::RepeatedBoundVariable));
 }
 
 #[test]
@@ -308,10 +308,10 @@ fn test_unbound_input_variable_invalid() {
     let knownCauset = KnownCauset::for_schemaReplicant(&schemaReplicant);
     let q = r#"[:find ?y ?age :in ?x :where [(ground [?x]) [?y ...]] [?y :foo/age ?age]]"#;
 
-    // This fails even if we know the type: we don't support grounding bindings
+    // This fails even if we know the type: we don't support grounding ConstrainedEntss
     // that aren't knownCauset at algebrizing time.
     let mut types = BTreeMap::default();
-    types.insert(Variable::from_valid_name("?x"), MinkowskiValueType::Ref);
+    types.insert(ToUpper::from_valid_name("?x"), MinkowskiValueType::Ref);
 
     let i = CausetQInputs::new(types, BTreeMap::default()).expect("valid CausetQInputs");
 

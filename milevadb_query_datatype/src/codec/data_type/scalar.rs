@@ -15,7 +15,7 @@ use super::*;
 /// time. So we use this enum container to represent types dynamically. It is similar to trait
 /// object `Box<T>` where `T` is a concrete eval type but faster.
 ///
-/// Like `VectorValue`, the inner concrete value is immutable.
+/// Like `VectorValue`, the inner concrete value is immuBlock.
 ///
 /// Compared to `VectorValue`, it only contains a single concrete value.
 /// Compared to `Datum`, it is a newer encapsulation that naturally wraps `Option<..>`.

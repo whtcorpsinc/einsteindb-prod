@@ -10,10 +10,10 @@ use protobuf::Message;
 use violetabft::evioletabftpb::MessageType;
 use einsteindb_util::config::*;
 
-use engine_lmdb::raw::Writable;
+use engine_lmdb::raw::WriBlock;
 use engine_lmdb::Compat;
 use engine_promises::{Iterable, Peekable};
-use engine_promises::{SyncMutable, CAUSET_VIOLETABFT};
+use engine_promises::{SyncMuBlock, CAUSET_VIOLETABFT};
 use test_violetabftstore::*;
 
 fn test_tombstone<T: Simulator>(cluster: &mut Cluster<T>) {

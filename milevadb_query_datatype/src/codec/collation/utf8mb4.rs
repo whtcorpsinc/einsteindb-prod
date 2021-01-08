@@ -308,7 +308,7 @@ static GENERAL_CI_PLANE_FF: [u16; 256] = [
 ];
 
 #[rustfmt::skip]
-static GENERAL_CI_PLANE_TABLE: [Option<&[u16; 256]>; 256] = [
+static GENERAL_CI_PLANE_Block: [Option<&[u16; 256]>; 256] = [
     Some(&GENERAL_CI_PLANE_00),
     Some(&GENERAL_CI_PLANE_01),
     Some(&GENERAL_CI_PLANE_02),
@@ -346,7 +346,7 @@ fn general_ci_convert(c: char) -> u16 {
     if r > 0xFFFF {
         return 0xFFFD;
     }
-    if let Some(plane) = GENERAL_CI_PLANE_TABLE[r >> 8] {
+    if let Some(plane) = GENERAL_CI_PLANE_Block[r >> 8] {
         plane[r & 0xFF]
     } else {
         r as u16
@@ -403,7 +403,7 @@ fn unicode_ci_convert(c: char) -> u128 {
         return 0xFFFD;
     }
 
-    let u = UNICODE_CI_TABLE[r];
+    let u = UNICODE_CI_Block[r];
     if u == LONG_RUNE {
         return map_long_rune(r);
     }

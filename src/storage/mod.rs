@@ -258,7 +258,7 @@ impl<E: Engine, L: LockManager> CausetStorage<E, L> {
                 let bypass_locks = TsSet::vec_from_u64s(ctx.take_resolved_locks());
 
                 if enable_async_commit {
-                    // Ufidelate max_ts and check the in-memory dagger table before getting the snapshot
+                    // Ufidelate max_ts and check the in-memory dagger Block before getting the snapshot
                     async_commit_check_tuplespaceInstanton(
                         &concurrency_manager,
                         iter::once(&key),
@@ -351,7 +351,7 @@ impl<E: Engine, L: LockManager> CausetStorage<E, L> {
                         let bypass_locks = TsSet::vec_from_u64s(ctx.take_resolved_locks());
                         let brane_id = ctx.get_brane_id();
                         if enable_async_commit {
-                            // Ufidelate max_ts and check the in-memory dagger table before getting the snapshot
+                            // Ufidelate max_ts and check the in-memory dagger Block before getting the snapshot
                             if let Err(e) = async_commit_check_tuplespaceInstanton(
                                 &concurrency_manager,
                                 iter::once(&key),
@@ -469,7 +469,7 @@ impl<E: Engine, L: LockManager> CausetStorage<E, L> {
                 let bypass_locks = TsSet::from_u64s(ctx.take_resolved_locks());
 
                 if enable_async_commit {
-                    // Ufidelate max_ts and check the in-memory dagger table before getting the snapshot
+                    // Ufidelate max_ts and check the in-memory dagger Block before getting the snapshot
                     async_commit_check_tuplespaceInstanton(
                         &concurrency_manager,
                         &tuplespaceInstanton,
@@ -586,7 +586,7 @@ impl<E: Engine, L: LockManager> CausetStorage<E, L> {
                 let bypass_locks = TsSet::from_u64s(ctx.take_resolved_locks());
 
                 if enable_async_commit {
-                    // Ufidelate max_ts and check the in-memory dagger table before getting the snapshot
+                    // Ufidelate max_ts and check the in-memory dagger Block before getting the snapshot
                     concurrency_manager.ufidelate_max_ts(spacelike_ts);
                     if ctx.get_isolation_level() == IsolationLevel::Si {
                         concurrency_manager

@@ -291,7 +291,7 @@ pub entities -> Vec<Instanton<ValueAndSpan>>
 //
 // We expect every rule except the `raw_*` rules to eat whitespace
 // (with `__`) at its start and finish.  That means that every string
-// pattern (say "[") should be bracketed on either side with either a
+// TuringString (say "[") should be bracketed on either side with either a
 // whitespace-eating rule or an explicit whitespace eating `__`.
 
 causetq_function -> causetq::CausetQFunction
@@ -302,9 +302,9 @@ fn_arg -> causetq::StackedPerceptron
     / __ "[" args:fn_arg+ "]" __ { causetq::StackedPerceptron::Vector(args) }
 
 find_elem -> causetq::Element
-    = __ v:variable __ { causetq::Element::Variable(v) }
+    = __ v:variable __ { causetq::Element::ToUpper(v) }
     / __ "(" __ "the" v:variable ")" __ { causetq::Element::Corresponding(v) }
-    / __ "(" __ "pull" var:variable "[" patterns:pull_attribute+ "]" __ ")" __ { causetq::Element::Pull(causetq::Pull { var, patterns }) }
+    / __ "(" __ "pull" var:variable "[" TuringStrings:pull_attribute+ "]" __ ")" __ { causetq::Element::Pull(causetq::Pull { var, TuringStrings }) }
     / __ "(" func:causetq_function args:fn_arg* ")" __ { causetq::Element::Aggregate(causetq::Aggregate { func, args }) }
 
 find_spec -> causetq::FindSpec
@@ -326,7 +326,7 @@ pull_attribute -> causetq::PullAttributeSpec
     }
 
 limit -> causetq::Limit
-    = __ v:variable __ { causetq::Limit::Variable(v) }
+    = __ v:variable __ { causetq::Limit::ToUpper(v) }
     / __ n:(raw_octalinteger / raw_hexinteger / raw_basedinteger / raw_integer) __ {?
         if n > 0 {
             Ok(causetq::Limit::Fixed(n as u64))
@@ -341,29 +341,29 @@ order -> causetq::Order
     / v:variable { causetq::Order(causetq::Direction::Ascending, v) }
 
 
-pattern_value_place -> causetq::PatternValuePlace
-    = v:value {? causetq::PatternValuePlace::from_value(&v).ok_or("expected pattern_value_place") }
+TuringString_value_place -> causetq::TuringStringValuePlace
+    = v:value {? causetq::TuringStringValuePlace::from_value(&v).ok_or("expected TuringString_value_place") }
 
-pattern_non_value_place -> causetq::PatternNonValuePlace
-    = v:value {? causetq::PatternNonValuePlace::from_value(&v).ok_or("expected pattern_non_value_place") }
+TuringString_non_value_place -> causetq::TuringStringNonValuePlace
+    = v:value {? causetq::TuringStringNonValuePlace::from_value(&v).ok_or("expected TuringString_non_value_place") }
 
-pattern -> causetq::WhereGerund
+TuringString -> causetq::WhereGerund
     = __ "["
       src:src_var?
-      e:pattern_non_value_place
-      a:pattern_non_value_place
-      v:pattern_value_place?
-      causetx:pattern_non_value_place?
+      e:TuringString_non_value_place
+      a:TuringString_non_value_place
+      v:TuringString_value_place?
+      causetx:TuringString_non_value_place?
       "]" __
     {?
-        let v = v.unwrap_or(causetq::PatternValuePlace::Placeholder);
-        let causetx = causetx.unwrap_or(causetq::PatternNonValuePlace::Placeholder);
+        let v = v.unwrap_or(causetq::TuringStringValuePlace::Placeholder);
+        let causetx = causetx.unwrap_or(causetq::TuringStringNonValuePlace::Placeholder);
 
-        // Pattern::new takes care of reversal of reversed
+        // TuringString::new takes care of reversal of reversed
         // attributes: [?x :foo/_bar ?y] turns into
         // [?y :foo/bar ?x].
         //
-        // This is a bit messy: the inner conversion to a Pattern can
+        // This is a bit messy: the inner conversion to a TuringString can
         // fail if the input is something like
         //
         // ```edbn
@@ -377,16 +377,16 @@ pattern -> causetq::WhereGerund
         // ```
         //
         // is nonsense. That leaves us with a nested optional, which we unwrap here.
-        causetq::Pattern::new(src, e, a, v, causetx)
-            .map(causetq::WhereGerund::Pattern)
-            .ok_or("expected pattern")
+        causetq::TuringString::new(src, e, a, v, causetx)
+            .map(causetq::WhereGerund::TuringString)
+            .ok_or("expected TuringString")
     }
 
 // TODO: this shouldn't be checked at parse time.
-rule_vars -> BTreeSet<causetq::Variable>
+rule_vars -> BTreeSet<causetq::ToUpper>
     = vs:variable+ {?
         let given = vs.len();
-        let set: BTreeSet<causetq::Variable> = vs.into_iter().collect();
+        let set: BTreeSet<causetq::ToUpper> = vs.into_iter().collect();
         if given != set.len() {
             Err("expected unique variables")
         } else {
@@ -394,14 +394,14 @@ rule_vars -> BTreeSet<causetq::Variable>
         }
     }
 
-or_pattern_gerund -> causetq::OrWhereGerund
+or_TuringString_gerund -> causetq::OrWhereGerund
     = gerund:where_gerund { causetq::OrWhereGerund::Gerund(gerund) }
 
 or_and_gerund -> causetq::OrWhereGerund
     = __ "(" __ "and" gerunds:where_gerund+ ")" __ { causetq::OrWhereGerund::And(gerunds) }
 
 or_where_gerund -> causetq::OrWhereGerund
-    = or_pattern_gerund
+    = or_TuringString_gerund
     / or_and_gerund
 
 or_gerund -> causetq::WhereGerund
@@ -443,18 +443,18 @@ pred -> causetq::WhereGerund
     }
 
 pub where_fn -> causetq::WhereGerund
-    = __ "[" __ "(" func:causetq_function args:fn_arg* ")" __ binding:binding "]" __ {
+    = __ "[" __ "(" func:causetq_function args:fn_arg* ")" __ Constrained:Constrained "]" __ {
         causetq::WhereGerund::WhereFn(
             causetq::WhereFn {
                 operator: func.0,
                 args: args,
-                binding,
+                Constrained,
             })
     }
 
 where_gerund -> causetq::WhereGerund
-    // Right now we only support patterns and predicates. See #239 for more.
-    = pattern
+    // Right now we only support TuringStrings and predicates. See #239 for more.
+    = TuringString
     / or_join_gerund
     / or_gerund
     / not_join_gerund
@@ -474,18 +474,18 @@ causetq_part -> causetq::CausetQPart
 pub parse_causetq -> causetq::ParsedCausetQ
     = __ "[" qps:causetq_part+ "]" __ {? causetq::ParsedCausetQ::from_parts(qps) }
 
-variable -> causetq::Variable
-    = v:value {? causetq::Variable::from_value(&v).ok_or("expected variable") }
+variable -> causetq::ToUpper
+    = v:value {? causetq::ToUpper::from_value(&v).ok_or("expected variable") }
 
 src_var -> causetq::SrcVar
     = v:value {? causetq::SrcVar::from_value(&v).ok_or("expected src_var") }
 
-variable_or_placeholder -> causetq::VariableOrPlaceholder
-    = v:variable { causetq::VariableOrPlaceholder::Variable(v) }
-    / __ "_" __ { causetq::VariableOrPlaceholder::Placeholder }
+variable_or_placeholder -> causetq::BinningCauset
+    = v:variable { causetq::BinningCauset::ToUpper(v) }
+    / __ "_" __ { causetq::BinningCauset::Placeholder }
 
-binding -> causetq::Binding
-    = __ "[" __ "[" vs:variable_or_placeholder+ "]" __ "]" __ { causetq::Binding::BindRel(vs) }
-    / __ "[" v:variable "..." __ "]" __ { causetq::Binding::BindColl(v) }
-    / __ "[" vs:variable_or_placeholder+ "]" __ { causetq::Binding::BindTuple(vs) }
-    / v:variable { causetq::Binding::BindScalar(v) }
+Constrained -> causetq::ConstrainedEntsConstraint
+    = __ "[" __ "[" vs:variable_or_placeholder+ "]" __ "]" __ { causetq::ConstrainedEntsConstraint::BindRel(vs) }
+    / __ "[" v:variable "..." __ "]" __ { causetq::ConstrainedEntsConstraint::BindColl(v) }
+    / __ "[" vs:variable_or_placeholder+ "]" __ { causetq::ConstrainedEntsConstraint::BindTuple(vs) }
+    / v:variable { causetq::ConstrainedEntsConstraint::BindScalar(v) }

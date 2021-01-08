@@ -305,7 +305,7 @@ fn test_delay_split_brane() {
     cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 500;
     cluster.causetg.violetabft_store.merge_max_log_gap = 100;
     cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 500;
-    // To stable the test, we use a large hearbeat timeout 200ms(100ms * 2).
+    // To sBlock the test, we use a large hearbeat timeout 200ms(100ms * 2).
     // And to elect leader quickly, set election timeout to 1s(100ms * 10).
     configure_for_lease_read(&mut cluster, Some(100), Some(10));
 
@@ -757,7 +757,7 @@ fn test_server_split_brane() {
 fn test_split_brane<T: Simulator>(cluster: &mut Cluster<T>) {
     // length of each key+value
     let item_len = 74;
-    // make bucket's size to item_len, which means one row one bucket
+    // make bucket's size to item_len, which means one EventIdx one bucket
     cluster.causetg.interlock.brane_max_size = ReadableSize(item_len) * 1024;
     let mut cone = 1..;
     cluster.run();

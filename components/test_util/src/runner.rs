@@ -2,7 +2,7 @@
 
 //! Useful functions for custom test framework.
 //!
-//! See https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html.
+//! See https://doc.rust-lang.org/unsBlock-book/language-features/custom-test-frameworks.html.
 
 use crate::test::*;
 use std::cell::RefCell;

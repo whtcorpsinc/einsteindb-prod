@@ -459,26 +459,26 @@ macro_rules! dispatch_call {
         JSON_CALLS {$($j_sig:ident => $j_func:ident $($j_arg:expr)*,)*}
     ) => {
         impl ScalarFunc {
-            pub fn eval_int(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<i64>> {
+            pub fn eval_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
                 match self.sig {
-                    $(ScalarFuncSig::$i_sig => self.$i_func(ctx, row, $($i_arg),*)),*,
+                    $(ScalarFuncSig::$i_sig => self.$i_func(ctx, EventIdx, $($i_arg),*)),*,
                     _ => Err(Error::UnknownSignature(self.sig))
                 }
             }
 
-            pub fn eval_real(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Option<f64>> {
+            pub fn eval_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
                 match self.sig {
-                    $(ScalarFuncSig::$r_sig => self.$r_func(ctx, row, $($r_arg),*),)*
+                    $(ScalarFuncSig::$r_sig => self.$r_func(ctx, EventIdx, $($r_arg),*),)*
                     _ => Err(Error::UnknownSignature(self.sig))
                 }
             }
 
             pub fn eval_decimal<'a, 'b: 'a>(
                 &'b self, ctx: &mut EvalContext,
-                row: &'a [Datum]
+                EventIdx: &'a [Datum]
             ) -> Result<Option<Cow<'a, Decimal>>> {
                 match self.sig {
-                    $(ScalarFuncSig::$d_sig => self.$d_func(ctx, row, $($d_arg),*),)*
+                    $(ScalarFuncSig::$d_sig => self.$d_func(ctx, EventIdx, $($d_arg),*),)*
                     _ => Err(Error::UnknownSignature(self.sig))
                 }
             }
@@ -486,10 +486,10 @@ macro_rules! dispatch_call {
             pub fn eval_bytes<'a, 'b: 'a>(
                 &'b self,
                 ctx: &mut EvalContext,
-                row: &'a [Datum]
+                EventIdx: &'a [Datum]
             ) -> Result<Option<Cow<'a, [u8]>>> {
                 match self.sig {
-                    $(ScalarFuncSig::$b_sig => self.$b_func(ctx, row, $($b_arg),*),)*
+                    $(ScalarFuncSig::$b_sig => self.$b_func(ctx, EventIdx, $($b_arg),*),)*
                     _ => Err(Error::UnknownSignature(self.sig))
                 }
             }
@@ -497,10 +497,10 @@ macro_rules! dispatch_call {
             pub fn eval_time<'a, 'b: 'a>(
                 &'b self,
                 ctx: &mut EvalContext,
-                row: &'a [Datum]
+                EventIdx: &'a [Datum]
             ) -> Result<Option<Cow<'a, Time>>> {
                 match self.sig {
-                    $(ScalarFuncSig::$t_sig => self.$t_func(ctx, row, $($t_arg),*),)*
+                    $(ScalarFuncSig::$t_sig => self.$t_func(ctx, EventIdx, $($t_arg),*),)*
                     _ => Err(Error::UnknownSignature(self.sig))
                 }
             }
@@ -508,10 +508,10 @@ macro_rules! dispatch_call {
             pub fn eval_duration<'a, 'b: 'a>(
                 &'b self,
                 ctx: &mut EvalContext,
-                row: &'a [Datum]
+                EventIdx: &'a [Datum]
             ) -> Result<Option<Duration>> {
                 match self.sig {
-                    $(ScalarFuncSig::$u_sig => self.$u_func(ctx, row, $($u_arg),*),)*
+                    $(ScalarFuncSig::$u_sig => self.$u_func(ctx, EventIdx, $($u_arg),*),)*
                     _ => Err(Error::UnknownSignature(self.sig))
                 }
             }
@@ -519,18 +519,18 @@ macro_rules! dispatch_call {
             pub fn eval_json<'a, 'b: 'a>(
                 &'b self,
                 ctx: &mut EvalContext,
-                row: &'a [Datum]
+                EventIdx: &'a [Datum]
             ) -> Result<Option<Cow<'a, Json>>> {
                 match self.sig {
-                    $(ScalarFuncSig::$j_sig => self.$j_func(ctx, row, $($j_arg),*),)*
+                    $(ScalarFuncSig::$j_sig => self.$j_func(ctx, EventIdx, $($j_arg),*),)*
                     _ => Err(Error::UnknownSignature(self.sig))
                 }
             }
 
-            pub fn eval(&self, ctx: &mut EvalContext, row: &[Datum]) -> Result<Datum> {
+            pub fn eval(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Datum> {
                 match self.sig {
                     $(ScalarFuncSig::$i_sig => {
-                        match self.$i_func(ctx, row, $($i_arg)*) {
+                        match self.$i_func(ctx, EventIdx, $($i_arg)*) {
                             Ok(Some(i)) => {
                                 if self.field_type.as_accessor().flag().contains(FieldTypeFlag::UNSIGNED) {
                                     Ok(Datum::U64(i as u64))
@@ -543,22 +543,22 @@ macro_rules! dispatch_call {
                         }
                     },)*
                     $(ScalarFuncSig::$r_sig => {
-                        self.$r_func(ctx, row, $($r_arg)*).map(Datum::from)
+                        self.$r_func(ctx, EventIdx, $($r_arg)*).map(Datum::from)
                     })*
                     $(ScalarFuncSig::$d_sig => {
-                        self.$d_func(ctx, row, $($d_arg)*).map(Datum::from)
+                        self.$d_func(ctx, EventIdx, $($d_arg)*).map(Datum::from)
                     })*
                     $(ScalarFuncSig::$b_sig => {
-                        self.$b_func(ctx, row, $($b_arg)*).map(Datum::from)
+                        self.$b_func(ctx, EventIdx, $($b_arg)*).map(Datum::from)
                     })*
                     $(ScalarFuncSig::$t_sig => {
-                        self.$t_func(ctx, row, $($t_arg)*).map(Datum::from)
+                        self.$t_func(ctx, EventIdx, $($t_arg)*).map(Datum::from)
                     })*
                     $(ScalarFuncSig::$u_sig => {
-                        self.$u_func(ctx, row, $($u_arg)*).map(Datum::from)
+                        self.$u_func(ctx, EventIdx, $($u_arg)*).map(Datum::from)
                     })*
                     $(ScalarFuncSig::$j_sig => {
-                        self.$j_func(ctx, row, $($j_arg)*).map(Datum::from)
+                        self.$j_func(ctx, EventIdx, $($j_arg)*).map(Datum::from)
                     })*
                     _ => unimplemented!(),
                 }

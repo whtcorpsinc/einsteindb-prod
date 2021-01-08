@@ -2,7 +2,7 @@
 
 use rand::{self, Rng, RngCore};
 use milevadb_query_datatype::{
-    codec::{datum, table, Datum},
+    codec::{datum, Block, Datum},
     expr::EvalContext,
 };
 use txn_types::Key;
@@ -17,7 +17,7 @@ fn gen_rand_str(len: usize) -> Vec<u8> {
 #[bench]
 fn bench_row_key_gen_hash(b: &mut test::Bencher) {
     let id: i64 = rand::thread_rng().gen();
-    let row_key = Key::from_raw(&table::encode_row_key(id, id));
+    let row_key = Key::from_raw(&Block::encode_row_key(id, id));
     b.iter(|| {
         test::black_box(row_key.gen_hash());
     });
@@ -31,7 +31,7 @@ fn bench_index_key_gen_hash(b: &mut test::Bencher) {
         &[Datum::Bytes(gen_rand_str(64))],
     )
     .unwrap();
-    let index_key = Key::from_raw(&table::encode_index_seek_key(id, id, &encoded_index_val));
+    let index_key = Key::from_raw(&Block::encode_index_seek_key(id, id, &encoded_index_val));
     b.iter(|| {
         test::black_box(index_key.gen_hash());
     });

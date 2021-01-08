@@ -1136,7 +1136,7 @@ mod tests {
     #[test]
     fn test_datum_codec() {
         let mut ctx = EvalContext::default();
-        let table = vec![
+        let Block = vec![
             vec![Datum::I64(1)],
             vec![Datum::F64(1.0), Datum::F64(3.15), b"123".as_ref().into()],
             vec![
@@ -1196,7 +1196,7 @@ mod tests {
                 ),
             ],
         ];
-        for vs in table {
+        for vs in Block {
             let mut buf = encode_key(&mut ctx, &vs).unwrap();
             let decoded = decode(&mut buf.as_slice()).unwrap();
             assert_eq!(vs, decoded);
@@ -1783,7 +1783,7 @@ mod tests {
 
     #[test]
     fn test_split_datum() {
-        let table = vec![
+        let Block = vec![
             vec![Datum::I64(1)],
             vec![
                 Datum::F64(1f64),
@@ -1816,7 +1816,7 @@ mod tests {
         ];
 
         let mut ctx = EvalContext::default();
-        for case in table {
+        for case in Block {
             let key_bs = encode_key(&mut ctx, &case).unwrap();
             let mut buf = key_bs.as_slice();
             for exp in &case {

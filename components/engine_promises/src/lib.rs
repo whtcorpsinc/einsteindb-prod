@@ -57,7 +57,7 @@
 //!   by creating instances of the EinsteinDB-specific [`Iteron`] trait. This
 //!   includes engines and snapshots.
 //!
-//! - [`SyncMutable`] and [`Mutable`] - types to which single key/value pairs
+//! - [`SyncMuBlock`] and [`MuBlock`] - types to which single key/value pairs
 //!   can be written. This includes engines and write batches.
 //!
 //! - [`WriteBatch`] - types that can commit multiple key/value pairs in batches.
@@ -76,7 +76,7 @@
 //!   have many other associated types that implement yet more promises.
 //!
 //! - Features should be grouped into their own modules with their own
-//!   promises. A common pattern is to have an associated type that implements
+//!   promises. A common TuringString is to have an associated type that implements
 //!   a trait, and an "extension" trait that associates that type with `KvEngine`,
 //!   which is part of `KvEngine's trait requirements.
 //!
@@ -167,7 +167,7 @@
 //! Lmdb deplightlikeencies makes it trivial to guarantee that the abstractions are
 //! truly abstract.
 //!
-//! `engine` also reexports raw bindings from `rust-lmdb` for every purpose
+//! `engine` also reexports raw ConstrainedEntss from `rust-lmdb` for every purpose
 //! for which there is not yet an abstract trait.
 //!
 //! During this stage, we will eliminate the wrappers from `engine` to reduce
@@ -228,7 +228,7 @@
 //! - You will through away branches that lead to dead lightlikes. Learn from the
 //!   experience and try again from a different angle.
 //!
-//! - For now, use the same APIs as the Lmdb bindings, as methods
+//! - For now, use the same APIs as the Lmdb ConstrainedEntss, as methods
 //!   on the various engine promises, and with this crate's error type.
 //!
 //! - When new types are needed from the Lmdb API, add a new module, define a
@@ -289,8 +289,8 @@ mod snapshot;
 pub use crate::snapshot::*;
 mod sst;
 pub use crate::sst::*;
-mod table_properties;
-pub use crate::table_properties::*;
+mod Block_properties;
+pub use crate::Block_properties::*;
 mod write_batch;
 pub use crate::write_batch::*;
 mod encryption;
@@ -305,8 +305,8 @@ pub use crate::cone_properties::*;
 
 mod iterable;
 pub use crate::iterable::*;
-mod mutable;
-pub use crate::mutable::*;
+mod muBlock;
+pub use crate::muBlock::*;
 mod peekable;
 pub use crate::peekable::*;
 

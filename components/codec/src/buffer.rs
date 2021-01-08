@@ -124,7 +124,7 @@ impl<T: BufferReader + ?Sized> BufferReader for Box<T> {
 /// The memory buffer can be `std::io::Cursor<AsRef<[u8]>>` or `&mut [u8]`,
 /// which is fixed sized, or `Vec<u8>`, which is dynamically sized.
 pub trait BufferWriter {
-    /// Returns a mutable slice spacelikeing at current position.
+    /// Returns a muBlock slice spacelikeing at current position.
     ///
     /// The caller may hint the underlying buffer to grow according to `size`
     /// if the underlying buffer is dynamically sized (i.e. is capable to grow).
@@ -134,7 +134,7 @@ pub trait BufferWriter {
     ///
     /// # Safety
     ///
-    /// The returned mutable slice is for writing only and should be never used for
+    /// The returned muBlock slice is for writing only and should be never used for
     /// reading since it might contain uninitialized memory when underlying buffer
     /// is dynamically sized. For this reason, this function is marked `unsafe`.
     unsafe fn bytes_mut(&mut self, size: usize) -> &mut [u8];

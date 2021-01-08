@@ -60,8 +60,8 @@ make_auto_flush_static_metric! {
         tuplespaceInstanton_relocated,
         tuplespaceInstanton_ufidelated,
         tuplespaceInstanton_written,
-        memtable_hit,
-        memtable_miss,
+        memBlock_hit,
+        memBlock_miss,
         no_file_closes,
         no_file_errors,
         no_file_opens,
@@ -248,16 +248,16 @@ pub fn flush_engine_ticker_metrics(t: TickerType, value: u64, name: &str) {
                 .bloom_useful
                 .inc_by(v);
         }
-        TickerType::MemtableHit => {
-            STORE_ENGINE_MEMTABLE_EFFICIENCY
+        TickerType::MemBlockHit => {
+            STORE_ENGINE_MEMBlock_EFFICIENCY
                 .get(name_enum)
-                .memtable_hit
+                .memBlock_hit
                 .inc_by(v);
         }
-        TickerType::MemtableMiss => {
-            STORE_ENGINE_MEMTABLE_EFFICIENCY
+        TickerType::MemBlockMiss => {
+            STORE_ENGINE_MEMBlock_EFFICIENCY
                 .get(name_enum)
-                .memtable_miss
+                .memBlock_miss
                 .inc_by(v);
         }
         TickerType::GetHitL0 => {
@@ -613,8 +613,8 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::TableSyncMicros => {
-            engine_histogram_metrics!(STORE_ENGINE_TABLE_SYNC_VEC, "table_sync", name, value);
+        HistType::BlockSyncMicros => {
+            engine_histogram_metrics!(STORE_ENGINE_Block_SYNC_VEC, "Block_sync", name, value);
         }
         HistType::CompactionOutfileSyncMicros => {
             engine_histogram_metrics!(
@@ -648,10 +648,10 @@ pub fn flush_engine_histogram_metrics(t: HistType, value: HistogramData, name: &
                 value
             );
         }
-        HistType::StallMemtableCompactionCount => {
+        HistType::StallMemBlockCompactionCount => {
             engine_histogram_metrics!(
-                STORE_ENGINE_STALL_MEMTABLE_COMPACTION_COUNT_VEC,
-                "stall_memtable_compaction_count",
+                STORE_ENGINE_STALL_MEMBlock_COMPACTION_COUNT_VEC,
+                "stall_memBlock_compaction_count",
                 name,
                 value
             );
@@ -915,18 +915,18 @@ pub fn flush_engine_properties(engine: &DB, name: &str, shared_block_cache: bool
         // TODO: find a better place to record these metrics.
         // Refer: https://github.com/facebook/lmdb/wiki/Memory-usage-in-Lmdb
         // For index and filter blocks memory
-        if let Some(readers_mem) = engine.get_property_int_causet(handle, LMDB_TABLE_READERS_MEM) {
+        if let Some(readers_mem) = engine.get_property_int_causet(handle, LMDB_Block_READERS_MEM) {
             STORE_ENGINE_MEMORY_GAUGE_VEC
                 .with_label_values(&[name, causet, "readers-mem"])
                 .set(readers_mem as i64);
         }
 
-        // For memtable
-        if let Some(mem_table) = engine.get_property_int_causet(handle, LMDB_CUR_SIZE_ALL_MEM_TABLES)
+        // For memBlock
+        if let Some(mem_Block) = engine.get_property_int_causet(handle, LMDB_CUR_SIZE_ALL_MEM_BlockS)
         {
             STORE_ENGINE_MEMORY_GAUGE_VEC
-                .with_label_values(&[name, causet, "mem-tables"])
-                .set(mem_table as i64);
+                .with_label_values(&[name, causet, "mem-Blocks"])
+                .set(mem_Block as i64);
         }
 
         // TODO: add cache usage and pinned usage.
@@ -972,9 +972,9 @@ pub fn flush_engine_properties(engine: &DB, name: &str, shared_block_cache: bool
             }
         }
 
-        // Num immutable mem-table
-        if let Some(v) = crate::util::get_num_immutable_mem_table(engine, handle) {
-            STORE_ENGINE_NUM_IMMUTABLE_MEM_TABLE_VEC
+        // Num immuBlock mem-Block
+        if let Some(v) = crate::util::get_num_immuBlock_mem_Block(engine, handle) {
+            STORE_ENGINE_NUM_IMMUBlock_MEM_Block_VEC
                 .with_label_values(&[name, causet])
                 .set(v as i64);
         }
@@ -1186,13 +1186,13 @@ lazy_static! {
     pub static ref STORE_ENGINE_CACHE_EFFICIENCY: EngineTickerMetrics =
         auto_flush_from!(STORE_ENGINE_CACHE_EFFICIENCY_VEC, EngineTickerMetrics);
 
-    pub static ref STORE_ENGINE_MEMTABLE_EFFICIENCY_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_memtable_efficiency",
-        "Hit and miss of memtable",
+    pub static ref STORE_ENGINE_MEMBlock_EFFICIENCY_VEC: IntCounterVec = register_int_counter_vec!(
+        "einsteindb_engine_memBlock_efficiency",
+        "Hit and miss of memBlock",
         &["db", "type"]
     ).unwrap();
-    pub static ref STORE_ENGINE_MEMTABLE_EFFICIENCY: EngineTickerMetrics =
-        auto_flush_from!(STORE_ENGINE_MEMTABLE_EFFICIENCY_VEC, EngineTickerMetrics);
+    pub static ref STORE_ENGINE_MEMBlock_EFFICIENCY: EngineTickerMetrics =
+        auto_flush_from!(STORE_ENGINE_MEMBlock_EFFICIENCY_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_GET_SERVED_VEC: IntCounterVec = register_int_counter_vec!(
         "einsteindb_engine_get_served",
@@ -1308,9 +1308,9 @@ lazy_static! {
         "Number of engine events",
         &["db", "causet", "type"]
     ).unwrap();
-    pub static ref STORE_ENGINE_NUM_IMMUTABLE_MEM_TABLE_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_num_immutable_mem_table",
-        "Number of immutable mem-table",
+    pub static ref STORE_ENGINE_NUM_IMMUBlock_MEM_Block_VEC: IntGaugeVec = register_int_gauge_vec!(
+        "einsteindb_engine_num_immuBlock_mem_Block",
+        "Number of immuBlock mem-Block",
         &["db", "causet"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOB_LOCATE_VEC: IntCounterVec = register_int_counter_vec!(
@@ -1388,9 +1388,9 @@ lazy_static! {
         "Histogram of compaction time",
         &["db", "type"]
     ).unwrap();
-    pub static ref STORE_ENGINE_TABLE_SYNC_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_table_sync_micro_seconds",
-        "Histogram of table sync micros",
+    pub static ref STORE_ENGINE_Block_SYNC_VEC: GaugeVec = register_gauge_vec!(
+        "einsteindb_engine_Block_sync_micro_seconds",
+        "Histogram of Block sync micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_COMPACTION_OUTFILE_SYNC_VEC: GaugeVec = register_gauge_vec!(
@@ -1413,9 +1413,9 @@ lazy_static! {
         "Histogram of stall l0 slowdown count",
         &["db", "type"]
     ).unwrap();
-    pub static ref STORE_ENGINE_STALL_MEMTABLE_COMPACTION_COUNT_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_stall_memtable_compaction_count",
-        "Histogram of stall memtable compaction count",
+    pub static ref STORE_ENGINE_STALL_MEMBlock_COMPACTION_COUNT_VEC: GaugeVec = register_gauge_vec!(
+        "einsteindb_engine_stall_memBlock_compaction_count",
+        "Histogram of stall memBlock compaction count",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_STALL_L0_NUM_FILES_COUNT_VEC: GaugeVec = register_gauge_vec!(

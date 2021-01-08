@@ -6,7 +6,7 @@ use std::sync::Arc;
 use criterion::{Bencher, Criterion};
 use engine_lmdb::raw::DB;
 use engine_lmdb::Compat;
-use engine_promises::{Mutable, WriteBatchExt};
+use engine_promises::{MuBlock, WriteBatchExt};
 use test_violetabftstore::*;
 use test_util::*;
 

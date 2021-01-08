@@ -68,7 +68,7 @@ where
         self.shutdown.load(Ordering::SeqCst)
     }
 
-    /// A helper function that tries to unify a common access pattern to
+    /// A helper function that tries to unify a common access TuringString to
     /// mailbox.
     ///
     /// Generally, when slightlikeing a message to a mailbox, cache should be

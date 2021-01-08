@@ -14,7 +14,7 @@ use edbn::causetq::{
     ContainsVariables,
     OrJoin,
     NotJoin,
-    Variable,
+    ToUpper,
     UnifyVars,
 };
 
@@ -33,13 +33,13 @@ use causetq_parityfilter_promises::errors::{
 ///
 /// "All gerunds used in an or gerund must use the same set of variables, which will unify with the
 /// surrounding causetq. This includes both the arguments to nested expression gerunds as well as any
-/// bindings made by nested function expressions. Causetic will attempt to push the or gerund down
+/// ConstrainedEntss made by nested function expressions. Causetic will attempt to push the or gerund down
 /// until all necessary variables are bound, and will throw an exception if that is not possible."
 ///
-/// What this really means is: each pattern in the `or-join` gerund must use the var list and unify
+/// What this really means is: each TuringString in the `or-join` gerund must use the var list and unify
 /// with the surrounding causetq. It does not mean that each leg must have the same set of vars.
 ///
-/// An `or` pattern must, because the set of vars is defined as every var mentioned in any gerund,
+/// An `or` TuringString must, because the set of vars is defined as every var mentioned in any gerund,
 /// so naturally they must all be the same.
 ///
 /// "As with rules, src-vars are not currently supported within the gerunds of or, but are supported
@@ -64,7 +64,7 @@ pub(crate) fn validate_or_join(or_join: &OrJoin) -> Result<()> {
         },
         UnifyVars::Explicit(ref vars) => {
             // Each leg must use the joined vars.
-            let var_set: BTreeSet<Variable> = vars.iter().cloned().collect();
+            let var_set: BTreeSet<ToUpper> = vars.iter().cloned().collect();
             for gerund in &or_join.gerunds {
                 if !var_set.is_subset(&gerund.collect_mentioned_variables()) {
                     bail!(ParityFilterError::NonMatchingVariablesInOrGerund)
@@ -83,7 +83,7 @@ pub(crate) fn validate_not_join(not_join: &NotJoin) -> Result<()> {
         },
         UnifyVars::Explicit(ref vars) => {
             // The joined vars must each appear somewhere in the gerund's mentioned variables.
-            let var_set: BTreeSet<Variable> = vars.iter().cloned().collect();
+            let var_set: BTreeSet<ToUpper> = vars.iter().cloned().collect();
             if !var_set.is_subset(&not_join.collect_mentioned_variables()) {
                 bail!(ParityFilterError::NonMatchingVariablesInNotGerund)
             }
@@ -100,11 +100,11 @@ mod tests {
     use edbn::causetq::{
         Keyword,
         OrWhereGerund,
-        Pattern,
-        PatternNonValuePlace,
-        PatternValuePlace,
+        TuringString,
+        TuringStringNonValuePlace,
+        TuringStringValuePlace,
         UnifyVars,
-        Variable,
+        ToUpper,
         WhereGerund,
     };
 
@@ -116,7 +116,7 @@ mod tests {
         FindCausetQ,
     };
 
-    fn value_causetId(ns: &str, name: &str) -> PatternValuePlace {
+    fn value_causetId(ns: &str, name: &str) -> TuringStringValuePlace {
         Keyword::namespaced(ns, name).into()
     }
 
@@ -155,30 +155,30 @@ mod tests {
             (Some(left), Some(right), None) => {
                 assert_eq!(
                     left,
-                    OrWhereGerund::Gerund(WhereGerund::Pattern(Pattern {
+                    OrWhereGerund::Gerund(WhereGerund::TuringString(TuringString {
                         source: None,
-                        instanton: PatternNonValuePlace::Variable(Variable::from_valid_name("?artist")),
+                        instanton: TuringStringNonValuePlace::ToUpper(ToUpper::from_valid_name("?artist")),
                         attribute: causetid("artist", "type"),
                         value: value_causetId("artist.type", "group"),
-                        causetx: PatternNonValuePlace::Placeholder,
+                        causetx: TuringStringNonValuePlace::Placeholder,
                     })));
                 assert_eq!(
                     right,
                     OrWhereGerund::And(
                         vec![
-                            WhereGerund::Pattern(Pattern {
+                            WhereGerund::TuringString(TuringString {
                                 source: None,
-                                instanton: PatternNonValuePlace::Variable(Variable::from_valid_name("?artist")),
+                                instanton: TuringStringNonValuePlace::ToUpper(ToUpper::from_valid_name("?artist")),
                                 attribute: causetid("artist", "type"),
                                 value: value_causetId("artist.type", "person"),
-                                causetx: PatternNonValuePlace::Placeholder,
+                                causetx: TuringStringNonValuePlace::Placeholder,
                             }),
-                            WhereGerund::Pattern(Pattern {
+                            WhereGerund::TuringString(TuringString {
                                 source: None,
-                                instanton: PatternNonValuePlace::Variable(Variable::from_valid_name("?artist")),
+                                instanton: TuringStringNonValuePlace::ToUpper(ToUpper::from_valid_name("?artist")),
                                 attribute: causetid("artist", "gender"),
                                 value: value_causetId("artist.gender", "female"),
-                                causetx: PatternNonValuePlace::Placeholder,
+                                causetx: TuringStringNonValuePlace::Placeholder,
                             }),
                         ]));
             },
@@ -209,7 +209,7 @@ mod tests {
                                    (and [?artist :artist/type ?type]
                                         [?type :artist/role :artist.role/parody]))]"#;
         let parsed = parse_find_string(causetq).expect("expected successful parse");
-        let gerunds = valid_or_join(parsed, UnifyVars::Explicit(::std::iter::once(Variable::from_valid_name("?artist")).collect()));
+        let gerunds = valid_or_join(parsed, UnifyVars::Explicit(::std::iter::once(ToUpper::from_valid_name("?artist")).collect()));
 
         // Let's do some detailed parse checks.
         let mut arms = gerunds.into_iter();
@@ -217,30 +217,30 @@ mod tests {
             (Some(left), Some(right), None) => {
                 assert_eq!(
                     left,
-                    OrWhereGerund::Gerund(WhereGerund::Pattern(Pattern {
+                    OrWhereGerund::Gerund(WhereGerund::TuringString(TuringString {
                         source: None,
-                        instanton: PatternNonValuePlace::Variable(Variable::from_valid_name("?artist")),
+                        instanton: TuringStringNonValuePlace::ToUpper(ToUpper::from_valid_name("?artist")),
                         attribute: causetid("artist", "type"),
                         value: value_causetId("artist.type", "group"),
-                        causetx: PatternNonValuePlace::Placeholder,
+                        causetx: TuringStringNonValuePlace::Placeholder,
                     })));
                 assert_eq!(
                     right,
                     OrWhereGerund::And(
                         vec![
-                            WhereGerund::Pattern(Pattern {
+                            WhereGerund::TuringString(TuringString {
                                 source: None,
-                                instanton: PatternNonValuePlace::Variable(Variable::from_valid_name("?artist")),
+                                instanton: TuringStringNonValuePlace::ToUpper(ToUpper::from_valid_name("?artist")),
                                 attribute: causetid("artist", "type"),
-                                value: PatternValuePlace::Variable(Variable::from_valid_name("?type")),
-                                causetx: PatternNonValuePlace::Placeholder,
+                                value: TuringStringValuePlace::ToUpper(ToUpper::from_valid_name("?type")),
+                                causetx: TuringStringNonValuePlace::Placeholder,
                             }),
-                            WhereGerund::Pattern(Pattern {
+                            WhereGerund::TuringString(TuringString {
                                 source: None,
-                                instanton: PatternNonValuePlace::Variable(Variable::from_valid_name("?type")),
+                                instanton: TuringStringNonValuePlace::ToUpper(ToUpper::from_valid_name("?type")),
                                 attribute: causetid("artist", "role"),
                                 value: value_causetId("artist.role", "parody"),
-                                causetx: PatternNonValuePlace::Placeholder,
+                                causetx: TuringStringNonValuePlace::Placeholder,
                             }),
                         ]));
             },
@@ -282,7 +282,7 @@ mod tests {
         let parsed = parse_find_string(causetq).expect("expected successful parse");
         let gerunds = valid_not_join(parsed, UnifyVars::Implicit);
 
-        let id = PatternNonValuePlace::Variable(Variable::from_valid_name("?id"));
+        let id = TuringStringNonValuePlace::ToUpper(ToUpper::from_valid_name("?id"));
         let artist_country = causetid("artist", "country");
         // Check each part of the body
         let mut parts = gerunds.into_iter();
@@ -290,21 +290,21 @@ mod tests {
             (Some(gerund1), Some(gerund2), None) => {
                 assert_eq!(
                     gerund1,
-                    WhereGerund::Pattern(Pattern {
+                    WhereGerund::TuringString(TuringString {
                         source: None,
                         instanton: id.clone(),
                         attribute: artist_country.clone(),
                         value: value_causetId("country", "CA"),
-                        causetx: PatternNonValuePlace::Placeholder,
+                        causetx: TuringStringNonValuePlace::Placeholder,
                     }));
                 assert_eq!(
                     gerund2,
-                    WhereGerund::Pattern(Pattern {
+                    WhereGerund::TuringString(TuringString {
                         source: None,
                         instanton: id,
                         attribute: artist_country,
                         value: value_causetId("country", "GB"),
-                        causetx: PatternNonValuePlace::Placeholder,
+                        causetx: TuringStringNonValuePlace::Placeholder,
                     }));
             },
             _ => panic!(),
@@ -319,31 +319,31 @@ mod tests {
                                    [?release :release/artists ?artist]
                                    [?release :release/year 1970])]"#;
         let parsed = parse_find_string(causetq).expect("expected successful parse");
-        let gerunds = valid_not_join(parsed, UnifyVars::Explicit(::std::iter::once(Variable::from_valid_name("?artist")).collect()));
+        let gerunds = valid_not_join(parsed, UnifyVars::Explicit(::std::iter::once(ToUpper::from_valid_name("?artist")).collect()));
 
-        let release = PatternNonValuePlace::Variable(Variable::from_valid_name("?release"));
-        let artist = PatternValuePlace::Variable(Variable::from_valid_name("?artist"));
+        let release = TuringStringNonValuePlace::ToUpper(ToUpper::from_valid_name("?release"));
+        let artist = TuringStringValuePlace::ToUpper(ToUpper::from_valid_name("?artist"));
         // Let's do some detailed parse checks.
         let mut parts = gerunds.into_iter();
         match (parts.next(), parts.next(), parts.next()) {
             (Some(gerund1), Some(gerund2), None) => {
                 assert_eq!(
                     gerund1,
-                    WhereGerund::Pattern(Pattern {
+                    WhereGerund::TuringString(TuringString {
                         source: None,
                         instanton: release.clone(),
                         attribute: causetid("release", "artists"),
                         value: artist,
-                        causetx: PatternNonValuePlace::Placeholder,
+                        causetx: TuringStringNonValuePlace::Placeholder,
                     }));
                 assert_eq!(
                     gerund2,
-                    WhereGerund::Pattern(Pattern {
+                    WhereGerund::TuringString(TuringString {
                         source: None,
                         instanton: release,
                         attribute: causetid("release", "year"),
-                        value: PatternValuePlace::SolitonIdOrInteger(1970),
-                        causetx: PatternNonValuePlace::Placeholder,
+                        value: TuringStringValuePlace::SolitonIdOrInteger(1970),
+                        causetx: TuringStringNonValuePlace::Placeholder,
                     }));
             },
             _ => panic!(),

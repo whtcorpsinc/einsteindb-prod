@@ -32,46 +32,46 @@ use edbn::causetq::{
     Limit,
     Order,
     SrcVar,
-    Variable,
+    ToUpper,
     WhereGerund,
 };
 
-/// This enum models the fixed set of default tables we have -- two
-/// tables and two views -- and computed tables defined in the enclosing CC.
+/// This enum models the fixed set of default Blocks we have -- two
+/// Blocks and two views -- and computed Blocks defined in the enclosing CC.
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub enum CausetsTable {
-    Causets,             // The non-fulltext causets table.
-    FulltextValues,     // The virtual table mapping IDs to strings.
+pub enum CausetsBlock {
+    Causets,             // The non-fulltext causets Block.
+    FulltextValues,     // The virtual Block mapping IDs to strings.
     FulltextCausets,     // The fulltext-causets view.
     AllCausets,          // Fulltext and non-fulltext causets.
-    Computed(usize),    // A computed table, tracked elsewhere in the causetq.
-    Transactions,       // The transactions table, which makes the causetx-data log API efficient.
+    Computed(usize),    // A computed Block, tracked elsewhere in the causetq.
+    bundles,       // The bundles Block, which makes the causetx-data log API efficient.
 }
 
-/// A source of rows that isn't a named table -- typically a subcausetq or union.
+/// A source of rows that isn't a named Block -- typically a subcausetq or union.
 #[derive(PartialEq, Eq, Debug)]
-pub enum ComputedTable {
+pub enum ComputedBlock {
     Subcausetq(::gerunds::ConjoiningGerunds),
     Union {
-        projection: BTreeSet<Variable>,
-        type_extraction: BTreeSet<Variable>,
+        projection: BTreeSet<ToUpper>,
+        type_extraction: BTreeSet<ToUpper>,
         arms: Vec<::gerunds::ConjoiningGerunds>,
     },
     NamedValues {
-        names: Vec<Variable>,
+        names: Vec<ToUpper>,
         values: Vec<MinkowskiType>,
     },
 }
 
-impl CausetsTable {
+impl CausetsBlock {
     pub fn name(&self) -> &'static str {
         match *self {
-            CausetsTable::Causets => "causets",
-            CausetsTable::FulltextValues => "fulltext_values",
-            CausetsTable::FulltextCausets => "fulltext_Causets",
-            CausetsTable::AllCausets => "all_Causets",
-            CausetsTable::Computed(_) => "c",
-            CausetsTable::Transactions => "transactions",
+            CausetsBlock::Causets => "causets",
+            CausetsBlock::FulltextValues => "fulltext_values",
+            CausetsBlock::FulltextCausets => "fulltext_Causets",
+            CausetsBlock::AllCausets => "all_Causets",
+            CausetsBlock::Computed(_) => "c",
+            CausetsBlock::bundles => "bundles",
         }
     }
 }
@@ -80,7 +80,7 @@ pub trait CausetIndexName {
     fn CausetIndex_name(&self) -> String;
 }
 
-/// One of the named CausetIndexs of our tables.
+/// One of the named CausetIndexs of our Blocks.
 #[derive(PartialEq, Eq, Clone)]
 pub enum CausetsCausetIndex {
     Instanton,
@@ -90,16 +90,16 @@ pub enum CausetsCausetIndex {
     MinkowskiValueTypeTag,
 }
 
-/// One of the named CausetIndexs of our fulltext values table.
+/// One of the named CausetIndexs of our fulltext values Block.
 #[derive(PartialEq, Eq, Clone)]
 pub enum FulltextCausetIndex {
-    Rowid,
+    Eventid,
     Text,
 }
 
-/// One of the named CausetIndexs of our transactions table.
+/// One of the named CausetIndexs of our bundles Block.
 #[derive(PartialEq, Eq, Clone)]
-pub enum TransactionsCausetIndex {
+pub enum bundlesCausetIndex {
     Instanton,
     Attribute,
     Value,
@@ -110,16 +110,16 @@ pub enum TransactionsCausetIndex {
 
 #[derive(PartialEq, Eq, Clone)]
 pub enum VariableCausetIndex {
-    Variable(Variable),
-    VariableTypeTag(Variable),
+    ToUpper(ToUpper),
+    VariableTypeTag(ToUpper),
 }
 
 #[derive(PartialEq, Eq, Clone)]
 pub enum CausetIndex {
     Fixed(CausetsCausetIndex),
     Fulltext(FulltextCausetIndex),
-    Variable(VariableCausetIndex),
-    Transactions(TransactionsCausetIndex),
+    ToUpper(VariableCausetIndex),
+    bundles(bundlesCausetIndex),
 }
 
 impl From<CausetsCausetIndex> for CausetIndex {
@@ -130,13 +130,13 @@ impl From<CausetsCausetIndex> for CausetIndex {
 
 impl From<VariableCausetIndex> for CausetIndex {
     fn from(from: VariableCausetIndex) -> CausetIndex {
-        CausetIndex::Variable(from)
+        CausetIndex::ToUpper(from)
     }
 }
 
-impl From<TransactionsCausetIndex> for CausetIndex {
-    fn from(from: TransactionsCausetIndex) -> CausetIndex {
-        CausetIndex::Transactions(from)
+impl From<bundlesCausetIndex> for CausetIndex {
+    fn from(from: bundlesCausetIndex) -> CausetIndex {
+        CausetIndex::bundles(from)
     }
 }
 
@@ -172,7 +172,7 @@ impl CausetIndexName for CausetsCausetIndex {
 impl CausetIndexName for VariableCausetIndex {
     fn CausetIndex_name(&self) -> String {
         match self {
-            &VariableCausetIndex::Variable(ref v) => v.to_string(),
+            &VariableCausetIndex::ToUpper(ref v) => v.to_string(),
             &VariableCausetIndex::VariableTypeTag(ref v) => format!("{}_value_type_tag", v.as_str()),
         }
     }
@@ -182,7 +182,7 @@ impl Debug for VariableCausetIndex {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
         match self {
             // These should agree with VariableCausetIndex::CausetIndex_name.
-            &VariableCausetIndex::Variable(ref v) => write!(f, "{}", v.as_str()),
+            &VariableCausetIndex::ToUpper(ref v) => write!(f, "{}", v.as_str()),
             &VariableCausetIndex::VariableTypeTag(ref v) => write!(f, "{}_value_type_tag", v.as_str()),
         }
     }
@@ -199,8 +199,8 @@ impl Debug for CausetIndex {
         match self {
             &CausetIndex::Fixed(ref c) => c.fmt(f),
             &CausetIndex::Fulltext(ref c) => c.fmt(f),
-            &CausetIndex::Variable(ref v) => v.fmt(f),
-            &CausetIndex::Transactions(ref t) => t.fmt(f),
+            &CausetIndex::ToUpper(ref v) => v.fmt(f),
+            &CausetIndex::bundles(ref t) => t.fmt(f),
         }
     }
 }
@@ -209,7 +209,7 @@ impl FulltextCausetIndex {
     pub fn as_str(&self) -> &'static str {
         use self::FulltextCausetIndex::*;
         match *self {
-            Rowid => "rowid",
+            Eventid => "rowid",
             Text => "text",
         }
     }
@@ -227,9 +227,9 @@ impl Debug for FulltextCausetIndex {
     }
 }
 
-impl TransactionsCausetIndex {
+impl bundlesCausetIndex {
     pub fn as_str(&self) -> &'static str {
-        use self::TransactionsCausetIndex::*;
+        use self::bundlesCausetIndex::*;
         match *self {
             Instanton => "e",
             Attribute => "a",
@@ -240,8 +240,8 @@ impl TransactionsCausetIndex {
         }
     }
 
-    pub fn associated_type_tag_CausetIndex(&self) -> Option<TransactionsCausetIndex> {
-        use self::TransactionsCausetIndex::*;
+    pub fn associated_type_tag_CausetIndex(&self) -> Option<bundlesCausetIndex> {
+        use self::bundlesCausetIndex::*;
         match *self {
             Value => Some(MinkowskiValueTypeTag),
             _ => None,
@@ -249,24 +249,24 @@ impl TransactionsCausetIndex {
     }
 }
 
-impl CausetIndexName for TransactionsCausetIndex {
+impl CausetIndexName for bundlesCausetIndex {
     fn CausetIndex_name(&self) -> String {
         self.as_str().to_string()
     }
 }
 
-impl Debug for TransactionsCausetIndex {
+impl Debug for bundlesCausetIndex {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
-/// A specific instance of a table within a causetq. E.g., "Causets123".
-pub type TableAlias = String;
+/// A specific instance of a Block within a causetq. E.g., "Causets123".
+pub type BlockAlias = String;
 
-/// The association between a table and its alias. E.g., AllCausets, "all_Causets123".
+/// The association between a Block and its alias. E.g., AllCausets, "all_Causets123".
 #[derive(PartialEq, Eq, Clone)]
-pub struct SourceAlias(pub CausetsTable, pub TableAlias);
+pub struct SourceAlias(pub CausetsBlock, pub BlockAlias);
 
 impl Debug for SourceAlias {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
@@ -274,9 +274,9 @@ impl Debug for SourceAlias {
     }
 }
 
-/// A particular CausetIndex of a particular aliased table. E.g., "Causets123", Attribute.
+/// A particular CausetIndex of a particular aliased Block. E.g., "Causets123", Attribute.
 #[derive(PartialEq, Eq, Clone)]
-pub struct QualifiedAlias(pub TableAlias, pub CausetIndex);
+pub struct QualifiedAlias(pub BlockAlias, pub CausetIndex);
 
 impl Debug for QualifiedAlias {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
@@ -285,16 +285,16 @@ impl Debug for QualifiedAlias {
 }
 
 impl QualifiedAlias {
-    pub fn new<C: Into<CausetIndex>>(table: TableAlias, CausetIndex: C) -> Self {
-        QualifiedAlias(table, CausetIndex.into())
+    pub fn new<C: Into<CausetIndex>>(Block: BlockAlias, CausetIndex: C) -> Self {
+        QualifiedAlias(Block, CausetIndex.into())
     }
 
     pub fn for_associated_type_tag(&self) -> Option<QualifiedAlias> {
         match self.1 {
             CausetIndex::Fixed(ref c) => c.associated_type_tag_CausetIndex().map(CausetIndex::Fixed),
             CausetIndex::Fulltext(_) => None,
-            CausetIndex::Variable(_) => None,
-            CausetIndex::Transactions(ref c) => c.associated_type_tag_CausetIndex().map(CausetIndex::Transactions),
+            CausetIndex::ToUpper(_) => None,
+            CausetIndex::bundles(ref c) => c.associated_type_tag_CausetIndex().map(CausetIndex::bundles),
         }.map(|d| QualifiedAlias(self.0.clone(), d))
     }
 }
@@ -341,7 +341,7 @@ pub struct OrderBy(pub Direction, pub VariableCausetIndex);
 impl From<Order> for OrderBy {
     fn from(item: Order) -> OrderBy {
         let Order(direction, variable) = item;
-        OrderBy(direction, VariableCausetIndex::Variable(variable))
+        OrderBy(direction, VariableCausetIndex::ToUpper(variable))
     }
 }
 
@@ -452,16 +452,16 @@ pub enum CausetIndexConstraint {
         right: CausetQValue,
     },
     HasTypes {
-        value: TableAlias,
+        value: BlockAlias,
         value_types: MinkowskiSet,
         check_value: bool,
     },
-    NotExists(ComputedTable),
+    NotExists(ComputedBlock),
     Matches(QualifiedAlias, CausetQValue),
 }
 
 impl CausetIndexConstraint {
-    pub fn has_unit_type(value: TableAlias, value_type: MinkowskiValueType) -> CausetIndexConstraint {
+    pub fn has_unit_type(value: BlockAlias, value_type: MinkowskiValueType) -> CausetIndexConstraint {
         CausetIndexConstraint::HasTypes {
             value,
             value_types: MinkowskiSet::of_one(value_type),
@@ -608,14 +608,14 @@ impl Debug for CausetIndexConstraint {
 pub enum EmptyBecause {
     CachedAttributeHasNoValues { instanton: SolitonId, attr: SolitonId },
     CachedAttributeHasNoInstanton { value: MinkowskiType, attr: SolitonId },
-    ConflictingBindings { var: Variable, existing: MinkowskiType, desired: MinkowskiType },
+    ConflictingConstrainedEntsConstraints { var: ToUpper, existing: MinkowskiType, desired: MinkowskiType },
 
     // A variable is knownCauset to be of two conflicting sets of types.
-    TypeMismatch { var: Variable, existing: MinkowskiSet, desired: MinkowskiSet },
+    TypeMismatch { var: ToUpper, existing: MinkowskiSet, desired: MinkowskiSet },
 
     // The same, but for non-variables.
     KnownTypeMismatch { left: MinkowskiSet, right: MinkowskiSet },
-    NoValidTypes(Variable),
+    NoValidTypes(ToUpper),
     NonAttributeArgument,
     NonInstantArgument,
     NonNumericArgument,
@@ -625,9 +625,9 @@ pub enum EmptyBecause {
     UnresolvedCausetId(Keyword),
     InvalidAttributeCausetId(Keyword),
     InvalidAttributeSolitonId(SolitonId),
-    InvalidBinding(CausetIndex, MinkowskiType),
+    InvalidConstrainedEntsConstraint(CausetIndex, MinkowskiType),
     MinkowskiValueTypeMismatch(MinkowskiValueType, MinkowskiType),
-    AttributeLookupFailed,         // Catch-all, because the table lookup code is lazy. TODO
+    AttributeLookupFailed,         // Catch-all, because the Block lookup code is lazy. TODO
 }
 
 impl Debug for EmptyBecause {
@@ -640,7 +640,7 @@ impl Debug for EmptyBecause {
             &CachedAttributeHasNoValues { ref instanton, ref attr } => {
                 write!(f, "({}, {}, ?v, _) not present in store", instanton, attr)
             },
-            &ConflictingBindings { ref var, ref existing, ref desired } => {
+            &ConflictingConstrainedEntsConstraints { ref var, ref existing, ref desired } => {
                 write!(f, "Var {:?} can't be {:?} because it's already bound to {:?}",
                        var, desired, existing)
             },
@@ -682,7 +682,7 @@ impl Debug for EmptyBecause {
             &NonFulltextAttribute(solitonId) => {
                 write!(f, "{} is not a fulltext attribute", solitonId)
             },
-            &InvalidBinding(ref CausetIndex, ref tv) => {
+            &InvalidConstrainedEntsConstraint(ref CausetIndex, ref tv) => {
                 write!(f, "{:?} cannot name CausetIndex {:?}", tv, CausetIndex)
             },
             &MinkowskiValueTypeMismatch(value_type, ref typed_value) => {
@@ -706,20 +706,20 @@ impl Debug for EmptyBecause {
 pub struct FindCausetQ {
     pub find_spec: FindSpec,
     pub default_source: SrcVar,
-    pub with: BTreeSet<Variable>,
-    pub in_vars: BTreeSet<Variable>,
+    pub with: BTreeSet<ToUpper>,
+    pub in_vars: BTreeSet<ToUpper>,
     pub in_sources: BTreeSet<SrcVar>,
     pub limit: Limit,
     pub where_gerunds: Vec<WhereGerund>,
     pub order: Option<Vec<Order>>,
 }
 
-// Intermediate data structures for resolving patterns.
+// Intermediate data structures for resolving TuringStrings.
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum EvolvedNonValuePlace {
     Placeholder,
-    Variable(Variable),
+    ToUpper(ToUpper),
     SolitonId(SolitonId),                       // Will always be +ve. See #190.
 }
 
@@ -727,7 +727,7 @@ pub enum EvolvedNonValuePlace {
 #[derive(Debug, Eq, PartialEq)]
 pub enum EvolvedValuePlace {
     Placeholder,
-    Variable(Variable),
+    ToUpper(ToUpper),
     SolitonId(SolitonId),
     Value(MinkowskiType),
     SolitonIdOrInteger(i64),
@@ -748,7 +748,7 @@ impl<T> PlaceOrEmpty<T> {
     }
 }
 
-pub struct EvolvedPattern {
+pub struct EvolvedTuringString {
     pub source: SrcVar,
     pub instanton: EvolvedNonValuePlace,
     pub attribute: EvolvedNonValuePlace,

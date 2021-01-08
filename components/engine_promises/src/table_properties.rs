@@ -6,45 +6,45 @@ use crate::cone::Cone;
 use crate::CAUSETHandleExt;
 use std::ops::Deref;
 
-pub trait TablePropertiesExt: CAUSETHandleExt {
-    type TablePropertiesCollection: TablePropertiesCollection<
-        Self::TablePropertiesCollectionIter,
-        Self::TablePropertiesKey,
-        Self::TableProperties,
+pub trait BlockPropertiesExt: CAUSETHandleExt {
+    type BlockPropertiesCollection: BlockPropertiesCollection<
+        Self::BlockPropertiesCollectionIter,
+        Self::BlockPropertiesKey,
+        Self::BlockProperties,
         Self::UserCollectedProperties,
     >;
-    type TablePropertiesCollectionIter: TablePropertiesCollectionIter<
-        Self::TablePropertiesKey,
-        Self::TableProperties,
+    type BlockPropertiesCollectionIter: BlockPropertiesCollectionIter<
+        Self::BlockPropertiesKey,
+        Self::BlockProperties,
         Self::UserCollectedProperties,
     >;
-    type TablePropertiesKey: TablePropertiesKey;
-    type TableProperties: TableProperties<Self::UserCollectedProperties>;
+    type BlockPropertiesKey: BlockPropertiesKey;
+    type BlockProperties: BlockProperties<Self::UserCollectedProperties>;
     type UserCollectedProperties: UserCollectedProperties;
 
-    fn get_properties_of_tables_in_cone(
+    fn get_properties_of_Blocks_in_cone(
         &self,
         causet: &Self::CAUSETHandle,
         cones: &[Cone],
-    ) -> Result<Self::TablePropertiesCollection>;
+    ) -> Result<Self::BlockPropertiesCollection>;
 
     fn get_cone_properties_causet(
         &self,
         causetname: &str,
         spacelike_key: &[u8],
         lightlike_key: &[u8],
-    ) -> Result<Self::TablePropertiesCollection> {
+    ) -> Result<Self::BlockPropertiesCollection> {
         let causet = self.causet_handle(causetname)?;
         let cone = Cone::new(spacelike_key, lightlike_key);
-        Ok(self.get_properties_of_tables_in_cone(causet, &[cone])?)
+        Ok(self.get_properties_of_Blocks_in_cone(causet, &[cone])?)
     }
 }
 
-pub trait TablePropertiesCollection<I, PKey, P, UCP>
+pub trait BlockPropertiesCollection<I, PKey, P, UCP>
 where
-    I: TablePropertiesCollectionIter<PKey, P, UCP>,
-    PKey: TablePropertiesKey,
-    P: TableProperties<UCP>,
+    I: BlockPropertiesCollectionIter<PKey, P, UCP>,
+    PKey: BlockPropertiesKey,
+    P: BlockProperties<UCP>,
     UCP: UserCollectedProperties,
 {
     fn iter(&self) -> I;
@@ -56,17 +56,17 @@ where
     }
 }
 
-pub trait TablePropertiesCollectionIter<PKey, P, UCP>: Iteron<Item = (PKey, P)>
+pub trait BlockPropertiesCollectionIter<PKey, P, UCP>: Iteron<Item = (PKey, P)>
 where
-    PKey: TablePropertiesKey,
-    P: TableProperties<UCP>,
+    PKey: BlockPropertiesKey,
+    P: BlockProperties<UCP>,
     UCP: UserCollectedProperties,
 {
 }
 
-pub trait TablePropertiesKey: Deref<Target = str> {}
+pub trait BlockPropertiesKey: Deref<Target = str> {}
 
-pub trait TableProperties<UCP>
+pub trait BlockProperties<UCP>
 where
     UCP: UserCollectedProperties,
 {

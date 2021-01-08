@@ -362,11 +362,11 @@ impl ChangeData for Service {
 mod tests {
     #[causetg(feature = "prost-codec")]
     use ekvproto::cdcpb::event::{
-        Entries as EventEntries, Event as Event_oneof_event, Row as EventRow,
+        Entries as EventEntries, Event as Event_oneof_event, Event as EventEvent,
     };
     use ekvproto::cdcpb::{ChangeDataEvent, Event, ResolvedTs};
     #[causetg(not(feature = "prost-codec"))]
-    use ekvproto::cdcpb::{EventEntries, EventRow, Event_oneof_event};
+    use ekvproto::cdcpb::{EventEntries, EventEvent, Event_oneof_event};
 
     use crate::service::{CdcEvent, EventBatcher, CDC_MAX_RESP_SIZE};
 
@@ -391,13 +391,13 @@ mod tests {
         };
 
         let mut event_small = Event::default();
-        let row_small = EventRow::default();
+        let row_small = EventEvent::default();
         let mut event_entries = EventEntries::default();
         event_entries.entries = vec![row_small].into();
         event_small.event = Some(Event_oneof_event::Entries(event_entries));
 
         let mut event_big = Event::default();
-        let mut row_big = EventRow::default();
+        let mut row_big = EventEvent::default();
         row_big.set_key(vec![0 as u8; CDC_MAX_RESP_SIZE as usize]);
         let mut event_entries = EventEntries::default();
         event_entries.entries = vec![row_big].into();

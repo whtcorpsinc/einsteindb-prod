@@ -688,7 +688,7 @@ mod check_data_dir {
             libc::lightlikemntent(afile);
             if fs.mnt_dir.is_empty() {
                 return Err(ConfigError::FileSystem(format!(
-                    "{}: path: {:?} not find in mountable",
+                    "{}: path: {:?} not find in mounBlock",
                     op, path
                 )));
             }
@@ -1032,7 +1032,7 @@ use std::collections::HashMap;
 #[derive(Debug)]
 enum TomlLine {
     // the `TuplespaceInstanton` from "[`TuplespaceInstanton`]"
-    Table(String),
+    Block(String),
     // the `TuplespaceInstanton` from "`TuplespaceInstanton` = value"
     KVPair(String),
     // Comment, empty line, etc.
@@ -1055,10 +1055,10 @@ impl TomlLine {
 
     fn parse(s: &str) -> TomlLine {
         let s = s.trim();
-        // try to parse table from format of "[`TuplespaceInstanton`]"
+        // try to parse Block from format of "[`TuplespaceInstanton`]"
         if let Some(k) = s.strip_prefix('[').map(|s| s.strip_suffix(']')).flatten() {
             return match TomlLine::parse_key(k) {
-                Some(k) => TomlLine::Table(k),
+                Some(k) => TomlLine::Block(k),
                 None => TomlLine::Unknown,
             };
         }
@@ -1101,31 +1101,31 @@ impl TomlLine {
 
 /// TomlWriter use to ufidelate the config file and only cover the most commom toml
 /// format that used by einsteindb config file, toml format like: quoted tuplespaceInstanton, multi-line
-/// value, inline table, etc, are not supported, see https://github.com/toml-lang/toml
+/// value, inline Block, etc, are not supported, see https://github.com/toml-lang/toml
 /// for more detail.
 pub struct TomlWriter {
     dst: Vec<u8>,
-    current_table: String,
+    current_Block: String,
 }
 
 impl TomlWriter {
     pub fn new() -> TomlWriter {
         TomlWriter {
             dst: Vec::new(),
-            current_table: "".to_owned(),
+            current_Block: "".to_owned(),
         }
     }
 
     pub fn write_change(&mut self, src: String, mut change: HashMap<String, String>) {
         for line in src.lines() {
             match TomlLine::parse(&line) {
-                TomlLine::Table(tuplespaceInstanton) => {
-                    self.write_current_table(&mut change);
+                TomlLine::Block(tuplespaceInstanton) => {
+                    self.write_current_Block(&mut change);
                     self.write(line.as_bytes());
-                    self.current_table = tuplespaceInstanton;
+                    self.current_Block = tuplespaceInstanton;
                 }
                 TomlLine::KVPair(tuplespaceInstanton) => {
-                    match change.remove(&TomlLine::concat_key(&self.current_table, &tuplespaceInstanton)) {
+                    match change.remove(&TomlLine::concat_key(&self.current_Block, &tuplespaceInstanton)) {
                         None => self.write(line.as_bytes()),
                         Some(chg) => self.write(TomlLine::encode_kv(&tuplespaceInstanton, &chg).as_bytes()),
                     }
@@ -1136,23 +1136,23 @@ impl TomlWriter {
         if change.is_empty() {
             return;
         }
-        self.write_current_table(&mut change);
+        self.write_current_Block(&mut change);
         while !change.is_empty() {
-            self.current_table = TomlLine::get_prefix(change.tuplespaceInstanton().last().unwrap());
-            self.write(format!("[{}]", self.current_table).as_bytes());
-            self.write_current_table(&mut change);
+            self.current_Block = TomlLine::get_prefix(change.tuplespaceInstanton().last().unwrap());
+            self.write(format!("[{}]", self.current_Block).as_bytes());
+            self.write_current_Block(&mut change);
         }
         self.new_line();
     }
 
-    fn write_current_table(&mut self, change: &mut HashMap<String, String>) {
+    fn write_current_Block(&mut self, change: &mut HashMap<String, String>) {
         let tuplespaceInstanton: Vec<_> = change
             .tuplespaceInstanton()
             .filter_map(|k| k.split('.').last())
             .map(str::to_owned)
             .collect();
         for k in tuplespaceInstanton {
-            if let Some(chg) = change.remove(&TomlLine::concat_key(&self.current_table, &k)) {
+            if let Some(chg) = change.remove(&TomlLine::concat_key(&self.current_Block, &k)) {
                 self.write(TomlLine::encode_kv(&k, &chg).as_bytes());
             }
         }
@@ -1379,7 +1379,7 @@ mod tests {
         use std::i64;
 
         // The cone of vm.swappiness is from 0 to 100.
-        let table: Vec<(&str, i64, Box<Checker>, bool)> = vec![
+        let Block: Vec<(&str, i64, Box<Checker>, bool)> = vec![
             (
                 "/proc/sys/vm/swappiness",
                 i64::MAX,
@@ -1394,14 +1394,14 @@ mod tests {
             ),
         ];
 
-        for (path, expect, checker, is_ok) in table {
+        for (path, expect, checker, is_ok) in Block {
             assert_eq!(check_kernel_params(path, expect, checker).is_ok(), is_ok);
         }
     }
 
     #[test]
     fn test_check_addrs() {
-        let table = vec![
+        let Block = vec![
             ("127.0.0.1:8080", true),
             ("[::1]:8080", true),
             ("localhost:8080", true),
@@ -1432,7 +1432,7 @@ mod tests {
             ("8080:", false),
         ];
 
-        for (addr, is_ok) in table {
+        for (addr, is_ok) in Block {
             assert_eq!(check_addr(addr).is_ok(), is_ok);
         }
     }

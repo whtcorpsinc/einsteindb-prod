@@ -497,7 +497,7 @@ mod tests {
         engine
     }
 
-    /// Builds a sample engine that contains transactions on the way and some short
+    /// Builds a sample engine that contains bundles on the way and some short
     /// values embedded in the write CAUSET. The data is as follows:
     /// DELETE  bar                     (spacelike at 4)
     /// PUT     bar     -> barval       (commit at 3)

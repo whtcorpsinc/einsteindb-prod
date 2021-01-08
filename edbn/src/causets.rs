@@ -30,11 +30,11 @@ use types::{
 /// indirectly (i.e., `InstantonPlace::LookupRef`).  In order to maintain the graph of `Into` and
 /// `From` relations, we need to ensure that `{Value,Instanton}Place` can't match as a potential value.
 /// (If it does, the `impl Into<T> for T` default conflicts.) This marker trait allows to mark
-/// acceptable values, thereby removing `{Instanton,Value}Place` from consideration.
-pub trait TransactableValueMarker {}
+/// accepBlock values, thereby removing `{Instanton,Value}Place` from consideration.
+pub trait TransacBlockValueMarker {}
 
 /// `ValueAndSpan` is the value type coming out of the instanton parser.
-impl TransactableValueMarker for ValueAndSpan {}
+impl TransacBlockValueMarker for ValueAndSpan {}
 
 /// A tempid, either an external tempid given in a transaction (usually as an `Value::Text`),
 /// or an internal tempid allocated by EinsteinDB itself.
@@ -102,7 +102,7 @@ pub struct LookupRef<V> {
 ///
 /// A natural next step might be to expose the current transaction instant `(transaction-instant)`,
 /// but that's more difficult: the transaction itself can set the transaction instant (with some
-/// restrictions), so the transaction function must be late-binding.  Right now, that's difficult to
+/// restrictions), so the transaction function must be late-Constrained.  Right now, that's difficult to
 /// arrange in the transactor.
 ///
 /// In the future, we might accept arguments; for example, perhaps we might expose `(ancestor
@@ -131,49 +131,49 @@ pub enum ValuePlace<V> {
     MapNotation(MapNotation<V>),
 }
 
-impl<V: TransactableValueMarker> From<SolitonIdOrCausetId> for ValuePlace<V> {
+impl<V: TransacBlockValueMarker> From<SolitonIdOrCausetId> for ValuePlace<V> {
     fn from(v: SolitonIdOrCausetId) -> Self {
         ValuePlace::SolitonId(v)
     }
 }
 
-impl<V: TransactableValueMarker> From<TempId> for ValuePlace<V> {
+impl<V: TransacBlockValueMarker> From<TempId> for ValuePlace<V> {
     fn from(v: TempId) -> Self {
         ValuePlace::TempId(v.into())
     }
 }
 
-impl<V: TransactableValueMarker> From<ValueRc<TempId>> for ValuePlace<V> {
+impl<V: TransacBlockValueMarker> From<ValueRc<TempId>> for ValuePlace<V> {
     fn from(v: ValueRc<TempId>) -> Self {
         ValuePlace::TempId(v)
     }
 }
 
-impl<V: TransactableValueMarker> From<LookupRef<V>> for ValuePlace<V> {
+impl<V: TransacBlockValueMarker> From<LookupRef<V>> for ValuePlace<V> {
     fn from(v: LookupRef<V>) -> Self {
         ValuePlace::LookupRef(v)
     }
 }
 
-impl<V: TransactableValueMarker> From<TxFunction> for ValuePlace<V> {
+impl<V: TransacBlockValueMarker> From<TxFunction> for ValuePlace<V> {
     fn from(v: TxFunction) -> Self {
         ValuePlace::TxFunction(v)
     }
 }
 
-impl<V: TransactableValueMarker> From<Vec<ValuePlace<V>>> for ValuePlace<V> {
+impl<V: TransacBlockValueMarker> From<Vec<ValuePlace<V>>> for ValuePlace<V> {
     fn from(v: Vec<ValuePlace<V>>) -> Self {
         ValuePlace::Vector(v)
     }
 }
 
-impl<V: TransactableValueMarker> From<V> for ValuePlace<V> {
+impl<V: TransacBlockValueMarker> From<V> for ValuePlace<V> {
     fn from(v: V) -> Self {
         ValuePlace::Atom(v)
     }
 }
 
-impl<V: TransactableValueMarker> From<MapNotation<V>> for ValuePlace<V> {
+impl<V: TransacBlockValueMarker> From<MapNotation<V>> for ValuePlace<V> {
     fn from(v: MapNotation<V>) -> Self {
         ValuePlace::MapNotation(v)
     }
@@ -193,25 +193,25 @@ impl<V, E: Into<SolitonIdOrCausetId>> From<E> for InstantonPlace<V> {
     }
 }
 
-impl<V: TransactableValueMarker> From<TempId> for InstantonPlace<V> {
+impl<V: TransacBlockValueMarker> From<TempId> for InstantonPlace<V> {
     fn from(v: TempId) -> Self {
         InstantonPlace::TempId(v.into())
     }
 }
 
-impl<V: TransactableValueMarker> From<ValueRc<TempId>> for InstantonPlace<V> {
+impl<V: TransacBlockValueMarker> From<ValueRc<TempId>> for InstantonPlace<V> {
     fn from(v: ValueRc<TempId>) -> Self {
         InstantonPlace::TempId(v)
     }
 }
 
-impl<V: TransactableValueMarker> From<LookupRef<V>> for InstantonPlace<V> {
+impl<V: TransacBlockValueMarker> From<LookupRef<V>> for InstantonPlace<V> {
     fn from(v: LookupRef<V>) -> Self {
         InstantonPlace::LookupRef(v)
     }
 }
 
-impl<V: TransactableValueMarker> From<TxFunction> for InstantonPlace<V> {
+impl<V: TransacBlockValueMarker> From<TxFunction> for InstantonPlace<V> {
     fn from(v: TxFunction) -> Self {
         InstantonPlace::TxFunction(v)
     }

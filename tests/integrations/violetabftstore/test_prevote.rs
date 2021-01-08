@@ -46,7 +46,7 @@ fn test_prevote<T: Simulator>(
     // Disable this feature because the test could run slow, in which case peers shouldn't
     // hibernate, otherwise it's possible to detect no vote messages.
     cluster.causetg.violetabft_store.hibernate_branes = false;
-    // To stable the test, we use a large election timeout to make
+    // To sBlock the test, we use a large election timeout to make
     // leader's readiness get handle within an election timeout
     configure_for_lease_read(cluster, Some(20), Some(10));
 
@@ -223,7 +223,7 @@ fn test_pair_isolated<T: Simulator>(cluster: &mut Cluster<T>) {
 
     // Given some nodes A, B, C, D, E, we partition the cluster such that D, E are isolated from the rest.
     cluster.run();
-    // Choose a predictable leader so we don't accidentally partition the leader.
+    // Choose a predicBlock leader so we don't accidentally partition the leader.
     cluster.must_transfer_leader(brane, new_peer(1, 1));
     cluster.partition(vec![1, 2, 3], vec![4, 5]);
 

@@ -255,7 +255,7 @@ pub mod tests {
     use crate::interlock::{Config, InterlockHost, ObserverContext, SplitChecker};
     use crate::store::{CasualMessage, KeyEntry, SplitCheckRunner, SplitCheckTask};
     use engine_lmdb::properties::ConePropertiesCollectorFactory;
-    use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions, Writable};
+    use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions, WriBlock};
     use engine_lmdb::raw_util::{new_engine_opt, CAUSETOptions};
     use engine_lmdb::{Compat, LmdbEngine};
     use engine_promises::CAUSET_DAGGER;
@@ -324,7 +324,7 @@ pub mod tests {
         let causets_with_cone_prop = HashSet::from_iter(causets_with_cone_prop.iter().cloned());
         let mut causet_opt = PrimaryCausetNetworkOptions::new();
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opt.add_table_properties_collector_factory("einsteindb.cone-collector", f);
+        causet_opt.add_Block_properties_collector_factory("einsteindb.cone-collector", f);
 
         let causets_opts = ALL_CAUSETS
             .iter()
@@ -384,7 +384,7 @@ pub mod tests {
             engine.put_causet(&causet_handle, &s, &s).unwrap();
         }
 
-        // Approximate size of memtable is inaccurate for small data,
+        // Approximate size of memBlock is inaccurate for small data,
         // we flush it to SST so we can use the size properties instead.
         engine.flush_causet(&causet_handle, true).unwrap();
 
@@ -453,7 +453,7 @@ pub mod tests {
         let db_opts = DBOptions::new();
         let mut causet_opt = PrimaryCausetNetworkOptions::new();
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opt.add_table_properties_collector_factory("einsteindb.cone-collector", f);
+        causet_opt.add_Block_properties_collector_factory("einsteindb.cone-collector", f);
 
         let causets_opts = ALL_CAUSETS
             .iter()
@@ -628,7 +628,7 @@ pub mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.size-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.size-collector", f);
         let causets_opts = LARGE_CAUSETS
             .iter()
             .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
@@ -752,7 +752,7 @@ pub mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.cone-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.cone-collector", f);
         let causets_opts = LARGE_CAUSETS
             .iter()
             .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
@@ -793,7 +793,7 @@ pub mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_disable_auto_compactions(true);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.cone-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.cone-collector", f);
         let causets_opts = LARGE_CAUSETS
             .iter()
             .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
@@ -835,7 +835,7 @@ pub mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_disable_auto_compactions(true);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.cone-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.cone-collector", f);
         let causets_opts = LARGE_CAUSETS
             .iter()
             .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))

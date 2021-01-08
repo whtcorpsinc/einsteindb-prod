@@ -5,7 +5,7 @@ use prometheus_static_metric::*;
 
 make_auto_flush_static_metric! {
     pub label_enum FreeDaemonName {
-        batch_table_scan,
+        batch_Block_scan,
         batch_index_scan,
         batch_selection,
         batch_simple_aggr,
@@ -14,7 +14,7 @@ make_auto_flush_static_metric! {
         batch_stream_aggr,
         batch_limit,
         batch_top_n,
-        table_scan,
+        Block_scan,
         index_scan,
         selection,
         hash_aggr,

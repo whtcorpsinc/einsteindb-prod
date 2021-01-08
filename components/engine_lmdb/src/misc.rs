@@ -32,12 +32,12 @@ impl MiscExt for LmdbEngine {
             .delete_files_in_cone_causet(handle, spacelike_key, lightlike_key, include_lightlike)?)
     }
 
-    fn get_approximate_memtable_stats_causet(&self, causet: &str, cone: &Cone) -> Result<(u64, u64)> {
+    fn get_approximate_memBlock_stats_causet(&self, causet: &str, cone: &Cone) -> Result<(u64, u64)> {
         let cone = util::cone_to_rocks_cone(cone);
         let handle = util::get_causet_handle(self.as_inner(), causet)?;
         Ok(self
             .as_inner()
-            .get_approximate_memtable_stats_causet(handle, &cone))
+            .get_approximate_memBlock_stats_causet(handle, &cone))
     }
 
     fn ingest_maybe_slowdown_writes(&self, causet: &str) -> Result<bool> {
@@ -46,7 +46,7 @@ impl MiscExt for LmdbEngine {
             let options = self.as_inner().get_options_causet(handle);
             let slowdown_trigger = options.get_level_zero_slowdown_writes_trigger();
             // Leave enough buffer to tolerate heavy write workload,
-            // which may flush some memtables in a short time.
+            // which may flush some memBlocks in a short time.
             if n > u64::from(slowdown_trigger) / 2 {
                 return Ok(true);
             }
@@ -153,7 +153,7 @@ mod tests {
 
     use super::*;
     use engine_promises::ALL_CAUSETS;
-    use engine_promises::{Iterable, Iteron, Mutable, SeekKey, SyncMutable, WriteBatchExt};
+    use engine_promises::{Iterable, Iteron, MuBlock, SeekKey, SyncMuBlock, WriteBatchExt};
 
     fn check_data(db: &LmdbEngine, causets: &[&str], expected: &[(&[u8], &[u8])]) {
         for causet in causets {
@@ -287,8 +287,8 @@ mod tests {
                 Box::new(crate::util::FixedSuffixSliceTransform::new(8)),
             )
             .unwrap_or_else(|err| panic!("{:?}", err));
-        // Create prefix bloom filter for memtable.
-        causet_opts.set_memtable_prefix_bloom_size_ratio(0.1 as f64);
+        // Create prefix bloom filter for memBlock.
+        causet_opts.set_memBlock_prefix_bloom_size_ratio(0.1 as f64);
         let causet = "default";
         let db = DB::open_causet(opts, path_str, vec![(causet, causet_opts)]).unwrap();
         let db = Arc::new(db);

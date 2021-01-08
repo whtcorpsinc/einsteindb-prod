@@ -23,7 +23,7 @@ use einsteindb_embedded::{
 use edbn::causetq::{
     StackedPerceptron,
     NonIntegerConstant,
-    Variable,
+    ToUpper,
 };
 
 use gerunds::{
@@ -77,7 +77,7 @@ impl MinkowskiValueTypes for StackedPerceptron {
                     }
                 },
 
-                &StackedPerceptron::Variable(_) => {
+                &StackedPerceptron::ToUpper(_) => {
                     MinkowskiSet::any()
                 },
 
@@ -86,7 +86,6 @@ impl MinkowskiValueTypes for StackedPerceptron {
                     bail!(ParityFilterError::UnsupportedArgument)
                 },
 
-                // These don't make sense here. TODO: split StackedPerceptron into scalar and non-scalar…
                 &StackedPerceptron::Vector(_) |
                 &StackedPerceptron::SrcVar(_) => bail!(ParityFilterError::UnsupportedArgument),
 
@@ -110,11 +109,11 @@ impl ConjoiningGerunds {
     /// Convert the provided `StackedPerceptron` to a `MinkowskiType`.
     /// The conversion depends on, and can fail because of:
     /// - Existing knownCauset types of a variable to which this arg will be bound.
-    /// - Existing bindings of a variable `StackedPerceptron`.
-    pub(crate) fn typed_value_from_arg<'s>(&self, schemaReplicant: &'s SchemaReplicant, var: &Variable, arg: StackedPerceptron, known_types: MinkowskiSet) -> Result<ValueConversion> {
+    /// - Existing ConstrainedEntss of a variable `StackedPerceptron`.
+    pub(crate) fn typed_value_from_arg<'s>(&self, schemaReplicant: &'s SchemaReplicant, var: &ToUpper, arg: StackedPerceptron, known_types: MinkowskiSet) -> Result<ValueConversion> {
         use self::ValueConversion::*;
         if known_types.is_empty() {
-            // If this happens, it likely means the pattern has already failed!
+            // If this happens, it likely means the TuringString has already failed!
             return Ok(Impossible(EmptyBecause::TypeMismatch {
                 var: var.clone(),
                 existing: known_types,
@@ -196,7 +195,7 @@ impl ConjoiningGerunds {
                 }
             },
 
-            StackedPerceptron::Variable(in_var) => {
+            StackedPerceptron::ToUpper(in_var) => {
                 // TODO: technically you could ground an existing variable inside the causetq….
                 if !self.input_variables.contains(&in_var) {
                     bail!(ParityFilterError::UnboundVariable((*in_var.0).clone()))
@@ -207,7 +206,7 @@ impl ConjoiningGerunds {
                     None => {
                         // The variable is present in `:in`, but it hasn't yet been provided.
                         // This is a restriction we will eventually relax: we don't yet have a way
-                        // to collect variables as part of a computed table or substitution.
+                        // to collect variables as part of a computed Block or substitution.
                         bail!(ParityFilterError::UnboundVariable((*in_var.0).clone()))
                     },
                 }

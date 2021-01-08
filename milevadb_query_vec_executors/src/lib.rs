@@ -34,7 +34,7 @@ mod selection_executor;
 mod simple_aggr_executor;
 mod slow_hash_aggr_executor;
 mod stream_aggr_executor;
-mod table_scan_executor;
+mod Block_scan_executor;
 mod top_n_executor;
 mod util;
 
@@ -45,5 +45,5 @@ pub use self::selection_executor::BatchSelectionFreeDaemon;
 pub use self::simple_aggr_executor::BatchSimpleAggregationFreeDaemon;
 pub use self::slow_hash_aggr_executor::BatchSlowHashAggregationFreeDaemon;
 pub use self::stream_aggr_executor::BatchStreamAggregationFreeDaemon;
-pub use self::table_scan_executor::BatchTableScanFreeDaemon;
+pub use self::Block_scan_executor::BatchBlockScanFreeDaemon;
 pub use self::top_n_executor::BatchTopNFreeDaemon;

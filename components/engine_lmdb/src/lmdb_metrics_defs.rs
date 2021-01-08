@@ -3,8 +3,8 @@
 use lmdb::{DBStatisticsHistogramType as HistType, DBStatisticsTickerType as TickerType};
 
 pub const LMDB_TOTAL_SST_FILES_SIZE: &str = "lmdb.total-sst-files-size";
-pub const LMDB_TABLE_READERS_MEM: &str = "lmdb.estimate-table-readers-mem";
-pub const LMDB_CUR_SIZE_ALL_MEM_TABLES: &str = "lmdb.cur-size-all-mem-tables";
+pub const LMDB_Block_READERS_MEM: &str = "lmdb.estimate-Block-readers-mem";
+pub const LMDB_CUR_SIZE_ALL_MEM_BlockS: &str = "lmdb.cur-size-all-mem-Blocks";
 pub const LMDB_ESTIMATE_NUM_KEYS: &str = "lmdb.estimate-num-tuplespaceInstanton";
 pub const LMDB_PENDING_COMPACTION_BYTES: &str = "lmdb.\
                                                     estimate-plightlikeing-compaction-bytes";
@@ -13,7 +13,7 @@ pub const LMDB_NUM_SNAPSHOTS: &str = "lmdb.num-snapshots";
 pub const LMDB_OLDEST_SNAPSHOT_TIME: &str = "lmdb.oldest-snapshot-time";
 pub const LMDB_OLDEST_SNAPSHOT_SEQUENCE: &str = "lmdb.oldest-snapshot-sequence";
 pub const LMDB_NUM_FILES_AT_LEVEL: &str = "lmdb.num-files-at-level";
-pub const LMDB_NUM_IMMUTABLE_MEM_TABLE: &str = "lmdb.num-immutable-mem-table";
+pub const LMDB_NUM_IMMUBlock_MEM_Block: &str = "lmdb.num-immuBlock-mem-Block";
 
 pub const LMDB_TITANDB_NUM_BLOB_FILES_AT_LEVEL: &str = "lmdb.titandb.num-blob-files-at-level";
 pub const LMDB_TITANDB_LIVE_BLOB_SIZE: &str = "lmdb.titandb.live-blob-size";
@@ -41,8 +41,8 @@ pub const LMDB_IOSTALL_KEY: &[&str] = &[
     "io_stalls.level0_numfiles",
     "io_stalls.slowdown_for_plightlikeing_compaction_bytes",
     "io_stalls.stop_for_plightlikeing_compaction_bytes",
-    "io_stalls.memtable_slowdown",
-    "io_stalls.memtable_compaction",
+    "io_stalls.memBlock_slowdown",
+    "io_stalls.memBlock_compaction",
 ];
 
 pub const LMDB_IOSTALL_TYPE: &[&str] = &[
@@ -50,8 +50,8 @@ pub const LMDB_IOSTALL_TYPE: &[&str] = &[
     "level0_file_limit_stop",
     "plightlikeing_compaction_bytes_slowdown",
     "plightlikeing_compaction_bytes_stop",
-    "memtable_count_limit_slowdown",
-    "memtable_count_limit_stop",
+    "memBlock_count_limit_slowdown",
+    "memBlock_count_limit_stop",
 ];
 
 pub const ENGINE_TICKER_TYPES: &[TickerType] = &[
@@ -76,8 +76,8 @@ pub const ENGINE_TICKER_TYPES: &[TickerType] = &[
     TickerType::BlockCacheBytesRead,
     TickerType::BlockCacheBytesWrite,
     TickerType::BloomFilterUseful,
-    TickerType::MemtableHit,
-    TickerType::MemtableMiss,
+    TickerType::MemBlockHit,
+    TickerType::MemBlockMiss,
     TickerType::GetHitL0,
     TickerType::GetHitL1,
     TickerType::GetHitL2AndUp,
@@ -149,12 +149,12 @@ pub const ENGINE_HIST_TYPES: &[HistType] = &[
     HistType::DbGet,
     HistType::DbWrite,
     HistType::CompactionTime,
-    HistType::TableSyncMicros,
+    HistType::BlockSyncMicros,
     HistType::CompactionOutfileSyncMicros,
     HistType::WalFileSyncMicros,
     HistType::ManifestFileSyncMicros,
     HistType::StallL0SlowdownCount,
-    HistType::StallMemtableCompactionCount,
+    HistType::StallMemBlockCompactionCount,
     HistType::StallL0NumFilesCount,
     HistType::HardRateLimitDelayCount,
     HistType::SoftRateLimitDelayCount,

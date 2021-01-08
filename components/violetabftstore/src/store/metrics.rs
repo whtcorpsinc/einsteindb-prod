@@ -9,7 +9,7 @@ make_auto_flush_static_metric! {
         write_delay_time,
         write_scheduling_flushes_compactions_time,
         db_condition_wait_nanos,
-        write_memtable_time,
+        write_memBlock_time,
         pre_and_post_process,
         write_thread_wait,
         db_mutex_lock_nanos,

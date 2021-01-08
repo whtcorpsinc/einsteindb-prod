@@ -532,16 +532,16 @@ mod tests {
         let mut PrimaryCausets = LazyBatchPrimaryCausetVec::from(vec![
             {
                 let mut col = LazyBatchPrimaryCauset::decoded_with_capacity_and_tp(3, EvalType::Int);
-                col.mut_decoded().push_int(Some(5)); // row 1, 11 in [(5 + 6), ...]
-                col.mut_decoded().push_int(Some(1)); // row 0
-                col.mut_decoded().push_int(Some(1)); // row 2
+                col.mut_decoded().push_int(Some(5)); // EventIdx 1, 11 in [(5 + 6), ...]
+                col.mut_decoded().push_int(Some(1)); // EventIdx 0
+                col.mut_decoded().push_int(Some(1)); // EventIdx 2
                 col
             },
             {
                 let mut col = LazyBatchPrimaryCauset::decoded_with_capacity_and_tp(3, EvalType::Int);
-                col.mut_decoded().push_int(Some(8)); // row 1
-                col.mut_decoded().push_int(Some(11)); // row 0, 11 in [11, ...]
-                col.mut_decoded().push_int(Some(1)); // row 2
+                col.mut_decoded().push_int(Some(8)); // EventIdx 1
+                col.mut_decoded().push_int(Some(11)); // EventIdx 0, 11 in [11, ...]
+                col.mut_decoded().push_int(Some(1)); // EventIdx 2
                 col
             },
         ]);

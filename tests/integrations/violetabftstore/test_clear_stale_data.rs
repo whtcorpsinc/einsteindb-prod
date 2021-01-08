@@ -1,6 +1,6 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
-use engine_lmdb::raw::{CompactOptions, Writable, DB};
+use engine_lmdb::raw::{CompactOptions, WriBlock, DB};
 use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER};
 use test_violetabftstore::*;
 

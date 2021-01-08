@@ -17,9 +17,9 @@ make_auto_flush_static_metric! {
     pub label_enum ReqTag {
         select,
         index,
-        analyze_table,
+        analyze_Block,
         analyze_index,
-        checksum_table,
+        checksum_Block,
         checksum_index,
         test,
     }

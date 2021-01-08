@@ -62,9 +62,9 @@ pub use ::{
 pub type SrcVarName = String;          // Do not include the required syntactic '$'.
 
 #[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct Variable(pub Rc<PlainSymbol>);
+pub struct ToUpper(pub Rc<PlainSymbol>);
 
-impl Variable {
+impl ToUpper {
     pub fn as_str(&self) -> &str {
         self.0.as_ref().0.as_str()
     }
@@ -77,11 +77,11 @@ impl Variable {
         self.0.as_ref().clone()
     }
 
-    /// Return a new `Variable`, assuming that the provided string is a valid name.
-    pub fn from_valid_name(name: &str) -> Variable {
+    /// Return a new `ToUpper`, assuming that the provided string is a valid name.
+    pub fn from_valid_name(name: &str) -> ToUpper {
         let s = PlainSymbol::plain(name);
         assert!(s.is_var_symbol());
-        Variable(Rc::new(s))
+        ToUpper(Rc::new(s))
     }
 }
 
@@ -90,44 +90,44 @@ pub trait FromValue<T> {
 }
 
 /// If the provided EDBN value is a PlainSymbol beginning with '?', return
-/// it wrapped in a Variable. If not, return None.
+/// it wrapped in a ToUpper. If not, return None.
 
-impl FromValue<Variable> for Variable {
-    fn from_value(v: &::ValueAndSpan) -> Option<Variable> {
+impl FromValue<ToUpper> for ToUpper {
+    fn from_value(v: &::ValueAndSpan) -> Option<ToUpper> {
         if let ::SpannedValue::PlainSymbol(ref s) = v.inner {
-            Variable::from_symbol(s)
+            ToUpper::from_symbol(s)
         } else {
             None
         }
     }
 }
 
-impl Variable {
-    pub fn from_rc(sym: Rc<PlainSymbol>) -> Option<Variable> {
+impl ToUpper {
+    pub fn from_rc(sym: Rc<PlainSymbol>) -> Option<ToUpper> {
         if sym.is_var_symbol() {
-            Some(Variable(sym.clone()))
+            Some(ToUpper(sym.clone()))
         } else {
             None
         }
     }
 
     /// TODO: intern strings. #398.
-    pub fn from_symbol(sym: &PlainSymbol) -> Option<Variable> {
+    pub fn from_symbol(sym: &PlainSymbol) -> Option<ToUpper> {
         if sym.is_var_symbol() {
-            Some(Variable(Rc::new(sym.clone())))
+            Some(ToUpper(Rc::new(sym.clone())))
         } else {
             None
         }
     }
 }
 
-impl fmt::Debug for Variable {
+impl fmt::Debug for ToUpper {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "var({})", self.0)
     }
 }
 
-impl std::fmt::Display for Variable {
+impl std::fmt::Display for ToUpper {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -148,7 +148,7 @@ impl FromValue<CausetQFunction> for CausetQFunction {
 
 impl CausetQFunction {
     pub fn from_symbol(sym: &PlainSymbol) -> Option<CausetQFunction> {
-        // TODO: validate the acceptable set of function names.
+        // TODO: validate the accepBlock set of function names.
         Some(CausetQFunction(sym.clone()))
     }
 }
@@ -167,7 +167,7 @@ pub enum Direction {
 
 /// An abstract declaration of ordering: direction and variable.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Order(pub Direction, pub Variable);   // Future: Element instead of Variable?
+pub struct Order(pub Direction, pub ToUpper);   // Future: Element instead of ToUpper?
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SrcVar {
@@ -199,7 +199,7 @@ impl SrcVar {
     }
 }
 
-/// These are the scalar values representable in EDBN.
+/// These are the scalar values represenBlock in EDBN.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum NonIntegerConstant {
     Boolean(bool),
@@ -224,12 +224,12 @@ impl From<String> for NonIntegerConstant {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum StackedPerceptron {
-    Variable(Variable),
+    ToUpper(ToUpper),
     SrcVar(SrcVar),
     SolitonIdOrInteger(i64),
     CausetIdOrKeyword(Keyword),
     Constant(NonIntegerConstant),
-    // The collection values representable in EDBN.  There's no advantage to destructuring up front,
+    // The collection values represenBlock in EDBN.  There's no advantage to destructuring up front,
     // since consumers will need to handle arbitrarily nested EDBN themselves anyway.
     Vector(Vec<StackedPerceptron>),
 }
@@ -243,7 +243,7 @@ impl FromValue<StackedPerceptron> for StackedPerceptron {
             PlainSymbol(ref x) if x.is_src_symbol() =>
                 SrcVar::from_symbol(x).map(StackedPerceptron::SrcVar),
             PlainSymbol(ref x) if x.is_var_symbol() =>
-                Variable::from_symbol(x).map(StackedPerceptron::Variable),
+                ToUpper::from_symbol(x).map(StackedPerceptron::ToUpper),
             PlainSymbol(_) => None,
             Keyword(ref x) =>
                 Some(StackedPerceptron::CausetIdOrKeyword(x.clone())),
@@ -274,7 +274,7 @@ impl FromValue<StackedPerceptron> for StackedPerceptron {
 impl std::fmt::Display for StackedPerceptron {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &StackedPerceptron::Variable(ref var) => write!(f, "{}", var),
+            &StackedPerceptron::ToUpper(ref var) => write!(f, "{}", var),
             &StackedPerceptron::SrcVar(ref var) => {
                 if var == &SrcVar::DefaultSrc {
                     write!(f, "$")
@@ -291,9 +291,9 @@ impl std::fmt::Display for StackedPerceptron {
 }
 
 impl StackedPerceptron {
-    pub fn as_variable(&self) -> Option<&Variable> {
+    pub fn as_variable(&self) -> Option<&ToUpper> {
         match self {
-            &StackedPerceptron::Variable(ref v) => Some(v),
+            &StackedPerceptron::ToUpper(ref v) => Some(v),
             _ => None,
         }
     }
@@ -306,60 +306,60 @@ impl StackedPerceptron {
 /// instanton IDs. That'll get filtered out in the context of the
 /// database.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum PatternNonValuePlace {
+pub enum TuringStringNonValuePlace {
     Placeholder,
-    Variable(Variable),
+    ToUpper(ToUpper),
     SolitonId(i64),                       // Will always be +ve. See #190.
     CausetId(ValueRc<Keyword>),
 }
 
-impl From<Rc<Keyword>> for PatternNonValuePlace {
+impl From<Rc<Keyword>> for TuringStringNonValuePlace {
     fn from(value: Rc<Keyword>) -> Self {
-        PatternNonValuePlace::CausetId(ValueRc::from_rc(value))
+        TuringStringNonValuePlace::CausetId(ValueRc::from_rc(value))
     }
 }
 
-impl From<Keyword> for PatternNonValuePlace {
+impl From<Keyword> for TuringStringNonValuePlace {
     fn from(value: Keyword) -> Self {
-        PatternNonValuePlace::CausetId(ValueRc::new(value))
+        TuringStringNonValuePlace::CausetId(ValueRc::new(value))
     }
 }
 
-impl PatternNonValuePlace {
+impl TuringStringNonValuePlace {
     // I think we'll want move variants, so let's leave these here for now.
     #[allow(dead_code)]
-    fn into_pattern_value_place(self) -> PatternValuePlace {
+    fn into_TuringString_value_place(self) -> TuringStringValuePlace {
         match self {
-            PatternNonValuePlace::Placeholder => PatternValuePlace::Placeholder,
-            PatternNonValuePlace::Variable(x) => PatternValuePlace::Variable(x),
-            PatternNonValuePlace::SolitonId(x)    => PatternValuePlace::SolitonIdOrInteger(x),
-            PatternNonValuePlace::CausetId(x)    => PatternValuePlace::CausetIdOrKeyword(x),
+            TuringStringNonValuePlace::Placeholder => TuringStringValuePlace::Placeholder,
+            TuringStringNonValuePlace::ToUpper(x) => TuringStringValuePlace::ToUpper(x),
+            TuringStringNonValuePlace::SolitonId(x)    => TuringStringValuePlace::SolitonIdOrInteger(x),
+            TuringStringNonValuePlace::CausetId(x)    => TuringStringValuePlace::CausetIdOrKeyword(x),
         }
     }
 
-    fn to_pattern_value_place(&self) -> PatternValuePlace {
+    fn to_TuringString_value_place(&self) -> TuringStringValuePlace {
         match *self {
-            PatternNonValuePlace::Placeholder     => PatternValuePlace::Placeholder,
-            PatternNonValuePlace::Variable(ref x) => PatternValuePlace::Variable(x.clone()),
-            PatternNonValuePlace::SolitonId(x)        => PatternValuePlace::SolitonIdOrInteger(x),
-            PatternNonValuePlace::CausetId(ref x)    => PatternValuePlace::CausetIdOrKeyword(x.clone()),
+            TuringStringNonValuePlace::Placeholder     => TuringStringValuePlace::Placeholder,
+            TuringStringNonValuePlace::ToUpper(ref x) => TuringStringValuePlace::ToUpper(x.clone()),
+            TuringStringNonValuePlace::SolitonId(x)        => TuringStringValuePlace::SolitonIdOrInteger(x),
+            TuringStringNonValuePlace::CausetId(ref x)    => TuringStringValuePlace::CausetIdOrKeyword(x.clone()),
         }
     }
 }
 
-impl FromValue<PatternNonValuePlace> for PatternNonValuePlace {
-    fn from_value(v: &::ValueAndSpan) -> Option<PatternNonValuePlace> {
+impl FromValue<TuringStringNonValuePlace> for TuringStringNonValuePlace {
+    fn from_value(v: &::ValueAndSpan) -> Option<TuringStringNonValuePlace> {
         match v.inner {
             ::SpannedValue::Integer(x) => if x >= 0 {
-                Some(PatternNonValuePlace::SolitonId(x))
+                Some(TuringStringNonValuePlace::SolitonId(x))
             } else {
                 None
             },
             ::SpannedValue::PlainSymbol(ref x) => if x.0.as_str() == "_" {
-                Some(PatternNonValuePlace::Placeholder)
+                Some(TuringStringNonValuePlace::Placeholder)
             } else {
-                if let Some(v) = Variable::from_symbol(x) {
-                    Some(PatternNonValuePlace::Variable(v))
+                if let Some(v) = ToUpper::from_symbol(x) {
+                    Some(TuringStringNonValuePlace::ToUpper(v))
                 } else {
                     None
                 }
@@ -377,54 +377,54 @@ pub enum CausetIdOrSolitonId {
     SolitonId(i64),
 }
 
-/// The `v` part of a pattern can be much broader: it can represent
+/// The `v` part of a TuringString can be much broader: it can represent
 /// integers that aren't instanton IDs (particularly negative integers),
 /// strings, and all the rest. We group those under `Constant`.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum PatternValuePlace {
+pub enum TuringStringValuePlace {
     Placeholder,
-    Variable(Variable),
+    ToUpper(ToUpper),
     SolitonIdOrInteger(i64),
     CausetIdOrKeyword(ValueRc<Keyword>),
     Constant(NonIntegerConstant),
 }
 
-impl From<Rc<Keyword>> for PatternValuePlace {
+impl From<Rc<Keyword>> for TuringStringValuePlace {
     fn from(value: Rc<Keyword>) -> Self {
-        PatternValuePlace::CausetIdOrKeyword(ValueRc::from_rc(value))
+        TuringStringValuePlace::CausetIdOrKeyword(ValueRc::from_rc(value))
     }
 }
 
-impl From<Keyword> for PatternValuePlace {
+impl From<Keyword> for TuringStringValuePlace {
     fn from(value: Keyword) -> Self {
-        PatternValuePlace::CausetIdOrKeyword(ValueRc::new(value))
+        TuringStringValuePlace::CausetIdOrKeyword(ValueRc::new(value))
     }
 }
 
-impl FromValue<PatternValuePlace> for PatternValuePlace {
-    fn from_value(v: &::ValueAndSpan) -> Option<PatternValuePlace> {
+impl FromValue<TuringStringValuePlace> for TuringStringValuePlace {
+    fn from_value(v: &::ValueAndSpan) -> Option<TuringStringValuePlace> {
         match v.inner {
             ::SpannedValue::Integer(x) =>
-                Some(PatternValuePlace::SolitonIdOrInteger(x)),
+                Some(TuringStringValuePlace::SolitonIdOrInteger(x)),
             ::SpannedValue::PlainSymbol(ref x) if x.0.as_str() == "_" =>
-                Some(PatternValuePlace::Placeholder),
+                Some(TuringStringValuePlace::Placeholder),
             ::SpannedValue::PlainSymbol(ref x) =>
-                Variable::from_symbol(x).map(PatternValuePlace::Variable),
+                ToUpper::from_symbol(x).map(TuringStringValuePlace::ToUpper),
             ::SpannedValue::Keyword(ref x) if x.is_namespaced() =>
                 Some(x.clone().into()),
             ::SpannedValue::Boolean(x) =>
-                Some(PatternValuePlace::Constant(NonIntegerConstant::Boolean(x))),
+                Some(TuringStringValuePlace::Constant(NonIntegerConstant::Boolean(x))),
             ::SpannedValue::Float(x) =>
-                Some(PatternValuePlace::Constant(NonIntegerConstant::Float(x))),
+                Some(TuringStringValuePlace::Constant(NonIntegerConstant::Float(x))),
             ::SpannedValue::BigInteger(ref x) =>
-                Some(PatternValuePlace::Constant(NonIntegerConstant::BigInteger(x.clone()))),
+                Some(TuringStringValuePlace::Constant(NonIntegerConstant::BigInteger(x.clone()))),
             ::SpannedValue::Instant(x) =>
-                Some(PatternValuePlace::Constant(NonIntegerConstant::Instant(x))),
+                Some(TuringStringValuePlace::Constant(NonIntegerConstant::Instant(x))),
             ::SpannedValue::Text(ref x) =>
                 // TODO: intern strings. #398.
-                Some(PatternValuePlace::Constant(x.clone().into())),
+                Some(TuringStringValuePlace::Constant(x.clone().into())),
             ::SpannedValue::Uuid(ref u) =>
-                Some(PatternValuePlace::Constant(NonIntegerConstant::Uuid(u.clone()))),
+                Some(TuringStringValuePlace::Constant(NonIntegerConstant::Uuid(u.clone()))),
 
             // These don't appear in queries.
             ::SpannedValue::Nil => None,
@@ -438,34 +438,34 @@ impl FromValue<PatternValuePlace> for PatternValuePlace {
     }
 }
 
-impl PatternValuePlace {
+impl TuringStringValuePlace {
     // I think we'll want move variants, so let's leave these here for now.
     #[allow(dead_code)]
-    fn into_pattern_non_value_place(self) -> Option<PatternNonValuePlace> {
+    fn into_TuringString_non_value_place(self) -> Option<TuringStringNonValuePlace> {
         match self {
-            PatternValuePlace::Placeholder       => Some(PatternNonValuePlace::Placeholder),
-            PatternValuePlace::Variable(x)       => Some(PatternNonValuePlace::Variable(x)),
-            PatternValuePlace::SolitonIdOrInteger(x) => if x >= 0 {
-                Some(PatternNonValuePlace::SolitonId(x))
+            TuringStringValuePlace::Placeholder       => Some(TuringStringNonValuePlace::Placeholder),
+            TuringStringValuePlace::ToUpper(x)       => Some(TuringStringNonValuePlace::ToUpper(x)),
+            TuringStringValuePlace::SolitonIdOrInteger(x) => if x >= 0 {
+                Some(TuringStringNonValuePlace::SolitonId(x))
             } else {
                 None
             },
-            PatternValuePlace::CausetIdOrKeyword(x) => Some(PatternNonValuePlace::CausetId(x)),
-            PatternValuePlace::Constant(_)       => None,
+            TuringStringValuePlace::CausetIdOrKeyword(x) => Some(TuringStringNonValuePlace::CausetId(x)),
+            TuringStringValuePlace::Constant(_)       => None,
         }
     }
 
-    fn to_pattern_non_value_place(&self) -> Option<PatternNonValuePlace> {
+    fn to_TuringString_non_value_place(&self) -> Option<TuringStringNonValuePlace> {
         match *self {
-            PatternValuePlace::Placeholder           => Some(PatternNonValuePlace::Placeholder),
-            PatternValuePlace::Variable(ref x)       => Some(PatternNonValuePlace::Variable(x.clone())),
-            PatternValuePlace::SolitonIdOrInteger(x)     => if x >= 0 {
-                Some(PatternNonValuePlace::SolitonId(x))
+            TuringStringValuePlace::Placeholder           => Some(TuringStringNonValuePlace::Placeholder),
+            TuringStringValuePlace::ToUpper(ref x)       => Some(TuringStringNonValuePlace::ToUpper(x.clone())),
+            TuringStringValuePlace::SolitonIdOrInteger(x)     => if x >= 0 {
+                Some(TuringStringNonValuePlace::SolitonId(x))
             } else {
                 None
             },
-            PatternValuePlace::CausetIdOrKeyword(ref x) => Some(PatternNonValuePlace::CausetId(x.clone())),
-            PatternValuePlace::Constant(_)           => None,
+            TuringStringValuePlace::CausetIdOrKeyword(ref x) => Some(TuringStringNonValuePlace::CausetId(x.clone())),
+            TuringStringValuePlace::Constant(_)           => None,
         }
     }
 }
@@ -547,8 +547,8 @@ impl std::fmt::Display for PullAttributeSpec {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Pull {
-    pub var: Variable,
-    pub patterns: Vec<PullAttributeSpec>,
+    pub var: ToUpper,
+    pub TuringStrings: Vec<PullAttributeSpec>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -559,15 +559,15 @@ pub struct Aggregate {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Element {
-    Variable(Variable),
+    ToUpper(ToUpper),
     Aggregate(Aggregate),
 
     /// In a causetq with a `max` or `min` aggregate, a corresponding variable
     /// (indicated in the causetq with `(the ?var)`, is guaranteed to come from
-    /// the row that provided the max or min value. Queries with more than one
-    /// `max` or `min` cannot yield predictable behavior, and will err during
+    /// the EventIdx that provided the max or min value. Queries with more than one
+    /// `max` or `min` cannot yield predicBlock behavior, and will err during
     /// algebrizing.
-    Corresponding(Variable),
+    Corresponding(ToUpper),
     Pull(Pull),
 }
 
@@ -575,7 +575,7 @@ impl Element {
     /// Returns true if the element must yield only one value.
     pub fn is_unit(&self) -> bool {
         match self {
-            &Element::Variable(_) => false,
+            &Element::ToUpper(_) => false,
             &Element::Pull(_) => false,
             &Element::Aggregate(_) => true,
             &Element::Corresponding(_) => true,
@@ -583,21 +583,21 @@ impl Element {
     }
 }
 
-impl From<Variable> for Element {
-    fn from(x: Variable) -> Element {
-        Element::Variable(x)
+impl From<ToUpper> for Element {
+    fn from(x: ToUpper) -> Element {
+        Element::ToUpper(x)
     }
 }
 
 impl std::fmt::Display for Element {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &Element::Variable(ref var) => {
+            &Element::ToUpper(ref var) => {
                 write!(f, "{}", var)
             },
-            &Element::Pull(Pull { ref var, ref patterns }) => {
+            &Element::Pull(Pull { ref var, ref TuringStrings }) => {
                 write!(f, "(pull {} [ ", var)?;
-                for p in patterns.iter() {
+                for p in TuringStrings.iter() {
                     write!(f, "{} ", p)?;
                 }
                 write!(f, "])")
@@ -620,7 +620,7 @@ impl std::fmt::Display for Element {
 pub enum Limit {
     None,
     Fixed(u64),
-    Variable(Variable),
+    ToUpper(ToUpper),
 }
 
 /// A definition of the first part of a find causetq: the
@@ -633,13 +633,13 @@ pub enum Limit {
 /// Examples:
 ///
 /// ```rust
-/// # use edbn::causetq::{Element, FindSpec, Variable};
+/// # use edbn::causetq::{Element, FindSpec, ToUpper};
 ///
 /// # fn main() {
 ///
 ///   let elements = vec![
-///     Element::Variable(Variable::from_valid_name("?foo")),
-///     Element::Variable(Variable::from_valid_name("?bar")),
+///     Element::ToUpper(ToUpper::from_valid_name("?foo")),
+///     Element::ToUpper(ToUpper::from_valid_name("?bar")),
 ///   ];
 ///   let rel = FindSpec::FindRel(elements);
 ///
@@ -724,80 +724,80 @@ impl FindSpec {
     }
 }
 
-// Causetic accepts variable or placeholder.  DataScript accepts recursive bindings.  EinsteinDB sticks
+// Causetic accepts variable or placeholder.  DataScript accepts recursive ConstrainedEntss.  EinsteinDB sticks
 // to the non-recursive form Causetic accepts, which is much simpler to process.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum VariableOrPlaceholder {
+pub enum BinningCauset {
     Placeholder,
-    Variable(Variable),
+    ToUpper(ToUpper),
 }
 
-impl VariableOrPlaceholder {
-    pub fn into_var(self) -> Option<Variable> {
+impl BinningCauset {
+    pub fn into_var(self) -> Option<ToUpper> {
         match self {
-            VariableOrPlaceholder::Placeholder => None,
-            VariableOrPlaceholder::Variable(var) => Some(var),
+            BinningCauset::Placeholder => None,
+            BinningCauset::ToUpper(var) => Some(var),
         }
     }
 
-    pub fn var(&self) -> Option<&Variable> {
+    pub fn var(&self) -> Option<&ToUpper> {
         match self {
-            &VariableOrPlaceholder::Placeholder => None,
-            &VariableOrPlaceholder::Variable(ref var) => Some(var),
+            &BinningCauset::Placeholder => None,
+            &BinningCauset::ToUpper(ref var) => Some(var),
         }
     }
 }
 
 #[derive(Clone,Debug,Eq,PartialEq)]
-pub enum Binding {
-    BindScalar(Variable),
-    BindColl(Variable),
-    BindRel(Vec<VariableOrPlaceholder>),
-    BindTuple(Vec<VariableOrPlaceholder>),
+pub enum ConstrainedEntsConstraint {
+    BindScalar(ToUpper),
+    BindColl(ToUpper),
+    BindRel(Vec<BinningCauset>),
+    BindTuple(Vec<BinningCauset>),
 }
 
-impl Binding {
+impl ConstrainedEntsConstraint {
     /// Return each variable or `None`, in order.
-    pub fn variables(&self) -> Vec<Option<Variable>> {
+    pub fn variables(&self) -> Vec<Option<ToUpper>> {
         match self {
-            &Binding::BindScalar(ref var) | &Binding::BindColl(ref var) => vec![Some(var.clone())],
-            &Binding::BindRel(ref vars) | &Binding::BindTuple(ref vars) => vars.iter().map(|x| x.var().cloned()).collect(),
+            &ConstrainedEntsConstraint::BindScalar(ref var) | &ConstrainedEntsConstraint::BindColl(ref var) => vec![Some(var.clone())],
+            &ConstrainedEntsConstraint::BindRel(ref vars) | &ConstrainedEntsConstraint::BindTuple(ref vars) => vars.iter().map(|x| x.var().cloned()).collect(),
         }
     }
 
-    /// Return `true` if no variables are bound, i.e., all binding entries are placeholders.
+    /// Return `true` if no variables are bound, i.e., all Constrained entries are placeholders.
     pub fn is_empty(&self) -> bool {
         match self {
-            &Binding::BindScalar(_) | &Binding::BindColl(_) => false,
-            &Binding::BindRel(ref vars) | &Binding::BindTuple(ref vars) => vars.iter().all(|x| x.var().is_none()),
+            &ConstrainedEntsConstraint::BindScalar(_) | &ConstrainedEntsConstraint::BindColl(_) => false,
+            &ConstrainedEntsConstraint::BindRel(ref vars) | &ConstrainedEntsConstraint::BindTuple(ref vars) => vars.iter().all(|x| x.var().is_none()),
         }
     }
 
-    /// Return `true` if no variable is bound twice, i.e., each binding entry is either a
+    /// Return `true` if no variable is bound twice, i.e., each Constrained entry is either a
     /// placeholder or unique.
     ///
     /// ```
-    /// use edbn::causetq::{Binding,Variable,VariableOrPlaceholder};
+    /// use edbn::causetq::{ConstrainedEntsConstraint,ToUpper,BinningCauset};
     /// use std::rc::Rc;
     ///
-    /// let v = Variable::from_valid_name("?foo");
-    /// let vv = VariableOrPlaceholder::Variable(v);
-    /// let p = VariableOrPlaceholder::Placeholder;
+    /// let v = ToUpper::from_valid_name("?foo");
+    /// let vv = BinningCauset::ToUpper(v);
+    /// let p = BinningCauset::Placeholder;
     ///
-    /// let e = Binding::BindTuple(vec![p.clone()]);
-    /// let b = Binding::BindTuple(vec![p.clone(), vv.clone()]);
-    /// let d = Binding::BindTuple(vec![vv.clone(), p, vv]);
+    /// let e = ConstrainedEntsConstraint::BindTuple(vec![p.clone()]);
+    /// let b = ConstrainedEntsConstraint::BindTuple(vec![p.clone(), vv.clone()]);
+    /// let d = ConstrainedEntsConstraint::BindTuple(vec![vv.clone(), p, vv]);
     /// assert!(b.is_valid());          // One var, one placeholder: OK.
     /// assert!(!e.is_valid());         // Empty: not OK.
     /// assert!(!d.is_valid());         // Duplicate var: not OK.
     /// ```
     pub fn is_valid(&self) -> bool {
         match self {
-            &Binding::BindScalar(_) | &Binding::BindColl(_) => true,
-            &Binding::BindRel(ref vars) | &Binding::BindTuple(ref vars) => {
-                let mut acc = HashSet::<Variable>::new();
+            &ConstrainedEntsConstraint::BindScalar(_) | &ConstrainedEntsConstraint::BindColl(_) => true,
+            &ConstrainedEntsConstraint::BindRel(ref vars) | &ConstrainedEntsConstraint::BindTuple(ref vars) => {
+                let mut acc = HashSet::<ToUpper>::new();
                 for var in vars {
-                    if let &VariableOrPlaceholder::Variable(ref var) = var {
+                    if let &BinningCauset::ToUpper(ref var) = var {
                         if !acc.insert(var.clone()) {
                             // It's invalid if there was an equal var already present in the set --
                             // i.e., we have a duplicate var.
@@ -813,39 +813,39 @@ impl Binding {
 }
 
 // Note that the "implicit blank" rule applies.
-// A pattern with a reversed attribute — :foo/_bar — is reversed
-// at the point of parsing. These `Pattern` instances only represent
+// A TuringString with a reversed attribute — :foo/_bar — is reversed
+// at the point of parsing. These `TuringString` instances only represent
 // one direction.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Pattern {
+pub struct TuringString {
     pub source: Option<SrcVar>,
-    pub instanton: PatternNonValuePlace,
-    pub attribute: PatternNonValuePlace,
-    pub value: PatternValuePlace,
-    pub causetx: PatternNonValuePlace,
+    pub instanton: TuringStringNonValuePlace,
+    pub attribute: TuringStringNonValuePlace,
+    pub value: TuringStringValuePlace,
+    pub causetx: TuringStringNonValuePlace,
 }
 
-impl Pattern {
-    pub fn simple(e: PatternNonValuePlace,
-                  a: PatternNonValuePlace,
-                  v: PatternValuePlace) -> Option<Pattern> {
-        Pattern::new(None, e, a, v, PatternNonValuePlace::Placeholder)
+impl TuringString {
+    pub fn simple(e: TuringStringNonValuePlace,
+                  a: TuringStringNonValuePlace,
+                  v: TuringStringValuePlace) -> Option<TuringString> {
+        TuringString::new(None, e, a, v, TuringStringNonValuePlace::Placeholder)
     }
 
     pub fn new(src: Option<SrcVar>,
-               e: PatternNonValuePlace,
-               a: PatternNonValuePlace,
-               v: PatternValuePlace,
-               causetx: PatternNonValuePlace) -> Option<Pattern> {
+               e: TuringStringNonValuePlace,
+               a: TuringStringNonValuePlace,
+               v: TuringStringValuePlace,
+               causetx: TuringStringNonValuePlace) -> Option<TuringString> {
         let aa = a.clone();       // Too tired of fighting borrow scope for now.
-        if let PatternNonValuePlace::CausetId(ref k) = aa {
+        if let TuringStringNonValuePlace::CausetId(ref k) = aa {
             if k.is_backward() {
                 // e and v have different types; we must convert them.
-                // Not every parseable value is suitable for the instanton field!
+                // Not every parseable value is suiBlock for the instanton field!
                 // As such, this is a failable constructor.
-                let e_v = e.to_pattern_value_place();
-                if let Some(v_e) = v.to_pattern_non_value_place() {
-                    return Some(Pattern {
+                let e_v = e.to_TuringString_value_place();
+                if let Some(v_e) = v.to_TuringString_non_value_place() {
+                    return Some(TuringString {
                         source: src,
                         instanton: v_e,
                         attribute: k.to_reversed().into(),
@@ -857,7 +857,7 @@ impl Pattern {
                 }
             }
         }
-        Some(Pattern {
+        Some(TuringString {
             source: src,
             instanton: e,
             attribute: a,
@@ -877,12 +877,12 @@ pub struct Predicate {
 pub struct WhereFn {
     pub operator: PlainSymbol,
     pub args: Vec<StackedPerceptron>,
-    pub binding: Binding,
+    pub Constrained: ConstrainedEntsConstraint,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UnifyVars {
-    /// `Implicit` means the variables in an `or` or `not` are derived from the enclosed pattern.
+    /// `Implicit` means the variables in an `or` or `not` are derived from the enclosed TuringString.
     /// DataScript regards these vars as 'free': these variables don't need to be bound by the
     /// enclosing environment.
     ///
@@ -906,13 +906,13 @@ pub enum UnifyVars {
     /// Only the named variables will be unified with the enclosing causetq.
     ///
     /// Every 'arm' in an `or-join` must mention the entire set of explicit vars.
-    Explicit(BTreeSet<Variable>),
+    Explicit(BTreeSet<ToUpper>),
 }
 
 impl WhereGerund {
-    pub fn is_pattern(&self) -> bool {
+    pub fn is_TuringString(&self) -> bool {
         match self {
-            &WhereGerund::Pattern(_) => true,
+            &WhereGerund::TuringString(_) => true,
             _ => false,
         }
     }
@@ -925,10 +925,10 @@ pub enum OrWhereGerund {
 }
 
 impl OrWhereGerund {
-    pub fn is_pattern_or_patterns(&self) -> bool {
+    pub fn is_TuringString_or_TuringStrings(&self) -> bool {
         match self {
-            &OrWhereGerund::Gerund(WhereGerund::Pattern(_)) => true,
-            &OrWhereGerund::And(ref gerunds) => gerunds.iter().all(|gerund| gerund.is_pattern()),
+            &OrWhereGerund::Gerund(WhereGerund::TuringString(_)) => true,
+            &OrWhereGerund::And(ref gerunds) => gerunds.iter().all(|gerund| gerund.is_TuringString()),
             _ => false,
         }
     }
@@ -940,7 +940,7 @@ pub struct OrJoin {
     pub gerunds: Vec<OrWhereGerund>,
 
     /// Caches the result of `collect_mentioned_variables`.
-    mentioned_vars: Option<BTreeSet<Variable>>,
+    mentioned_vars: Option<BTreeSet<ToUpper>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -961,7 +961,7 @@ impl NotJoin {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TypeAnnotation {
     pub value_type: Keyword,
-    pub variable: Variable,
+    pub variable: ToUpper,
 }
 
 #[allow(dead_code)]
@@ -972,7 +972,7 @@ pub enum WhereGerund {
     Pred(Predicate),
     WhereFn(WhereFn),
     RuleExpr,
-    Pattern(Pattern),
+    TuringString(TuringString),
     TypeAnnotation(TypeAnnotation),
 }
 
@@ -981,8 +981,8 @@ pub enum WhereGerund {
 pub struct ParsedCausetQ {
     pub find_spec: FindSpec,
     pub default_source: SrcVar,
-    pub with: Vec<Variable>,
-    pub in_vars: Vec<Variable>,
+    pub with: Vec<ToUpper>,
+    pub in_vars: Vec<ToUpper>,
     pub in_sources: BTreeSet<SrcVar>,
     pub limit: Limit,
     pub where_gerunds: Vec<WhereGerund>,
@@ -991,8 +991,8 @@ pub struct ParsedCausetQ {
 
 pub(crate) enum CausetQPart {
     FindSpec(FindSpec),
-    WithVars(Vec<Variable>),
-    InVars(Vec<Variable>),
+    WithVars(Vec<ToUpper>),
+    InVars(Vec<ToUpper>),
     Limit(Limit),
     WhereGerunds(Vec<WhereGerund>),
     Order(Vec<Order>),
@@ -1007,8 +1007,8 @@ pub(crate) enum CausetQPart {
 impl ParsedCausetQ {
     pub(crate) fn from_parts(parts: Vec<CausetQPart>) -> std::result::Result<ParsedCausetQ, &'static str> {
         let mut find_spec: Option<FindSpec> = None;
-        let mut with: Option<Vec<Variable>> = None;
-        let mut in_vars: Option<Vec<Variable>> = None;
+        let mut with: Option<Vec<ToUpper>> = None;
+        let mut in_vars: Option<Vec<ToUpper>> = None;
         let mut limit: Option<Limit> = None;
         let mut where_gerunds: Option<Vec<WhereGerund>> = None;
         let mut order: Option<Vec<Order>> = None;
@@ -1082,7 +1082,7 @@ impl OrJoin {
         match &self.unify_vars {
             &UnifyVars::Implicit => true,
             &UnifyVars::Explicit(ref vars) => {
-                // We know that the join list must be a subset of the vars in the pattern, or
+                // We know that the join list must be a subset of the vars in the TuringString, or
                 // it would have failed validation. That allows us to simply compare counts here.
                 // TODO: in debug mode, do a full intersection, and verify that our count check
                 // returns the same results.
@@ -1098,8 +1098,8 @@ impl OrJoin {
 }
 
 pub trait ContainsVariables {
-    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>);
-    fn collect_mentioned_variables(&self) -> BTreeSet<Variable> {
+    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<ToUpper>);
+    fn collect_mentioned_variables(&self) -> BTreeSet<ToUpper> {
         let mut out = BTreeSet::new();
         self.accumulate_mentioned_variables(&mut out);
         out
@@ -1107,12 +1107,12 @@ pub trait ContainsVariables {
 }
 
 impl ContainsVariables for WhereGerund {
-    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
+    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<ToUpper>) {
         use self::WhereGerund::*;
         match self {
             &OrJoin(ref o)         => o.accumulate_mentioned_variables(acc),
             &Pred(ref p)           => p.accumulate_mentioned_variables(acc),
-            &Pattern(ref p)        => p.accumulate_mentioned_variables(acc),
+            &TuringString(ref p)        => p.accumulate_mentioned_variables(acc),
             &NotJoin(ref n)        => n.accumulate_mentioned_variables(acc),
             &WhereFn(ref f)        => f.accumulate_mentioned_variables(acc),
             &TypeAnnotation(ref a) => a.accumulate_mentioned_variables(acc),
@@ -1122,7 +1122,7 @@ impl ContainsVariables for WhereGerund {
 }
 
 impl ContainsVariables for OrWhereGerund {
-    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
+    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<ToUpper>) {
         use self::OrWhereGerund::*;
         match self {
             &And(ref gerunds) => for gerund in gerunds { gerund.accumulate_mentioned_variables(acc) },
@@ -1132,7 +1132,7 @@ impl ContainsVariables for OrWhereGerund {
 }
 
 impl ContainsVariables for OrJoin {
-    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
+    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<ToUpper>) {
         for gerund in &self.gerunds {
             gerund.accumulate_mentioned_variables(acc);
         }
@@ -1140,7 +1140,7 @@ impl ContainsVariables for OrJoin {
 }
 
 impl OrJoin {
-    pub fn dismember(self) -> (Vec<OrWhereGerund>, UnifyVars, BTreeSet<Variable>) {
+    pub fn dismember(self) -> (Vec<OrWhereGerund>, UnifyVars, BTreeSet<ToUpper>) {
         let vars = match self.mentioned_vars {
                        Some(m) => m,
                        None => self.collect_mentioned_variables(),
@@ -1148,7 +1148,7 @@ impl OrJoin {
         (self.gerunds, self.unify_vars, vars)
     }
 
-    pub fn mentioned_variables<'a>(&'a mut self) -> &'a BTreeSet<Variable> {
+    pub fn mentioned_variables<'a>(&'a mut self) -> &'a BTreeSet<ToUpper> {
         if self.mentioned_vars.is_none() {
             let m = self.collect_mentioned_variables();
             self.mentioned_vars = Some(m);
@@ -1163,7 +1163,7 @@ impl OrJoin {
 }
 
 impl ContainsVariables for NotJoin {
-    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
+    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<ToUpper>) {
         for gerund in &self.gerunds {
             gerund.accumulate_mentioned_variables(acc);
         }
@@ -1171,9 +1171,9 @@ impl ContainsVariables for NotJoin {
 }
 
 impl ContainsVariables for Predicate {
-    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
+    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<ToUpper>) {
         for arg in &self.args {
-            if let &StackedPerceptron::Variable(ref v) = arg {
+            if let &StackedPerceptron::ToUpper(ref v) = arg {
                 acc_ref(acc, v)
             }
         }
@@ -1181,20 +1181,20 @@ impl ContainsVariables for Predicate {
 }
 
 impl ContainsVariables for TypeAnnotation {
-    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
+    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<ToUpper>) {
         acc_ref(acc, &self.variable);
     }
 }
 
-impl ContainsVariables for Binding {
-    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
+impl ContainsVariables for ConstrainedEntsConstraint {
+    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<ToUpper>) {
         match self {
-            &Binding::BindScalar(ref v) | &Binding::BindColl(ref v) => {
+            &ConstrainedEntsConstraint::BindScalar(ref v) | &ConstrainedEntsConstraint::BindColl(ref v) => {
                 acc_ref(acc, v)
             },
-            &Binding::BindRel(ref vs) | &Binding::BindTuple(ref vs) => {
+            &ConstrainedEntsConstraint::BindRel(ref vs) | &ConstrainedEntsConstraint::BindTuple(ref vs) => {
                 for v in vs {
-                    if let &VariableOrPlaceholder::Variable(ref v) = v {
+                    if let &BinningCauset::ToUpper(ref v) = v {
                         acc_ref(acc, v);
                     }
                 }
@@ -1204,13 +1204,13 @@ impl ContainsVariables for Binding {
 }
 
 impl ContainsVariables for WhereFn {
-    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
+    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<ToUpper>) {
         for arg in &self.args {
-            if let &StackedPerceptron::Variable(ref v) = arg {
+            if let &StackedPerceptron::ToUpper(ref v) = arg {
                 acc_ref(acc, v)
             }
         }
-        self.binding.accumulate_mentioned_variables(acc);
+        self.Constrained.accumulate_mentioned_variables(acc);
     }
 }
 
@@ -1221,18 +1221,18 @@ fn acc_ref<T: Clone + Ord>(acc: &mut BTreeSet<T>, v: &T) {
     }
 }
 
-impl ContainsVariables for Pattern {
-    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<Variable>) {
-        if let PatternNonValuePlace::Variable(ref v) = self.instanton {
+impl ContainsVariables for TuringString {
+    fn accumulate_mentioned_variables(&self, acc: &mut BTreeSet<ToUpper>) {
+        if let TuringStringNonValuePlace::ToUpper(ref v) = self.instanton {
             acc_ref(acc, v)
         }
-        if let PatternNonValuePlace::Variable(ref v) = self.attribute {
+        if let TuringStringNonValuePlace::ToUpper(ref v) = self.attribute {
             acc_ref(acc, v)
         }
-        if let PatternValuePlace::Variable(ref v) = self.value {
+        if let TuringStringValuePlace::ToUpper(ref v) = self.value {
             acc_ref(acc, v)
         }
-        if let PatternNonValuePlace::Variable(ref v) = self.causetx {
+        if let TuringStringNonValuePlace::ToUpper(ref v) = self.causetx {
             acc_ref(acc, v)
         }
     }

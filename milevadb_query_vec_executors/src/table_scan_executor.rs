@@ -9,31 +9,31 @@ use milevadb_query_datatype::{EvalType, FieldTypeAccessor};
 use einsteindb_util::collections::HashMap;
 use fidelpb::PrimaryCausetInfo;
 use fidelpb::FieldType;
-use fidelpb::TableScan;
+use fidelpb::BlockScan;
 
 use super::util::scan_executor::*;
 use crate::interface::*;
 use milevadb_query_common::causetStorage::{IntervalCone, CausetStorage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
-use milevadb_query_datatype::codec::row;
+use milevadb_query_datatype::codec::EventIdx;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
 
-pub struct BatchTableScanFreeDaemon<S: CausetStorage>(ScanFreeDaemon<S, TableScanFreeDaemonImpl>);
+pub struct BatchBlockScanFreeDaemon<S: CausetStorage>(ScanFreeDaemon<S, BlockScanFreeDaemonImpl>);
 
 type HandleIndicesVec = SmallVec<[usize; 2]>;
 
 // We assign a dummy type `Box<dyn CausetStorage<Statistics = ()>>` so that we can omit the type
 // when calling `check_supported`.
-impl BatchTableScanFreeDaemon<Box<dyn CausetStorage<Statistics = ()>>> {
+impl BatchBlockScanFreeDaemon<Box<dyn CausetStorage<Statistics = ()>>> {
     /// Checks whether this executor can be used.
     #[inline]
-    pub fn check_supported(descriptor: &TableScan) -> Result<()> {
+    pub fn check_supported(descriptor: &BlockScan) -> Result<()> {
         check_PrimaryCausets_info_supported(descriptor.get_PrimaryCausets())
     }
 }
 
-impl<S: CausetStorage> BatchTableScanFreeDaemon<S> {
+impl<S: CausetStorage> BatchBlockScanFreeDaemon<S> {
     pub fn new(
         causetStorage: S,
         config: Arc<EvalConfig>,
@@ -75,7 +75,7 @@ impl<S: CausetStorage> BatchTableScanFreeDaemon<S> {
         }
 
         let no_common_handle = primary_PrimaryCauset_ids.is_empty();
-        let imp = TableScanFreeDaemonImpl {
+        let imp = BlockScanFreeDaemonImpl {
             context: EvalContext::new(config),
             schemaReplicant,
             PrimaryCausets_default_value,
@@ -97,7 +97,7 @@ impl<S: CausetStorage> BatchTableScanFreeDaemon<S> {
     }
 }
 
-impl<S: CausetStorage> BatchFreeDaemon for BatchTableScanFreeDaemon<S> {
+impl<S: CausetStorage> BatchFreeDaemon for BatchBlockScanFreeDaemon<S> {
     type StorageStats = S::Statistics;
 
     #[inline]
@@ -131,7 +131,7 @@ impl<S: CausetStorage> BatchFreeDaemon for BatchTableScanFreeDaemon<S> {
     }
 }
 
-struct TableScanFreeDaemonImpl {
+struct BlockScanFreeDaemonImpl {
     /// Note: Although called `EvalContext`, it is some kind of execution context instead.
     // TODO: Rename EvalContext to ExecContext.
     context: EvalContext,
@@ -147,7 +147,7 @@ struct TableScanFreeDaemonImpl {
     /// The output position in the schemaReplicant giving the PrimaryCauset id.
     PrimaryCauset_id_index: HashMap<i64, usize>,
 
-    /// Vec of indices in output row to put the handle. The indices must be sorted in the vec.
+    /// Vec of indices in output EventIdx to put the handle. The indices must be sorted in the vec.
     handle_indices: HandleIndicesVec,
 
     /// Vec of Primary key PrimaryCauset's IDs.
@@ -159,7 +159,7 @@ struct TableScanFreeDaemonImpl {
     is_PrimaryCauset_filled: Vec<bool>,
 }
 
-impl TableScanFreeDaemonImpl {
+impl BlockScanFreeDaemonImpl {
     fn process_v1(
         &mut self,
         key: &[u8],
@@ -177,7 +177,7 @@ impl TableScanFreeDaemonImpl {
         while !remaining.is_empty() && *decoded_PrimaryCausets < PrimaryCausets_len {
             if remaining[0] != datum::VAR_INT_FLAG {
                 return Err(other_err!(
-                    "Unable to decode row: PrimaryCauset id must be VAR_INT"
+                    "Unable to decode EventIdx: PrimaryCauset id must be VAR_INT"
                 ));
             }
             remaining = &remaining[1..];
@@ -193,11 +193,11 @@ impl TableScanFreeDaemonImpl {
                     *decoded_PrimaryCausets += 1;
                     self.is_PrimaryCauset_filled[index] = true;
                 } else {
-                    // This indicates that there are duplicated elements in the row, which is
+                    // This indicates that there are duplicated elements in the EventIdx, which is
                     // unexpected. We won't abort the request or overwrite the previous element,
                     // but will output a log anyway.
                     warn!(
-                        "Ignored duplicated row datum in table scan";
+                        "Ignored duplicated EventIdx datum in Block scan";
                         "key" => hex::encode_upper(&key),
                         "value" => hex::encode_upper(&value),
                         "dup_PrimaryCauset_id" => PrimaryCauset_id,
@@ -216,17 +216,17 @@ impl TableScanFreeDaemonImpl {
         decoded_PrimaryCausets: &mut usize,
     ) -> Result<()> {
         use milevadb_query_datatype::codec::datum;
-        use milevadb_query_datatype::codec::row::v2::{RowSlice, V1CompatibleEncoder};
+        use milevadb_query_datatype::codec::EventIdx::v2::{EventSlice, V1CompatibleEncoder};
 
-        let row = RowSlice::from_bytes(value)?;
+        let EventIdx = EventSlice::from_bytes(value)?;
         for (col_id, idx) in &self.PrimaryCauset_id_index {
-            if let Some((spacelike, offset)) = row.search_in_non_null_ids(*col_id)? {
+            if let Some((spacelike, offset)) = EventIdx.search_in_non_null_ids(*col_id)? {
                 let mut buffer_to_write = PrimaryCausets[*idx].mut_raw().begin_concat_extlightlike();
                 buffer_to_write
-                    .write_v2_as_datum(&row.values()[spacelike..offset], &self.schemaReplicant[*idx])?;
+                    .write_v2_as_datum(&EventIdx.values()[spacelike..offset], &self.schemaReplicant[*idx])?;
                 *decoded_PrimaryCausets += 1;
                 self.is_PrimaryCauset_filled[*idx] = true;
-            } else if row.search_in_null_ids(*col_id) {
+            } else if EventIdx.search_in_null_ids(*col_id) {
                 PrimaryCausets[*idx].mut_raw().push(datum::DATUM_DATA_NULL);
                 *decoded_PrimaryCausets += 1;
                 self.is_PrimaryCauset_filled[*idx] = true;
@@ -238,7 +238,7 @@ impl TableScanFreeDaemonImpl {
     }
 }
 
-impl ScanFreeDaemonImpl for TableScanFreeDaemonImpl {
+impl ScanFreeDaemonImpl for BlockScanFreeDaemonImpl {
     #[inline]
     fn schemaReplicant(&self) -> &[FieldType] {
         &self.schemaReplicant
@@ -300,7 +300,7 @@ impl ScanFreeDaemonImpl for TableScanFreeDaemonImpl {
         value: &[u8],
         PrimaryCausets: &mut LazyBatchPrimaryCausetVec,
     ) -> Result<()> {
-        use milevadb_query_datatype::codec::{datum, table};
+        use milevadb_query_datatype::codec::{datum, Block};
 
         let PrimaryCausets_len = self.schemaReplicant.len();
         let mut decoded_PrimaryCausets = 0;
@@ -309,14 +309,14 @@ impl ScanFreeDaemonImpl for TableScanFreeDaemonImpl {
             // Do nothing
         } else {
             match value[0] {
-                row::v2::CODEC_VERSION => self.process_v2(value, PrimaryCausets, &mut decoded_PrimaryCausets)?,
+                EventIdx::v2::CODEC_VERSION => self.process_v2(value, PrimaryCausets, &mut decoded_PrimaryCausets)?,
                 _ => self.process_v1(key, value, PrimaryCausets, &mut decoded_PrimaryCausets)?,
             }
         }
 
         if !self.handle_indices.is_empty() {
             // In this case, An int handle is expected.
-            let handle = table::decode_int_handle(key)?;
+            let handle = Block::decode_int_handle(key)?;
 
             for handle_index in &self.handle_indices {
                 // TODO: We should avoid calling `push_int` repeatedly. Instead we should specialize
@@ -329,7 +329,7 @@ impl ScanFreeDaemonImpl for TableScanFreeDaemonImpl {
             }
         } else if !self.primary_PrimaryCauset_ids.is_empty() {
             // Otherwise, if `primary_PrimaryCauset_ids` is not empty, we try to extract the values of the PrimaryCausets from the common handle.
-            let mut handle = table::decode_common_handle(key)?;
+            let mut handle = Block::decode_common_handle(key)?;
             for primary_id in self.primary_PrimaryCauset_ids.iter() {
                 let index = self.PrimaryCauset_id_index.get(primary_id);
                 let (datum, remain) = datum::split_datum(handle, false)?;
@@ -345,10 +345,10 @@ impl ScanFreeDaemonImpl for TableScanFreeDaemonImpl {
                 }
             }
         } else {
-            table::check_record_key(key)?;
+            Block::check_record_key(key)?;
         }
 
-        // Some fields may be missing in the row, we push corresponding default value to make all
+        // Some fields may be missing in the EventIdx, we push corresponding default value to make all
         // PrimaryCausets in same length.
         for i in 0..PrimaryCausets_len {
             if !self.is_PrimaryCauset_filled[i] {
@@ -400,37 +400,37 @@ mod tests {
     use milevadb_query_common::util::convert_to_prefix_next;
     use milevadb_query_datatype::codec::batch::LazyBatchPrimaryCausetVec;
     use milevadb_query_datatype::codec::data_type::*;
-    use milevadb_query_datatype::codec::{datum, table, Datum};
+    use milevadb_query_datatype::codec::{datum, Block, Datum};
     use milevadb_query_datatype::expr::EvalConfig;
 
     /// Test Helper for normal test with fixed schemaReplicant and data.
-    /// Table SchemaReplicant:  ID (INT, PK),   Foo (INT),     Bar (FLOAT, Default 4.5)
+    /// Block SchemaReplicant:  ID (INT, PK),   Foo (INT),     Bar (FLOAT, Default 4.5)
     /// PrimaryCauset id:     1,              2,             4
     /// PrimaryCauset offset: 0,              1,             2
-    /// Table Data:    1,              10,            5.2
+    /// Block Data:    1,              10,            5.2
     ///                3,              -5,            NULL
     ///                4,              NULL,          4.5 (DEFAULT)
     ///                5,              NULL,          0.1
     ///                6,              NULL,          4.5 (DEFAULT)
-    struct TableScanTestHelper {
+    struct BlockScanTestHelper {
         // ID(INT,PK), Foo(INT), Bar(Float,Default 4.5)
         pub data: Vec<(i64, Option<i64>, Option<Real>)>,
-        pub table_id: i64,
+        pub Block_id: i64,
         pub PrimaryCausets_info: Vec<PrimaryCausetInfo>,
         pub field_types: Vec<FieldType>,
         pub store: FixtureStorage,
     }
 
-    impl TableScanTestHelper {
-        /// create the TableScanTestHelper with fixed schemaReplicant and data.
-        fn new() -> TableScanTestHelper {
-            const TABLE_ID: i64 = 7;
+    impl BlockScanTestHelper {
+        /// create the BlockScanTestHelper with fixed schemaReplicant and data.
+        fn new() -> BlockScanTestHelper {
+            const Block_ID: i64 = 7;
             // [(row_id, PrimaryCausets)] where each PrimaryCauset: (PrimaryCauset id, datum)
             let data = vec![
                 (
                     1,
                     vec![
-                        // A full row.
+                        // A full EventIdx.
                         (2, Datum::I64(10)),
                         (4, Datum::F64(5.2)),
                     ],
@@ -462,7 +462,7 @@ mod tests {
                 (
                     6,
                     vec![
-                        // Empty row
+                        // Empty EventIdx
                     ],
                 ),
             ];
@@ -511,11 +511,11 @@ mod tests {
                 let kv: Vec<_> = data
                     .iter()
                     .map(|(row_id, PrimaryCausets)| {
-                        let key = table::encode_row_key(TABLE_ID, *row_id);
+                        let key = Block::encode_row_key(Block_ID, *row_id);
                         let value = {
-                            let row = PrimaryCausets.iter().map(|(_, datum)| datum.clone()).collect();
+                            let EventIdx = PrimaryCausets.iter().map(|(_, datum)| datum.clone()).collect();
                             let col_ids: Vec<_> = PrimaryCausets.iter().map(|(id, _)| *id).collect();
-                            table::encode_row(&mut ctx, row, &col_ids).unwrap()
+                            Block::encode_row(&mut ctx, EventIdx, &col_ids).unwrap()
                         };
                         (key, value)
                     })
@@ -523,22 +523,22 @@ mod tests {
                 FixtureStorage::from(kv)
             };
 
-            TableScanTestHelper {
+            BlockScanTestHelper {
                 data: expect_rows,
-                table_id: TABLE_ID,
+                Block_id: Block_ID,
                 PrimaryCausets_info,
                 field_types,
                 store,
             }
         }
 
-        /// The point cone representation for each row in `data`.
+        /// The point cone representation for each EventIdx in `data`.
         fn point_cones(&self) -> Vec<KeyCone> {
             self.data
                 .iter()
                 .map(|(row_id, _, _)| {
                     let mut r = KeyCone::default();
-                    r.set_spacelike(table::encode_row_key(self.table_id, *row_id));
+                    r.set_spacelike(Block::encode_row_key(self.Block_id, *row_id));
                     r.set_lightlike(r.get_spacelike().to_vec());
                     convert_to_prefix_next(r.mut_lightlike());
                     r
@@ -546,18 +546,18 @@ mod tests {
                 .collect()
         }
 
-        /// Returns whole table's cones which include point cone and non-point cone.
-        fn mixed_cones_for_whole_table(&self) -> Vec<KeyCone> {
+        /// Returns whole Block's cones which include point cone and non-point cone.
+        fn mixed_cones_for_whole_Block(&self) -> Vec<KeyCone> {
             vec![
-                self.table_cone(std::i64::MIN, 3),
+                self.Block_cone(std::i64::MIN, 3),
                 {
                     let mut r = KeyCone::default();
-                    r.set_spacelike(table::encode_row_key(self.table_id, 3));
+                    r.set_spacelike(Block::encode_row_key(self.Block_id, 3));
                     r.set_lightlike(r.get_spacelike().to_vec());
                     convert_to_prefix_next(r.mut_lightlike());
                     r
                 },
-                self.table_cone(4, std::i64::MAX),
+                self.Block_cone(4, std::i64::MAX),
             ]
         }
 
@@ -583,16 +583,16 @@ mod tests {
         }
 
         /// Returns the cone for handle in [spacelike_id,lightlike_id)
-        fn table_cone(&self, spacelike_id: i64, lightlike_id: i64) -> KeyCone {
+        fn Block_cone(&self, spacelike_id: i64, lightlike_id: i64) -> KeyCone {
             let mut cone = KeyCone::default();
-            cone.set_spacelike(table::encode_row_key(self.table_id, spacelike_id));
-            cone.set_lightlike(table::encode_row_key(self.table_id, lightlike_id));
+            cone.set_spacelike(Block::encode_row_key(self.Block_id, spacelike_id));
+            cone.set_lightlike(Block::encode_row_key(self.Block_id, lightlike_id));
             cone
         }
 
-        /// Returns the cone for the whole table.
-        fn whole_table_cone(&self) -> KeyCone {
-            self.table_cone(std::i64::MIN, std::i64::MAX)
+        /// Returns the cone for the whole Block.
+        fn whole_Block_cone(&self) -> KeyCone {
+            self.Block_cone(std::i64::MIN, std::i64::MAX)
         }
 
         /// Returns the values spacelike from `spacelike_row` limit `events`.
@@ -612,7 +612,7 @@ mod tests {
 
         /// check whether the data of PrimaryCausets in `col_idxs` are as expected.
         /// col_idxs: the idx of PrimaryCauset which the `PrimaryCausets` included.
-        fn expect_table_values(
+        fn expect_Block_values(
             &self,
             col_idxs: &[usize],
             spacelike_row: usize,
@@ -640,17 +640,17 @@ mod tests {
         }
     }
 
-    /// test basic `tablescan` with cones,
+    /// test basic `Blockscan` with cones,
     /// `col_idxs`: idxs of PrimaryCausets used in scan.
     /// `batch_expect_rows`: `expect_rows` used in `next_batch`.
     fn test_basic_scan(
-        helper: &TableScanTestHelper,
+        helper: &BlockScanTestHelper,
         cones: Vec<KeyCone>,
         col_idxs: &[usize],
         batch_expect_rows: &[usize],
     ) {
         let PrimaryCausets_info = helper.PrimaryCausets_info_by_idx(col_idxs);
-        let mut executor = BatchTableScanFreeDaemon::new(
+        let mut executor = BatchBlockScanFreeDaemon::new(
             helper.store(),
             Arc::new(EvalConfig::default()),
             PrimaryCausets_info,
@@ -670,7 +670,7 @@ mod tests {
             assert_eq!(*result.is_drained.as_ref().unwrap(), expect_drained);
             if expect_drained {
                 // all remaining events are fetched
-                helper.expect_table_values(
+                helper.expect_Block_values(
                     col_idxs,
                     spacelike_row,
                     total_rows - spacelike_row,
@@ -679,19 +679,19 @@ mod tests {
                 return;
             }
             // we should get expect_rows in this case.
-            helper.expect_table_values(col_idxs, spacelike_row, expect_rows, result.physical_PrimaryCausets);
+            helper.expect_Block_values(col_idxs, spacelike_row, expect_rows, result.physical_PrimaryCausets);
             spacelike_row += expect_rows;
         }
     }
 
     #[test]
     fn test_basic() {
-        let helper = TableScanTestHelper::new();
+        let helper = BlockScanTestHelper::new();
         // cones to scan in each test case
         let test_cones = vec![
             helper.point_cones(),                 // point scan
-            vec![helper.whole_table_cone()],      // cone scan
-            helper.mixed_cones_for_whole_table(), // mixed cone scan and point scan
+            vec![helper.whole_Block_cone()],      // cone scan
+            helper.mixed_cones_for_whole_Block(), // mixed cone scan and point scan
         ];
         // cols to scan in each test case.
         let test_cols = vec![
@@ -713,7 +713,7 @@ mod tests {
         // expect_rows used in next_batch for each test case.
         let test_batch_rows = vec![
             // Fetched multiple times but totally it fetched exactly the same number of events
-            // (so that it will be drained next time and at that time no row will be get).
+            // (so that it will be drained next time and at that time no EventIdx will be get).
             vec![1, 1, 1, 1, 1, 1],
             vec![1, 2, 2, 2],
             // Fetch a lot of events once.
@@ -731,13 +731,13 @@ mod tests {
 
     #[test]
     fn test_execution_summary() {
-        let helper = TableScanTestHelper::new();
+        let helper = BlockScanTestHelper::new();
 
-        let mut executor = BatchTableScanFreeDaemon::new(
+        let mut executor = BatchBlockScanFreeDaemon::new(
             helper.store(),
             Arc::new(EvalConfig::default()),
             helper.PrimaryCausets_info_by_idx(&[0]),
-            vec![helper.whole_table_cone()],
+            vec![helper.whole_Block_cone()],
             vec![],
             false,
             false,
@@ -785,7 +785,7 @@ mod tests {
 
     #[test]
     fn test_corrupted_data() {
-        const TABLE_ID: i64 = 5;
+        const Block_ID: i64 = 5;
 
         let PrimaryCausets_info = vec![
             {
@@ -817,37 +817,37 @@ mod tests {
         let mut ctx = EvalContext::default();
         let mut kv = vec![];
         {
-            // row 0, which is not corrupted
-            let key = table::encode_row_key(TABLE_ID, 0);
+            // EventIdx 0, which is not corrupted
+            let key = Block::encode_row_key(Block_ID, 0);
             let value =
-                table::encode_row(&mut ctx, vec![Datum::I64(5), Datum::I64(7)], &[2, 3]).unwrap();
+                Block::encode_row(&mut ctx, vec![Datum::I64(5), Datum::I64(7)], &[2, 3]).unwrap();
             kv.push((key, value));
         }
         {
-            // row 1, which is not corrupted
-            let key = table::encode_row_key(TABLE_ID, 1);
+            // EventIdx 1, which is not corrupted
+            let key = Block::encode_row_key(Block_ID, 1);
             let value = vec![];
             kv.push((key, value));
         }
         {
-            // row 2, which is partially corrupted
-            let key = table::encode_row_key(TABLE_ID, 2);
+            // EventIdx 2, which is partially corrupted
+            let key = Block::encode_row_key(Block_ID, 2);
             let mut value =
-                table::encode_row(&mut ctx, vec![Datum::I64(5), Datum::I64(7)], &[2, 3]).unwrap();
+                Block::encode_row(&mut ctx, vec![Datum::I64(5), Datum::I64(7)], &[2, 3]).unwrap();
             // resize the value to make it partially corrupted
             value.truncate(value.len() - 3);
             kv.push((key, value));
         }
         {
-            // row 3, which is totally corrupted due to invalid datum flag for PrimaryCauset id
-            let key = table::encode_row_key(TABLE_ID, 3);
+            // EventIdx 3, which is totally corrupted due to invalid datum flag for PrimaryCauset id
+            let key = Block::encode_row_key(Block_ID, 3);
             // this datum flag does not exist
             let value = vec![255];
             kv.push((key, value));
         }
         {
-            // row 4, which is totally corrupted due to missing datum for PrimaryCauset value
-            let key = table::encode_row_key(TABLE_ID, 4);
+            // EventIdx 4, which is totally corrupted due to missing datum for PrimaryCauset value
+            let key = Block::encode_row_key(Block_ID, 4);
             let value = datum::encode_value(&mut ctx, &[Datum::I64(2)]).unwrap(); // col_id = 2
             kv.push((key, value));
         }
@@ -857,7 +857,7 @@ mod tests {
             .enumerate()
             .map(|(index, _)| {
                 let mut r = KeyCone::default();
-                r.set_spacelike(table::encode_row_key(TABLE_ID, index as i64));
+                r.set_spacelike(Block::encode_row_key(Block_ID, index as i64));
                 r.set_lightlike(r.get_spacelike().to_vec());
                 convert_to_prefix_next(r.mut_lightlike());
                 r
@@ -866,9 +866,9 @@ mod tests {
 
         let store = FixtureStorage::from(kv);
 
-        // For row 0 + row 1 + (row 2 ~ row 4), we should only get row 0, row 1 and an error.
+        // For EventIdx 0 + EventIdx 1 + (EventIdx 2 ~ EventIdx 4), we should only get EventIdx 0, EventIdx 1 and an error.
         for corrupted_row_index in 2..=4 {
-            let mut executor = BatchTableScanFreeDaemon::new(
+            let mut executor = BatchBlockScanFreeDaemon::new(
                 store.clone(),
                 Arc::new(EvalConfig::default()),
                 PrimaryCausets_info.clone(),
@@ -913,7 +913,7 @@ mod tests {
 
     #[test]
     fn test_locked_data() {
-        const TABLE_ID: i64 = 42;
+        const Block_ID: i64 = 42;
 
         let PrimaryCausets_info = vec![
             {
@@ -935,14 +935,14 @@ mod tests {
         let mut ctx = EvalContext::default();
         let mut kv = vec![];
         {
-            // row 0: ok
-            let key = table::encode_row_key(TABLE_ID, 0);
-            let value = table::encode_row(&mut ctx, vec![Datum::I64(7)], &[2]).unwrap();
+            // EventIdx 0: ok
+            let key = Block::encode_row_key(Block_ID, 0);
+            let value = Block::encode_row(&mut ctx, vec![Datum::I64(7)], &[2]).unwrap();
             kv.push((key, Ok(value)));
         }
         {
-            // row 1: causetStorage error
-            let key = table::encode_row_key(TABLE_ID, 1);
+            // EventIdx 1: causetStorage error
+            let key = Block::encode_row_key(Block_ID, 1);
             let value: std::result::Result<
                 _,
                 Box<dyn Slightlike + Sync + Fn() -> milevadb_query_common::error::StorageError>,
@@ -950,9 +950,9 @@ mod tests {
             kv.push((key, value));
         }
         {
-            // row 2: not locked
-            let key = table::encode_row_key(TABLE_ID, 2);
-            let value = table::encode_row(&mut ctx, vec![Datum::I64(5)], &[2]).unwrap();
+            // EventIdx 2: not locked
+            let key = Block::encode_row_key(Block_ID, 2);
+            let value = Block::encode_row(&mut ctx, vec![Datum::I64(5)], &[2]).unwrap();
             kv.push((key, Ok(value)));
         }
 
@@ -961,7 +961,7 @@ mod tests {
             .enumerate()
             .map(|(index, _)| {
                 let mut r = KeyCone::default();
-                r.set_spacelike(table::encode_row_key(TABLE_ID, index as i64));
+                r.set_spacelike(Block::encode_row_key(Block_ID, index as i64));
                 r.set_lightlike(r.get_spacelike().to_vec());
                 convert_to_prefix_next(r.mut_lightlike());
                 r
@@ -970,11 +970,11 @@ mod tests {
 
         let store = FixtureStorage::new(kv.into_iter().collect());
 
-        // Case 1: row 0 + row 1 + row 2
-        // We should get row 0 and error because no further events should be scanned when there is
+        // Case 1: EventIdx 0 + EventIdx 1 + EventIdx 2
+        // We should get EventIdx 0 and error because no further events should be scanned when there is
         // an error.
         {
-            let mut executor = BatchTableScanFreeDaemon::new(
+            let mut executor = BatchBlockScanFreeDaemon::new(
                 store.clone(),
                 Arc::new(EvalConfig::default()),
                 PrimaryCausets_info.clone(),
@@ -1010,7 +1010,7 @@ mod tests {
 
         // Let's also repeat case 1 for smaller batch size
         {
-            let mut executor = BatchTableScanFreeDaemon::new(
+            let mut executor = BatchBlockScanFreeDaemon::new(
                 store.clone(),
                 Arc::new(EvalConfig::default()),
                 PrimaryCausets_info.clone(),
@@ -1049,10 +1049,10 @@ mod tests {
             assert_eq!(result.physical_PrimaryCausets.rows_len(), 0);
         }
 
-        // Case 2: row 1 + row 2
-        // We should get error and no row, for the same reason as above.
+        // Case 2: EventIdx 1 + EventIdx 2
+        // We should get error and no EventIdx, for the same reason as above.
         {
-            let mut executor = BatchTableScanFreeDaemon::new(
+            let mut executor = BatchBlockScanFreeDaemon::new(
                 store.clone(),
                 Arc::new(EvalConfig::default()),
                 PrimaryCausets_info.clone(),
@@ -1069,10 +1069,10 @@ mod tests {
             assert_eq!(result.physical_PrimaryCausets.rows_len(), 0);
         }
 
-        // Case 3: row 2 + row 0
-        // We should get row 2 and row 0. There is no error.
+        // Case 3: EventIdx 2 + EventIdx 0
+        // We should get EventIdx 2 and EventIdx 0. There is no error.
         {
-            let mut executor = BatchTableScanFreeDaemon::new(
+            let mut executor = BatchBlockScanFreeDaemon::new(
                 store.clone(),
                 Arc::new(EvalConfig::default()),
                 PrimaryCausets_info.clone(),
@@ -1102,10 +1102,10 @@ mod tests {
             );
         }
 
-        // Case 4: row 1
+        // Case 4: EventIdx 1
         // We should get error.
         {
-            let mut executor = BatchTableScanFreeDaemon::new(
+            let mut executor = BatchBlockScanFreeDaemon::new(
                 store,
                 Arc::new(EvalConfig::default()),
                 PrimaryCausets_info,
@@ -1124,7 +1124,7 @@ mod tests {
     }
 
     fn test_multi_handle_PrimaryCauset_impl(PrimaryCausets_is_pk: &[bool]) {
-        const TABLE_ID: i64 = 42;
+        const Block_ID: i64 = 42;
 
         // This test makes a pk PrimaryCauset with id = 1 and non-pk PrimaryCausets with id
         // in 10 to 10 + PrimaryCausets_is_pk.len().
@@ -1143,18 +1143,18 @@ mod tests {
         let mut schemaReplicant = Vec::new();
         schemaReplicant.resize(PrimaryCausets_is_pk.len(), FieldTypeTp::LongLong.into());
 
-        let key = table::encode_row_key(TABLE_ID, 1);
+        let key = Block::encode_row_key(Block_ID, 1);
         let col_ids = (10..10 + schemaReplicant.len() as i64).collect::<Vec<_>>();
-        let row = col_ids.iter().map(|i| Datum::I64(*i)).collect();
-        let value = table::encode_row(&mut EvalContext::default(), row, &col_ids).unwrap();
+        let EventIdx = col_ids.iter().map(|i| Datum::I64(*i)).collect();
+        let value = Block::encode_row(&mut EvalContext::default(), EventIdx, &col_ids).unwrap();
 
         let mut key_cone = KeyCone::default();
-        key_cone.set_spacelike(table::encode_row_key(TABLE_ID, std::i64::MIN));
-        key_cone.set_lightlike(table::encode_row_key(TABLE_ID, std::i64::MAX));
+        key_cone.set_spacelike(Block::encode_row_key(Block_ID, std::i64::MIN));
+        key_cone.set_lightlike(Block::encode_row_key(Block_ID, std::i64::MAX));
 
         let store = FixtureStorage::new(iter::once((key, (Ok(value)))).collect());
 
-        let mut executor = BatchTableScanFreeDaemon::new(
+        let mut executor = BatchBlockScanFreeDaemon::new(
             store,
             Arc::new(EvalConfig::default()),
             PrimaryCausets_info,
@@ -1207,16 +1207,16 @@ mod tests {
     }
 
     fn test_common_handle_impl(PrimaryCausets: &[PrimaryCauset]) {
-        const TABLE_ID: i64 = 2333;
+        const Block_ID: i64 = 2333;
 
-        // Prepare some table meta data
+        // Prepare some Block meta data
         let mut PrimaryCausets_info = vec![];
         let mut schemaReplicant = vec![];
         let mut handle = vec![];
         let mut primary_PrimaryCauset_ids = vec![];
         let mut missed_PrimaryCausets_info = vec![];
         let PrimaryCauset_ids = (0..PrimaryCausets.len() as i64).collect::<Vec<_>>();
-        let mut row = vec![];
+        let mut EventIdx = vec![];
 
         for (i, &PrimaryCauset) in PrimaryCausets.iter().enumerate() {
             let PrimaryCauset {
@@ -1241,24 +1241,24 @@ mod tests {
                 primary_PrimaryCauset_ids.push(i as i64);
             }
 
-            row.push(Datum::I64(i as i64));
+            EventIdx.push(Datum::I64(i as i64));
         }
 
         let handle = datum::encode_key(&mut EvalContext::default(), &handle).unwrap();
 
-        let key = table::encode_common_handle_for_test(TABLE_ID, &handle);
-        let value = table::encode_row(&mut EvalContext::default(), row, &PrimaryCauset_ids).unwrap();
+        let key = Block::encode_common_handle_for_test(Block_ID, &handle);
+        let value = Block::encode_row(&mut EvalContext::default(), EventIdx, &PrimaryCauset_ids).unwrap();
 
         // Constructs a cone that includes the constructed key.
         let mut key_cone = KeyCone::default();
-        let begin = table::encode_common_handle_for_test(TABLE_ID - 1, &handle);
-        let lightlike = table::encode_common_handle_for_test(TABLE_ID + 1, &handle);
+        let begin = Block::encode_common_handle_for_test(Block_ID - 1, &handle);
+        let lightlike = Block::encode_common_handle_for_test(Block_ID + 1, &handle);
         key_cone.set_spacelike(begin);
         key_cone.set_lightlike(lightlike);
 
         let store = FixtureStorage::new(iter::once((key, (Ok(value)))).collect());
 
-        let mut executor = BatchTableScanFreeDaemon::new(
+        let mut executor = BatchBlockScanFreeDaemon::new(
             store,
             Arc::new(EvalConfig::default()),
             PrimaryCausets_info.clone(),

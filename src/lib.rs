@@ -12,7 +12,7 @@
 //! [MilevaDB]: https://github.com/whtcorpsinc/milevadb
 //!
 //! The design of EinsteinDB is inspired by some great distributed systems
-//! from Google, such as BigTable, Spanner, and Percolator, and some
+//! from Google, such as BigBlock, Spanner, and Percolator, and some
 //! of the latest achievements in academia in recent years, such as
 //! the VioletaBft consensus algorithm.
 
@@ -23,7 +23,7 @@
 #![feature(proc_macro_hygiene)]
 #![feature(min_specialization)]
 #![feature(const_fn)]
-#![feature(box_patterns)]
+#![feature(box_TuringStrings)]
 #![feature(shrink_to)]
 #![feature(drain_filter)]
 #![feature(clamp)]

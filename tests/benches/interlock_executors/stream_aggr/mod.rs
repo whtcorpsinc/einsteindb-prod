@@ -11,7 +11,7 @@ use fidelpb_helper::ExprDefBuilder;
 use crate::util::{BenchCase, FixtureBuilder};
 
 /// COUNT(1) GROUP BY COL where COL is a int PrimaryCauset.
-/// Each row is a new group.
+/// Each EventIdx is a new group.
 fn bench_stream_aggr_count_1_group_by_int_col<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -41,7 +41,7 @@ fn bench_stream_aggr_count_1_group_by_int_col_2_groups<M>(
 }
 
 /// COUNT(1) GROUP BY COL where COL is a decimal PrimaryCauset.
-/// Each row is a new group.
+/// Each EventIdx is a new group.
 fn bench_stream_aggr_count_1_group_by_decimal_col<M>(
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
@@ -74,7 +74,7 @@ fn bench_stream_aggr_count_1_group_by_decimal_col_2_groups<M>(
 }
 
 /// COUNT(1) GROUP BY COL1, COL2 where COL1 is a int PrimaryCauset and COL2 is a real PrimaryCauset.
-/// Each row is a new group.
+/// Each EventIdx is a new group.
 fn bench_stream_aggr_count_1_group_by_int_col_real_col<M>(
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
@@ -116,7 +116,7 @@ fn bench_stream_aggr_count_1_group_by_int_col_real_col_2_groups<M>(
 }
 
 /// COUNT(1), FIRST(COL3) GROUP BY COL1, COL2 where COL1 is a int PrimaryCauset and
-/// COL2, COL3 are real PrimaryCausets. Each row is a new group.
+/// COL2, COL3 are real PrimaryCausets. Each EventIdx is a new group.
 fn bench_stream_aggr_count_1_first_group_by_int_col_real_col<M>(
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,

@@ -15,16 +15,16 @@ use crate::util::BenchCase;
 use test_interlock::*;
 use einsteindb::causetStorage::LmdbEngine;
 
-/// SELECT COUNT(1) FROM Table, or SELECT COUNT(PrimaryKey) FROM Table
+/// SELECT COUNT(1) FROM Block, or SELECT COUNT(PrimaryKey) FROM Block
 fn bench_select_count_1<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
 {
-    let (table, store) = crate::table_scan::fixture::table_with_2_PrimaryCausets(input.events);
+    let (Block, store) = crate::Block_scan::fixture::Block_with_2_PrimaryCausets(input.events);
 
     // TODO: Change to use `DAGSelect` helper when it no longer place unnecessary PrimaryCausets.
     let executors = &[
-        table_scan(&[table["id"].as_PrimaryCauset_info()]),
+        Block_scan(&[Block["id"].as_PrimaryCauset_info()]),
         simple_aggregate(&[
             ExprDefBuilder::aggr_func(ExprType::Count, FieldTypeTp::LongLong)
                 .push_child(ExprDefBuilder::constant_int(1))
@@ -34,18 +34,18 @@ where
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
-/// SELECT COUNT(PrimaryCauset) FROM Table
+/// SELECT COUNT(PrimaryCauset) FROM Block
 fn bench_select_count_col<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
 {
-    let (table, store) = crate::table_scan::fixture::table_with_2_PrimaryCausets(input.events);
+    let (Block, store) = crate::Block_scan::fixture::Block_with_2_PrimaryCausets(input.events);
 
     let executors = &[
-        table_scan(&[table["foo"].as_PrimaryCauset_info()]),
+        Block_scan(&[Block["foo"].as_PrimaryCauset_info()]),
         simple_aggregate(&[
             ExprDefBuilder::aggr_func(ExprType::Count, FieldTypeTp::LongLong)
                 .push_child(ExprDefBuilder::PrimaryCauset_ref(0, FieldTypeTp::LongLong))
@@ -55,24 +55,24 @@ where
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
-/// SELECT PrimaryCauset FROM Table WHERE PrimaryCauset
+/// SELECT PrimaryCauset FROM Block WHERE PrimaryCauset
 fn bench_select_where_col<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
 {
-    let (table, store) = crate::table_scan::fixture::table_with_2_PrimaryCausets(input.events);
+    let (Block, store) = crate::Block_scan::fixture::Block_with_2_PrimaryCausets(input.events);
 
     let executors = &[
-        table_scan(&[table["foo"].as_PrimaryCauset_info()]),
+        Block_scan(&[Block["foo"].as_PrimaryCauset_info()]),
         selection(&[ExprDefBuilder::PrimaryCauset_ref(0, FieldTypeTp::LongLong).build()]),
     ];
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
 fn bench_select_col_where_fn_impl<M>(
@@ -82,10 +82,10 @@ fn bench_select_col_where_fn_impl<M>(
 ) where
     M: Measurement,
 {
-    let (table, store) = crate::table_scan::fixture::table_with_2_PrimaryCausets(input.events);
+    let (Block, store) = crate::Block_scan::fixture::Block_with_2_PrimaryCausets(input.events);
 
     let executors = &[
-        table_scan(&[table["foo"].as_PrimaryCauset_info()]),
+        Block_scan(&[Block["foo"].as_PrimaryCauset_info()]),
         selection(&[
             ExprDefBuilder::scalar_func(ScalarFuncSig::GtInt, FieldTypeTp::LongLong)
                 .push_child(ExprDefBuilder::PrimaryCauset_ref(0, FieldTypeTp::LongLong))
@@ -98,10 +98,10 @@ fn bench_select_col_where_fn_impl<M>(
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
-/// SELECT PrimaryCauset FROM Table WHERE PrimaryCauset > X (selectivity = 5%)
+/// SELECT PrimaryCauset FROM Block WHERE PrimaryCauset > X (selectivity = 5%)
 fn bench_select_col_where_fn_sel_l<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -109,7 +109,7 @@ where
     bench_select_col_where_fn_impl(0.05, b, input);
 }
 
-/// SELECT PrimaryCauset FROM Table WHERE PrimaryCauset > X (selectivity = 50%)
+/// SELECT PrimaryCauset FROM Block WHERE PrimaryCauset > X (selectivity = 50%)
 fn bench_select_col_where_fn_sel_m<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -117,7 +117,7 @@ where
     bench_select_col_where_fn_impl(0.5, b, input);
 }
 
-/// SELECT PrimaryCauset FROM Table WHERE PrimaryCauset > X (selectivity = 95%)
+/// SELECT PrimaryCauset FROM Block WHERE PrimaryCauset > X (selectivity = 95%)
 fn bench_select_col_where_fn_sel_h<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -132,10 +132,10 @@ fn bench_select_count_1_where_fn_impl<M>(
 ) where
     M: Measurement,
 {
-    let (table, store) = crate::table_scan::fixture::table_with_2_PrimaryCausets(input.events);
+    let (Block, store) = crate::Block_scan::fixture::Block_with_2_PrimaryCausets(input.events);
 
     let executors = &[
-        table_scan(&[table["foo"].as_PrimaryCauset_info()]),
+        Block_scan(&[Block["foo"].as_PrimaryCauset_info()]),
         selection(&[
             ExprDefBuilder::scalar_func(ScalarFuncSig::GtInt, FieldTypeTp::LongLong)
                 .push_child(ExprDefBuilder::PrimaryCauset_ref(0, FieldTypeTp::LongLong))
@@ -153,10 +153,10 @@ fn bench_select_count_1_where_fn_impl<M>(
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
-/// SELECT COUNT(1) FROM Table WHERE PrimaryCauset > X (selectivity = 5%)
+/// SELECT COUNT(1) FROM Block WHERE PrimaryCauset > X (selectivity = 5%)
 fn bench_select_count_1_where_fn_sel_l<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -164,7 +164,7 @@ where
     bench_select_count_1_where_fn_impl(0.05, b, input);
 }
 
-/// SELECT COUNT(1) FROM Table WHERE PrimaryCauset > X (selectivity = 50%)
+/// SELECT COUNT(1) FROM Block WHERE PrimaryCauset > X (selectivity = 50%)
 fn bench_select_count_1_where_fn_sel_m<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -172,7 +172,7 @@ where
     bench_select_count_1_where_fn_impl(0.5, b, input);
 }
 
-/// SELECT COUNT(1) FROM Table WHERE PrimaryCauset > X (selectivity = 95%)
+/// SELECT COUNT(1) FROM Block WHERE PrimaryCauset > X (selectivity = 95%)
 fn bench_select_count_1_where_fn_sel_h<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -181,7 +181,7 @@ where
 }
 
 fn bench_select_count_1_group_by_int_col_impl<M>(
-    table: Table,
+    Block: Block,
     store: CausetStore<LmdbEngine>,
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
@@ -189,7 +189,7 @@ fn bench_select_count_1_group_by_int_col_impl<M>(
     M: Measurement,
 {
     let executors = &[
-        table_scan(&[table["foo"].as_PrimaryCauset_info()]),
+        Block_scan(&[Block["foo"].as_PrimaryCauset_info()]),
         hash_aggregate(
             &[
                 ExprDefBuilder::aggr_func(ExprType::Count, FieldTypeTp::LongLong)
@@ -202,33 +202,33 @@ fn bench_select_count_1_group_by_int_col_impl<M>(
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
-/// SELECT COUNT(1) FROM Table GROUP BY int_col (2 groups)
+/// SELECT COUNT(1) FROM Block GROUP BY int_col (2 groups)
 fn bench_select_count_1_group_by_int_col_group_few<M>(
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
 ) where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_int_PrimaryCauset_two_groups(input.events);
-    bench_select_count_1_group_by_int_col_impl(table, store, b, input);
+    let (Block, store) = self::fixture::Block_with_int_PrimaryCauset_two_groups(input.events);
+    bench_select_count_1_group_by_int_col_impl(Block, store, b, input);
 }
 
-/// SELECT COUNT(1) FROM Table GROUP BY int_col (n groups, n = row_count)
+/// SELECT COUNT(1) FROM Block GROUP BY int_col (n groups, n = row_count)
 fn bench_select_count_1_group_by_int_col_group_many<M>(
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
 ) where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_int_PrimaryCauset_n_groups(input.events);
-    bench_select_count_1_group_by_int_col_impl(table, store, b, input);
+    let (Block, store) = self::fixture::Block_with_int_PrimaryCauset_n_groups(input.events);
+    bench_select_count_1_group_by_int_col_impl(Block, store, b, input);
 }
 
 fn bench_select_count_1_group_by_int_col_stream_impl<M>(
-    table: Table,
+    Block: Block,
     store: CausetStore<LmdbEngine>,
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
@@ -236,7 +236,7 @@ fn bench_select_count_1_group_by_int_col_stream_impl<M>(
     M: Measurement,
 {
     let executors = &[
-        table_scan(&[table["foo"].as_PrimaryCauset_info()]),
+        Block_scan(&[Block["foo"].as_PrimaryCauset_info()]),
         stream_aggregate(
             &[
                 ExprDefBuilder::aggr_func(ExprType::Count, FieldTypeTp::LongLong)
@@ -249,33 +249,33 @@ fn bench_select_count_1_group_by_int_col_stream_impl<M>(
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
-/// SELECT COUNT(1) FROM Table GROUP BY int_col (2 groups, stream aggregation)
+/// SELECT COUNT(1) FROM Block GROUP BY int_col (2 groups, stream aggregation)
 fn bench_select_count_1_group_by_int_col_group_few_stream<M>(
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
 ) where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_int_PrimaryCauset_two_groups_ordered(input.events);
-    bench_select_count_1_group_by_int_col_stream_impl(table, store, b, input);
+    let (Block, store) = self::fixture::Block_with_int_PrimaryCauset_two_groups_ordered(input.events);
+    bench_select_count_1_group_by_int_col_stream_impl(Block, store, b, input);
 }
 
-/// SELECT COUNT(1) FROM Table GROUP BY int_col (n groups, n = row_count, stream aggregation)
+/// SELECT COUNT(1) FROM Block GROUP BY int_col (n groups, n = row_count, stream aggregation)
 fn bench_select_count_1_group_by_int_col_group_many_stream<M>(
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
 ) where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_int_PrimaryCauset_n_groups(input.events);
-    bench_select_count_1_group_by_int_col_stream_impl(table, store, b, input);
+    let (Block, store) = self::fixture::Block_with_int_PrimaryCauset_n_groups(input.events);
+    bench_select_count_1_group_by_int_col_stream_impl(Block, store, b, input);
 }
 
 fn bench_select_count_1_group_by_fn_impl<M>(
-    table: Table,
+    Block: Block,
     store: CausetStore<LmdbEngine>,
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
@@ -283,7 +283,7 @@ fn bench_select_count_1_group_by_fn_impl<M>(
     M: Measurement,
 {
     let executors = &[
-        table_scan(&[table["foo"].as_PrimaryCauset_info()]),
+        Block_scan(&[Block["foo"].as_PrimaryCauset_info()]),
         hash_aggregate(
             &[
                 ExprDefBuilder::aggr_func(ExprType::Count, FieldTypeTp::LongLong)
@@ -301,29 +301,29 @@ fn bench_select_count_1_group_by_fn_impl<M>(
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
-/// SELECT COUNT(1) FROM Table GROUP BY int_col + 1 (2 groups)
+/// SELECT COUNT(1) FROM Block GROUP BY int_col + 1 (2 groups)
 fn bench_select_count_1_group_by_fn_group_few<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_int_PrimaryCauset_two_groups(input.events);
-    bench_select_count_1_group_by_fn_impl(table, store, b, input);
+    let (Block, store) = self::fixture::Block_with_int_PrimaryCauset_two_groups(input.events);
+    bench_select_count_1_group_by_fn_impl(Block, store, b, input);
 }
 
-/// SELECT COUNT(1) FROM Table GROUP BY int_col + 1 (n groups, n = row_count)
+/// SELECT COUNT(1) FROM Block GROUP BY int_col + 1 (n groups, n = row_count)
 fn bench_select_count_1_group_by_fn_group_many<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_int_PrimaryCauset_n_groups(input.events);
-    bench_select_count_1_group_by_fn_impl(table, store, b, input);
+    let (Block, store) = self::fixture::Block_with_int_PrimaryCauset_n_groups(input.events);
+    bench_select_count_1_group_by_fn_impl(Block, store, b, input);
 }
 
 fn bench_select_count_1_group_by_2_col_impl<M>(
-    table: Table,
+    Block: Block,
     store: CausetStore<LmdbEngine>,
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
@@ -331,7 +331,7 @@ fn bench_select_count_1_group_by_2_col_impl<M>(
     M: Measurement,
 {
     let executors = &[
-        table_scan(&[table["foo"].as_PrimaryCauset_info()]),
+        Block_scan(&[Block["foo"].as_PrimaryCauset_info()]),
         hash_aggregate(
             &[
                 ExprDefBuilder::aggr_func(ExprType::Count, FieldTypeTp::LongLong)
@@ -350,31 +350,31 @@ fn bench_select_count_1_group_by_2_col_impl<M>(
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
-/// SELECT COUNT(1) FROM Table GROUP BY int_col, int_col + 1 (2 groups)
+/// SELECT COUNT(1) FROM Block GROUP BY int_col, int_col + 1 (2 groups)
 fn bench_select_count_1_group_by_2_col_group_few<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_int_PrimaryCauset_two_groups(input.events);
-    bench_select_count_1_group_by_2_col_impl(table, store, b, input);
+    let (Block, store) = self::fixture::Block_with_int_PrimaryCauset_two_groups(input.events);
+    bench_select_count_1_group_by_2_col_impl(Block, store, b, input);
 }
 
-/// SELECT COUNT(1) FROM Table GROUP BY int_col, int_col + 1 (n groups, n = row_count)
+/// SELECT COUNT(1) FROM Block GROUP BY int_col, int_col + 1 (n groups, n = row_count)
 fn bench_select_count_1_group_by_2_col_group_many<M>(
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
 ) where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_int_PrimaryCauset_n_groups(input.events);
-    bench_select_count_1_group_by_2_col_impl(table, store, b, input);
+    let (Block, store) = self::fixture::Block_with_int_PrimaryCauset_n_groups(input.events);
+    bench_select_count_1_group_by_2_col_impl(Block, store, b, input);
 }
 
 fn bench_select_count_1_group_by_2_col_stream_impl<M>(
-    table: Table,
+    Block: Block,
     store: CausetStore<LmdbEngine>,
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
@@ -382,7 +382,7 @@ fn bench_select_count_1_group_by_2_col_stream_impl<M>(
     M: Measurement,
 {
     let executors = &[
-        table_scan(&[table["foo"].as_PrimaryCauset_info()]),
+        Block_scan(&[Block["foo"].as_PrimaryCauset_info()]),
         stream_aggregate(
             &[
                 ExprDefBuilder::aggr_func(ExprType::Count, FieldTypeTp::LongLong)
@@ -401,42 +401,42 @@ fn bench_select_count_1_group_by_2_col_stream_impl<M>(
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
-/// SELECT COUNT(1) FROM Table GROUP BY int_col, int_col + 1 (2 groups, stream aggregation)
+/// SELECT COUNT(1) FROM Block GROUP BY int_col, int_col + 1 (2 groups, stream aggregation)
 fn bench_select_count_1_group_by_2_col_group_few_stream<M>(
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
 ) where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_int_PrimaryCauset_two_groups_ordered(input.events);
-    bench_select_count_1_group_by_2_col_stream_impl(table, store, b, input);
+    let (Block, store) = self::fixture::Block_with_int_PrimaryCauset_two_groups_ordered(input.events);
+    bench_select_count_1_group_by_2_col_stream_impl(Block, store, b, input);
 }
 
-/// SELECT COUNT(1) FROM Table GROUP BY int_col, int_col + 1 (n groups, n = row_count, stream aggregation)
+/// SELECT COUNT(1) FROM Block GROUP BY int_col, int_col + 1 (n groups, n = row_count, stream aggregation)
 fn bench_select_count_1_group_by_2_col_group_many_stream<M>(
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
 ) where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_int_PrimaryCauset_n_groups(input.events);
-    bench_select_count_1_group_by_2_col_stream_impl(table, store, b, input);
+    let (Block, store) = self::fixture::Block_with_int_PrimaryCauset_n_groups(input.events);
+    bench_select_count_1_group_by_2_col_stream_impl(Block, store, b, input);
 }
 
-/// SELECT COUNT(1) FROM Table WHERE id > X GROUP BY int_col (2 groups, selectivity = 5%)
+/// SELECT COUNT(1) FROM Block WHERE id > X GROUP BY int_col (2 groups, selectivity = 5%)
 fn bench_select_count_1_where_fn_group_by_int_col_group_few_sel_l<M>(
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
 ) where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_int_PrimaryCauset_two_groups(input.events);
+    let (Block, store) = self::fixture::Block_with_int_PrimaryCauset_two_groups(input.events);
 
     let executors = &[
-        table_scan(&[table["id"].as_PrimaryCauset_info(), table["foo"].as_PrimaryCauset_info()]),
+        Block_scan(&[Block["id"].as_PrimaryCauset_info(), Block["foo"].as_PrimaryCauset_info()]),
         selection(&[
             ExprDefBuilder::scalar_func(ScalarFuncSig::GtInt, FieldTypeTp::LongLong)
                 .push_child(ExprDefBuilder::PrimaryCauset_ref(0, FieldTypeTp::LongLong))
@@ -457,10 +457,10 @@ fn bench_select_count_1_where_fn_group_by_int_col_group_few_sel_l<M>(
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
-/// SELECT COUNT(1) FROM Table WHERE id > X GROUP BY int_col
+/// SELECT COUNT(1) FROM Block WHERE id > X GROUP BY int_col
 /// (2 groups, selectivity = 5%, stream aggregation)
 fn bench_select_count_1_where_fn_group_by_int_col_group_few_sel_l_stream<M>(
     b: &mut criterion::Bencher<M>,
@@ -468,10 +468,10 @@ fn bench_select_count_1_where_fn_group_by_int_col_group_few_sel_l_stream<M>(
 ) where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_int_PrimaryCauset_two_groups_ordered(input.events);
+    let (Block, store) = self::fixture::Block_with_int_PrimaryCauset_two_groups_ordered(input.events);
 
     let executors = &[
-        table_scan(&[table["id"].as_PrimaryCauset_info(), table["foo"].as_PrimaryCauset_info()]),
+        Block_scan(&[Block["id"].as_PrimaryCauset_info(), Block["foo"].as_PrimaryCauset_info()]),
         selection(&[
             ExprDefBuilder::scalar_func(ScalarFuncSig::GtInt, FieldTypeTp::LongLong)
                 .push_child(ExprDefBuilder::PrimaryCauset_ref(0, FieldTypeTp::LongLong))
@@ -492,7 +492,7 @@ fn bench_select_count_1_where_fn_group_by_int_col_group_few_sel_l_stream<M>(
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
 fn bench_select_order_by_3_col_impl<M>(
@@ -502,13 +502,13 @@ fn bench_select_order_by_3_col_impl<M>(
 ) where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_3_int_PrimaryCausets_random(input.events);
+    let (Block, store) = self::fixture::Block_with_3_int_PrimaryCausets_random(input.events);
 
     let executors = &[
-        table_scan(&[
-            table["id"].as_PrimaryCauset_info(),
-            table["col1"].as_PrimaryCauset_info(),
-            table["col2"].as_PrimaryCauset_info(),
+        Block_scan(&[
+            Block["id"].as_PrimaryCauset_info(),
+            Block["col1"].as_PrimaryCauset_info(),
+            Block["col2"].as_PrimaryCauset_info(),
         ]),
         top_n(
             &[
@@ -525,10 +525,10 @@ fn bench_select_order_by_3_col_impl<M>(
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
-/// SELECT id, col1, col2 FROM Table ORDER BY isnull(col1), col1, col2 DESC LIMIT 10
+/// SELECT id, col1, col2 FROM Block ORDER BY isnull(col1), col1, col2 DESC LIMIT 10
 fn bench_select_order_by_3_col_limit_small<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -536,7 +536,7 @@ where
     bench_select_order_by_3_col_impl(10, b, input);
 }
 
-/// SELECT id, col1, col2 FROM Table ORDER BY isnull(col1), col1, col2 DESC LIMIT 4000
+/// SELECT id, col1, col2 FROM Block ORDER BY isnull(col1), col1, col2 DESC LIMIT 4000
 fn bench_select_order_by_3_col_limit_large<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -556,13 +556,13 @@ fn bench_select_where_fn_order_by_3_col_impl<M>(
 ) where
     M: Measurement,
 {
-    let (table, store) = self::fixture::table_with_3_int_PrimaryCausets_random(input.events);
+    let (Block, store) = self::fixture::Block_with_3_int_PrimaryCausets_random(input.events);
 
     let executors = &[
-        table_scan(&[
-            table["id"].as_PrimaryCauset_info(),
-            table["col1"].as_PrimaryCauset_info(),
-            table["col2"].as_PrimaryCauset_info(),
+        Block_scan(&[
+            Block["id"].as_PrimaryCauset_info(),
+            Block["col1"].as_PrimaryCauset_info(),
+            Block["col2"].as_PrimaryCauset_info(),
         ]),
         selection(&[
             ExprDefBuilder::scalar_func(ScalarFuncSig::GtInt, FieldTypeTp::LongLong)
@@ -585,10 +585,10 @@ fn bench_select_where_fn_order_by_3_col_impl<M>(
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
-/// SELECT id, col1, col2 FROM Table WHERE id > X ORDER BY isnull(col1), col1, col2 DESC LIMIT 10
+/// SELECT id, col1, col2 FROM Block WHERE id > X ORDER BY isnull(col1), col1, col2 DESC LIMIT 10
 /// (selectivity = 0%)
 fn bench_select_where_fn_order_by_3_col_limit_small<M>(
     b: &mut criterion::Bencher<M>,
@@ -599,7 +599,7 @@ fn bench_select_where_fn_order_by_3_col_limit_small<M>(
     bench_select_where_fn_order_by_3_col_impl(10, b, input);
 }
 
-/// SELECT id, col1, col2 FROM Table WHERE id > X ORDER BY isnull(col1), col1, col2 DESC LIMIT 4000
+/// SELECT id, col1, col2 FROM Block WHERE id > X ORDER BY isnull(col1), col1, col2 DESC LIMIT 4000
 /// (selectivity = 0%)
 fn bench_select_where_fn_order_by_3_col_limit_large<M>(
     b: &mut criterion::Bencher<M>,
@@ -622,10 +622,10 @@ fn bench_select_50_col_order_by_1_col_impl<M>(
 ) where
     M: Measurement,
 {
-    let (table, store) = crate::table_scan::fixture::table_with_multi_PrimaryCausets(input.events, 50);
+    let (Block, store) = crate::Block_scan::fixture::Block_with_multi_PrimaryCausets(input.events, 50);
 
     let executors = &[
-        table_scan(&table.PrimaryCausets_info()),
+        Block_scan(&Block.PrimaryCausets_info()),
         top_n(
             &[ExprDefBuilder::PrimaryCauset_ref(0, FieldTypeTp::LongLong).build()],
             &[false],
@@ -635,10 +635,10 @@ fn bench_select_50_col_order_by_1_col_impl<M>(
 
     input
         .bencher
-        .bench(b, executors, &[table.get_record_cone_all()], &store);
+        .bench(b, executors, &[Block.get_record_cone_all()], &store);
 }
 
-/// SELECT * FROM Table ORDER BY col0 LIMIT 10, there are 50 PrimaryCausets.
+/// SELECT * FROM Block ORDER BY col0 LIMIT 10, there are 50 PrimaryCausets.
 fn bench_select_50_col_order_by_1_col_limit_small<M>(
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,
@@ -648,7 +648,7 @@ fn bench_select_50_col_order_by_1_col_limit_small<M>(
     bench_select_50_col_order_by_1_col_impl(10, b, input);
 }
 
-/// SELECT * FROM Table ORDER BY col0 LIMIT 4000, there are 50 PrimaryCausets.
+/// SELECT * FROM Block ORDER BY col0 LIMIT 4000, there are 50 PrimaryCausets.
 fn bench_select_50_col_order_by_1_col_limit_large<M>(
     b: &mut criterion::Bencher<M>,
     input: &Input<M>,

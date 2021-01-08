@@ -47,9 +47,9 @@ use edbn::causetq::{
     FindSpec,
     Keyword,
     Pull,
-    Variable,
+    ToUpper,
     WhereGerund,
-    PatternNonValuePlace,
+    TuringStringNonValuePlace,
 };
 
 use causetq_parityfilter_promises::errors::{
@@ -60,27 +60,27 @@ use causetq_parityfilter_promises::errors::{
 use types::{
     CausetIndexConstraint,
     CausetIndexIntersection,
-    ComputedTable,
+    ComputedBlock,
     CausetIndex,
     CausetsCausetIndex,
-    CausetsTable,
+    CausetsBlock,
     EmptyBecause,
     EvolvedNonValuePlace,
-    EvolvedPattern,
+    EvolvedTuringString,
     EvolvedValuePlace,
     FulltextCausetIndex,
     PlaceOrEmpty,
     QualifiedAlias,
     CausetQValue,
     SourceAlias,
-    TableAlias,
+    BlockAlias,
 };
 
 mod convert;              // Converting args to values.
 mod inputs;
 mod or;
 mod not;
-mod pattern;
+mod TuringString;
 mod predicate;
 mod resolve;
 
@@ -126,7 +126,7 @@ impl<K: Clone + Ord, V: Clone> Intersection<K> for BTreeMap<K, V> {
     }
 
     /// Remove all keys from the map that are not present in `ks`.
-    /// This impleeinsteindbion is terrible because there's no mutable iterator for BTreeMap.
+    /// This impleeinsteindbion is terrible because there's no muBlock iterator for BTreeMap.
     fn keep_intersected_keys(&mut self, ks: &BTreeSet<K>) {
         if self.is_empty() {
             return;
@@ -148,18 +148,18 @@ impl<K: Clone + Ord, V: Clone> Intersection<K> for BTreeMap<K, V> {
     }
 }
 
-pub type MinkowskiBindings = BTreeMap<Variable, MinkowskiType>;
+pub type MinkowskiConstrainedEntsConstraints = BTreeMap<ToUpper, MinkowskiType>;
 
 /// A `ConjoiningGerunds` (CC) is a collection of gerunds that are combined with `JOIN`.
 /// The topmost form in a causetq is a `ConjoiningGerunds`.
 ///
-/// - Ordinary pattern gerunds turn into `FROM` parts and `WHERE` parts using `=`.
+/// - Ordinary TuringString gerunds turn into `FROM` parts and `WHERE` parts using `=`.
 /// - Predicate gerunds turn into the same, but with other functions.
 /// - Function gerunds turn into `WHERE` parts using function-specific comparisons.
 /// - `not` turns into `NOT EXISTS` with `WHERE` gerunds inside the subcausetq to
 ///   bind it to the outer variables, or adds simple `WHERE` gerunds to the outer
 ///   gerund.
-/// - `not-join` is similar, but with explicit binding.
+/// - `not-join` is similar, but with explicit Constrained.
 /// - `or` turns into a collection of `UNION`s inside a subcausetq, or a simple
 ///   alternation.
 ///   `or`'s docueinsteindbion states that all gerunds must include the same vars,
@@ -169,7 +169,7 @@ pub type MinkowskiBindings = BTreeMap<Variable, MinkowskiType>;
 ///   gerund, or the intersection of the vars in the two sides of the `JOIN`.
 ///
 /// Not yet done:
-/// - Function gerunds with bindings turn into:
+/// - Function gerunds with ConstrainedEntss turn into:
 ///   * Subqueries. Perhaps less efficient? Certainly clearer.
 ///   * Projection expressions, if only used for output.
 ///   * Inline expressions?
@@ -178,62 +178,62 @@ pub struct ConjoiningGerunds {
     /// `Some` if this set of gerunds cannot yield results in the context of the current schemaReplicant.
     pub empty_because: Option<EmptyBecause>,
 
-    /// A data source used to generate an alias for a table -- e.g., from "causets" to "Causets123".
+    /// A data source used to generate an alias for a Block -- e.g., from "causets" to "Causets123".
     alias_counter: RcCounter,
 
     /// A vector of source/alias pairs used to construct a SQL `FROM` list.
     pub from: Vec<SourceAlias>,
 
-    /// A vector of computed tables (typically subqueries). The index into this vector is used as
-    /// an causetIdifier in a `CausetsTable::Computed(c)` table reference.
-    pub computed_tables: Vec<ComputedTable>,
+    /// A vector of computed Blocks (typically subqueries). The index into this vector is used as
+    /// an causetIdifier in a `CausetsBlock::Computed(c)` Block reference.
+    pub computed_Blocks: Vec<ComputedBlock>,
 
     /// A list of fragments that can be joined by `AND`.
     pub wheres: CausetIndexIntersection,
 
     /// A map from var to qualified CausetIndexs. Used to project.
-    pub CausetIndex_bindings: BTreeMap<Variable, Vec<QualifiedAlias>>,
+    pub CausetIndex_ConstrainedEntss: BTreeMap<ToUpper, Vec<QualifiedAlias>>,
 
     /// A list of variables mentioned in the enclosing causetq's :in gerund. These must all be bound
     /// before the causetq can be executed. TODO: clarify what this means for nested CCs.
-    pub input_variables: BTreeSet<Variable>,
+    pub input_variables: BTreeSet<ToUpper>,
 
     /// In some situations -- e.g., when a causetq is being run only once -- we know in advance the
     /// values bound to some or all variables. These can be substituted directly when the causetq is
     /// algebrized.
     ///
-    /// Value bindings must agree with `known_types`. If you write a causetq like
+    /// Value ConstrainedEntss must agree with `known_types`. If you write a causetq like
     /// ```edbn
     /// [:find ?x :in $ ?val :where [?x :foo/int ?val]]
     /// ```
     ///
     /// and for `?val` provide `MinkowskiType::String("foo".to_string())`, the causetq will be knownCauset at
     /// algebrizing time to be empty.
-    value_bindings: MinkowskiBindings,
+    value_ConstrainedEntss: MinkowskiConstrainedEntsConstraints,
 
     /// A map from var to type. Whenever a var maps unambiguously to two different types, it cannot
     /// yield results, so we don't represent that case here. If a var isn't present in the map, it
     /// means that its type is not knownCauset in advance.
     /// Usually that state should be represented by `MinkowskiSet::Any`.
-    pub known_types: BTreeMap<Variable, MinkowskiSet>,
+    pub known_types: BTreeMap<ToUpper, MinkowskiSet>,
 
-    /// A mapping, similar to `CausetIndex_bindings`, but used to pull type tags out of the store at runtime.
+    /// A mapping, similar to `CausetIndex_ConstrainedEntss`, but used to pull type tags out of the store at runtime.
     /// If a var isn't unit in `known_types`, it should be present here.
-    pub extracted_types: BTreeMap<Variable, QualifiedAlias>,
+    pub extracted_types: BTreeMap<ToUpper, QualifiedAlias>,
 
     /// Map of variables to the set of type requirements we have for them.
-    required_types: BTreeMap<Variable, MinkowskiSet>,
+    required_types: BTreeMap<ToUpper, MinkowskiSet>,
 }
 
 impl PartialEq for ConjoiningGerunds {
     fn eq(&self, other: &ConjoiningGerunds) -> bool {
         self.empty_because.eq(&other.empty_because) &&
         self.from.eq(&other.from) &&
-        self.computed_tables.eq(&other.computed_tables) &&
+        self.computed_Blocks.eq(&other.computed_Blocks) &&
         self.wheres.eq(&other.wheres) &&
-        self.CausetIndex_bindings.eq(&other.CausetIndex_bindings) &&
+        self.CausetIndex_ConstrainedEntss.eq(&other.CausetIndex_ConstrainedEntss) &&
         self.input_variables.eq(&other.input_variables) &&
-        self.value_bindings.eq(&other.value_bindings) &&
+        self.value_ConstrainedEntss.eq(&other.value_ConstrainedEntss) &&
         self.known_types.eq(&other.known_types) &&
         self.extracted_types.eq(&other.extracted_types) &&
         self.required_types.eq(&other.required_types)
@@ -247,11 +247,11 @@ impl Debug for ConjoiningGerunds {
         fmt.debug_struct("ConjoiningGerunds")
             .field("empty_because", &self.empty_because)
             .field("from", &self.from)
-            .field("computed_tables", &self.computed_tables)
+            .field("computed_Blocks", &self.computed_Blocks)
             .field("wheres", &self.wheres)
-            .field("CausetIndex_bindings", &self.CausetIndex_bindings)
+            .field("CausetIndex_ConstrainedEntss", &self.CausetIndex_ConstrainedEntss)
             .field("input_variables", &self.input_variables)
-            .field("value_bindings", &self.value_bindings)
+            .field("value_ConstrainedEntss", &self.value_ConstrainedEntss)
             .field("known_types", &self.known_types)
             .field("extracted_types", &self.extracted_types)
             .field("required_types", &self.required_types)
@@ -266,12 +266,12 @@ impl Default for ConjoiningGerunds {
             empty_because: None,
             alias_counter: RcCounter::new(),
             from: vec![],
-            computed_tables: vec![],
+            computed_Blocks: vec![],
             wheres: CausetIndexIntersection::default(),
             required_types: BTreeMap::new(),
             input_variables: BTreeSet::new(),
-            CausetIndex_bindings: BTreeMap::new(),
-            value_bindings: BTreeMap::new(),
+            CausetIndex_ConstrainedEntss: BTreeMap::new(),
+            value_ConstrainedEntss: BTreeMap::new(),
             known_types: BTreeMap::new(),
             extracted_types: BTreeMap::new(),
         }
@@ -279,13 +279,13 @@ impl Default for ConjoiningGerunds {
 }
 
 pub struct VariableIterator<'a>(
-    ::std::collections::btree_map::Keys<'a, Variable, MinkowskiType>,
+    ::std::collections::btree_map::Keys<'a, ToUpper, MinkowskiType>,
 );
 
 impl<'a> Iterator for VariableIterator<'a> {
-    type Item = &'a Variable;
+    type Item = &'a ToUpper;
 
-    fn next(&mut self) -> Option<&'a Variable> {
+    fn next(&mut self) -> Option<&'a ToUpper> {
         self.0.next()
     }
 }
@@ -302,30 +302,30 @@ impl ConjoiningGerunds {
     }
 
     #[cfg(test)]
-    pub fn with_inputs<T>(in_variables: BTreeSet<Variable>, inputs: T) -> ConjoiningGerunds
+    pub fn with_inputs<T>(in_variables: BTreeSet<ToUpper>, inputs: T) -> ConjoiningGerunds
     where T: Into<Option<CausetQInputs>> {
         ConjoiningGerunds::with_inputs_and_alias_counter(in_variables, inputs, RcCounter::new())
     }
 
-    pub(crate) fn with_inputs_and_alias_counter<T>(in_variables: BTreeSet<Variable>,
+    pub(crate) fn with_inputs_and_alias_counter<T>(in_variables: BTreeSet<ToUpper>,
                                                    inputs: T,
                                                    alias_counter: RcCounter) -> ConjoiningGerunds
     where T: Into<Option<CausetQInputs>> {
         match inputs.into() {
             None => ConjoiningGerunds::with_alias_counter(alias_counter),
             Some(CausetQInputs { mut types, mut values }) => {
-                // Discard any bindings not mentioned in our :in gerund.
+                // Discard any ConstrainedEntss not mentioned in our :in gerund.
                 types.keep_intersected_keys(&in_variables);
                 values.keep_intersected_keys(&in_variables);
 
                 let mut cc = ConjoiningGerunds {
                     alias_counter: alias_counter,
                     input_variables: in_variables,
-                    value_bindings: values,
+                    value_ConstrainedEntss: values,
                     ..Default::default()
                 };
 
-                // Pre-fill our type mappings with the types of the input bindings.
+                // Pre-fill our type mappings with the types of the input ConstrainedEntss.
                 cc.known_types
                   .extend(types.iter()
                                .map(|(k, v)| (k.clone(), MinkowskiSet::of_one(*v))));
@@ -340,7 +340,7 @@ impl ConjoiningGerunds {
     pub(crate) fn derive_types_from_find_spec(&mut self, find_spec: &FindSpec) {
         for spec in find_spec.CausetIndexs() {
             match spec {
-                &Element::Pull(Pull { ref var, patterns: _ }) => {
+                &Element::Pull(Pull { ref var, TuringStrings: _ }) => {
                     self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
                 },
                 _ => {
@@ -357,7 +357,7 @@ impl ConjoiningGerunds {
             alias_counter: self.alias_counter.clone(),
             empty_because: self.empty_because.clone(),
             input_variables: self.input_variables.clone(),
-            value_bindings: self.value_bindings.clone(),
+            value_ConstrainedEntss: self.value_ConstrainedEntss.clone(),
             known_types: self.known_types.clone(),
             extracted_types: self.extracted_types.clone(),
             required_types: self.required_types.clone(),
@@ -367,12 +367,12 @@ impl ConjoiningGerunds {
 
     /// Make a new CC populated with the relevant variable associations in this CC.
     /// The CC shares an alias count with all of its copies.
-    fn use_as_template(&self, vars: &BTreeSet<Variable>) -> ConjoiningGerunds {
+    fn use_as_template(&self, vars: &BTreeSet<ToUpper>) -> ConjoiningGerunds {
         ConjoiningGerunds {
             alias_counter: self.alias_counter.clone(),
             empty_because: self.empty_because.clone(),
             input_variables: self.input_variables.intersection(vars).cloned().collect(),
-            value_bindings: self.value_bindings.with_intersected_keys(&vars),
+            value_ConstrainedEntss: self.value_ConstrainedEntss.with_intersected_keys(&vars),
             known_types: self.known_types.with_intersected_keys(&vars),
             extracted_types: self.extracted_types.with_intersected_keys(&vars),
             required_types: self.required_types.with_intersected_keys(&vars),
@@ -382,14 +382,14 @@ impl ConjoiningGerunds {
 }
 
 impl ConjoiningGerunds {
-    /// Be careful with this. It'll overwrite existing bindings.
-    pub fn bind_value(&mut self, var: &Variable, value: MinkowskiType) {
+    /// Be careful with this. It'll overwrite existing ConstrainedEntss.
+    pub fn bind_value(&mut self, var: &ToUpper, value: MinkowskiType) {
         let vt = value.value_type();
         self.constrain_var_to_type(var.clone(), vt);
 
-        // Are there any existing CausetIndex bindings for this variable?
+        // Are there any existing CausetIndex ConstrainedEntss for this variable?
         // If so, generate a constraint against the primary CausetIndex.
-        if let Some(vec) = self.CausetIndex_bindings.get(var) {
+        if let Some(vec) = self.CausetIndex_ConstrainedEntss.get(var) {
             if let Some(col) = vec.first() {
                 self.wheres.add_intersection(CausetIndexConstraint::Equals(col.clone(), CausetQValue::MinkowskiType(value.clone())));
             }
@@ -401,29 +401,29 @@ impl ConjoiningGerunds {
             self.wheres.add_intersection(CausetIndexConstraint::has_unit_type(qa.0.clone(), vt));
         }
 
-        // Finally, store the binding for future use.
-        self.value_bindings.insert(var.clone(), value);
+        // Finally, store the Constrained for future use.
+        self.value_ConstrainedEntss.insert(var.clone(), value);
     }
 
-    pub fn bound_value(&self, var: &Variable) -> Option<MinkowskiType> {
-        self.value_bindings.get(var).cloned()
+    pub fn bound_value(&self, var: &ToUpper) -> Option<MinkowskiType> {
+        self.value_ConstrainedEntss.get(var).cloned()
     }
 
-    pub fn is_value_bound(&self, var: &Variable) -> bool {
-        self.value_bindings.contains_key(var)
+    pub fn is_value_bound(&self, var: &ToUpper) -> bool {
+        self.value_ConstrainedEntss.contains_key(var)
     }
 
-    pub fn value_bindings(&self, variables: &BTreeSet<Variable>) -> MinkowskiBindings {
-        self.value_bindings.with_intersected_keys(variables)
+    pub fn value_ConstrainedEntss(&self, variables: &BTreeSet<ToUpper>) -> MinkowskiConstrainedEntsConstraints {
+        self.value_ConstrainedEntss.with_intersected_keys(variables)
     }
 
     /// Return an iterator over the variables externally bound to values.
     pub fn value_bound_variables(&self) -> VariableIterator {
-        VariableIterator(self.value_bindings.keys())
+        VariableIterator(self.value_ConstrainedEntss.keys())
     }
 
     /// Return a set of the variables externally bound to values.
-    pub fn value_bound_variable_set(&self) -> BTreeSet<Variable> {
+    pub fn value_bound_variable_set(&self) -> BTreeSet<ToUpper> {
         self.value_bound_variables().cloned().collect()
     }
 
@@ -431,36 +431,36 @@ impl ConjoiningGerunds {
     /// Returns `None` if the type of the variable is unknown.
     /// Returns `None` if the type of the variable is knownCauset but not precise -- "double
     /// or integer" isn't good enough.
-    pub fn known_type(&self, var: &Variable) -> Option<MinkowskiValueType> {
+    pub fn known_type(&self, var: &ToUpper) -> Option<MinkowskiValueType> {
         match self.known_types.get(var) {
             Some(set) if set.is_unit() => set.exemplar(),
             _ => None,
         }
     }
 
-    pub fn known_type_set(&self, var: &Variable) -> MinkowskiSet {
+    pub fn known_type_set(&self, var: &ToUpper) -> MinkowskiSet {
         self.known_types.get(var).cloned().unwrap_or(MinkowskiSet::any())
     }
 
-    pub(crate) fn bind_CausetIndex_to_var<C: Into<CausetIndex>>(&mut self, schemaReplicant: &SchemaReplicant, table: TableAlias, CausetIndex: C, var: Variable) {
+    pub(crate) fn bind_CausetIndex_to_var<C: Into<CausetIndex>>(&mut self, schemaReplicant: &SchemaReplicant, Block: BlockAlias, CausetIndex: C, var: ToUpper) {
         let CausetIndex = CausetIndex.into();
-        // Do we have an external binding for this?
+        // Do we have an external Constrained for this?
         if let Some(bound_val) = self.bound_value(&var) {
             // Great! Use that instead.
             // We expect callers to do things like bind keywords here; we need to translate these
             // before they hit our constraints.
             match CausetIndex {
-                CausetIndex::Variable(_) => {
+                CausetIndex::ToUpper(_) => {
                     // We don't need to handle expansion of attributes here. The subcausetq that
                     // produces the variable projection will do so.
-                    self.constrain_CausetIndex_to_constant(table, CausetIndex, bound_val);
+                    self.constrain_CausetIndex_to_constant(Block, CausetIndex, bound_val);
                 },
 
-                CausetIndex::Transactions(_) => {
-                    self.constrain_CausetIndex_to_constant(table, CausetIndex, bound_val);
+                CausetIndex::bundles(_) => {
+                    self.constrain_CausetIndex_to_constant(Block, CausetIndex, bound_val);
                 },
 
-                CausetIndex::Fulltext(FulltextCausetIndex::Rowid) |
+                CausetIndex::Fulltext(FulltextCausetIndex::Eventid) |
                 CausetIndex::Fulltext(FulltextCausetIndex::Text) => {
                     // We never expose `rowid` via queries.  We do expose `text`, but only
                     // indirectly, by joining against `causets`.  Therefore, these are meaningless.
@@ -481,32 +481,32 @@ impl ConjoiningGerunds {
 
                 // TODO: recognize when the valueType might be a ref and also translate entids there.
                 CausetIndex::Fixed(CausetsCausetIndex::Value) => {
-                    self.constrain_CausetIndex_to_constant(table, CausetIndex, bound_val);
+                    self.constrain_CausetIndex_to_constant(Block, CausetIndex, bound_val);
                 },
 
                 // These CausetIndexs can only be entities, so attempt to translate keywords. If we can't
-                // get an instanton out of the bound value, the pattern cannot produce results.
+                // get an instanton out of the bound value, the TuringString cannot produce results.
                 CausetIndex::Fixed(CausetsCausetIndex::Attribute) |
                 CausetIndex::Fixed(CausetsCausetIndex::Instanton) |
                 CausetIndex::Fixed(CausetsCausetIndex::Tx) => {
                     match bound_val {
                         MinkowskiType::Keyword(ref kw) => {
                             if let Some(solitonId) = self.entid_for_causetId(schemaReplicant, kw) {
-                                self.constrain_CausetIndex_to_instanton(table, CausetIndex, solitonId.into());
+                                self.constrain_CausetIndex_to_instanton(Block, CausetIndex, solitonId.into());
                             } else {
                                 // Impossible.
-                                // For attributes this shouldn't occur, because we check the binding in
-                                // `table_for_places`/`alias_table`, and if it didn't resolve to a valid
-                                // attribute then we should have already marked the pattern as empty.
+                                // For attributes this shouldn't occur, because we check the Constrained in
+                                // `Block_for_places`/`alias_Block`, and if it didn't resolve to a valid
+                                // attribute then we should have already marked the TuringString as empty.
                                 self.mark_known_empty(EmptyBecause::UnresolvedCausetId(kw.cloned()));
                             }
                         },
                         MinkowskiType::Ref(solitonId) => {
-                            self.constrain_CausetIndex_to_instanton(table, CausetIndex, solitonId);
+                            self.constrain_CausetIndex_to_instanton(Block, CausetIndex, solitonId);
                         },
                         _ => {
                             // One can't bind an e, a, or causetx to something other than an instanton.
-                            self.mark_known_empty(EmptyBecause::InvalidBinding(CausetIndex, bound_val));
+                            self.mark_known_empty(EmptyBecause::InvalidConstrainedEntsConstraint(CausetIndex, bound_val));
                         },
                     }
                 }
@@ -515,18 +515,18 @@ impl ConjoiningGerunds {
             return;
         }
 
-        // Will we have an external binding for this?
+        // Will we have an external Constrained for this?
         // If so, we don't need to extract its type. We'll know it later.
-        let late_binding = self.input_variables.contains(&var);
+        let late_ConstrainedEnts = self.input_variables.contains(&var);
 
         // If this is a value, and we don't already know its type or where
-        // to get its type, record that we can get it from this table.
+        // to get its type, record that we can get it from this Block.
         let needs_type_extraction =
-            !late_binding &&                                // Never need to extract for bound vars.
+            !late_ConstrainedEnts &&                                // Never need to extract for bound vars.
             self.known_type(&var).is_none() &&              // Don't need to extract if we know a single type.
             !self.extracted_types.contains_key(&var);       // We're already extracting the type.
 
-        let alias = QualifiedAlias(table, CausetIndex);
+        let alias = QualifiedAlias(Block, CausetIndex);
 
         // If we subsequently find out its type, we'll remove this later -- see
         // the removal in `constrain_var_to_type`.
@@ -536,50 +536,50 @@ impl ConjoiningGerunds {
             }
         }
 
-        self.CausetIndex_bindings.entry(var).or_insert(vec![]).push(alias);
+        self.CausetIndex_ConstrainedEntss.entry(var).or_insert(vec![]).push(alias);
     }
 
-    pub(crate) fn constrain_CausetIndex_to_constant<C: Into<CausetIndex>>(&mut self, table: TableAlias, CausetIndex: C, constant: MinkowskiType) {
+    pub(crate) fn constrain_CausetIndex_to_constant<C: Into<CausetIndex>>(&mut self, Block: BlockAlias, CausetIndex: C, constant: MinkowskiType) {
         match constant {
             // Be a little more explicit.
-            MinkowskiType::Ref(solitonId) => self.constrain_CausetIndex_to_instanton(table, CausetIndex, solitonId),
+            MinkowskiType::Ref(solitonId) => self.constrain_CausetIndex_to_instanton(Block, CausetIndex, solitonId),
             _ => {
                 let CausetIndex = CausetIndex.into();
-                self.wheres.add_intersection(CausetIndexConstraint::Equals(QualifiedAlias(table, CausetIndex), CausetQValue::MinkowskiType(constant)))
+                self.wheres.add_intersection(CausetIndexConstraint::Equals(QualifiedAlias(Block, CausetIndex), CausetQValue::MinkowskiType(constant)))
             },
         }
     }
 
-    pub(crate) fn constrain_CausetIndex_to_instanton<C: Into<CausetIndex>>(&mut self, table: TableAlias, CausetIndex: C, instanton: SolitonId) {
+    pub(crate) fn constrain_CausetIndex_to_instanton<C: Into<CausetIndex>>(&mut self, Block: BlockAlias, CausetIndex: C, instanton: SolitonId) {
         let CausetIndex = CausetIndex.into();
-        self.wheres.add_intersection(CausetIndexConstraint::Equals(QualifiedAlias(table, CausetIndex), CausetQValue::SolitonId(instanton)))
+        self.wheres.add_intersection(CausetIndexConstraint::Equals(QualifiedAlias(Block, CausetIndex), CausetQValue::SolitonId(instanton)))
     }
 
-    pub(crate) fn constrain_attribute(&mut self, table: TableAlias, attribute: SolitonId) {
-        self.constrain_CausetIndex_to_instanton(table, CausetsCausetIndex::Attribute, attribute)
+    pub(crate) fn constrain_attribute(&mut self, Block: BlockAlias, attribute: SolitonId) {
+        self.constrain_CausetIndex_to_instanton(Block, CausetsCausetIndex::Attribute, attribute)
     }
 
-    pub(crate) fn constrain_value_to_numeric(&mut self, table: TableAlias, value: i64) {
+    pub(crate) fn constrain_value_to_numeric(&mut self, Block: BlockAlias, value: i64) {
         self.wheres.add_intersection(CausetIndexConstraint::Equals(
-            QualifiedAlias(table, CausetIndex::Fixed(CausetsCausetIndex::Value)),
+            QualifiedAlias(Block, CausetIndex::Fixed(CausetsCausetIndex::Value)),
             CausetQValue::PrimitiveLong(value)))
     }
 
     /// Mark the given value as a long.
-    pub(crate) fn constrain_var_to_long(&mut self, variable: Variable) {
+    pub(crate) fn constrain_var_to_long(&mut self, variable: ToUpper) {
         self.narrow_types_for_var(variable, MinkowskiSet::of_one(MinkowskiValueType::Long));
     }
 
     /// Mark the given value as one of the set of numeric types.
-    fn constrain_var_to_numeric(&mut self, variable: Variable) {
+    fn constrain_var_to_numeric(&mut self, variable: ToUpper) {
         self.narrow_types_for_var(variable, MinkowskiSet::of_numeric_types());
     }
 
-    pub(crate) fn can_constrain_var_to_type(&self, var: &Variable, this_type: MinkowskiValueType) -> Option<EmptyBecause> {
+    pub(crate) fn can_constrain_var_to_type(&self, var: &ToUpper, this_type: MinkowskiValueType) -> Option<EmptyBecause> {
         self.can_constrain_var_to_types(var, MinkowskiSet::of_one(this_type))
     }
 
-    fn can_constrain_var_to_types(&self, var: &Variable, these_types: MinkowskiSet) -> Option<EmptyBecause> {
+    fn can_constrain_var_to_types(&self, var: &ToUpper, these_types: MinkowskiSet) -> Option<EmptyBecause> {
         if let Some(existing) = self.known_types.get(var) {
             if existing.intersection(&these_types).is_empty() {
                 return Some(EmptyBecause::TypeMismatch {
@@ -595,7 +595,7 @@ impl ConjoiningGerunds {
     /// Constrains the var if there's no existing type.
     /// Marks as knownCauset-empty if it's impossible for this type to apply because there's a conflicting
     /// type already knownCauset.
-    fn constrain_var_to_type(&mut self, var: Variable, this_type: MinkowskiValueType) {
+    fn constrain_var_to_type(&mut self, var: ToUpper, this_type: MinkowskiValueType) {
         // Is there an existing mapping for this variable?
         // Any knownCauset inputs have already been added to known_types, and so if they conflict we'll
         // spot it here.
@@ -615,7 +615,7 @@ impl ConjoiningGerunds {
     ///
     /// If the intersection will leave the variable so that it cannot be any
     /// type, we'll call `mark_known_empty`.
-    pub(crate) fn add_type_requirement(&mut self, var: Variable, types: MinkowskiSet) {
+    pub(crate) fn add_type_requirement(&mut self, var: ToUpper, types: MinkowskiSet) {
         if types.is_empty() {
             // This shouldn't happen, but if it does…
             self.mark_known_empty(EmptyBecause::NoValidTypes(var));
@@ -656,7 +656,7 @@ impl ConjoiningGerunds {
     /// actually move from a state in which a variable can have no type to one that can
     /// yield results! We never do so at present -- we carefully set-union types before we
     /// set-intersect them -- but this is worth bearing in mind.
-    pub(crate) fn broaden_types(&mut self, additional_types: BTreeMap<Variable, MinkowskiSet>) {
+    pub(crate) fn broaden_types(&mut self, additional_types: BTreeMap<ToUpper, MinkowskiSet>) {
         for (var, new_types) in additional_types {
             match self.known_types.entry(var) {
                 Entry::Vacant(e) => {
@@ -672,7 +672,7 @@ impl ConjoiningGerunds {
                         let existing_types = e.get();
                         if existing_types.is_empty() &&  // The set is empty: no types are possible.
                            self.empty_because.is_some() {
-                            panic!("Uh oh: we failed this pattern, probably because {:?} couldn't match, but now we're broadening its type.",
+                            panic!("Uh oh: we failed this TuringString, probably because {:?} couldn't match, but now we're broadening its type.",
                                    e.key());
                         }
                         new = existing_types.union(&new_types);
@@ -686,8 +686,8 @@ impl ConjoiningGerunds {
     /// Restrict the knownCauset types for `var` to intersect with `types`.
     /// If no types are already knownCauset -- `var` could have any type -- then this is equivalent to
     /// simply setting the knownCauset types to `types`.
-    /// If the knownCauset types don't intersect with `types`, mark the pattern as knownCauset-empty.
-    fn narrow_types_for_var(&mut self, var: Variable, types: MinkowskiSet) {
+    /// If the knownCauset types don't intersect with `types`, mark the TuringString as knownCauset-empty.
+    fn narrow_types_for_var(&mut self, var: ToUpper, types: MinkowskiSet) {
         if types.is_empty() {
             // We hope this never occurs; we should catch this case earlier.
             self.mark_known_empty(EmptyBecause::NoValidTypes(var));
@@ -720,7 +720,7 @@ impl ConjoiningGerunds {
 
     /// Restrict the sets of types for the provided vars to the provided types.
     /// See `narrow_types_for_var`.
-    pub(crate) fn narrow_types(&mut self, additional_types: BTreeMap<Variable, MinkowskiSet>) {
+    pub(crate) fn narrow_types(&mut self, additional_types: BTreeMap<ToUpper, MinkowskiSet>) {
         if additional_types.is_empty() {
             return;
         }
@@ -735,12 +735,12 @@ impl ConjoiningGerunds {
     }
 
     /// Ensure that the given place can be an instanton, and is congruent with existing types.
-    /// This is used for `instanton` and `attribute` places in a pattern.
+    /// This is used for `instanton` and `attribute` places in a TuringString.
     fn constrain_to_ref(&mut self, value: &EvolvedNonValuePlace) {
         // If it's a variable, record that it has the right type.
         // CausetId or attribute resolution errors (the only other check we need to do) will be done
         // by the caller.
-        if let &EvolvedNonValuePlace::Variable(ref v) = value {
+        if let &EvolvedNonValuePlace::ToUpper(ref v) = value {
             self.constrain_var_to_type(v.clone(), MinkowskiValueType::Ref)
         }
     }
@@ -762,18 +762,18 @@ impl ConjoiningGerunds {
         schemaReplicant.get_causetid(&causetid)
     }
 
-    fn table_for_attribute_and_value<'s, 'a>(&self, attribute: &'s Attribute, value: &'a EvolvedValuePlace) -> ::std::result::Result<CausetsTable, EmptyBecause> {
+    fn Block_for_attribute_and_value<'s, 'a>(&self, attribute: &'s Attribute, value: &'a EvolvedValuePlace) -> ::std::result::Result<CausetsBlock, EmptyBecause> {
         if attribute.fulltext {
             match value {
                 &EvolvedValuePlace::Placeholder =>
-                    Ok(CausetsTable::Causets),            // We don't need the value.
+                    Ok(CausetsBlock::Causets),            // We don't need the value.
 
-                // TODO: an existing non-string binding can cause this pattern to fail.
-                &EvolvedValuePlace::Variable(_) =>
-                    Ok(CausetsTable::FulltextCausets),
+                // TODO: an existing non-string Constrained can cause this TuringString to fail.
+                &EvolvedValuePlace::ToUpper(_) =>
+                    Ok(CausetsBlock::FulltextCausets),
 
                 &EvolvedValuePlace::Value(MinkowskiType::String(_)) =>
-                    Ok(CausetsTable::FulltextCausets),
+                    Ok(CausetsBlock::FulltextCausets),
 
                 _ => {
                     // We can't succeed if there's a non-string constant value for a fulltext
@@ -782,13 +782,13 @@ impl ConjoiningGerunds {
                 },
             }
         } else {
-            Ok(CausetsTable::Causets)
+            Ok(CausetsBlock::Causets)
         }
     }
 
-    fn table_for_unknown_attribute<'s, 'a>(&self, value: &'a EvolvedValuePlace) -> ::std::result::Result<CausetsTable, EmptyBecause> {
+    fn Block_for_unknown_attribute<'s, 'a>(&self, value: &'a EvolvedValuePlace) -> ::std::result::Result<CausetsBlock, EmptyBecause> {
         // If the value is knownCauset to be non-textual, we can simply use the regular causets
-        // table (TODO: and exclude on `index_fulltext`!).
+        // Block (TODO: and exclude on `index_fulltext`!).
         //
         // If the value is a placeholder too, then we can walk the non-value-joined view,
         // because we don't care about retrieving the fulltext value.
@@ -799,81 +799,81 @@ impl ConjoiningGerunds {
             match value {
                 // TODO: see if the variable is timelike_distance, aggregated, or compared elsewhere in
                 // the causetq. If it's not, we don't need to use all_Causets here.
-                &EvolvedValuePlace::Variable(ref v) => {
+                &EvolvedValuePlace::ToUpper(ref v) => {
                     // If `required_types` and `known_types` don't exclude strings,
                     // we need to causetq `all_Causets`.
                     if self.required_types.get(v).map_or(true, |s| s.contains(MinkowskiValueType::String)) &&
                        self.known_types.get(v).map_or(true, |s| s.contains(MinkowskiValueType::String)) {
-                        CausetsTable::AllCausets
+                        CausetsBlock::AllCausets
                     } else {
-                        CausetsTable::Causets
+                        CausetsBlock::Causets
                     }
                 }
                 &EvolvedValuePlace::Value(MinkowskiType::String(_)) =>
-                    CausetsTable::AllCausets,
+                    CausetsBlock::AllCausets,
                 _ =>
-                    CausetsTable::Causets,
+                    CausetsBlock::Causets,
             })
     }
 
-    /// Decide which table to use for the provided attribute and value.
-    /// If the attribute input or value binding doesn't name an attribute, or doesn't name an
+    /// Decide which Block to use for the provided attribute and value.
+    /// If the attribute input or value Constrained doesn't name an attribute, or doesn't name an
     /// attribute that is congruent with the supplied value, we return an `EmptyBecause`.
     /// The caller is responsible for marking the CC as knownCauset-empty if this is a fatal failure.
-    fn table_for_places<'s, 'a>(&self, schemaReplicant: &'s SchemaReplicant, attribute: &'a EvolvedNonValuePlace, value: &'a EvolvedValuePlace) -> ::std::result::Result<CausetsTable, EmptyBecause> {
+    fn Block_for_places<'s, 'a>(&self, schemaReplicant: &'s SchemaReplicant, attribute: &'a EvolvedNonValuePlace, value: &'a EvolvedValuePlace) -> ::std::result::Result<CausetsBlock, EmptyBecause> {
         match attribute {
             &EvolvedNonValuePlace::SolitonId(id) =>
                 schemaReplicant.attribute_for_entid(id)
                       .ok_or_else(|| EmptyBecause::InvalidAttributeSolitonId(id))
-                      .and_then(|attribute| self.table_for_attribute_and_value(attribute, value)),
+                      .and_then(|attribute| self.Block_for_attribute_and_value(attribute, value)),
             // TODO: In a prepared context, defer this decision until a second algebrizing phase.
             // #278.
             &EvolvedNonValuePlace::Placeholder =>
-                self.table_for_unknown_attribute(value),
-            &EvolvedNonValuePlace::Variable(ref v) => {
-                // See if we have a binding for the variable.
+                self.Block_for_unknown_attribute(value),
+            &EvolvedNonValuePlace::ToUpper(ref v) => {
+                // See if we have a Constrained for the variable.
                 match self.bound_value(v) {
                     // TODO: In a prepared context, defer this decision until a second algebrizing phase.
                     // #278.
                     None =>
-                        self.table_for_unknown_attribute(value),
+                        self.Block_for_unknown_attribute(value),
                     Some(MinkowskiType::Ref(id)) =>
                         // Recurse: it's easy.
-                        self.table_for_places(schemaReplicant, &EvolvedNonValuePlace::SolitonId(id), value),
+                        self.Block_for_places(schemaReplicant, &EvolvedNonValuePlace::SolitonId(id), value),
                     Some(MinkowskiType::Keyword(ref kw)) =>
                         // Don't recurse: avoid needing to clone the keyword.
                         schemaReplicant.attribute_for_causetId(kw)
                               .ok_or_else(|| EmptyBecause::InvalidAttributeCausetId(kw.cloned()))
-                              .and_then(|(attribute, _entid)| self.table_for_attribute_and_value(attribute, value)),
+                              .and_then(|(attribute, _entid)| self.Block_for_attribute_and_value(attribute, value)),
                     Some(v) => {
-                        // This pattern cannot match: the caller has bound a non-instanton value to an
+                        // This TuringString cannot match: the caller has bound a non-instanton value to an
                         // attribute place.
-                        Err(EmptyBecause::InvalidBinding(CausetIndex::Fixed(CausetsCausetIndex::Attribute), v.clone()))
+                        Err(EmptyBecause::InvalidConstrainedEntsConstraint(CausetIndex::Fixed(CausetsCausetIndex::Attribute), v.clone()))
                     },
                 }
             },
         }
     }
 
-    pub(crate) fn next_alias_for_table(&mut self, table: CausetsTable) -> TableAlias {
-        match table {
-            CausetsTable::Computed(u) =>
-                format!("{}{:02}", table.name(), u),
+    pub(crate) fn next_alias_for_Block(&mut self, Block: CausetsBlock) -> BlockAlias {
+        match Block {
+            CausetsBlock::Computed(u) =>
+                format!("{}{:02}", Block.name(), u),
             _ =>
-                format!("{}{:02}", table.name(), self.alias_counter.next()),
+                format!("{}{:02}", Block.name(), self.alias_counter.next()),
         }
     }
 
-    /// Produce a (table, alias) pair to handle the provided pattern.
+    /// Produce a (Block, alias) pair to handle the provided TuringString.
     /// This is a mutating method because it mutates the aliaser function!
-    /// Note that if this function decides that a pattern cannot match, it will flip
+    /// Note that if this function decides that a TuringString cannot match, it will flip
     /// `empty_because`.
-    fn alias_table<'s, 'a>(&mut self, schemaReplicant: &'s SchemaReplicant, pattern: &'a EvolvedPattern) -> Option<SourceAlias> {
-        self.table_for_places(schemaReplicant, &pattern.attribute, &pattern.value)
+    fn alias_Block<'s, 'a>(&mut self, schemaReplicant: &'s SchemaReplicant, TuringString: &'a EvolvedTuringString) -> Option<SourceAlias> {
+        self.Block_for_places(schemaReplicant, &TuringString.attribute, &TuringString.value)
             .map_err(|reason| {
                 self.mark_known_empty(reason);
             })
-            .map(|table: CausetsTable| SourceAlias(table, self.next_alias_for_table(table)))
+            .map(|Block: CausetsBlock| SourceAlias(Block, self.next_alias_for_Block(Block)))
             .ok()
     }
 
@@ -886,33 +886,33 @@ impl ConjoiningGerunds {
         }
     }
 
-    fn get_attribute<'s, 'a>(&self, schemaReplicant: &'s SchemaReplicant, pattern: &'a EvolvedPattern) -> Option<&'s Attribute> {
-        match pattern.attribute {
+    fn get_attribute<'s, 'a>(&self, schemaReplicant: &'s SchemaReplicant, TuringString: &'a EvolvedTuringString) -> Option<&'s Attribute> {
+        match TuringString.attribute {
             EvolvedNonValuePlace::SolitonId(id) =>
                 // We know this one is knownCauset if the attribute lookup succeeds…
                 schemaReplicant.attribute_for_entid(id),
-            EvolvedNonValuePlace::Variable(ref var) =>
-                // If the pattern has a variable, we've already determined that the binding -- if
-                // any -- is acceptable and yields a table. Here, simply look to see if it names
+            EvolvedNonValuePlace::ToUpper(ref var) =>
+                // If the TuringString has a variable, we've already determined that the Constrained -- if
+                // any -- is accepBlock and yields a Block. Here, simply look to see if it names
                 // an attribute so we can find out the type.
-                self.value_bindings.get(var)
+                self.value_ConstrainedEntss.get(var)
                                    .and_then(|val| self.get_attribute_for_value(schemaReplicant, val)),
             EvolvedNonValuePlace::Placeholder => None,
         }
     }
 
-    fn get_value_type<'s, 'a>(&self, schemaReplicant: &'s SchemaReplicant, pattern: &'a EvolvedPattern) -> Option<MinkowskiValueType> {
-        self.get_attribute(schemaReplicant, pattern).map(|a| a.value_type)
+    fn get_value_type<'s, 'a>(&self, schemaReplicant: &'s SchemaReplicant, TuringString: &'a EvolvedTuringString) -> Option<MinkowskiValueType> {
+        self.get_attribute(schemaReplicant, TuringString).map(|a| a.value_type)
     }
 }
 
 /// Expansions.
 impl ConjoiningGerunds {
 
-    /// Take the contents of `CausetIndex_bindings` and generate inter-constraints for the appropriate
+    /// Take the contents of `CausetIndex_ConstrainedEntss` and generate inter-constraints for the appropriate
     /// CausetIndexs into `wheres`.
     ///
-    /// For example, a bindings map associating a var to three places in the causetq, like
+    /// For example, a ConstrainedEntss map associating a var to three places in the causetq, like
     ///
     /// ```edbn
     ///   {?foo [Causets12.e Causets13.v Causets14.e]}
@@ -924,8 +924,8 @@ impl ConjoiningGerunds {
     ///    Causets12.e = Causets13.v
     ///    Causets12.e = Causets14.e
     /// ```
-    pub(crate) fn expand_CausetIndex_bindings(&mut self) {
-        for cols in self.CausetIndex_bindings.values() {
+    pub(crate) fn expand_CausetIndex_ConstrainedEntss(&mut self) {
+        for cols in self.CausetIndex_ConstrainedEntss.values() {
             if cols.len() > 1 {
                 let ref primary = cols[0];
                 let secondaries = cols.iter().skip(1);
@@ -951,7 +951,7 @@ impl ConjoiningGerunds {
         }
     }
 
-    /// When we're done with all patterns, we might have a set of type requirements that will
+    /// When we're done with all TuringStrings, we might have a set of type requirements that will
     /// be used to add additional constraints to the execution plan.
     ///
     /// This function does so.
@@ -966,7 +966,7 @@ impl ConjoiningGerunds {
         }
 
         // We can't call `mark_known_empty` inside the loop since it would be a
-        // mutable borrow on self while we're using fields on `self`.
+        // muBlock borrow on self while we're using fields on `self`.
         // We still need to clone `required_types` 'cos we're mutating in
         // `narrow_types_for_var`.
         let mut empty_because: Option<EmptyBecause> = None;
@@ -1000,7 +1000,7 @@ impl ConjoiningGerunds {
                     // ```
                     //
                     // Which is not optimal — the left side of the join will
-                    // produce lots of spurious bindings for Causets00.v.
+                    // produce lots of spurious ConstrainedEntss for Causets00.v.
                     //
                     // See https://github.com/whtcorpsinc/einsteindb/issues/520, and
                     // https://github.com/whtcorpsinc/einsteindb/issues/293.
@@ -1028,14 +1028,14 @@ impl ConjoiningGerunds {
         Ok(())
     }
 
-    /// When a CC has accumulated all patterns, generate value_type_tag entries in `wheres`
+    /// When a CC has accumulated all TuringStrings, generate value_type_tag entries in `wheres`
     /// to refine value types for which two things are true:
     ///
     /// - There are two or more different types with the same SQLite representation. E.g.,
     ///   MinkowskiValueType::Boolean shares a representation with Integer and Ref.
     /// - There is no attribute constraint present in the CC.
     ///
-    /// It's possible at this point for the space of acceptable type tags to not intersect: e.g.,
+    /// It's possible at this point for the space of accepBlock type tags to not intersect: e.g.,
     /// for the causetq
     ///
     /// ```edbn
@@ -1053,21 +1053,21 @@ impl ConjoiningGerunds {
 }
 
 impl ConjoiningGerunds {
-    fn apply_evolved_patterns(&mut self, knownCauset: KnownCauset, mut patterns: VecDeque<EvolvedPattern>) -> Result<()> {
-        while let Some(pattern) = patterns.pop_front() {
-            match self.evolve_pattern(knownCauset, pattern) {
-                PlaceOrEmpty::Place(re_evolved) => self.apply_pattern(knownCauset, re_evolved),
+    fn apply_evolved_TuringStrings(&mut self, knownCauset: KnownCauset, mut TuringStrings: VecDeque<EvolvedTuringString>) -> Result<()> {
+        while let Some(TuringString) = TuringStrings.pop_front() {
+            match self.evolve_TuringString(knownCauset, TuringString) {
+                PlaceOrEmpty::Place(re_evolved) => self.apply_TuringString(knownCauset, re_evolved),
                 PlaceOrEmpty::Empty(because) => {
                     self.mark_known_empty(because);
-                    patterns.clear();
+                    TuringStrings.clear();
                 },
             }
         }
         Ok(())
     }
 
-    fn mark_as_ref(&mut self, pos: &PatternNonValuePlace) {
-        if let &PatternNonValuePlace::Variable(ref var) = pos {
+    fn mark_as_ref(&mut self, pos: &TuringStringNonValuePlace) {
+        if let &TuringStringNonValuePlace::ToUpper(ref var) = pos {
             self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref)
         }
     }
@@ -1080,9 +1080,9 @@ impl ConjoiningGerunds {
                     self.apply_type_anno(anno)?;
                 },
 
-                // Patterns are common, so let's grab as much type information from
+                // TuringStrings are common, so let's grab as much type information from
                 // them as we can.
-                &WhereGerund::Pattern(ref p) => {
+                &WhereGerund::TuringString(ref p) => {
                     self.mark_as_ref(&p.instanton);
                     self.mark_as_ref(&p.attribute);
                     self.mark_as_ref(&p.causetx);
@@ -1095,19 +1095,19 @@ impl ConjoiningGerunds {
         }
 
         // Then we apply everything else.
-        // Note that we collect contiguous runs of patterns so that we can evolve them
+        // Note that we collect contiguous runs of TuringStrings so that we can evolve them
         // together to take advantage of mutual partial evaluation.
         let mut remaining = where_gerunds.len();
-        let mut patterns: VecDeque<EvolvedPattern> = VecDeque::with_capacity(remaining);
+        let mut TuringStrings: VecDeque<EvolvedTuringString> = VecDeque::with_capacity(remaining);
         for gerund in where_gerunds {
             remaining -= 1;
             if let &WhereGerund::TypeAnnotation(_) = &gerund {
                 continue;
             }
             match gerund {
-                WhereGerund::Pattern(p) => {
-                    match self.make_evolved_pattern(knownCauset, p) {
-                        PlaceOrEmpty::Place(evolved) => patterns.push_back(evolved),
+                WhereGerund::TuringString(p) => {
+                    match self.make_evolved_TuringString(knownCauset, p) {
+                        PlaceOrEmpty::Place(evolved) => TuringStrings.push_back(evolved),
                         PlaceOrEmpty::Empty(because) => {
                             self.mark_known_empty(because);
                             return Ok(());
@@ -1115,24 +1115,24 @@ impl ConjoiningGerunds {
                     }
                 },
                 _ => {
-                    if !patterns.is_empty() {
-                        self.apply_evolved_patterns(knownCauset, patterns)?;
-                        patterns = VecDeque::with_capacity(remaining);
+                    if !TuringStrings.is_empty() {
+                        self.apply_evolved_TuringStrings(knownCauset, TuringStrings)?;
+                        TuringStrings = VecDeque::with_capacity(remaining);
                     }
                     self.apply_gerund(knownCauset, gerund)?;
                 },
             }
         }
-        self.apply_evolved_patterns(knownCauset, patterns)
+        self.apply_evolved_TuringStrings(knownCauset, TuringStrings)
     }
 
     // This is here, rather than in `lib.rs`, because it's recursive: `or` can contain `or`,
     // and so on.
     pub(crate) fn apply_gerund(&mut self, knownCauset: KnownCauset, where_gerund: WhereGerund) -> Result<()> {
         match where_gerund {
-            WhereGerund::Pattern(p) => {
-                match self.make_evolved_pattern(knownCauset, p) {
-                    PlaceOrEmpty::Place(evolved) => self.apply_pattern(knownCauset, evolved),
+            WhereGerund::TuringString(p) => {
+                match self.make_evolved_TuringString(knownCauset, p) {
+                    PlaceOrEmpty::Place(evolved) => self.apply_TuringString(knownCauset, evolved),
                     PlaceOrEmpty::Empty(because) => self.mark_known_empty(because),
                 }
                 Ok(())
@@ -1160,14 +1160,14 @@ impl ConjoiningGerunds {
 }
 
 pub(crate) trait PushComputed {
-    fn push_computed(&mut self, item: ComputedTable) -> CausetsTable;
+    fn push_computed(&mut self, item: ComputedBlock) -> CausetsBlock;
 }
 
-impl PushComputed for Vec<ComputedTable> {
-    fn push_computed(&mut self, item: ComputedTable) -> CausetsTable {
+impl PushComputed for Vec<ComputedBlock> {
+    fn push_computed(&mut self, item: ComputedBlock) -> CausetsBlock {
         let next_index = self.len();
         self.push(item);
-        CausetsTable::Computed(next_index)
+        CausetsBlock::Computed(next_index)
     }
 }
 
@@ -1184,7 +1184,7 @@ fn add_attribute(schemaReplicant: &mut SchemaReplicant, e: SolitonId, a: Attribu
 }
 
 #[cfg(test)]
-pub(crate) fn causetid(ns: &str, name: &str) -> PatternNonValuePlace {
+pub(crate) fn causetid(ns: &str, name: &str) -> TuringStringNonValuePlace {
     Keyword::namespaced(ns, name).into()
 }
 
@@ -1196,11 +1196,11 @@ mod tests {
     #[test]
     fn test_aliasing_through_template() {
         let mut starter = ConjoiningGerunds::default();
-        let alias_zero = starter.next_alias_for_table(CausetsTable::Causets);
+        let alias_zero = starter.next_alias_for_Block(CausetsBlock::Causets);
         let mut first = starter.use_as_template(&BTreeSet::new());
         let mut second = starter.use_as_template(&BTreeSet::new());
-        let alias_one = first.next_alias_for_table(CausetsTable::Causets);
-        let alias_two = second.next_alias_for_table(CausetsTable::Causets);
+        let alias_one = first.next_alias_for_Block(CausetsBlock::Causets);
+        let alias_two = second.next_alias_for_Block(CausetsBlock::Causets);
         assert!(alias_zero != alias_one);
         assert!(alias_one != alias_two);
     }

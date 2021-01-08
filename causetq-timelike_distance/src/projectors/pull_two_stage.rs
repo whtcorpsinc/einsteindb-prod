@@ -23,7 +23,7 @@ use embedded_promises::{
 };
 
 use ::{
-    Binding,
+    ConstrainedEntsConstraint,
     CombinedProjection,
     Element,
     FindSpec,
@@ -31,8 +31,8 @@ use ::{
     CausetQOutput,
     CausetQResults,
     RelResult,
-    Row,
-    Rows,
+    Event,
+    Events,
     SchemaReplicant,
     TypedIndex,
     rusqlite,
@@ -77,14 +77,14 @@ impl ScalarTwoStagePullProjector {
 }
 
 impl Projector for ScalarTwoStagePullProjector {
-    fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, mut rows: Events<'stmt>) -> Result<CausetQOutput> {
         // Scalar is pretty straightforward -- zero or one instanton, do the pull directly.
         let results =
             if let Some(r) = rows.next() {
-                let row = r?;
-                let instanton: SolitonId = row.get(0);          // This will always be 0 and a ref.
-                let bindings = self.puller.pull(schemaReplicant, sqlite, once(instanton))?;
-                let m = Binding::Map(bindings.get(&instanton).cloned().unwrap_or_else(Default::default));
+                let EventIdx = r?;
+                let instanton: SolitonId = EventIdx.get(0);          // This will always be 0 and a ref.
+                let ConstrainedEntss = self.puller.pull(schemaReplicant, sqlite, once(instanton))?;
+                let m = ConstrainedEntsConstraint::Map(ConstrainedEntss.get(&instanton).cloned().unwrap_or_else(Default::default));
                 CausetQResults::Scalar(Some(m))
             } else {
                 CausetQResults::Scalar(None)
@@ -120,15 +120,15 @@ impl TupleTwoStagePullProjector {
     }
 
     // This is exactly the same as for rel.
-    fn collect_bindings<'a, 'stmt>(&self, row: Row<'a, 'stmt>) -> Result<Vec<Binding>> {
+    fn collect_ConstrainedEntss<'a, 'stmt>(&self, EventIdx: Event<'a, 'stmt>) -> Result<Vec<ConstrainedEntsConstraint>> {
         // There will be at least as many SQL CausetIndexs as Datalog CausetIndexs.
         // gte 'cos we might be causetqing extra CausetIndexs for ordering.
         // The templates will take care of ignoring CausetIndexs.
-        assert!(row.CausetIndex_count() >= self.len as i32);
+        assert!(EventIdx.CausetIndex_count() >= self.len as i32);
         self.templates
             .iter()
-            .map(|ti| ti.lookup(&row))
-            .collect::<Result<Vec<Binding>>>()
+            .map(|ti| ti.lookup(&EventIdx))
+            .collect::<Result<Vec<ConstrainedEntsConstraint>>>()
     }
 
     pub(crate) fn combine(spec: Rc<FindSpec>, CausetIndex_count: usize, mut elements: GreedoidElements) -> Result<CombinedProjection> {
@@ -139,10 +139,10 @@ impl TupleTwoStagePullProjector {
 }
 
 impl Projector for TupleTwoStagePullProjector {
-    fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, mut rows: Events<'stmt>) -> Result<CausetQOutput> {
         let results =
             if let Some(r) = rows.next() {
-                let row = r?;
+                let EventIdx = r?;
 
                 // Keeping the compiler happy.
                 let pull_consumers: Result<Vec<PullConsumer>> = self.pulls
@@ -151,12 +151,12 @@ impl Projector for TupleTwoStagePullProjector {
                                                                     .collect();
                 let mut pull_consumers = pull_consumers?;
 
-                // Collect the usual bindings and accumulate instanton IDs for pull.
+                // Collect the usual ConstrainedEntss and accumulate instanton IDs for pull.
                 for mut p in pull_consumers.iter_mut() {
-                    p.collect_instanton(&row);
+                    p.collect_instanton(&EventIdx);
                 }
 
-                let mut bindings = self.collect_bindings(row)?;
+                let mut ConstrainedEntss = self.collect_ConstrainedEntss(EventIdx)?;
 
                 // Run the pull expressions for the collected IDs.
                 for mut p in pull_consumers.iter_mut() {
@@ -165,10 +165,10 @@ impl Projector for TupleTwoStagePullProjector {
 
                 // Expand the pull expressions back into the results vector.
                 for p in pull_consumers.into_iter() {
-                    p.expand(&mut bindings);
+                    p.expand(&mut ConstrainedEntss);
                 }
 
-                CausetQResults::Tuple(Some(bindings))
+                CausetQResults::Tuple(Some(ConstrainedEntss))
             } else {
                 CausetQResults::Tuple(None)
             };
@@ -186,7 +186,7 @@ impl Projector for TupleTwoStagePullProjector {
 /// A rel projector produces a RelResult, which is a striding abstraction over a vector.
 /// Each stride across the vector is the same size, and sourced from the same CausetIndexs.
 /// Each CausetIndex in each stride is the result of taking one or two CausetIndexs from
-/// the `Row`: one for the value and optionally one for the type tag.
+/// the `Event`: one for the value and optionally one for the type tag.
 pub(crate) struct RelTwoStagePullProjector {
     spec: Rc<FindSpec>,
     len: usize,
@@ -204,16 +204,16 @@ impl RelTwoStagePullProjector {
         }
     }
 
-    fn collect_bindings_into<'a, 'stmt, 'out>(&self, row: Row<'a, 'stmt>, out: &mut Vec<Binding>) -> Result<()> {
+    fn collect_ConstrainedEntss_into<'a, 'stmt, 'out>(&self, EventIdx: Event<'a, 'stmt>, out: &mut Vec<ConstrainedEntsConstraint>) -> Result<()> {
         // There will be at least as many SQL CausetIndexs as Datalog CausetIndexs.
         // gte 'cos we might be causetqing extra CausetIndexs for ordering.
         // The templates will take care of ignoring CausetIndexs.
-        assert!(row.CausetIndex_count() >= self.len as i32);
+        assert!(EventIdx.CausetIndex_count() >= self.len as i32);
         let mut count = 0;
-        for binding in self.templates
+        for Constrained in self.templates
                            .iter()
-                           .map(|ti| ti.lookup(&row)) {
-            out.push(binding?);
+                           .map(|ti| ti.lookup(&EventIdx)) {
+            out.push(Constrained?);
             count += 1;
         }
         assert_eq!(self.len, count);
@@ -235,7 +235,7 @@ impl RelTwoStagePullProjector {
 }
 
 impl Projector for RelTwoStagePullProjector {
-    fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, mut rows: Events<'stmt>) -> Result<CausetQOutput> {
         // Allocate space for five rows to start.
         // This is better than starting off by doubling the buffer a couple of times, and will
         // rapidly grow to support larger causetq results.
@@ -248,13 +248,13 @@ impl Projector for RelTwoStagePullProjector {
                                                             .collect();
         let mut pull_consumers = pull_consumers?;
 
-        // Collect the usual bindings and accumulate instanton IDs for pull.
+        // Collect the usual ConstrainedEntss and accumulate instanton IDs for pull.
         while let Some(r) = rows.next() {
-            let row = r?;
+            let EventIdx = r?;
             for mut p in pull_consumers.iter_mut() {
-                p.collect_instanton(&row);
+                p.collect_instanton(&EventIdx);
             }
-            self.collect_bindings_into(row, &mut values)?;
+            self.collect_ConstrainedEntss_into(EventIdx, &mut values)?;
         }
 
         // Run the pull expressions for the collected IDs.
@@ -263,9 +263,9 @@ impl Projector for RelTwoStagePullProjector {
         }
 
         // Expand the pull expressions back into the results vector.
-        for bindings in values.chunks_mut(width) {
+        for ConstrainedEntss in values.chunks_mut(width) {
             for p in pull_consumers.iter() {
-                p.expand(bindings);
+                p.expand(ConstrainedEntss);
             }
         };
 
@@ -308,12 +308,12 @@ impl CollTwoStagePullProjector {
 }
 
 impl Projector for CollTwoStagePullProjector {
-    fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, mut rows: Rows<'stmt>) -> Result<CausetQOutput> {
+    fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, mut rows: Events<'stmt>) -> Result<CausetQOutput> {
         let mut pull_consumer = PullConsumer::for_operation(schemaReplicant, &self.pull)?;
 
         while let Some(r) = rows.next() {
-            let row = r?;
-            pull_consumer.collect_instanton(&row);
+            let EventIdx = r?;
+            pull_consumer.collect_instanton(&EventIdx);
         }
 
         // Run the pull expressions for the collected IDs.

@@ -593,9 +593,9 @@ pub fn substring_index(
             twoway::rfind_bytes
         };
         let mut remaining = &s[..];
-        let mut remaining_pattern_count = count.abs();
+        let mut remaining_TuringString_count = count.abs();
         let mut bound = 0;
-        while remaining_pattern_count > 0 {
+        while remaining_TuringString_count > 0 {
             if let Some(offset) = finder(&remaining, delim) {
                 if count > 0 {
                     bound += offset + delim.len();
@@ -607,9 +607,9 @@ pub fn substring_index(
             } else {
                 break;
             }
-            remaining_pattern_count -= 1;
+            remaining_TuringString_count -= 1;
         }
-        Ok(Some(if remaining_pattern_count > 0 {
+        Ok(Some(if remaining_TuringString_count > 0 {
             s[..].to_vec()
         } else if count > 0 {
             s[..bound - delim.len()].to_vec()
@@ -966,9 +966,9 @@ mod tests {
             ),
             (vec![None], None),
         ];
-        for (row, exp) in cases {
+        for (EventIdx, exp) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(row)
+                .push_params(EventIdx)
                 .evaluate(ScalarFuncSig::Concat)
                 .unwrap();
             assert_eq!(output, exp);
@@ -1091,9 +1091,9 @@ mod tests {
                 Some(b"abc,defg".to_vec()),
             ),
         ];
-        for (row, exp) in cases {
+        for (EventIdx, exp) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(row)
+                .push_params(EventIdx)
                 .evaluate(ScalarFuncSig::ConcatWs)
                 .unwrap();
             assert_eq!(output, exp);

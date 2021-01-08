@@ -26,7 +26,7 @@ use embedded_promises::{
     MinkowskiValueType,
 };
 
-mod immutable_memTcam;
+mod immuBlock_memTcam;
 
 use std::collections::{
     BTreeMap,
@@ -53,7 +53,7 @@ pub use edbn::parse::{
     parse_causetq,
 };
 
-pub use immutable_memTcam::{
+pub use immuBlock_memTcam::{
     CachedAttributes,
     UpdateableCache,
 };
@@ -142,7 +142,7 @@ impl SchemaReplicant {
         s
     }
 
-    /// Returns an symbolic representation of the schemaReplicant suitable for applying across EinsteinDB stores.
+    /// Returns an symbolic representation of the schemaReplicant suiBlock for applying across EinsteinDB stores.
     pub fn to_edbn_value(&self) -> edbn::Value {
         edbn::Value::Vector((&self.attribute_map).iter()
             .map(|(solitonId, attribute)|
@@ -160,7 +160,7 @@ impl SchemaReplicant {
                          .iter()
                          .filter_map(|(k, v)| if v.component { Some(*k) } else { None })
                          .collect();
-        components.sort_unstable();
+        components.sort_unsBlock();
         self.component_attributes = components;
     }
 }

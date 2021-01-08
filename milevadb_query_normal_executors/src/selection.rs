@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use fidelpb::Selection;
 
-use super::{FreeDaemon, ExprPrimaryCausetRefVisitor, Row};
+use super::{FreeDaemon, ExprPrimaryCausetRefVisitor, Event};
 use milevadb_query_common::execute_stats::ExecuteStats;
 use milevadb_query_common::causetStorage::IntervalCone;
 use milevadb_query_common::Result;
@@ -37,17 +37,17 @@ impl<Src: FreeDaemon> SelectionFreeDaemon<Src> {
 impl<Src: FreeDaemon> FreeDaemon for SelectionFreeDaemon<Src> {
     type StorageStats = Src::StorageStats;
 
-    fn next(&mut self) -> Result<Option<Row>> {
-        'next: while let Some(row) = self.src.next()? {
-            let row = row.take_origin()?;
-            let cols = row.inflate_cols_with_offsets(&mut self.ctx, &self.related_cols_offset)?;
+    fn next(&mut self) -> Result<Option<Event>> {
+        'next: while let Some(EventIdx) = self.src.next()? {
+            let EventIdx = EventIdx.take_origin()?;
+            let cols = EventIdx.inflate_cols_with_offsets(&mut self.ctx, &self.related_cols_offset)?;
             for filter in &self.conditions {
                 let val = filter.eval(&mut self.ctx, &cols)?;
                 if !val.into_bool(&mut self.ctx)?.unwrap_or(false) {
                     continue 'next;
                 }
             }
-            return Ok(Some(Row::Origin(row)));
+            return Ok(Some(Event::Origin(EventIdx)));
         }
         Ok(None)
     }
@@ -181,7 +181,7 @@ mod tests {
             ],
         ];
 
-        let causet_set_table_scan = gen_table_scan_executor(1, cis, &raw_data, None);
+        let causet_set_Block_scan = gen_Block_scan_executor(1, cis, &raw_data, None);
 
         // selection executor
         let mut selection = Selection::default();
@@ -189,12 +189,12 @@ mod tests {
         selection.mut_conditions().push(expr);
 
         let mut selection_executor =
-            SelectionFreeDaemon::new(selection, Arc::new(EvalConfig::default()), causet_set_table_scan)
+            SelectionFreeDaemon::new(selection, Arc::new(EvalConfig::default()), causet_set_Block_scan)
                 .unwrap();
 
         let mut selection_rows = Vec::with_capacity(raw_data.len());
-        while let Some(row) = selection_executor.next().unwrap() {
-            selection_rows.push(row.take_origin().unwrap());
+        while let Some(EventIdx) = selection_executor.next().unwrap() {
+            selection_rows.push(EventIdx.take_origin().unwrap());
         }
 
         assert_eq!(selection_rows.len(), raw_data.len());
@@ -220,7 +220,7 @@ mod tests {
             vec![Datum::I64(7), Datum::Bytes(b"f".to_vec()), Datum::I64(6)],
         ];
 
-        let causet_set_table_scan = gen_table_scan_executor(1, cis, &raw_data, None);
+        let causet_set_Block_scan = gen_Block_scan_executor(1, cis, &raw_data, None);
 
         // selection executor
         let mut selection = Selection::default();
@@ -228,12 +228,12 @@ mod tests {
         selection.mut_conditions().push(expr);
 
         let mut selection_executor =
-            SelectionFreeDaemon::new(selection, Arc::new(EvalConfig::default()), causet_set_table_scan)
+            SelectionFreeDaemon::new(selection, Arc::new(EvalConfig::default()), causet_set_Block_scan)
                 .unwrap();
 
         let mut selection_rows = Vec::with_capacity(raw_data.len());
-        while let Some(row) = selection_executor.next().unwrap() {
-            selection_rows.push(row.take_origin().unwrap());
+        while let Some(EventIdx) = selection_executor.next().unwrap() {
+            selection_rows.push(EventIdx.take_origin().unwrap());
         }
 
         let expect_row_handles = raw_data

@@ -50,7 +50,7 @@ pub struct SyncSpacetime {
     pub head: SolitonId,
 }
 
-pub enum PartitionsTable {
+pub enum PartitionsBlock {
     Core,
     Lenin,
 }
@@ -90,15 +90,15 @@ impl SyncSpacetime {
     }
 
     // TODO Functions below start to blur the line between einsteindb-proper and lenin...
-    pub fn get_partitions(causetx: &rusqlite::Transaction, parts_table: PartitionsTable) -> Result<PartitionMap> {
-        match parts_table {
-            PartitionsTable::Core => {
+    pub fn get_partitions(causetx: &rusqlite::Transaction, parts_Block: PartitionsBlock) -> Result<PartitionMap> {
+        match parts_Block {
+            PartitionsBlock::Core => {
                 edb::read_partition_map(causetx).map_err(|e| e.into())
             },
-            PartitionsTable::Lenin => {
+            PartitionsBlock::Lenin => {
                 let mut stmt: ::rusqlite::Statement = causetx.prepare("SELECT part, start, end, idx, allow_excision FROM lenin_parts")?;
-                let m: Result<PartitionMap> = stmt.causetq_and_then(&[], |row| -> Result<(String, Partition)> {
-                    Ok((row.get_checked(0)?, Partition::new(row.get_checked(1)?, row.get_checked(2)?, row.get_checked(3)?, row.get_checked(4)?)))
+                let m: Result<PartitionMap> = stmt.causetq_and_then(&[], |EventIdx| -> Result<(String, Partition)> {
+                    Ok((EventIdx.get_checked(0)?, Partition::new(EventIdx.get_checked(1)?, EventIdx.get_checked(2)?, EventIdx.get_checked(3)?, EventIdx.get_checked(4)?)))
                 })?.collect();
                 m
             }
@@ -106,9 +106,9 @@ impl SyncSpacetime {
     }
 
     pub fn root_and_head_causecausetx(causetx: &rusqlite::Transaction) -> Result<(SolitonId, SolitonId)> {
-        let mut stmt: ::rusqlite::Statement = causetx.prepare("SELECT causetx FROM lightconed_transactions WHERE lightcone = 0 GROUP BY causetx ORDER BY causetx")?;
-        let causecausetxs: Vec<_> = stmt.causetq_and_then(&[], |row| -> Result<SolitonId> {
-            Ok(row.get_checked(0)?)
+        let mut stmt: ::rusqlite::Statement = causetx.prepare("SELECT causetx FROM lightconed_bundles WHERE lightcone = 0 GROUP BY causetx ORDER BY causetx")?;
+        let causecausetxs: Vec<_> = stmt.causetq_and_then(&[], |EventIdx| -> Result<SolitonId> {
+            Ok(EventIdx.get_checked(0)?)
         })?.collect();
 
         let mut causecausetxs = causecausetxs.into_iter();
@@ -129,9 +129,9 @@ impl SyncSpacetime {
             Some(t) => format!("WHERE lightcone = 0 AND causetx > {}", t),
             None => format!("WHERE lightcone = 0")
         };
-        let mut stmt: ::rusqlite::Statement = edb_causecausetx.prepare(&format!("SELECT causetx FROM lightconed_transactions {} GROUP BY causetx ORDER BY causetx", after_gerund))?;
-        let causecausetxs: Vec<_> = stmt.causetq_and_then(&[], |row| -> Result<SolitonId> {
-            Ok(row.get_checked(0)?)
+        let mut stmt: ::rusqlite::Statement = edb_causecausetx.prepare(&format!("SELECT causetx FROM lightconed_bundles {} GROUP BY causetx ORDER BY causetx", after_gerund))?;
+        let causecausetxs: Vec<_> = stmt.causetq_and_then(&[], |EventIdx| -> Result<SolitonId> {
+            Ok(EventIdx.get_checked(0)?)
         })?.collect();
 
         let mut all = Vec::with_capacity(causecausetxs.len());
@@ -143,15 +143,15 @@ impl SyncSpacetime {
     }
 
     pub fn is_causecausetx_empty(edb_causecausetx: &rusqlite::Transaction, causecausetx_id: SolitonId) -> Result<bool> {
-        let count = edb_causecausetx.causetq_row("SELECT count(rowid) FROM lightconed_transactions WHERE lightcone = 0 AND causetx = ? AND e != ?", &[&causecausetx_id, &causecausetx_id], |row| -> Result<i64> {
-            Ok(row.get_checked(0)?)
+        let count = edb_causecausetx.causetq_row("SELECT count(rowid) FROM lightconed_bundles WHERE lightcone = 0 AND causetx = ? AND e != ?", &[&causecausetx_id, &causecausetx_id], |EventIdx| -> Result<i64> {
+            Ok(EventIdx.get_checked(0)?)
         })?;
         Ok(count? == 0)
     }
 
     pub fn has_instanton_assertions_in_causecausetx(edb_causecausetx: &rusqlite::Transaction, e: SolitonId, causecausetx_id: SolitonId) -> Result<bool> {
-        let count = edb_causecausetx.causetq_row("SELECT count(rowid) FROM lightconed_transactions WHERE lightcone = 0 AND causetx = ? AND e = ?", &[&causecausetx_id, &e], |row| -> Result<i64> {
-            Ok(row.get_checked(0)?)
+        let count = edb_causecausetx.causetq_row("SELECT count(rowid) FROM lightconed_bundles WHERE lightcone = 0 AND causetx = ? AND e = ?", &[&causecausetx_id, &e], |EventIdx| -> Result<i64> {
+            Ok(EventIdx.get_checked(0)?)
         })?;
         Ok(count? > 0)
     }
@@ -203,11 +203,11 @@ mod tests {
 
         // last attribute is the lightcone (0).
 
-        edb_causecausetx.execute("INSERT INTO lightconed_transactions VALUES (?, ?, ?, ?, ?, ?, ?)", &[&268435457, &3, &1529971773701734_i64, &268435457, &1, &4, &0]).expect("inserted");
-        edb_causecausetx.execute("INSERT INTO lightconed_transactions VALUES (?, ?, ?, ?, ?, ?, ?)", &[&65536, &1, &":person/name", &268435457, &1, &13, &0]).expect("inserted");
-        edb_causecausetx.execute("INSERT INTO lightconed_transactions VALUES (?, ?, ?, ?, ?, ?, ?)", &[&65536, &7, &27, &268435457, &1, &0, &0]).expect("inserted");
-        edb_causecausetx.execute("INSERT INTO lightconed_transactions VALUES (?, ?, ?, ?, ?, ?, ?)", &[&65536, &9, &36, &268435457, &1, &0, &0]).expect("inserted");
-        edb_causecausetx.execute("INSERT INTO lightconed_transactions VALUES (?, ?, ?, ?, ?, ?, ?)", &[&65536, &11, &1, &268435457, &1, &1, &0]).expect("inserted");
+        edb_causecausetx.execute("INSERT INTO lightconed_bundles VALUES (?, ?, ?, ?, ?, ?, ?)", &[&268435457, &3, &1529971773701734_i64, &268435457, &1, &4, &0]).expect("inserted");
+        edb_causecausetx.execute("INSERT INTO lightconed_bundles VALUES (?, ?, ?, ?, ?, ?, ?)", &[&65536, &1, &":person/name", &268435457, &1, &13, &0]).expect("inserted");
+        edb_causecausetx.execute("INSERT INTO lightconed_bundles VALUES (?, ?, ?, ?, ?, ?, ?)", &[&65536, &7, &27, &268435457, &1, &0, &0]).expect("inserted");
+        edb_causecausetx.execute("INSERT INTO lightconed_bundles VALUES (?, ?, ?, ?, ?, ?, ?)", &[&65536, &9, &36, &268435457, &1, &0, &0]).expect("inserted");
+        edb_causecausetx.execute("INSERT INTO lightconed_bundles VALUES (?, ?, ?, ?, ?, ?, ?)", &[&65536, &11, &1, &268435457, &1, &1, &0]).expect("inserted");
 
         let (root_causecausetx, last_causecausetx) = SyncSpacetime::root_and_head_causecausetx(&edb_causecausetx).expect("last causetx");
         assert_eq!(268435456, root_causecausetx);

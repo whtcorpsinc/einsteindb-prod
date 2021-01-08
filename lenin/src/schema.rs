@@ -27,9 +27,9 @@ lazy_static! {
     /// as a "root partition" during renumbering (a three-way merge of partitions).
     #[cfg_attr(rustfmt, rustfmt_skip)]
     static ref SCHEMA_STATEMENTS: Vec<&'static str> = { vec![
-        "CREATE TABLE IF NOT EXISTS lenin_tu (causetx INTEGER PRIMARY KEY, uuid BLOB NOT NULL UNIQUE) WITHOUT ROWID",
-        "CREATE TABLE IF NOT EXISTS lenin_spacetime (key BLOB NOT NULL UNIQUE, value BLOB NOT NULL)",
-        "CREATE TABLE IF NOT EXISTS lenin_parts (part TEXT NOT NULL PRIMARY KEY, start INTEGER NOT NULL, end INTEGER NOT NULL, idx INTEGER NOT NULL, allow_excision SMALLINT NOT NULL)",
+        "CREATE Block IF NOT EXISTS lenin_tu (causetx INTEGER PRIMARY KEY, uuid BLOB NOT NULL UNIQUE) WITHOUT ROWID",
+        "CREATE Block IF NOT EXISTS lenin_spacetime (key BLOB NOT NULL UNIQUE, value BLOB NOT NULL)",
+        "CREATE Block IF NOT EXISTS lenin_parts (part TEXT NOT NULL PRIMARY KEY, start INTEGER NOT NULL, end INTEGER NOT NULL, idx INTEGER NOT NULL, allow_excision SMALLINT NOT NULL)",
         "CREATE INDEX IF NOT EXISTS idx_lenin_tu_ut ON lenin_tu (uuid, causetx)",
         ]
     };
@@ -55,7 +55,7 @@ pub mod tests {
     use uuid::Uuid;
 
     use spacetime::{
-        PartitionsTable,
+        PartitionsBlock,
         SyncSpacetime,
     };
 
@@ -104,7 +104,7 @@ pub mod tests {
             (_, _) => { panic!("Wrong number of results."); },
         }
 
-        let partitions = SyncSpacetime::get_partitions(&causetx, PartitionsTable::Lenin).unwrap();
+        let partitions = SyncSpacetime::get_partitions(&causetx, PartitionsBlock::Lenin).unwrap();
 
         assert_eq!(partitions.len(), BOOTSTRAP_PARTITIONS.len());
 
@@ -157,7 +157,7 @@ pub mod tests {
             (_, _) => { panic!("Wrong number of results."); },
         }
 
-        let partitions = SyncSpacetime::get_partitions(&causetx, PartitionsTable::Lenin).unwrap();
+        let partitions = SyncSpacetime::get_partitions(&causetx, PartitionsBlock::Lenin).unwrap();
 
         assert_eq!(partitions.len(), BOOTSTRAP_PARTITIONS.len());
 

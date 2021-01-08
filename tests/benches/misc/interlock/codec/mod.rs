@@ -7,23 +7,23 @@ use byteorder::{BigEndian, ByteOrder, LittleEndian};
 use test::black_box;
 use test::Bencher;
 
-use milevadb_query_datatype::codec::table::*;
+use milevadb_query_datatype::codec::Block::*;
 
 #[bench]
-fn bench_table_prefix_spacelike_with(b: &mut Bencher) {
+fn bench_Block_prefix_spacelike_with(b: &mut Bencher) {
     let key: &[u8] = b"tabc";
     b.iter(|| {
         let n = black_box(1000);
-        (0..n).all(|_| black_box(key.spacelikes_with(TABLE_PREFIX)))
+        (0..n).all(|_| black_box(key.spacelikes_with(Block_PREFIX)))
     });
 }
 
 #[bench]
-fn bench_table_prefix_check(b: &mut Bencher) {
+fn bench_Block_prefix_check(b: &mut Bencher) {
     let key: &[u8] = b"tabc";
     b.iter(|| {
         let n = black_box(1000);
-        (0..n).all(|_| black_box(key.len() > 1 && key[0] == TABLE_PREFIX[0]))
+        (0..n).all(|_| black_box(key.len() > 1 && key[0] == Block_PREFIX[0]))
     });
 }
 

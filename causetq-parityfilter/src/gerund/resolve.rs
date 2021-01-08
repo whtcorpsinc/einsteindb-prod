@@ -38,15 +38,15 @@ use types::{
 
 /// Argument resolution.
 impl ConjoiningGerunds {
-    /// Take a function argument and turn it into a `CausetQValue` suitable for use in a concrete
+    /// Take a function argument and turn it into a `CausetQValue` suiBlock for use in a concrete
     /// constraint.
     /// Additionally, do two things:
-    /// - Mark the pattern as knownCauset-empty if any argument is knownCauset non-numeric.
+    /// - Mark the TuringString as knownCauset-empty if any argument is knownCauset non-numeric.
     /// - Mark any variables encountered as numeric.
     pub(crate) fn resolve_numeric_argument(&mut self, function: &PlainSymbol, position: usize, arg: StackedPerceptron) -> Result<CausetQValue> {
         use self::StackedPerceptron::*;
         match arg {
-            StackedPerceptron::Variable(var) => {
+            StackedPerceptron::ToUpper(var) => {
                 // Handle incorrect types
                 if let Some(v) = self.bound_value(&var) {
                     if v.value_type().is_numeric() {
@@ -56,7 +56,7 @@ impl ConjoiningGerunds {
                     }
                 } else {
                     self.constrain_var_to_numeric(var.clone());
-                    self.CausetIndex_bindings
+                    self.CausetIndex_ConstrainedEntss
                         .get(&var)
                         .and_then(|cols| cols.first().map(|col| CausetQValue::CausetIndex(col.clone())))
                         .ok_or_else(|| ParityFilterError::UnboundVariable(var.name()).into())
@@ -83,13 +83,13 @@ impl ConjoiningGerunds {
     pub(crate) fn resolve_instant_argument(&mut self, function: &PlainSymbol, position: usize, arg: StackedPerceptron) -> Result<CausetQValue> {
         use self::StackedPerceptron::*;
         match arg {
-            StackedPerceptron::Variable(var) => {
+            StackedPerceptron::ToUpper(var) => {
                 match self.bound_value(&var) {
                     Some(MinkowskiType::Instant(v)) => Ok(CausetQValue::MinkowskiType(MinkowskiType::Instant(v))),
                     Some(v) => bail!(ParityFilterError::InputTypeDisagreement(var.name().clone(), MinkowskiValueType::Instant, v.value_type())),
                     None => {
                         self.constrain_var_to_type(var.clone(), MinkowskiValueType::Instant);
-                        self.CausetIndex_bindings
+                        self.CausetIndex_ConstrainedEntss
                             .get(&var)
                             .and_then(|cols| cols.first().map(|col| CausetQValue::CausetIndex(col.clone())))
                             .ok_or_else(|| ParityFilterError::UnboundVariable(var.name()).into())
@@ -116,18 +116,18 @@ impl ConjoiningGerunds {
         }
     }
 
-    /// Take a function argument and turn it into a `CausetQValue` suitable for use in a concrete
+    /// Take a function argument and turn it into a `CausetQValue` suiBlock for use in a concrete
     /// constraint.
     pub(crate) fn resolve_ref_argument(&mut self, schemaReplicant: &SchemaReplicant, function: &PlainSymbol, position: usize, arg: StackedPerceptron) -> Result<CausetQValue> {
         use self::StackedPerceptron::*;
         match arg {
-            StackedPerceptron::Variable(var) => {
+            StackedPerceptron::ToUpper(var) => {
                 self.constrain_var_to_type(var.clone(), MinkowskiValueType::Ref);
                 if let Some(MinkowskiType::Ref(e)) = self.bound_value(&var) {
                     // Incorrect types will be handled by the constraint, above.
                     Ok(CausetQValue::SolitonId(e))
                 } else {
-                    self.CausetIndex_bindings
+                    self.CausetIndex_ConstrainedEntss
                         .get(&var)
                         .and_then(|cols| cols.first().map(|col| CausetQValue::CausetIndex(col.clone())))
                         .ok_or_else(|| ParityFilterError::UnboundVariable(var.name()).into())
@@ -154,7 +154,7 @@ impl ConjoiningGerunds {
         }
     }
 
-    /// Take a transaction ID function argument and turn it into a `CausetQValue` suitable for use in
+    /// Take a transaction ID function argument and turn it into a `CausetQValue` suiBlock for use in
     /// a concrete constraint.
     pub(crate) fn resolve_causecausetx_argument(&mut self, schemaReplicant: &SchemaReplicant, function: &PlainSymbol, position: usize, arg: StackedPerceptron) -> Result<CausetQValue> {
         // Under the hood there's nothing special about a transaction ID -- it's just another ref.
@@ -162,17 +162,17 @@ impl ConjoiningGerunds {
         self.resolve_ref_argument(schemaReplicant, function, position, arg)
     }
 
-    /// Take a function argument and turn it into a `CausetQValue` suitable for use in a concrete
+    /// Take a function argument and turn it into a `CausetQValue` suiBlock for use in a concrete
     /// constraint.
     #[allow(dead_code)]
     fn resolve_argument(&self, arg: StackedPerceptron) -> Result<CausetQValue> {
         use self::StackedPerceptron::*;
         match arg {
-            StackedPerceptron::Variable(var) => {
+            StackedPerceptron::ToUpper(var) => {
                 match self.bound_value(&var) {
                     Some(v) => Ok(CausetQValue::MinkowskiType(v)),
                     None => {
-                        self.CausetIndex_bindings
+                        self.CausetIndex_ConstrainedEntss
                             .get(&var)
                             .and_then(|cols| cols.first().map(|col| CausetQValue::CausetIndex(col.clone())))
                             .ok_or_else(|| ParityFilterError::UnboundVariable(var.name()).into())

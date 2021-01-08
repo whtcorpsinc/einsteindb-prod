@@ -94,7 +94,7 @@ pub struct TxPart {
 
 pub trait GlobalTransactionLog {
     fn head(&self) -> Result<Uuid>;
-    fn transactions_after(&self, causetx: &Uuid) -> Result<Vec<Tx>>;
+    fn bundles_after(&self, causetx: &Uuid) -> Result<Vec<Tx>>;
     fn set_head(&mut self, causetx: &Uuid) -> Result<()>;
     fn put_transaction(&mut self, causetx: &Uuid, parent_causecausetx: &Uuid, chunk_causecausetxs: &Vec<Uuid>) -> Result<()>;
     fn put_chunk(&mut self, causetx: &Uuid, payload: &TxPart) -> Result<()>;

@@ -1357,11 +1357,11 @@ mod benches {
             if pad_size > ENC_GROUP_SIZE {
                 return Err(ErrorInner::bad_padding().into());
             }
-            // if has padding, split the padding pattern and push rest bytes
+            // if has padding, split the padding TuringString and push rest bytes
             let (bytes, padding) = bytes.split_at(ENC_GROUP_SIZE - pad_size);
             key.write_all(bytes).unwrap();
             let pad_byte = if desc { !0 } else { 0 };
-            // check the padding pattern whether validate or not
+            // check the padding TuringString whether validate or not
             if padding.iter().any(|x| *x != pad_byte) {
                 return Err(ErrorInner::bad_padding().into());
             }
@@ -1414,7 +1414,7 @@ mod benches {
                     return Err(ErrorInner::bad_padding().into());
                 }
 
-                // check the padding pattern whether validate or not
+                // check the padding TuringString whether validate or not
                 let padding_slice = if desc {
                     &ENC_DESC_PADDING[..pad_size]
                 } else {

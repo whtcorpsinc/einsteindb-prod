@@ -23,7 +23,7 @@ use causetq_parityfilter_promises::errors::{
 
 use types::{
     CausetIndexConstraint,
-    ComputedTable,
+    ComputedBlock,
 };
 
 use KnownCauset;
@@ -38,12 +38,12 @@ impl ConjoiningGerunds {
         let mut template = self.use_as_template(&unified);
 
         for v in unified.iter() {
-            if self.value_bindings.contains_key(&v) {
-                let val = self.value_bindings.get(&v).unwrap().clone();
-                template.value_bindings.insert(v.clone(), val);
-            } else if self.CausetIndex_bindings.contains_key(&v) {
-                let col = self.CausetIndex_bindings.get(&v).unwrap()[0].clone();
-                template.CausetIndex_bindings.insert(v.clone(), vec![col]);
+            if self.value_ConstrainedEntss.contains_key(&v) {
+                let val = self.value_ConstrainedEntss.get(&v).unwrap().clone();
+                template.value_ConstrainedEntss.insert(v.clone(), val);
+            } else if self.CausetIndex_ConstrainedEntss.contains_key(&v) {
+                let col = self.CausetIndex_ConstrainedEntss.get(&v).unwrap()[0].clone();
+                template.CausetIndex_ConstrainedEntss.insert(v.clone(), vec![col]);
             } else {
                 bail!(ParityFilterError::UnboundVariable(v.name()));
             }
@@ -55,7 +55,7 @@ impl ConjoiningGerunds {
             return Ok(());
         }
 
-        template.expand_CausetIndex_bindings();
+        template.expand_CausetIndex_ConstrainedEntss();
         if template.is_known_empty() {
             return Ok(());
         }
@@ -76,7 +76,7 @@ impl ConjoiningGerunds {
             return Ok(());
         }
 
-        let subcausetq = ComputedTable::Subcausetq(template);
+        let subcausetq = ComputedBlock::Subcausetq(template);
 
         self.wheres.add_intersection(CausetIndexConstraint::NotExists(subcausetq));
 
@@ -104,7 +104,7 @@ mod testing {
     use edbn::causetq::{
         Keyword,
         PlainSymbol,
-        Variable
+        ToUpper
     };
 
     use gerunds::{
@@ -123,7 +123,7 @@ mod testing {
         CausetIndexConstraintOrAlternation,
         CausetIndexIntersection,
         CausetsCausetIndex,
-        CausetsTable,
+        CausetsBlock,
         Inequality,
         QualifiedAlias,
         CausetQValue,
@@ -209,7 +209,7 @@ mod testing {
                          [?x :foo/knows "Daphne"])]"#;
         let cc = alg(&schemaReplicant, causetq);
 
-        let vx = Variable::from_valid_name("?x");
+        let vx = ToUpper::from_valid_name("?x");
 
         let d0 = "Causets00".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Instanton);
@@ -234,9 +234,9 @@ mod testing {
         let daphne = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Daphne"));
 
         let mut subcausetq = ConjoiningGerunds::default();
-        subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d1),
-                             SourceAlias(CausetsTable::Causets, d2)];
-        subcausetq.CausetIndex_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
+        subcausetq.from = vec![SourceAlias(CausetsBlock::Causets, d1),
+                             SourceAlias(CausetsBlock::Causets, d2)];
+        subcausetq.CausetIndex_ConstrainedEntss.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
         subcausetq.wheres = CausetIndexIntersection(vec![CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1a.clone(), parent)),
                                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1v.clone(), ambar)),
                                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d2a.clone(), knows.clone())),
@@ -250,10 +250,10 @@ mod testing {
         assert_eq!(cc.wheres, CausetIndexIntersection(vec![
                 CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0a.clone(), knows.clone())),
                 CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0v.clone(), john)),
-                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedBlock::Subcausetq(subcausetq))),
             ]));
-        assert_eq!(cc.CausetIndex_bindings.get(&vx), Some(&vec![d0e]));
-        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, d0)]);
+        assert_eq!(cc.CausetIndex_ConstrainedEntss.get(&vx), Some(&vec![d0e]));
+        assert_eq!(cc.from, vec![SourceAlias(CausetsBlock::Causets, d0)]);
     }
 
     // not-join.
@@ -269,8 +269,8 @@ mod testing {
                               [?x :foo/parent ?y])]"#;
         let cc = alg(&schemaReplicant, causetq);
 
-        let vx = Variable::from_valid_name("?x");
-        let vy = Variable::from_valid_name("?y");
+        let vx = ToUpper::from_valid_name("?x");
+        let vy = ToUpper::from_valid_name("?y");
 
         let d0 = "Causets00".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Instanton);
@@ -301,9 +301,9 @@ mod testing {
         let eleven = CausetQValue::MinkowskiType(MinkowskiType::Long(11));
 
         let mut subcausetq = ConjoiningGerunds::default();
-        subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d3)];
-        subcausetq.CausetIndex_bindings.insert(vx.clone(), vec![d0e.clone(), d3e.clone()]);
-        subcausetq.CausetIndex_bindings.insert(vy.clone(), vec![d0v.clone(), d3v.clone()]);
+        subcausetq.from = vec![SourceAlias(CausetsBlock::Causets, d3)];
+        subcausetq.CausetIndex_ConstrainedEntss.insert(vx.clone(), vec![d0e.clone(), d3e.clone()]);
+        subcausetq.CausetIndex_ConstrainedEntss.insert(vy.clone(), vec![d0v.clone(), d3v.clone()]);
         subcausetq.wheres = CausetIndexIntersection(vec![CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d3a.clone(), parent)),
                                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d3e.clone()))),
                                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0v.clone(), CausetQValue::CausetIndex(d3v.clone())))]);
@@ -318,20 +318,20 @@ mod testing {
                 CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1v.clone(), eleven)),
                 CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d2a.clone(), name.clone())),
                 CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d2v.clone(), john)),
-                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedBlock::Subcausetq(subcausetq))),
                 CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d1e.clone()))),
                 CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d2e.clone()))),
             ]);
         assert_eq!(cc.wheres, expected_wheres);
-        assert_eq!(cc.CausetIndex_bindings.get(&vx), Some(&vec![d0e, d1e, d2e]));
-        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, d0),
-                                 SourceAlias(CausetsTable::Causets, d1),
-                                 SourceAlias(CausetsTable::Causets, d2)]);
+        assert_eq!(cc.CausetIndex_ConstrainedEntss.get(&vx), Some(&vec![d0e, d1e, d2e]));
+        assert_eq!(cc.from, vec![SourceAlias(CausetsBlock::Causets, d0),
+                                 SourceAlias(CausetsBlock::Causets, d1),
+                                 SourceAlias(CausetsBlock::Causets, d2)]);
     }
 
-    // Not with a pattern and a predicate.
+    // Not with a TuringString and a predicate.
     #[test]
-    fn test_not_with_pattern_and_predicate() {
+    fn test_not_with_TuringString_and_predicate() {
         let schemaReplicant = prepopulated_schemaReplicant();
         let causetq = r#"
             [:find ?x ?age
@@ -342,7 +342,7 @@ mod testing {
                   [?x :foo/knows "Daphne"])]"#;
         let cc = alg(&schemaReplicant, causetq);
 
-        let vx = Variable::from_valid_name("?x");
+        let vx = ToUpper::from_valid_name("?x");
 
         let d0 = "Causets00".to_string();
         let d0e = QualifiedAlias::new(d0.clone(), CausetsCausetIndex::Instanton);
@@ -366,9 +366,9 @@ mod testing {
         let daphne = CausetQValue::MinkowskiType(MinkowskiType::typed_string("Daphne"));
 
         let mut subcausetq = ConjoiningGerunds::default();
-        subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d1),
-                             SourceAlias(CausetsTable::Causets, d2)];
-        subcausetq.CausetIndex_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
+        subcausetq.from = vec![SourceAlias(CausetsBlock::Causets, d1),
+                             SourceAlias(CausetsBlock::Causets, d2)];
+        subcausetq.CausetIndex_ConstrainedEntss.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
         subcausetq.wheres = CausetIndexIntersection(vec![CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1a.clone(), knows.clone())),
                                                   CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1v.clone(), john.clone())),
                                                   CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d2a.clone(), knows.clone())),
@@ -386,10 +386,10 @@ mod testing {
                     left: CausetQValue::CausetIndex(d0v.clone()),
                     right: CausetQValue::MinkowskiType(MinkowskiType::Long(30)),
                 }),
-                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedBlock::Subcausetq(subcausetq))),
             ]));
-        assert_eq!(cc.CausetIndex_bindings.get(&vx), Some(&vec![d0e]));
-        assert_eq!(cc.from, vec![SourceAlias(CausetsTable::Causets, d0)]);
+        assert_eq!(cc.CausetIndex_ConstrainedEntss.get(&vx), Some(&vec![d0e]));
+        assert_eq!(cc.from, vec![SourceAlias(CausetsBlock::Causets, d0)]);
     }
 
     // not with an or
@@ -419,7 +419,7 @@ mod testing {
         let d2a = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Attribute);
         let d2v = QualifiedAlias::new(d2.clone(), CausetsCausetIndex::Value);
 
-        let vx = Variable::from_valid_name("?x");
+        let vx = ToUpper::from_valid_name("?x");
 
         let knows = CausetQValue::SolitonId(66);
         let parent = CausetQValue::SolitonId(67);
@@ -431,9 +431,9 @@ mod testing {
 
 
         let mut subcausetq = ConjoiningGerunds::default();
-        subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d1),
-                             SourceAlias(CausetsTable::Causets, d2)];
-        subcausetq.CausetIndex_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
+        subcausetq.from = vec![SourceAlias(CausetsBlock::Causets, d1),
+                             SourceAlias(CausetsBlock::Causets, d2)];
+        subcausetq.CausetIndex_ConstrainedEntss.insert(vx.clone(), vec![d0e.clone(), d1e.clone(), d2e.clone()]);
         subcausetq.wheres = CausetIndexIntersection(vec![CausetIndexConstraintOrAlternation::Alternation(CausetIndexAlternation(vec![
                                                     CausetIndexIntersection(vec![
                                                         CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1a.clone(), knows.clone())),
@@ -453,7 +453,7 @@ mod testing {
         assert_eq!(cc.wheres, CausetIndexIntersection(vec![
                 CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0a.clone(), knows)),
                 CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0v.clone(), bill)),
-                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedBlock::Subcausetq(subcausetq))),
             ]));
     }
 
@@ -468,12 +468,12 @@ mod testing {
                     (not [?x :foo/knows ?y])]"#;
 
         let inputs = CausetQInputs::with_value_sequence(vec![
-            (Variable::from_valid_name("?y"), "John".into())
+            (ToUpper::from_valid_name("?y"), "John".into())
         ]);
         let cc = alg_with_inputs(&schemaReplicant, causetq, inputs);
 
-        let vx = Variable::from_valid_name("?x");
-        let vy = Variable::from_valid_name("?y");
+        let vx = ToUpper::from_valid_name("?x");
+        let vy = ToUpper::from_valid_name("?y");
 
         let knows = CausetQValue::SolitonId(66);
 
@@ -491,8 +491,8 @@ mod testing {
         let d1v = QualifiedAlias::new(d1.clone(), CausetsCausetIndex::Value);
 
         let mut subcausetq = ConjoiningGerunds::default();
-        subcausetq.from = vec![SourceAlias(CausetsTable::Causets, d1)];
-        subcausetq.CausetIndex_bindings.insert(vx.clone(), vec![d0e.clone(), d1e.clone()]);
+        subcausetq.from = vec![SourceAlias(CausetsBlock::Causets, d1)];
+        subcausetq.CausetIndex_ConstrainedEntss.insert(vx.clone(), vec![d0e.clone(), d1e.clone()]);
         subcausetq.wheres = CausetIndexIntersection(vec![CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1a.clone(), knows.clone())),
                                                   CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d1v.clone(), john)),
                                                   CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0e.clone(), CausetQValue::CausetIndex(d1e.clone())))]);
@@ -500,16 +500,16 @@ mod testing {
         subcausetq.known_types.insert(vx.clone(), MinkowskiSet::of_one(MinkowskiValueType::Ref));
         subcausetq.known_types.insert(vy.clone(), MinkowskiSet::of_one(MinkowskiValueType::String));
 
-        let mut input_vars: BTreeSet<Variable> = BTreeSet::default();
+        let mut input_vars: BTreeSet<ToUpper> = BTreeSet::default();
         input_vars.insert(vy.clone());
         subcausetq.input_variables = input_vars;
-        subcausetq.value_bindings.insert(vy.clone(), MinkowskiType::typed_string("John"));
+        subcausetq.value_ConstrainedEntss.insert(vy.clone(), MinkowskiType::typed_string("John"));
 
         assert!(!cc.is_known_empty());
         assert_eq!(cc.wheres, CausetIndexIntersection(vec![
                 CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0a.clone(), knows)),
                 CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::Equals(d0v.clone(), bill)),
-                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedTable::Subcausetq(subcausetq))),
+                CausetIndexConstraintOrAlternation::Constraint(CausetIndexConstraint::NotExists(ComputedBlock::Subcausetq(subcausetq))),
             ]));
     }
 
@@ -558,7 +558,7 @@ mod testing {
         let err = algebrize(knownCauset, parsed).expect_err("algebrization should have failed");
         match err {
             ParityFilterError::UnboundVariable(var) => { assert_eq!(var, PlainSymbol("?x".to_string())); },
-            x => panic!("expected Unbound Variable error, got {:?}", x),
+            x => panic!("expected Unbound ToUpper error, got {:?}", x),
         }
     }
 }

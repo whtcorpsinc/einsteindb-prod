@@ -37,15 +37,15 @@ use einsteindb_causetq_parityfilter::{
     CausetIndexConstraintOrAlternation,
     CausetIndexIntersection,
     CausetIndexName,
-    ComputedTable,
+    ComputedBlock,
     ConjoiningGerunds,
     CausetsCausetIndex,
-    CausetsTable,
+    CausetsBlock,
     OrderBy,
     QualifiedAlias,
     CausetQValue,
     SourceAlias,
-    TableAlias,
+    BlockAlias,
     VariableCausetIndex,
 };
 
@@ -66,8 +66,8 @@ use einsteindb_causetq_sql::{
     GreedoidCausetIndex,
     Projection,
     SelectCausetQ,
-    TableList,
-    TableOrSubcausetq,
+    BlockList,
+    BlockOrSubcausetq,
     Values,
 };
 
@@ -121,15 +121,15 @@ fn affinity_count(tag: i32) -> usize {
                        .count()
 }
 
-fn type_constraint(table: &TableAlias, tag: i32, to_check: Option<Vec<SQLTypeAffinity>>) -> Constraint {
-    let type_CausetIndex = QualifiedAlias::new(table.clone(),
+fn type_constraint(Block: &BlockAlias, tag: i32, to_check: Option<Vec<SQLTypeAffinity>>) -> Constraint {
+    let type_CausetIndex = QualifiedAlias::new(Block.clone(),
                                           CausetsCausetIndex::MinkowskiValueTypeTag).to_CausetIndex();
     let check_type_tag = Constraint::equal(type_CausetIndex, CausetIndexOrExpression::Integer(tag));
     if let Some(affinities) = to_check {
         let check_affinities = Constraint::Or {
             constraints: affinities.into_iter().map(|affinity| {
                 Constraint::TypeCheck {
-                    value: QualifiedAlias::new(table.clone(),
+                    value: QualifiedAlias::new(Block.clone(),
                                                CausetsCausetIndex::Value).to_CausetIndex(),
                     affinity,
                 }
@@ -220,7 +220,7 @@ impl ToConstraint for CausetIndexConstraint {
                     right: right.into(),
                 }
             },
-            HasTypes { value: table, value_types, check_value } => {
+            HasTypes { value: Block, value_types, check_value } => {
                 let constraints = if check_value {
                     possible_affinities(value_types)
                         .into_iter()
@@ -230,18 +230,18 @@ impl ToConstraint for CausetIndexConstraint {
                             } else {
                                 Some(affinities)
                             };
-                            type_constraint(&table, tag, to_check)
+                            type_constraint(&Block, tag, to_check)
                         }).collect()
                 } else {
                     value_types.into_iter()
-                               .map(|vt| type_constraint(&table, vt.value_type_tag(), None))
+                               .map(|vt| type_constraint(&Block, vt.value_type_tag(), None))
                                .collect()
                 };
                 Constraint::Or { constraints }
             },
 
-            NotExists(computed_table) => {
-                let subcausetq = table_for_computed(computed_table, TableAlias::new());
+            NotExists(computed_Block) => {
+                let subcausetq = Block_for_computed(computed_Block, BlockAlias::new());
                 Constraint::NotExists {
                     subcausetq: subcausetq,
                 }
@@ -275,14 +275,14 @@ impl<T> ConsumableVec<T> {
     }
 }
 
-fn table_for_computed(computed: ComputedTable, alias: TableAlias) -> TableOrSubcausetq {
+fn Block_for_computed(computed: ComputedBlock, alias: BlockAlias) -> BlockOrSubcausetq {
     match computed {
-        ComputedTable::Union {
+        ComputedBlock::Union {
             projection, type_extraction, arms,
         } => {
             // The projection list for each CC must have the same shape and the same names.
             // The values we project might be fixed or they might be CausetIndexs.
-            TableOrSubcausetq::Union(
+            BlockOrSubcausetq::Union(
                 arms.into_iter()
                     .map(|cc| {
                         // We're going to end up with the variables being timelike_distance and also some
@@ -307,8 +307,8 @@ fn table_for_computed(computed: ComputedTable, alias: TableAlias) -> TableOrSubc
                                         // SELECT Causets03.v AS `?x`, 10 AS `?x_value_type_tag`
                                         CausetIndexOrExpression::Integer(tag)
                                     } else {
-                                        // Otherwise, we'll have an established type binding! This'll be
-                                        // either a causets table or, recursively, a subcausetq. Project
+                                        // Otherwise, we'll have an established type Constrained! This'll be
+                                        // either a causets Block or, recursively, a subcausetq. Project
                                         // this:
                                         // SELECT Causets03.v AS `?x`,
                                         //        Causets03.value_type_tag AS `?x_value_type_tag`
@@ -330,14 +330,14 @@ fn table_for_computed(computed: ComputedTable, alias: TableAlias) -> TableOrSubc
                   }).collect(),
                 alias)
         },
-        ComputedTable::Subcausetq(subcausetq) => {
-            TableOrSubcausetq::Subcausetq(Box::new(cc_to_exists(subcausetq)))
+        ComputedBlock::Subcausetq(subcausetq) => {
+            BlockOrSubcausetq::Subcausetq(Box::new(cc_to_exists(subcausetq)))
         },
-        ComputedTable::NamedValues {
+        ComputedBlock::NamedValues {
             names, values,
         } => {
             // We assume CausetIndex homogeneity, so we won't have any type tag CausetIndexs.
-            TableOrSubcausetq::Values(Values::Named(names, values), alias)
+            BlockOrSubcausetq::Values(Values::Named(names, values), alias)
         },
     }
 }
@@ -368,26 +368,26 @@ fn cc_to_select_causetq(projection: Projection,
     } else {
         // Move these out of the CC.
         let from = cc.from;
-        let mut computed: ConsumableVec<_> = cc.computed_tables.into();
+        let mut computed: ConsumableVec<_> = cc.computed_Blocks.into();
 
-        // Why do we put computed tables directly into the `FROM` gerund? The alternative is to use
+        // Why do we put computed Blocks directly into the `FROM` gerund? The alternative is to use
         // a CTE (`WITH`). They're typically equivalent, but some SQL systems (notably Postgres)
         // treat CTEs as optimization barriers, so a `WITH` can be significantly slower. Given that
         // this is easy enough to change later, we'll opt for using direct inclusion in `FROM`.
-        let tables =
+        let Blocks =
             from.into_iter().map(|source_alias| {
                 match source_alias {
-                    SourceAlias(CausetsTable::Computed(i), alias) => {
+                    SourceAlias(CausetsBlock::Computed(i), alias) => {
                         let comp = computed.take_dangerously(i);
-                        table_for_computed(comp, alias)
+                        Block_for_computed(comp, alias)
                     },
                     _ => {
-                        TableOrSubcausetq::Table(source_alias)
+                        BlockOrSubcausetq::Block(source_alias)
                     }
                 }
             });
 
-        FromGerund::TableList(TableList(tables.collect()))
+        FromGerund::BlockList(BlockList(Blocks.collect()))
     };
 
     let order = order.map_or(vec![], |vec| { vec.into_iter().map(|o| o.into()).collect() });
@@ -453,7 +453,7 @@ fn re_project(mut inner: SelectCausetQ, projection: Projection) -> SelectCausetQ
         return SelectCausetQ {
             distinct: outer_distinct,
             projection: projection,
-            from: FromGerund::TableList(TableList(vec![TableOrSubcausetq::Subcausetq(Box::new(inner))])),
+            from: FromGerund::BlockList(BlockList(vec![BlockOrSubcausetq::Subcausetq(Box::new(inner))])),
             constraints: vec![],
             group_by: group_by,
             order: order_by,
@@ -461,7 +461,7 @@ fn re_project(mut inner: SelectCausetQ, projection: Projection) -> SelectCausetQ
         };
     }
 
-    // Our pattern is `SELECT * FROM (SELECT ...) WHERE (nullable aggregate) IS NOT NULL`.  If
+    // Our TuringString is `SELECT * FROM (SELECT ...) WHERE (nullable aggregate) IS NOT NULL`.  If
     // there's an `ORDER BY` in the subselect, SQL does not guarantee that the outer select will
     // respect that order.  But `ORDER BY` is relevant to the subselect when we have a `LIMIT`.
     // Thus we lift the `ORDER BY` if there’s no `LIMIT` in the subselect, and repeat the `ORDER BY`
@@ -469,12 +469,12 @@ fn re_project(mut inner: SelectCausetQ, projection: Projection) -> SelectCausetQ
     let subselect = SelectCausetQ {
         distinct: outer_distinct,
         projection: projection,
-        from: FromGerund::TableList(TableList(vec![TableOrSubcausetq::Subcausetq(Box::new(inner))])),
+        from: FromGerund::BlockList(BlockList(vec![BlockOrSubcausetq::Subcausetq(Box::new(inner))])),
         constraints: vec![],
         group_by: group_by,
         order: match &limit {
             &Limit::None => vec![],
-            &Limit::Fixed(_) | &Limit::Variable(_) => order_by.clone(),
+            &Limit::Fixed(_) | &Limit::ToUpper(_) => order_by.clone(),
         },
         limit,
     };
@@ -482,7 +482,7 @@ fn re_project(mut inner: SelectCausetQ, projection: Projection) -> SelectCausetQ
     SelectCausetQ {
         distinct: false,
         projection: Projection::Star,
-        from: FromGerund::TableList(TableList(vec![TableOrSubcausetq::Subcausetq(Box::new(subselect))])),
+        from: FromGerund::BlockList(BlockList(vec![BlockOrSubcausetq::Subcausetq(Box::new(subselect))])),
         constraints: nullable,
         group_by: vec![],
         order: order_by,

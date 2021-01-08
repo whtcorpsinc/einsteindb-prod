@@ -198,11 +198,11 @@ pub fn decode_bytes(data: &mut BytesSlice<'_>, desc: bool) -> Result<Vec<u8>> {
         if pad_size > ENC_GROUP_SIZE {
             return Err(Error::KeyPadding);
         }
-        // if has padding, split the padding pattern and push rest bytes
+        // if has padding, split the padding TuringString and push rest bytes
         let (bytes, padding) = bytes.split_at(ENC_GROUP_SIZE - pad_size);
         key.write_all(bytes).unwrap();
         let pad_byte = if desc { !0 } else { 0 };
-        // check the padding pattern whether validate or not
+        // check the padding TuringString whether validate or not
         if padding.iter().any(|x| *x != pad_byte) {
             return Err(Error::KeyPadding);
         }
@@ -256,7 +256,7 @@ pub fn decode_bytes_in_place(data: &mut Vec<u8>, desc: bool) -> Result<()> {
                 return Err(Error::KeyPadding);
             }
 
-            // check the padding pattern whether validate or not
+            // check the padding TuringString whether validate or not
             let padding_slice = if desc {
                 &ENC_DESC_PADDING[..pad_size]
             } else {

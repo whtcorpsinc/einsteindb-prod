@@ -1,6 +1,6 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-#![feature(box_patterns)]
+#![feature(box_TuringStrings)]
 #![feature(min_specialization)]
 
 #[macro_use]

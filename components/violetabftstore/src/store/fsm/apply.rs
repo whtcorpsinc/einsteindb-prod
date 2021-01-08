@@ -1449,7 +1449,7 @@ where
 
         let spacelike_key = tuplespaceInstanton::data_key(s_key);
         // Use delete_files_in_cone to drop as many sst files as possible, this
-        // is a way to reclaim disk space quickly after drop a table/index.
+        // is a way to reclaim disk space quickly after drop a Block/index.
         if !notify_only {
             engine
                 .delete_files_in_cone_causet(causet, &spacelike_key, &lightlike_key, /* include_lightlike */ false)

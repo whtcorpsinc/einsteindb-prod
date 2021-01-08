@@ -218,7 +218,7 @@ mod tests {
         MvccPropertiesCollectorFactory, ConePropertiesCollectorFactory,
     };
     use engine_lmdb::raw::DB;
-    use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions, Writable};
+    use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions, WriBlock};
     use engine_lmdb::raw_util::{new_engine_opt, CAUSETOptions};
     use engine_lmdb::Compat;
     use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_WRITE, LARGE_CAUSETS};
@@ -273,7 +273,7 @@ mod tests {
         let db_opts = DBOptions::new();
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.cone-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.cone-properties-collector", f);
 
         let causets_opts = ALL_CAUSETS
             .iter()
@@ -380,7 +380,7 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.cone-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.cone-properties-collector", f);
         let causets_opts = LARGE_CAUSETS
             .iter()
             .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
@@ -425,9 +425,9 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(MvccPropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.tail_pointer-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.tail_pointer-properties-collector", f);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.cone-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.cone-properties-collector", f);
         let causets_opts = LARGE_CAUSETS
             .iter()
             .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))

@@ -25,9 +25,9 @@ use KnownCauset;
 
 /// Application of `where` functions.
 impl ConjoiningGerunds {
-    /// There are several kinds of functions binding variables in our Datalog:
+    /// There are several kinds of functions Constrained variables in our Datalog:
     /// - A set of functions like `ground`, fulltext` and `get-else` that are translated into SQL
-    ///   `VALUES`, `MATCH`, or `JOIN`, yielding bindings.
+    ///   `VALUES`, `MATCH`, or `JOIN`, yielding ConstrainedEntss.
     /// - In the future, some functions that are implemented via function calls in SQLite.
     ///
     /// At present we have implemented only a limited selection of functions.

@@ -2,38 +2,38 @@
 
 use crate::engine::PanicEngine;
 use engine_promises::{
-    DecodeProperties, Cone, Result, TableProperties, TablePropertiesCollection,
-    TablePropertiesCollectionIter, TablePropertiesExt, TablePropertiesKey, UserCollectedProperties,
+    DecodeProperties, Cone, Result, BlockProperties, BlockPropertiesCollection,
+    BlockPropertiesCollectionIter, BlockPropertiesExt, BlockPropertiesKey, UserCollectedProperties,
 };
 use std::ops::Deref;
 
-impl TablePropertiesExt for PanicEngine {
-    type TablePropertiesCollection = PanicTablePropertiesCollection;
-    type TablePropertiesCollectionIter = PanicTablePropertiesCollectionIter;
-    type TablePropertiesKey = PanicTablePropertiesKey;
-    type TableProperties = PanicTableProperties;
+impl BlockPropertiesExt for PanicEngine {
+    type BlockPropertiesCollection = PanicBlockPropertiesCollection;
+    type BlockPropertiesCollectionIter = PanicBlockPropertiesCollectionIter;
+    type BlockPropertiesKey = PanicBlockPropertiesKey;
+    type BlockProperties = PanicBlockProperties;
     type UserCollectedProperties = PanicUserCollectedProperties;
 
-    fn get_properties_of_tables_in_cone(
+    fn get_properties_of_Blocks_in_cone(
         &self,
         causet: &Self::CAUSETHandle,
         cones: &[Cone],
-    ) -> Result<Self::TablePropertiesCollection> {
+    ) -> Result<Self::BlockPropertiesCollection> {
         panic!()
     }
 }
 
-pub struct PanicTablePropertiesCollection;
+pub struct PanicBlockPropertiesCollection;
 
 impl
-    TablePropertiesCollection<
-        PanicTablePropertiesCollectionIter,
-        PanicTablePropertiesKey,
-        PanicTableProperties,
+    BlockPropertiesCollection<
+        PanicBlockPropertiesCollectionIter,
+        PanicBlockPropertiesKey,
+        PanicBlockProperties,
         PanicUserCollectedProperties,
-    > for PanicTablePropertiesCollection
+    > for PanicBlockPropertiesCollection
 {
-    fn iter(&self) -> PanicTablePropertiesCollectionIter {
+    fn iter(&self) -> PanicBlockPropertiesCollectionIter {
         panic!()
     }
 
@@ -42,30 +42,30 @@ impl
     }
 }
 
-pub struct PanicTablePropertiesCollectionIter;
+pub struct PanicBlockPropertiesCollectionIter;
 
 impl
-    TablePropertiesCollectionIter<
-        PanicTablePropertiesKey,
-        PanicTableProperties,
+    BlockPropertiesCollectionIter<
+        PanicBlockPropertiesKey,
+        PanicBlockProperties,
         PanicUserCollectedProperties,
-    > for PanicTablePropertiesCollectionIter
+    > for PanicBlockPropertiesCollectionIter
 {
 }
 
-impl Iteron for PanicTablePropertiesCollectionIter {
-    type Item = (PanicTablePropertiesKey, PanicTableProperties);
+impl Iteron for PanicBlockPropertiesCollectionIter {
+    type Item = (PanicBlockPropertiesKey, PanicBlockProperties);
 
     fn next(&mut self) -> Option<Self::Item> {
         panic!()
     }
 }
 
-pub struct PanicTablePropertiesKey;
+pub struct PanicBlockPropertiesKey;
 
-impl TablePropertiesKey for PanicTablePropertiesKey {}
+impl BlockPropertiesKey for PanicBlockPropertiesKey {}
 
-impl Deref for PanicTablePropertiesKey {
+impl Deref for PanicBlockPropertiesKey {
     type Target = str;
 
     fn deref(&self) -> &str {
@@ -73,9 +73,9 @@ impl Deref for PanicTablePropertiesKey {
     }
 }
 
-pub struct PanicTableProperties;
+pub struct PanicBlockProperties;
 
-impl TableProperties<PanicUserCollectedProperties> for PanicTableProperties {
+impl BlockProperties<PanicUserCollectedProperties> for PanicBlockProperties {
     fn num_entries(&self) -> u64 {
         panic!()
     }

@@ -2,7 +2,7 @@
 
 use std::path::Path;
 pub trait CompactionJobInfo {
-    type TablePropertiesCollectionView;
+    type BlockPropertiesCollectionView;
     type CompactionReason;
     fn status(&self) -> Result<(), String>;
     fn causet_name(&self) -> &str;
@@ -10,7 +10,7 @@ pub trait CompactionJobInfo {
     fn input_file_at(&self, pos: usize) -> &Path;
     fn output_file_count(&self) -> usize;
     fn output_file_at(&self, pos: usize) -> &Path;
-    fn table_properties(&self) -> &Self::TablePropertiesCollectionView;
+    fn Block_properties(&self) -> &Self::BlockPropertiesCollectionView;
     fn elapsed_micros(&self) -> u64;
     fn num_corrupt_tuplespaceInstanton(&self) -> u64;
     fn output_level(&self) -> i32;

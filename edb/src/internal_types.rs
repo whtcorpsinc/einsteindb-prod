@@ -54,10 +54,10 @@ use types::{
     AVMap,
     AVPair,
     SchemaReplicant,
-    TransactableValue,
+    TransacBlockValue,
 };
 
-impl TransactableValue for ValueAndSpan {
+impl TransacBlockValue for ValueAndSpan {
     fn into_typed_value(self, schemaReplicant: &SchemaReplicant, value_type: MinkowskiValueType) -> Result<MinkowskiType> {
         schemaReplicant.to_typed_value(&self, value_type)
     }
@@ -113,7 +113,7 @@ impl TransactableValue for ValueAndSpan {
     }
 }
 
-impl TransactableValue for MinkowskiType {
+impl TransacBlockValue for MinkowskiType {
     fn into_typed_value(self, _schemaReplicant: &SchemaReplicant, value_type: MinkowskiValueType) -> Result<MinkowskiType> {
         if self.value_type() != value_type {
             bail!(DbErrorKind::BadValuePair(format!("{:?}", self), value_type));

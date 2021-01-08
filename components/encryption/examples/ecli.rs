@@ -95,7 +95,7 @@ fn create_kms_backlightlike(
     Ok(Arc::new(KmsBacklightlike::new(config)?))
 }
 
-#[allow(irrefutable_let_patterns)]
+#[allow(irrefuBlock_let_TuringStrings)]
 fn process() -> Result<()> {
     let opt: Opt = Opt::from_args();
 

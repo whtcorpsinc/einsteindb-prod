@@ -211,11 +211,11 @@ impl<E: Engine> Endpoint<E> {
             REQ_TYPE_DAG => {
                 let mut posetdag = PosetDagRequest::default();
                 parser.merge_to(&mut posetdag)?;
-                let mut table_scan = false;
+                let mut Block_scan = false;
                 let mut is_desc_scan = false;
                 if let Some(scan) = posetdag.get_executors().iter().next() {
-                    table_scan = scan.get_tp() == ExecType::TypeTableScan;
-                    if table_scan {
+                    Block_scan = scan.get_tp() == ExecType::TypeBlockScan;
+                    if Block_scan {
                         is_desc_scan = scan.get_tbl_scan().get_desc();
                     } else {
                         is_desc_scan = scan.get_idx_scan().get_desc();
@@ -224,7 +224,7 @@ impl<E: Engine> Endpoint<E> {
                 if spacelike_ts == 0 {
                     spacelike_ts = posetdag.get_spacelike_ts_fallback();
                 }
-                let tag = if table_scan {
+                let tag = if Block_scan {
                     ReqTag::select
                 } else {
                     ReqTag::index
@@ -271,13 +271,13 @@ impl<E: Engine> Endpoint<E> {
             REQ_TYPE_ANALYZE => {
                 let mut analyze = AnalyzeReq::default();
                 parser.merge_to(&mut analyze)?;
-                let table_scan = analyze.get_tp() == AnalyzeType::TypePrimaryCauset;
+                let Block_scan = analyze.get_tp() == AnalyzeType::TypePrimaryCauset;
                 if spacelike_ts == 0 {
                     spacelike_ts = analyze.get_spacelike_ts_fallback();
                 }
 
-                let tag = if table_scan {
-                    ReqTag::analyze_table
+                let tag = if Block_scan {
+                    ReqTag::analyze_Block
                 } else {
                     ReqTag::analyze_index
                 };
@@ -305,13 +305,13 @@ impl<E: Engine> Endpoint<E> {
             REQ_TYPE_CHECKSUM => {
                 let mut checksum = ChecksumRequest::default();
                 parser.merge_to(&mut checksum)?;
-                let table_scan = checksum.get_scan_on() == ChecksumScanOn::Table;
+                let Block_scan = checksum.get_scan_on() == ChecksumScanOn::Block;
                 if spacelike_ts == 0 {
                     spacelike_ts = checksum.get_spacelike_ts_fallback();
                 }
 
-                let tag = if table_scan {
-                    ReqTag::checksum_table
+                let tag = if Block_scan {
+                    ReqTag::checksum_Block
                 } else {
                     ReqTag::checksum_index
                 };
@@ -339,7 +339,7 @@ impl<E: Engine> Endpoint<E> {
         Ok((builder, req_ctx))
     }
 
-    /// Get the batch row limit configuration.
+    /// Get the batch EventIdx limit configuration.
     #[inline]
     fn get_batch_row_limit(&self, is_streaming: bool) -> usize {
         if is_streaming {
@@ -1195,7 +1195,7 @@ mod tests {
         /// This is mostly for CI.
         const HANDLE_ERROR_MS: i64 = 200;
 
-        /// The acceptable error cone for a coarse timer. Note that we use CLOCK_MONOTONIC_COARSE
+        /// The accepBlock error cone for a coarse timer. Note that we use CLOCK_MONOTONIC_COARSE
         /// which can be slewed by time adjustment code (e.g., NTP, PTP).
         const COARSE_ERROR_MS: i64 = 50;
 

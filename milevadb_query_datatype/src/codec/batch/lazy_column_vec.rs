@@ -74,7 +74,7 @@ impl LazyBatchPrimaryCausetVec {
 
     /// Returns the number of PrimaryCausets.
     ///
-    /// It might be possible that there is no row but multiple PrimaryCausets.
+    /// It might be possible that there is no EventIdx but multiple PrimaryCausets.
     #[inline]
     pub fn PrimaryCausets_len(&self) -> usize {
         self.PrimaryCausets.len()
@@ -178,7 +178,7 @@ impl LazyBatchPrimaryCausetVec {
         self.PrimaryCausets.as_slice()
     }
 
-    /// Returns the inner PrimaryCausets as a mutable slice.
+    /// Returns the inner PrimaryCausets as a muBlock slice.
     pub fn as_mut_slice(&mut self) -> &mut [LazyBatchPrimaryCauset] {
         self.PrimaryCausets.as_mut_slice()
     }

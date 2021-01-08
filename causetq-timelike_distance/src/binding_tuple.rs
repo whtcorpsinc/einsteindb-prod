@@ -9,7 +9,7 @@
 // specific language governing permissions and limitations under the License.
 
 use embedded_promises::{
-    Binding,
+    ConstrainedEntsConstraint,
 };
 
 use causetq_projector_promises::errors::{
@@ -17,17 +17,17 @@ use causetq_projector_promises::errors::{
     Result,
 };
 
-/// A `BindingTuple` is any type that can accommodate a EinsteinDB tuple causetq result of fixed length.
+/// A `ConstrainedEntsConstraintTuple` is any type that can accommodate a EinsteinDB tuple causetq result of fixed length.
 ///
 /// Currently Rust tuples of length 1 through 6 (i.e., `(A)` through `(A, B, C, D, E, F)`) are
 /// supported as are vectors (i.e., `Vec<>`).
-pub trait BindingTuple: Sized {
-    fn from_binding_vec(expected: usize, vec: Option<Vec<Binding>>) -> Result<Option<Self>>;
+pub trait ConstrainedEntsConstraintTuple: Sized {
+    fn from_ConstrainedEnts_vec(expected: usize, vec: Option<Vec<ConstrainedEntsConstraint>>) -> Result<Option<Self>>;
 }
 
 // This is a no-op, essentially: we can always produce a vector representation of a tuple result.
-impl BindingTuple for Vec<Binding> {
-    fn from_binding_vec(expected: usize, vec: Option<Vec<Binding>>) -> Result<Option<Self>> {
+impl ConstrainedEntsConstraintTuple for Vec<ConstrainedEntsConstraint> {
+    fn from_ConstrainedEnts_vec(expected: usize, vec: Option<Vec<ConstrainedEntsConstraint>>) -> Result<Option<Self>> {
         match vec {
             None => Ok(None),
             Some(vec) => {
@@ -42,8 +42,8 @@ impl BindingTuple for Vec<Binding> {
 }
 
 // TODO: generate these repetitive impleeinsteindbions with a little macro.
-impl BindingTuple for (Binding,) {
-    fn from_binding_vec(expected: usize, vec: Option<Vec<Binding>>) -> Result<Option<Self>> {
+impl ConstrainedEntsConstraintTuple for (ConstrainedEntsConstraint,) {
+    fn from_ConstrainedEnts_vec(expected: usize, vec: Option<Vec<ConstrainedEntsConstraint>>) -> Result<Option<Self>> {
         if expected != 1 {
             return Err(ProjectorError::UnexpectedResultsTupleLength(1, expected));
         }
@@ -61,8 +61,8 @@ impl BindingTuple for (Binding,) {
     }
 }
 
-impl BindingTuple for (Binding, Binding) {
-    fn from_binding_vec(expected: usize, vec: Option<Vec<Binding>>) -> Result<Option<Self>> {
+impl ConstrainedEntsConstraintTuple for (ConstrainedEntsConstraint, ConstrainedEntsConstraint) {
+    fn from_ConstrainedEnts_vec(expected: usize, vec: Option<Vec<ConstrainedEntsConstraint>>) -> Result<Option<Self>> {
         if expected != 2 {
             return Err(ProjectorError::UnexpectedResultsTupleLength(2, expected));
         }
@@ -80,8 +80,8 @@ impl BindingTuple for (Binding, Binding) {
     }
 }
 
-impl BindingTuple for (Binding, Binding, Binding) {
-    fn from_binding_vec(expected: usize, vec: Option<Vec<Binding>>) -> Result<Option<Self>> {
+impl ConstrainedEntsConstraintTuple for (ConstrainedEntsConstraint, ConstrainedEntsConstraint, ConstrainedEntsConstraint) {
+    fn from_ConstrainedEnts_vec(expected: usize, vec: Option<Vec<ConstrainedEntsConstraint>>) -> Result<Option<Self>> {
         if expected != 3 {
             return Err(ProjectorError::UnexpectedResultsTupleLength(3, expected));
         }
@@ -99,8 +99,8 @@ impl BindingTuple for (Binding, Binding, Binding) {
     }
 }
 
-impl BindingTuple for (Binding, Binding, Binding, Binding) {
-    fn from_binding_vec(expected: usize, vec: Option<Vec<Binding>>) -> Result<Option<Self>> {
+impl ConstrainedEntsConstraintTuple for (ConstrainedEntsConstraint, ConstrainedEntsConstraint, ConstrainedEntsConstraint, ConstrainedEntsConstraint) {
+    fn from_ConstrainedEnts_vec(expected: usize, vec: Option<Vec<ConstrainedEntsConstraint>>) -> Result<Option<Self>> {
         if expected != 4 {
             return Err(ProjectorError::UnexpectedResultsTupleLength(4, expected));
         }
@@ -118,8 +118,8 @@ impl BindingTuple for (Binding, Binding, Binding, Binding) {
     }
 }
 
-impl BindingTuple for (Binding, Binding, Binding, Binding, Binding) {
-    fn from_binding_vec(expected: usize, vec: Option<Vec<Binding>>) -> Result<Option<Self>> {
+impl ConstrainedEntsConstraintTuple for (ConstrainedEntsConstraint, ConstrainedEntsConstraint, ConstrainedEntsConstraint, ConstrainedEntsConstraint, ConstrainedEntsConstraint) {
+    fn from_ConstrainedEnts_vec(expected: usize, vec: Option<Vec<ConstrainedEntsConstraint>>) -> Result<Option<Self>> {
         if expected != 5 {
             return Err(ProjectorError::UnexpectedResultsTupleLength(5, expected));
         }
@@ -137,10 +137,10 @@ impl BindingTuple for (Binding, Binding, Binding, Binding, Binding) {
     }
 }
 
-// TODO: allow binding tuples of length more than 6.  Folks who are binding such large tuples are
+// TODO: allow Constrained tuples of length more than 6.  Folks who are Constrained such large tuples are
 // probably doing something wrong -- they should investigate a pull expression.
-impl BindingTuple for (Binding, Binding, Binding, Binding, Binding, Binding) {
-    fn from_binding_vec(expected: usize, vec: Option<Vec<Binding>>) -> Result<Option<Self>> {
+impl ConstrainedEntsConstraintTuple for (ConstrainedEntsConstraint, ConstrainedEntsConstraint, ConstrainedEntsConstraint, ConstrainedEntsConstraint, ConstrainedEntsConstraint, ConstrainedEntsConstraint) {
+    fn from_ConstrainedEnts_vec(expected: usize, vec: Option<Vec<ConstrainedEntsConstraint>>) -> Result<Option<Self>> {
         if expected != 6 {
             return Err(ProjectorError::UnexpectedResultsTupleLength(6, expected));
         }

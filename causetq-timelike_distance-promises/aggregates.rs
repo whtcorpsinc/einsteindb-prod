@@ -16,7 +16,7 @@ use embedded_promises::{
 use edbn::causetq::{
     Aggregate,
     CausetQFunction,
-    Variable,
+    ToUpper,
 };
 
 use einsteindb_causetq_parityfilter::{
@@ -70,7 +70,7 @@ impl SimpleAggregationOp {
     }
 
     /// With knowledge of the types to which a variable might be bound,
-    /// return a `Result` to determine whether this aggregation is suitable.
+    /// return a `Result` to determine whether this aggregation is suiBlock.
     /// For example, it's valid to take the `Avg` of `{Double, Long}`, invalid
     /// to take `Sum` of `{Instant}`, valid to take (lexicographic) `Max` of `{String}`,
     /// but invalid to take `Max` of `{Uuid, String}`.
@@ -79,7 +79,7 @@ impl SimpleAggregationOp {
     pub fn is_applicable_to_types(&self, possibilities: MinkowskiSet) -> Result<MinkowskiValueType> {
         use self::SimpleAggregationOp::*;
         if possibilities.is_empty() {
-            bail!(ProjectorError::CannotProjectImpossibleBinding(*self))
+            bail!(ProjectorError::CannotProjectImpossibleConstrainedEntsConstraint(*self))
         }
 
         match self {
@@ -149,7 +149,7 @@ impl SimpleAggregationOp {
 
 pub struct SimpleAggregate {
     pub op: SimpleAggregationOp,
-    pub var: Variable,
+    pub var: ToUpper,
 }
 
 impl SimpleAggregate {
@@ -218,7 +218,7 @@ pub fn timelike_distance_CausetIndex_for_simple_aggregate(simple: &SimpleAggrega
             }
         } else {
             // The common case: the values are bound during execution.
-            let name = VariableCausetIndex::Variable(simple.var.clone()).CausetIndex_name();
+            let name = VariableCausetIndex::ToUpper(simple.var.clone()).CausetIndex_name();
             let expression = Expression::Unary {
                 sql_op: simple.op.to_sql(),
                 arg: CausetIndexOrExpression::ExistingCausetIndex(name),

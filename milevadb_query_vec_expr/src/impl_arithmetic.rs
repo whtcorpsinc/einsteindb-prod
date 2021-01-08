@@ -1253,21 +1253,21 @@ mod tests {
             // Error
             (
                 Flag::IN_UFIDelATE_OR_DELETE_STMT,
-                SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_TABLES,
+                SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS,
                 false,
                 false,
             ),
             // Ok
             (
                 Flag::IN_UFIDelATE_OR_DELETE_STMT,
-                SqlMode::STRICT_ALL_TABLES,
+                SqlMode::STRICT_ALL_BlockS,
                 true,
                 false,
             ),
             // Warning
             (
                 Flag::IN_UFIDelATE_OR_DELETE_STMT | Flag::DIVIDED_BY_ZERO_AS_WARNING,
-                SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_TABLES,
+                SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS,
                 true,
                 true,
             ),

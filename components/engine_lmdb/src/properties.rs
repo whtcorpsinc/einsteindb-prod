@@ -9,9 +9,9 @@ use std::u64;
 
 use engine_promises::KvEngine;
 use engine_promises::Cone;
-use engine_promises::{IndexHandle, TableProperties, TablePropertiesCollection};
+use engine_promises::{IndexHandle, BlockProperties, BlockPropertiesCollection};
 use lmdb::{
-    DBEntryType, TablePropertiesCollector, TablePropertiesCollectorFactory, NoetherBlobIndex,
+    DBEntryType, BlockPropertiesCollector, BlockPropertiesCollectorFactory, NoetherBlobIndex,
     UserCollectedProperties,
 };
 use einsteindb_util::codec::number::{self, NumberEncoder};
@@ -345,7 +345,7 @@ impl ConePropertiesCollector {
     }
 }
 
-impl TablePropertiesCollector for ConePropertiesCollector {
+impl BlockPropertiesCollector for ConePropertiesCollector {
     fn add(&mut self, key: &[u8], value: &[u8], entry_type: DBEntryType, _: u64, _: u64) {
         // size
         let size = match get_entry_size(value, entry_type) {
@@ -389,8 +389,8 @@ impl Default for ConePropertiesCollectorFactory {
     }
 }
 
-impl TablePropertiesCollectorFactory for ConePropertiesCollectorFactory {
-    fn create_table_properties_collector(&mut self, _: u32) -> Box<dyn TablePropertiesCollector> {
+impl BlockPropertiesCollectorFactory for ConePropertiesCollectorFactory {
+    fn create_Block_properties_collector(&mut self, _: u32) -> Box<dyn BlockPropertiesCollector> {
         Box::new(ConePropertiesCollector::new(
             self.prop_size_index_distance,
             self.prop_tuplespaceInstanton_index_distance,
@@ -417,7 +417,7 @@ pub struct MvccProperties {
     pub num_puts: u64,         // The number of MVCC puts of all events.
     pub num_deletes: u64,      // The number of MVCC deletes of all events.
     pub num_versions: u64,     // The number of MVCC versions of all events.
-    pub max_row_versions: u64, // The maximal number of MVCC versions of a single row.
+    pub max_row_versions: u64, // The maximal number of MVCC versions of a single EventIdx.
 }
 
 impl MvccProperties {
@@ -493,7 +493,7 @@ impl MvccPropertiesCollector {
     }
 }
 
-impl TablePropertiesCollector for MvccPropertiesCollector {
+impl BlockPropertiesCollector for MvccPropertiesCollector {
     fn add(&mut self, key: &[u8], value: &[u8], entry_type: DBEntryType, _: u64, _: u64) {
         // TsFilter filters sst based on max_ts and min_ts during iterating.
         // To prevent seeing outdated (GC) records, we should consider
@@ -550,7 +550,7 @@ impl TablePropertiesCollector for MvccPropertiesCollector {
             _ => {}
         }
 
-        // Add new row.
+        // Add new EventIdx.
         if self.row_versions == 1 {
             self.cur_index_handle.size += 1;
             self.cur_index_handle.offset += 1;
@@ -580,8 +580,8 @@ impl TablePropertiesCollector for MvccPropertiesCollector {
 #[derive(Default)]
 pub struct MvccPropertiesCollectorFactory {}
 
-impl TablePropertiesCollectorFactory for MvccPropertiesCollectorFactory {
-    fn create_table_properties_collector(&mut self, _: u32) -> Box<dyn TablePropertiesCollector> {
+impl BlockPropertiesCollectorFactory for MvccPropertiesCollectorFactory {
+    fn create_Block_properties_collector(&mut self, _: u32) -> Box<dyn BlockPropertiesCollector> {
         Box::new(MvccPropertiesCollector::new())
     }
 }
@@ -596,7 +596,7 @@ where
     E: KvEngine,
 {
     let cone = Cone::new(spacelike, lightlike);
-    let collection = match engine.get_properties_of_tables_in_cone(causet, &[cone]) {
+    let collection = match engine.get_properties_of_Blocks_in_cone(causet, &[cone]) {
         Ok(v) => v,
         Err(_) => return None,
     };
@@ -626,8 +626,8 @@ mod tests {
 
     use std::sync::Arc;
 
-    use crate::raw::{PrimaryCausetNetworkOptions, DBOptions, Writable};
-    use crate::raw::{DBEntryType, TablePropertiesCollector};
+    use crate::raw::{PrimaryCausetNetworkOptions, DBOptions, WriBlock};
+    use crate::raw::{DBEntryType, BlockPropertiesCollector};
     use tempfile::Builder;
     use test::Bencher;
 
@@ -806,7 +806,7 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(MvccPropertiesCollectorFactory::default());
-        causet_opts.add_table_properties_collector_factory("einsteindb.tail_pointer-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb.tail_pointer-properties-collector", f);
         let causets_opts = LARGE_CAUSETS
             .iter()
             .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))

@@ -11,8 +11,8 @@ use engine_lmdb::raw::{CompactOptions, DBBottommostLevelCompaction, DB};
 use engine_lmdb::util::get_causet_handle;
 use engine_lmdb::{Compat, LmdbEngine, LmdbEngineIterator, LmdbWriteBatch};
 use engine_promises::{
-    Engines, IterOptions, Iterable, Iteron as EngineIterator, Mutable, Peekable, VioletaBftEngine,
-    ConePropertiesExt, SeekKey, TableProperties, TablePropertiesCollection, TablePropertiesExt,
+    Engines, IterOptions, Iterable, Iteron as EngineIterator, MuBlock, Peekable, VioletaBftEngine,
+    ConePropertiesExt, SeekKey, BlockProperties, BlockPropertiesCollection, BlockPropertiesExt,
     WriteOptions,
 };
 use engine_promises::{Cone, WriteBatchExt, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
@@ -1392,7 +1392,7 @@ fn divide_db(db: &Arc<DB>, parts: usize) -> violetabftstore::Result<Vec<Vec<u8>>
 mod tests {
     use std::sync::Arc;
 
-    use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions, Writable};
+    use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions, WriBlock};
     use ekvproto::metapb::{Peer, Brane};
     use violetabft::evioletabftpb::EntryType;
     use tempfile::Builder;
@@ -1401,7 +1401,7 @@ mod tests {
     use crate::causetStorage::tail_pointer::{Dagger, LockType};
     use engine_lmdb::raw_util::{new_engine_opt, CAUSETOptions};
     use engine_lmdb::LmdbEngine;
-    use engine_promises::{CAUSETHandleExt, Mutable, SyncMutable};
+    use engine_promises::{CAUSETHandleExt, MuBlock, SyncMuBlock};
     use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
 
     fn init_brane_state(engine: &Arc<DB>, brane_id: u64, stores: &[u64]) -> Brane {
@@ -2053,7 +2053,7 @@ mod tests {
             (b"k7", 96, 97, WriteType::Put, true, Expect::Keep),
         ]);
 
-        // Locks from pessimistic transactions
+        // Locks from pessimistic bundles
         default.extlightlike(vec![
             // key, spacelike_ts
             (b"k8", 100, Expect::Keep),

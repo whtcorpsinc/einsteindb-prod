@@ -183,8 +183,8 @@ impl<Src: BatchFreeDaemon> BatchFastHashAggregationFreeDaemon<Src> {
 
 /// All groups.
 enum Groups {
-    // The value of each hash table is the spacelike index in `FastHashAggregationImpl::states`
-    // field. When there are new groups (i.e. new entry in the hash table), the states of the groups
+    // The value of each hash Block is the spacelike index in `FastHashAggregationImpl::states`
+    // field. When there are new groups (i.e. new entry in the hash Block), the states of the groups
     // will be applightlikeed to `states`.
     Int(HashMap<Option<Int>, usize>),
     Real(HashMap<Option<Real>, usize>),
@@ -237,7 +237,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for FastHashAggregatio
         mut input_physical_PrimaryCausets: LazyBatchPrimaryCausetVec,
         input_logical_rows: &[usize],
     ) -> Result<()> {
-        // 1. Calculate which group each src row belongs to.
+        // 1. Calculate which group each src EventIdx belongs to.
         self.states_offset_each_logical_row.clear();
         let group_by_result = self.group_by_exp.eval(
             &mut entities.context,
@@ -544,7 +544,7 @@ mod tests {
                 .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schemaReplicant()[4])
                 .unwrap();
 
-            // The row order is not defined. Let's sort it by the group by PrimaryCauset before asserting.
+            // The EventIdx order is not defined. Let's sort it by the group by PrimaryCauset before asserting.
             let mut sort_PrimaryCauset: Vec<(usize, _)> = r.physical_PrimaryCausets[4]
                 .decoded()
                 .to_real_vec()
@@ -760,7 +760,7 @@ mod tests {
                 .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schemaReplicant()[3])
                 .unwrap();
 
-            // The row order is not defined. Let's sort it by the group by PrimaryCauset before asserting.
+            // The EventIdx order is not defined. Let's sort it by the group by PrimaryCauset before asserting.
             let mut sort_PrimaryCauset: Vec<(usize, _)> = r.physical_PrimaryCausets[3]
                 .decoded()
                 .to_bytes_vec()

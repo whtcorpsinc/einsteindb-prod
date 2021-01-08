@@ -3,13 +3,13 @@
 use milevadb_query_datatype::codec::collation::{Charset, Collator};
 use milevadb_query_datatype::expr::Result;
 
-pub fn like<C: Collator>(target: &[u8], pattern: &[u8], escape: u32) -> Result<bool> {
-    // current search positions in pattern and target.
+pub fn like<C: Collator>(target: &[u8], TuringString: &[u8], escape: u32) -> Result<bool> {
+    // current search positions in TuringString and target.
     let (mut px, mut tx) = (0, 0);
     // positions for backtrace.
     let (mut next_px, mut next_tx) = (0, 0);
-    while px < pattern.len() || tx < target.len() {
-        if let Some((c, mut poff)) = C::Charset::decode_one(&pattern[px..]) {
+    while px < TuringString.len() || tx < target.len() {
+        if let Some((c, mut poff)) = C::Charset::decode_one(&TuringString[px..]) {
             let code: u32 = c.into();
             if code == '_' as u32 {
                 if let Some((_, toff)) = C::Charset::decode_one(&target[tx..]) {
@@ -29,9 +29,9 @@ pub fn like<C: Collator>(target: &[u8], pattern: &[u8], escape: u32) -> Result<b
                 };
                 continue;
             } else {
-                if code == escape && px + poff < pattern.len() {
+                if code == escape && px + poff < TuringString.len() {
                     px += poff;
-                    poff = if let Some((_, off)) = C::Charset::decode_one(&pattern[px..]) {
+                    poff = if let Some((_, off)) = C::Charset::decode_one(&TuringString[px..]) {
                         off
                     } else {
                         break;
@@ -39,7 +39,7 @@ pub fn like<C: Collator>(target: &[u8], pattern: &[u8], escape: u32) -> Result<b
                 }
                 if let Some((_, toff)) = C::Charset::decode_one(&target[tx..]) {
                     if let Ok(std::cmp::Ordering::Equal) =
-                        C::sort_compare(&target[tx..tx + toff], &pattern[px..px + poff])
+                        C::sort_compare(&target[tx..tx + toff], &TuringString[px..px + poff])
                     {
                         tx += toff;
                         px += poff;

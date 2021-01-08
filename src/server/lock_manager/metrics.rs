@@ -27,7 +27,7 @@ make_auto_flush_static_metric! {
 }
 
 make_static_metric! {
-    pub struct WaitTableStatusGauge: IntGauge {
+    pub struct WaitBlockStatusGauge: IntGauge {
         "type" => {
             locks,
             txns,
@@ -60,10 +60,10 @@ lazy_static! {
         exponential_buckets(0.0001, 2.0, 20).unwrap() // 0.1ms ~ 104s
     )
     .unwrap();
-    pub static ref WAIT_TABLE_STATUS_GAUGE: WaitTableStatusGauge = register_static_int_gauge_vec!(
-        WaitTableStatusGauge,
-        "einsteindb_lock_manager_wait_table_status",
-        "Status of the wait table",
+    pub static ref WAIT_Block_STATUS_GAUGE: WaitBlockStatusGauge = register_static_int_gauge_vec!(
+        WaitBlockStatusGauge,
+        "einsteindb_lock_manager_wait_Block_status",
+        "Status of the wait Block",
         &["type"]
     )
     .unwrap();

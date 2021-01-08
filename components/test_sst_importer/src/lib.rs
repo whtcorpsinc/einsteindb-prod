@@ -16,7 +16,7 @@ use ekvproto::import_sstpb::*;
 use uuid::Uuid;
 
 use engine_lmdb::raw::{
-    PrimaryCausetNetworkOptions, DBEntryType, TablePropertiesCollector, TablePropertiesCollectorFactory,
+    PrimaryCausetNetworkOptions, DBEntryType, BlockPropertiesCollector, BlockPropertiesCollectorFactory,
 };
 use engine_lmdb::raw_util::{new_engine, CAUSETOptions};
 use std::sync::Arc;
@@ -38,7 +38,7 @@ where
         .map(|causet| {
             let mut opt = PrimaryCausetNetworkOptions::new();
             apply(*causet, &mut opt);
-            opt.add_table_properties_collector_factory(
+            opt.add_Block_properties_collector_factory(
                 "einsteindb.test_properties",
                 Box::new(TestPropertiesCollectorFactory::new(*causet)),
             );
@@ -114,8 +114,8 @@ impl TestPropertiesCollectorFactory {
     }
 }
 
-impl TablePropertiesCollectorFactory for TestPropertiesCollectorFactory {
-    fn create_table_properties_collector(&mut self, _: u32) -> Box<dyn TablePropertiesCollector> {
+impl BlockPropertiesCollectorFactory for TestPropertiesCollectorFactory {
+    fn create_Block_properties_collector(&mut self, _: u32) -> Box<dyn BlockPropertiesCollector> {
         Box::new(TestPropertiesCollector::new(self.causet.clone()))
     }
 }
@@ -130,7 +130,7 @@ impl TestPropertiesCollector {
     }
 }
 
-impl TablePropertiesCollector for TestPropertiesCollector {
+impl BlockPropertiesCollector for TestPropertiesCollector {
     fn add(&mut self, _: &[u8], _: &[u8], _: DBEntryType, _: u64, _: u64) {}
 
     fn finish(&mut self) -> HashMap<Vec<u8>, Vec<u8>> {

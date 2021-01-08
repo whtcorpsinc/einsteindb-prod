@@ -1050,7 +1050,7 @@ fn try_lock_conflict_addr<P: AsRef<Path>>(path: P) -> File {
 
     if f.try_lock_exclusive().is_err() {
         fatal!(
-            "{} already in use, maybe another instance is binding with this address.",
+            "{} already in use, maybe another instance is Constrained with this address.",
             path.as_ref().file_name().unwrap().to_str().unwrap()
         );
     }

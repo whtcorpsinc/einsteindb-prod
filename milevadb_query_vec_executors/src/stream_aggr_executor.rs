@@ -214,7 +214,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for BatchStreamAggrega
         let group_by_len = self.group_by_exps.len();
         let aggr_fn_len = entities.each_aggr_fn.len();
 
-        // Decode PrimaryCausets with mutable input first, so subsequent access to input can be immutable
+        // Decode PrimaryCausets with muBlock input first, so subsequent access to input can be immuBlock
         // (and the borrow checker will be happy)
         ensure_PrimaryCausets_decoded(
             context,

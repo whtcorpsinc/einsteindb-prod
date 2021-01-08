@@ -60,7 +60,7 @@ pub struct Write {
     pub write_type: WriteType,
     pub spacelike_ts: TimeStamp,
     pub short_value: Option<Value>,
-    /// The `commit_ts` of transactions can be non-globally-unique. But since we store Rollback
+    /// The `commit_ts` of bundles can be non-globally-unique. But since we store Rollback
     /// records in the same CAUSET where Commit records is, and Rollback records are saved with
     /// `user_key{spacelike_ts}` as the internal key, the collision between Commit and Rollback
     /// records can't be avoided. In this case, we keep the Commit record, and set the
@@ -146,7 +146,7 @@ pub struct WriteRef<'a> {
     pub write_type: WriteType,
     pub spacelike_ts: TimeStamp,
     pub short_value: Option<&'a [u8]>,
-    /// The `commit_ts` of transactions can be non-globally-unique. But since we store Rollback
+    /// The `commit_ts` of bundles can be non-globally-unique. But since we store Rollback
     /// records in the same CAUSET where Commit records is, and Rollback records are saved with
     /// `user_key{spacelike_ts}` as the internal key, the collision between Commit and Rollback
     /// records can't be avoided. In this case, we keep the Commit record, and set the

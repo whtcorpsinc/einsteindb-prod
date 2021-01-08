@@ -20,7 +20,7 @@ use encryption::DataKeyManager;
 use engine_lmdb::raw::DB;
 use engine_lmdb::{Compat, LmdbEngine, LmdbSnapshot};
 use engine_promises::{
-    CompactExt, Engines, Iterable, MiscExt, Mutable, Peekable, WriteBatchExt, CAUSET_VIOLETABFT,
+    CompactExt, Engines, Iterable, MiscExt, MuBlock, Peekable, WriteBatchExt, CAUSET_VIOLETABFT,
 };
 use fidel_client::FidelClient;
 use violetabftstore::store::fsm::store::{StoreMeta, PENDING_VOTES_CAP};

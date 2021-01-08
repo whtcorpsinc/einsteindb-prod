@@ -840,9 +840,9 @@ mod tests {
     use std::f64::INFINITY;
 
     use engine_promises::{collect, name_to_causet, Iterable, Iteron, SeekKey, CAUSET_DEFAULT, DATA_CAUSETS};
-    use engine_promises::{Error as TraitError, SstWriterBuilder, TablePropertiesExt};
+    use engine_promises::{Error as TraitError, SstWriterBuilder, BlockPropertiesExt};
     use engine_promises::{
-        ExternalSstFileInfo, SstExt, TableProperties, TablePropertiesCollection,
+        ExternalSstFileInfo, SstExt, BlockProperties, BlockPropertiesCollection,
         UserCollectedProperties,
     };
     use tempfile::Builder;

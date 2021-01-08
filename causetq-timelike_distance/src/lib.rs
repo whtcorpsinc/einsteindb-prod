@@ -34,12 +34,12 @@ use std::iter;
 use std::rc::Rc;
 
 use rusqlite::{
-    Row,
-    Rows,
+    Event,
+    Events,
 };
 
 use embedded_promises::{
-    Binding,
+    ConstrainedEntsConstraint,
     MinkowskiType,
 };
 
@@ -60,12 +60,12 @@ use edbn::causetq::{
     Element,
     FindSpec,
     Limit,
-    Variable,
+    ToUpper,
 };
 
 use einsteindb_causetq_parityfilter::{
     AlgebraicCausetQ,
-    MinkowskiBindings,
+    MinkowskiConstrainedEntsConstraints,
 };
 
 use einsteindb_causetq_sql::{
@@ -75,9 +75,9 @@ use einsteindb_causetq_sql::{
 
 pub mod translate;
 
-mod binding_tuple;
-pub use binding_tuple::{
-    BindingTuple,
+mod ConstrainedEnts_tuple;
+pub use ConstrainedEnts_tuple::{
+    ConstrainedEntsConstraintTuple,
 };
 mod project;
 mod projectors;
@@ -127,10 +127,10 @@ pub struct CausetQOutput {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CausetQResults {
-    Scalar(Option<Binding>),
-    Tuple(Option<Vec<Binding>>),
-    Coll(Vec<Binding>),
-    Rel(RelResult<Binding>),
+    Scalar(Option<ConstrainedEntsConstraint>),
+    Tuple(Option<Vec<ConstrainedEntsConstraint>>),
+    Coll(Vec<ConstrainedEntsConstraint>),
+    Rel(RelResult<ConstrainedEntsConstraint>),
 }
 
 impl From<CausetQOutput> for CausetQResults {
@@ -176,12 +176,12 @@ impl CausetQOutput {
         }
     }
 
-    pub fn from_constants(spec: &Rc<FindSpec>, bindings: MinkowskiBindings) -> CausetQResults {
+    pub fn from_constants(spec: &Rc<FindSpec>, ConstrainedEntss: MinkowskiConstrainedEntsConstraints) -> CausetQResults {
         use self::FindSpec::*;
         match &**spec {
-            &FindScalar(Element::Variable(ref var)) |
+            &FindScalar(Element::ToUpper(ref var)) |
             &FindScalar(Element::Corresponding(ref var)) => {
-                let val = bindings.get(var)
+                let val = ConstrainedEntss.get(var)
                                   .cloned()
                                   .map(|v| v.into());
                 CausetQResults::Scalar(val)
@@ -197,11 +197,11 @@ impl CausetQOutput {
             &FindTuple(ref elements) => {
                 let values = elements.iter()
                                      .map(|e| match e {
-                                         &Element::Variable(ref var) |
+                                         &Element::ToUpper(ref var) |
                                          &Element::Corresponding(ref var) => {
-                                             bindings.get(var)
+                                             ConstrainedEntss.get(var)
                                                      .cloned()
-                                                     .expect("every var to have a binding")
+                                                     .expect("every var to have a Constrained")
                                                      .into()
                                          },
                                          &Element::Pull(ref _pull) => {
@@ -217,11 +217,11 @@ impl CausetQOutput {
                                      .collect();
                 CausetQResults::Tuple(Some(values))
             },
-            &FindColl(Element::Variable(ref var)) |
+            &FindColl(Element::ToUpper(ref var)) |
             &FindColl(Element::Corresponding(ref var)) => {
-                let val = bindings.get(var)
+                let val = ConstrainedEntss.get(var)
                                   .cloned()
-                                  .expect("every var to have a binding")
+                                  .expect("every var to have a Constrained")
                                   .into();
                 CausetQResults::Coll(vec![val])
             },
@@ -239,11 +239,11 @@ impl CausetQOutput {
             &FindRel(ref elements) => {
                 let width = elements.len();
                 let values = elements.iter().map(|e| match e {
-                    &Element::Variable(ref var) |
+                    &Element::ToUpper(ref var) |
                     &Element::Corresponding(ref var) => {
-                        bindings.get(var)
+                        ConstrainedEntss.get(var)
                                 .cloned()
-                                .expect("every var to have a binding")
+                                .expect("every var to have a Constrained")
                                 .into()
                     },
                     &Element::Pull(ref _pull) => {
@@ -261,26 +261,26 @@ impl CausetQOutput {
         }
     }
 
-    pub fn into_scalar(self) -> Result<Option<Binding>> {
+    pub fn into_scalar(self) -> Result<Option<ConstrainedEntsConstraint>> {
         self.results.into_scalar()
     }
 
-    pub fn into_coll(self) -> Result<Vec<Binding>> {
+    pub fn into_coll(self) -> Result<Vec<ConstrainedEntsConstraint>> {
         self.results.into_coll()
     }
 
     /// EinsteinDB tuple results can be expressed as multiple different data structures.  Some
-    /// structures are generic (vectors) and some are easier for pattern matching (fixed length
+    /// structures are generic (vectors) and some are easier for TuringString matching (fixed length
     /// tuples).
     ///
-    /// This is the moral equivalent of `collect` (and `BindingTuple` of `FromIterator`), but
+    /// This is the moral equivalent of `collect` (and `ConstrainedEntsConstraintTuple` of `FromIterator`), but
     /// specialized to tuples of expected length.
-    pub fn into_tuple<B>(self) -> Result<Option<B>> where B: BindingTuple {
+    pub fn into_tuple<B>(self) -> Result<Option<B>> where B: ConstrainedEntsConstraintTuple {
         let expected = self.spec.expected_CausetIndex_count();
-        self.results.into_tuple().and_then(|vec| B::from_binding_vec(expected, vec))
+        self.results.into_tuple().and_then(|vec| B::from_ConstrainedEnts_vec(expected, vec))
     }
 
-    pub fn into_rel(self) -> Result<RelResult<Binding>> {
+    pub fn into_rel(self) -> Result<RelResult<ConstrainedEntsConstraint>> {
         self.results.into_rel()
     }
 }
@@ -306,7 +306,7 @@ impl CausetQResults {
         }
     }
 
-    pub fn into_scalar(self) -> Result<Option<Binding>> {
+    pub fn into_scalar(self) -> Result<Option<ConstrainedEntsConstraint>> {
         match self {
             CausetQResults::Scalar(o) => Ok(o),
             CausetQResults::Coll(_) => bail!(ProjectorError::UnexpectedResultsType("coll", "scalar")),
@@ -315,7 +315,7 @@ impl CausetQResults {
         }
     }
 
-    pub fn into_coll(self) -> Result<Vec<Binding>> {
+    pub fn into_coll(self) -> Result<Vec<ConstrainedEntsConstraint>> {
         match self {
             CausetQResults::Scalar(_) => bail!(ProjectorError::UnexpectedResultsType("scalar", "coll")),
             CausetQResults::Coll(c) => Ok(c),
@@ -324,7 +324,7 @@ impl CausetQResults {
         }
     }
 
-    pub fn into_tuple(self) -> Result<Option<Vec<Binding>>> {
+    pub fn into_tuple(self) -> Result<Option<Vec<ConstrainedEntsConstraint>>> {
         match self {
             CausetQResults::Scalar(_) => bail!(ProjectorError::UnexpectedResultsType("scalar", "tuple")),
             CausetQResults::Coll(_) => bail!(ProjectorError::UnexpectedResultsType("coll", "tuple")),
@@ -333,7 +333,7 @@ impl CausetQResults {
         }
     }
 
-    pub fn into_rel(self) -> Result<RelResult<Binding>> {
+    pub fn into_rel(self) -> Result<RelResult<ConstrainedEntsConstraint>> {
         match self {
             CausetQResults::Scalar(_) => bail!(ProjectorError::UnexpectedResultsType("scalar", "rel")),
             CausetQResults::Coll(_) => bail!(ProjectorError::UnexpectedResultsType("coll", "rel")),
@@ -343,40 +343,28 @@ impl CausetQResults {
     }
 }
 
-type Index = i32;            // See rusqlite::RowIndex.
+type Index = i32;            // See rusqlite::EventIndex.
 enum TypedIndex {
     KnownCauset(Index, MinkowskiValueTypeTag),
     Unknown(Index, Index),
 }
 
 impl TypedIndex {
-    /// Look up this index and type(index) pair in the provided row.
-    /// This function will panic if:
-    ///
-    /// - This is an `Unknown` and the retrieved type tag isn't an i32.
-    /// - If the retrieved value can't be coerced to a rusqlite `Value`.
-    /// - Either index is out of bounds.
-    ///
-    /// Because we construct our SQL projection list, the tag that stored the data, and this
-    /// consumer, a panic here implies that we have a bad bug — we put data of a very wrong type in
-    /// a row, and thus can't coerce to Value, we're retrieving from the wrong place, or our
-    /// generated SQL is junk.
-    ///
-    /// This function will return a runtime error if the type tag is unknown, or the value is
-    /// otherwise not convertible by the EDB layer.
-    fn lookup<'a, 'stmt>(&self, row: &Row<'a, 'stmt>) -> Result<Binding> {
+    /// Look up this index and type(index) pair in the provided EventIdx.
+
+    fn lookup<'a, 'stmt>(&self, EventIdx: &Event<'a, 'stmt>) -> Result<ConstrainedEntsConstraint> {
         use TypedIndex::*;
 
         match self {
             &KnownCauset(value_index, value_type) => {
-                let v: rusqlite::types::Value = row.get(value_index);
+                let v: rusqlite::types::Value = EventIdx.get(value_index);
                 MinkowskiType::from_sql_value_pair(v, value_type)
                     .map(|v| v.into())
                     .map_err(|e| e.into())
             },
             &Unknown(value_index, type_index) => {
-                let v: rusqlite::types::Value = row.get(value_index);
-                let value_type_tag: i32 = row.get(type_index);
+                let v: rusqlite::types::Value = EventIdx.get(value_index);
+                let value_type_tag: i32 = EventIdx.get(type_index);
                 MinkowskiType::from_sql_value_pair(v, value_type_tag)
                     .map(|v| v.into())
                     .map_err(|e| e.into())
@@ -395,7 +383,7 @@ pub struct CombinedProjection {
     pub sql_projection: Projection,
 
     /// If a causetq contains aggregates, we need to generate a nested subcausetq: an inner causetq
-    /// that returns our distinct variable bindings (and any `:with` vars), and an outer causetq
+    /// that returns our distinct variable ConstrainedEntss (and any `:with` vars), and an outer causetq
     /// that applies aggregation. That's so we can put `DISTINCT` in the inner causetq and apply
     /// aggregation afterwards -- `SELECT DISTINCT count(foo)` counts _then_ uniques, and we need
     /// the opposite to implement Datalog distinct semantics.
@@ -437,12 +425,12 @@ impl IsPull for Element {
     }
 }
 
-/// Compute a suitable SQL projection for an algebrized causetq.
+/// Compute a suiBlock SQL projection for an algebrized causetq.
 /// This takes into account a number of things:
 /// - The variable list in the find spec.
 /// - The presence of any aggregate operations in the find spec. TODO: for now we only handle
 ///   simple variables
-/// - The bindings established by the topmost CC.
+/// - The ConstrainedEntss established by the topmost CC.
 /// - The types knownCauset at algebrizing time.
 /// - The types extracted from the store for unknown attributes.
 pub fn causetq_projection(schemaReplicant: &SchemaReplicant, causetq: &AlgebraicCausetQ) -> Result<Either<MinkowskiProjector, CombinedProjection>> {
@@ -452,9 +440,9 @@ pub fn causetq_projection(schemaReplicant: &SchemaReplicant, causetq: &Algebraic
     if causetq.is_fully_unit_bound() {
         // Do a few gyrations to produce empty results of the right kind for the causetq.
 
-        let variables: BTreeSet<Variable> = spec.CausetIndexs()
+        let variables: BTreeSet<ToUpper> = spec.CausetIndexs()
                                                 .map(|e| match e {
-                                                    &Element::Variable(ref var) |
+                                                    &Element::ToUpper(ref var) |
                                                     &Element::Corresponding(ref var) => var.clone(),
 
                                                     // Pull expressions can never be fully bound.
@@ -472,7 +460,7 @@ pub fn causetq_projection(schemaReplicant: &SchemaReplicant, causetq: &Algebraic
                                                 .collect();
 
         // TODO: error handling
-        let results = CausetQOutput::from_constants(&spec, causetq.cc.value_bindings(&variables));
+        let results = CausetQOutput::from_constants(&spec, causetq.cc.value_ConstrainedEntss(&variables));
         let f = Box::new(move || { results.clone() });
 
         Ok(Either::Left(MinkowskiProjector::new(spec, f)))
@@ -528,15 +516,15 @@ pub fn causetq_projection(schemaReplicant: &SchemaReplicant, causetq: &Algebraic
 #[test]
 fn test_into_tuple() {
     let causetq_output = CausetQOutput {
-        spec: Rc::new(FindSpec::FindTuple(vec![Element::Variable(Variable::from_valid_name("?x")),
-                                               Element::Variable(Variable::from_valid_name("?y"))])),
-        results: CausetQResults::Tuple(Some(vec![Binding::Scalar(MinkowskiType::Long(0)),
-                                               Binding::Scalar(MinkowskiType::Long(2))])),
+        spec: Rc::new(FindSpec::FindTuple(vec![Element::ToUpper(ToUpper::from_valid_name("?x")),
+                                               Element::ToUpper(ToUpper::from_valid_name("?y"))])),
+        results: CausetQResults::Tuple(Some(vec![ConstrainedEntsConstraint::Scalar(MinkowskiType::Long(0)),
+                                               ConstrainedEntsConstraint::Scalar(MinkowskiType::Long(2))])),
     };
 
     assert_eq!(causetq_output.clone().into_tuple().expect("into_tuple"),
-               Some((Binding::Scalar(MinkowskiType::Long(0)),
-                     Binding::Scalar(MinkowskiType::Long(2)))));
+               Some((ConstrainedEntsConstraint::Scalar(MinkowskiType::Long(0)),
+                     ConstrainedEntsConstraint::Scalar(MinkowskiType::Long(2)))));
 
     match causetq_output.clone().into_tuple() {
         Err(ProjectorError::UnexpectedResultsTupleLength(expected, got)) => {
@@ -547,8 +535,8 @@ fn test_into_tuple() {
     }
 
     let causetq_output = CausetQOutput {
-        spec: Rc::new(FindSpec::FindTuple(vec![Element::Variable(Variable::from_valid_name("?x")),
-                                               Element::Variable(Variable::from_valid_name("?y"))])),
+        spec: Rc::new(FindSpec::FindTuple(vec![Element::ToUpper(ToUpper::from_valid_name("?x")),
+                                               Element::ToUpper(ToUpper::from_valid_name("?y"))])),
         results: CausetQResults::Tuple(None),
     };
 

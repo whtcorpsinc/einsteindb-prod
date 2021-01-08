@@ -17,7 +17,7 @@ path = "../embedded"
 [dependencies.einsteindb_sql]
 path = "../allegrosql"
 
-[dependencies.sql_promises]
+[dependencies.allegrosql_promises]
 path = "../allegrosql-promises"
 
 [dependencies.einsteindb_causetq_parityfilter]

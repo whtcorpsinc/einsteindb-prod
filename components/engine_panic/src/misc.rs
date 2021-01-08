@@ -22,7 +22,7 @@ impl MiscExt for PanicEngine {
         panic!()
     }
 
-    fn get_approximate_memtable_stats_causet(&self, causet: &str, cone: &Cone) -> Result<(u64, u64)> {
+    fn get_approximate_memBlock_stats_causet(&self, causet: &str, cone: &Cone) -> Result<(u64, u64)> {
         panic!()
     }
 

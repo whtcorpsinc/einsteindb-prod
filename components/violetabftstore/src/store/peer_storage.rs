@@ -9,7 +9,7 @@ use std::time::Instant;
 use std::{cmp, error, u64};
 
 use engine_promises::CAUSET_VIOLETABFT;
-use engine_promises::{Engines, KvEngine, Mutable, Peekable};
+use engine_promises::{Engines, KvEngine, MuBlock, Peekable};
 use tuplespaceInstanton::{self, enc_lightlike_key, enc_spacelike_key};
 use ekvproto::metapb::{self, Brane};
 use ekvproto::violetabft_serverpb::{
@@ -306,10 +306,10 @@ impl Drop for EntryCache {
 
 pub trait HandleVioletaBftReadyContext<WK, WR>
 where
-    WK: Mutable,
+    WK: MuBlock,
     WR: VioletaBftLogBatch,
 {
-    /// Returns the mutable references of WriteBatch for both KvDB and VioletaBftDB in one interface.
+    /// Returns the muBlock references of WriteBatch for both KvDB and VioletaBftDB in one interface.
     fn wb_mut(&mut self) -> (&mut WK, &mut WR);
     fn kv_wb_mut(&mut self) -> &mut WK;
     fn violetabft_wb_mut(&mut self) -> &mut WR;
@@ -379,7 +379,7 @@ impl InvokeContext {
     pub fn save_snapshot_violetabft_state_to(
         &self,
         snapshot_index: u64,
-        kv_wb: &mut impl Mutable,
+        kv_wb: &mut impl MuBlock,
     ) -> Result<()> {
         let mut snapshot_violetabft_state = self.violetabft_state.clone();
         snapshot_violetabft_state
@@ -396,7 +396,7 @@ impl InvokeContext {
     }
 
     #[inline]
-    pub fn save_apply_state_to(&self, kv_wb: &mut impl Mutable) -> Result<()> {
+    pub fn save_apply_state_to(&self, kv_wb: &mut impl MuBlock) -> Result<()> {
         kv_wb.put_msg_causet(
             CAUSET_VIOLETABFT,
             &tuplespaceInstanton::apply_state_key(self.brane_id),
@@ -1595,7 +1595,7 @@ pub fn write_initial_violetabft_state<W: VioletaBftLogBatch>(violetabft_wb: &mut
 
 // When we bootstrap the brane or handling split new brane, we must
 // call this to initialize brane apply state first.
-pub fn write_initial_apply_state<T: Mutable>(kv_wb: &mut T, brane_id: u64) -> Result<()> {
+pub fn write_initial_apply_state<T: MuBlock>(kv_wb: &mut T, brane_id: u64) -> Result<()> {
     let mut apply_state = VioletaBftApplyState::default();
     apply_state.set_applied_index(VIOLETABFT_INIT_LOG_INDEX);
     apply_state
@@ -1609,7 +1609,7 @@ pub fn write_initial_apply_state<T: Mutable>(kv_wb: &mut T, brane_id: u64) -> Re
     Ok(())
 }
 
-pub fn write_peer_state<T: Mutable>(
+pub fn write_peer_state<T: MuBlock>(
     kv_wb: &mut T,
     brane: &metapb::Brane,
     state: PeerState,
@@ -1642,7 +1642,7 @@ mod tests {
     use engine_lmdb::util::new_engine;
     use engine_lmdb::{LmdbEngine, LmdbSnapshot, LmdbWriteBatch};
     use engine_promises::Engines;
-    use engine_promises::{Iterable, SyncMutable, WriteBatchExt};
+    use engine_promises::{Iterable, SyncMuBlock, WriteBatchExt};
     use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT};
     use ekvproto::violetabft_serverpb::VioletaBftSnapshotData;
     use violetabft::evioletabftpb::HardState;

@@ -212,8 +212,8 @@ impl Tracker {
         let total_causetStorage_stats = std::mem::take(&mut self.total_causetStorage_stats);
 
         if time::duration_to_sec(self.req_lifetime) > SLOW_QUERY_LOWER_BOUND {
-            let some_table_id = self.req_ctx.first_cone.as_ref().map(|cone| {
-                milevadb_query_datatype::codec::table::decode_table_id(cone.get_spacelike())
+            let some_Block_id = self.req_ctx.first_cone.as_ref().map(|cone| {
+                milevadb_query_datatype::codec::Block::decode_Block_id(cone.get_spacelike())
                     .unwrap_or_default()
             });
 
@@ -227,7 +227,7 @@ impl Tracker {
                 "handler_build_time" => ?self.handler_build_time,
                 "total_process_time" => ?self.total_process_time,
                 "txn_spacelike_ts" => self.req_ctx.txn_spacelike_ts,
-                "table_id" => some_table_id,
+                "Block_id" => some_Block_id,
                 "tag" => self.req_ctx.tag.get_str(),
                 "scan.is_desc" => self.req_ctx.is_desc_scan,
                 "scan.processed" => total_causetStorage_stats.write.processed_tuplespaceInstanton,

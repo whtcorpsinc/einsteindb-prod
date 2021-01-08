@@ -2,7 +2,7 @@ use crate::{LmdbEngine, LmdbWriteBatch};
 
 use engine_promises::{Error, VioletaBftEngine, VioletaBftLogBatch, Result};
 use engine_promises::{
-    Iterable, KvEngine, MiscExt, Mutable, Peekable, SyncMutable, WriteBatchExt, WriteOptions,
+    Iterable, KvEngine, MiscExt, MuBlock, Peekable, SyncMuBlock, WriteBatchExt, WriteOptions,
     CAUSET_DEFAULT, MAX_DELETE_BATCH_COUNT,
 };
 use ekvproto::violetabft_serverpb::VioletaBftLocalState;
@@ -193,7 +193,7 @@ impl VioletaBftEngine for LmdbEngine {
         }
 
         // TODO: disable WAL here.
-        if !Mutable::is_empty(&violetabft_wb) {
+        if !MuBlock::is_empty(&violetabft_wb) {
             self.write(&violetabft_wb)?;
         }
         Ok((to - from) as usize)
@@ -244,7 +244,7 @@ impl VioletaBftLogBatch for LmdbWriteBatch {
     }
 
     fn is_empty(&self) -> bool {
-        Mutable::is_empty(self)
+        MuBlock::is_empty(self)
     }
 }
 

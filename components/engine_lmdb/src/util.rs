@@ -102,9 +102,9 @@ pub fn get_engine_causet_used_size(engine: &DB, handle: &CAUSETHandle) -> u64 {
     let mut causet_used_size = engine
         .get_property_int_causet(handle, LMDB_TOTAL_SST_FILES_SIZE)
         .expect("lmdb is too old, missing total-sst-files-size property");
-    // For memtable
-    if let Some(mem_table) = engine.get_property_int_causet(handle, LMDB_CUR_SIZE_ALL_MEM_TABLES) {
-        causet_used_size += mem_table;
+    // For memBlock
+    if let Some(mem_Block) = engine.get_property_int_causet(handle, LMDB_CUR_SIZE_ALL_MEM_BlockS) {
+        causet_used_size += mem_Block;
     }
     // For blob files
     if let Some(live_blob) = engine.get_property_int_causet(handle, LMDB_TITANDB_LIVE_BLOB_FILE_SIZE)
@@ -150,9 +150,9 @@ pub fn get_causet_num_blob_files_at_level(engine: &DB, handle: &CAUSETHandle, le
     engine.get_property_int_causet(handle, &prop)
 }
 
-/// Gets the number of immutable mem-table of given PrimaryCauset family.
-pub fn get_num_immutable_mem_table(engine: &DB, handle: &CAUSETHandle) -> Option<u64> {
-    engine.get_property_int_causet(handle, LMDB_NUM_IMMUTABLE_MEM_TABLE)
+/// Gets the number of immuBlock mem-Block of given PrimaryCauset family.
+pub fn get_num_immuBlock_mem_Block(engine: &DB, handle: &CAUSETHandle) -> Option<u64> {
+    engine.get_property_int_causet(handle, LMDB_NUM_IMMUBlock_MEM_Block)
 }
 
 pub struct FixedSuffixSliceTransform {

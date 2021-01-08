@@ -57,7 +57,7 @@ impl lmdb::EventListener for LmdbEventListener {
                 DBBackgroundErrorReason::Flush => "flush",
                 DBBackgroundErrorReason::Compaction => "compaction",
                 DBBackgroundErrorReason::WriteCallback => "write_callback",
-                DBBackgroundErrorReason::MemTable => "memtable",
+                DBBackgroundErrorReason::MemBlock => "memBlock",
             };
             // Avoid einsteindb from respacelikeing if lmdb get corruption.
             if err.spacelikes_with("Corruption") {

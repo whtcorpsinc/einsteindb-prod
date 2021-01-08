@@ -7,33 +7,33 @@ use criterion::black_box;
 
 use ekvproto::interlock::KeyCone;
 use fidelpb::PrimaryCausetInfo;
-use fidelpb::TableScan;
+use fidelpb::BlockScan;
 
 use test_interlock::*;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
 use milevadb_query_normal_executors::FreeDaemon;
-use milevadb_query_normal_executors::TableScanFreeDaemon;
+use milevadb_query_normal_executors::BlockScanFreeDaemon;
 use milevadb_query_vec_executors::interface::*;
-use milevadb_query_vec_executors::BatchTableScanFreeDaemon;
+use milevadb_query_vec_executors::BatchBlockScanFreeDaemon;
 use einsteindb::interlock::posetdag::EinsteinDBStorage;
 use einsteindb::interlock::RequestHandler;
 use einsteindb::causetStorage::{LmdbEngine, Statistics, CausetStore as TxnStore};
 
-use crate::util::executor_descriptor::table_scan;
+use crate::util::executor_descriptor::Block_scan;
 use crate::util::scan_bencher;
 
-pub type TableScanParam = ();
+pub type BlockScanParam = ();
 
-pub struct NormalTableScanFreeDaemonBuilder<T: TxnStore + 'static> {
+pub struct NormalBlockScanFreeDaemonBuilder<T: TxnStore + 'static> {
     _phantom: PhantomData<T>,
 }
 
 impl<T: TxnStore + 'static> scan_bencher::ScanFreeDaemonBuilder
-    for NormalTableScanFreeDaemonBuilder<T>
+    for NormalBlockScanFreeDaemonBuilder<T>
 {
     type T = T;
     type E = Box<dyn FreeDaemon<StorageStats = Statistics>>;
-    type P = TableScanParam;
+    type P = BlockScanParam;
 
     fn build(
         PrimaryCausets: &[PrimaryCausetInfo],
@@ -41,10 +41,10 @@ impl<T: TxnStore + 'static> scan_bencher::ScanFreeDaemonBuilder
         store: &CausetStore<LmdbEngine>,
         _: (),
     ) -> Self::E {
-        let mut req = TableScan::default();
+        let mut req = BlockScan::default();
         req.set_PrimaryCausets(PrimaryCausets.into());
 
-        let mut executor = TableScanFreeDaemon::table_scan(
+        let mut executor = BlockScanFreeDaemon::Block_scan(
             black_box(req),
             black_box(EvalContext::default()),
             black_box(cones.to_vec()),
@@ -62,14 +62,14 @@ impl<T: TxnStore + 'static> scan_bencher::ScanFreeDaemonBuilder
     }
 }
 
-pub struct BatchTableScanFreeDaemonBuilder<T: TxnStore + 'static> {
+pub struct BatchBlockScanFreeDaemonBuilder<T: TxnStore + 'static> {
     _phantom: PhantomData<T>,
 }
 
-impl<T: TxnStore + 'static> scan_bencher::ScanFreeDaemonBuilder for BatchTableScanFreeDaemonBuilder<T> {
+impl<T: TxnStore + 'static> scan_bencher::ScanFreeDaemonBuilder for BatchBlockScanFreeDaemonBuilder<T> {
     type T = T;
     type E = Box<dyn BatchFreeDaemon<StorageStats = Statistics>>;
-    type P = TableScanParam;
+    type P = BlockScanParam;
 
     fn build(
         PrimaryCausets: &[PrimaryCausetInfo],
@@ -77,7 +77,7 @@ impl<T: TxnStore + 'static> scan_bencher::ScanFreeDaemonBuilder for BatchTableSc
         store: &CausetStore<LmdbEngine>,
         _: (),
     ) -> Self::E {
-        let mut executor = BatchTableScanFreeDaemon::new(
+        let mut executor = BatchBlockScanFreeDaemon::new(
             black_box(EinsteinDBStorage::new(
                 ToTxnStore::<Self::T>::to_store(store),
                 false,
@@ -97,15 +97,15 @@ impl<T: TxnStore + 'static> scan_bencher::ScanFreeDaemonBuilder for BatchTableSc
     }
 }
 
-pub struct TableScanFreeDaemonDAGBuilder<T: TxnStore + 'static> {
+pub struct BlockScanFreeDaemonDAGBuilder<T: TxnStore + 'static> {
     _phantom: PhantomData<T>,
 }
 
 impl<T: TxnStore + 'static> scan_bencher::ScanFreeDaemonDAGHandlerBuilder
-    for TableScanFreeDaemonDAGBuilder<T>
+    for BlockScanFreeDaemonDAGBuilder<T>
 {
     type T = T;
-    type P = TableScanParam;
+    type P = BlockScanParam;
 
     fn build(
         _batch: bool,
@@ -114,15 +114,15 @@ impl<T: TxnStore + 'static> scan_bencher::ScanFreeDaemonDAGHandlerBuilder
         store: &CausetStore<LmdbEngine>,
         _: (),
     ) -> Box<dyn RequestHandler> {
-        let exec = table_scan(PrimaryCausets);
+        let exec = Block_scan(PrimaryCausets);
         crate::util::build_dag_handler::<T>(&[exec], cones, store)
     }
 }
 
-pub type NormalTableScanNext1Bencher<T> =
-    scan_bencher::NormalScanNext1Bencher<NormalTableScanFreeDaemonBuilder<T>>;
-pub type NormalTableScanNext1024Bencher<T> =
-    scan_bencher::NormalScanNext1024Bencher<NormalTableScanFreeDaemonBuilder<T>>;
-pub type BatchTableScanNext1024Bencher<T> =
-    scan_bencher::BatchScanNext1024Bencher<BatchTableScanFreeDaemonBuilder<T>>;
-pub type TableScanDAGBencher<T> = scan_bencher::ScanDAGBencher<TableScanFreeDaemonDAGBuilder<T>>;
+pub type NormalBlockScanNext1Bencher<T> =
+    scan_bencher::NormalScanNext1Bencher<NormalBlockScanFreeDaemonBuilder<T>>;
+pub type NormalBlockScanNext1024Bencher<T> =
+    scan_bencher::NormalScanNext1024Bencher<NormalBlockScanFreeDaemonBuilder<T>>;
+pub type BatchBlockScanNext1024Bencher<T> =
+    scan_bencher::BatchScanNext1024Bencher<BatchBlockScanFreeDaemonBuilder<T>>;
+pub type BlockScanDAGBencher<T> = scan_bencher::ScanDAGBencher<BlockScanFreeDaemonDAGBuilder<T>>;

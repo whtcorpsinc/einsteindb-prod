@@ -48,7 +48,7 @@ use einsteindb_transaction::instanton_builder::{
 
 use einsteindb_transaction::causetq::{
     CausetQInputs,
-    Variable,
+    ToUpper,
 };
 
 use bootstrap::{
@@ -63,7 +63,7 @@ use lenin_promises::errors::{
     LeninError,
 };
 use spacetime::{
-    PartitionsTable,
+    PartitionsBlock,
     SyncSpacetime,
 };
 use schemaReplicant::{
@@ -286,15 +286,15 @@ impl Syncer {
 
         let report;
 
-        // Scope to avoid double-borrowing mutable remote_client.
+        // Scope to avoid double-borrowing muBlock remote_client.
         {
             // Prepare an uploader.
             let uploader = TxUploader::new(
                 remote_client,
                 remote_head,
-                SyncSpacetime::get_partitions(edb_causecausetx, PartitionsTable::Lenin)?
+                SyncSpacetime::get_partitions(edb_causecausetx, PartitionsBlock::Lenin)?
             );
-            // Walk the local transactions in the database and upload them.
+            // Walk the local bundles in the database and upload them.
             report = Processor::process(edb_causecausetx, from_causecausetx, uploader)?;
         }
 
@@ -404,7 +404,7 @@ impl Syncer {
     }
 
     fn merge(ip: &mut InProgress, incoming_causecausetxs: Vec<Tx>, mut local_causecausetxs_to_merge: Vec<LocalTx>) -> Result<SyncReport> {
-        d(&format!("Rewinding local transactions."));
+        d(&format!("Rewinding local bundles."));
 
         // 1) Rewind local to shared root.
         local_causecausetxs_to_merge.sort(); // TODO sort at the interface level?
@@ -455,7 +455,7 @@ impl Syncer {
         }
 
         d(&format!("Transacting local on top of incoming..."));
-        // 3) Rebase local transactions on top of remote.
+        // 3) Rebase local bundles on top of remote.
         let mut clean_rebase = true;
         for local_causecausetx in local_causecausetxs_to_merge {
             let mut builder = TermBuilder::new();
@@ -476,7 +476,7 @@ impl Syncer {
             // - attribute is defined on both local and remote in the same way.
             // Modifying an attribute is currently not supported (requires higher order schemaReplicant migrations).
             // Note that "same" local and remote attributes might have different entids in the
-            // two sets of transactions.
+            // two sets of bundles.
 
             // Set of entities that may alter "installed" attribute.
             // Since this is a rebase of local on top of remote, an "installed"
@@ -617,8 +617,8 @@ impl Syncer {
                             "[:find ?e . :in ?a ?v :where [?e ?a ?v]]",
                             CausetQInputs::with_value_sequence(
                                 vec![
-                                    (Variable::from_valid_name("?a"), a.into()),
-                                    (Variable::from_valid_name("?v"), v.clone()),
+                                    (ToUpper::from_valid_name("?a"), a.into()),
+                                    (ToUpper::from_valid_name("?v"), v.clone()),
                                 ]
                             )
                         )?;
@@ -676,7 +676,7 @@ impl Syncer {
         }
 
         // TODO
-        // At this point, we've rebased local transactions on top of remote.
+        // At this point, we've rebased local bundles on top of remote.
         // This would be a good point to create a "merge commit" and upload our loosing lightcone.
 
         // Since we don't upload during a merge (instead, we request a follow-up sync),
@@ -698,10 +698,10 @@ impl Syncer {
 
         d(&format!("remote non-empty on first sync, adopting remote state."));
 
-        // 1) Download remote transactions.
-        let incoming_causecausetxs = remote_client.transactions_after(&Uuid::nil())?;
+        // 1) Download remote bundles.
+        let incoming_causecausetxs = remote_client.bundles_after(&Uuid::nil())?;
         if incoming_causecausetxs.len() == 0 {
-            return Ok(SyncReport::BadRemoteState("Remote specified non-root HEAD but gave no transactions".to_string()));
+            return Ok(SyncReport::BadRemoteState("Remote specified non-root HEAD but gave no bundles".to_string()));
         }
 
         // 2) Process remote bootstrap.
@@ -824,7 +824,7 @@ impl Syncer {
                 d(&format!("fast-forwarding local store."));
                 Syncer::fast_forward_local(
                     ip,
-                    remote_client.transactions_after(&locally_known_remote_head)?
+                    remote_client.bundles_after(&locally_known_remote_head)?
                 )?;
                 Ok(SyncReport::LocalFastForward)
             },
@@ -844,7 +844,7 @@ impl Syncer {
                 Syncer::merge(
                     ip,
                     // Remote causecausetxs to merge...
-                    remote_client.transactions_after(&locally_known_remote_head)?,
+                    remote_client.bundles_after(&locally_known_remote_head)?,
                     // ... with the local causecausetxs.
                     local_causecausetxs
                 )

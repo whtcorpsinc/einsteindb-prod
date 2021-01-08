@@ -118,7 +118,7 @@ impl FromIterator<(String, Partition)> for PartitionMap {
     }
 }
 
-/// Represents the spacetime required to causetq from, or apply transactions to, a EinsteinDB store.
+/// Represents the spacetime required to causetq from, or apply bundles to, a EinsteinDB store.
 ///
 /// See https://github.com/whtcorpsinc/einsteindb/wiki/Thoughts:-modeling-edb-conn-in-Rust.
 #[derive(Clone,Debug,Default,Eq,Hash,Ord,PartialOrd,PartialEq)]
@@ -158,9 +158,9 @@ pub type AVMap<'a> = HashMap<&'a AVPair, SolitonId>;
 pub type AttributeSet = BTreeSet<SolitonId>;
 
 /// The transactor is tied to `edbn::ValueAndSpan` right now, but in the future we'd like to support
-/// `MinkowskiType` directly for programmatic use.  `TransactableValue` encapsulates the interface
+/// `MinkowskiType` directly for programmatic use.  `TransacBlockValue` encapsulates the interface
 /// value types (i.e., values in the value place) need to support to be transacted.
-pub trait TransactableValue: Clone {
+pub trait TransacBlockValue: Clone {
     /// Coerce this value place into the given type.  This is where we perform schemaReplicant-aware
     /// coercion, for example coercing an integral value into a ref where appropriate.
     fn into_typed_value(self, schemaReplicant: &SchemaReplicant, value_type: MinkowskiValueType) -> errors::Result<MinkowskiType>;

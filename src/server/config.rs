@@ -95,7 +95,7 @@ pub struct Config {
     pub lightlike_point_request_max_handle_duration: ReadableDuration,
     pub lightlike_point_max_concurrency: usize,
     // Memory locks must be checked if async commit is enabled.
-    // CAUTION: The current dagger table implementation doesn't have good performance. Enabling
+    // CAUTION: The current dagger Block implementation doesn't have good performance. Enabling
     // it may slow down EinsteinDB. This option may be removed in the future.
     pub lightlike_point_check_memory_locks: bool,
     pub snap_max_write_bytes_per_sec: ReadableSize,

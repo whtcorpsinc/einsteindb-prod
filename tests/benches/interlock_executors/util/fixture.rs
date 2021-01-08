@@ -19,9 +19,9 @@ use milevadb_query_common::causetStorage::IntervalCone;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::codec::data_type::Decimal;
 use milevadb_query_datatype::codec::datum::{Datum, DatumEncoder};
-use milevadb_query_datatype::codec::table::RowColsDict;
+use milevadb_query_datatype::codec::Block::EventColsDict;
 use milevadb_query_datatype::expr::{EvalContext, EvalWarnings};
-use milevadb_query_normal_executors::{FreeDaemon, Row};
+use milevadb_query_normal_executors::{FreeDaemon, Event};
 use milevadb_query_vec_executors::interface::*;
 use einsteindb::causetStorage::{LmdbEngine, Statistics};
 
@@ -231,16 +231,16 @@ impl FixtureBuilder {
         self
     }
 
-    pub fn build_store(self, table: &Table, PrimaryCausets: &[&str]) -> CausetStore<LmdbEngine> {
+    pub fn build_store(self, Block: &Block, PrimaryCausets: &[&str]) -> CausetStore<LmdbEngine> {
         assert!(!PrimaryCausets.is_empty());
         assert_eq!(self.PrimaryCausets.len(), PrimaryCausets.len());
         let mut store = CausetStore::new();
         for row_index in 0..self.events {
             store.begin();
-            let mut si = store.insert_into(&table);
+            let mut si = store.insert_into(&Block);
             for col_index in 0..PrimaryCausets.len() {
                 si = si.set(
-                    &table[PrimaryCausets[col_index]],
+                    &Block[PrimaryCausets[col_index]],
                     self.PrimaryCausets[col_index][row_index].clone(),
                 );
             }
@@ -297,7 +297,7 @@ impl FixtureBuilder {
         let mut events = Vec::with_capacity(rows_len);
         let mut ctx = EvalContext::default();
         for row_index in 0..rows_len {
-            let mut data = RowColsDict::new(HashMap::default(), Vec::new());
+            let mut data = EventColsDict::new(HashMap::default(), Vec::new());
             for col_index in 0..self.PrimaryCausets.len() {
                 let mut v = vec![];
                 v.write_datum(
@@ -308,7 +308,7 @@ impl FixtureBuilder {
                 .unwrap();
                 data.applightlike(col_index as i64, &mut v);
             }
-            events.push(Row::origin(
+            events.push(Event::origin(
                 row_index as i64,
                 data,
                 Arc::clone(&PrimaryCausets_info),
@@ -383,14 +383,14 @@ impl BatchFreeDaemon for BatchFixtureFreeDaemon {
 
 pub struct NormalFixtureFreeDaemon {
     PrimaryCausets: usize,
-    events: ::std::vec::IntoIter<Row>,
+    events: ::std::vec::IntoIter<Event>,
 }
 
 impl FreeDaemon for NormalFixtureFreeDaemon {
     type StorageStats = Statistics;
 
     #[inline]
-    fn next(&mut self) -> milevadb_query_common::Result<Option<Row>> {
+    fn next(&mut self) -> milevadb_query_common::Result<Option<Event>> {
         Ok(self.events.next())
     }
 

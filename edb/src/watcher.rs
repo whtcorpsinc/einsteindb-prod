@@ -13,7 +13,7 @@
 //
 // - InProgress and Conn both have attribute caches. InProgress's is different from Conn's,
 //   because it needs to be able to roll back. These wish to see changes in a certain set of
-//   attributes in order to synchronously update the immutable_memTcam during a write.
+//   attributes in order to synchronously update the immuBlock_memTcam during a write.
 // - When observers are registered we want to flip some flags as writes occur so that we can
 //   notifying them outside the transaction.
 

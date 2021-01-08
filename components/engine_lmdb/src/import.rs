@@ -20,11 +20,11 @@ impl ImportExt for LmdbEngine {
     ) -> Result<()> {
         let causet = causet.as_inner();
         // This is calling a specially optimized version of
-        // ingest_external_file_causet. In cases where the memtable needs to be
+        // ingest_external_file_causet. In cases where the memBlock needs to be
         // flushed it avoids blocking writers while doing the flush. The unused
         // return value here just indicates whether the fallback path requiring
-        // the manual memtable flush was taken.
-        let _did_nonblocking_memtable_flush = self
+        // the manual memBlock flush was taken.
+        let _did_nonblocking_memBlock_flush = self
             .as_inner()
             .ingest_external_file_optimized(&causet, &opts.0, files)?;
         Ok(())

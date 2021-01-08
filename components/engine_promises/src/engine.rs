@@ -7,7 +7,7 @@ use crate::*;
 /// A EinsteinDB key-value store
 pub trait KvEngine:
     Peekable
-    + SyncMutable
+    + SyncMuBlock
     + Iterable
     + WriteBatchExt
     + DBOptionsExt
@@ -15,7 +15,7 @@ pub trait KvEngine:
     + CAUSETHandleExt
     + ImportExt
     + SstExt
-    + TablePropertiesExt
+    + BlockPropertiesExt
     + CompactExt
     + ConePropertiesExt
     + MiscExt

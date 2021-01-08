@@ -41,14 +41,14 @@ fn test_checksum() {
         (4, Some("name:4"), 4),
     ];
 
-    let product = ProductTable::new();
+    let product = ProductBlock::new();
     let (store, lightlikepoint) = init_data_with_commit(&product, &data, true);
 
     for PrimaryCauset in &[&product["id"], &product["name"], &product["count"]] {
         assert!(PrimaryCauset.index >= 0);
         let (cone, scan_on) = if PrimaryCauset.index == 0 {
             let cone = product.get_record_cone_all();
-            (cone, ChecksumScanOn::Table)
+            (cone, ChecksumScanOn::Block)
         } else {
             let cone = product.get_index_cone_all(PrimaryCauset.index);
             (cone, ChecksumScanOn::Index)

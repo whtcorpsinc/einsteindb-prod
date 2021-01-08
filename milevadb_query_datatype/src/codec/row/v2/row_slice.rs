@@ -6,7 +6,7 @@ use num_promises::PrimInt;
 use std::cmp::Ordering::{Equal, Greater, Less};
 use std::marker::PhantomData;
 
-pub enum RowSlice<'a> {
+pub enum EventSlice<'a> {
     Small {
         non_null_ids: LEBytes<'a, u8>,
         null_ids: LEBytes<'a, u8>,
@@ -21,33 +21,33 @@ pub enum RowSlice<'a> {
     },
 }
 
-impl RowSlice<'_> {
+impl EventSlice<'_> {
     /// # Panics
     ///
     /// Panics if the value of first byte is not 128(v2 version code)
-    pub fn from_bytes(mut data: &[u8]) -> Result<RowSlice> {
+    pub fn from_bytes(mut data: &[u8]) -> Result<EventSlice> {
         assert_eq!(data.read_u8()?, super::CODEC_VERSION);
         let is_big = super::Flags::from_bits_truncate(data.read_u8()?) == super::Flags::BIG;
 
         // read ids count
         let non_null_cnt = data.read_u16_le()? as usize;
         let null_cnt = data.read_u16_le()? as usize;
-        let row = if is_big {
-            RowSlice::Big {
+        let EventIdx = if is_big {
+            EventSlice::Big {
                 non_null_ids: read_le_bytes(&mut data, non_null_cnt)?,
                 null_ids: read_le_bytes(&mut data, null_cnt)?,
                 offsets: read_le_bytes(&mut data, non_null_cnt)?,
                 values: LEBytes::new(data),
             }
         } else {
-            RowSlice::Small {
+            EventSlice::Small {
                 non_null_ids: read_le_bytes(&mut data, non_null_cnt)?,
                 null_ids: read_le_bytes(&mut data, null_cnt)?,
                 offsets: read_le_bytes(&mut data, non_null_cnt)?,
                 values: LEBytes::new(data),
             }
         };
-        Ok(row)
+        Ok(EventIdx)
     }
 
     /// Search `id` in non-null ids
@@ -56,14 +56,14 @@ impl RowSlice<'_> {
     ///
     /// # Errors
     ///
-    /// If the id is found with no offset(It will only happen when the row data is broken),
+    /// If the id is found with no offset(It will only happen when the EventIdx data is broken),
     /// `Error::PrimaryCausetOffset` will be returned.
     pub fn search_in_non_null_ids(&self, id: i64) -> Result<Option<(usize, usize)>> {
         if !self.id_valid(id) {
             return Ok(None);
         }
         match self {
-            RowSlice::Big {
+            EventSlice::Big {
                 non_null_ids,
                 offsets,
                 ..
@@ -79,7 +79,7 @@ impl RowSlice<'_> {
                     return Ok(Some((spacelike, (offset as usize))));
                 }
             }
-            RowSlice::Small {
+            EventSlice::Small {
                 non_null_ids,
                 offsets,
                 ..
@@ -104,8 +104,8 @@ impl RowSlice<'_> {
     /// Returns true if found
     pub fn search_in_null_ids(&self, id: i64) -> bool {
         match self {
-            RowSlice::Big { null_ids, .. } => null_ids.binary_search(&(id as u32)).is_ok(),
-            RowSlice::Small { null_ids, .. } => null_ids.binary_search(&(id as u8)).is_ok(),
+            EventSlice::Big { null_ids, .. } => null_ids.binary_search(&(id as u32)).is_ok(),
+            EventSlice::Small { null_ids, .. } => null_ids.binary_search(&(id as u8)).is_ok(),
         }
     }
 
@@ -122,16 +122,16 @@ impl RowSlice<'_> {
     #[inline]
     fn is_big(&self) -> bool {
         match self {
-            RowSlice::Big { .. } => true,
-            RowSlice::Small { .. } => false,
+            EventSlice::Big { .. } => true,
+            EventSlice::Small { .. } => false,
         }
     }
 
     #[inline]
     pub fn values(&self) -> &[u8] {
         match self {
-            RowSlice::Big { values, .. } => values.slice,
-            RowSlice::Small { values, .. } => values.slice,
+            EventSlice::Big { values, .. } => values.slice,
+            EventSlice::Small { values, .. } => values.slice,
         }
     }
 }
@@ -219,8 +219,8 @@ impl<'a, T: PrimInt> LEBytes<'a, T> {
 
 #[causetg(test)]
 mod tests {
-    use super::super::encoder_for_test::{PrimaryCauset, RowEncoder};
-    use super::{read_le_bytes, RowSlice};
+    use super::super::encoder_for_test::{PrimaryCauset, EventEncoder};
+    use super::{read_le_bytes, EventSlice};
     use crate::codec::data_type::ScalarValue;
     use crate::expr::EvalContext;
     use codec::prelude::NumberEncoder;
@@ -268,7 +268,7 @@ mod tests {
     #[test]
     fn test_search_in_non_null_ids() {
         let data = encoded_data_big();
-        let big_row = RowSlice::from_bytes(&data).unwrap();
+        let big_row = EventSlice::from_bytes(&data).unwrap();
         assert!(big_row.is_big());
         assert_eq!(big_row.search_in_non_null_ids(33).unwrap(), None);
         assert_eq!(big_row.search_in_non_null_ids(333).unwrap(), None);
@@ -282,33 +282,33 @@ mod tests {
         assert_eq!(Some((3, 4)), big_row.search_in_non_null_ids(356).unwrap());
 
         let data = encoded_data();
-        let row = RowSlice::from_bytes(&data).unwrap();
-        assert!(!row.is_big());
-        assert_eq!(row.search_in_non_null_ids(33).unwrap(), None);
-        assert_eq!(row.search_in_non_null_ids(35).unwrap(), None);
+        let EventIdx = EventSlice::from_bytes(&data).unwrap();
+        assert!(!EventIdx.is_big());
+        assert_eq!(EventIdx.search_in_non_null_ids(33).unwrap(), None);
+        assert_eq!(EventIdx.search_in_non_null_ids(35).unwrap(), None);
         assert_eq!(
-            row.search_in_non_null_ids(i64::from(u8::max_value()) + 2)
+            EventIdx.search_in_non_null_ids(i64::from(u8::max_value()) + 2)
                 .unwrap(),
             None
         );
-        assert_eq!(Some((0, 2)), row.search_in_non_null_ids(1).unwrap());
-        assert_eq!(Some((2, 3)), row.search_in_non_null_ids(3).unwrap());
+        assert_eq!(Some((0, 2)), EventIdx.search_in_non_null_ids(1).unwrap());
+        assert_eq!(Some((2, 3)), EventIdx.search_in_non_null_ids(3).unwrap());
     }
 
     #[test]
     fn test_search_in_null_ids() {
         let data = encoded_data_big();
-        let row = RowSlice::from_bytes(&data).unwrap();
-        assert!(row.search_in_null_ids(33));
-        assert!(!row.search_in_null_ids(3));
-        assert!(!row.search_in_null_ids(333));
+        let EventIdx = EventSlice::from_bytes(&data).unwrap();
+        assert!(EventIdx.search_in_null_ids(33));
+        assert!(!EventIdx.search_in_null_ids(3));
+        assert!(!EventIdx.search_in_null_ids(333));
     }
 }
 
 #[causetg(test)]
 mod benches {
-    use super::super::encoder_for_test::{PrimaryCauset, RowEncoder};
-    use super::RowSlice;
+    use super::super::encoder_for_test::{PrimaryCauset, EventEncoder};
+    use super::EventSlice;
     use crate::codec::data_type::ScalarValue;
     use crate::expr::EvalContext;
     use test::black_box;
@@ -332,8 +332,8 @@ mod benches {
         let data = encoded_data(10);
 
         b.iter(|| {
-            let row = RowSlice::from_bytes(black_box(&data)).unwrap();
-            black_box(row.search_in_non_null_ids(3))
+            let EventIdx = EventSlice::from_bytes(black_box(&data)).unwrap();
+            black_box(EventIdx.search_in_non_null_ids(3))
         });
     }
 
@@ -342,8 +342,8 @@ mod benches {
         let data = encoded_data(100);
 
         b.iter(|| {
-            let row = RowSlice::from_bytes(black_box(&data)).unwrap();
-            black_box(row.search_in_non_null_ids(89))
+            let EventIdx = EventSlice::from_bytes(black_box(&data)).unwrap();
+            black_box(EventIdx.search_in_non_null_ids(89))
         });
     }
 
@@ -352,8 +352,8 @@ mod benches {
         let data = encoded_data(100);
 
         b.iter(|| {
-            let row = RowSlice::from_bytes(black_box(&data)).unwrap();
-            black_box(row.search_in_non_null_ids(20))
+            let EventIdx = EventSlice::from_bytes(black_box(&data)).unwrap();
+            black_box(EventIdx.search_in_non_null_ids(20))
         });
     }
 
@@ -362,8 +362,8 @@ mod benches {
         let data = encoded_data(350);
 
         b.iter(|| {
-            let row = RowSlice::from_bytes(black_box(&data)).unwrap();
-            black_box(row.search_in_non_null_ids(257))
+            let EventIdx = EventSlice::from_bytes(black_box(&data)).unwrap();
+            black_box(EventIdx.search_in_non_null_ids(257))
         });
     }
 
@@ -372,8 +372,8 @@ mod benches {
         let data = encoded_data(350);
 
         b.iter(|| {
-            let row = RowSlice::from_bytes(black_box(&data)).unwrap();
-            black_box(&row);
+            let EventIdx = EventSlice::from_bytes(black_box(&data)).unwrap();
+            black_box(&EventIdx);
         });
     }
 }
