@@ -52,7 +52,7 @@ fn test_server_partition_write() {
 #[test]
 fn test_secure_connect() {
     let mut cluster = new_server_cluster(0, 3);
-    cluster.causetg.security = test_util::new_security_causetg(None);
+    cluster.causet.security = test_util::new_security_causet(None);
     cluster.run_conf_change();
 
     let (key, value) = (b"k1", b"v1");

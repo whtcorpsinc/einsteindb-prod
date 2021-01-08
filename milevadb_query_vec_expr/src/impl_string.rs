@@ -812,7 +812,7 @@ pub fn repeat(input: BytesRef, cnt: &Int, writer: BytesWriter) -> Result<BytesGu
     Ok(writer.finish())
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

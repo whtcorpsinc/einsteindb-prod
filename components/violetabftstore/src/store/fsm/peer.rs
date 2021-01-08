@@ -161,7 +161,7 @@ where
     // for this store.
     pub fn create(
         store_id: u64,
-        causetg: &Config,
+        causet: &Config,
         sched: Scheduler<BraneTask<EK::Snapshot>>,
         engines: Engines<EK, ER>,
         brane: &metapb::Brane,
@@ -182,12 +182,12 @@ where
             "brane_id" => brane.get_id(),
             "peer_id" => meta_peer.get_id(),
         );
-        let (tx, rx) = mpsc::loose_bounded(causetg.notify_capacity);
+        let (tx, rx) = mpsc::loose_bounded(causet.notify_capacity);
         Ok((
             tx,
             Box::new(PeerFsm {
-                early_apply: causetg.early_apply,
-                peer: Peer::new(store_id, causetg, sched, engines, brane, meta_peer)?,
+                early_apply: causet.early_apply,
+                peer: Peer::new(store_id, causet, sched, engines, brane, meta_peer)?,
                 tick_registry: PeerTicks::empty(),
                 missing_ticks: 0,
                 group_state: GroupState::Ordered,
@@ -198,7 +198,7 @@ where
                 skip_split_count: 0,
                 skip_gc_violetabft_log_ticks: 0,
                 batch_req_builder: BatchVioletaBftCmdRequestBuilder::new(
-                    causetg.violetabft_entry_max_size.0 as f64,
+                    causet.violetabft_entry_max_size.0 as f64,
                 ),
             }),
         ))
@@ -209,7 +209,7 @@ where
     // will be retrieved later after applying snapshot.
     pub fn replicate(
         store_id: u64,
-        causetg: &Config,
+        causet: &Config,
         sched: Scheduler<BraneTask<EK::Snapshot>>,
         engines: Engines<EK, ER>,
         brane_id: u64,
@@ -225,12 +225,12 @@ where
         let mut brane = metapb::Brane::default();
         brane.set_id(brane_id);
 
-        let (tx, rx) = mpsc::loose_bounded(causetg.notify_capacity);
+        let (tx, rx) = mpsc::loose_bounded(causet.notify_capacity);
         Ok((
             tx,
             Box::new(PeerFsm {
-                early_apply: causetg.early_apply,
-                peer: Peer::new(store_id, causetg, sched, engines, &brane, peer)?,
+                early_apply: causet.early_apply,
+                peer: Peer::new(store_id, causet, sched, engines, &brane, peer)?,
                 tick_registry: PeerTicks::empty(),
                 missing_ticks: 0,
                 group_state: GroupState::Ordered,
@@ -241,7 +241,7 @@ where
                 skip_split_count: 0,
                 skip_gc_violetabft_log_ticks: 0,
                 batch_req_builder: BatchVioletaBftCmdRequestBuilder::new(
-                    causetg.violetabft_entry_max_size.0 as f64,
+                    causet.violetabft_entry_max_size.0 as f64,
                 ),
             }),
         ))
@@ -646,7 +646,7 @@ where
                         }
                     };
                     if let Ok(elapsed) = modified.elapsed() {
-                        if elapsed > self.ctx.causetg.snap_gc_timeout.0 {
+                        if elapsed > self.ctx.causet.snap_gc_timeout.0 {
                             info!(
                                 "deleting expired snap file";
                                 "brane_id" => self.fsm.brane_id(),
@@ -981,10 +981,10 @@ where
             return;
         }
 
-        self.fsm.peer.retry_plightlikeing_reads(&self.ctx.causetg);
+        self.fsm.peer.retry_plightlikeing_reads(&self.ctx.causet);
 
         let mut res = None;
-        if self.ctx.causetg.hibernate_branes {
+        if self.ctx.causet.hibernate_branes {
             if self.fsm.group_state == GroupState::Idle {
                 // missing_ticks should be less than election timeout ticks otherwise
                 // follower may tick more than an election timeout in chaos state.
@@ -999,15 +999,15 @@ where
                 // follower may receive a request, then becomes (pre)candidate and slightlikes (pre)vote msg
                 // to others. As long as the leader can wake up and broadcast hearbeats in one `violetabft_heartbeat_ticks`
                 // time(default 2s), no more followers will wake up and slightlikes vote msg again.
-                if self.fsm.missing_ticks + 2 + self.ctx.causetg.violetabft_heartbeat_ticks
-                    < self.ctx.causetg.violetabft_election_timeout_ticks
+                if self.fsm.missing_ticks + 2 + self.ctx.causet.violetabft_heartbeat_ticks
+                    < self.ctx.causet.violetabft_election_timeout_ticks
                 {
                     self.register_violetabft_base_tick();
                     self.fsm.missing_ticks += 1;
                 }
                 return;
             }
-            res = Some(self.fsm.peer.check_before_tick(&self.ctx.causetg));
+            res = Some(self.fsm.peer.check_before_tick(&self.ctx.causet));
             if self.fsm.missing_ticks > 0 {
                 for _ in 0..self.fsm.missing_ticks {
                     if self.fsm.peer.violetabft_group.tick() {
@@ -1422,7 +1422,7 @@ where
         if self.is_merge_target_brane_stale(merge_target)? {
             Ok(true)
         } else {
-            if self.ctx.causetg.dev_assert {
+            if self.ctx.causet.dev_assert {
                 panic!(
                     "something is wrong, maybe FIDel do not ensure all target peers exist before merging"
                 );
@@ -2083,7 +2083,7 @@ where
 
             let (slightlikeer, mut new_peer) = match PeerFsm::create(
                 self.ctx.store_id(),
-                &self.ctx.causetg,
+                &self.ctx.causet,
                 self.ctx.brane_scheduler.clone(),
                 self.ctx.engines.clone(),
                 &new_brane,
@@ -2125,7 +2125,7 @@ where
             if last_brane_id == new_brane_id {
                 // To prevent from big brane, the right brane needs run split
                 // check again after split.
-                new_peer.peer.size_diff_hint = self.ctx.causetg.brane_split_check_diff.0;
+                new_peer.peer.size_diff_hint = self.ctx.causet.brane_split_check_diff.0;
             }
             let mailbox = BasicMailbox::new(slightlikeer, new_peer);
             self.ctx.router.register(new_brane_id, mailbox);
@@ -2283,7 +2283,7 @@ where
             }
             Ok(true) => Err(box_err!("brane {} is destroyed", target_brane_id)),
             Ok(false) => {
-                if self.ctx.causetg.dev_assert {
+                if self.ctx.causet.dev_assert {
                     panic!(
                         "something is wrong, maybe FIDel do not ensure all target peers exist before merging"
                     );
@@ -2558,7 +2558,7 @@ where
         // make approximate size and tuplespaceInstanton ufidelated in time.
         // the reason why follower need to ufidelate is that there is a issue that after merge
         // and then transfer leader, the new leader may have stale size and tuplespaceInstanton.
-        self.fsm.peer.size_diff_hint = self.ctx.causetg.brane_split_check_diff.0;
+        self.fsm.peer.size_diff_hint = self.ctx.causet.brane_split_check_diff.0;
         if self.fsm.peer.is_leader() {
             info!(
                 "notify fidel with merge";
@@ -3094,7 +3094,7 @@ where
     }
 
     fn find_sibling_brane(&self) -> Option<Brane> {
-        let spacelike = if self.ctx.causetg.right_derive_when_split {
+        let spacelike = if self.ctx.causet.right_derive_when_split {
             Included(enc_spacelike_key(self.fsm.peer.brane()))
         } else {
             Excluded(enc_lightlike_key(self.fsm.peer.brane()))
@@ -3112,7 +3112,7 @@ where
 
     #[allow(clippy::if_same_then_else)]
     fn on_violetabft_gc_log_tick(&mut self, force_compact: bool) {
-        if !self.fsm.peer.get_store().is_cache_empty() || !self.ctx.causetg.hibernate_branes {
+        if !self.fsm.peer.get_store().is_cache_empty() || !self.ctx.causet.hibernate_branes {
             self.register_violetabft_gc_log_tick();
         }
         fail_point!("on_violetabft_log_gc_tick_1", self.fsm.peer_id() == 1, |_| {});
@@ -3123,7 +3123,7 @@ where
         // last few seconds. That happens probably because another EinsteinDB is down. In this case if we
         // do not clean up the cache, it may keep growing.
         let drop_cache_duration =
-            self.ctx.causetg.violetabft_heartbeat_interval() + self.ctx.causetg.violetabft_entry_cache_life_time.0;
+            self.ctx.causet.violetabft_heartbeat_interval() + self.ctx.causet.violetabft_entry_cache_life_time.0;
         let cache_alive_limit = Instant::now() - drop_cache_duration;
 
         let mut total_gc_logs = 0;
@@ -3183,9 +3183,9 @@ where
 
         let mut compact_idx = if force_compact
             // Too many logs between applied index and first index.
-            || (applied_idx > first_idx && applied_idx - first_idx >= self.ctx.causetg.violetabft_log_gc_count_limit)
+            || (applied_idx > first_idx && applied_idx - first_idx >= self.ctx.causet.violetabft_log_gc_count_limit)
             // VioletaBft log size ecceeds the limit.
-            || (self.fsm.peer.violetabft_log_size_hint >= self.ctx.causetg.violetabft_log_gc_size_limit.0)
+            || (self.fsm.peer.violetabft_log_size_hint >= self.ctx.causet.violetabft_log_gc_size_limit.0)
         {
             applied_idx
         } else if replicated_idx < first_idx || last_idx - first_idx < 3 {
@@ -3195,8 +3195,8 @@ where
             // [entries...][the entry at `compact_idx`][the last entry][new compaction entry]
             //             |-------------------- entries will be left ----------------------|
             return;
-        } else if replicated_idx - first_idx < self.ctx.causetg.violetabft_log_gc_memory_barrier
-            && self.fsm.skip_gc_violetabft_log_ticks < self.ctx.causetg.violetabft_log_reserve_max_ticks
+        } else if replicated_idx - first_idx < self.ctx.causet.violetabft_log_gc_memory_barrier
+            && self.fsm.skip_gc_violetabft_log_ticks < self.ctx.causet.violetabft_log_reserve_max_ticks
         {
             // Logs will only be kept `max_ticks` * `violetabft_log_gc_tick_interval`.
             self.fsm.skip_gc_violetabft_log_ticks += 1;
@@ -3237,7 +3237,7 @@ where
     }
 
     fn on_split_brane_check_tick(&mut self) {
-        if !self.ctx.causetg.hibernate_branes {
+        if !self.ctx.causet.hibernate_branes {
             self.register_split_brane_check_tick();
         }
         if !self.fsm.peer.is_leader() {
@@ -3258,8 +3258,8 @@ where
         // If peer says should ufidelate approximate size, ufidelate brane size and check
         // whether the brane should split.
         if self.fsm.peer.approximate_size.is_some()
-            && self.fsm.peer.compaction_declined_bytes < self.ctx.causetg.brane_split_check_diff.0
-            && self.fsm.peer.size_diff_hint < self.ctx.causetg.brane_split_check_diff.0
+            && self.fsm.peer.compaction_declined_bytes < self.ctx.causet.brane_split_check_diff.0
+            && self.fsm.peer.size_diff_hint < self.ctx.causet.brane_split_check_diff.0
         {
             return;
         }
@@ -3308,7 +3308,7 @@ where
             brane: brane.clone(),
             split_tuplespaceInstanton,
             peer: self.fsm.peer.peer.clone(),
-            right_derive: self.ctx.causetg.right_derive_when_split,
+            right_derive: self.ctx.causet.right_derive_when_split,
             callback: cb,
         };
         if let Err(Stopped(t)) = self.ctx.fidel_scheduler.schedule(task) {
@@ -3407,7 +3407,7 @@ where
 
     fn on_compaction_declined_bytes(&mut self, declined_bytes: u64) {
         self.fsm.peer.compaction_declined_bytes += declined_bytes;
-        if self.fsm.peer.compaction_declined_bytes >= self.ctx.causetg.brane_split_check_diff.0 {
+        if self.fsm.peer.compaction_declined_bytes >= self.ctx.causet.brane_split_check_diff.0 {
             UFIDelATE_REGION_SIZE_BY_COMPACTION_COUNTER.inc();
         }
         self.register_split_brane_check_tick();
@@ -3450,7 +3450,7 @@ where
     }
 
     fn on_fidel_heartbeat_tick(&mut self) {
-        if !self.ctx.causetg.hibernate_branes {
+        if !self.ctx.causet.hibernate_branes {
             self.register_fidel_heartbeat_tick();
         }
         self.fsm.peer.check_peers();
@@ -3459,7 +3459,7 @@ where
             return;
         }
         self.fsm.peer.heartbeat_fidel(self.ctx);
-        if self.ctx.causetg.hibernate_branes && self.fsm.peer.replication_mode_need_catch_up() {
+        if self.ctx.causet.hibernate_branes && self.fsm.peer.replication_mode_need_catch_up() {
             self.register_fidel_heartbeat_tick();
         }
     }
@@ -3479,7 +3479,7 @@ where
             return;
         }
 
-        if self.ctx.causetg.hibernate_branes {
+        if self.ctx.causet.hibernate_branes {
             if self.fsm.group_state == GroupState::Idle {
                 self.fsm.peer.ping();
                 if !self.fsm.peer.is_leader() {
@@ -3525,7 +3525,7 @@ where
                     "leader missing longer than abnormal_leader_missing_duration";
                     "brane_id" => self.fsm.brane_id(),
                     "peer_id" => self.fsm.peer_id(),
-                    "expect" => %self.ctx.causetg.abnormal_leader_missing_duration,
+                    "expect" => %self.ctx.causet.abnormal_leader_missing_duration,
                 );
                 self.ctx
                     .violetabft_metrics
@@ -3541,7 +3541,7 @@ where
                      To check with fidel and other peers whether it's still valid";
                     "brane_id" => self.fsm.brane_id(),
                     "peer_id" => self.fsm.peer_id(),
-                    "expect" => %self.ctx.causetg.max_leader_missing_duration,
+                    "expect" => %self.ctx.causet.max_leader_missing_duration,
                 );
 
                 self.fsm.peer.bcast_check_stale_peer_message(&mut self.ctx);
@@ -3863,7 +3863,7 @@ where
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::BatchVioletaBftCmdRequestBuilder;
     use crate::store::local_metrics::VioletaBftProposeMetrics;

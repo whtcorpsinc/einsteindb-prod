@@ -378,7 +378,7 @@ impl configuration::ConfigManager for ConfigManager {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 impl ConfigManager {
     fn set_num_threads(&self, num_threads: usize) {
         self.0.write().unwrap().num_threads = num_threads;
@@ -890,7 +890,7 @@ fn to_sst_compression_type(ct: CompressionType) -> Option<SstCompressionType> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use super::*;
     use external_causetStorage::{make_local_backlightlike, make_noop_backlightlike};

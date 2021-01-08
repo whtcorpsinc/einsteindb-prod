@@ -29,7 +29,7 @@ impl ScalarFunc {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crate::tests::{datum_expr, scalar_func_expr};
     use crate::Expression;

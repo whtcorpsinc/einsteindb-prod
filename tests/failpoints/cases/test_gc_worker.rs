@@ -44,7 +44,7 @@ fn test_collect_lock_from_stale_leader() {
 
     // Pause the new peer applying so that when it becomes the leader, it doesn't apply all logs.
     let new_leader_apply_fp = "on_handle_apply_1003";
-    fail::causetg(new_leader_apply_fp, "pause").unwrap();
+    fail::causet(new_leader_apply_fp, "pause").unwrap();
     must_kv_prewrite(
         leader_client,
         ctx,
@@ -92,7 +92,7 @@ fn test_observer_slightlike_error() {
     assert_eq!(must_check_lock_observer(&client, max_ts, true).len(), 1);
 
     let observer_slightlike_fp = "lock_observer_slightlike";
-    fail::causetg(observer_slightlike_fp, "return").unwrap();
+    fail::causet(observer_slightlike_fp, "return").unwrap();
     must_kv_prewrite(
         &client,
         ctx,
@@ -116,7 +116,7 @@ fn test_notify_observer_after_apply() {
     // Write a dagger and pause before notifying the dagger observer.
     let max_ts = 100;
     must_register_lock_observer(&client, max_ts);
-    fail::causetg(post_apply_query_fp, "pause").unwrap();
+    fail::causet(post_apply_query_fp, "pause").unwrap();
     let key = b"k";
     let (client_clone, ctx_clone) = (client.clone(), ctx.clone());
     std::thread::spawn(move || {
@@ -157,7 +157,7 @@ fn test_notify_observer_after_apply() {
 
     // Add a new peer and pause before notifying the dagger observer.
     must_register_lock_observer(&replica_client, max_ts);
-    fail::causetg(apply_plain_kvs_fp, "pause").unwrap();
+    fail::causet(apply_plain_kvs_fp, "pause").unwrap();
     cluster
         .fidel_client
         .must_add_peer(ctx.get_brane_id(), new_peer(store_id, store_id));
@@ -223,7 +223,7 @@ fn test_collect_applying_locks() {
 
     // Pause store-2 after calling observer callbacks and before writing to the lmdb.
     let new_leader_apply_fp = "post_handle_apply_1003";
-    fail::causetg(new_leader_apply_fp, "pause").unwrap();
+    fail::causet(new_leader_apply_fp, "pause").unwrap();
 
     // Write 1 dagger.
     must_kv_prewrite(

@@ -391,7 +391,7 @@ impl<T: Display + Slightlike + 'static> Worker<T> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::sync::mpsc;
     use std::thread;

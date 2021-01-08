@@ -106,7 +106,7 @@ impl KeyBuilder {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

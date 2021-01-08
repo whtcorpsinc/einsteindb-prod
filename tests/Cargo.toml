@@ -142,5 +142,5 @@ tokio = { version = "0.2", features = ["rt-threaded"] }
 semver = "0.10"
 concurrency_manager = { path = "../components/concurrency_manager" }
 
-[target.'causetg(target_os = "linux")'.dev-deplightlikeencies]
+[target.'causet(target_os = "linux")'.dev-deplightlikeencies]
 criterion-papi = "0.1"

@@ -11,12 +11,12 @@ use einsteindb_util::config::ReadableDuration;
 
 #[test]
 fn test_config_validate() {
-    let causetg = Config::default();
-    causetg.validate().unwrap();
+    let causet = Config::default();
+    causet.validate().unwrap();
 
-    let mut invalid_causetg = Config::default();
-    invalid_causetg.wait_for_lock_timeout = ReadableDuration::millis(0);
-    assert!(invalid_causetg.validate().is_err());
+    let mut invalid_causet = Config::default();
+    invalid_causet.wait_for_lock_timeout = ReadableDuration::millis(0);
+    assert!(invalid_causet.validate().is_err());
 }
 
 #[derive(Clone)]
@@ -28,7 +28,7 @@ impl StoreAddrResolver for MockResolver {
 }
 
 fn setup(
-    causetg: EINSTEINDBConfig,
+    causet: EINSTEINDBConfig,
 ) -> (
     ConfigController,
     WaiterMgrScheduler,
@@ -37,14 +37,14 @@ fn setup(
 ) {
     let mut lock_mgr = LockManager::new();
     let fidel_client = Arc::new(TestFidelClient::new(0, true));
-    let security_mgr = Arc::new(SecurityManager::new(&causetg.security).unwrap());
+    let security_mgr = Arc::new(SecurityManager::new(&causet.security).unwrap());
     lock_mgr
         .spacelike(
             1,
             fidel_client,
             MockResolver,
             security_mgr,
-            &causetg.pessimistic_txn,
+            &causet.pessimistic_txn,
         )
         .unwrap();
 
@@ -53,10 +53,10 @@ fn setup(
         mgr.waiter_mgr_scheduler.clone(),
         mgr.detector_scheduler.clone(),
     );
-    let causetg_controller = ConfigController::new(causetg);
-    causetg_controller.register(Module::PessimisticTxn, Box::new(mgr));
+    let causet_controller = ConfigController::new(causet);
+    causet_controller.register(Module::PessimisticTxn, Box::new(mgr));
 
-    (causetg_controller, w, d, lock_mgr)
+    (causet_controller, w, d, lock_mgr)
 }
 
 fn validate_waiter<F>(router: &WaiterMgrScheduler, f: F)
@@ -84,17 +84,17 @@ where
 }
 
 #[test]
-fn test_lock_manager_causetg_ufidelate() {
+fn test_lock_manager_causet_ufidelate() {
     const DEFAULT_TIMEOUT: u64 = 3000;
     const DEFAULT_DELAY: u64 = 100;
-    let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-    causetg.pessimistic_txn.wait_for_lock_timeout = ReadableDuration::millis(DEFAULT_TIMEOUT);
-    causetg.pessimistic_txn.wake_up_delay_duration = ReadableDuration::millis(DEFAULT_DELAY);
-    causetg.validate().unwrap();
-    let (causetg_controller, waiter, deadlock, mut lock_mgr) = setup(causetg);
+    let (mut causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
+    causet.pessimistic_txn.wait_for_lock_timeout = ReadableDuration::millis(DEFAULT_TIMEOUT);
+    causet.pessimistic_txn.wake_up_delay_duration = ReadableDuration::millis(DEFAULT_DELAY);
+    causet.validate().unwrap();
+    let (causet_controller, waiter, deadlock, mut lock_mgr) = setup(causet);
 
     // ufidelate of other module's config should not effect dagger manager config
-    causetg_controller
+    causet_controller
         .ufidelate_config("violetabftstore.violetabft-log-gc-memory_barrier", "2000")
         .unwrap();
     validate_waiter(
@@ -109,7 +109,7 @@ fn test_lock_manager_causetg_ufidelate() {
     });
 
     // only ufidelate wake_up_delay_duration
-    causetg_controller
+    causet_controller
         .ufidelate_config("pessimistic-txn.wake-up-delay-duration", "500ms")
         .unwrap();
     validate_waiter(
@@ -125,7 +125,7 @@ fn test_lock_manager_causetg_ufidelate() {
     });
 
     // only ufidelate wait_for_lock_timeout
-    causetg_controller
+    causet_controller
         .ufidelate_config("pessimistic-txn.wait-for-dagger-timeout", "4000ms")
         .unwrap();
     validate_waiter(
@@ -150,7 +150,7 @@ fn test_lock_manager_causetg_ufidelate() {
         "pessimistic-txn.wake-up-delay-duration".to_owned(),
         "123ms".to_owned(),
     );
-    causetg_controller.ufidelate(m).unwrap();
+    causet_controller.ufidelate(m).unwrap();
     validate_waiter(
         &waiter,
         move |timeout: ReadableDuration, delay: ReadableDuration| {

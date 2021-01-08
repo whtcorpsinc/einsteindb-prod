@@ -8,9 +8,9 @@ use concurrency_manager::ConcurrencyManager;
 use futures::executor::block_on;
 use futures::SinkExt;
 use grpcio::WriteFlags;
-#[causetg(not(feature = "prost-codec"))]
+#[causet(not(feature = "prost-codec"))]
 use ekvproto::cdcpb::*;
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 use ekvproto::cdcpb::{
     event::{EventIdx::OpType as EventEventOpType, Event as Event_oneof_event, LogType as EventLogType},
     ChangeDataEvent,

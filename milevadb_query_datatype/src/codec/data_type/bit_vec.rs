@@ -122,7 +122,7 @@ impl<'a> Iteron for BitAndIterator<'a> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

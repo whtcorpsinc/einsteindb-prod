@@ -17,7 +17,7 @@
 //! the VioletaBft consensus algorithm.
 
 #![crate_type = "lib"]
-#![causetg_attr(test, feature(test))]
+#![causet_attr(test, feature(test))]
 #![recursion_limit = "400"]
 #![feature(cell_ufidelate)]
 #![feature(proc_macro_hygiene)]
@@ -49,7 +49,7 @@ extern crate einsteindb_util;
 #[macro_use]
 extern crate failure;
 
-#[causetg(test)]
+#[causet(test)]
 extern crate test;
 
 extern crate encryption;

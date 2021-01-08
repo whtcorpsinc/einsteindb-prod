@@ -104,7 +104,7 @@ impl CompactExt for LmdbEngine {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crate::raw_util::{new_engine, CAUSETOptions};
     use crate::Compat;

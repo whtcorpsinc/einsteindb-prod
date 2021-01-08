@@ -16,7 +16,7 @@ use einsteindb_util::HandyRwLock;
 fn test_overlap_cleanup() {
     let mut cluster = new_node_cluster(0, 3);
     // Disable violetabft log gc in this test case.
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::secs(60);
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::secs(60);
 
     let gen_snapshot_fp = "brane_gen_snap";
 
@@ -33,7 +33,7 @@ fn test_overlap_cleanup() {
     cluster.must_transfer_leader(brane_id, new_peer(2, 2));
     // This will only pause the bootstrapped brane, so the split brane
     // can still work as expected.
-    fail::causetg(gen_snapshot_fp, "pause").unwrap();
+    fail::causet(gen_snapshot_fp, "pause").unwrap();
     fidel_client.must_add_peer(brane_id, new_peer(3, 3));
     cluster.must_put(b"k3", b"v3");
     assert_snapshot(&cluster.get_snap_dir(2), brane_id, true);
@@ -43,7 +43,7 @@ fn test_overlap_cleanup() {
     must_get_equal(&cluster.get_engine(3), b"k1", b"v1");
     // Resume the fail point and pause it again. So only the paused snapshot is generated.
     // And the paused snapshot's cone is ["", ""), hence overlap.
-    fail::causetg(gen_snapshot_fp, "pause").unwrap();
+    fail::causet(gen_snapshot_fp, "pause").unwrap();
     // Overlap snapshot should be deleted.
     assert_snapshot(&cluster.get_snap_dir(3), brane_id, false);
     fail::remove(gen_snapshot_fp);
@@ -97,8 +97,8 @@ fn test_server_snapshot_on_resolve_failure() {
         .unwrap();
 
     // "return(4)" those failure occurs if EinsteinDB resolves or slightlikes to store 4.
-    fail::causetg(on_resolve_fp, "return(4)").unwrap();
-    fail::causetg(on_slightlike_store_fp, "return(4)").unwrap();
+    fail::causet(on_resolve_fp, "return(4)").unwrap();
+    fail::causet(on_slightlike_store_fp, "return(4)").unwrap();
 
     // We are ready to recv notify.
     ready_notify.store(true, Ordering::SeqCst);
@@ -131,9 +131,9 @@ fn test_server_snapshot_on_resolve_failure() {
 #[test]
 fn test_generate_snapshot() {
     let mut cluster = new_server_cluster(1, 5);
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 8;
-    cluster.causetg.violetabft_store.merge_max_log_gap = 3;
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 8;
+    cluster.causet.violetabft_store.merge_max_log_gap = 3;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -145,24 +145,24 @@ fn test_generate_snapshot() {
     // Sleep for a while to ensure all logs are compacted.
     thread::sleep(Duration::from_millis(100));
 
-    fail::causetg("snapshot_delete_after_slightlike", "pause").unwrap();
+    fail::causet("snapshot_delete_after_slightlike", "pause").unwrap();
 
     // Let store 4 inform leader to generate a snapshot.
     cluster.run_node(4).unwrap();
     must_get_equal(&cluster.get_engine(4), b"k2", b"v2");
 
-    fail::causetg("snapshot_enter_do_build", "pause").unwrap();
+    fail::causet("snapshot_enter_do_build", "pause").unwrap();
     cluster.run_node(5).unwrap();
     thread::sleep(Duration::from_millis(100));
 
-    fail::causetg("snapshot_delete_after_slightlike", "off").unwrap();
+    fail::causet("snapshot_delete_after_slightlike", "off").unwrap();
     must_empty_dir(cluster.get_snap_dir(1));
 
     // The task is droped so that we can't get the snapshot on store 5.
-    fail::causetg("snapshot_enter_do_build", "pause").unwrap();
+    fail::causet("snapshot_enter_do_build", "pause").unwrap();
     must_get_none(&cluster.get_engine(5), b"k2");
 
-    fail::causetg("snapshot_enter_do_build", "off").unwrap();
+    fail::causet("snapshot_enter_do_build", "off").unwrap();
     must_get_equal(&cluster.get_engine(5), b"k2", b"v2");
 
     fail::remove("snapshot_enter_do_build");
@@ -230,7 +230,7 @@ fn test_node_request_snapshot_on_split() {
     cluster.must_transfer_leader(1, new_peer(3, 3));
 
     let split_fp = "apply_before_split_1_3";
-    fail::causetg(split_fp, "pause").unwrap();
+    fail::causet(split_fp, "pause").unwrap();
     let (split_tx, split_rx) = mpsc::channel();
     cluster.split_brane(
         &brane,
@@ -304,7 +304,7 @@ fn test_destroy_peer_on_plightlikeing_snapshot() {
     }
 
     let apply_snapshot_fp = "apply_plightlikeing_snapshot";
-    fail::causetg(apply_snapshot_fp, "return()").unwrap();
+    fail::causet(apply_snapshot_fp, "return()").unwrap();
 
     cluster.clear_slightlike_filters();
     // Wait for leader slightlike snapshot.
@@ -313,13 +313,13 @@ fn test_destroy_peer_on_plightlikeing_snapshot() {
     cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
     // Don't slightlike check stale msg to FIDel
     let peer_check_stale_state_fp = "peer_check_stale_state";
-    fail::causetg(peer_check_stale_state_fp, "return()").unwrap();
+    fail::causet(peer_check_stale_state_fp, "return()").unwrap();
 
     fidel_client.must_remove_peer(r1, new_peer(3, 3));
     fidel_client.must_add_peer(r1, new_peer(3, 4));
 
     let before_handle_normal_3_fp = "before_handle_normal_3";
-    fail::causetg(before_handle_normal_3_fp, "pause").unwrap();
+    fail::causet(before_handle_normal_3_fp, "pause").unwrap();
 
     cluster.clear_slightlike_filters();
     // Wait for leader slightlike msg to peer 3.
@@ -339,14 +339,14 @@ fn test_destroy_peer_on_plightlikeing_snapshot() {
 fn test_shutdown_when_snap_gc() {
     let mut cluster = new_node_cluster(0, 2);
     // So that batch system can handle a snap_gc event before shutting down.
-    cluster.causetg.violetabft_store.store_batch_system.max_batch_size = 1;
-    cluster.causetg.violetabft_store.snap_mgr_gc_tick_interval = ReadableDuration::millis(20);
+    cluster.causet.violetabft_store.store_batch_system.max_batch_size = 1;
+    cluster.causet.violetabft_store.snap_mgr_gc_tick_interval = ReadableDuration::millis(20);
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
     let r1 = cluster.run_conf_change();
 
     // Only save a snapshot on peer 2, but do not apply it really.
-    fail::causetg("skip_schedule_applying_snapshot", "return").unwrap();
+    fail::causet("skip_schedule_applying_snapshot", "return").unwrap();
     fidel_client.must_add_peer(r1, new_learner_peer(2, 2));
 
     // Snapshot directory on store 2 shouldn't be empty.
@@ -362,11 +362,11 @@ fn test_shutdown_when_snap_gc() {
         sleep_ms(10);
     }
 
-    fail::causetg("peer_2_handle_snap_mgr_gc", "pause").unwrap();
+    fail::causet("peer_2_handle_snap_mgr_gc", "pause").unwrap();
     std::thread::spawn(|| {
         // Sleep a while to wait snap_gc event to reach batch system.
         sleep_ms(500);
-        fail::causetg("peer_2_handle_snap_mgr_gc", "off").unwrap();
+        fail::causet("peer_2_handle_snap_mgr_gc", "off").unwrap();
     });
 
     sleep_ms(100);
@@ -384,7 +384,7 @@ fn test_shutdown_when_snap_gc() {
 fn test_receive_old_snapshot() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_snapshot(&mut cluster);
-    cluster.causetg.violetabft_store.right_derive_when_split = true;
+    cluster.causet.violetabft_store.right_derive_when_split = true;
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
@@ -392,7 +392,7 @@ fn test_receive_old_snapshot() {
 
     // Bypass the snapshot gc because the snapshot may be used twice.
     let peer_2_handle_snap_mgr_gc_fp = "peer_2_handle_snap_mgr_gc";
-    fail::causetg(peer_2_handle_snap_mgr_gc_fp, "return()").unwrap();
+    fail::causet(peer_2_handle_snap_mgr_gc_fp, "return()").unwrap();
 
     fidel_client.must_add_peer(r1, new_peer(2, 2));
     fidel_client.must_add_peer(r1, new_peer(3, 3));

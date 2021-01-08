@@ -279,7 +279,7 @@ impl CGroupSys {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::{
         parse_mount_point_from_line, parse_subsys_from_line, CGroup, CGroupSubsys, CGroupSys,

@@ -163,7 +163,7 @@ impl<R: FlowStatsReporter> ReporterTicker<R> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 fn get_unified_read_pool_name() -> String {
     use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -174,7 +174,7 @@ fn get_unified_read_pool_name() -> String {
     )
 }
 
-#[causetg(not(test))]
+#[causet(not(test))]
 fn get_unified_read_pool_name() -> String {
     "unified-read-pool".to_string()
 }
@@ -255,7 +255,7 @@ mod metrics {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::causetStorage::TestEngineBuilder;

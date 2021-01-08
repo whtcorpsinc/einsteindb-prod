@@ -274,7 +274,7 @@ impl RpnExpression {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     #![allow(clippy::float_cmp)]
 
@@ -1321,7 +1321,7 @@ mod tests {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod benches {
     use super::*;
 

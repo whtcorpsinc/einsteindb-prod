@@ -6,9 +6,9 @@ use crate::{new_event_feed, TestSuite};
 use futures::executor::block_on;
 use futures::sink::SinkExt;
 use grpcio::WriteFlags;
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 use ekvproto::cdcpb::event::{Event as Event_oneof_event, LogType as EventLogType};
-#[causetg(not(feature = "prost-codec"))]
+#[causet(not(feature = "prost-codec"))]
 use ekvproto::cdcpb::*;
 use ekvproto::kvrpcpb::*;
 use ekvproto::metapb::BraneEpoch;
@@ -23,7 +23,7 @@ fn test_failed_plightlikeing_batch() {
     let mut suite = TestSuite::new(3);
 
     let fp = "cdc_incremental_scan_spacelike";
-    fail::causetg(fp, "pause").unwrap();
+    fail::causet(fp, "pause").unwrap();
 
     let brane = suite.cluster.get_brane(&[]);
     let mut req = suite.new_changedata_request(brane.get_id());
@@ -77,7 +77,7 @@ fn test_brane_ready_after_deregister() {
     let mut suite = TestSuite::new(1);
 
     let fp = "cdc_incremental_scan_spacelike";
-    fail::causetg(fp, "pause").unwrap();
+    fail::causet(fp, "pause").unwrap();
 
     let req = suite.new_changedata_request(1);
     let (mut req_tx, event_feed_wrap, receive_event) =
@@ -109,7 +109,7 @@ fn test_connections_register() {
     let mut suite = TestSuite::new(1);
 
     let fp = "cdc_incremental_scan_spacelike";
-    fail::causetg(fp, "pause").unwrap();
+    fail::causet(fp, "pause").unwrap();
 
     let (k, v) = ("key1".to_owned(), "value".to_owned());
     // Brane info
@@ -191,7 +191,7 @@ fn test_merge() {
     sleep_ms(200);
     // Pause before completing commit merge
     let commit_merge_fp = "before_handle_catch_up_logs_for_merge";
-    fail::causetg(commit_merge_fp, "pause").unwrap();
+    fail::causet(commit_merge_fp, "pause").unwrap();
     // The call is finished when prepare_merge is applied.
     suite.cluster.try_merge(source.get_id(), target.get_id());
     // Epoch not match after prepare_merge
@@ -226,7 +226,7 @@ fn test_merge() {
     }
     // Continue to commit merge
     let destroy_peer_fp = "destroy_peer";
-    fail::causetg(destroy_peer_fp, "pause").unwrap();
+    fail::causet(destroy_peer_fp, "pause").unwrap();
     fail::remove(commit_merge_fp);
     // Wait until violetabftstore receives MergeResult
     sleep_ms(100);
@@ -275,7 +275,7 @@ fn test_deregister_plightlikeing_downstream() {
     let mut suite = TestSuite::new(1);
 
     let build_resolver_fp = "before_schedule_resolver_ready";
-    fail::causetg(build_resolver_fp, "pause").unwrap();
+    fail::causet(build_resolver_fp, "pause").unwrap();
     let mut req = suite.new_changedata_request(1);
     let (mut req_tx1, event_feed_wrap, receive_event) =
         new_event_feed(suite.get_brane_cdc_client(1));
@@ -284,7 +284,7 @@ fn test_deregister_plightlikeing_downstream() {
     sleep_ms(200);
 
     let violetabft_capture_fp = "violetabft_on_capture_change";
-    fail::causetg(violetabft_capture_fp, "pause").unwrap();
+    fail::causet(violetabft_capture_fp, "pause").unwrap();
 
     // Conn 2
     let (mut req_tx2, resp_rx2) = suite.get_brane_cdc_client(1).event_feed().unwrap();

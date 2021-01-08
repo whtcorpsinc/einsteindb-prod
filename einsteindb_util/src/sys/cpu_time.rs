@@ -37,7 +37,7 @@ impl LiunxStyleCpuTime {
     }
 }
 
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 mod imp {
     use std::fs::File;
     use std::io::{self, Read};
@@ -68,7 +68,7 @@ mod imp {
     }
 }
 
-#[causetg(target_os = "macos")]
+#[causet(target_os = "macos")]
 #[allow(bad_style)]
 mod imp {
     use std::io;
@@ -161,7 +161,7 @@ mod imp {
     }
 }
 
-#[causetg(not(any(target_os = "linux", target_os = "macos")))]
+#[causet(not(any(target_os = "linux", target_os = "macos")))]
 mod imp {
     use std::io;
 

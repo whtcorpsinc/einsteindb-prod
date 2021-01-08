@@ -56,14 +56,14 @@ pub struct TopNFreeDaemon<Src: FreeDaemon> {
 }
 
 impl<Src: FreeDaemon> TopNFreeDaemon<Src> {
-    pub fn new(mut meta: TopN, eval_causetg: Arc<EvalConfig>, src: Src) -> Result<Self> {
+    pub fn new(mut meta: TopN, eval_causet: Arc<EvalConfig>, src: Src) -> Result<Self> {
         let order_by: Vec<_> = meta.take_order_by().into();
 
         let mut visitor = ExprPrimaryCausetRefVisitor::new(src.get_len_of_PrimaryCausets());
         for by_item in &order_by {
             visitor.visit(by_item.get_expr())?;
         }
-        let mut eval_ctx = EvalContext::new(Arc::clone(&eval_causetg));
+        let mut eval_ctx = EvalContext::new(Arc::clone(&eval_causet));
         let order_by = OrderBy::new(&mut eval_ctx, order_by)?;
         Ok(TopNFreeDaemon {
             order_by,
@@ -154,7 +154,7 @@ impl<Src: FreeDaemon> FreeDaemon for TopNFreeDaemon<Src> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use std::cell::RefCell;
     use std::sync::Arc;

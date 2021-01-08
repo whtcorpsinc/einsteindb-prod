@@ -319,7 +319,7 @@ impl ExternalStorage for S3Storage {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use futures::io::AsyncReadExt;
@@ -384,7 +384,7 @@ mod tests {
     }
 
     #[test]
-    #[causetg(FALSE)]
+    #[causet(FALSE)]
     // FIXME: enable this (or move this to an integration test) if we've got a
     // reliable way to test s3 (rusoto_mock requires custom logic to verify the
     // body stream which itself can have bug)

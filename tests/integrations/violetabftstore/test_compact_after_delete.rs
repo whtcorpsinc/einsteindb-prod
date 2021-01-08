@@ -31,10 +31,10 @@ fn gen_delete_k(k: &[u8], commit_ts: TimeStamp) -> Vec<u8> {
 }
 
 fn test_compact_after_delete<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.brane_compact_check_interval = ReadableDuration::millis(100);
-    cluster.causetg.violetabft_store.brane_compact_min_tombstones = 500;
-    cluster.causetg.violetabft_store.brane_compact_tombstones_percent = 50;
-    cluster.causetg.violetabft_store.brane_compact_check_step = 1;
+    cluster.causet.violetabft_store.brane_compact_check_interval = ReadableDuration::millis(100);
+    cluster.causet.violetabft_store.brane_compact_min_tombstones = 500;
+    cluster.causet.violetabft_store.brane_compact_tombstones_percent = 50;
+    cluster.causet.violetabft_store.brane_compact_check_step = 1;
     cluster.run();
 
     for i in 0..1000 {
@@ -47,7 +47,7 @@ fn test_compact_after_delete<T: Simulator>(cluster: &mut Cluster<T>) {
     }
     let (slightlikeer, receiver) = mpsc::channel();
     let sync_slightlikeer = Mutex::new(slightlikeer);
-    fail::causetg_callback(
+    fail::causet_callback(
         "violetabftstore::compact::CheckAndCompact:AfterCompact",
         move || {
             let slightlikeer = sync_slightlikeer.dagger().unwrap();

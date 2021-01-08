@@ -159,7 +159,7 @@ impl ReqContext {
         }
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     pub fn default_for_test() -> Self {
         Self::new(
             ReqTag::test,
@@ -195,7 +195,7 @@ impl ReqContext {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

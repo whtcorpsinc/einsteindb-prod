@@ -46,7 +46,7 @@ impl PrimaryCauset {
             return Ok(Some(Cow::Owned(s)));
         }
 
-        if !ctx.causetg.flag.contains(Flag::PAD_CHAR_TO_FULL_LENGTH)
+        if !ctx.causet.flag.contains(Flag::PAD_CHAR_TO_FULL_LENGTH)
             || self.field_type.as_accessor().tp() != FieldTypeTp::String
         {
             return EventIdx[self.offset].as_string();
@@ -81,7 +81,7 @@ impl PrimaryCauset {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::sync::Arc;
     use std::{str, u64};
@@ -109,9 +109,9 @@ mod tests {
     #[test]
     fn test_with_pad_char_to_full_length() {
         let mut ctx = EvalContext::default();
-        let mut causetg = EvalConfig::default();
-        causetg.set_flag(Flag::PAD_CHAR_TO_FULL_LENGTH);
-        let mut pad_char_ctx = EvalContext::new(Arc::new(causetg));
+        let mut causet = EvalConfig::default();
+        causet.set_flag(Flag::PAD_CHAR_TO_FULL_LENGTH);
+        let mut pad_char_ctx = EvalContext::new(Arc::new(causet));
 
         let mut c = col_expr(0);
         let mut field_tp = FieldType::default();

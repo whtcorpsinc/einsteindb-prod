@@ -34,13 +34,13 @@ use einsteindb_util::HandyRwLock;
 // Every time the leader performs a consistent read/write, it will try to renew its lease.
 fn test_renew_lease<T: Simulator>(cluster: &mut Cluster<T>) {
     // Avoid triggering the log compaction in this test case.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 100;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 100;
     // Increase the VioletaBft tick interval to make this test case running reliably.
     // Use large election timeout to make leadership sBlock.
     configure_for_lease_read(cluster, Some(50), Some(10_000));
     // Override max leader lease to 2 seconds.
     let max_lease = Duration::from_secs(2);
-    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(max_lease);
+    cluster.causet.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(max_lease);
 
     let node_id = 1u64;
     let store_id = 1u64;
@@ -130,7 +130,7 @@ fn test_lease_expired<T: Simulator>(cluster: &mut Cluster<T>) {
     fidel_client.disable_default_operator();
 
     // Avoid triggering the log compaction in this test case.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 100;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 100;
     // Increase the VioletaBft tick interval to make this test case running reliably.
     let election_timeout = configure_for_lease_read(cluster, Some(50), None);
 
@@ -171,7 +171,7 @@ fn test_node_lease_expired() {
 // When leader transfer procedure aborts later, the leader would use and ufidelate the lease as usual.
 fn test_lease_unsafe_during_leader_transfers<T: Simulator>(cluster: &mut Cluster<T>) {
     // Avoid triggering the log compaction in this test case.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 100;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 100;
     // Increase the VioletaBft tick interval to make this test case running reliably.
     let election_timeout = configure_for_lease_read(cluster, Some(500), None);
 
@@ -281,7 +281,7 @@ fn test_batch_id_in_lease<T: Simulator>(cluster: &mut Cluster<T>) {
     fidel_client.disable_default_operator();
 
     // Avoid triggering the log compaction in this test case.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 100;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 100;
 
     // Increase the VioletaBft tick interval to make this test case running reliably.
     let election_timeout = configure_for_lease_read(cluster, Some(100), None);
@@ -466,8 +466,8 @@ fn test_read_index_stale_in_suspect_lease() {
     // Increase the election tick to make this test case running reliably.
     configure_for_lease_read(&mut cluster, Some(50), Some(10_000));
     let max_lease = Duration::from_secs(2);
-    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(max_lease);
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 5;
+    cluster.causet.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(max_lease);
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 5;
 
     cluster.fidel_client.disable_default_operator();
     let r1 = cluster.run_conf_change();
@@ -596,10 +596,10 @@ fn test_local_read_cache() {
 fn test_not_leader_read_lease() {
     let mut cluster = new_node_cluster(0, 3);
     // Avoid triggering the log compaction in this test case.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 100;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 100;
     // Increase the VioletaBft tick interval to make this test case running reliably.
     configure_for_lease_read(&mut cluster, Some(50), None);
-    let heartbeat_interval = cluster.causetg.violetabft_store.violetabft_heartbeat_interval();
+    let heartbeat_interval = cluster.causet.violetabft_store.violetabft_heartbeat_interval();
 
     cluster.run();
 
@@ -653,7 +653,7 @@ fn test_not_leader_read_lease() {
 fn test_read_index_after_write() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_lease_read(&mut cluster, Some(50), Some(10));
-    let heartbeat_interval = cluster.causetg.violetabft_store.violetabft_heartbeat_interval();
+    let heartbeat_interval = cluster.causet.violetabft_store.violetabft_heartbeat_interval();
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 

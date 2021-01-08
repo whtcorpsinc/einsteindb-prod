@@ -652,7 +652,7 @@ impl crate::codec::data_type::AsMySQLBool for Duration {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::codec::data_type::DateTime;
@@ -1184,8 +1184,8 @@ mod tests {
             ),
         ];
         for (input, fsp, expect, overflow) in cs {
-            let causetg = Arc::new(EvalConfig::from_flag(Flag::OVERFLOW_AS_WARNING));
-            let mut ctx = EvalContext::new(causetg);
+            let causet = Arc::new(EvalConfig::from_flag(Flag::OVERFLOW_AS_WARNING));
+            let mut ctx = EvalContext::new(causet);
 
             let r = Duration::from_i64(&mut ctx, input, fsp);
 
@@ -1225,7 +1225,7 @@ mod tests {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod benches {
     use super::*;
     use crate::codec::mysql::MAX_FSP;

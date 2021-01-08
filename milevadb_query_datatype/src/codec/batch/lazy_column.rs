@@ -268,7 +268,7 @@ impl LazyBatchPrimaryCauset {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 
@@ -383,7 +383,7 @@ mod tests {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod benches {
     use super::*;
 

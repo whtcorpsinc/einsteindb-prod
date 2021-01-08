@@ -331,7 +331,7 @@ pub fn is_encoded_from(encoded: &[u8], raw: &[u8], desc: bool) -> bool {
     true
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::codec::{bytes, number};

@@ -377,7 +377,7 @@ fn handle_check_key_in_brane_error(e: crate::Error) -> Result<()> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crate::store::PeerStorage;
     use crate::Result;

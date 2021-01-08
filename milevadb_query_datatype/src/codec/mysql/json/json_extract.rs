@@ -94,7 +94,7 @@ pub fn extract_json<'a>(j: JsonRef<'a>, path_legs: &[PathLeg]) -> Result<Vec<Jso
     Ok(ret)
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::path_expr::{
         PathExpressionFlag, PATH_EXPRESSION_CONTAINS_ASTERISK,

@@ -9,7 +9,7 @@ use grpcio::{ChannelCredentials, ChannelCredentialsBuilder};
 use security::SecurityConfig;
 use einsteindb_util::collections::HashSet;
 
-pub fn new_security_causetg(cn: Option<HashSet<String>>) -> SecurityConfig {
+pub fn new_security_causet(cn: Option<HashSet<String>>) -> SecurityConfig {
     let p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     SecurityConfig {
         ca_path: format!("{}", p.join("data/ca.pem").display()),

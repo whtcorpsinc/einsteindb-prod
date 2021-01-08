@@ -12,7 +12,7 @@ use tokio::sync::Semaphore;
 
 use ekvproto::kvrpcpb::IsolationLevel;
 use ekvproto::{interlock as coppb, errorpb, kvrpcpb};
-#[causetg(feature = "protobuf-codec")]
+#[causet(feature = "protobuf-codec")]
 use protobuf::CodedInputStream;
 use protobuf::Message;
 use fidelpb::{AnalyzeReq, AnalyzeType, ChecksumRequest, ChecksumScanOn, PosetDagRequest, ExecType};
@@ -79,7 +79,7 @@ impl<E: Engine> einsteindb_util::AssertSlightlike for Endpoint<E> {}
 
 impl<E: Engine> Endpoint<E> {
     pub fn new(
-        causetg: &Config,
+        causet: &Config,
         read_pool: ReadPoolHandle,
         concurrency_manager: ConcurrencyManager,
     ) -> Self {
@@ -88,7 +88,7 @@ impl<E: Engine> Endpoint<E> {
         // will still be blocked. This needs to be improved.
         let semaphore = match &read_pool {
             ReadPoolHandle::Yatp { .. } => {
-                Some(Arc::new(Semaphore::new(causetg.lightlike_point_max_concurrency)))
+                Some(Arc::new(Semaphore::new(causet.lightlike_point_max_concurrency)))
             }
             _ => None,
         };
@@ -96,12 +96,12 @@ impl<E: Engine> Endpoint<E> {
             read_pool,
             semaphore,
             concurrency_manager,
-            check_memory_locks: causetg.lightlike_point_check_memory_locks,
-            recursion_limit: causetg.lightlike_point_recursion_limit,
-            batch_row_limit: causetg.lightlike_point_batch_row_limit,
-            stream_batch_row_limit: causetg.lightlike_point_stream_batch_row_limit,
-            stream_channel_size: causetg.lightlike_point_stream_channel_size,
-            max_handle_duration: causetg.lightlike_point_request_max_handle_duration.0,
+            check_memory_locks: causet.lightlike_point_check_memory_locks,
+            recursion_limit: causet.lightlike_point_recursion_limit,
+            batch_row_limit: causet.lightlike_point_batch_row_limit,
+            stream_batch_row_limit: causet.lightlike_point_stream_batch_row_limit,
+            stream_channel_size: causet.lightlike_point_stream_channel_size,
+            max_handle_duration: causet.lightlike_point_request_max_handle_duration.0,
             _phantom: Default::default(),
         }
     }
@@ -149,12 +149,12 @@ impl<E: Engine> Endpoint<E> {
         // This `Parser` is here because rust-proto supports customising its
         // recursion limit and Prost does not. Therefore we lightlike up doing things
         // a bit differently for the two codecs.
-        #[causetg(feature = "protobuf-codec")]
+        #[causet(feature = "protobuf-codec")]
         struct Parser<'a> {
             input: CodedInputStream<'a>,
         }
 
-        #[causetg(feature = "protobuf-codec")]
+        #[causet(feature = "protobuf-codec")]
         impl<'a> Parser<'a> {
             fn new(data: &'a [u8], recursion_limit: u32) -> Parser<'a> {
                 let mut input = CodedInputStream::from_bytes(data);
@@ -168,12 +168,12 @@ impl<E: Engine> Endpoint<E> {
             }
         }
 
-        #[causetg(feature = "prost-codec")]
+        #[causet(feature = "prost-codec")]
         struct Parser<'a> {
             input: &'a [u8],
         }
 
-        #[causetg(feature = "prost-codec")]
+        #[causet(feature = "prost-codec")]
         impl<'a> Parser<'a> {
             fn new(input: &'a [u8], _: u32) -> Parser<'a> {
                 Parser { input }
@@ -637,7 +637,7 @@ fn make_error_response(e: Error) -> coppb::Response {
     resp
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

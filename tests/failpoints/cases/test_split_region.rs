@@ -56,14 +56,14 @@ fn test_follower_slow_split() {
     cluster.sim.wl().add_slightlike_filter(3, prevote_resp_notifier);
 
     // After split, pre-vote message should be sent to peer 2.
-    fail::causetg("apply_before_split_1_3", "pause").unwrap();
+    fail::causet("apply_before_split_1_3", "pause").unwrap();
     cluster.must_split(&brane, b"k2");
     let cone = cone_rx.recv_timeout(Duration::from_millis(100)).unwrap();
     assert_eq!(cone.0, b"");
     assert_eq!(cone.1, b"k2");
 
     // After the follower split success, it will response to the plightlikeing vote.
-    fail::causetg("apply_before_split_1_3", "off").unwrap();
+    fail::causet("apply_before_split_1_3", "off").unwrap();
     assert!(rx.recv_timeout(Duration::from_millis(100)).is_ok());
 }
 
@@ -108,7 +108,7 @@ fn test_split_lost_request_vote() {
     cluster.sim.wl().add_slightlike_filter(3, prevote_resp_notifier);
 
     // After split, pre-vote message should be sent to peer 3.
-    fail::causetg("apply_after_split_1_3", "pause").unwrap();
+    fail::causet("apply_after_split_1_3", "pause").unwrap();
     cluster.must_split(&brane, b"k2");
     let cone = cone_rx.recv_timeout(Duration::from_millis(100)).unwrap();
     assert_eq!(cone.0, b"");
@@ -147,7 +147,7 @@ fn test_split_lost_request_vote() {
     }
 
     // After the follower split success, it will response to the plightlikeing vote.
-    fail::causetg("apply_after_split_1_3", "off").unwrap();
+    fail::causet("apply_after_split_1_3", "off").unwrap();
     assert!(rx.recv_timeout(Duration::from_millis(100)).is_ok());
 }
 
@@ -155,9 +155,9 @@ fn gen_split_brane() -> (Brane, Brane, Brane) {
     let mut cluster = new_server_cluster(0, 2);
     let brane_max_size = 50000;
     let brane_split_size = 30000;
-    cluster.causetg.violetabft_store.split_brane_check_tick_interval = ReadableDuration::millis(20);
-    cluster.causetg.interlock.brane_max_size = ReadableSize(brane_max_size);
-    cluster.causetg.interlock.brane_split_size = ReadableSize(brane_split_size);
+    cluster.causet.violetabft_store.split_brane_check_tick_interval = ReadableDuration::millis(20);
+    cluster.causet.interlock.brane_max_size = ReadableSize(brane_max_size);
+    cluster.causet.interlock.brane_split_size = ReadableSize(brane_split_size);
 
     let mut cone = 1..;
     cluster.run();
@@ -185,7 +185,7 @@ fn gen_split_brane() -> (Brane, Brane, Brane) {
 #[test]
 fn test_pause_split_when_snap_gen_will_split() {
     let is_generating_snapshot = "is_generating_snapshot";
-    fail::causetg(is_generating_snapshot, "return()").unwrap();
+    fail::causet(is_generating_snapshot, "return()").unwrap();
 
     let (brane, left, right) = gen_split_brane();
 
@@ -200,8 +200,8 @@ fn test_pause_split_when_snap_gen_will_split() {
 fn test_pause_split_when_snap_gen_never_split() {
     let is_generating_snapshot = "is_generating_snapshot";
     let brane_split_skip_max_count = "brane_split_skip_max_count";
-    fail::causetg(brane_split_skip_max_count, "return()").unwrap();
-    fail::causetg(is_generating_snapshot, "return()").unwrap();
+    fail::causet(brane_split_skip_max_count, "return()").unwrap();
+    fail::causet(is_generating_snapshot, "return()").unwrap();
 
     let (brane, left, right) = gen_split_brane();
 
@@ -250,9 +250,9 @@ impl Filter for PrevoteConeFilter {
 fn test_split_not_to_split_exist_brane() {
     let mut cluster = new_node_cluster(0, 4);
     configure_for_merge(&mut cluster);
-    cluster.causetg.violetabft_store.right_derive_when_split = true;
-    cluster.causetg.violetabft_store.apply_batch_system.max_batch_size = 1;
-    cluster.causetg.violetabft_store.apply_batch_system.pool_size = 2;
+    cluster.causet.violetabft_store.right_derive_when_split = true;
+    cluster.causet.violetabft_store.apply_batch_system.max_batch_size = 1;
+    cluster.causet.violetabft_store.apply_batch_system.pool_size = 2;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -275,7 +275,7 @@ fn test_split_not_to_split_exist_brane() {
     let peer_b_3 = find_peer(&brane_b, 3).cloned().unwrap();
     assert_eq!(peer_b_3.get_id(), 1003);
     let on_handle_apply_1003_fp = "on_handle_apply_1003";
-    fail::causetg(on_handle_apply_1003_fp, "pause").unwrap();
+    fail::causet(on_handle_apply_1003_fp, "pause").unwrap();
     // [-∞, k1), [k1, k2), [k2, +∞)
     //    c         b          a
     cluster.must_split(&brane_b, b"k1");
@@ -323,22 +323,22 @@ fn test_split_not_to_split_exist_brane() {
 fn test_split_not_to_split_exist_tombstone_brane() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.violetabft_store.right_derive_when_split = true;
-    cluster.causetg.violetabft_store.store_batch_system.max_batch_size = 1;
-    cluster.causetg.violetabft_store.store_batch_system.pool_size = 2;
-    cluster.causetg.violetabft_store.apply_batch_system.max_batch_size = 1;
-    cluster.causetg.violetabft_store.apply_batch_system.pool_size = 2;
+    cluster.causet.violetabft_store.right_derive_when_split = true;
+    cluster.causet.violetabft_store.store_batch_system.max_batch_size = 1;
+    cluster.causet.violetabft_store.store_batch_system.pool_size = 2;
+    cluster.causet.violetabft_store.apply_batch_system.max_batch_size = 1;
+    cluster.causet.violetabft_store.apply_batch_system.pool_size = 2;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
-    fail::causetg("on_violetabft_gc_log_tick", "return()").unwrap();
+    fail::causet("on_violetabft_gc_log_tick", "return()").unwrap();
     let r1 = cluster.run_conf_change();
 
     fidel_client.must_add_peer(r1, new_peer(3, 3));
 
     assert_eq!(r1, 1);
     let before_check_snapshot_1_2_fp = "before_check_snapshot_1_2";
-    fail::causetg("before_check_snapshot_1_2", "pause").unwrap();
+    fail::causet("before_check_snapshot_1_2", "pause").unwrap();
     fidel_client.must_add_peer(r1, new_peer(2, 2));
 
     cluster.must_put(b"k1", b"v1");
@@ -356,7 +356,7 @@ fn test_split_not_to_split_exist_tombstone_brane() {
     must_get_none(&cluster.get_engine(2), b"k1");
 
     let on_handle_apply_2_fp = "on_handle_apply_2";
-    fail::causetg("on_handle_apply_2", "pause").unwrap();
+    fail::causet("on_handle_apply_2", "pause").unwrap();
 
     fail::remove(before_check_snapshot_1_2_fp);
 
@@ -367,7 +367,7 @@ fn test_split_not_to_split_exist_tombstone_brane() {
     cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
     // Also don't slightlike check stale msg to FIDel
     let peer_check_stale_state_fp = "peer_check_stale_state";
-    fail::causetg(peer_check_stale_state_fp, "return()").unwrap();
+    fail::causet(peer_check_stale_state_fp, "return()").unwrap();
 
     fail::remove(on_handle_apply_2_fp);
 

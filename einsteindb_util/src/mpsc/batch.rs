@@ -336,7 +336,7 @@ where
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::sync::{mpsc, Mutex};
     use std::{thread, time};

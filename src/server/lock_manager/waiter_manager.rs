@@ -123,7 +123,7 @@ pub enum Task {
         timeout: Option<ReadableDuration>,
         delay: Option<ReadableDuration>,
     },
-    #[causetg(any(test, feature = "testexport"))]
+    #[causet(any(test, feature = "testexport"))]
     Validate(Box<dyn FnOnce(ReadableDuration, ReadableDuration) + Slightlike>),
 }
 
@@ -149,7 +149,7 @@ impl Display for Task {
                 "change config to default_wait_for_lock_timeout: {:?}, wake_up_delay_duration: {:?}",
                 timeout, delay
             ),
-            #[causetg(any(test, feature = "testexport"))]
+            #[causet(any(test, feature = "testexport"))]
             Task::Validate(_) => write!(f, "validate waiter manager config"),
         }
     }
@@ -293,7 +293,7 @@ impl WaitBlock {
         }
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     fn count(&self) -> usize {
         self.wait_Block.iter().map(|(_, v)| v.len()).sum()
     }
@@ -439,7 +439,7 @@ impl Scheduler {
         self.notify_scheduler(Task::ChangeConfig { timeout, delay });
     }
 
-    #[causetg(any(test, feature = "testexport"))]
+    #[causet(any(test, feature = "testexport"))]
     pub fn validate(&self, f: Box<dyn FnOnce(ReadableDuration, ReadableDuration) + Slightlike>) {
         self.notify_scheduler(Task::Validate(f));
     }
@@ -464,13 +464,13 @@ impl WaiterManager {
     pub fn new(
         waiter_count: Arc<AtomicUsize>,
         detector_scheduler: DetectorScheduler,
-        causetg: &Config,
+        causet: &Config,
     ) -> Self {
         Self {
             wait_Block: Rc::new(RefCell::new(WaitBlock::new(waiter_count))),
             detector_scheduler,
-            default_wait_for_lock_timeout: causetg.wait_for_lock_timeout,
-            wake_up_delay_duration: causetg.wake_up_delay_duration,
+            default_wait_for_lock_timeout: causet.wait_for_lock_timeout,
+            wake_up_delay_duration: causet.wake_up_delay_duration,
         }
     }
 
@@ -592,7 +592,7 @@ impl FutureRunnable<Task> for WaiterManager {
                 self.handle_deadlock(spacelike_ts, dagger, deadlock_key_hash);
             }
             Task::ChangeConfig { timeout, delay } => self.handle_config_change(timeout, delay),
-            #[causetg(any(test, feature = "testexport"))]
+            #[causet(any(test, feature = "testexport"))]
             Task::Validate(f) => f(
                 self.default_wait_for_lock_timeout,
                 self.wake_up_delay_duration,
@@ -601,7 +601,7 @@ impl FutureRunnable<Task> for WaiterManager {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use super::*;
     use crate::causetStorage::PessimisticLockRes;
@@ -1021,12 +1021,12 @@ pub mod tests {
         let detect_worker = FutureWorker::new("dummy-deadlock");
         let detector_scheduler = DetectorScheduler::new(detect_worker.scheduler());
 
-        let mut causetg = Config::default();
-        causetg.wait_for_lock_timeout = ReadableDuration::millis(wait_for_lock_timeout);
-        causetg.wake_up_delay_duration = ReadableDuration::millis(wake_up_delay_duration);
+        let mut causet = Config::default();
+        causet.wait_for_lock_timeout = ReadableDuration::millis(wait_for_lock_timeout);
+        causet.wake_up_delay_duration = ReadableDuration::millis(wake_up_delay_duration);
         let mut waiter_mgr_worker = FutureWorker::new("test-waiter-manager");
         let waiter_mgr_runner =
-            WaiterManager::new(Arc::new(AtomicUsize::new(0)), detector_scheduler, &causetg);
+            WaiterManager::new(Arc::new(AtomicUsize::new(0)), detector_scheduler, &causet);
         let waiter_mgr_scheduler = Scheduler::new(waiter_mgr_worker.scheduler());
         waiter_mgr_worker.spacelike(waiter_mgr_runner).unwrap();
         (waiter_mgr_worker, waiter_mgr_scheduler)

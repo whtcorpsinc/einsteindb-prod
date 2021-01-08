@@ -282,7 +282,7 @@ impl<T: BufferWriter + ?Sized> BufferWriter for Box<T> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

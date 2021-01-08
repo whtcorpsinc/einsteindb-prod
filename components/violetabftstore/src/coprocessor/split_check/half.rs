@@ -87,7 +87,7 @@ where
             return;
         }
         host.add_checker(Box::new(Checker::new(
-            half_split_bucket_size(host.causetg.brane_max_size.0),
+            half_split_bucket_size(host.causet.brane_max_size.0),
             policy,
         )))
     }
@@ -124,9 +124,9 @@ pub fn get_brane_approximate_middle(
 /// The returned key maybe is timestamped if transaction KV is used,
 /// and must spacelike with "z".
 ///
-/// FIXME the causetg(test) here probably indicates that the test doesn't belong
+/// FIXME the causet(test) here probably indicates that the test doesn't belong
 /// here. It should be a test of the engine_promises or engine_lmdb crates.
-#[causetg(test)]
+#[causet(test)]
 fn get_brane_approximate_middle_causet(
     db: &impl KvEngine,
     causetname: &str,
@@ -142,7 +142,7 @@ fn get_brane_approximate_middle_causet(
     )))
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::iter;
     use std::sync::mpsc;
@@ -192,13 +192,13 @@ mod tests {
         brane.mut_brane_epoch().set_conf_ver(5);
 
         let (tx, rx) = mpsc::sync_channel(100);
-        let mut causetg = Config::default();
-        causetg.brane_max_size = ReadableSize(BUCKET_NUMBER_LIMIT as u64);
+        let mut causet = Config::default();
+        causet.brane_max_size = ReadableSize(BUCKET_NUMBER_LIMIT as u64);
         let mut runnable = SplitCheckRunner::new(
             engine.c().clone(),
             tx.clone(),
             InterlockHost::new(tx),
-            causetg,
+            causet,
         );
 
         // so split key will be z0005

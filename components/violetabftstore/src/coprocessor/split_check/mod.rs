@@ -24,15 +24,15 @@ pub use self::Block::BlockCheckObserver;
 pub struct Host<'a, E> {
     checkers: Vec<Box<dyn SplitChecker<E>>>,
     auto_split: bool,
-    causetg: &'a Config,
+    causet: &'a Config,
 }
 
 impl<'a, E> Host<'a, E> {
-    pub fn new(auto_split: bool, causetg: &'a Config) -> Host<'a, E> {
+    pub fn new(auto_split: bool, causet: &'a Config) -> Host<'a, E> {
         Host {
             auto_split,
             checkers: vec![],
-            causetg,
+            causet,
         }
     }
 

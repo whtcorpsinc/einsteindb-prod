@@ -507,7 +507,7 @@ pub fn ensure_dir_exist(path: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[causetg(unix)]
+#[causet(unix)]
 pub fn check_max_open_fds(expect: u64) -> Result<(), ConfigError> {
     use std::mem;
 
@@ -539,12 +539,12 @@ pub fn check_max_open_fds(expect: u64) -> Result<(), ConfigError> {
     }
 }
 
-#[causetg(not(unix))]
+#[causet(not(unix))]
 pub fn check_max_open_fds(_: u64) -> Result<(), ConfigError> {
     Ok(())
 }
 
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 mod check_kernel {
     use std::fs;
 
@@ -625,15 +625,15 @@ mod check_kernel {
     }
 }
 
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 pub use self::check_kernel::check_kernel;
 
-#[causetg(not(target_os = "linux"))]
+#[causet(not(target_os = "linux"))]
 pub fn check_kernel() -> Vec<ConfigError> {
     Vec::new()
 }
 
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 mod check_data_dir {
     use std::ffi::{CStr, CString};
     use std::fs;
@@ -772,7 +772,7 @@ mod check_data_dir {
         Ok(())
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     mod tests {
         use std::fs::File;
         use std::io::Write;
@@ -863,12 +863,12 @@ securityfs /sys/kernel/security securityfs rw,nosuid,nodev,noexec,relatime 0 0
     }
 }
 
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 pub fn check_data_dir(data_path: &str) -> Result<(), ConfigError> {
     self::check_data_dir::check_data_dir(data_path, "/proc/mounts")
 }
 
-#[causetg(not(target_os = "linux"))]
+#[causet(not(target_os = "linux"))]
 pub fn check_data_dir(_data_path: &str) -> Result<(), ConfigError> {
     Ok(())
 }
@@ -1172,7 +1172,7 @@ impl TomlWriter {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::fs::File;
     use std::io::Write;
@@ -1372,7 +1372,7 @@ mod tests {
         assert!(Path::new(&path2).exists());
     }
 
-    #[causetg(target_os = "linux")]
+    #[causet(target_os = "linux")]
     #[test]
     fn test_check_kernel() {
         use super::check_kernel::{check_kernel_params, Checker};
@@ -1523,7 +1523,7 @@ mod tests {
 
     #[test]
     fn test_toml_writer() {
-        let causetg = r#"
+        let causet = r#"
 ## commet1
 log-level = "info"
 
@@ -1558,7 +1558,7 @@ compression-per-level = ["no", "no", "no", "no", "no", "no", "no"]
         );
 
         let mut t = TomlWriter::new();
-        t.write_change(causetg.to_owned(), m);
+        t.write_change(causet.to_owned(), m);
         let expect = r#"
 ## commet1
 log-level = "info"

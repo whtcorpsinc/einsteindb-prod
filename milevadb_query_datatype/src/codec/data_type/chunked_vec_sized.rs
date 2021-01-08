@@ -120,7 +120,7 @@ impl<'a, T: Evaluable> UnsafeRefInto<&'static SolitonedVecSized<T>> for &'a Soli
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::codec::data_type::*;
@@ -267,7 +267,7 @@ mod tests {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod benches {
     use super::*;
 

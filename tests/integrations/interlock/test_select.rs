@@ -81,9 +81,9 @@ fn test_batch_row_limit() {
     let product = ProductBlock::new();
     let (_, lightlikepoint) = {
         let engine = TestEngineBuilder::new().build().unwrap();
-        let mut causetg = Config::default();
-        causetg.lightlike_point_batch_row_limit = batch_row_limit;
-        init_data_with_details(Context::default(), engine, &product, &data, true, &causetg)
+        let mut causet = Config::default();
+        causet.lightlike_point_batch_row_limit = batch_row_limit;
+        init_data_with_details(Context::default(), engine, &product, &data, true, &causet)
     };
 
     // for posetdag selection
@@ -117,9 +117,9 @@ fn test_stream_batch_row_limit() {
     let stream_row_limit = 2;
     let (_, lightlikepoint) = {
         let engine = TestEngineBuilder::new().build().unwrap();
-        let mut causetg = Config::default();
-        causetg.lightlike_point_stream_batch_row_limit = stream_row_limit;
-        init_data_with_details(Context::default(), engine, &product, &data, true, &causetg)
+        let mut causet = Config::default();
+        causet.lightlike_point_stream_batch_row_limit = stream_row_limit;
+        init_data_with_details(Context::default(), engine, &product, &data, true, &causet)
     };
 
     let req = DAGSelect::from(&product).build();
@@ -192,7 +192,7 @@ fn test_select_after_lease() {
         init_data_with_engine_and_commit(ctx.clone(), violetabft_engine, &product, &data, true);
 
     // Sleep until the leader lease is expired.
-    thread::sleep(cluster.causetg.violetabft_store.violetabft_store_max_leader_lease.0);
+    thread::sleep(cluster.causet.violetabft_store.violetabft_store_max_leader_lease.0);
     let req = DAGSelect::from(&product).build_with(ctx, &[0]);
     let mut resp = handle_select(&lightlikepoint, req);
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
@@ -220,9 +220,9 @@ fn test_scan_detail() {
     let product = ProductBlock::new();
     let (_, lightlikepoint) = {
         let engine = TestEngineBuilder::new().build().unwrap();
-        let mut causetg = Config::default();
-        causetg.lightlike_point_batch_row_limit = 50;
-        init_data_with_details(Context::default(), engine, &product, &data, true, &causetg)
+        let mut causet = Config::default();
+        causet.lightlike_point_batch_row_limit = 50;
+        init_data_with_details(Context::default(), engine, &product, &data, true, &causet)
     };
 
     let reqs = vec![

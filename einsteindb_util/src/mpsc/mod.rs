@@ -285,7 +285,7 @@ pub fn loose_bounded<T>(cap: usize) -> (LooseBoundedSlightlikeer<T>, Receiver<T>
     )
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crossbeam::channel::*;
     use std::thread;

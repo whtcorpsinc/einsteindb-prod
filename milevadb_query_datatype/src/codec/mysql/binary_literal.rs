@@ -204,7 +204,7 @@ impl Ord for BinaryLiteral {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

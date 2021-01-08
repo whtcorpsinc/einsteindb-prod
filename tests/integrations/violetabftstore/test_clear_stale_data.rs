@@ -50,22 +50,22 @@ fn check_kv_in_all_causets(db: &DB, i: u8, found: bool) {
 fn test_clear_stale_data<T: Simulator>(cluster: &mut Cluster<T>) {
     // Disable compaction at level 0.
     cluster
-        .causetg
+        .causet
         .lmdb
         .defaultcauset
         .level0_file_num_compaction_trigger = 100;
     cluster
-        .causetg
+        .causet
         .lmdb
         .writecauset
         .level0_file_num_compaction_trigger = 100;
     cluster
-        .causetg
+        .causet
         .lmdb
         .lockcauset
         .level0_file_num_compaction_trigger = 100;
     cluster
-        .causetg
+        .causet
         .lmdb
         .violetabftcauset
         .level0_file_num_compaction_trigger = 100;

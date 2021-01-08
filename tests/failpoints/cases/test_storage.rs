@@ -39,7 +39,7 @@ fn test_scheduler_leader_change_twice() {
     ctx0.set_brane_epoch(brane0.get_brane_epoch().clone());
     ctx0.set_peer(peers[0].clone());
     let (prewrite_tx, prewrite_rx) = channel();
-    fail::causetg(snapshot_fp, "pause").unwrap();
+    fail::causet(snapshot_fp, "pause").unwrap();
     causetStorage0
         .sched_txn_command(
             commands::Prewrite::new(
@@ -86,7 +86,7 @@ fn test_server_catching_api_error() {
     let brane = cluster.get_brane(b"");
     let leader = brane.get_peers()[0].clone();
 
-    fail::causetg(violetabftkv_fp, "return").unwrap();
+    fail::causet(violetabftkv_fp, "return").unwrap();
 
     let env = Arc::new(Environment::new(1));
     let channel =
@@ -159,7 +159,7 @@ fn test_violetabftkv_early_error_report() {
     }
 
     // Inject error to all branes.
-    fail::causetg(violetabftkv_fp, "return").unwrap();
+    fail::causet(violetabftkv_fp, "return").unwrap();
     for (k, (ctx, client)) in &clients {
         let mut put_req = RawPutRequest::default();
         put_req.set_context(ctx.clone());
@@ -178,7 +178,7 @@ fn test_violetabftkv_early_error_report() {
 
     // Inject only one brane
     let injected_brane_id = clients[b"k0".as_ref()].0.get_brane_id();
-    fail::causetg(violetabftkv_fp, &format!("return({})", injected_brane_id)).unwrap();
+    fail::causet(violetabftkv_fp, &format!("return({})", injected_brane_id)).unwrap();
     for (k, (ctx, client)) in &clients {
         let mut put_req = RawPutRequest::default();
         put_req.set_context(ctx.clone());
@@ -218,8 +218,8 @@ fn test_pipelined_pessimistic_lock() {
 
     // Even if causetStorage fails to write the dagger to engine, client should
     // receive the successful response.
-    fail::causetg(rockskv_write_modifies_fp, "return()").unwrap();
-    fail::causetg(scheduler_async_write_finish_fp, "pause").unwrap();
+    fail::causet(rockskv_write_modifies_fp, "return()").unwrap();
+    fail::causet(scheduler_async_write_finish_fp, "pause").unwrap();
     causetStorage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(vec![(key.clone(), false)], 10, 10, true),
@@ -258,7 +258,7 @@ fn test_pipelined_pessimistic_lock() {
     rx.recv().unwrap();
 
     // Should report failure if causetStorage fails to schedule write request to engine.
-    fail::causetg(rockskv_async_write_fp, "return()").unwrap();
+    fail::causet(rockskv_async_write_fp, "return()").unwrap();
     causetStorage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(vec![(key.clone(), false)], 30, 30, true),
@@ -269,7 +269,7 @@ fn test_pipelined_pessimistic_lock() {
     fail::remove(rockskv_async_write_fp);
 
     // Shouldn't release latches until async write finished.
-    fail::causetg(scheduler_async_write_finish_fp, "pause").unwrap();
+    fail::causet(scheduler_async_write_finish_fp, "pause").unwrap();
     for blocked in &[false, true] {
         causetStorage
             .sched_txn_command(
@@ -293,7 +293,7 @@ fn test_pipelined_pessimistic_lock() {
     delete_pessimistic_lock(&causetStorage, key.clone(), 40, 40);
 
     // Pipelined write is finished before async write.
-    fail::causetg(scheduler_async_write_finish_fp, "pause").unwrap();
+    fail::causet(scheduler_async_write_finish_fp, "pause").unwrap();
     causetStorage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(vec![(key.clone(), false)], 50, 50, true),
@@ -309,7 +309,7 @@ fn test_pipelined_pessimistic_lock() {
 
     // Async write is finished before pipelined write due to thread scheduling.
     // CausetStorage should handle it properly.
-    fail::causetg(scheduler_pipelined_write_finish_fp, "pause").unwrap();
+    fail::causet(scheduler_pipelined_write_finish_fp, "pause").unwrap();
     causetStorage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(
@@ -350,7 +350,7 @@ fn test_async_commit_prewrite_with_stale_max_ts() {
     .unwrap();
 
     // Fail to get timestamp from FIDel at first
-    fail::causetg("test_violetabftstore_get_tso", "pause").unwrap();
+    fail::causet("test_violetabftstore_get_tso", "pause").unwrap();
     cluster.must_transfer_leader(1, new_peer(2, 2));
     cluster.must_transfer_leader(1, new_peer(1, 1));
 

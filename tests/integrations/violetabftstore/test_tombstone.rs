@@ -279,12 +279,12 @@ fn test_server_stale_meta() {
 fn test_safe_tombstone_gc() {
     let mut cluster = new_node_cluster(0, 5);
 
-    let tick = cluster.causetg.violetabft_store.violetabft_election_timeout_ticks;
-    let base_tick_interval = cluster.causetg.violetabft_store.violetabft_base_tick_interval.0;
+    let tick = cluster.causet.violetabft_store.violetabft_election_timeout_ticks;
+    let base_tick_interval = cluster.causet.violetabft_store.violetabft_base_tick_interval.0;
     let check_interval = base_tick_interval * (tick as u32 * 2 + 1);
-    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration(check_interval);
-    cluster.causetg.violetabft_store.abnormal_leader_missing_duration = ReadableDuration(check_interval * 2);
-    cluster.causetg.violetabft_store.max_leader_missing_duration = ReadableDuration(check_interval * 2);
+    cluster.causet.violetabft_store.peer_stale_state_check_interval = ReadableDuration(check_interval);
+    cluster.causet.violetabft_store.abnormal_leader_missing_duration = ReadableDuration(check_interval * 2);
+    cluster.causet.violetabft_store.max_leader_missing_duration = ReadableDuration(check_interval * 2);
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
 

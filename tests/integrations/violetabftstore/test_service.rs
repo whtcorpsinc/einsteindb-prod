@@ -669,7 +669,7 @@ fn test_debug_brane_size() {
 }
 
 #[test]
-#[causetg(feature = "failpoints")]
+#[causet(feature = "failpoints")]
 fn test_debug_fail_point() {
     let (_cluster, debug_client, _) = must_new_cluster_and_debug_client();
 

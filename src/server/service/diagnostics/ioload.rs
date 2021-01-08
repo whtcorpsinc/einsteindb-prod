@@ -60,13 +60,13 @@ impl IoLoad {
     /// # Notes
     ///
     /// Current don't support non-unix operating system
-    #[causetg(not(unix))]
+    #[causet(not(unix))]
     pub fn snapshot() -> HashMap<String, NICLoad> {
         HashMap::new()
     }
 
     /// Returns the current IO statistics
-    #[causetg(unix)]
+    #[causet(unix)]
     pub fn snapshot() -> HashMap<String, IoLoad> {
         let mut result = HashMap::new();
         // https://www.kernel.org/doc/Documentation/block/stat.txt

@@ -100,7 +100,7 @@ extern "C" fn write_cb(printer: *mut c_void, msg: *const c_char) {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
 
     #[test]
@@ -109,7 +109,7 @@ mod tests {
     }
 }
 
-#[causetg(feature = "mem-profiling")]
+#[causet(feature = "mem-profiling")]
 mod profiling {
     use std::ffi::CString;
 
@@ -169,7 +169,7 @@ mod profiling {
         }
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     mod tests {
         use std::fs;
         use tempfile::Builder;
@@ -235,7 +235,7 @@ mod profiling {
     }
 }
 
-#[causetg(not(feature = "mem-profiling"))]
+#[causet(not(feature = "mem-profiling"))]
 mod profiling {
     use super::{ProfError, ProfResult};
 

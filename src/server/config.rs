@@ -303,61 +303,61 @@ fn validate_label(s: &str, tp: &str) -> Result<()> {
     Ok(())
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use einsteindb_util::config::ReadableDuration;
 
     #[test]
     fn test_config_validate() {
-        let mut causetg = Config::default();
-        assert!(causetg.advertise_addr.is_empty());
-        assert!(causetg.advertise_status_addr.is_empty());
-        causetg.validate().unwrap();
-        assert_eq!(causetg.addr, causetg.advertise_addr);
-        assert_eq!(causetg.status_addr, causetg.advertise_status_addr);
+        let mut causet = Config::default();
+        assert!(causet.advertise_addr.is_empty());
+        assert!(causet.advertise_status_addr.is_empty());
+        causet.validate().unwrap();
+        assert_eq!(causet.addr, causet.advertise_addr);
+        assert_eq!(causet.status_addr, causet.advertise_status_addr);
 
-        let mut invalid_causetg = causetg.clone();
-        invalid_causetg.concurrent_slightlike_snap_limit = 0;
-        assert!(invalid_causetg.validate().is_err());
+        let mut invalid_causet = causet.clone();
+        invalid_causet.concurrent_slightlike_snap_limit = 0;
+        assert!(invalid_causet.validate().is_err());
 
-        let mut invalid_causetg = causetg.clone();
-        invalid_causetg.concurrent_recv_snap_limit = 0;
-        assert!(invalid_causetg.validate().is_err());
+        let mut invalid_causet = causet.clone();
+        invalid_causet.concurrent_recv_snap_limit = 0;
+        assert!(invalid_causet.validate().is_err());
 
-        let mut invalid_causetg = causetg.clone();
-        invalid_causetg.lightlike_point_recursion_limit = 0;
-        assert!(invalid_causetg.validate().is_err());
+        let mut invalid_causet = causet.clone();
+        invalid_causet.lightlike_point_recursion_limit = 0;
+        assert!(invalid_causet.validate().is_err());
 
-        let mut invalid_causetg = causetg.clone();
-        invalid_causetg.lightlike_point_request_max_handle_duration = ReadableDuration::secs(0);
-        assert!(invalid_causetg.validate().is_err());
+        let mut invalid_causet = causet.clone();
+        invalid_causet.lightlike_point_request_max_handle_duration = ReadableDuration::secs(0);
+        assert!(invalid_causet.validate().is_err());
 
-        invalid_causetg = Config::default();
-        invalid_causetg.addr = "0.0.0.0:1000".to_owned();
-        assert!(invalid_causetg.validate().is_err());
-        invalid_causetg.advertise_addr = "127.0.0.1:1000".to_owned();
-        invalid_causetg.validate().unwrap();
+        invalid_causet = Config::default();
+        invalid_causet.addr = "0.0.0.0:1000".to_owned();
+        assert!(invalid_causet.validate().is_err());
+        invalid_causet.advertise_addr = "127.0.0.1:1000".to_owned();
+        invalid_causet.validate().unwrap();
 
-        invalid_causetg = Config::default();
-        invalid_causetg.status_addr = "0.0.0.0:1000".to_owned();
-        invalid_causetg.validate().unwrap();
-        invalid_causetg.advertise_status_addr = "0.0.0.0:1000".to_owned();
-        assert!(invalid_causetg.validate().is_err());
+        invalid_causet = Config::default();
+        invalid_causet.status_addr = "0.0.0.0:1000".to_owned();
+        invalid_causet.validate().unwrap();
+        invalid_causet.advertise_status_addr = "0.0.0.0:1000".to_owned();
+        assert!(invalid_causet.validate().is_err());
 
-        let mut invalid_causetg = causetg.clone();
-        invalid_causetg.advertise_addr = "127.0.0.1:1000".to_owned();
-        invalid_causetg.advertise_status_addr = "127.0.0.1:1000".to_owned();
-        assert!(invalid_causetg.validate().is_err());
+        let mut invalid_causet = causet.clone();
+        invalid_causet.advertise_addr = "127.0.0.1:1000".to_owned();
+        invalid_causet.advertise_status_addr = "127.0.0.1:1000".to_owned();
+        assert!(invalid_causet.validate().is_err());
 
-        let mut invalid_causetg = causetg.clone();
-        invalid_causetg.grpc_stream_initial_window_size = ReadableSize(i32::MAX as u64 + 1);
-        assert!(invalid_causetg.validate().is_err());
+        let mut invalid_causet = causet.clone();
+        invalid_causet.grpc_stream_initial_window_size = ReadableSize(i32::MAX as u64 + 1);
+        assert!(invalid_causet.validate().is_err());
 
-        causetg.labels.insert("k1".to_owned(), "v1".to_owned());
-        causetg.validate().unwrap();
-        causetg.labels.insert("k2".to_owned(), "v2?".to_owned());
-        assert!(causetg.validate().is_err());
+        causet.labels.insert("k1".to_owned(), "v1".to_owned());
+        causet.validate().unwrap();
+        causet.labels.insert("k2".to_owned(), "v2?".to_owned());
+        assert!(causet.validate().is_err());
     }
 
     #[test]

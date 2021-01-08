@@ -254,7 +254,7 @@ impl ScalarFunc {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crate::tests::{check_overflow, datum_expr, scalar_func_expr, str2dec};
     use crate::Expression;

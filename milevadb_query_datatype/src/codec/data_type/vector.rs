@@ -489,7 +489,7 @@ impl_from! { DateTime, SolitonedVecSized<DateTime> }
 impl_from! { Duration, SolitonedVecSized<Duration> }
 impl_from! { Json, SolitonedVecJson }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

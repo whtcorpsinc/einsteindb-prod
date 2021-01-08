@@ -420,7 +420,7 @@ impl<Src: FreeDaemon> StreamAggFreeDaemon<Src> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::i64;
 

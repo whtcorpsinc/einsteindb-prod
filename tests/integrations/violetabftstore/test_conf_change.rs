@@ -350,7 +350,7 @@ fn test_after_remove_itself<T: Simulator>(cluster: &mut Cluster<T>) {
     fidel_client.disable_default_operator();
 
     // disable auto compact log.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 10000;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 10000;
 
     let r1 = cluster.run_conf_change();
     cluster.must_put(b"kk", b"vv");
@@ -491,8 +491,8 @@ fn test_split_brain<T: Simulator>(cluster: &mut Cluster<T>) {
     assert!(header0.get_error().has_brane_not_found());
 
     // at least wait for a round of election timeout and check again
-    let base_tick = cluster.causetg.violetabft_store.violetabft_base_tick_interval.0;
-    let election_timeout = base_tick * cluster.causetg.violetabft_store.violetabft_election_timeout_ticks as u32;
+    let base_tick = cluster.causet.violetabft_store.violetabft_base_tick_interval.0;
+    let election_timeout = base_tick * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32;
     thread::sleep(election_timeout * 2);
 
     let header1 = find_leader_response_header(cluster, r1, new_peer(2, 2));
@@ -593,7 +593,7 @@ fn test_transfer_leader_safe<T: Simulator>(cluster: &mut Cluster<T>) {
     fidel_client.disable_default_operator();
 
     let brane_id = cluster.run_conf_change();
-    let causetg = cluster.causetg.clone();
+    let causet = cluster.causet.clone();
     cluster.must_put(b"k1", b"v1");
 
     // Test adding nodes.
@@ -617,7 +617,7 @@ fn test_transfer_leader_safe<T: Simulator>(cluster: &mut Cluster<T>) {
     }
 
     // Test transfer leader after a safe duration.
-    thread::sleep(causetg.violetabft_store.violetabft_reject_transfer_leader_duration.into());
+    thread::sleep(causet.violetabft_store.violetabft_reject_transfer_leader_duration.into());
     assert_eq!(
         cluster.leader_of_brane(brane_id).unwrap().get_id(),
         leader_id
@@ -764,7 +764,7 @@ fn test_server_transfer_leader_safe() {
 #[test]
 fn test_conf_change_remove_leader() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.violetabft_store.allow_remove_leader = false;
+    cluster.causet.violetabft_store.allow_remove_leader = false;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
     let r1 = cluster.run_conf_change();
@@ -906,7 +906,7 @@ fn test_stale_peer<T: Simulator>(cluster: &mut Cluster<T>) {
 fn test_node_stale_peer() {
     let mut cluster = new_node_cluster(0, 4);
     // To avoid stale peers know they are stale from FIDel.
-    cluster.causetg.violetabft_store.max_leader_missing_duration = ReadableDuration::hours(2);
+    cluster.causet.violetabft_store.max_leader_missing_duration = ReadableDuration::hours(2);
     test_stale_peer(&mut cluster);
 }
 

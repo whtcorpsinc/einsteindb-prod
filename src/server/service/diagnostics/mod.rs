@@ -18,9 +18,9 @@ use ekvproto::diagnosticspb::{
 };
 use tokio::runtime::Handle;
 
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 use ekvproto::diagnosticspb::search_log_request::Target as SearchLogRequestTarget;
-#[causetg(not(feature = "prost-codec"))]
+#[causet(not(feature = "prost-codec"))]
 use ekvproto::diagnosticspb::SearchLogRequestTarget;
 
 use security::{check_common_name, SecurityManager};

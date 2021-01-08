@@ -33,7 +33,7 @@ pub fn setup_for_ci() {
         // Linux and it hasn't been set before.
         // See more: https://github.com/grpc/grpc/blob/v1.17.2/src/core/lib/iomgr/ev_posix.cc#L124
         // See more: https://grpc.io/grpc/core/md_doc_core_grpc-polling-engines.html
-        #[causetg(target_os = "linux")]
+        #[causet(target_os = "linux")]
         {
             if env::var("GRPC_POLL_STRATEGY").is_err() {
                 env::set_var("GRPC_POLL_STRATEGY", "epollex");

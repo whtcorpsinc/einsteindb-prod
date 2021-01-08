@@ -320,7 +320,7 @@ pub fn compare_in_by_compare_json(args: &[Option<JsonRef>]) -> Result<Option<Int
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::map_expr_node_to_rpn_func;
     use super::*;

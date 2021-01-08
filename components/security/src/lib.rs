@@ -120,27 +120,27 @@ impl SecurityConfig {
 
 #[derive(Default)]
 pub struct SecurityManager {
-    causetg: Arc<SecurityConfig>,
+    causet: Arc<SecurityConfig>,
 }
 
 impl SecurityManager {
-    pub fn new(causetg: &SecurityConfig) -> Result<SecurityManager, Box<dyn Error>> {
+    pub fn new(causet: &SecurityConfig) -> Result<SecurityManager, Box<dyn Error>> {
         Ok(SecurityManager {
-            causetg: Arc::new(causetg.clone()),
+            causet: Arc::new(causet.clone()),
         })
     }
 
     pub fn connect(&self, mut cb: ChannelBuilder, addr: &str) -> Channel {
-        if self.causetg.ca_path.is_empty() {
+        if self.causet.ca_path.is_empty() {
             cb.connect(addr)
         } else {
-            if !self.causetg.override_ssl_target.is_empty() {
-                cb = cb.override_ssl_target(self.causetg.override_ssl_target.clone());
+            if !self.causet.override_ssl_target.is_empty() {
+                cb = cb.override_ssl_target(self.causet.override_ssl_target.clone());
             }
             // Fill in empty certificate information if read fails.
             // Returning empty certificates delays error processing until
             // actual connection in grpc.
-            let (ca, cert, key) = self.causetg.load_certs().unwrap_or_default();
+            let (ca, cert, key) = self.causet.load_certs().unwrap_or_default();
 
             let cred = ChannelCredentialsBuilder::new()
                 .root_cert(ca)
@@ -151,11 +151,11 @@ impl SecurityManager {
     }
 
     pub fn bind(&self, sb: ServerBuilder, addr: &str, port: u16) -> ServerBuilder {
-        if self.causetg.ca_path.is_empty() {
+        if self.causet.ca_path.is_empty() {
             sb.bind(addr, port)
         } else {
             let fetcher = Box::new(Fetcher {
-                causetg: self.causetg.clone(),
+                causet: self.causet.clone(),
                 last_modified_time: Arc::new(Mutex::new(None)),
             });
             sb.bind_with_fetcher(
@@ -168,12 +168,12 @@ impl SecurityManager {
     }
 
     pub fn cert_allowed_cn(&self) -> &HashSet<String> {
-        &self.causetg.cert_allowed_cn
+        &self.causet.cert_allowed_cn
     }
 }
 
 struct Fetcher {
-    causetg: Arc<SecurityConfig>,
+    causet: Arc<SecurityConfig>,
     last_modified_time: Arc<Mutex<Option<SystemTime>>>,
 }
 
@@ -184,8 +184,8 @@ impl ServerCredentialsFetcher for Fetcher {
     fn fetch(&self) -> Result<Option<ServerCredentialsBuilder>, Box<dyn Error>> {
         if let Ok(mut last) = self.last_modified_time.try_lock() {
             // Reload only when cert is modified.
-            if self.causetg.is_modified(&mut last)? {
-                let (ca, cert, key) = self.causetg.load_certs()?;
+            if self.causet.is_modified(&mut last)? {
+                let (ca, cert, key) = self.causet.load_certs()?;
                 let new_cred = ServerCredentialsBuilder::new()
                     .add_cert(cert, key)
                     .root_cert(
@@ -234,7 +234,7 @@ pub fn match_peer_names(allowed_cn: &HashSet<String>, name: &str) -> bool {
     false
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 
@@ -244,22 +244,22 @@ mod tests {
 
     #[test]
     fn test_security() {
-        let causetg = SecurityConfig::default();
+        let causet = SecurityConfig::default();
         // default is disable secure connection.
-        causetg.validate().unwrap();
-        let mgr = SecurityManager::new(&causetg).unwrap();
-        assert!(mgr.causetg.ca_path.is_empty());
-        assert!(mgr.causetg.cert_path.is_empty());
-        assert!(mgr.causetg.key_path.is_empty());
+        causet.validate().unwrap();
+        let mgr = SecurityManager::new(&causet).unwrap();
+        assert!(mgr.causet.ca_path.is_empty());
+        assert!(mgr.causet.cert_path.is_empty());
+        assert!(mgr.causet.key_path.is_empty());
 
-        let assert_causetg = |c: fn(&mut SecurityConfig), valid: bool| {
-            let mut invalid_causetg = causetg.clone();
-            c(&mut invalid_causetg);
-            assert_eq!(invalid_causetg.validate().is_ok(), valid);
+        let assert_causet = |c: fn(&mut SecurityConfig), valid: bool| {
+            let mut invalid_causet = causet.clone();
+            c(&mut invalid_causet);
+            assert_eq!(invalid_causet.validate().is_ok(), valid);
         };
 
         // invalid path should be rejected.
-        assert_causetg(
+        assert_causet(
             |c| {
                 c.ca_path = "invalid ca path".to_owned();
                 c.cert_path = "invalid cert path".to_owned();
@@ -279,7 +279,7 @@ mod tests {
             fs::write(f, &[id as u8]).unwrap();
         }
 
-        let mut c = causetg.clone();
+        let mut c = causet.clone();
         c.cert_path = format!("{}", example_cert.display());
         c.key_path = format!("{}", example_key.display());
         // incomplete configuration.
@@ -298,16 +298,16 @@ mod tests {
     #[test]
     fn test_modify_file() {
         let mut file = Builder::new().prefix("test_modify").tempfile().unwrap();
-        let mut causetg = SecurityConfig::default();
-        causetg.cert_path = file.path().to_str().unwrap().to_owned();
+        let mut causet = SecurityConfig::default();
+        causet.cert_path = file.path().to_str().unwrap().to_owned();
 
         let mut last = None;
-        assert!(causetg.is_modified(&mut last).unwrap());
-        assert!(!causetg.is_modified(&mut last).unwrap());
+        assert!(causet.is_modified(&mut last).unwrap());
+        assert!(!causet.is_modified(&mut last).unwrap());
 
         std::thread::sleep(std::time::Duration::from_millis(10));
         writeln!(file, "something").unwrap();
-        assert!(causetg.is_modified(&mut last).unwrap());
-        assert!(!causetg.is_modified(&mut last).unwrap());
+        assert!(causet.is_modified(&mut last).unwrap());
+        assert!(!causet.is_modified(&mut last).unwrap());
     }
 }

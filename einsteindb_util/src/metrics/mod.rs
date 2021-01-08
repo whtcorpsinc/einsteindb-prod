@@ -5,24 +5,24 @@ use std::time::Duration;
 
 use prometheus::*;
 
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 mod threads_linux;
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 pub use self::threads_linux::{cpu_total, get_thread_ids, monitor_threads, ThreadInfoStatistics};
 
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 mod process_linux;
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 pub use self::process_linux::monitor_process;
 
-#[causetg(not(target_os = "linux"))]
+#[causet(not(target_os = "linux"))]
 mod threads_dummy;
-#[causetg(not(target_os = "linux"))]
+#[causet(not(target_os = "linux"))]
 pub use self::threads_dummy::{monitor_threads, ThreadInfoStatistics};
 
-#[causetg(not(target_os = "linux"))]
+#[causet(not(target_os = "linux"))]
 mod process_dummy;
-#[causetg(not(target_os = "linux"))]
+#[causet(not(target_os = "linux"))]
 pub use self::process_dummy::monitor_process;
 
 pub use self::allocator_metrics::monitor_allocator_stats;

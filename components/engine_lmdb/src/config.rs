@@ -235,7 +235,7 @@ macro_rules! numeric_enum_mod {
                 deserializer.deserialize_i64(EnumVisitor)
             }
 
-            #[causetg(test)]
+            #[causet(test)]
             mod tests {
                 use toml;
                 use lmdb::$enum;
@@ -300,7 +300,7 @@ numeric_enum_mod! {perf_level_serde PerfLevel {
     OutOfBounds = 6,
 }}
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use lmdb::DBCompressionType;

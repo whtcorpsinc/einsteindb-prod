@@ -182,7 +182,7 @@ impl SyncMuBlock for LmdbEngine {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crate::raw_util;
     use engine_promises::{Iterable, KvEngine, Peekable, SyncMuBlock};

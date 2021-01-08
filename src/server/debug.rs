@@ -122,17 +122,17 @@ impl From<BottommostLevelCompaction> for debugpb::BottommostLevelCompaction {
 #[derive(Clone)]
 pub struct Debugger<ER: VioletaBftEngine> {
     engines: Engines<LmdbEngine, ER>,
-    causetg_controller: ConfigController,
+    causet_controller: ConfigController,
 }
 
 impl<ER: VioletaBftEngine> Debugger<ER> {
     pub fn new(
         engines: Engines<LmdbEngine, ER>,
-        causetg_controller: ConfigController,
+        causet_controller: ConfigController,
     ) -> Debugger<ER> {
         Debugger {
             engines,
-            causetg_controller,
+            causet_controller,
         }
     }
 
@@ -506,7 +506,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
                 tag,
             ));
 
-            let violetabft_causetg = violetabft::Config {
+            let violetabft_causet = violetabft::Config {
                 id: peer_id,
                 election_tick: 10,
                 heartbeat_tick: 2,
@@ -518,7 +518,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
             };
 
             box_try!(RawNode::new(
-                &violetabft_causetg,
+                &violetabft_causet,
                 peer_causetStorage,
                 &slog_global::get_global()
             ));
@@ -709,7 +709,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
     }
 
     pub fn modify_einsteindb_config(&self, config_name: &str, config_value: &str) -> Result<()> {
-        if let Err(e) = self.causetg_controller.ufidelate_config(config_name, config_value) {
+        if let Err(e) = self.causet_controller.ufidelate_config(config_name, config_value) {
             return Err(Error::Other(
                 format!("failed to ufidelate config, err: {:?}", e).into(),
             ));
@@ -1388,7 +1388,7 @@ fn divide_db(db: &Arc<DB>, parts: usize) -> violetabftstore::Result<Vec<Vec<u8>>
     ))
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::sync::Arc;
 

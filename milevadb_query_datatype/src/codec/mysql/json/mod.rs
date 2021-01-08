@@ -476,7 +476,7 @@ impl crate::codec::data_type::AsMySQLBool for Json {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

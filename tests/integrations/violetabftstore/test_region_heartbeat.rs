@@ -26,7 +26,7 @@ fn wait_down_peers<T: Simulator>(cluster: &Cluster<T>, count: u64, peer: Option<
 }
 
 fn test_down_peers<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.max_peer_down_duration = ReadableDuration::secs(1);
+    cluster.causet.violetabft_store.max_peer_down_duration = ReadableDuration::secs(1);
     cluster.run();
 
     // Kill 1, 2
@@ -80,14 +80,14 @@ fn test_server_down_peers_with_hibernate_branes() {
     // When hibernate_branes is enabled, down peers are not detected in time
     // by design. So here use a short check interval to trigger brane heartbeat
     // more frequently.
-    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
+    cluster.causet.violetabft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
     test_down_peers(&mut cluster);
 }
 
 #[test]
 fn test_server_down_peers_without_hibernate_branes() {
     let mut cluster = new_server_cluster(0, 5);
-    cluster.causetg.violetabft_store.hibernate_branes = false;
+    cluster.causet.violetabft_store.hibernate_branes = false;
     test_down_peers(&mut cluster);
 }
 
@@ -181,7 +181,7 @@ fn test_brane_heartbeat_timestamp() {
 }
 
 // FIXME(nrc) failing on CI only
-#[causetg(feature = "protobuf-codec")]
+#[causet(feature = "protobuf-codec")]
 #[test]
 fn test_brane_heartbeat_term() {
     let mut cluster = new_server_cluster(0, 3);

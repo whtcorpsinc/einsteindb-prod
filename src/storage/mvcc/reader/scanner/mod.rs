@@ -427,7 +427,7 @@ where
     Ok(None)
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::causetStorage::kv::SEEK_BOUND;

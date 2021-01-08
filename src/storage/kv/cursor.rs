@@ -520,7 +520,7 @@ impl<'a, S: 'a + Snapshot> CursorBuilder<'a, S> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use engine_lmdb::{LmdbEngine, LmdbSnapshot};
     use engine_promises::{Engines, IterOptions, SyncMuBlock};

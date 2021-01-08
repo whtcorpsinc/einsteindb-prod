@@ -135,7 +135,7 @@ impl LockObserver {
             .slightlikeer
             .schedule(LockCollectorTask::ObservedLocks(locks));
         // Wrap the fail point in a closure, so we can modify local variables without return.
-        #[causetg(feature = "failpoints")]
+        #[causet(feature = "failpoints")]
         {
             let mut slightlike_fp = || {
                 fail_point!("lock_observer_slightlike", |_| {
@@ -455,7 +455,7 @@ impl Drop for AppliedLockCollector {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use engine_promises::CAUSET_DEFAULT;

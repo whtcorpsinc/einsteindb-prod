@@ -1296,15 +1296,15 @@ impl DBConfigManger {
         let handle = self.db.causet_handle(causet)?;
         self.db.set_options_causet(handle, opts)?;
         // Write config to metric
-        for (causetg_name, causetg_value) in opts {
-            let causetg_value = match causetg_value {
+        for (causet_name, causet_value) in opts {
+            let causet_value = match causet_value {
                 v if *v == "true" => Ok(1f64),
                 v if *v == "false" => Ok(0f64),
                 v => v.parse::<f64>(),
             };
-            if let Ok(v) = causetg_value {
+            if let Ok(v) = causet_value {
                 CONFIG_LMDB_GAUGE
-                    .with_label_values(&[causet, causetg_name])
+                    .with_label_values(&[causet, causet_name])
                     .set(v);
             }
         }
@@ -1529,44 +1529,44 @@ impl Default for UnifiedReadPoolConfig {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod unified_read_pool_tests {
     use super::*;
 
     #[test]
     fn test_validate() {
-        let causetg = UnifiedReadPoolConfig {
+        let causet = UnifiedReadPoolConfig {
             min_thread_count: 1,
             max_thread_count: 2,
             stack_size: ReadableSize::mb(2),
             max_tasks_per_worker: 2000,
         };
-        assert!(causetg.validate().is_ok());
+        assert!(causet.validate().is_ok());
 
-        let invalid_causetg = UnifiedReadPoolConfig {
+        let invalid_causet = UnifiedReadPoolConfig {
             min_thread_count: 0,
-            ..causetg
+            ..causet
         };
-        assert!(invalid_causetg.validate().is_err());
+        assert!(invalid_causet.validate().is_err());
 
-        let invalid_causetg = UnifiedReadPoolConfig {
+        let invalid_causet = UnifiedReadPoolConfig {
             min_thread_count: 2,
             max_thread_count: 1,
-            ..causetg
+            ..causet
         };
-        assert!(invalid_causetg.validate().is_err());
+        assert!(invalid_causet.validate().is_err());
 
-        let invalid_causetg = UnifiedReadPoolConfig {
+        let invalid_causet = UnifiedReadPoolConfig {
             stack_size: ReadableSize::mb(1),
-            ..causetg
+            ..causet
         };
-        assert!(invalid_causetg.validate().is_err());
+        assert!(invalid_causet.validate().is_err());
 
-        let invalid_causetg = UnifiedReadPoolConfig {
+        let invalid_causet = UnifiedReadPoolConfig {
             max_tasks_per_worker: 1,
-            ..causetg
+            ..causet
         };
-        assert!(invalid_causetg.validate().is_err());
+        assert!(invalid_causet.validate().is_err());
     }
 }
 
@@ -1679,56 +1679,56 @@ macro_rules! readpool_config {
             }
         }
 
-        #[causetg(test)]
+        #[causet(test)]
         mod $test_mod_name {
             use super::*;
 
             #[test]
             fn test_validate() {
-                let causetg = $struct_name::default();
-                assert!(causetg.validate().is_ok());
+                let causet = $struct_name::default();
+                assert!(causet.validate().is_ok());
 
-                let mut invalid_causetg = causetg.clone();
-                invalid_causetg.high_concurrency = 0;
-                assert!(invalid_causetg.validate().is_err());
+                let mut invalid_causet = causet.clone();
+                invalid_causet.high_concurrency = 0;
+                assert!(invalid_causet.validate().is_err());
 
-                let mut invalid_causetg = causetg.clone();
-                invalid_causetg.normal_concurrency = 0;
-                assert!(invalid_causetg.validate().is_err());
+                let mut invalid_causet = causet.clone();
+                invalid_causet.normal_concurrency = 0;
+                assert!(invalid_causet.validate().is_err());
 
-                let mut invalid_causetg = causetg.clone();
-                invalid_causetg.low_concurrency = 0;
-                assert!(invalid_causetg.validate().is_err());
+                let mut invalid_causet = causet.clone();
+                invalid_causet.low_concurrency = 0;
+                assert!(invalid_causet.validate().is_err());
 
-                let mut invalid_causetg = causetg.clone();
-                invalid_causetg.stack_size = ReadableSize::mb(1);
-                assert!(invalid_causetg.validate().is_err());
+                let mut invalid_causet = causet.clone();
+                invalid_causet.stack_size = ReadableSize::mb(1);
+                assert!(invalid_causet.validate().is_err());
 
-                let mut invalid_causetg = causetg.clone();
-                invalid_causetg.max_tasks_per_worker_high = 0;
-                assert!(invalid_causetg.validate().is_err());
-                invalid_causetg.max_tasks_per_worker_high = 1;
-                assert!(invalid_causetg.validate().is_err());
-                invalid_causetg.max_tasks_per_worker_high = 100;
-                assert!(causetg.validate().is_ok());
+                let mut invalid_causet = causet.clone();
+                invalid_causet.max_tasks_per_worker_high = 0;
+                assert!(invalid_causet.validate().is_err());
+                invalid_causet.max_tasks_per_worker_high = 1;
+                assert!(invalid_causet.validate().is_err());
+                invalid_causet.max_tasks_per_worker_high = 100;
+                assert!(causet.validate().is_ok());
 
-                let mut invalid_causetg = causetg.clone();
-                invalid_causetg.max_tasks_per_worker_normal = 0;
-                assert!(invalid_causetg.validate().is_err());
-                invalid_causetg.max_tasks_per_worker_normal = 1;
-                assert!(invalid_causetg.validate().is_err());
-                invalid_causetg.max_tasks_per_worker_normal = 100;
-                assert!(causetg.validate().is_ok());
+                let mut invalid_causet = causet.clone();
+                invalid_causet.max_tasks_per_worker_normal = 0;
+                assert!(invalid_causet.validate().is_err());
+                invalid_causet.max_tasks_per_worker_normal = 1;
+                assert!(invalid_causet.validate().is_err());
+                invalid_causet.max_tasks_per_worker_normal = 100;
+                assert!(causet.validate().is_ok());
 
-                let mut invalid_causetg = causetg.clone();
-                invalid_causetg.max_tasks_per_worker_low = 0;
-                assert!(invalid_causetg.validate().is_err());
-                invalid_causetg.max_tasks_per_worker_low = 1;
-                assert!(invalid_causetg.validate().is_err());
-                invalid_causetg.max_tasks_per_worker_low = 100;
-                assert!(causetg.validate().is_ok());
+                let mut invalid_causet = causet.clone();
+                invalid_causet.max_tasks_per_worker_low = 0;
+                assert!(invalid_causet.validate().is_err());
+                invalid_causet.max_tasks_per_worker_low = 1;
+                assert!(invalid_causet.validate().is_err());
+                invalid_causet.max_tasks_per_worker_low = 100;
+                assert!(causet.validate().is_ok());
 
-                let mut invalid_but_unified = causetg.clone();
+                let mut invalid_but_unified = causet.clone();
                 invalid_but_unified.use_unified_pool = Some(true);
                 invalid_but_unified.low_concurrency = 0;
                 assert!(invalid_but_unified.validate().is_ok());
@@ -1861,7 +1861,7 @@ impl ReadPoolConfig {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod readpool_tests {
     use super::*;
 
@@ -1885,13 +1885,13 @@ mod readpool_tests {
             ..Default::default()
         };
         assert!(interlock.validate().is_ok());
-        let causetg = ReadPoolConfig {
+        let causet = ReadPoolConfig {
             unified,
             causetStorage,
             interlock,
         };
-        assert!(!causetg.is_unified_pool_enabled());
-        assert!(causetg.validate().is_ok());
+        assert!(!causet.is_unified_pool_enabled());
+        assert!(causet.validate().is_ok());
 
         // CausetStorage and interlock config must be valid when yatp is not used.
         let unified = UnifiedReadPoolConfig::default();
@@ -1906,13 +1906,13 @@ mod readpool_tests {
             use_unified_pool: Some(false),
             ..Default::default()
         };
-        let invalid_causetg = ReadPoolConfig {
+        let invalid_causet = ReadPoolConfig {
             unified,
             causetStorage,
             interlock,
         };
-        assert!(!invalid_causetg.is_unified_pool_enabled());
-        assert!(invalid_causetg.validate().is_err());
+        assert!(!invalid_causet.is_unified_pool_enabled());
+        assert!(invalid_causet.validate().is_err());
     }
 
     #[test]
@@ -1931,14 +1931,14 @@ mod readpool_tests {
         assert!(causetStorage.validate().is_ok());
         let interlock = CoprReadPoolConfig::default();
         assert!(interlock.validate().is_ok());
-        let mut causetg = ReadPoolConfig {
+        let mut causet = ReadPoolConfig {
             unified,
             causetStorage,
             interlock,
         };
-        causetg.adjust_use_unified_pool();
-        assert!(causetg.is_unified_pool_enabled());
-        assert!(causetg.validate().is_err());
+        causet.adjust_use_unified_pool();
+        assert!(causet.is_unified_pool_enabled());
+        assert!(causet.validate().is_err());
     }
 
     #[test]
@@ -1948,15 +1948,15 @@ mod readpool_tests {
         let interlock = CoprReadPoolConfig::default();
         assert!(interlock.use_unified_pool());
 
-        let mut causetg = ReadPoolConfig {
+        let mut causet = ReadPoolConfig {
             causetStorage,
             interlock,
             ..Default::default()
         };
-        assert!(causetg.is_unified_pool_enabled());
+        assert!(causet.is_unified_pool_enabled());
 
-        causetg.interlock.use_unified_pool = Some(false);
-        assert!(!causetg.is_unified_pool_enabled());
+        causet.interlock.use_unified_pool = Some(false);
+        assert!(!causet.is_unified_pool_enabled());
     }
 
     #[test]
@@ -1972,15 +1972,15 @@ mod readpool_tests {
             ..Default::default()
         };
         assert!(interlock.use_unified_pool());
-        let mut causetg = ReadPoolConfig {
+        let mut causet = ReadPoolConfig {
             causetStorage,
             interlock,
             ..Default::default()
         };
-        assert!(causetg.is_unified_pool_enabled());
-        assert!(causetg.validate().is_err());
-        causetg.causetStorage.low_concurrency = 1;
-        assert!(causetg.validate().is_ok());
+        assert!(causet.is_unified_pool_enabled());
+        assert!(causet.validate().is_err());
+        causet.causetStorage.low_concurrency = 1;
+        assert!(causet.validate().is_ok());
 
         let causetStorage = StorageReadPoolConfig {
             use_unified_pool: Some(true),
@@ -1993,15 +1993,15 @@ mod readpool_tests {
             ..Default::default()
         };
         assert!(!interlock.use_unified_pool());
-        let mut causetg = ReadPoolConfig {
+        let mut causet = ReadPoolConfig {
             causetStorage,
             interlock,
             ..Default::default()
         };
-        assert!(causetg.is_unified_pool_enabled());
-        assert!(causetg.validate().is_err());
-        causetg.interlock.low_concurrency = 1;
-        assert!(causetg.validate().is_ok());
+        assert!(causet.is_unified_pool_enabled());
+        assert!(causet.validate().is_err());
+        causet.interlock.low_concurrency = 1;
+        assert!(causet.validate().is_ok());
     }
 }
 
@@ -2055,7 +2055,7 @@ pub struct EINSTEINDBConfig {
     #[doc(hidden)]
     #[serde(skip_serializing)]
     #[config(hidden)]
-    pub causetg_path: String,
+    pub causet_path: String,
 
     #[config(skip)]
     #[serde(with = "log_level_serde")]
@@ -2138,7 +2138,7 @@ pub struct EINSTEINDBConfig {
 impl Default for EINSTEINDBConfig {
     fn default() -> EINSTEINDBConfig {
         EINSTEINDBConfig {
-            causetg_path: "".to_owned(),
+            causet_path: "".to_owned(),
             log_level: slog::Level::Info,
             log_file: "".to_owned(),
             log_format: LogFormat::Text,
@@ -2176,8 +2176,8 @@ impl EINSTEINDBConfig {
 
         self.violetabft_store.brane_split_check_diff = self.interlock.brane_split_size / 16;
 
-        if self.causetg_path.is_empty() {
-            self.causetg_path = Path::new(&self.causetStorage.data_dir)
+        if self.causet_path.is_empty() {
+            self.causet_path = Path::new(&self.causetStorage.data_dir)
                 .join(LAST_CONFIG_FILE)
                 .to_str()
                 .unwrap()
@@ -2359,9 +2359,9 @@ impl EINSTEINDBConfig {
         // When shared block cache is enabled, if its capacity is set, it overrides individual
         // block cache sizes. Otherwise use the sum of block cache size of all PrimaryCauset families
         // as the shared cache size.
-        let cache_causetg = &mut self.causetStorage.block_cache;
-        if cache_causetg.shared && cache_causetg.capacity.0.is_none() {
-            cache_causetg.capacity.0 = Some(ReadableSize {
+        let cache_causet = &mut self.causetStorage.block_cache;
+        if cache_causet.shared && cache_causet.capacity.0.is_none() {
+            cache_causet.capacity.0 = Some(ReadableSize {
                 0: self.lmdb.defaultcauset.block_cache_size.0
                     + self.lmdb.writecauset.block_cache_size.0
                     + self.lmdb.lockcauset.block_cache_size.0
@@ -2372,58 +2372,58 @@ impl EINSTEINDBConfig {
         self.readpool.adjust_use_unified_pool();
     }
 
-    pub fn check_critical_causetg_with(&self, last_causetg: &Self) -> Result<(), String> {
-        if last_causetg.lmdb.wal_dir != self.lmdb.wal_dir {
+    pub fn check_critical_causet_with(&self, last_causet: &Self) -> Result<(), String> {
+        if last_causet.lmdb.wal_dir != self.lmdb.wal_dir {
             return Err(format!(
                 "db wal_dir have been changed, former db wal_dir is '{}', \
                  current db wal_dir is '{}', please guarantee all data wal logs \
                  have been moved to destination directory.",
-                last_causetg.lmdb.wal_dir, self.lmdb.wal_dir
+                last_causet.lmdb.wal_dir, self.lmdb.wal_dir
             ));
         }
 
-        if last_causetg.violetabftdb.wal_dir != self.violetabftdb.wal_dir {
+        if last_causet.violetabftdb.wal_dir != self.violetabftdb.wal_dir {
             return Err(format!(
                 "violetabftdb wal_dir have been changed, former violetabftdb wal_dir is '{}', \
                  current violetabftdb wal_dir is '{}', please guarantee all violetabft wal logs \
                  have been moved to destination directory.",
-                last_causetg.violetabftdb.wal_dir, self.lmdb.wal_dir
+                last_causet.violetabftdb.wal_dir, self.lmdb.wal_dir
             ));
         }
 
-        if last_causetg.causetStorage.data_dir != self.causetStorage.data_dir {
+        if last_causet.causetStorage.data_dir != self.causetStorage.data_dir {
             // In einsteindb 3.0 the default value of causetStorage.data-dir changed
             // from "" to "./"
             let using_default_after_upgrade =
-                last_causetg.causetStorage.data_dir.is_empty() && self.causetStorage.data_dir == DEFAULT_DATA_DIR;
+                last_causet.causetStorage.data_dir.is_empty() && self.causetStorage.data_dir == DEFAULT_DATA_DIR;
 
             if !using_default_after_upgrade {
                 return Err(format!(
                     "causetStorage data dir have been changed, former data dir is {}, \
                      current data dir is {}, please check if it is expected.",
-                    last_causetg.causetStorage.data_dir, self.causetStorage.data_dir
+                    last_causet.causetStorage.data_dir, self.causetStorage.data_dir
                 ));
             }
         }
 
-        if last_causetg.violetabft_store.violetabftdb_path != self.violetabft_store.violetabftdb_path {
+        if last_causet.violetabft_store.violetabftdb_path != self.violetabft_store.violetabftdb_path {
             return Err(format!(
                 "violetabft dir have been changed, former violetabft dir is '{}', \
                  current violetabft dir is '{}', please check if it is expected.",
-                last_causetg.violetabft_store.violetabftdb_path, self.violetabft_store.violetabftdb_path
+                last_causet.violetabft_store.violetabftdb_path, self.violetabft_store.violetabftdb_path
             ));
         }
-        if last_causetg.violetabft_engine.enable
+        if last_causet.violetabft_engine.enable
             && self.violetabft_engine.enable
-            && last_causetg.violetabft_engine.config.dir != self.violetabft_engine.config.dir
+            && last_causet.violetabft_engine.config.dir != self.violetabft_engine.config.dir
         {
             return Err(format!(
                 "violetabft engine dir have been changed, former is '{}', \
                  current is '{}', please check if it is expected.",
-                last_causetg.violetabft_engine.config.dir, self.violetabft_engine.config.dir
+                last_causet.violetabft_engine.config.dir, self.violetabft_engine.config.dir
             ));
         }
-        if last_causetg.violetabft_engine.enable && !self.violetabft_engine.enable {
+        if last_causet.violetabft_engine.enable && !self.violetabft_engine.enable {
             return Err("violetabft engine can't be disabled after switched on.".to_owned());
         }
 
@@ -2434,14 +2434,14 @@ impl EINSTEINDBConfig {
         (|| -> Result<Self, Box<dyn Error>> {
             let s = fs::read_to_string(path)?;
             let mut deserializer = toml::Deserializer::new(&s);
-            let mut causetg = if let Some(tuplespaceInstanton) = unrecognized_tuplespaceInstanton {
+            let mut causet = if let Some(tuplespaceInstanton) = unrecognized_tuplespaceInstanton {
                 serde_ignored::deserialize(&mut deserializer, |key| tuplespaceInstanton.push(key.to_string()))
             } else {
                 <EINSTEINDBConfig as serde::Deserialize>::deserialize(&mut deserializer)
             }?;
             deserializer.lightlike()?;
-            causetg.causetg_path = path.display().to_string();
-            Ok(causetg)
+            causet.causet_path = path.display().to_string();
+            Ok(causet)
         })()
         .unwrap_or_else(|e| {
             panic!(
@@ -2468,10 +2468,10 @@ impl EINSTEINDBConfig {
 
     pub fn with_tmp() -> Result<(EINSTEINDBConfig, tempfile::TempDir), IoError> {
         let tmp = tempfile::temfidelir()?;
-        let mut causetg = EINSTEINDBConfig::default();
-        causetg.causetStorage.data_dir = tmp.path().display().to_string();
-        causetg.causetg_path = tmp.path().join(LAST_CONFIG_FILE).display().to_string();
-        Ok((causetg, tmp))
+        let mut causet = EINSTEINDBConfig::default();
+        causet.causetStorage.data_dir = tmp.path().display().to_string();
+        causet.causet_path = tmp.path().join(LAST_CONFIG_FILE).display().to_string();
+        Ok((causet, tmp))
     }
 }
 
@@ -2483,19 +2483,19 @@ impl EINSTEINDBConfig {
 pub fn check_critical_config(config: &EINSTEINDBConfig) -> Result<(), String> {
     // Check current critical configurations with last time, if there are some
     // changes, user must guarantee relevant works have been done.
-    if let Some(mut causetg) = get_last_config(&config.causetStorage.data_dir) {
-        causetg.compatible_adjust();
-        let _ = causetg.validate();
-        config.check_critical_causetg_with(&causetg)?;
+    if let Some(mut causet) = get_last_config(&config.causetStorage.data_dir) {
+        causet.compatible_adjust();
+        let _ = causet.validate();
+        config.check_critical_causet_with(&causet)?;
     }
     Ok(())
 }
 
 fn get_last_config(data_dir: &str) -> Option<EINSTEINDBConfig> {
     let store_path = Path::new(data_dir);
-    let last_causetg_path = store_path.join(LAST_CONFIG_FILE);
-    if last_causetg_path.exists() {
-        return Some(EINSTEINDBConfig::from_file(&last_causetg_path, None));
+    let last_causet_path = store_path.join(LAST_CONFIG_FILE);
+    if last_causet_path.exists() {
+        return Some(EINSTEINDBConfig::from_file(&last_causet_path, None));
     }
     None
 }
@@ -2503,13 +2503,13 @@ fn get_last_config(data_dir: &str) -> Option<EINSTEINDBConfig> {
 /// Persists config to `last_einsteindb.toml`
 pub fn persist_config(config: &EINSTEINDBConfig) -> Result<(), String> {
     let store_path = Path::new(&config.causetStorage.data_dir);
-    let last_causetg_path = store_path.join(LAST_CONFIG_FILE);
-    let tmp_causetg_path = store_path.join(TMP_CONFIG_FILE);
+    let last_causet_path = store_path.join(LAST_CONFIG_FILE);
+    let tmp_causet_path = store_path.join(TMP_CONFIG_FILE);
 
-    let same_as_last_causetg = fs::read_to_string(&last_causetg_path).map_or(false, |last_causetg| {
-        toml::to_string(&config).unwrap() == last_causetg
+    let same_as_last_causet = fs::read_to_string(&last_causet_path).map_or(false, |last_causet| {
+        toml::to_string(&config).unwrap() == last_causet
     });
-    if same_as_last_causetg {
+    if same_as_last_causet {
         return Ok(());
     }
 
@@ -2523,20 +2523,20 @@ pub fn persist_config(config: &EINSTEINDBConfig) -> Result<(), String> {
     }
 
     // Persist current configurations to temporary file.
-    if let Err(e) = config.write_to_file(&tmp_causetg_path) {
+    if let Err(e) = config.write_to_file(&tmp_causet_path) {
         return Err(format!(
             "persist config to '{}' failed: {}",
-            tmp_causetg_path.to_str().unwrap(),
+            tmp_causet_path.to_str().unwrap(),
             e
         ));
     }
 
     // Rename temporary file to last config file.
-    if let Err(e) = fs::rename(&tmp_causetg_path, &last_causetg_path) {
+    if let Err(e) = fs::rename(&tmp_causet_path, &last_causet_path) {
         return Err(format!(
             "rename config file from '{}' to '{}' failed: {}",
-            tmp_causetg_path.to_str().unwrap(),
-            last_causetg_path.to_str().unwrap(),
+            tmp_causet_path.to_str().unwrap(),
+            last_causet_path.to_str().unwrap(),
             e
         ));
     }
@@ -2545,7 +2545,7 @@ pub fn persist_config(config: &EINSTEINDBConfig) -> Result<(), String> {
 }
 
 pub fn write_config<P: AsRef<Path>>(path: P, content: &[u8]) -> CfgResult<()> {
-    let tmp_causetg_path = match path.as_ref().parent() {
+    let tmp_causet_path = match path.as_ref().parent() {
         Some(p) => p.join(TMP_CONFIG_FILE),
         None => {
             return Err(format!(
@@ -2556,11 +2556,11 @@ pub fn write_config<P: AsRef<Path>>(path: P, content: &[u8]) -> CfgResult<()> {
         }
     };
     {
-        let mut f = fs::File::create(&tmp_causetg_path)?;
+        let mut f = fs::File::create(&tmp_causet_path)?;
         f.write_all(content)?;
         f.sync_all()?;
     }
-    fs::rename(&tmp_causetg_path, &path)?;
+    fs::rename(&tmp_causet_path, &path)?;
     Ok(())
 }
 
@@ -2788,8 +2788,8 @@ impl ConfigController {
         // Write change to the config file
         let content = {
             let change = to_toml_encode(change)?;
-            let src = if Path::new(&inner.current.causetg_path).exists() {
-                fs::read_to_string(&inner.current.causetg_path)?
+            let src = if Path::new(&inner.current.causet_path).exists() {
+                fs::read_to_string(&inner.current.causet_path)?
             } else {
                 String::new()
             };
@@ -2797,7 +2797,7 @@ impl ConfigController {
             t.write_change(src, change);
             t.finish()
         };
-        write_config(&inner.current.causetg_path, &content)?;
+        write_config(&inner.current.causet_path, &content)?;
         Ok(())
     }
 
@@ -2807,9 +2807,9 @@ impl ConfigController {
         self.ufidelate(m)
     }
 
-    pub fn register(&self, module: Module, causetg_mgr: Box<dyn ConfigManager>) {
+    pub fn register(&self, module: Module, causet_mgr: Box<dyn ConfigManager>) {
         let mut inner = self.inner.write().unwrap();
-        if inner.config_mgrs.insert(module.clone(), causetg_mgr).is_some() {
+        if inner.config_mgrs.insert(module.clone(), causet_mgr).is_some() {
             warn!("config manager for module {:?} already registered", module)
         }
     }
@@ -2819,7 +2819,7 @@ impl ConfigController {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use tempfile::Builder;
 
@@ -2832,82 +2832,82 @@ mod tests {
     use std::sync::Arc;
 
     #[test]
-    fn test_check_critical_causetg_with() {
-        let mut einsteindb_causetg = EINSTEINDBConfig::default();
-        let mut last_causetg = EINSTEINDBConfig::default();
-        assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_ok());
+    fn test_check_critical_causet_with() {
+        let mut einsteindb_causet = EINSTEINDBConfig::default();
+        let mut last_causet = EINSTEINDBConfig::default();
+        assert!(einsteindb_causet.check_critical_causet_with(&last_causet).is_ok());
 
-        einsteindb_causetg.lmdb.wal_dir = "/data/wal_dir".to_owned();
-        assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_err());
+        einsteindb_causet.lmdb.wal_dir = "/data/wal_dir".to_owned();
+        assert!(einsteindb_causet.check_critical_causet_with(&last_causet).is_err());
 
-        last_causetg.lmdb.wal_dir = "/data/wal_dir".to_owned();
-        assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_ok());
+        last_causet.lmdb.wal_dir = "/data/wal_dir".to_owned();
+        assert!(einsteindb_causet.check_critical_causet_with(&last_causet).is_ok());
 
-        einsteindb_causetg.violetabftdb.wal_dir = "/violetabft/wal_dir".to_owned();
-        assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_err());
+        einsteindb_causet.violetabftdb.wal_dir = "/violetabft/wal_dir".to_owned();
+        assert!(einsteindb_causet.check_critical_causet_with(&last_causet).is_err());
 
-        last_causetg.violetabftdb.wal_dir = "/violetabft/wal_dir".to_owned();
-        assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_ok());
+        last_causet.violetabftdb.wal_dir = "/violetabft/wal_dir".to_owned();
+        assert!(einsteindb_causet.check_critical_causet_with(&last_causet).is_ok());
 
-        einsteindb_causetg.causetStorage.data_dir = "/data1".to_owned();
-        assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_err());
+        einsteindb_causet.causetStorage.data_dir = "/data1".to_owned();
+        assert!(einsteindb_causet.check_critical_causet_with(&last_causet).is_err());
 
-        last_causetg.causetStorage.data_dir = "/data1".to_owned();
-        assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_ok());
+        last_causet.causetStorage.data_dir = "/data1".to_owned();
+        assert!(einsteindb_causet.check_critical_causet_with(&last_causet).is_ok());
 
-        einsteindb_causetg.violetabft_store.violetabftdb_path = "/violetabft_path".to_owned();
-        assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_err());
+        einsteindb_causet.violetabft_store.violetabftdb_path = "/violetabft_path".to_owned();
+        assert!(einsteindb_causet.check_critical_causet_with(&last_causet).is_err());
 
-        last_causetg.violetabft_store.violetabftdb_path = "/violetabft_path".to_owned();
-        assert!(einsteindb_causetg.check_critical_causetg_with(&last_causetg).is_ok());
+        last_causet.violetabft_store.violetabftdb_path = "/violetabft_path".to_owned();
+        assert!(einsteindb_causet.check_critical_causet_with(&last_causet).is_ok());
     }
 
     #[test]
-    fn test_last_causetg_modified() {
-        let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-        let store_path = Path::new(&causetg.causetStorage.data_dir);
-        let last_causetg_path = store_path.join(LAST_CONFIG_FILE);
+    fn test_last_causet_modified() {
+        let (mut causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
+        let store_path = Path::new(&causet.causetStorage.data_dir);
+        let last_causet_path = store_path.join(LAST_CONFIG_FILE);
 
-        causetg.write_to_file(&last_causetg_path).unwrap();
+        causet.write_to_file(&last_causet_path).unwrap();
 
-        let mut last_causetg_metadata = last_causetg_path.metadata().unwrap();
-        let first_modified = last_causetg_metadata.modified().unwrap();
+        let mut last_causet_metadata = last_causet_path.metadata().unwrap();
+        let first_modified = last_causet_metadata.modified().unwrap();
 
         // not write to file when config is the equivalent of last one.
-        assert!(persist_config(&causetg).is_ok());
-        last_causetg_metadata = last_causetg_path.metadata().unwrap();
-        assert_eq!(last_causetg_metadata.modified().unwrap(), first_modified);
+        assert!(persist_config(&causet).is_ok());
+        last_causet_metadata = last_causet_path.metadata().unwrap();
+        assert_eq!(last_causet_metadata.modified().unwrap(), first_modified);
 
         // write to file when config is the inequivalent of last one.
-        causetg.log_level = slog::Level::Warning;
-        assert!(persist_config(&causetg).is_ok());
-        last_causetg_metadata = last_causetg_path.metadata().unwrap();
-        assert_ne!(last_causetg_metadata.modified().unwrap(), first_modified);
+        causet.log_level = slog::Level::Warning;
+        assert!(persist_config(&causet).is_ok());
+        last_causet_metadata = last_causet_path.metadata().unwrap();
+        assert_ne!(last_causet_metadata.modified().unwrap(), first_modified);
     }
 
     #[test]
-    fn test_persist_causetg() {
-        let dir = Builder::new().prefix("test_persist_causetg").temfidelir().unwrap();
+    fn test_persist_causet() {
+        let dir = Builder::new().prefix("test_persist_causet").temfidelir().unwrap();
         let path_buf = dir.path().join(LAST_CONFIG_FILE);
         let file = path_buf.as_path();
         let (s1, s2) = ("/xxx/wal_dir".to_owned(), "/yyy/wal_dir".to_owned());
 
-        let mut einsteindb_causetg = EINSTEINDBConfig::default();
+        let mut einsteindb_causet = EINSTEINDBConfig::default();
 
-        einsteindb_causetg.lmdb.wal_dir = s1.clone();
-        einsteindb_causetg.violetabftdb.wal_dir = s2.clone();
-        einsteindb_causetg.write_to_file(file).unwrap();
-        let causetg_from_file = EINSTEINDBConfig::from_file(file, None);
-        assert_eq!(causetg_from_file.lmdb.wal_dir, s1);
-        assert_eq!(causetg_from_file.violetabftdb.wal_dir, s2);
+        einsteindb_causet.lmdb.wal_dir = s1.clone();
+        einsteindb_causet.violetabftdb.wal_dir = s2.clone();
+        einsteindb_causet.write_to_file(file).unwrap();
+        let causet_from_file = EINSTEINDBConfig::from_file(file, None);
+        assert_eq!(causet_from_file.lmdb.wal_dir, s1);
+        assert_eq!(causet_from_file.violetabftdb.wal_dir, s2);
 
         // write critical config when exist.
-        einsteindb_causetg.lmdb.wal_dir = s2.clone();
-        einsteindb_causetg.violetabftdb.wal_dir = s1.clone();
-        einsteindb_causetg.write_to_file(file).unwrap();
-        let causetg_from_file = EINSTEINDBConfig::from_file(file, None);
-        assert_eq!(causetg_from_file.lmdb.wal_dir, s2);
-        assert_eq!(causetg_from_file.violetabftdb.wal_dir, s1);
+        einsteindb_causet.lmdb.wal_dir = s2.clone();
+        einsteindb_causet.violetabftdb.wal_dir = s1.clone();
+        einsteindb_causet.write_to_file(file).unwrap();
+        let causet_from_file = EINSTEINDBConfig::from_file(file, None);
+        assert_eq!(causet_from_file.lmdb.wal_dir, s2);
+        assert_eq!(causet_from_file.violetabftdb.wal_dir, s1);
     }
 
     #[test]
@@ -2918,38 +2918,38 @@ mod tests {
             .unwrap();
         let path = root_path.path().join("not_exist_dir");
 
-        let mut einsteindb_causetg = EINSTEINDBConfig::default();
-        einsteindb_causetg.causetStorage.data_dir = path.as_path().to_str().unwrap().to_owned();
-        assert!(persist_config(&einsteindb_causetg).is_ok());
+        let mut einsteindb_causet = EINSTEINDBConfig::default();
+        einsteindb_causet.causetStorage.data_dir = path.as_path().to_str().unwrap().to_owned();
+        assert!(persist_config(&einsteindb_causet).is_ok());
     }
 
     #[test]
     fn test_keepalive_check() {
-        let mut einsteindb_causetg = EINSTEINDBConfig::default();
-        einsteindb_causetg.fidel.lightlikepoints = vec!["".to_owned()];
-        let dur = einsteindb_causetg.violetabft_store.violetabft_heartbeat_interval();
-        einsteindb_causetg.server.grpc_keepalive_time = ReadableDuration(dur);
-        assert!(einsteindb_causetg.validate().is_err());
-        einsteindb_causetg.server.grpc_keepalive_time = ReadableDuration(dur * 2);
-        einsteindb_causetg.validate().unwrap();
+        let mut einsteindb_causet = EINSTEINDBConfig::default();
+        einsteindb_causet.fidel.lightlikepoints = vec!["".to_owned()];
+        let dur = einsteindb_causet.violetabft_store.violetabft_heartbeat_interval();
+        einsteindb_causet.server.grpc_keepalive_time = ReadableDuration(dur);
+        assert!(einsteindb_causet.validate().is_err());
+        einsteindb_causet.server.grpc_keepalive_time = ReadableDuration(dur * 2);
+        einsteindb_causet.validate().unwrap();
     }
 
     #[test]
     fn test_block_size() {
-        let mut einsteindb_causetg = EINSTEINDBConfig::default();
-        einsteindb_causetg.fidel.lightlikepoints = vec!["".to_owned()];
-        einsteindb_causetg.lmdb.defaultcauset.block_size = ReadableSize::gb(10);
-        einsteindb_causetg.lmdb.lockcauset.block_size = ReadableSize::gb(10);
-        einsteindb_causetg.lmdb.writecauset.block_size = ReadableSize::gb(10);
-        einsteindb_causetg.lmdb.violetabftcauset.block_size = ReadableSize::gb(10);
-        einsteindb_causetg.violetabftdb.defaultcauset.block_size = ReadableSize::gb(10);
-        assert!(einsteindb_causetg.validate().is_err());
-        einsteindb_causetg.lmdb.defaultcauset.block_size = ReadableSize::kb(10);
-        einsteindb_causetg.lmdb.lockcauset.block_size = ReadableSize::kb(10);
-        einsteindb_causetg.lmdb.writecauset.block_size = ReadableSize::kb(10);
-        einsteindb_causetg.lmdb.violetabftcauset.block_size = ReadableSize::kb(10);
-        einsteindb_causetg.violetabftdb.defaultcauset.block_size = ReadableSize::kb(10);
-        einsteindb_causetg.validate().unwrap();
+        let mut einsteindb_causet = EINSTEINDBConfig::default();
+        einsteindb_causet.fidel.lightlikepoints = vec!["".to_owned()];
+        einsteindb_causet.lmdb.defaultcauset.block_size = ReadableSize::gb(10);
+        einsteindb_causet.lmdb.lockcauset.block_size = ReadableSize::gb(10);
+        einsteindb_causet.lmdb.writecauset.block_size = ReadableSize::gb(10);
+        einsteindb_causet.lmdb.violetabftcauset.block_size = ReadableSize::gb(10);
+        einsteindb_causet.violetabftdb.defaultcauset.block_size = ReadableSize::gb(10);
+        assert!(einsteindb_causet.validate().is_err());
+        einsteindb_causet.lmdb.defaultcauset.block_size = ReadableSize::kb(10);
+        einsteindb_causet.lmdb.lockcauset.block_size = ReadableSize::kb(10);
+        einsteindb_causet.lmdb.writecauset.block_size = ReadableSize::kb(10);
+        einsteindb_causet.lmdb.violetabftcauset.block_size = ReadableSize::kb(10);
+        einsteindb_causet.violetabftdb.defaultcauset.block_size = ReadableSize::kb(10);
+        einsteindb_causet.validate().unwrap();
     }
 
     #[test]
@@ -3090,46 +3090,46 @@ mod tests {
         );
     }
 
-    fn new_engines(causetg: EINSTEINDBConfig) -> (LmdbEngine, ConfigController) {
+    fn new_engines(causet: EINSTEINDBConfig) -> (LmdbEngine, ConfigController) {
         let engine = LmdbEngine::from_db(Arc::new(
             new_engine_opt(
-                &causetg.causetStorage.data_dir,
-                causetg.lmdb.build_opt(),
-                causetg.lmdb
-                    .build_causet_opts(&causetg.causetStorage.block_cache.build_shared_cache()),
+                &causet.causetStorage.data_dir,
+                causet.lmdb.build_opt(),
+                causet.lmdb
+                    .build_causet_opts(&causet.causetStorage.block_cache.build_shared_cache()),
             )
             .unwrap(),
         ));
 
-        let (shared, causetg_controller) = (causetg.causetStorage.block_cache.shared, ConfigController::new(causetg));
-        causetg_controller.register(
+        let (shared, causet_controller) = (causet.causetStorage.block_cache.shared, ConfigController::new(causet));
+        causet_controller.register(
             Module::Lmdbdb,
             Box::new(DBConfigManger::new(engine.clone(), DBType::Kv, shared)),
         );
-        causetg_controller.register(
+        causet_controller.register(
             Module::CausetStorage,
             Box::new(StorageConfigManger::new(engine.clone(), shared)),
         );
-        (engine, causetg_controller)
+        (engine, causet_controller)
     }
 
     #[test]
     fn test_change_lmdb_config() {
-        let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-        causetg.lmdb.max_background_jobs = 2;
-        causetg.lmdb.defaultcauset.disable_auto_compactions = false;
-        causetg.lmdb.defaultcauset.target_file_size_base = ReadableSize::mb(64);
-        causetg.lmdb.defaultcauset.block_cache_size = ReadableSize::mb(8);
-        causetg.lmdb.rate_bytes_per_sec = ReadableSize::mb(64);
-        causetg.causetStorage.block_cache.shared = false;
-        causetg.validate().unwrap();
-        let (db, causetg_controller) = new_engines(causetg);
+        let (mut causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
+        causet.lmdb.max_background_jobs = 2;
+        causet.lmdb.defaultcauset.disable_auto_compactions = false;
+        causet.lmdb.defaultcauset.target_file_size_base = ReadableSize::mb(64);
+        causet.lmdb.defaultcauset.block_cache_size = ReadableSize::mb(8);
+        causet.lmdb.rate_bytes_per_sec = ReadableSize::mb(64);
+        causet.causetStorage.block_cache.shared = false;
+        causet.validate().unwrap();
+        let (db, causet_controller) = new_engines(causet);
 
         // ufidelate max_background_jobs
         let db_opts = db.get_db_options();
         assert_eq!(db_opts.get_max_background_jobs(), 2);
 
-        causetg_controller
+        causet_controller
             .ufidelate_config("lmdb.max-background-jobs", "8")
             .unwrap();
         assert_eq!(db.get_db_options().get_max_background_jobs(), 8);
@@ -3141,7 +3141,7 @@ mod tests {
             ReadableSize::mb(64).0 as i64
         );
 
-        causetg_controller
+        causet_controller
             .ufidelate_config("lmdb.rate-bytes-per-sec", "128MB")
             .unwrap();
         assert_eq!(
@@ -3169,7 +3169,7 @@ mod tests {
             "lmdb.defaultcauset.block-cache-size".to_owned(),
             "256MB".to_owned(),
         );
-        causetg_controller.ufidelate(change).unwrap();
+        causet_controller.ufidelate(change).unwrap();
 
         let causet_opts = db.get_options_causet(defaultcauset);
         assert_eq!(causet_opts.get_disable_auto_compactions(), true);
@@ -3178,24 +3178,24 @@ mod tests {
 
         // Can not ufidelate block cache through causetStorage module
         // when shared block cache is disabled
-        assert!(causetg_controller
+        assert!(causet_controller
             .ufidelate_config("causetStorage.block-cache.capacity", "512MB")
             .is_err());
     }
 
     #[test]
     fn test_change_shared_block_cache() {
-        let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-        causetg.causetStorage.block_cache.shared = true;
-        causetg.validate().unwrap();
-        let (db, causetg_controller) = new_engines(causetg);
+        let (mut causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
+        causet.causetStorage.block_cache.shared = true;
+        causet.validate().unwrap();
+        let (db, causet_controller) = new_engines(causet);
 
         // Can not ufidelate shared block cache through lmdb module
-        assert!(causetg_controller
+        assert!(causet_controller
             .ufidelate_config("lmdb.defaultcauset.block-cache-size", "256MB")
             .is_err());
 
-        causetg_controller
+        causet_controller
             .ufidelate_config("causetStorage.block-cache.capacity", "256MB")
             .unwrap();
 
@@ -3209,12 +3209,12 @@ mod tests {
 
     #[test]
     fn test_dispatch_titan_blob_run_mode_config() {
-        let mut causetg = EINSTEINDBConfig::default();
-        let mut incoming = causetg.clone();
-        causetg.lmdb.defaultcauset.titan.blob_run_mode = BlobRunMode::Normal;
+        let mut causet = EINSTEINDBConfig::default();
+        let mut incoming = causet.clone();
+        causet.lmdb.defaultcauset.titan.blob_run_mode = BlobRunMode::Normal;
         incoming.lmdb.defaultcauset.titan.blob_run_mode = BlobRunMode::Fallback;
 
-        let diff = causetg
+        let diff = causet
             .lmdb
             .defaultcauset
             .titan
@@ -3232,14 +3232,14 @@ mod tests {
         // After calling many time of `compatible_adjust` and `validate` should has
         // the same effect as calling `compatible_adjust` and `validate` one time
         let mut c = EINSTEINDBConfig::default();
-        let mut causetg = c.clone();
+        let mut causet = c.clone();
         c.compatible_adjust();
         c.validate().unwrap();
 
         for _ in 0..10 {
-            causetg.compatible_adjust();
-            causetg.validate().unwrap();
-            assert_eq!(c, causetg);
+            causet.compatible_adjust();
+            causet.validate().unwrap();
+            assert_eq!(c, causet);
         }
     }
 
@@ -3249,10 +3249,10 @@ mod tests {
         [readpool.causetStorage]
         [readpool.interlock]
         "#;
-        let mut causetg: EINSTEINDBConfig = toml::from_str(content).unwrap();
-        causetg.compatible_adjust();
-        assert_eq!(causetg.readpool.causetStorage.use_unified_pool, Some(false));
-        assert_eq!(causetg.readpool.interlock.use_unified_pool, Some(true));
+        let mut causet: EINSTEINDBConfig = toml::from_str(content).unwrap();
+        causet.compatible_adjust();
+        assert_eq!(causet.readpool.causetStorage.use_unified_pool, Some(false));
+        assert_eq!(causet.readpool.interlock.use_unified_pool, Some(true));
 
         let content = r#"
         [readpool.causetStorage]
@@ -3260,10 +3260,10 @@ mod tests {
         [readpool.interlock]
         normal-concurrency = 1
         "#;
-        let mut causetg: EINSTEINDBConfig = toml::from_str(content).unwrap();
-        causetg.compatible_adjust();
-        assert_eq!(causetg.readpool.causetStorage.use_unified_pool, Some(false));
-        assert_eq!(causetg.readpool.interlock.use_unified_pool, Some(false));
+        let mut causet: EINSTEINDBConfig = toml::from_str(content).unwrap();
+        causet.compatible_adjust();
+        assert_eq!(causet.readpool.causetStorage.use_unified_pool, Some(false));
+        assert_eq!(causet.readpool.interlock.use_unified_pool, Some(false));
     }
 
     #[test]
@@ -3313,9 +3313,9 @@ mod tests {
             bytes-per-sync = "64KB"
             purge-memory_barrier = "1GB"
         "#;
-        let causetg: EINSTEINDBConfig = toml::from_str(content).unwrap();
-        assert!(causetg.violetabft_engine.enable);
-        let config = &causetg.violetabft_engine.config;
+        let causet: EINSTEINDBConfig = toml::from_str(content).unwrap();
+        assert!(causet.violetabft_engine.enable);
+        let config = &causet.violetabft_engine.config;
         assert_eq!(
             config.recovery_mode,
             RecoveryMode::TolerateCorruptedTailRecords
@@ -3330,11 +3330,11 @@ mod tests {
             [violetabft-engine]
             enable = true
         "#;
-        let mut causetg: EINSTEINDBConfig = toml::from_str(content).unwrap();
-        causetg.validate().unwrap();
+        let mut causet: EINSTEINDBConfig = toml::from_str(content).unwrap();
+        causet.validate().unwrap();
         assert_eq!(
-            causetg.violetabft_engine.config.dir,
-            config::canonicalize_sub_path(&causetg.causetStorage.data_dir, "violetabft-engine").unwrap()
+            causet.violetabft_engine.config.dir,
+            config::canonicalize_sub_path(&causet.causetStorage.data_dir, "violetabft-engine").unwrap()
         );
     }
 }

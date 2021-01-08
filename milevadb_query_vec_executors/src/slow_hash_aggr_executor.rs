@@ -87,7 +87,7 @@ impl BatchSlowHashAggregationFreeDaemon<Box<dyn BatchFreeDaemon<StorageStats = (
 }
 
 impl<Src: BatchFreeDaemon> BatchSlowHashAggregationFreeDaemon<Src> {
-    #[causetg(test)]
+    #[causet(test)]
     pub fn new_for_test(
         src: Src,
         group_by_exps: Vec<RpnExpression>,
@@ -492,7 +492,7 @@ impl PartialEq for GroupKeyRefUnsafe {
 
 impl Eq for GroupKeyRefUnsafe {}
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

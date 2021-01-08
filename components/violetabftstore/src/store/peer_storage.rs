@@ -1632,7 +1632,7 @@ pub fn write_peer_state<T: MuBlock>(
     Ok(())
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crate::interlock::InterlockHost;
     use crate::store::fsm::apply::compact_violetabft_log;

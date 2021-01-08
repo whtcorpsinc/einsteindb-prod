@@ -224,7 +224,7 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
 }
 
 #[allow(dead_code)]
-pub fn initial_metric(causetg: &MetricConfig, node_id: Option<u64>) {
+pub fn initial_metric(causet: &MetricConfig, node_id: Option<u64>) {
     einsteindb_util::metrics::monitor_process()
         .unwrap_or_else(|e| fatal!("failed to spacelike process monitor: {}", e));
     einsteindb_util::metrics::monitor_threads("einsteindb")
@@ -232,17 +232,17 @@ pub fn initial_metric(causetg: &MetricConfig, node_id: Option<u64>) {
     einsteindb_util::metrics::monitor_allocator_stats("einsteindb")
         .unwrap_or_else(|e| fatal!("failed to monitor allocator stats: {}", e));
 
-    if causetg.interval.as_secs() == 0 || causetg.address.is_empty() {
+    if causet.interval.as_secs() == 0 || causet.address.is_empty() {
         return;
     }
 
-    let mut push_job = causetg.job.clone();
+    let mut push_job = causet.job.clone();
     if let Some(id) = node_id {
         push_job.push_str(&format!("_{}", id));
     }
 
     info!("spacelike prometheus client");
-    einsteindb_util::metrics::run_prometheus(causetg.interval.0, &causetg.address, &push_job);
+    einsteindb_util::metrics::run_prometheus(causet.interval.0, &causet.address, &push_job);
 }
 
 #[allow(dead_code)]

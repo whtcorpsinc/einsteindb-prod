@@ -130,7 +130,7 @@ impl<T: BitOp> super::ConcreteAggrFunctionState for AggrFnStateBitOp<T> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::AggrFunction;
     use super::*;

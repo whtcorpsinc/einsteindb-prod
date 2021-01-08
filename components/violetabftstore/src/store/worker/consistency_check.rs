@@ -127,7 +127,7 @@ where
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::interlock::{BoxConsistencyCheckObserver, RawConsistencyCheckObserver};

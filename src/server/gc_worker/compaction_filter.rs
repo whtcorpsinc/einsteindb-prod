@@ -29,7 +29,7 @@ const COMPACTION_FILTER_MINIMAL_VERSION: &str = "5.0.0";
 struct GcContext {
     db: Arc<DB>,
     safe_point: Arc<AtomicU64>,
-    causetg_tracker: GcWorkerConfigManager,
+    causet_tracker: GcWorkerConfigManager,
     cluster_version: ClusterVersion,
 }
 
@@ -41,7 +41,7 @@ pub trait CompactionFilterInitializer {
     fn init_compaction_filter(
         &self,
         safe_point: Arc<AtomicU64>,
-        causetg_tracker: GcWorkerConfigManager,
+        causet_tracker: GcWorkerConfigManager,
         cluster_version: ClusterVersion,
     );
 }
@@ -50,7 +50,7 @@ impl<T> CompactionFilterInitializer for T {
     default fn init_compaction_filter(
         &self,
         _safe_point: Arc<AtomicU64>,
-        _causetg_tracker: GcWorkerConfigManager,
+        _causet_tracker: GcWorkerConfigManager,
         _cluster_version: ClusterVersion,
     ) {
     }
@@ -60,7 +60,7 @@ impl CompactionFilterInitializer for LmdbEngine {
     fn init_compaction_filter(
         &self,
         safe_point: Arc<AtomicU64>,
-        causetg_tracker: GcWorkerConfigManager,
+        causet_tracker: GcWorkerConfigManager,
         cluster_version: ClusterVersion,
     ) {
         info!("initialize GC context for compaction filter");
@@ -68,7 +68,7 @@ impl CompactionFilterInitializer for LmdbEngine {
         *gc_context = Some(GcContext {
             db: self.as_inner().clone(),
             safe_point,
-            causetg_tracker,
+            causet_tracker,
             cluster_version,
         });
     }
@@ -94,7 +94,7 @@ impl CompactionFilterFactory for WriteCompactionFilterFactory {
         }
 
         if !is_compaction_filter_allowd(
-            &*gc_context.causetg_tracker.value(),
+            &*gc_context.causet_tracker.value(),
             &gc_context.cluster_version,
         ) {
             return std::ptr::null_mut();
@@ -299,9 +299,9 @@ impl CompactionFilter for WriteCompactionFilter {
     }
 }
 
-pub fn is_compaction_filter_allowd(causetg_value: &GcConfig, cluster_version: &ClusterVersion) -> bool {
-    causetg_value.enable_compaction_filter
-        && (causetg_value.compaction_filter_skip_version_check || {
+pub fn is_compaction_filter_allowd(causet_value: &GcConfig, cluster_version: &ClusterVersion) -> bool {
+    causet_value.enable_compaction_filter
+        && (causet_value.compaction_filter_skip_version_check || {
             cluster_version.get().map_or(false, |cluster_version| {
                 let minimal = semver::Version::parse(COMPACTION_FILTER_MINIMAL_VERSION).unwrap();
                 cluster_version >= minimal
@@ -309,7 +309,7 @@ pub fn is_compaction_filter_allowd(causetg_value: &GcConfig, cluster_version: &C
         })
 }
 
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use super::*;
     use crate::config::DbConfig;
@@ -336,10 +336,10 @@ pub mod tests {
     ) {
         let _guard = LOCK.dagger().unwrap();
         let safe_point = Arc::new(AtomicU64::new(safe_point));
-        let causetg = GcWorkerConfigManager(Arc::new(Default::default()));
-        causetg.0.ufidelate(|v| v.enable_compaction_filter = true);
+        let causet = GcWorkerConfigManager(Arc::new(Default::default()));
+        causet.0.ufidelate(|v| v.enable_compaction_filter = true);
         let cluster_version = ClusterVersion::new(semver::Version::new(5, 0, 0));
-        engine.init_compaction_filter(safe_point, causetg, cluster_version);
+        engine.init_compaction_filter(safe_point, causet, cluster_version);
 
         let db = engine.as_inner();
         let handle = get_causet_handle(db, CAUSET_WRITE).unwrap();
@@ -374,18 +374,18 @@ pub mod tests {
     #[test]
     fn test_is_compaction_filter_allowed() {
         let cluster_version = ClusterVersion::new(semver::Version::new(4, 1, 0));
-        let mut causetg_value = GcConfig::default();
-        assert!(!is_compaction_filter_allowd(&causetg_value, &cluster_version));
+        let mut causet_value = GcConfig::default();
+        assert!(!is_compaction_filter_allowd(&causet_value, &cluster_version));
 
-        causetg_value.enable_compaction_filter = true;
-        assert!(!is_compaction_filter_allowd(&causetg_value, &cluster_version));
+        causet_value.enable_compaction_filter = true;
+        assert!(!is_compaction_filter_allowd(&causet_value, &cluster_version));
 
-        causetg_value.compaction_filter_skip_version_check = true;
-        assert!(is_compaction_filter_allowd(&causetg_value, &cluster_version));
+        causet_value.compaction_filter_skip_version_check = true;
+        assert!(is_compaction_filter_allowd(&causet_value, &cluster_version));
 
         let cluster_version = ClusterVersion::new(semver::Version::new(5, 0, 0));
-        causetg_value.compaction_filter_skip_version_check = false;
-        assert!(is_compaction_filter_allowd(&causetg_value, &cluster_version));
+        causet_value.compaction_filter_skip_version_check = false;
+        assert!(is_compaction_filter_allowd(&causet_value, &cluster_version));
     }
 
     // Test a key can be GCed correctly if its MVCC versions cover multiple SST files.
@@ -437,9 +437,9 @@ pub mod tests {
 
         #[test]
         fn at_no_bottommost_level() {
-            let mut causetg = DbConfig::default();
-            causetg.writecauset.dynamic_level_bytes = false;
-            let engine = TestEngineBuilder::new().build_with_causetg(&causetg).unwrap();
+            let mut causet = DbConfig::default();
+            causet.writecauset.dynamic_level_bytes = false;
+            let engine = TestEngineBuilder::new().build_with_causet(&causet).unwrap();
             let raw_engine = engine.get_lmdb();
 
             // So the construction of SST files will be:

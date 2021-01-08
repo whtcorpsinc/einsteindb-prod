@@ -1,6 +1,6 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
-#![causetg_attr(test, feature(test))]
+#![causet_attr(test, feature(test))]
 #![feature(core_intrinsics)]
 #![feature(ptr_offset_from)]
 #![feature(min_specialization)]
@@ -9,7 +9,7 @@
 extern crate static_assertions;
 #[macro_use]
 extern crate failure;
-#[causetg(test)]
+#[causet(test)]
 extern crate test;
 #[allow(unused_extern_crates)]
 extern crate einsteindb_alloc;

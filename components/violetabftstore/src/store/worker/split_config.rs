@@ -66,7 +66,7 @@ impl ConfigManager for SplitConfigManager {
         {
             let change = change.clone();
             self.0
-                .ufidelate(move |causetg: &mut SplitConfig| causetg.ufidelate(change));
+                .ufidelate(move |causet: &mut SplitConfig| causet.ufidelate(change));
         }
         info!(
             "split hub config changed";

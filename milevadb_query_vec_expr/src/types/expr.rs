@@ -30,7 +30,7 @@ pub enum RpnExpressionNode {
 
 impl RpnExpressionNode {
     /// Gets the field type.
-    #[causetg(test)]
+    #[causet(test)]
     pub fn field_type(&self) -> &FieldType {
         match self {
             RpnExpressionNode::FnCall { field_type, .. } => field_type,
@@ -39,7 +39,7 @@ impl RpnExpressionNode {
         }
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     pub fn expr_tp(&self) -> fidelpb::ExprType {
         use milevadb_query_datatype::EvalType;
         use fidelpb::ExprType;
@@ -60,7 +60,7 @@ impl RpnExpressionNode {
     }
 
     /// Borrows the function instance for `FnCall` variant.
-    #[causetg(test)]
+    #[causet(test)]
     pub fn fn_call_func(&self) -> RpnFnMeta {
         match self {
             RpnExpressionNode::FnCall { func_meta, .. } => *func_meta,
@@ -69,7 +69,7 @@ impl RpnExpressionNode {
     }
 
     /// Borrows the constant value for `Constant` variant.
-    #[causetg(test)]
+    #[causet(test)]
     pub fn constant_value(&self) -> &ScalarValue {
         match self {
             RpnExpressionNode::Constant { value, .. } => value,

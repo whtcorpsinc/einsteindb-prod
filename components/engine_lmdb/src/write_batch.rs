@@ -308,7 +308,7 @@ impl MuBlock for LmdbWriteBatchVec {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::util::new_engine_opt;
     use super::super::LmdbDBOptions;

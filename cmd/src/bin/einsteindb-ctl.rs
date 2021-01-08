@@ -65,23 +65,23 @@ fn new_debug_executor(
     violetabft_db: Option<&str>,
     ignore_failover: bool,
     host: Option<&str>,
-    causetg: &EINSTEINDBConfig,
+    causet: &EINSTEINDBConfig,
     mgr: Arc<SecurityManager>,
 ) -> Box<dyn DebugFreeDaemon> {
     match (host, db) {
         (None, Some(kv_path)) => {
             let key_manager =
-                DataKeyManager::from_config(&causetg.security.encryption, &causetg.causetStorage.data_dir)
+                DataKeyManager::from_config(&causet.security.encryption, &causet.causetStorage.data_dir)
                     .unwrap()
                     .map(|key_manager| Arc::new(key_manager));
-            let cache = causetg.causetStorage.block_cache.build_shared_cache();
+            let cache = causet.causetStorage.block_cache.build_shared_cache();
             let shared_block_cache = cache.is_some();
             let env = get_env(key_manager, None).unwrap();
 
-            let mut kv_db_opts = causetg.lmdb.build_opt();
+            let mut kv_db_opts = causet.lmdb.build_opt();
             kv_db_opts.set_env(env.clone());
             kv_db_opts.set_paranoid_checks(!ignore_failover);
-            let kv_causets_opts = causetg.lmdb.build_causet_opts(&cache);
+            let kv_causets_opts = causet.lmdb.build_causet_opts(&cache);
             let kv_path = PathBuf::from(kv_path).canonicalize().unwrap();
             let kv_path = kv_path.to_str().unwrap();
             let kv_db =
@@ -99,11 +99,11 @@ fn new_debug_executor(
                 .map(ToString::to_string)
                 .unwrap();
 
-            let causetg_controller = ConfigController::default();
-            if !causetg.violetabft_engine.enable {
-                let mut violetabft_db_opts = causetg.violetabftdb.build_opt();
+            let causet_controller = ConfigController::default();
+            if !causet.violetabft_engine.enable {
+                let mut violetabft_db_opts = causet.violetabftdb.build_opt();
                 violetabft_db_opts.set_env(env);
-                let violetabft_db_causet_opts = causetg.violetabftdb.build_causet_opts(&cache);
+                let violetabft_db_causet_opts = causet.violetabftdb.build_causet_opts(&cache);
                 let violetabft_db = engine_lmdb::raw_util::new_engine_opt(
                     &violetabft_path,
                     violetabft_db_opts,
@@ -112,12 +112,12 @@ fn new_debug_executor(
                 .unwrap();
                 let mut violetabft_db = LmdbEngine::from_db(Arc::new(violetabft_db));
                 violetabft_db.set_shared_block_cache(shared_block_cache);
-                let debugger = Debugger::new(Engines::new(kv_db, violetabft_db), causetg_controller);
+                let debugger = Debugger::new(Engines::new(kv_db, violetabft_db), causet_controller);
                 Box::new(debugger) as Box<dyn DebugFreeDaemon>
             } else {
-                let config = causetg.violetabft_engine.config();
+                let config = causet.violetabft_engine.config();
                 let violetabft_db = VioletaBftLogEngine::new(config);
-                let debugger = Debugger::new(Engines::new(kv_db, violetabft_db), causetg_controller);
+                let debugger = Debugger::new(Engines::new(kv_db, violetabft_db), causet_controller);
                 Box::new(debugger) as Box<dyn DebugFreeDaemon>
             }
         }
@@ -319,10 +319,10 @@ trait DebugFreeDaemon {
         db: Option<&str>,
         violetabft_db: Option<&str>,
         host: Option<&str>,
-        causetg: &EINSTEINDBConfig,
+        causet: &EINSTEINDBConfig,
         mgr: Arc<SecurityManager>,
     ) {
-        let rhs_debug_executor = new_debug_executor(db, violetabft_db, false, host, causetg, mgr);
+        let rhs_debug_executor = new_debug_executor(db, violetabft_db, false, host, causet, mgr);
 
         let r1 = self.get_brane_info(brane);
         let r2 = rhs_debug_executor.get_brane_info(brane);
@@ -474,12 +474,12 @@ trait DebugFreeDaemon {
     fn set_brane_tombstone_after_remove_peer(
         &self,
         mgr: Arc<SecurityManager>,
-        causetg: &FidelConfig,
+        causet: &FidelConfig,
         brane_ids: Vec<u64>,
     ) {
         self.check_local_mode();
         let rpc_client =
-            RpcClient::new(causetg, mgr).unwrap_or_else(|e| perror_and_exit("RpcClient::new", e));
+            RpcClient::new(causet, mgr).unwrap_or_else(|e| perror_and_exit("RpcClient::new", e));
 
         let branes = brane_ids
             .into_iter()
@@ -505,7 +505,7 @@ trait DebugFreeDaemon {
     fn remove_fail_stores(&self, store_ids: Vec<u64>, brane_ids: Option<Vec<u64>>);
 
     /// Recreate the brane with metadata from fidel, but alloc new id for it.
-    fn recreate_brane(&self, sec_mgr: Arc<SecurityManager>, fidel_causetg: &FidelConfig, brane_id: u64);
+    fn recreate_brane(&self, sec_mgr: Arc<SecurityManager>, fidel_causet: &FidelConfig, brane_id: u64);
 
     fn check_brane_consistency(&self, _: u64);
 
@@ -514,13 +514,13 @@ trait DebugFreeDaemon {
     fn recover_branes_tail_pointer(
         &self,
         mgr: Arc<SecurityManager>,
-        causetg: &FidelConfig,
+        causet: &FidelConfig,
         brane_ids: Vec<u64>,
         read_only: bool,
     ) {
         self.check_local_mode();
         let rpc_client =
-            RpcClient::new(causetg, mgr).unwrap_or_else(|e| perror_and_exit("RpcClient::new", e));
+            RpcClient::new(causet, mgr).unwrap_or_else(|e| perror_and_exit("RpcClient::new", e));
 
         let branes = brane_ids
             .into_iter()
@@ -915,9 +915,9 @@ impl<ER: VioletaBftEngine> DebugFreeDaemon for Debugger<ER> {
         v1!("success");
     }
 
-    fn recreate_brane(&self, mgr: Arc<SecurityManager>, fidel_causetg: &FidelConfig, brane_id: u64) {
+    fn recreate_brane(&self, mgr: Arc<SecurityManager>, fidel_causet: &FidelConfig, brane_id: u64) {
         let rpc_client =
-            RpcClient::new(fidel_causetg, mgr).unwrap_or_else(|e| perror_and_exit("RpcClient::new", e));
+            RpcClient::new(fidel_causet, mgr).unwrap_or_else(|e| perror_and_exit("RpcClient::new", e));
 
         let mut brane = match block_on(rpc_client.get_brane_by_id(brane_id)) {
             Ok(Some(brane)) => brane,
@@ -1819,8 +1819,8 @@ fn main() {
     let matches = app.clone().get_matches();
 
     // Initialize configuration and security manager.
-    let causetg_path = matches.value_of("config");
-    let causetg = causetg_path.map_or_else(EINSTEINDBConfig::default, |path| {
+    let causet_path = matches.value_of("config");
+    let causet = causet_path.map_or_else(EINSTEINDBConfig::default, |path| {
         let s = fs::read_to_string(&path).unwrap();
         toml::from_str(&s).unwrap()
     });
@@ -1828,7 +1828,7 @@ fn main() {
 
     // Bypass the ldb command to Lmdb.
     if let Some(cmd) = matches.subcommand_matches("ldb") {
-        run_ldb_command(&cmd, &causetg);
+        run_ldb_command(&cmd, &causet);
         return;
     }
 
@@ -1873,7 +1873,7 @@ fn main() {
         v1!("infile: {}, outfile: {}", infile, outfile);
 
         let key_manager =
-            match DataKeyManager::from_config(&causetg.security.encryption, &causetg.causetStorage.data_dir)
+            match DataKeyManager::from_config(&causet.security.encryption, &causet.causetStorage.data_dir)
                 .expect("DataKeyManager::from_config should success")
             {
                 Some(mgr) => mgr,
@@ -1924,8 +1924,8 @@ fn main() {
                     return;
                 }
                 DataKeyManager::dump_key_dict(
-                    &causetg.security.encryption,
-                    &causetg.causetStorage.data_dir,
+                    &causet.security.encryption,
+                    &causet.causetStorage.data_dir,
                     matches
                         .values_of("ids")
                         .map(|ids| ids.map(|id| id.parse::<u64>().unwrap()).collect()),
@@ -1936,7 +1936,7 @@ fn main() {
                 let path = matches
                     .value_of("path")
                     .map(|path| fs::canonicalize(path).unwrap().to_str().unwrap().to_owned());
-                DataKeyManager::dump_file_dict(&causetg.causetStorage.data_dir, path.as_deref()).unwrap();
+                DataKeyManager::dump_file_dict(&causet.causetStorage.data_dir, path.as_deref()).unwrap();
             }
             _ => ve1!("{}", matches.usage()),
         }
@@ -1955,7 +1955,7 @@ fn main() {
             let threads = value_t_or_exit!(matches.value_of("threads"), u32);
             let bottommost = BottommostLevelCompaction::from(matches.value_of("bottommost"));
             return compact_whole_cluster(
-                &fidel_client, &causetg, mgr, db_type, causets, from_key, to_key, threads, bottommost,
+                &fidel_client, &causet, mgr, db_type, causets, from_key, to_key, threads, bottommost,
             );
         }
         if let Some(matches) = matches.subcommand_matches("split-brane") {
@@ -1979,7 +1979,7 @@ fn main() {
         violetabft_db,
         ignore_failover,
         host,
-        &causetg,
+        &causet,
         Arc::clone(&mgr),
     );
 
@@ -2046,7 +2046,7 @@ fn main() {
         let brane = matches.value_of("brane").unwrap().parse().unwrap();
         let to_db = matches.value_of("to_db");
         let to_host = matches.value_of("to_host");
-        debug_executor.diff_brane(brane, to_db, None, to_host, &causetg, mgr);
+        debug_executor.diff_brane(brane, to_db, None, to_host, &causet, mgr);
     } else if let Some(matches) = matches.subcommand_matches("compact") {
         let db = matches.value_of("db").unwrap();
         let db_type = if db == "kv" { DBType::Kv } else { DBType::VioletaBft };
@@ -2076,12 +2076,12 @@ fn main() {
             .expect("parse branes fail");
         if let Some(fidel_urls) = matches.values_of("fidel") {
             let fidel_urls = Vec::from_iter(fidel_urls.map(ToOwned::to_owned));
-            let mut causetg = FidelConfig::default();
-            causetg.lightlikepoints = fidel_urls;
-            if let Err(e) = causetg.validate() {
+            let mut causet = FidelConfig::default();
+            causet.lightlikepoints = fidel_urls;
+            if let Err(e) = causet.validate() {
                 panic!("invalid fidel configuration: {:?}", e);
             }
-            debug_executor.set_brane_tombstone_after_remove_peer(mgr, &causetg, branes);
+            debug_executor.set_brane_tombstone_after_remove_peer(mgr, &causet, branes);
         } else {
             assert!(matches.is_present("force"));
             debug_executor.set_brane_tombstone_force(branes);
@@ -2111,18 +2111,18 @@ fn main() {
                 .collect::<Result<Vec<_>, _>>()
                 .expect("parse branes fail");
             let fidel_urls = Vec::from_iter(matches.values_of("fidel").unwrap().map(ToOwned::to_owned));
-            let mut causetg = FidelConfig::default();
+            let mut causet = FidelConfig::default();
             v1!(
                 "Recover branes: {:?}, fidel: {:?}, read_only: {}",
                 branes,
                 fidel_urls,
                 read_only
             );
-            causetg.lightlikepoints = fidel_urls;
-            if let Err(e) = causetg.validate() {
+            causet.lightlikepoints = fidel_urls;
+            if let Err(e) = causet.validate() {
                 panic!("invalid fidel configuration: {:?}", e);
             }
-            debug_executor.recover_branes_tail_pointer(mgr, &causetg, branes, read_only);
+            debug_executor.recover_branes_tail_pointer(mgr, &causet, branes, read_only);
         }
     } else if let Some(matches) = matches.subcommand_matches("unsafe-recover") {
         if let Some(matches) = matches.subcommand_matches("remove-fail-stores") {
@@ -2137,10 +2137,10 @@ fn main() {
             ve1!("{}", matches.usage());
         }
     } else if let Some(matches) = matches.subcommand_matches("recreate-brane") {
-        let mut fidel_causetg = FidelConfig::default();
-        fidel_causetg.lightlikepoints = Vec::from_iter(matches.values_of("fidel").unwrap().map(ToOwned::to_owned));
+        let mut fidel_causet = FidelConfig::default();
+        fidel_causet.lightlikepoints = Vec::from_iter(matches.values_of("fidel").unwrap().map(ToOwned::to_owned));
         let brane_id = matches.value_of("brane").unwrap().parse().unwrap();
-        debug_executor.recreate_brane(mgr, &fidel_causetg, brane_id);
+        debug_executor.recreate_brane(mgr, &fidel_causet, brane_id);
     } else if let Some(matches) = matches.subcommand_matches("consistency-check") {
         let brane_id = matches.value_of("brane").unwrap().parse().unwrap();
         debug_executor.check_brane_consistency(brane_id);
@@ -2253,21 +2253,21 @@ fn new_security_mgr(matches: &ArgMatches<'_>) -> Arc<SecurityManager> {
     let cert_path = matches.value_of("cert_path");
     let key_path = matches.value_of("key_path");
 
-    let mut causetg = SecurityConfig::default();
+    let mut causet = SecurityConfig::default();
     if ca_path.is_none() && cert_path.is_none() && key_path.is_none() {
-        return Arc::new(SecurityManager::new(&causetg).unwrap());
+        return Arc::new(SecurityManager::new(&causet).unwrap());
     }
 
     if ca_path.is_some() || cert_path.is_some() || key_path.is_some() {
         if ca_path.is_none() || cert_path.is_none() || key_path.is_none() {
             panic!("CA certificate and private key should all be set.");
         }
-        causetg.ca_path = ca_path.unwrap().to_owned();
-        causetg.cert_path = cert_path.unwrap().to_owned();
-        causetg.key_path = key_path.unwrap().to_owned();
+        causet.ca_path = ca_path.unwrap().to_owned();
+        causet.cert_path = cert_path.unwrap().to_owned();
+        causet.key_path = key_path.unwrap().to_owned();
     }
 
-    Arc::new(SecurityManager::new(&causetg).expect("failed to initialize security manager"))
+    Arc::new(SecurityManager::new(&causet).expect("failed to initialize security manager"))
 }
 
 fn dump_snap_meta_file(path: &str) {
@@ -2288,10 +2288,10 @@ fn dump_snap_meta_file(path: &str) {
 }
 
 fn get_fidel_rpc_client(fidel: &str, mgr: Arc<SecurityManager>) -> RpcClient {
-    let mut causetg = FidelConfig::default();
-    causetg.lightlikepoints.push(fidel.to_owned());
-    causetg.validate().unwrap();
-    RpcClient::new(&causetg, mgr).unwrap_or_else(|e| perror_and_exit("RpcClient::new", e))
+    let mut causet = FidelConfig::default();
+    causet.lightlikepoints.push(fidel.to_owned());
+    causet.validate().unwrap();
+    RpcClient::new(&causet, mgr).unwrap_or_else(|e| perror_and_exit("RpcClient::new", e))
 }
 
 fn split_brane(fidel_client: &RpcClient, mgr: Arc<SecurityManager>, brane_id: u64, key: Vec<u8>) {
@@ -2339,7 +2339,7 @@ fn split_brane(fidel_client: &RpcClient, mgr: Arc<SecurityManager>, brane_id: u6
 
 fn compact_whole_cluster(
     fidel_client: &RpcClient,
-    causetg: &EINSTEINDBConfig,
+    causet: &EINSTEINDBConfig,
     mgr: Arc<SecurityManager>,
     db_type: DBType,
     causets: Vec<&str>,
@@ -2354,14 +2354,14 @@ fn compact_whole_cluster(
 
     let mut handles = Vec::new();
     for s in stores {
-        let causetg = causetg.clone();
+        let causet = causet.clone();
         let mgr = Arc::clone(&mgr);
         let addr = s.address.clone();
         let (from, to) = (from.clone(), to.clone());
         let causets: Vec<String> = causets.iter().map(|causet| (*causet).to_string()).collect();
         let h = thread::spawn(move || {
             einsteindb_alloc::add_thread_memory_accessor();
-            let debug_executor = new_debug_executor(None, None, false, Some(&addr), &causetg, mgr);
+            let debug_executor = new_debug_executor(None, None, false, Some(&addr), &causet, mgr);
             for causet in causets {
                 debug_executor.compact(
                     Some(&addr),
@@ -2399,23 +2399,23 @@ fn read_fail_file(path: &str) -> Vec<(String, String)> {
     list
 }
 
-fn run_ldb_command(cmd: &ArgMatches<'_>, causetg: &EINSTEINDBConfig) {
+fn run_ldb_command(cmd: &ArgMatches<'_>, causet: &EINSTEINDBConfig) {
     let mut args: Vec<String> = match cmd.values_of("") {
         Some(v) => v.map(ToOwned::to_owned).collect(),
         None => Vec::new(),
     };
     args.insert(0, "ldb".to_owned());
-    let key_manager = DataKeyManager::from_config(&causetg.security.encryption, &causetg.causetStorage.data_dir)
+    let key_manager = DataKeyManager::from_config(&causet.security.encryption, &causet.causetStorage.data_dir)
         .unwrap()
         .map(|key_manager| Arc::new(key_manager));
     let env = get_env(key_manager, None).unwrap();
-    let mut opts = causetg.lmdb.build_opt();
+    let mut opts = causet.lmdb.build_opt();
     opts.set_env(env);
 
     engine_lmdb::raw::run_ldb_tool(&args, &opts);
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

@@ -232,7 +232,7 @@ pub fn get_decrypter_reader(
     Ok(Box::new(r) as Box<dyn Read + Slightlike>)
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::collections::HashMap;
     use std::f64::INFINITY;

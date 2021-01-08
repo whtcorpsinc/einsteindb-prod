@@ -70,7 +70,7 @@ fn test_fidel_client_deadlock() {
     ];
 
     for (name, func) in test_funcs {
-        fail::causetg(leader_client_reconnect_fp, "pause").unwrap();
+        fail::causet(leader_client_reconnect_fp, "pause").unwrap();
         // Wait for the FIDel client thread blocking on the fail point.
         // The RECONNECT_INTERVAL_SEC is 1s so sleeps 2s here.
         thread::sleep(Duration::from_secs(2));

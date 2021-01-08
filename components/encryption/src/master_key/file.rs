@@ -62,7 +62,7 @@ impl Backlightlike for FileBacklightlike {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use hex::FromHex;
     use matches::assert_matches;

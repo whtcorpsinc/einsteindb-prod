@@ -13,7 +13,7 @@ fn test_deadline() {
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
-    fail::causetg("deadline_check_fail", "return()").unwrap();
+    fail::causet("deadline_check_fail", "return()").unwrap();
     let resp = handle_request(&lightlikepoint, req);
 
     assert!(resp.get_other_error().contains("exceeding the deadline"));
@@ -26,8 +26,8 @@ fn test_deadline_2() {
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
-    fail::causetg("rockskv_async_snapshot", "panic").unwrap();
-    fail::causetg("deadline_check_fail", "return()").unwrap();
+    fail::causet("rockskv_async_snapshot", "panic").unwrap();
+    fail::causet("deadline_check_fail", "return()").unwrap();
     let resp = handle_request(&lightlikepoint, req);
 
     assert!(resp.get_other_error().contains("exceeding the deadline"));
@@ -47,14 +47,14 @@ fn test_deadline_3() {
     let product = ProductBlock::new();
     let (_, lightlikepoint) = {
         let engine = einsteindb::causetStorage::TestEngineBuilder::new().build().unwrap();
-        let mut causetg = einsteindb::server::Config::default();
-        causetg.lightlike_point_request_max_handle_duration = einsteindb_util::config::ReadableDuration::secs(1);
-        init_data_with_details(Context::default(), engine, &product, &data, true, &causetg)
+        let mut causet = einsteindb::server::Config::default();
+        causet.lightlike_point_request_max_handle_duration = einsteindb_util::config::ReadableDuration::secs(1);
+        init_data_with_details(Context::default(), engine, &product, &data, true, &causet)
     };
     let req = DAGSelect::from(&product).build();
 
-    fail::causetg("kv_cursor_seek", "sleep(2000)").unwrap();
-    fail::causetg("copr_batch_initial_size", "return(1)").unwrap();
+    fail::causet("kv_cursor_seek", "sleep(2000)").unwrap();
+    fail::causet("copr_batch_initial_size", "return(1)").unwrap();
     let cop_resp = handle_request(&lightlikepoint, req);
     let mut resp = SelectResponse::default();
     resp.merge_from_bytes(cop_resp.get_data()).unwrap();
@@ -72,7 +72,7 @@ fn test_parse_request_failed() {
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
-    fail::causetg("interlock_parse_request", "return()").unwrap();
+    fail::causet("interlock_parse_request", "return()").unwrap();
     let resp = handle_request(&lightlikepoint, req);
 
     assert!(resp.get_other_error().contains("unsupported tp"));
@@ -85,8 +85,8 @@ fn test_parse_request_failed_2() {
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
-    fail::causetg("rockskv_async_snapshot", "panic").unwrap();
-    fail::causetg("interlock_parse_request", "return()").unwrap();
+    fail::causet("rockskv_async_snapshot", "panic").unwrap();
+    fail::causet("interlock_parse_request", "return()").unwrap();
     let resp = handle_request(&lightlikepoint, req);
 
     assert!(resp.get_other_error().contains("unsupported tp"));
@@ -98,7 +98,7 @@ fn test_readpool_full() {
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
-    fail::causetg("future_pool_spawn_full", "return()").unwrap();
+    fail::causet("future_pool_spawn_full", "return()").unwrap();
     let resp = handle_request(&lightlikepoint, req);
 
     assert!(resp.get_brane_error().has_server_is_busy());
@@ -110,7 +110,7 @@ fn test_snapshot_failed() {
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
-    fail::causetg("rockskv_async_snapshot", "return()").unwrap();
+    fail::causet("rockskv_async_snapshot", "return()").unwrap();
     let resp = handle_request(&lightlikepoint, req);
 
     assert!(resp.get_other_error().contains("snapshot failed"));
@@ -122,7 +122,7 @@ fn test_snapshot_failed_2() {
     let (_, lightlikepoint) = init_with_data(&product, &[]);
     let req = DAGSelect::from(&product).build();
 
-    fail::causetg("rockskv_async_snapshot_not_leader", "return()").unwrap();
+    fail::causet("rockskv_async_snapshot_not_leader", "return()").unwrap();
     let resp = handle_request(&lightlikepoint, req);
 
     assert!(resp.get_brane_error().has_not_leader());
@@ -136,7 +136,7 @@ fn test_causetStorage_error() {
     let (_, lightlikepoint) = init_with_data(&product, &data);
     let req = DAGSelect::from(&product).build();
 
-    fail::causetg("kv_cursor_seek", "return()").unwrap();
+    fail::causet("kv_cursor_seek", "return()").unwrap();
     let resp = handle_request(&lightlikepoint, req);
 
     assert!(resp.get_other_error().contains("kv cursor seek error"));
@@ -158,7 +158,7 @@ fn test_brane_error_in_scan() {
     let (_, lightlikepoint) =
         init_data_with_engine_and_commit(ctx.clone(), violetabft_engine, &product, &data, true);
 
-    fail::causetg("brane_snapshot_seek", "return()").unwrap();
+    fail::causet("brane_snapshot_seek", "return()").unwrap();
     let req = DAGSelect::from(&product).build_with(ctx, &[0]);
     let resp = handle_request(&lightlikepoint, req);
 

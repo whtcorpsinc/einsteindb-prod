@@ -28,7 +28,7 @@ where
     T: Simulator,
     F: Fn(&mut Cluster<T>, &metapb::Brane, &[u8]),
 {
-    cluster.causetg.violetabft_store.right_derive_when_split = right_derive;
+    cluster.causet.violetabft_store.right_derive_when_split = right_derive;
     cluster.run();
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
@@ -149,11 +149,11 @@ fn test_server_split_brane_twice() {
 }
 
 fn test_auto_split_brane<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.split_brane_check_tick_interval = ReadableDuration::millis(100);
-    cluster.causetg.interlock.brane_max_size = ReadableSize(REGION_MAX_SIZE);
-    cluster.causetg.interlock.brane_split_size = ReadableSize(REGION_SPLIT_SIZE);
+    cluster.causet.violetabft_store.split_brane_check_tick_interval = ReadableDuration::millis(100);
+    cluster.causet.interlock.brane_max_size = ReadableSize(REGION_MAX_SIZE);
+    cluster.causet.interlock.brane_split_size = ReadableSize(REGION_SPLIT_SIZE);
 
-    let check_size_diff = cluster.causetg.violetabft_store.brane_split_check_diff.0;
+    let check_size_diff = cluster.causet.violetabft_store.brane_split_check_diff.0;
     let mut cone = 1..;
 
     cluster.run();
@@ -302,9 +302,9 @@ fn check_cluster(cluster: &mut Cluster<impl Simulator>, k: &[u8], v: &[u8], all_
 #[test]
 fn test_delay_split_brane() {
     let mut cluster = new_server_cluster(0, 3);
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 500;
-    cluster.causetg.violetabft_store.merge_max_log_gap = 100;
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 500;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 500;
+    cluster.causet.violetabft_store.merge_max_log_gap = 100;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 500;
     // To sBlock the test, we use a large hearbeat timeout 200ms(100ms * 2).
     // And to elect leader quickly, set election timeout to 1s(100ms * 10).
     configure_for_lease_read(&mut cluster, Some(100), Some(10));
@@ -414,10 +414,10 @@ fn test_server_split_overlap_snapshot() {
 
 fn test_apply_new_version_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
     // truncate the log quickly so that we can force slightlikeing snapshot.
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 5;
-    cluster.causetg.violetabft_store.merge_max_log_gap = 1;
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 5;
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 5;
+    cluster.causet.violetabft_store.merge_max_log_gap = 1;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 5;
 
     // We use three nodes([1, 2, 3]) for this test.
     cluster.run();
@@ -479,8 +479,8 @@ fn test_server_apply_new_version_snapshot() {
 
 fn test_split_with_stale_peer<T: Simulator>(cluster: &mut Cluster<T>) {
     // disable violetabft log gc.
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::secs(60);
-    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::secs(60);
+    cluster.causet.violetabft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     // Disable default max peer count check.
@@ -560,11 +560,11 @@ fn test_server_split_with_stale_peer() {
 fn test_split_brane_diff_check<T: Simulator>(cluster: &mut Cluster<T>) {
     let brane_max_size = 2000;
     let brane_split_size = 1000;
-    cluster.causetg.violetabft_store.split_brane_check_tick_interval = ReadableDuration::millis(100);
-    cluster.causetg.violetabft_store.brane_split_check_diff = ReadableSize(10);
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::secs(20);
-    cluster.causetg.interlock.brane_max_size = ReadableSize(brane_max_size);
-    cluster.causetg.interlock.brane_split_size = ReadableSize(brane_split_size);
+    cluster.causet.violetabft_store.split_brane_check_tick_interval = ReadableDuration::millis(100);
+    cluster.causet.violetabft_store.brane_split_check_diff = ReadableSize(10);
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::secs(20);
+    cluster.causet.interlock.brane_max_size = ReadableSize(brane_max_size);
+    cluster.causet.interlock.brane_split_size = ReadableSize(brane_split_size);
 
     let mut cone = 1..;
 
@@ -616,7 +616,7 @@ fn test_node_split_brane_diff_check() {
 }
 
 fn test_split_epoch_not_match<T: Simulator>(cluster: &mut Cluster<T>, right_derive: bool) {
-    cluster.causetg.violetabft_store.right_derive_when_split = right_derive;
+    cluster.causet.violetabft_store.right_derive_when_split = right_derive;
     cluster.run();
     let fidel_client = Arc::clone(&cluster.fidel_client);
     let old = fidel_client.get_brane(b"k1").unwrap();
@@ -703,7 +703,7 @@ fn test_node_split_epoch_not_match_right_derive() {
 fn test_quick_election_after_split<T: Simulator>(cluster: &mut Cluster<T>) {
     // Calculate the reserved time before a new campaign after split.
     let reserved_time =
-        Duration::from_millis(cluster.causetg.violetabft_store.violetabft_base_tick_interval.as_millis() * 2);
+        Duration::from_millis(cluster.causet.violetabft_store.violetabft_base_tick_interval.as_millis() * 2);
 
     cluster.run();
     cluster.must_put(b"k1", b"v1");
@@ -758,7 +758,7 @@ fn test_split_brane<T: Simulator>(cluster: &mut Cluster<T>) {
     // length of each key+value
     let item_len = 74;
     // make bucket's size to item_len, which means one EventIdx one bucket
-    cluster.causetg.interlock.brane_max_size = ReadableSize(item_len) * 1024;
+    cluster.causet.interlock.brane_max_size = ReadableSize(item_len) * 1024;
     let mut cone = 1..;
     cluster.run();
     let fidel_client = Arc::clone(&cluster.fidel_client);

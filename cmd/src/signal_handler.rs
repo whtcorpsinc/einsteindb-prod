@@ -2,7 +2,7 @@
 
 pub use self::imp::wait_for_signal;
 
-#[causetg(unix)]
+#[causet(unix)]
 mod imp {
     use engine_lmdb::LmdbEngine;
     use engine_promises::{Engines, MiscExt, VioletaBftEngine};
@@ -35,7 +35,7 @@ mod imp {
     }
 }
 
-#[causetg(not(unix))]
+#[causet(not(unix))]
 mod imp {
     use engine_lmdb::LmdbEngine;
     use engine_promises::Engines;

@@ -212,7 +212,7 @@ impl<'a> UnsafeRefInto<&'static SolitonedVecBytes> for &'a SolitonedVecBytes {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 
@@ -393,7 +393,7 @@ mod tests {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod benches {
     use super::*;
 

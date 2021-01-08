@@ -230,7 +230,7 @@ impl Rotator for RotateBySize {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

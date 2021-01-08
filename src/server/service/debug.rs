@@ -60,10 +60,10 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine>> Service<ER, T> 
         engines: Engines<LmdbEngine, ER>,
         pool: Handle,
         violetabft_router: T,
-        causetg_controller: ConfigController,
+        causet_controller: ConfigController,
         security_mgr: Arc<SecurityManager>,
     ) -> Service<ER, T> {
-        let debugger = Debugger::new(engines, causetg_controller);
+        let debugger = Debugger::new(engines, causet_controller);
         Service {
             pool,
             debugger,
@@ -304,7 +304,7 @@ impl<ER: VioletaBftEngine, T: VioletaBftStoreRouter<LmdbEngine> + 'static> debug
                     return Err(Error::InvalidArgument("Failure Type INVALID".to_owned()));
                 }
                 let actions = req.get_actions();
-                if let Err(e) = fail::causetg(name, actions) {
+                if let Err(e) = fail::causet(name, actions) {
                     return Err(box_err!("{:?}", e));
                 }
                 Ok(InjectFailPointResponse::default())
@@ -609,12 +609,12 @@ fn consistency_check<T: VioletaBftStoreRouter<LmdbEngine>>(
     }
 }
 
-#[causetg(feature = "protobuf-codec")]
+#[causet(feature = "protobuf-codec")]
 mod brane_size_response {
     pub type Entry = ekvproto::debugpb::BraneSizeResponseEntry;
 }
 
-#[causetg(feature = "protobuf-codec")]
+#[causet(feature = "protobuf-codec")]
 mod list_fail_points_response {
     pub type Entry = ekvproto::debugpb::ListFailPointsResponseEntry;
 }

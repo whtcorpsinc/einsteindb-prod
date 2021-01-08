@@ -117,7 +117,7 @@ pub fn clear_prepare_bootstrap_key(
     Ok(())
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use tempfile::Builder;
 

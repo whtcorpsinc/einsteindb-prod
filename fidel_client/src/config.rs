@@ -71,13 +71,13 @@ impl Config {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_fidel_causetg() {
-        let causetg = Config::default();
-        causetg.validate().unwrap();
+    fn test_fidel_causet() {
+        let causet = Config::default();
+        causet.validate().unwrap();
     }
 }

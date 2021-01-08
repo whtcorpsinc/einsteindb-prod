@@ -108,7 +108,7 @@ pub mod tests {
     use ekvproto::kvrpcpb::Context;
     use txn_types::TimeStamp;
 
-    #[causetg(test)]
+    #[causet(test)]
     use crate::causetStorage::{
         tail_pointer::SHORT_VALUE_MAX_LEN, txn::commands::check_txn_status, TestEngineBuilder, TxnStatus,
     };
@@ -142,7 +142,7 @@ pub mod tests {
         assert!(commit(&mut txn, Key::from_raw(key), commit_ts.into()).is_err());
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     fn test_commit_ok_imp(k1: &[u8], v1: &[u8], k2: &[u8], k3: &[u8]) {
         let engine = TestEngineBuilder::new().build().unwrap();
         must_prewrite_put(&engine, k1, v1, k1, 10);
@@ -171,7 +171,7 @@ pub mod tests {
         test_commit_ok_imp(b"x", &long_value, b"y", b"z");
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     fn test_commit_err_imp(k: &[u8], v: &[u8]) {
         let engine = TestEngineBuilder::new().build().unwrap();
 

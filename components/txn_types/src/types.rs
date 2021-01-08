@@ -364,7 +364,7 @@ pub trait TxnExtraScheduler: Slightlike + Sync {
     fn schedule(&self, txn_extra: TxnExtra);
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

@@ -96,7 +96,7 @@ impl<'a> EncryptedFile<'a> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::Error;

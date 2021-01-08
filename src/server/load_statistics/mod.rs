@@ -44,12 +44,12 @@ impl ThreadLoad {
     }
 }
 
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 mod linux;
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 pub use self::linux::*;
 
-#[causetg(not(target_os = "linux"))]
+#[causet(not(target_os = "linux"))]
 mod other_os {
     use super::ThreadLoad;
     use std::sync::Arc;
@@ -69,5 +69,5 @@ mod other_os {
         pub fn record(&mut self, _instant: Instant) {}
     }
 }
-#[causetg(not(target_os = "linux"))]
+#[causet(not(target_os = "linux"))]
 pub use self::other_os::ThreadLoadStatistics;

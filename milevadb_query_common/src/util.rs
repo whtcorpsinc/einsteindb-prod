@@ -88,7 +88,7 @@ pub fn is_point(cone: &coppb::KeyCone) -> bool {
     is_prefix_next(cone.get_spacelike(), cone.get_lightlike())
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

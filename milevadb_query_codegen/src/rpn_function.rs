@@ -1605,7 +1605,7 @@ impl NormalRpnFn {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests_normal {
     use super::*;
 

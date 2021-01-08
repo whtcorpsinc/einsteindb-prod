@@ -30,8 +30,8 @@ fn test_retry_rpc_client() {
     let m_mgr = mgr.clone();
     server.stop();
     let child = thread::spawn(move || {
-        let causetg = new_config(m_eps);
-        assert_eq!(RpcClient::new(&causetg, m_mgr).is_ok(), true);
+        let causet = new_config(m_eps);
+        assert_eq!(RpcClient::new(&causet, m_mgr).is_ok(), true);
     });
     thread::sleep(Duration::from_millis(500));
     server.spacelike(&mgr, eps);
@@ -339,8 +339,8 @@ fn test_respacelike_leader_insecure() {
 
 #[test]
 fn test_respacelike_leader_secure() {
-    let security_causetg = test_util::new_security_causetg(None);
-    let mgr = SecurityManager::new(&security_causetg).unwrap();
+    let security_causet = test_util::new_security_causet(None);
+    let mgr = SecurityManager::new(&security_causet).unwrap();
     respacelike_leader(mgr)
 }
 

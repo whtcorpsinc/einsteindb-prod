@@ -27,7 +27,7 @@ pub fn prepare_sst_for_ingestion<P: AsRef<Path>, Q: AsRef<Path>>(
     clone: Q,
     encryption_key_manager: Option<&Arc<DataKeyManager>>,
 ) -> Result<()> {
-    #[causetg(unix)]
+    #[causet(unix)]
     use std::os::unix::fs::MetadataExt;
 
     let path = path.as_ref().to_str().unwrap();
@@ -40,11 +40,11 @@ pub fn prepare_sst_for_ingestion<P: AsRef<Path>, Q: AsRef<Path>>(
         fs::remove_file(clone).map_err(|e| format!("remove {}: {:?}", clone, e))?;
     }
 
-    #[causetg(unix)]
+    #[causet(unix)]
     let nlink = fs::metadata(path)
         .map_err(|e| format!("read metadata from {}: {:?}", path, e))?
         .nlink();
-    #[causetg(not(unix))]
+    #[causet(not(unix))]
     let nlink = 0;
 
     if nlink == 1 {
@@ -76,7 +76,7 @@ fn copy_and_sync<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> Result<()> {
     Ok(())
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::prepare_sst_for_ingestion;
 
@@ -95,13 +95,13 @@ mod tests {
     use test_util::encryption::new_test_key_manager;
     use einsteindb_util::file::calc_crc32;
 
-    #[causetg(unix)]
+    #[causet(unix)]
     fn check_hard_link<P: AsRef<Path>>(path: P, nlink: u64) {
         use std::os::unix::fs::MetadataExt;
         assert_eq!(fs::metadata(path).unwrap().nlink(), nlink);
     }
 
-    #[causetg(not(unix))]
+    #[causet(not(unix))]
     fn check_hard_link<P: AsRef<Path>>(_: P, _: u64) {
         // Just do nothing
     }

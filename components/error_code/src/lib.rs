@@ -78,7 +78,7 @@ impl<T> ErrorCodeExt for T {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     #[test]
     fn test_define_error_code() {

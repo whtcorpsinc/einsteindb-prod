@@ -2,7 +2,7 @@
 
 pub mod aggr_executor;
 pub mod hash_aggr_helper;
-#[causetg(test)]
+#[causet(test)]
 pub mod mock_executor;
 pub mod scan_executor;
 

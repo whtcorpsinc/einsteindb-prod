@@ -504,7 +504,7 @@ impl ArithmeticOpWithCtx for RealDivide {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

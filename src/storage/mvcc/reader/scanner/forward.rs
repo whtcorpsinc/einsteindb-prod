@@ -28,7 +28,7 @@ pub trait ScanPolicy<S: Snapshot> {
     fn handle_lock(
         &mut self,
         current_user_key: Key,
-        causetg: &mut ScannerConfig<S>,
+        causet: &mut ScannerConfig<S>,
         cursors: &mut Cursors<S>,
         statistics: &mut Statistics,
     ) -> Result<HandleRes<Self::Output>>;
@@ -43,7 +43,7 @@ pub trait ScanPolicy<S: Snapshot> {
     fn handle_write(
         &mut self,
         current_user_key: Key,
-        causetg: &mut ScannerConfig<S>,
+        causet: &mut ScannerConfig<S>,
         cursors: &mut Cursors<S>,
         statistics: &mut Statistics,
     ) -> Result<HandleRes<Self::Output>>;
@@ -99,17 +99,17 @@ impl<S: Snapshot> Cursors<S> {
 
     /// Create the default cursor if it doesn't exist.
     #[inline]
-    fn ensure_default_cursor(&mut self, causetg: &mut ScannerConfig<S>) -> Result<()> {
+    fn ensure_default_cursor(&mut self, causet: &mut ScannerConfig<S>) -> Result<()> {
         if self.default.is_some() {
             return Ok(());
         }
-        self.default = Some(causetg.create_causet_cursor(CAUSET_DEFAULT)?);
+        self.default = Some(causet.create_causet_cursor(CAUSET_DEFAULT)?);
         Ok(())
     }
 }
 
 pub struct ForwardScanner<S: Snapshot, P: ScanPolicy<S>> {
-    causetg: ScannerConfig<S>,
+    causet: ScannerConfig<S>,
     cursors: Cursors<S>,
     /// Is iteration spacelikeed
     is_spacelikeed: bool,
@@ -120,7 +120,7 @@ pub struct ForwardScanner<S: Snapshot, P: ScanPolicy<S>> {
 
 impl<S: Snapshot, P: ScanPolicy<S>> ForwardScanner<S, P> {
     pub fn new(
-        causetg: ScannerConfig<S>,
+        causet: ScannerConfig<S>,
         lock_cursor: Cursor<S::Iter>,
         write_cursor: Cursor<S::Iter>,
         default_cursor: Option<Cursor<S::Iter>>,
@@ -132,12 +132,12 @@ impl<S: Snapshot, P: ScanPolicy<S>> ForwardScanner<S, P> {
             default: default_cursor,
         };
         ForwardScanner {
-            met_newer_ts_data: if causetg.check_has_newer_ts_data {
+            met_newer_ts_data: if causet.check_has_newer_ts_data {
                 NewerTsCheckState::NotMetYet
             } else {
                 NewerTsCheckState::Unknown
             },
-            causetg,
+            causet,
             cursors,
             statistics: Statistics::default(),
             is_spacelikeed: false,
@@ -160,14 +160,14 @@ impl<S: Snapshot, P: ScanPolicy<S>> ForwardScanner<S, P> {
     /// Get the next key-value pair, in forward order.
     pub fn read_next(&mut self) -> Result<Option<P::Output>> {
         if !self.is_spacelikeed {
-            if self.causetg.lower_bound.is_some() {
+            if self.causet.lower_bound.is_some() {
                 // TODO: `seek_to_first` is better, however it has performance issues currently.
                 self.cursors.write.seek(
-                    self.causetg.lower_bound.as_ref().unwrap(),
+                    self.causet.lower_bound.as_ref().unwrap(),
                     &mut self.statistics.write,
                 )?;
                 self.cursors.dagger.seek(
-                    self.causetg.lower_bound.as_ref().unwrap(),
+                    self.causet.lower_bound.as_ref().unwrap(),
                     &mut self.statistics.dagger,
                 )?;
             } else {
@@ -257,7 +257,7 @@ impl<S: Snapshot, P: ScanPolicy<S>> ForwardScanner<S, P> {
                 }
                 current_user_key = match self.scan_policy.handle_lock(
                     current_user_key,
-                    &mut self.causetg,
+                    &mut self.causet,
                     &mut self.cursors,
                     &mut self.statistics,
                 )? {
@@ -270,7 +270,7 @@ impl<S: Snapshot, P: ScanPolicy<S>> ForwardScanner<S, P> {
                 if is_current_user_key {
                     if let HandleRes::Return(output) = self.scan_policy.handle_write(
                         current_user_key,
-                        &mut self.causetg,
+                        &mut self.causet,
                         &mut self.cursors,
                         &mut self.statistics,
                     )? {
@@ -282,7 +282,7 @@ impl<S: Snapshot, P: ScanPolicy<S>> ForwardScanner<S, P> {
         }
     }
 
-    /// Try to move the write cursor to the `self.causetg.ts` version of the given key.
+    /// Try to move the write cursor to the `self.causet.ts` version of the given key.
     /// Because it is possible that the cursor is moved to the next user key or
     /// the lightlike of key space, the method returns whether the write cursor still
     /// points to the given user key.
@@ -309,7 +309,7 @@ impl<S: Snapshot, P: ScanPolicy<S>> ForwardScanner<S, P> {
                     // Meet another key.
                     return Ok(false);
                 }
-                if Key::decode_ts_from(current_key)? <= self.causetg.ts {
+                if Key::decode_ts_from(current_key)? <= self.causet.ts {
                     // Founded, don't need to seek again.
                     needs_seek = false;
                     break;
@@ -323,7 +323,7 @@ impl<S: Snapshot, P: ScanPolicy<S>> ForwardScanner<S, P> {
             // `user_key` must have reserved space here, so its clone has reserved space too. So no
             // reallocation happens in `applightlike_ts`.
             self.cursors.write.seek(
-                &user_key.clone().applightlike_ts(self.causetg.ts),
+                &user_key.clone().applightlike_ts(self.causet.ts),
                 &mut self.statistics.write,
             )?;
             if !self.cursors.write.valid()? {
@@ -349,17 +349,17 @@ impl<S: Snapshot> ScanPolicy<S> for LatestKvPolicy {
     fn handle_lock(
         &mut self,
         current_user_key: Key,
-        causetg: &mut ScannerConfig<S>,
+        causet: &mut ScannerConfig<S>,
         cursors: &mut Cursors<S>,
         statistics: &mut Statistics,
     ) -> Result<HandleRes<Self::Output>> {
-        scan_latest_handle_lock(current_user_key, causetg, cursors, statistics)
+        scan_latest_handle_lock(current_user_key, causet, cursors, statistics)
     }
 
     fn handle_write(
         &mut self,
         current_user_key: Key,
-        causetg: &mut ScannerConfig<S>,
+        causet: &mut ScannerConfig<S>,
         cursors: &mut Cursors<S>,
         statistics: &mut Statistics,
     ) -> Result<HandleRes<Self::Output>> {
@@ -368,7 +368,7 @@ impl<S: Snapshot> ScanPolicy<S> for LatestKvPolicy {
 
             match write.write_type {
                 WriteType::Put => {
-                    if causetg.omit_value {
+                    if causet.omit_value {
                         break Some(vec![]);
                     }
                     match write.short_value {
@@ -379,7 +379,7 @@ impl<S: Snapshot> ScanPolicy<S> for LatestKvPolicy {
                         None => {
                             // Value is in the default CAUSET.
                             let spacelike_ts = write.spacelike_ts;
-                            cursors.ensure_default_cursor(causetg)?;
+                            cursors.ensure_default_cursor(causet)?;
                             let value = super::near_load_data_by_write(
                                 cursors.default.as_mut().unwrap(),
                                 &current_user_key,
@@ -441,17 +441,17 @@ impl<S: Snapshot> ScanPolicy<S> for LatestEntryPolicy {
     fn handle_lock(
         &mut self,
         current_user_key: Key,
-        causetg: &mut ScannerConfig<S>,
+        causet: &mut ScannerConfig<S>,
         cursors: &mut Cursors<S>,
         statistics: &mut Statistics,
     ) -> Result<HandleRes<Self::Output>> {
-        scan_latest_handle_lock(current_user_key, causetg, cursors, statistics)
+        scan_latest_handle_lock(current_user_key, causet, cursors, statistics)
     }
 
     fn handle_write(
         &mut self,
         current_user_key: Key,
-        causetg: &mut ScannerConfig<S>,
+        causet: &mut ScannerConfig<S>,
         cursors: &mut Cursors<S>,
         statistics: &mut Statistics,
     ) -> Result<HandleRes<Self::Output>> {
@@ -471,7 +471,7 @@ impl<S: Snapshot> ScanPolicy<S> for LatestEntryPolicy {
                     let entry_write = (write_key.to_vec(), write_value.to_vec());
                     let entry_default = if write.short_value.is_none() {
                         let spacelike_ts = write.spacelike_ts;
-                        cursors.ensure_default_cursor(causetg)?;
+                        cursors.ensure_default_cursor(causet)?;
                         let default_cursor = cursors.default.as_mut().unwrap();
                         let default_value = super::near_load_data_by_write(
                             default_cursor,
@@ -526,11 +526,11 @@ impl<S: Snapshot> ScanPolicy<S> for LatestEntryPolicy {
 
 fn scan_latest_handle_lock<S: Snapshot, T>(
     current_user_key: Key,
-    causetg: &mut ScannerConfig<S>,
+    causet: &mut ScannerConfig<S>,
     cursors: &mut Cursors<S>,
     statistics: &mut Statistics,
 ) -> Result<HandleRes<T>> {
-    let result = match causetg.isolation_level {
+    let result = match causet.isolation_level {
         IsolationLevel::Si => {
             // Only needs to check dagger in SI
             let dagger = {
@@ -540,8 +540,8 @@ fn scan_latest_handle_lock<S: Snapshot, T>(
             Dagger::check_ts_conflict(
                 Cow::Owned(dagger),
                 &current_user_key,
-                causetg.ts,
-                &causetg.bypass_locks,
+                causet.ts,
+                &causet.bypass_locks,
             )
             .map(|_| ())
         }
@@ -562,7 +562,7 @@ fn scan_latest_handle_lock<S: Snapshot, T>(
 /// The ScanPolicy for outputting `TxnEntry` for every locks or commits in specified ts cone.
 ///
 /// The `ForwardScanner` with this policy scans all entries whose `commit_ts`s
-/// (or locks' `spacelike_ts`s) in cone (`from_ts`, `causetg.ts`].
+/// (or locks' `spacelike_ts`s) in cone (`from_ts`, `causet.ts`].
 pub struct DeltaEntryPolicy {
     from_ts: TimeStamp,
     extra_op: ExtraOp,
@@ -580,14 +580,14 @@ impl<S: Snapshot> ScanPolicy<S> for DeltaEntryPolicy {
     fn handle_lock(
         &mut self,
         current_user_key: Key,
-        causetg: &mut ScannerConfig<S>,
+        causet: &mut ScannerConfig<S>,
         cursors: &mut Cursors<S>,
         statistics: &mut Statistics,
     ) -> Result<HandleRes<Self::Output>> {
         // TODO: Skip pessimistic locks.
         let lock_value = cursors.dagger.value(&mut statistics.dagger).to_owned();
         let dagger = Dagger::parse(&lock_value)?;
-        let result = if dagger.ts > causetg.ts {
+        let result = if dagger.ts > causet.ts {
             Ok(HandleRes::Skip(current_user_key))
         } else {
             let load_default_res = if dagger.lock_type == LockType::Put && dagger.short_value.is_none()
@@ -638,7 +638,7 @@ impl<S: Snapshot> ScanPolicy<S> for DeltaEntryPolicy {
     fn handle_write(
         &mut self,
         current_user_key: Key,
-        _causetg: &mut ScannerConfig<S>,
+        _causet: &mut ScannerConfig<S>,
         cursors: &mut Cursors<S>,
         statistics: &mut Statistics,
     ) -> Result<HandleRes<Self::Output>> {
@@ -646,7 +646,7 @@ impl<S: Snapshot> ScanPolicy<S> for DeltaEntryPolicy {
             let write_value = cursors.write.value(&mut statistics.write);
             let commit_ts = Key::decode_ts_from(cursors.write.key(&mut statistics.write))?;
 
-            // commit_ts > causetg.ts never happens since the ForwardScanner will skip those greater
+            // commit_ts > causet.ts never happens since the ForwardScanner will skip those greater
             // versions.
 
             if commit_ts <= self.from_ts {
@@ -737,7 +737,7 @@ pub type ForwardKvScanner<S> = ForwardScanner<S, LatestKvPolicy>;
 pub type EntryScanner<S> = ForwardScanner<S, LatestEntryPolicy>;
 
 /// This scanner scans all entries whose commit_ts (or locks' spacelike_ts) is in cone
-/// (from_ts, causetg.ts].
+/// (from_ts, causet.ts].
 pub type DeltaScanner<S> = ForwardScanner<S, DeltaEntryPolicy>;
 
 impl<S, P> TxnEntryScanner for ForwardScanner<S, P>
@@ -870,7 +870,7 @@ pub mod test_util {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod latest_kv_tests {
     use super::super::ScannerBuilder;
     use super::*;
@@ -1159,7 +1159,7 @@ mod latest_kv_tests {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod latest_entry_tests {
     use super::super::ScannerBuilder;
     use super::*;
@@ -1514,7 +1514,7 @@ mod latest_entry_tests {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod delta_entry_tests {
     use super::super::ScannerBuilder;
     use super::*;

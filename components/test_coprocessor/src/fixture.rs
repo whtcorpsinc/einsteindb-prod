@@ -64,7 +64,7 @@ pub fn init_data_with_details<E: Engine>(
     tbl: &ProductBlock,
     vals: &[(i64, Option<&str>, i64)],
     commit: bool,
-    causetg: &Config,
+    causet: &Config,
 ) -> (CausetStore<E>, Endpoint<E>) {
     let mut store = CausetStore::from_engine(engine);
 
@@ -86,7 +86,7 @@ pub fn init_data_with_details<E: Engine>(
         store.get_engine(),
     ));
     let cm = ConcurrencyManager::new(1.into());
-    let causet = Endpoint::new(causetg, pool.handle(), cm);
+    let causet = Endpoint::new(causet, pool.handle(), cm);
     (store, causet)
 }
 

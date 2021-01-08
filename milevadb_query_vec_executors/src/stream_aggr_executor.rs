@@ -105,7 +105,7 @@ pub struct BatchStreamAggregationImpl {
 }
 
 impl<Src: BatchFreeDaemon> BatchStreamAggregationFreeDaemon<Src> {
-    #[causetg(test)]
+    #[causet(test)]
     pub fn new_for_test(
         src: Src,
         group_by_exps: Vec<RpnExpression>,
@@ -438,7 +438,7 @@ fn ufidelate_current_states(
     Ok(())
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

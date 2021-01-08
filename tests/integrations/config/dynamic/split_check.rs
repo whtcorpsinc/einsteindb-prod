@@ -27,24 +27,24 @@ fn tmp_engine<P: AsRef<Path>>(path: P) -> Arc<DB> {
     )
 }
 
-fn setup(causetg: EINSTEINDBConfig, engine: Arc<DB>) -> (ConfigController, Worker<Task>) {
+fn setup(causet: EINSTEINDBConfig, engine: Arc<DB>) -> (ConfigController, Worker<Task>) {
     let (router, _) = sync_channel(1);
     let runner = Runner::new(
         engine.c().clone(),
         router.clone(),
         InterlockHost::new(router),
-        causetg.interlock.clone(),
+        causet.interlock.clone(),
     );
     let mut worker: Worker<Task> = Worker::new("split-check-config");
     worker.spacelike(runner).unwrap();
 
-    let causetg_controller = ConfigController::new(causetg);
-    causetg_controller.register(
+    let causet_controller = ConfigController::new(causet);
+    causet_controller.register(
         Module::Interlock,
         Box::new(SplitCheckConfigManager(worker.scheduler())),
     );
 
-    (causetg_controller, worker)
+    (causet_controller, worker)
 }
 
 fn validate<F>(scheduler: &Scheduler<Task>, f: F)
@@ -53,8 +53,8 @@ where
 {
     let (tx, rx) = mpsc::channel();
     scheduler
-        .schedule(Task::Validate(Box::new(move |causetg: &Config| {
-            f(causetg);
+        .schedule(Task::Validate(Box::new(move |causet: &Config| {
+            f(causet);
             tx.slightlike(()).unwrap();
         })))
         .unwrap();
@@ -63,19 +63,19 @@ where
 
 #[test]
 fn test_ufidelate_split_check_config() {
-    let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-    causetg.validate().unwrap();
-    let engine = tmp_engine(&causetg.causetStorage.data_dir);
-    let (causetg_controller, mut worker) = setup(causetg.clone(), engine);
+    let (mut causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
+    causet.validate().unwrap();
+    let engine = tmp_engine(&causet.causetStorage.data_dir);
+    let (causet_controller, mut worker) = setup(causet.clone(), engine);
     let scheduler = worker.scheduler();
 
-    let cop_config = causetg.interlock.clone();
+    let cop_config = causet.interlock.clone();
     // ufidelate of other module's config should not effect split check config
-    causetg_controller
+    causet_controller
         .ufidelate_config("violetabftstore.violetabft-log-gc-memory_barrier", "2000")
         .unwrap();
-    validate(&scheduler, move |causetg: &Config| {
-        assert_eq!(causetg, &cop_config);
+    validate(&scheduler, move |causet: &Config| {
+        assert_eq!(causet, &cop_config);
     });
 
     let change = {
@@ -91,18 +91,18 @@ fn test_ufidelate_split_check_config() {
         );
         m
     };
-    causetg_controller.ufidelate(change).unwrap();
+    causet_controller.ufidelate(change).unwrap();
 
     // config should be ufidelated
     let cop_config = {
-        let mut cop_config = causetg.interlock;
+        let mut cop_config = causet.interlock;
         cop_config.split_brane_on_Block = true;
         cop_config.batch_split_limit = 123;
         cop_config.brane_split_tuplespaceInstanton = 12345;
         cop_config
     };
-    validate(&scheduler, move |causetg: &Config| {
-        assert_eq!(causetg, &cop_config);
+    validate(&scheduler, move |causet: &Config| {
+        assert_eq!(causet, &cop_config);
     });
 
     worker.stop().unwrap().join().unwrap();

@@ -48,7 +48,7 @@ impl Constant {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crate::tests::datum_expr;
     use crate::Expression;

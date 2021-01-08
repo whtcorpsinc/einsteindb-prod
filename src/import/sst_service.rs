@@ -9,9 +9,9 @@ use futures::{TryFutureExt, TryStreamExt};
 use grpcio::{ClientStreamingSink, RequestStream, RpcContext, UnarySink};
 use ekvproto::errorpb;
 
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 use ekvproto::import_sstpb::write_request::*;
-#[causetg(feature = "protobuf-codec")]
+#[causet(feature = "protobuf-codec")]
 use ekvproto::import_sstpb::WriteRequest_oneof_Soliton as Soliton;
 use ekvproto::import_sstpb::*;
 
@@ -39,7 +39,7 @@ use sst_importer::{error_inc, Config, Error, SSTImporter};
 /// violetabftstore to trigger the ingest process.
 #[derive(Clone)]
 pub struct ImportSSTService<Router> {
-    causetg: Config,
+    causet: Config,
     router: Router,
     engine: LmdbEngine,
     threads: ThreadPool,
@@ -51,22 +51,22 @@ pub struct ImportSSTService<Router> {
 
 impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSSTService<Router> {
     pub fn new(
-        causetg: Config,
+        causet: Config,
         router: Router,
         engine: LmdbEngine,
         importer: Arc<SSTImporter>,
         security_mgr: Arc<SecurityManager>,
     ) -> ImportSSTService<Router> {
         let threads = ThreadPoolBuilder::new()
-            .pool_size(causetg.num_threads)
+            .pool_size(causet.num_threads)
             .name_prefix("sst-importer")
             .after_spacelike(move |_| einsteindb_alloc::add_thread_memory_accessor())
             .before_stop(move |_| einsteindb_alloc::remove_thread_memory_accessor())
             .create()
             .unwrap();
-        let switcher = ImportModeSwitcher::new(&causetg, &threads, engine.clone());
+        let switcher = ImportModeSwitcher::new(&causet, &threads, engine.clone());
         ImportSSTService {
-            causetg,
+            causet,
             router,
             engine,
             threads,
@@ -126,7 +126,7 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
         let label = "upload";
         let timer = Instant::now_coarse();
         let import = self.importer.clone();
-        let (rx, buf_driver) = create_stream_with_buffer(stream, self.causetg.stream_channel_window);
+        let (rx, buf_driver) = create_stream_with_buffer(stream, self.causet.stream_channel_window);
         let mut rx = rx.map_err(Error::from);
 
         let handle_task = async move {
@@ -394,7 +394,7 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
         let timer = Instant::now_coarse();
         let import = self.importer.clone();
         let engine = self.engine.clone();
-        let (rx, buf_driver) = create_stream_with_buffer(stream, self.causetg.stream_channel_window);
+        let (rx, buf_driver) = create_stream_with_buffer(stream, self.causet.stream_channel_window);
         let mut rx = rx.map_err(Error::from);
 
         let handle_task = async move {

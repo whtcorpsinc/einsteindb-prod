@@ -282,9 +282,9 @@ pub enum Task {
     /// Change the ttl of DetectBlock
     ChangeTTL(Duration),
     // Task only used for test
-    #[causetg(any(test, feature = "testexport"))]
+    #[causet(any(test, feature = "testexport"))]
     Validate(Box<dyn FnOnce(u64) + Slightlike>),
-    #[causetg(test)]
+    #[causet(test)]
     GetRole(Box<dyn FnOnce(Role) + Slightlike>),
 }
 
@@ -299,9 +299,9 @@ impl Display for Task {
             Task::DetectRpc { .. } => write!(f, "Detect Rpc"),
             Task::ChangeRole(role) => write!(f, "ChangeRole {{ role: {:?} }}", role),
             Task::ChangeTTL(ttl) => write!(f, "ChangeTTL {{ ttl: {:?} }}", ttl),
-            #[causetg(any(test, feature = "testexport"))]
+            #[causet(any(test, feature = "testexport"))]
             Task::Validate(_) => write!(f, "Validate dead dagger config"),
-            #[causetg(test)]
+            #[causet(test)]
             Task::GetRole(_) => write!(f, "Get role of the deadlock detector"),
         }
     }
@@ -357,12 +357,12 @@ impl Scheduler {
         self.notify_scheduler(Task::ChangeTTL(t));
     }
 
-    #[causetg(any(test, feature = "testexport"))]
+    #[causet(any(test, feature = "testexport"))]
     pub fn validate(&self, f: Box<dyn FnOnce(u64) + Slightlike>) {
         self.notify_scheduler(Task::Validate(f));
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     pub fn get_role(&self, f: Box<dyn FnOnce(Role) + Slightlike>) {
         self.notify_scheduler(Task::GetRole(f));
     }
@@ -510,7 +510,7 @@ where
         resolver: S,
         security_mgr: Arc<SecurityManager>,
         waiter_mgr_scheduler: WaiterMgrScheduler,
-        causetg: &Config,
+        causet: &Config,
     ) -> Self {
         assert!(store_id != INVALID_ID);
         Self {
@@ -524,7 +524,7 @@ where
             waiter_mgr_scheduler,
             inner: Rc::new(RefCell::new(Inner {
                 role: Role::Follower,
-                detect_Block: DetectBlock::new(causetg.wait_for_lock_timeout.into()),
+                detect_Block: DetectBlock::new(causet.wait_for_lock_timeout.into()),
             })),
         }
     }
@@ -836,9 +836,9 @@ where
             }
             Task::ChangeRole(role) => self.handle_change_role(role),
             Task::ChangeTTL(ttl) => self.handle_change_ttl(ttl),
-            #[causetg(any(test, feature = "testexport"))]
+            #[causet(any(test, feature = "testexport"))]
             Task::Validate(f) => f(self.inner.borrow().detect_Block.ttl.as_millis() as u64),
-            #[causetg(test)]
+            #[causet(test)]
             Task::GetRole(f) => f(self.inner.borrow().role),
         }
     }
@@ -918,7 +918,7 @@ impl Deadlock for Service {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use super::*;
     use crate::server::resolve::Callback;

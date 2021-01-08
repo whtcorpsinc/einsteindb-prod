@@ -582,7 +582,7 @@ impl Scanner for FixtureStoreScanner {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::causetStorage::kv::{
@@ -1260,7 +1260,7 @@ mod tests {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod benches {
     use super::*;
     use crate::test;

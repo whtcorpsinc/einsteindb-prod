@@ -51,7 +51,7 @@ impl Iteron for KvGenerator {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use test::Bencher;

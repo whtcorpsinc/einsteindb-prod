@@ -167,7 +167,7 @@ pub fn uuid() -> Result<Option<Bytes>> {
     Ok(Some(buf))
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use fidelpb::ScalarFuncSig;
 

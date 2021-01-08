@@ -21,9 +21,9 @@ fn test_proposal_prevent_sleep() {
 
     // Wait till leader peer goes to sleep.
     thread::sleep(
-        cluster.causetg.violetabft_store.violetabft_base_tick_interval.0
+        cluster.causet.violetabft_store.violetabft_base_tick_interval.0
             * 2
-            * cluster.causetg.violetabft_store.violetabft_election_timeout_ticks as u32,
+            * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32,
     );
 
     cluster.add_slightlike_filter(CloneFilterFactory(
@@ -46,9 +46,9 @@ fn test_proposal_prevent_sleep() {
 
     // Wait till leader peer goes to sleep.
     thread::sleep(
-        cluster.causetg.violetabft_store.violetabft_base_tick_interval.0
+        cluster.causet.violetabft_store.violetabft_base_tick_interval.0
             * 2
-            * cluster.causetg.violetabft_store.violetabft_election_timeout_ticks as u32,
+            * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32,
     );
     cluster.add_slightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 1).direction(Direction::Slightlike),
@@ -78,9 +78,9 @@ fn test_proposal_prevent_sleep() {
 
     // Wait till leader peer goes to sleep.
     thread::sleep(
-        cluster.causetg.violetabft_store.violetabft_base_tick_interval.0
+        cluster.causet.violetabft_store.violetabft_base_tick_interval.0
             * 2
-            * cluster.causetg.violetabft_store.violetabft_election_timeout_ticks as u32,
+            * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32,
     );
     cluster.add_slightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 1).direction(Direction::Slightlike),
@@ -126,7 +126,7 @@ fn test_single_voter_respacelike() {
 fn test_prompt_learner() {
     let mut cluster = new_server_cluster(0, 4);
     configure_for_hibernate(&mut cluster);
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 20;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 20;
     cluster.fidel_client.disable_default_operator();
     cluster.run_conf_change();
     cluster.fidel_client.must_add_peer(1, new_peer(2, 2));
@@ -145,7 +145,7 @@ fn test_prompt_learner() {
     ));
     let idx = cluster.truncated_state(1, 1).get_index();
     // Trigger a log compaction.
-    for i in 0..cluster.causetg.violetabft_store.violetabft_log_gc_count_limit * 2 {
+    for i in 0..cluster.causet.violetabft_store.violetabft_log_gc_count_limit * 2 {
         cluster.must_put(format!("k{}", i).as_bytes(), format!("v{}", i).as_bytes());
     }
     let timer = Instant::now();
@@ -160,9 +160,9 @@ fn test_prompt_learner() {
     }
     // Wait till leader peer goes to sleep again.
     thread::sleep(
-        cluster.causetg.violetabft_store.violetabft_base_tick_interval.0
+        cluster.causet.violetabft_store.violetabft_base_tick_interval.0
             * 2
-            * cluster.causetg.violetabft_store.violetabft_election_timeout_ticks as u32,
+            * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32,
     );
     cluster.clear_slightlike_filters();
     cluster.add_slightlike_filter(CloneFilterFactory(
@@ -197,9 +197,9 @@ fn test_transfer_leader_delay() {
     assert_eq!(messages.dagger().unwrap().len(), 1);
     // Wait till leader peer goes to sleep again.
     thread::sleep(
-        cluster.causetg.violetabft_store.violetabft_base_tick_interval.0
+        cluster.causet.violetabft_store.violetabft_base_tick_interval.0
             * 2
-            * cluster.causetg.violetabft_store.violetabft_election_timeout_ticks as u32,
+            * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32,
     );
     cluster.clear_slightlike_filters();
     cluster.add_slightlike_filter(CloneFilterFactory(DropMessageFilter::new(

@@ -431,7 +431,7 @@ pub type BatchRouter<N, C> = Router<N, C, NormalScheduler<N, C>, ControlSchedule
 ///
 /// `slightlikeer` and `controller` should be paired.
 pub fn create_system<N: Fsm, C: Fsm>(
-    causetg: &Config,
+    causet: &Config,
     slightlikeer: mpsc::LooseBoundedSlightlikeer<C::Message>,
     controller: Box<C>,
 ) -> (BatchRouter<N, C>, BatchSystem<N, C>) {
@@ -444,9 +444,9 @@ pub fn create_system<N: Fsm, C: Fsm>(
         name_prefix: None,
         router: router.clone(),
         receiver: rx,
-        pool_size: causetg.pool_size,
-        max_batch_size: causetg.max_batch_size,
-        reschedule_duration: causetg.reschedule_duration.0,
+        pool_size: causet.pool_size,
+        max_batch_size: causet.max_batch_size,
+        reschedule_duration: causet.reschedule_duration.0,
         workers: vec![],
     };
     (router, system)

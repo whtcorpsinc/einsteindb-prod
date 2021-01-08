@@ -141,7 +141,7 @@ impl MiscExt for LmdbEngine {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use tempfile::Builder;
 

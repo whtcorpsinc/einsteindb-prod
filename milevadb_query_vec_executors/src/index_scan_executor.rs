@@ -490,7 +490,7 @@ impl IndexScanFreeDaemonImpl {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

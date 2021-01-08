@@ -9,7 +9,7 @@ extern crate failure;
 #[macro_use(box_err, box_try)]
 extern crate einsteindb_util;
 
-#[causetg(test)]
+#[causet(test)]
 extern crate test;
 
 #[macro_use(other_err)]
@@ -385,7 +385,7 @@ impl<T: FreeDaemon + ?Sized> FreeDaemon for Box<T> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use super::{FreeDaemon, BlockScanFreeDaemon};
     use codec::prelude::NumberEncoder;

@@ -56,7 +56,7 @@ impl<'a> JsonRef<'a> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::path_expr::parse_json_path_expr;
     use super::*;

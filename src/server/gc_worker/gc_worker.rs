@@ -77,7 +77,7 @@ pub enum GcTask {
         limit: usize,
         callback: Callback<Vec<LockInfo>>,
     },
-    #[causetg(any(test, feature = "testexport"))]
+    #[causet(any(test, feature = "testexport"))]
     Validate(Box<dyn FnOnce(&GcConfig, &Limiter) + Slightlike>),
 }
 
@@ -87,7 +87,7 @@ impl GcTask {
             GcTask::Gc { .. } => GcCommandKind::gc,
             GcTask::UnsafeDestroyCone { .. } => GcCommandKind::unsafe_destroy_cone,
             GcTask::PhysicalScanLock { .. } => GcCommandKind::physical_scan_lock,
-            #[causetg(any(test, feature = "testexport"))]
+            #[causet(any(test, feature = "testexport"))]
             GcTask::Validate(_) => GcCommandKind::validate_config,
         }
     }
@@ -118,7 +118,7 @@ impl Display for GcTask {
                 .debug_struct("PhysicalScanLock")
                 .field("max_ts", max_ts)
                 .finish(),
-            #[causetg(any(test, feature = "testexport"))]
+            #[causet(any(test, feature = "testexport"))]
             GcTask::Validate(_) => write!(f, "Validate gc worker config"),
         }
     }
@@ -137,8 +137,8 @@ where
     /// Used to limit the write flow of GC.
     limiter: Limiter,
 
-    causetg: GcConfig,
-    causetg_tracker: Tracker<GcConfig>,
+    causet: GcConfig,
+    causet_tracker: Tracker<GcConfig>,
 
     stats: Statistics,
 }
@@ -151,11 +151,11 @@ where
     pub fn new(
         engine: E,
         violetabft_store_router: RR,
-        causetg_tracker: Tracker<GcConfig>,
-        causetg: GcConfig,
+        causet_tracker: Tracker<GcConfig>,
+        causet: GcConfig,
     ) -> Self {
-        let limiter = Limiter::new(if causetg.max_write_bytes_per_sec.0 > 0 {
-            causetg.max_write_bytes_per_sec.0 as f64
+        let limiter = Limiter::new(if causet.max_write_bytes_per_sec.0 > 0 {
+            causet.max_write_bytes_per_sec.0 as f64
         } else {
             INFINITY
         });
@@ -163,8 +163,8 @@ where
             engine,
             violetabft_store_router,
             limiter,
-            causetg,
-            causetg_tracker,
+            causet,
+            causet_tracker,
             stats: Statistics::default(),
         }
     }
@@ -180,7 +180,7 @@ where
             Ok(c) => c,
             Err(_) => return true,
         };
-        check_need_gc(safe_point, self.causetg.ratio_memory_barrier, &collection)
+        check_need_gc(safe_point, self.causet.ratio_memory_barrier, &collection)
     }
 
     /// Cleans up outdated data.
@@ -237,7 +237,7 @@ where
         let mut next_key = Some(Key::from_encoded_slice(spacelike_key));
         while next_key.is_some() {
             // Scans at most `GcConfig.batch_tuplespaceInstanton` tuplespaceInstanton.
-            let (tuplespaceInstanton, ufidelated_next_key) = reader.scan_tuplespaceInstanton(next_key, self.causetg.batch_tuplespaceInstanton)?;
+            let (tuplespaceInstanton, ufidelated_next_key) = reader.scan_tuplespaceInstanton(next_key, self.causet.batch_tuplespaceInstanton)?;
             next_key = ufidelated_next_key;
 
             if tuplespaceInstanton.is_empty() {
@@ -390,12 +390,12 @@ where
         }
     }
 
-    fn refresh_causetg(&mut self) {
-        if let Some(incoming) = self.causetg_tracker.any_new() {
+    fn refresh_causet(&mut self) {
+        if let Some(incoming) = self.causet_tracker.any_new() {
             let limit = incoming.max_write_bytes_per_sec.0;
             self.limiter
                 .set_speed_limit(if limit > 0 { limit as f64 } else { INFINITY });
-            self.causetg = incoming.clone();
+            self.causet = incoming.clone();
         }
     }
 }
@@ -423,7 +423,7 @@ where
         };
 
         // Refresh config before handle task
-        self.refresh_causetg();
+        self.refresh_causet();
 
         match task {
             GcTask::Gc {
@@ -479,9 +479,9 @@ where
                     limit,
                 );
             }
-            #[causetg(any(test, feature = "testexport"))]
+            #[causet(any(test, feature = "testexport"))]
             GcTask::Validate(f) => {
-                f(&self.causetg, &self.limiter);
+                f(&self.causet, &self.limiter);
             }
         };
     }
@@ -608,7 +608,7 @@ where
     pub fn new(
         engine: E,
         violetabft_store_router: RR,
-        causetg: GcConfig,
+        causet: GcConfig,
         cluster_version: ClusterVersion,
     ) -> GcWorker<E, RR> {
         let worker = Arc::new(Mutex::new(FutureWorker::new("gc-worker")));
@@ -616,7 +616,7 @@ where
         GcWorker {
             engine,
             violetabft_store_router,
-            config_manager: GcWorkerConfigManager(Arc::new(VersionTrack::new(causetg))),
+            config_manager: GcWorkerConfigManager(Arc::new(VersionTrack::new(causet))),
             scheduled_tasks: Arc::new(AtomicUsize::new(0)),
             refs: Arc::new(AtomicUsize::new(1)),
             worker,
@@ -629,19 +629,19 @@ where
 
     pub fn spacelike_auto_gc<S: GcSafePointProvider, R: BraneInfoProvider>(
         &self,
-        causetg: AutoGcConfig<S, R>,
+        causet: AutoGcConfig<S, R>,
     ) -> Result<()> {
         let safe_point = Arc::new(AtomicU64::new(0));
 
         let kvdb = self.engine.kv_engine();
-        let causetg_mgr = self.config_manager.clone();
+        let causet_mgr = self.config_manager.clone();
         let cluster_version = self.cluster_version.clone();
-        kvdb.init_compaction_filter(safe_point.clone(), causetg_mgr, cluster_version);
+        kvdb.init_compaction_filter(safe_point.clone(), causet_mgr, cluster_version);
 
         let mut handle = self.gc_manager_handle.dagger().unwrap();
         assert!(handle.is_none());
         let new_handle = GcManager::new(
-            causetg,
+            causet,
             safe_point,
             self.worker_scheduler.clone(),
             self.config_manager.clone(),
@@ -812,7 +812,7 @@ where
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::collections::BTreeMap;
     use std::sync::mpsc::channel;

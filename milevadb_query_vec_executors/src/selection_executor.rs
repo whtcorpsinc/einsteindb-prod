@@ -36,7 +36,7 @@ impl BatchSelectionFreeDaemon<Box<dyn BatchFreeDaemon<StorageStats = ()>>> {
 }
 
 impl<Src: BatchFreeDaemon> BatchSelectionFreeDaemon<Src> {
-    #[causetg(test)]
+    #[causet(test)]
     pub fn new_for_test(src: Src, conditions: Vec<RpnExpression>) -> Self {
         Self {
             context: EvalContext::default(),
@@ -212,7 +212,7 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchSelectionFreeDaemon<Src> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

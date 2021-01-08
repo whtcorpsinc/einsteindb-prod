@@ -54,7 +54,7 @@ minitrace = { git = "https://github.com/whtcorpsinc-incubator/minitrace-rust.git
 protobuf = "2"
 
 
-[target.'causetg(target_os = "linux")'.deplightlikeencies]
+[target.'causet(target_os = "linux")'.deplightlikeencies]
 procinfo = { git = "https://github.com/einsteindb/procinfo-rs", rev = "5125fc1a69496b73b26b3c08b6e8afc3c665a56e" }
 procausets = "0.7"
 

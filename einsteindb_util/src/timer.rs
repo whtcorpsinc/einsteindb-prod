@@ -200,7 +200,7 @@ fn spacelike_global_steady_timer() -> SteadyTimer {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::worker::{Builder as WorkerBuilder, Runnable, RunnableWithTimer};

@@ -833,7 +833,7 @@ impl PrimaryCauset {
         self.len() == 0
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     pub fn decode(buf: &mut einsteindb_util::codec::BytesSlice<'_>, tp: FieldTypeTp) -> Result<PrimaryCauset> {
         let length = buf.read_u32_le()? as usize;
         let mut col = PrimaryCauset::new(tp, length);
@@ -887,7 +887,7 @@ pub trait SolitonPrimaryCausetEncoder: NumberEncoder {
 
 impl<T: BufferWriter> SolitonPrimaryCausetEncoder for T {}
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::codec::datum::Datum;

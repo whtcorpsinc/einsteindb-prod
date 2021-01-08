@@ -113,7 +113,7 @@ pub fn strip_whitespace(input: &[u8]) -> Vec<u8> {
     input_copy
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     #[test]
     fn test_validate_target_len_for_pad() {

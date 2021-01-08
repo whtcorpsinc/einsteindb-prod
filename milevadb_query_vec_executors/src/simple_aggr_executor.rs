@@ -76,7 +76,7 @@ impl BatchSimpleAggregationFreeDaemon<Box<dyn BatchFreeDaemon<StorageStats = ()>
 }
 
 impl<Src: BatchFreeDaemon> BatchSimpleAggregationFreeDaemon<Src> {
-    #[causetg(test)]
+    #[causet(test)]
     pub fn new_for_test(
         src: Src,
         aggr_defs: Vec<Expr>,
@@ -213,7 +213,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for SimpleAggregationI
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

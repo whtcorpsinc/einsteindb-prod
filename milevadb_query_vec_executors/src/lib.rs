@@ -19,11 +19,11 @@ extern crate einsteindb_util;
 #[macro_use(other_err)]
 extern crate milevadb_query_common;
 
-#[causetg(test)]
+#[causet(test)]
 pub use milevadb_query_vec_aggr::*;
-#[causetg(test)]
+#[causet(test)]
 pub use milevadb_query_vec_expr::function::*;
-#[causetg(test)]
+#[causet(test)]
 pub use milevadb_query_vec_expr::*;
 mod fast_hash_aggr_executor;
 mod index_scan_executor;

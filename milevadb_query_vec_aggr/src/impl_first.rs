@@ -180,7 +180,7 @@ where
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::AggrFunction;
     use super::*;

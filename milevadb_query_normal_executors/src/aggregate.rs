@@ -288,7 +288,7 @@ impl AggrFunc for Extremum {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::ops::Add;
     use std::sync::Arc;
@@ -326,8 +326,8 @@ mod tests {
     #[test]
     fn test_sum_as_f64() {
         let mut sum = Sum { res: None };
-        let causetg = EvalConfig::default_for_test();
-        let mut ctx = EvalContext::new(Arc::new(causetg));
+        let causet = EvalConfig::default_for_test();
+        let mut ctx = EvalContext::new(Arc::new(causet));
         let data = vec![
             Datum::Bytes(b"123.09xxx".to_vec()),
             Datum::Bytes(b"aaa".to_vec()),
@@ -353,8 +353,8 @@ mod tests {
         let mut aggr = AggBitAnd {
             c: 0xffffffffffffffff,
         };
-        let causetg = EvalConfig::default_for_test();
-        let mut ctx = EvalContext::new(Arc::new(causetg));
+        let causet = EvalConfig::default_for_test();
+        let mut ctx = EvalContext::new(Arc::new(causet));
         assert_eq!(aggr.c, u64::MAX);
 
         let data = vec![
@@ -377,8 +377,8 @@ mod tests {
     #[test]
     fn test_bit_or() {
         let mut aggr = AggBitOr { c: 0 };
-        let causetg = EvalConfig::default_for_test();
-        let mut ctx = EvalContext::new(Arc::new(causetg));
+        let causet = EvalConfig::default_for_test();
+        let mut ctx = EvalContext::new(Arc::new(causet));
         let data = vec![
             Datum::U64(1),
             Datum::Null,
@@ -400,8 +400,8 @@ mod tests {
     #[test]
     fn test_bit_xor() {
         let mut aggr = AggBitXor { c: 0 };
-        let causetg = EvalConfig::default_for_test();
-        let mut ctx = EvalContext::new(Arc::new(causetg));
+        let causet = EvalConfig::default_for_test();
+        let mut ctx = EvalContext::new(Arc::new(causet));
 
         let data = vec![
             Datum::U64(1),

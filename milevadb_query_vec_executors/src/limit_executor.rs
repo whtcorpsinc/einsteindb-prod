@@ -66,7 +66,7 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchLimitFreeDaemon<Src> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

@@ -90,7 +90,7 @@ pub fn rewrite_prefix_of_lightlike_bound(
     })
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

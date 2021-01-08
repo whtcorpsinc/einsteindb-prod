@@ -267,7 +267,7 @@ where
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use milevadb_query_datatype::EvalType;
     use fidelpb_helper::ExprDefBuilder;

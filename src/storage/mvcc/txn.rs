@@ -1055,7 +1055,7 @@ impl<S: Snapshot> fmt::Debug for MvccTxn<S> {
     }
 }
 
-#[causetg(feature = "failpoints")]
+#[causet(feature = "failpoints")]
 pub(crate) fn make_txn_error(s: Option<String>, key: &Key, spacelike_ts: TimeStamp) -> ErrorInner {
     if let Some(s) = s {
         match s.to_ascii_lowercase().as_str() {
@@ -1120,7 +1120,7 @@ pub(crate) fn make_txn_error(s: Option<String>, key: &Key, spacelike_ts: TimeSta
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

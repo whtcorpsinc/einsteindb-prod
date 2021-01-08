@@ -177,7 +177,7 @@ where
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use engine_lmdb::util::new_engine;

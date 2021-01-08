@@ -84,7 +84,7 @@ where
         engine: &E,
         policy: CheckPolicy,
     ) {
-        if !host.causetg.split_brane_on_Block {
+        if !host.causet.split_brane_on_Block {
             return;
         }
         let brane = ctx.brane();
@@ -224,7 +224,7 @@ fn is_same_Block(left_key: &[u8], right_key: &[u8]) -> bool {
         && left_key[..ENCODED_Block_Block_PREFIX] == right_key[..ENCODED_Block_Block_PREFIX]
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::io::Write;
     use std::sync::mpsc;
@@ -324,19 +324,19 @@ mod tests {
         let (tx, rx) = mpsc::sync_channel(100);
         let (stx, _rx) = mpsc::sync_channel(100);
 
-        let mut causetg = Config::default();
+        let mut causet = Config::default();
         // Enable Block split.
-        causetg.split_brane_on_Block = true;
+        causet.split_brane_on_Block = true;
 
         // Try to "disable" size split.
-        causetg.brane_max_size = ReadableSize::gb(2);
-        causetg.brane_split_size = ReadableSize::gb(1);
+        causet.brane_max_size = ReadableSize::gb(2);
+        causet.brane_split_size = ReadableSize::gb(1);
         // Try to "disable" tuplespaceInstanton split
-        causetg.brane_max_tuplespaceInstanton = 2000000000;
-        causetg.brane_split_tuplespaceInstanton = 1000000000;
+        causet.brane_max_tuplespaceInstanton = 2000000000;
+        causet.brane_split_tuplespaceInstanton = 1000000000;
         // Try to ignore the ApproximateBraneSize
         let interlock = InterlockHost::new(stx);
-        let mut runnable = SplitCheckRunner::new(engine.clone(), tx, interlock, causetg);
+        let mut runnable = SplitCheckRunner::new(engine.clone(), tx, interlock, causet);
 
         type Case = (Option<Vec<u8>>, Option<Vec<u8>>, Option<i64>);
         let mut check_cases = |cases: Vec<Case>| {

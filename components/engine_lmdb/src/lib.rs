@@ -14,7 +14,7 @@
 //!
 //! Please read the engine_trait crate docs before hacking.
 
-#![causetg_attr(test, feature(test))]
+#![causet_attr(test, feature(test))]
 
 #[allow(unused_extern_crates)]
 extern crate einsteindb_alloc;
@@ -24,7 +24,7 @@ extern crate einsteindb_util;
 #[macro_use]
 extern crate serde_derive;
 
-#[causetg(test)]
+#[causet(test)]
 extern crate test;
 
 mod causet_handle;

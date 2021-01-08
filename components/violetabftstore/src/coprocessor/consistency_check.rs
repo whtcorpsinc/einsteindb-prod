@@ -82,7 +82,7 @@ fn compute_hash_on_raw<S: Snapshot>(brane: &Brane, snap: &S) -> Result<u32> {
     Ok(digest.finalize())
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use engine_lmdb::LmdbEngine;

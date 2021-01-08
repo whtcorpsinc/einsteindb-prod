@@ -54,12 +54,12 @@ fn test_replica_read_not_applied() {
     // Increase the election tick to make this test case running reliably.
     configure_for_lease_read(&mut cluster, Some(50), Some(30));
     let max_lease = Duration::from_secs(1);
-    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(max_lease);
+    cluster.causet.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(max_lease);
     // After the leader has committed to its term, plightlikeing reads on followers can be responsed.
     // However followers can receive `ReadIndexResp` after become candidate if the leader has
     // hibernated. So, disable the feature to avoid read requests on followers to be cleared as
     // stale.
-    cluster.causetg.violetabft_store.hibernate_branes = false;
+    cluster.causet.violetabft_store.hibernate_branes = false;
 
     cluster.fidel_client.disable_default_operator();
     let r1 = cluster.run_conf_change();
@@ -123,7 +123,7 @@ fn test_replica_read_on_hibernate() {
 
     configure_for_lease_read(&mut cluster, Some(50), Some(20));
     // let max_lease = Duration::from_secs(2);
-    // cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(max_lease);
+    // cluster.causet.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(max_lease);
 
     cluster.fidel_client.disable_default_operator();
     let r1 = cluster.run_conf_change();
@@ -186,7 +186,7 @@ fn test_read_hibernated_brane() {
     let mut cluster = new_node_cluster(0, 3);
     // Initialize the cluster.
     configure_for_lease_read(&mut cluster, Some(100), Some(8));
-    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(Duration::from_millis(1));
+    cluster.causet.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(Duration::from_millis(1));
     cluster.fidel_client.disable_default_operator();
     let r1 = cluster.run_conf_change();
     let p2 = new_peer(2, 2);
@@ -287,7 +287,7 @@ fn test_read_index_out_of_order() {
 
     // Use long election timeout and short lease.
     configure_for_lease_read(&mut cluster, Some(1000), Some(10));
-    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease =
+    cluster.causet.violetabft_store.violetabft_store_max_leader_lease =
         ReadableDuration(Duration::from_millis(100));
 
     let fidel_client = Arc::clone(&cluster.fidel_client);

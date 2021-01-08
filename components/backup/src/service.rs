@@ -85,7 +85,7 @@ impl Backup for Service {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::sync::Arc;
     use std::time::Duration;

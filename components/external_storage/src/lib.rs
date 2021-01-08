@@ -16,9 +16,9 @@ use std::path::Path;
 use std::sync::Arc;
 
 use futures_io::AsyncRead;
-#[causetg(feature = "protobuf-codec")]
+#[causet(feature = "protobuf-codec")]
 use ekvproto::backup::StorageBacklightlike_oneof_backlightlike as Backlightlike;
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 use ekvproto::backup::{causetStorage_backlightlike::Backlightlike, Local};
 use ekvproto::backup::{Gcs, Noop, StorageBacklightlike, S3};
 
@@ -89,13 +89,13 @@ pub fn url_of_backlightlike(backlightlike: &StorageBacklightlike) -> url::Url {
 /// Creates a local `StorageBacklightlike` to the given path.
 pub fn make_local_backlightlike(path: &Path) -> StorageBacklightlike {
     let path = path.display().to_string();
-    #[causetg(feature = "prost-codec")]
+    #[causet(feature = "prost-codec")]
     {
         StorageBacklightlike {
             backlightlike: Some(Backlightlike::Local(Local { path })),
         }
     }
-    #[causetg(feature = "protobuf-codec")]
+    #[causet(feature = "protobuf-codec")]
     {
         let mut backlightlike = StorageBacklightlike::default();
         backlightlike.mut_local().set_path(path);
@@ -106,13 +106,13 @@ pub fn make_local_backlightlike(path: &Path) -> StorageBacklightlike {
 /// Creates a noop `StorageBacklightlike`.
 pub fn make_noop_backlightlike() -> StorageBacklightlike {
     let noop = Noop::default();
-    #[causetg(feature = "prost-codec")]
+    #[causet(feature = "prost-codec")]
     {
         StorageBacklightlike {
             backlightlike: Some(Backlightlike::Noop(noop)),
         }
     }
-    #[causetg(feature = "protobuf-codec")]
+    #[causet(feature = "protobuf-codec")]
     {
         let mut backlightlike = StorageBacklightlike::default();
         backlightlike.set_noop(noop);
@@ -122,13 +122,13 @@ pub fn make_noop_backlightlike() -> StorageBacklightlike {
 
 // Creates a S3 `StorageBacklightlike`
 pub fn make_s3_backlightlike(config: S3) -> StorageBacklightlike {
-    #[causetg(feature = "prost-codec")]
+    #[causet(feature = "prost-codec")]
     {
         StorageBacklightlike {
             backlightlike: Some(Backlightlike::S3(config)),
         }
     }
-    #[causetg(feature = "protobuf-codec")]
+    #[causet(feature = "protobuf-codec")]
     {
         let mut backlightlike = StorageBacklightlike::default();
         backlightlike.set_s3(config);
@@ -138,13 +138,13 @@ pub fn make_s3_backlightlike(config: S3) -> StorageBacklightlike {
 
 // Creates a GCS `StorageBacklightlike`
 pub fn make_gcs_backlightlike(config: Gcs) -> StorageBacklightlike {
-    #[causetg(feature = "prost-codec")]
+    #[causet(feature = "prost-codec")]
     {
         StorageBacklightlike {
             backlightlike: Some(Backlightlike::Gcs(config)),
         }
     }
-    #[causetg(feature = "protobuf-codec")]
+    #[causet(feature = "protobuf-codec")]
     {
         let mut backlightlike = StorageBacklightlike::default();
         backlightlike.set_gcs(config);
@@ -180,7 +180,7 @@ impl ExternalStorage for Arc<dyn ExternalStorage> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

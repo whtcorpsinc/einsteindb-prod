@@ -460,7 +460,7 @@ where
 {
     pub fn new(
         store_id: u64,
-        causetg: &Config,
+        causet: &Config,
         sched: Scheduler<BraneTask<EK::Snapshot>>,
         engines: Engines<EK, ER>,
         brane: &metapb::Brane,
@@ -476,23 +476,23 @@ where
 
         let applied_index = ps.applied_index();
 
-        let violetabft_causetg = violetabft::Config {
+        let violetabft_causet = violetabft::Config {
             id: peer.get_id(),
-            election_tick: causetg.violetabft_election_timeout_ticks,
-            heartbeat_tick: causetg.violetabft_heartbeat_ticks,
-            min_election_tick: causetg.violetabft_min_election_timeout_ticks,
-            max_election_tick: causetg.violetabft_max_election_timeout_ticks,
-            max_size_per_msg: causetg.violetabft_max_size_per_msg.0,
-            max_inflight_msgs: causetg.violetabft_max_inflight_msgs,
+            election_tick: causet.violetabft_election_timeout_ticks,
+            heartbeat_tick: causet.violetabft_heartbeat_ticks,
+            min_election_tick: causet.violetabft_min_election_timeout_ticks,
+            max_election_tick: causet.violetabft_max_election_timeout_ticks,
+            max_size_per_msg: causet.violetabft_max_size_per_msg.0,
+            max_inflight_msgs: causet.violetabft_max_inflight_msgs,
             applied: applied_index,
             check_quorum: true,
             skip_bcast_commit: true,
-            pre_vote: causetg.prevote,
+            pre_vote: causet.prevote,
             ..Default::default()
         };
 
         let logger = slog_global::get_global().new(slog::o!("brane_id" => brane.get_id()));
-        let violetabft_group = RawNode::new(&violetabft_causetg, ps, &logger)?;
+        let violetabft_group = RawNode::new(&violetabft_causet, ps, &logger)?;
         let mut peer = Peer {
             peer,
             brane_id: brane.get_id(),
@@ -529,7 +529,7 @@ where
                 hash: vec![],
             },
             violetabft_log_size_hint: 0,
-            leader_lease: Lease::new(causetg.violetabft_store_max_leader_lease()),
+            leader_lease: Lease::new(causet.violetabft_store_max_leader_lease()),
             plightlikeing_messages: vec![],
             peer_stat: PeerStat::default(),
             catch_up_logs: None,
@@ -797,13 +797,13 @@ where
     /// Check whether the peer can be hibernated.
     ///
     /// This should be used with `check_after_tick` to get a correct conclusion.
-    pub fn check_before_tick(&self, causetg: &Config) -> CheckTickResult {
+    pub fn check_before_tick(&self, causet: &Config) -> CheckTickResult {
         let mut res = CheckTickResult::default();
         if !self.is_leader() {
             return res;
         }
         res.leader = true;
-        if self.violetabft_group.violetabft.election_elapsed + 1 < causetg.violetabft_election_timeout_ticks {
+        if self.violetabft_group.violetabft.election_elapsed + 1 < causet.violetabft_election_timeout_ticks {
             return res;
         }
         let status = self.violetabft_group.status();
@@ -1137,7 +1137,7 @@ where
                         );
                     }
                 } else {
-                    if ctx.causetg.dev_assert {
+                    if ctx.causet.dev_assert {
                         panic!("{} failed to get peer {} from cache", self.tag, id);
                     }
                     error!(
@@ -1211,14 +1211,14 @@ where
                 self.leader_missing_time = Instant::now().into();
                 StaleState::Valid
             }
-            Some(instant) if instant.elapsed() >= ctx.causetg.max_leader_missing_duration.0 => {
+            Some(instant) if instant.elapsed() >= ctx.causet.max_leader_missing_duration.0 => {
                 // Resets the `leader_missing_time` to avoid slightlikeing the same tasks to
                 // FIDel worker continuously during the leader missing timeout.
                 self.leader_missing_time = Instant::now().into();
                 StaleState::ToValidate
             }
             Some(instant)
-                if instant.elapsed() >= ctx.causetg.abnormal_leader_missing_duration.0
+                if instant.elapsed() >= ctx.causet.abnormal_leader_missing_duration.0
                     && !naive_peer =>
             {
                 // A peer is considered as in the leader missing state
@@ -2138,7 +2138,7 @@ where
         }
 
         if change_type == ConfChangeType::RemoveNode
-            && !ctx.causetg.allow_remove_leader
+            && !ctx.causet.allow_remove_leader
             && peer.get_id() == self.peer_id()
         {
             warn!(
@@ -2197,14 +2197,14 @@ where
         let cc = &cc.as_v2();
         let mut prs = self.violetabft_group.status().progress.unwrap().clone();
         let mut changer = Changer::new(&prs);
-        let (causetg, changes) = if cc.leave_joint() {
+        let (causet, changes) = if cc.leave_joint() {
             changer.leave_joint()?
         } else if let Some(auto_leave) = cc.enter_joint() {
             changer.enter_joint(auto_leave, &cc.changes)?
         } else {
             changer.simple(&cc.changes)?
         };
-        prs.apply_conf(causetg, changes, self.violetabft_group.violetabft.violetabft_log.last_index());
+        prs.apply_conf(causet, changes, self.violetabft_group.violetabft.violetabft_log.last_index());
         Ok(prs)
     }
 
@@ -2280,7 +2280,7 @@ where
         }
 
         let last_index = self.get_store().last_index();
-        if last_index >= index + ctx.causetg.leader_transfer_max_log_lag {
+        if last_index >= index + ctx.causet.leader_transfer_max_log_lag {
             return Some("log gap");
         }
         None
@@ -2325,9 +2325,9 @@ where
 
     /// `ReadIndex` requests could be lost in network, so on followers commands could queue in
     /// `plightlikeing_reads` forever. Slightlikeing a new `ReadIndex` periodically can resolve this.
-    pub fn retry_plightlikeing_reads(&mut self, causetg: &Config) {
+    pub fn retry_plightlikeing_reads(&mut self, causet: &Config) {
         if self.is_leader()
-            || !self.plightlikeing_reads.check_needs_retry(causetg)
+            || !self.plightlikeing_reads.check_needs_retry(causet)
             || self.pre_read_index().is_err()
         {
             return;
@@ -2381,7 +2381,7 @@ where
                 LeaseState::Valid | LeaseState::Expired => {
                     let committed_index = self.get_store().committed_index();
                     if let Some(read) = self.plightlikeing_reads.back_mut() {
-                        let max_lease = poll_ctx.causetg.violetabft_store_max_leader_lease();
+                        let max_lease = poll_ctx.causet.violetabft_store_max_leader_lease();
                         if read.renew_lease_time + max_lease > renew_lease_time {
                             read.push_command(req, cb, committed_index);
                             return false;
@@ -2405,7 +2405,7 @@ where
             );
             poll_ctx.violetabft_metrics.invalid_proposal.read_index_no_leader += 1;
             // The leader may be hibernated, slightlike a message for trying to awaken the leader.
-            if poll_ctx.causetg.hibernate_branes
+            if poll_ctx.causet.hibernate_branes
                 && (self.bcast_wake_up_time.is_none()
                     || self.bcast_wake_up_time.as_ref().unwrap().elapsed()
                         >= Duration::from_millis(MIN_BCAST_WAKE_UP_INTERVAL))
@@ -2510,8 +2510,8 @@ where
         let (min_matched, min_committed) = self.get_min_progress()?;
         if min_matched == 0
             || min_committed == 0
-            || last_index - min_matched > ctx.causetg.merge_max_log_gap
-            || last_index - min_committed > ctx.causetg.merge_max_log_gap * 2
+            || last_index - min_matched > ctx.causet.merge_max_log_gap
+            || last_index - min_committed > ctx.causet.merge_max_log_gap * 2
         {
             return Err(box_err!(
                 "log gap from matched: {} or committed: {} to last index: {} is too large, skip merge",
@@ -2560,7 +2560,7 @@ where
                 cmd_type
             ));
         }
-        if entry_size as f64 > ctx.causetg.violetabft_entry_max_size.0 as f64 * 0.9 {
+        if entry_size as f64 > ctx.causet.violetabft_entry_max_size.0 as f64 * 0.9 {
             return Err(box_err!(
                 "log gap size exceed entry size limit, skip merging."
             ));
@@ -2660,7 +2660,7 @@ where
         // TODO: use local histogram metrics
         PEER_PROPOSE_LOG_SIZE_HISTOGRAM.observe(data.len() as f64);
 
-        if data.len() as u64 > poll_ctx.causetg.violetabft_entry_max_size.0 {
+        if data.len() as u64 > poll_ctx.causet.violetabft_entry_max_size.0 {
             error!(
                 "entry is too large";
                 "brane_id" => self.brane_id,
@@ -3002,7 +3002,7 @@ where
             term: self.term(),
             brane: self.brane().clone(),
             peer: self.peer.clone(),
-            down_peers: self.collect_down_peers(ctx.causetg.max_peer_down_duration.0),
+            down_peers: self.collect_down_peers(ctx.causet.max_peer_down_duration.0),
             plightlikeing_peers: self.collect_plightlikeing_peers(ctx),
             written_bytes: self.peer_stat.written_bytes,
             written_tuplespaceInstanton: self.peer_stat.written_tuplespaceInstanton,
@@ -3445,11 +3445,11 @@ impl<EK: KvEngine, ER: VioletaBftEngine> AbstractPeer for Peer<EK, ER> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use ekvproto::violetabft_cmdpb;
-    #[causetg(feature = "protobuf-codec")]
+    #[causet(feature = "protobuf-codec")]
     use protobuf::ProtobufEnum;
 
     #[test]

@@ -358,14 +358,14 @@ impl ChangeData for Service {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
-    #[causetg(feature = "prost-codec")]
+    #[causet(feature = "prost-codec")]
     use ekvproto::cdcpb::event::{
         Entries as EventEntries, Event as Event_oneof_event, Event as EventEvent,
     };
     use ekvproto::cdcpb::{ChangeDataEvent, Event, ResolvedTs};
-    #[causetg(not(feature = "prost-codec"))]
+    #[causet(not(feature = "prost-codec"))]
     use ekvproto::cdcpb::{EventEntries, EventEvent, Event_oneof_event};
 
     use crate::service::{CdcEvent, EventBatcher, CDC_MAX_RESP_SIZE};

@@ -101,7 +101,7 @@ fn merge_binary_object<'a>(objects: &mut Vec<JsonRef<'a>>) -> Result<Json> {
     Json::from_object(kv_map)
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

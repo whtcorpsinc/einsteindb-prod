@@ -152,7 +152,7 @@ impl Simulator for ServerCluster {
     fn run_node(
         &mut self,
         node_id: u64,
-        mut causetg: EINSTEINDBConfig,
+        mut causet: EINSTEINDBConfig,
         engines: Engines<LmdbEngine, LmdbEngine>,
         store_meta: Arc<Mutex<StoreMeta>>,
         key_manager: Option<Arc<DataKeyManager>>,
@@ -170,7 +170,7 @@ impl Simulator for ServerCluster {
         // Now we cache the store address, so here we should re-use last
         // listening address for the same store.
         if let Some(addr) = self.addrs.get(&node_id) {
-            causetg.server.addr = addr.clone();
+            causet.server.addr = addr.clone();
         }
 
         let local_reader = LocalReader::new(engines.kv.clone(), store_meta.clone(), router.clone());
@@ -203,7 +203,7 @@ impl Simulator for ServerCluster {
         let mut gc_worker = GcWorker::new(
             engine.clone(),
             sim_router.clone(),
-            causetg.gc.clone(),
+            causet.gc.clone(),
             Default::default(),
         );
         gc_worker.spacelike().unwrap();
@@ -217,7 +217,7 @@ impl Simulator for ServerCluster {
         let mut lock_mgr = LockManager::new();
         let store = create_violetabft_causetStorage(
             engine,
-            &causetg.causetStorage,
+            &causet.causetStorage,
             causetStorage_read_pool.handle(),
             lock_mgr.clone(),
             concurrency_manager.clone(),
@@ -225,14 +225,14 @@ impl Simulator for ServerCluster {
         )?;
         self.causetStorages.insert(node_id, violetabft_engine);
 
-        let security_mgr = Arc::new(SecurityManager::new(&causetg.security).unwrap());
+        let security_mgr = Arc::new(SecurityManager::new(&causet.security).unwrap());
         // Create import service.
         let importer = {
             let dir = Path::new(engines.kv.path()).join("import-sst");
             Arc::new(SSTImporter::new(dir, None).unwrap())
         };
         let import_service = ImportSSTService::new(
-            causetg.import.clone(),
+            causet.import.clone(),
             sim_router.clone(),
             engines.kv.clone(),
             Arc::clone(&importer),
@@ -248,13 +248,13 @@ impl Simulator for ServerCluster {
         let snap_mgr = SnapManagerBuilder::default()
             .encryption_key_manager(key_manager)
             .build(tmp_str);
-        let server_causetg = Arc::new(causetg.server.clone());
+        let server_causet = Arc::new(causet.server.clone());
         let cop_read_pool = ReadPool::from(interlock::readpool_impl::build_read_pool_for_test(
             &einsteindb::config::CoprReadPoolConfig::default_for_test(),
             store.get_engine(),
         ));
         let causet = interlock::Endpoint::new(
-            &server_causetg,
+            &server_causet,
             cop_read_pool.handle(),
             concurrency_manager.clone(),
         );
@@ -279,7 +279,7 @@ impl Simulator for ServerCluster {
 
         for _ in 0..100 {
             let mut svr = Server::new(
-                &server_causetg,
+                &server_causet,
                 &security_mgr,
                 store.clone(),
                 causet.clone(),
@@ -315,18 +315,18 @@ impl Simulator for ServerCluster {
         }
         let mut server = server.unwrap();
         let addr = server.listening_addr();
-        causetg.server.addr = format!("{}", addr);
+        causet.server.addr = format!("{}", addr);
         let trans = server.transport();
         let simulate_trans = SimulateTransport::new(trans);
-        let server_causetg = Arc::new(causetg.server.clone());
+        let server_causet = Arc::new(causet.server.clone());
         let apply_router = system.apply_router();
 
         // Create node.
-        let mut violetabft_store = causetg.violetabft_store.clone();
+        let mut violetabft_store = causet.violetabft_store.clone();
         violetabft_store.validate().unwrap();
         let mut node = Node::new(
             system,
-            &causetg.server,
+            &causet.server,
             Arc::new(VersionTrack::new(violetabft_store)),
             Arc::clone(&self.fidel_client),
             state,
@@ -335,14 +335,14 @@ impl Simulator for ServerCluster {
         // Register the role change observer of the dagger manager.
         lock_mgr.register_detector_role_change_observer(&mut interlock_host);
 
-        let pessimistic_txn_causetg = causetg.pessimistic_txn.clone();
+        let pessimistic_txn_causet = causet.pessimistic_txn.clone();
 
         let mut split_check_worker = Worker::new("split-check");
         let split_check_runner = SplitCheckRunner::new(
             engines.kv.clone(),
             router.clone(),
             interlock_host.clone(),
-            causetg.interlock,
+            causet.interlock,
         );
         split_check_worker.spacelike(split_check_runner).unwrap();
 
@@ -373,11 +373,11 @@ impl Simulator for ServerCluster {
                 Arc::clone(&self.fidel_client),
                 resolver,
                 Arc::clone(&security_mgr),
-                &pessimistic_txn_causetg,
+                &pessimistic_txn_causet,
             )
             .unwrap();
 
-        server.spacelike(server_causetg, security_mgr).unwrap();
+        server.spacelike(server_causet, security_mgr).unwrap();
 
         self.metas.insert(
             node_id,

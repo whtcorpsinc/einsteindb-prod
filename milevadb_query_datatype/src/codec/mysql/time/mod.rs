@@ -575,8 +575,8 @@ impl Time {
 }
 
 fn handle_zero_date(ctx: &mut EvalContext, mut args: TimeArgs) -> Result<Option<TimeArgs>> {
-    let sql_mode = ctx.causetg.sql_mode;
-    let flags = ctx.causetg.flag;
+    let sql_mode = ctx.causet.sql_mode;
+    let flags = ctx.causet.flag;
     let strict_mode = sql_mode.contains(SqlMode::STRICT_ALL_BlockS)
         | sql_mode.contains(SqlMode::STRICT_TRANS_BlockS);
     let no_zero_date = sql_mode.contains(SqlMode::NO_ZERO_DATE);
@@ -594,8 +594,8 @@ fn handle_zero_date(ctx: &mut EvalContext, mut args: TimeArgs) -> Result<Option<
 }
 
 fn handle_zero_in_date(ctx: &mut EvalContext, mut args: TimeArgs) -> Result<Option<TimeArgs>> {
-    let sql_mode = ctx.causetg.sql_mode;
-    let flags = ctx.causetg.flag;
+    let sql_mode = ctx.causet.sql_mode;
+    let flags = ctx.causet.flag;
 
     let strict_mode = sql_mode.contains(SqlMode::STRICT_ALL_BlockS)
         | sql_mode.contains(SqlMode::STRICT_TRANS_BlockS);
@@ -617,7 +617,7 @@ fn handle_zero_in_date(ctx: &mut EvalContext, mut args: TimeArgs) -> Result<Opti
 }
 
 fn handle_invalid_date(ctx: &mut EvalContext, mut args: TimeArgs) -> Result<Option<TimeArgs>> {
-    let sql_mode = ctx.causetg.sql_mode;
+    let sql_mode = ctx.causet.sql_mode;
     let allow_invalid_date = sql_mode.contains(SqlMode::INVALID_DATES);
     allow_invalid_date.ok_or(Error::truncated())?;
     args.clear();
@@ -710,7 +710,7 @@ impl TimeArgs {
             year, month, day, ..
         } = self;
 
-        let is_relaxed = ctx.causetg.sql_mode.contains(SqlMode::INVALID_DATES);
+        let is_relaxed = ctx.causet.sql_mode.contains(SqlMode::INVALID_DATES);
 
         if self.is_zero() {
             self = try_opt!(handle_zero_date(ctx, self));
@@ -751,7 +751,7 @@ impl TimeArgs {
         }
 
         let datetime = chrono_datetime(
-            &ctx.causetg.tz,
+            &ctx.causet.tz,
             self.year,
             self.month,
             self.day,
@@ -875,7 +875,7 @@ impl Time {
 
     fn try_into_chrono_datetime(self, ctx: &mut EvalContext) -> Result<DateTime<Tz>> {
         chrono_datetime(
-            &ctx.causetg.tz,
+            &ctx.causet.tz,
             self.year(),
             self.month(),
             self.day(),
@@ -1070,7 +1070,7 @@ impl Time {
 
         if time_type == TimeType::Timestamp {
             let utc = chrono_datetime(&Utc, year, month, day, hour, minute, second, micro)?;
-            let timestamp = ctx.causetg.tz.from_utc_datetime(&utc.naive_utc());
+            let timestamp = ctx.causet.tz.from_utc_datetime(&utc.naive_utc());
             Time::try_from_chrono_datetime(ctx, timestamp.naive_local(), time_type, fsp as i8)
         } else {
             Ok(Time::unchecked_new(TimeArgs {
@@ -1121,7 +1121,7 @@ impl Time {
         let time = Utc::today()
             .and_hms(0, 0, 0)
             .checked_add_signed(dur)
-            .map(|utc| utc.with_timezone(&ctx.causetg.tz));
+            .map(|utc| utc.with_timezone(&ctx.causet.tz));
 
         let time = time.ok_or::<Error>(box_err!("parse from duration {} overflows", duration))?;
 
@@ -1722,7 +1722,7 @@ impl crate::codec::data_type::AsMySQLBool for Time {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::codec::mysql::{MAX_FSP, UNSPECIFIED_FSP};

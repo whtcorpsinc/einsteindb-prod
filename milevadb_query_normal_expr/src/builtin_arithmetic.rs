@@ -291,7 +291,7 @@ impl ScalarFunc {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::{f64, i64, u64};
 
@@ -1126,9 +1126,9 @@ mod tests {
             let rhs = datum_expr(right);
             let scalar_func = scalar_func_expr(sig, &[lhs, rhs]);
             for (flag, sql_mode, is_ok, has_warning) in &cases {
-                let mut causetg = EvalConfig::new();
-                causetg.set_flag(*flag).set_sql_mode(*sql_mode);
-                let mut ctx = EvalContext::new(::std::sync::Arc::new(causetg));
+                let mut causet = EvalConfig::new();
+                causet.set_flag(*flag).set_sql_mode(*sql_mode);
+                let mut ctx = EvalContext::new(::std::sync::Arc::new(causet));
                 let op = Expression::build(&mut ctx, scalar_func.clone()).unwrap();
                 let got = op.eval(&mut ctx, &[]);
                 if *is_ok {

@@ -93,7 +93,7 @@ fn calc_cpu_load(elapsed_millis: usize, spacelike_usage: f64, lightlike_usage: f
     cpu_usage as usize / elapsed_millis
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::thread;
 

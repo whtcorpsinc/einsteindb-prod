@@ -54,11 +54,11 @@ struct Config {
     ttl: Duration,
 }
 
-fn bench_detect(b: &mut Bencher, causetg: &Config) {
-    let mut detect_Block = DetectBlock::new(causetg.ttl);
-    let mut generator = DetectGenerator::new(causetg.cone);
+fn bench_detect(b: &mut Bencher, causet: &Config) {
+    let mut detect_Block = DetectBlock::new(causet.ttl);
+    let mut generator = DetectGenerator::new(causet.cone);
     b.iter(|| {
-        for entry in generator.generate(causetg.n) {
+        for entry in generator.generate(causet.n) {
             detect_Block.detect(
                 entry.get_txn().into(),
                 entry.get_wait_for_txn().into(),
@@ -80,28 +80,28 @@ fn bench_dense_detect_without_cleanup(c: &mut Criterion) {
         10_000_000,
         100_000_000,
     ];
-    let mut causetgs = vec![];
+    let mut causets = vec![];
     for cone in cones {
-        causetgs.push(Config {
+        causets.push(Config {
             n: 10,
             cone,
             ttl: Duration::from_secs(100000000),
         });
     }
-    c.bench_function_over_inputs("bench_dense_detect_without_cleanup", bench_detect, causetgs);
+    c.bench_function_over_inputs("bench_dense_detect_without_cleanup", bench_detect, causets);
 }
 
 fn bench_dense_detect_with_cleanup(c: &mut Criterion) {
     let ttls = vec![1, 3, 5, 10, 100, 500, 1_000, 3_000];
-    let mut causetgs = vec![];
+    let mut causets = vec![];
     for ttl in &ttls {
-        causetgs.push(Config {
+        causets.push(Config {
             n: 10,
             cone: 1000,
             ttl: Duration::from_millis(*ttl),
         })
     }
-    c.bench_function_over_inputs("bench_dense_detect_with_cleanup", bench_detect, causetgs);
+    c.bench_function_over_inputs("bench_dense_detect_with_cleanup", bench_detect, causets);
 }
 
 fn main() {

@@ -620,7 +620,7 @@ where
     Some((num_entries, props.num_versions))
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use rand::Rng;
 

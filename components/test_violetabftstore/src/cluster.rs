@@ -50,7 +50,7 @@ pub trait Simulator {
     fn run_node(
         &mut self,
         node_id: u64,
-        causetg: EINSTEINDBConfig,
+        causet: EINSTEINDBConfig,
         engines: Engines<LmdbEngine, LmdbEngine>,
         store_meta: Arc<Mutex<StoreMeta>>,
         key_manager: Option<Arc<DataKeyManager>>,
@@ -121,7 +121,7 @@ pub trait Simulator {
 }
 
 pub struct Cluster<T: Simulator> {
-    pub causetg: EINSTEINDBConfig,
+    pub causet: EINSTEINDBConfig,
     leaders: HashMap<u64, metapb::Peer>,
     count: usize,
 
@@ -147,7 +147,7 @@ impl<T: Simulator> Cluster<T> {
     ) -> Cluster<T> {
         // TODO: In the future, maybe it's better to test both case where `use_delete_cone` is true and false
         Cluster {
-            causetg: new_einsteindb_config(id),
+            causet: new_einsteindb_config(id),
             leaders: HashMap::default(),
             count,
             paths: vec![],
@@ -163,13 +163,13 @@ impl<T: Simulator> Cluster<T> {
     }
 
     pub fn id(&self) -> u64 {
-        self.causetg.server.cluster_id
+        self.causet.server.cluster_id
     }
 
     pub fn pre_spacelike_check(&mut self) -> result::Result<(), Box<dyn StdError>> {
         for path in &self.paths {
-            self.causetg.causetStorage.data_dir = path.path().to_str().unwrap().to_owned();
-            self.causetg.validate()?
+            self.causet.causetStorage.data_dir = path.path().to_str().unwrap().to_owned();
+            self.causet.validate()?
         }
         Ok(())
     }
@@ -187,7 +187,7 @@ impl<T: Simulator> Cluster<T> {
     }
 
     fn create_engine(&mut self, router: Option<VioletaBftRouter<LmdbEngine, LmdbEngine>>) {
-        let (engines, key_manager, dir) = create_test_engine(router, &self.causetg);
+        let (engines, key_manager, dir) = create_test_engine(router, &self.causet);
         self.dbs.push(engines);
         self.key_managers.push(key_manager);
         self.paths.push(dir);
@@ -208,7 +208,7 @@ impl<T: Simulator> Cluster<T> {
 
         // Try spacelike new nodes.
         for _ in 0..self.count - self.engines.len() {
-            let (router, system) = create_violetabft_batch_system(&self.causetg.violetabft_store);
+            let (router, system) = create_violetabft_batch_system(&self.causet.violetabft_store);
             self.create_engine(Some(router.clone()));
 
             let engines = self.dbs.last().unwrap().clone();
@@ -218,7 +218,7 @@ impl<T: Simulator> Cluster<T> {
             let mut sim = self.sim.wl();
             let node_id = sim.run_node(
                 0,
-                self.causetg.clone(),
+                self.causet.clone(),
                 engines.clone(),
                 store_meta.clone(),
                 key_mgr.clone(),
@@ -264,10 +264,10 @@ impl<T: Simulator> Cluster<T> {
         debug!("spacelikeing node {}", node_id);
         let engines = self.engines[&node_id].clone();
         let key_mgr = self.key_managers_map[&node_id].clone();
-        let (router, system) = create_violetabft_batch_system(&self.causetg.violetabft_store);
-        let mut causetg = self.causetg.clone();
+        let (router, system) = create_violetabft_batch_system(&self.causet.violetabft_store);
+        let mut causet = self.causet.clone();
         if let Some(labels) = self.labels.get(&node_id) {
-            causetg.server.labels = labels.to_owned();
+            causet.server.labels = labels.to_owned();
         }
         let store_meta = Arc::new(Mutex::new(StoreMeta::new(PENDING_VOTES_CAP)));
         self.store_metas.insert(node_id, store_meta.clone());
@@ -275,7 +275,7 @@ impl<T: Simulator> Cluster<T> {
         // FIXME: lmdb event listeners may not work, because we change the router.
         self.sim
             .wl()
-            .run_node(node_id, causetg, engines, store_meta, key_mgr, router, system)?;
+            .run_node(node_id, causet, engines, store_meta, key_mgr, router, system)?;
         debug!("node {} spacelikeed", node_id);
         Ok(())
     }

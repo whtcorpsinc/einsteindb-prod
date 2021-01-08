@@ -14,7 +14,7 @@
 //!
 //! Please read the engine_trait crate docs before hacking.
 
-#![causetg_attr(test, feature(test))]
+#![causet_attr(test, feature(test))]
 
 #[macro_use]
 extern crate einsteindb_util;

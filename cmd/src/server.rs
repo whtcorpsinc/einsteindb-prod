@@ -129,7 +129,7 @@ const RESERVED_OPEN_FDS: u64 = 1000;
 /// A complete EinsteinDB server.
 struct EinsteinDBServer<ER: VioletaBftEngine> {
     config: EINSTEINDBConfig,
-    causetg_controller: Option<ConfigController>,
+    causet_controller: Option<ConfigController>,
     security_mgr: Arc<SecurityManager>,
     fidel_client: Arc<RpcClient>,
     router: VioletaBftRouter<LmdbEngine, ER>,
@@ -173,8 +173,8 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         let fidel_client = Self::connect_to_fidel_cluster(&mut config, Arc::clone(&security_mgr));
 
         // Initialize and check config
-        let causetg_controller = Self::init_config(config);
-        let config = causetg_controller.get_current();
+        let causet_controller = Self::init_config(config);
+        let config = causet_controller.get_current();
 
         let store_path = Path::new(&config.causetStorage.data_dir).to_owned();
 
@@ -218,7 +218,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
 
         EinsteinDBServer {
             config,
-            causetg_controller: Some(causetg_controller),
+            causet_controller: Some(causet_controller),
             security_mgr,
             fidel_client,
             router,
@@ -417,8 +417,8 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             engines.kv.clone(),
         );
 
-        let causetg_controller = self.causetg_controller.as_mut().unwrap();
-        causetg_controller.register(
+        let causet_controller = self.causet_controller.as_mut().unwrap();
+        causet_controller.register(
             einsteindb::config::Module::CausetStorage,
             Box::new(StorageConfigManger::new(
                 engines.kv.clone(),
@@ -460,8 +460,8 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             VioletaBftRouter<LmdbEngine, ER>,
         >,
     ) -> Arc<ServerConfig> {
-        let causetg_controller = self.causetg_controller.as_mut().unwrap();
-        causetg_controller.register(
+        let causet_controller = self.causet_controller.as_mut().unwrap();
+        causet_controller.register(
             einsteindb::config::Module::Gc,
             Box::new(gc_worker.get_config_manager()),
         );
@@ -481,7 +481,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         let mut interlock_host = self.interlock_host.take().unwrap();
 
         let lock_mgr = LockManager::new();
-        causetg_controller.register(
+        causet_controller.register(
             einsteindb::config::Module::PessimisticTxn,
             Box::new(lock_mgr.config_manager()),
         );
@@ -601,7 +601,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             self.config.interlock.clone(),
         );
         split_check_worker.spacelike(split_check_runner).unwrap();
-        causetg_controller.register(
+        causet_controller.register(
             einsteindb::config::Module::Interlock,
             Box::new(SplitCheckConfigManager(split_check_worker.scheduler())),
         );
@@ -611,14 +611,14 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             .validate()
             .unwrap_or_else(|e| fatal!("failed to validate violetabftstore config {}", e));
         let violetabft_store = Arc::new(VersionTrack::new(self.config.violetabft_store.clone()));
-        causetg_controller.register(
+        causet_controller.register(
             einsteindb::config::Module::VioletaBftstore,
             Box::new(VioletaBftstoreConfigManager(violetabft_store.clone())),
         );
 
         let split_config_manager =
             SplitConfigManager(Arc::new(VersionTrack::new(self.config.split.clone())));
-        causetg_controller.register(
+        causet_controller.register(
             einsteindb::config::Module::Split,
             Box::new(split_config_manager.clone()),
         );
@@ -711,7 +711,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             engines.engines.clone(),
             servers.server.get_debug_thread_pool().clone(),
             self.router.clone(),
-            self.causetg_controller.as_ref().unwrap().clone(),
+            self.causet_controller.as_ref().unwrap().clone(),
             self.security_mgr.clone(),
         );
         if servers
@@ -779,7 +779,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             self.config.backup.clone(),
             self.concurrency_manager.clone(),
         );
-        self.causetg_controller.as_mut().unwrap().register(
+        self.causet_controller.as_mut().unwrap().register(
             einsteindb::config::Module::Backup,
             Box::new(backup_lightlikepoint.get_config_manager()),
         );
@@ -834,7 +834,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             let mut status_server = match StatusServer::new(
                 self.config.server.status_thread_pool_size,
                 Some(self.fidel_client.clone()),
-                self.causetg_controller.take().unwrap(),
+                self.causet_controller.take().unwrap(),
                 Arc::new(self.config.security.clone()),
                 self.router.clone(),
             ) {
@@ -912,8 +912,8 @@ impl EinsteinDBServer<LmdbEngine> {
         violetabft_engine.set_shared_block_cache(shared_block_cache);
         let engines = Engines::new(kv_engine, violetabft_engine);
 
-        let causetg_controller = self.causetg_controller.as_mut().unwrap();
-        causetg_controller.register(
+        let causet_controller = self.causet_controller.as_mut().unwrap();
+        causet_controller.register(
             einsteindb::config::Module::Lmdbdb,
             Box::new(DBConfigManger::new(
                 engines.kv.clone(),
@@ -921,7 +921,7 @@ impl EinsteinDBServer<LmdbEngine> {
                 self.config.causetStorage.block_cache.shared,
             )),
         );
-        causetg_controller.register(
+        causet_controller.register(
             einsteindb::config::Module::VioletaBftdb,
             Box::new(DBConfigManger::new(
                 engines.violetabft.clone(),
@@ -963,8 +963,8 @@ impl EinsteinDBServer<VioletaBftLogEngine> {
         kv_engine.set_shared_block_cache(shared_block_cache);
         let engines = Engines::new(kv_engine, violetabft_engine);
 
-        let causetg_controller = self.causetg_controller.as_mut().unwrap();
-        causetg_controller.register(
+        let causet_controller = self.causet_controller.as_mut().unwrap();
+        causet_controller.register(
             einsteindb::config::Module::Lmdbdb,
             Box::new(DBConfigManger::new(
                 engines.kv.clone(),
@@ -1057,12 +1057,12 @@ fn try_lock_conflict_addr<P: AsRef<Path>>(path: P) -> File {
     f
 }
 
-#[causetg(unix)]
+#[causet(unix)]
 fn get_dagger_dir() -> String {
     format!("{}_EINSTEINDB_LOCK_FILES", unsafe { libc::getuid() })
 }
 
-#[causetg(not(unix))]
+#[causet(not(unix))]
 fn get_dagger_dir() -> String {
     "EINSTEINDB_LOCK_FILES".to_owned()
 }

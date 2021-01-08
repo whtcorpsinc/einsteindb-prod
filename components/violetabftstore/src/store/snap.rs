@@ -1510,7 +1510,7 @@ impl SnapManagerBuilder {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use std::cmp;
     use std::f64::INFINITY;

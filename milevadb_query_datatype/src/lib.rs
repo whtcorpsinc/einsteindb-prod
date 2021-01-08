@@ -34,7 +34,7 @@ pub mod prelude {
 pub use self::def::*;
 pub use self::error::*;
 
-#[causetg(test)]
+#[causet(test)]
 extern crate test;
 
 pub mod codec;

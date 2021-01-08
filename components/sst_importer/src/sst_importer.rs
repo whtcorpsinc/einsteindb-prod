@@ -12,9 +12,9 @@ use std::time::{Duration, Instant};
 
 use futures_util::io::{AsyncRead, AsyncReadExt};
 use ekvproto::backup::StorageBacklightlike;
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 use ekvproto::import_sstpb::pair::Op as PairOp;
-#[causetg(not(feature = "prost-codec"))]
+#[causet(not(feature = "prost-codec"))]
 use ekvproto::import_sstpb::PairOp;
 use ekvproto::import_sstpb::*;
 use tokio::time::timeout;
@@ -832,7 +832,7 @@ fn is_after_lightlike_bound<K: AsRef<[u8]>>(value: &[u8], bound: &Bound<K>) -> b
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use test_sst_importer::*;

@@ -518,7 +518,7 @@ pub fn process_info(collector: &mut Vec<ServerInfoItem>) {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     #[test]
@@ -535,9 +535,9 @@ mod tests {
         let prev_io = ioload::IoLoad::snapshot();
         let mut collector = vec![];
         load_info((prev_cpu, prev_nic, prev_io), &mut collector);
-        #[causetg(target_os = "linux")]
+        #[causet(target_os = "linux")]
         let tps = vec!["cpu", "memory", "net", "io"];
-        #[causetg(not(target_os = "linux"))]
+        #[causet(not(target_os = "linux"))]
         let tps = vec!["cpu", "memory"];
         for tp in tps.into_iter() {
             assert!(
@@ -594,7 +594,7 @@ mod tests {
                 vec!["total", "used", "free", "used-percent", "free-percent",]
             );
         }
-        #[causetg(target_os = "linux")]
+        #[causet(target_os = "linux")]
         {
             // io
             let item = collector.iter().find(|x| x.get_tp() == "io");
@@ -631,7 +631,7 @@ mod tests {
             collector.iter().any(|x| x.get_tp() == "system"),
             "expect collect system, but collect nothing",
         );
-        #[causetg(target_os = "linux")]
+        #[causet(target_os = "linux")]
         {
             let item = collector
                 .iter()

@@ -114,7 +114,7 @@ impl LockBlock {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod test {
     use super::*;
     use std::{

@@ -14,16 +14,16 @@ use einsteindb_util::worker::FutureScheduler;
 
 #[test]
 fn test_gc_config_validate() {
-    let causetg = GcConfig::default();
-    causetg.validate().unwrap();
+    let causet = GcConfig::default();
+    causet.validate().unwrap();
 
-    let mut invalid_causetg = GcConfig::default();
-    invalid_causetg.batch_tuplespaceInstanton = 0;
-    assert!(invalid_causetg.validate().is_err());
+    let mut invalid_causet = GcConfig::default();
+    invalid_causet.batch_tuplespaceInstanton = 0;
+    assert!(invalid_causet.validate().is_err());
 }
 
-fn setup_causetg_controller(
-    causetg: EINSTEINDBConfig,
+fn setup_causet_controller(
+    causet: EINSTEINDBConfig,
 ) -> (
     GcWorker<einsteindb::causetStorage::kv::LmdbEngine, VioletaBftStoreBlackHole>,
     ConfigController,
@@ -32,15 +32,15 @@ fn setup_causetg_controller(
     let mut gc_worker = GcWorker::new(
         engine,
         VioletaBftStoreBlackHole,
-        causetg.gc.clone(),
+        causet.gc.clone(),
         Default::default(),
     );
     gc_worker.spacelike().unwrap();
 
-    let causetg_controller = ConfigController::new(causetg);
-    causetg_controller.register(Module::Gc, Box::new(gc_worker.get_config_manager()));
+    let causet_controller = ConfigController::new(causet);
+    causet_controller.register(Module::Gc, Box::new(gc_worker.get_config_manager()));
 
-    (gc_worker, causetg_controller)
+    (gc_worker, causet_controller)
 }
 
 fn validate<F>(scheduler: &FutureScheduler<GcTask>, f: F)
@@ -50,8 +50,8 @@ where
     let (tx, rx) = channel();
     scheduler
         .schedule(GcTask::Validate(Box::new(
-            move |causetg: &GcConfig, limiter: &Limiter| {
-                f(causetg, limiter);
+            move |causet: &GcConfig, limiter: &Limiter| {
+                f(causet, limiter);
                 tx.slightlike(()).unwrap();
             },
         )))
@@ -62,17 +62,17 @@ where
 #[allow(clippy::float_cmp)]
 #[test]
 fn test_gc_worker_config_ufidelate() {
-    let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-    causetg.validate().unwrap();
-    let (gc_worker, causetg_controller) = setup_causetg_controller(causetg.clone());
+    let (mut causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
+    causet.validate().unwrap();
+    let (gc_worker, causet_controller) = setup_causet_controller(causet.clone());
     let scheduler = gc_worker.scheduler();
 
     // ufidelate of other module's config should not effect gc worker config
-    causetg_controller
+    causet_controller
         .ufidelate_config("violetabftstore.violetabft-log-gc-memory_barrier", "2000")
         .unwrap();
-    validate(&scheduler, move |causetg: &GcConfig, _| {
-        assert_eq!(causetg, &GcConfig::default());
+    validate(&scheduler, move |causet: &GcConfig, _| {
+        assert_eq!(causet, &GcConfig::default());
     });
 
     // Ufidelate gc worker config
@@ -84,21 +84,21 @@ fn test_gc_worker_config_ufidelate() {
         change.insert("gc.enable-compaction-filter".to_owned(), "true".to_owned());
         change
     };
-    causetg_controller.ufidelate(change).unwrap();
-    validate(&scheduler, move |causetg: &GcConfig, _| {
-        assert_eq!(causetg.ratio_memory_barrier, 1.23);
-        assert_eq!(causetg.batch_tuplespaceInstanton, 1234);
-        assert_eq!(causetg.max_write_bytes_per_sec, ReadableSize::kb(1));
-        assert!(causetg.enable_compaction_filter);
+    causet_controller.ufidelate(change).unwrap();
+    validate(&scheduler, move |causet: &GcConfig, _| {
+        assert_eq!(causet.ratio_memory_barrier, 1.23);
+        assert_eq!(causet.batch_tuplespaceInstanton, 1234);
+        assert_eq!(causet.max_write_bytes_per_sec, ReadableSize::kb(1));
+        assert!(causet.enable_compaction_filter);
     });
 }
 
 #[test]
 #[allow(clippy::float_cmp)]
 fn test_change_io_limit_by_config_manager() {
-    let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-    causetg.validate().unwrap();
-    let (gc_worker, causetg_controller) = setup_causetg_controller(causetg.clone());
+    let (mut causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
+    causet.validate().unwrap();
+    let (gc_worker, causet_controller) = setup_causet_controller(causet.clone());
     let scheduler = gc_worker.scheduler();
 
     validate(&scheduler, move |_, limiter: &Limiter| {
@@ -106,7 +106,7 @@ fn test_change_io_limit_by_config_manager() {
     });
 
     // Enable io iolimit
-    causetg_controller
+    causet_controller
         .ufidelate_config("gc.max-write-bytes-per-sec", "1024")
         .unwrap();
     validate(&scheduler, move |_, limiter: &Limiter| {
@@ -114,7 +114,7 @@ fn test_change_io_limit_by_config_manager() {
     });
 
     // Change io iolimit
-    causetg_controller
+    causet_controller
         .ufidelate_config("gc.max-write-bytes-per-sec", "2048")
         .unwrap();
     validate(&scheduler, move |_, limiter: &Limiter| {
@@ -122,7 +122,7 @@ fn test_change_io_limit_by_config_manager() {
     });
 
     // Disable io iolimit
-    causetg_controller
+    causet_controller
         .ufidelate_config("gc.max-write-bytes-per-sec", "0")
         .unwrap();
     validate(&scheduler, move |_, limiter: &Limiter| {
@@ -134,9 +134,9 @@ fn test_change_io_limit_by_config_manager() {
 #[allow(clippy::float_cmp)]
 fn test_change_io_limit_by_debugger() {
     // Debugger use GcWorkerConfigManager to change io limit
-    let (mut causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-    causetg.validate().unwrap();
-    let (gc_worker, _) = setup_causetg_controller(causetg);
+    let (mut causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
+    causet.validate().unwrap();
+    let (gc_worker, _) = setup_causet_controller(causet);
     let scheduler = gc_worker.scheduler();
     let config_manager = gc_worker.get_config_manager();
 
@@ -145,19 +145,19 @@ fn test_change_io_limit_by_debugger() {
     });
 
     // Enable io iolimit
-    config_manager.ufidelate(|causetg: &mut GcConfig| causetg.max_write_bytes_per_sec = ReadableSize(1024));
+    config_manager.ufidelate(|causet: &mut GcConfig| causet.max_write_bytes_per_sec = ReadableSize(1024));
     validate(&scheduler, move |_, limiter: &Limiter| {
         assert_eq!(limiter.speed_limit(), 1024.0);
     });
 
     // Change io iolimit
-    config_manager.ufidelate(|causetg: &mut GcConfig| causetg.max_write_bytes_per_sec = ReadableSize(2048));
+    config_manager.ufidelate(|causet: &mut GcConfig| causet.max_write_bytes_per_sec = ReadableSize(2048));
     validate(&scheduler, move |_, limiter: &Limiter| {
         assert_eq!(limiter.speed_limit(), 2048.0);
     });
 
     // Disable io iolimit
-    config_manager.ufidelate(|causetg: &mut GcConfig| causetg.max_write_bytes_per_sec = ReadableSize(0));
+    config_manager.ufidelate(|causet: &mut GcConfig| causet.max_write_bytes_per_sec = ReadableSize(0));
     validate(&scheduler, move |_, limiter: &Limiter| {
         assert_eq!(limiter.speed_limit(), INFINITY);
     });

@@ -71,7 +71,7 @@ impl<Src: FreeDaemon> FreeDaemon for LimitFreeDaemon<Src> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use milevadb_query_datatype::codec::datum::Datum;
     use milevadb_query_datatype::FieldTypeTp;

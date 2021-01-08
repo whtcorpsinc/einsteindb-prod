@@ -3,9 +3,9 @@
 use ekvproto::encryptionpb::EncryptionMethod;
 use einsteindb_util::config::ReadableDuration;
 
-#[causetg(test)]
+#[causet(test)]
 use crate::master_key::Backlightlike;
-#[causetg(test)]
+#[causet(test)]
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Configuration)]
@@ -65,16 +65,16 @@ pub struct KmsConfig {
     pub lightlikepoint: String,
 }
 
-#[causetg(test)]
+#[causet(test)]
 #[derive(Clone, Debug)]
 pub struct Mock(pub Arc<dyn Backlightlike>);
-#[causetg(test)]
+#[causet(test)]
 impl PartialEq for Mock {
     fn eq(&self, _: &Self) -> bool {
         false
     }
 }
-#[causetg(test)]
+#[causet(test)]
 impl Eq for Mock {}
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -98,7 +98,7 @@ pub enum MasterKeyConfig {
         config: KmsConfig,
     },
 
-    #[causetg(test)]
+    #[causet(test)]
     #[serde(skip)]
     Mock(Mock),
 }
@@ -168,13 +168,13 @@ mod encryption_method_serde {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_kms_config() {
-        let kms_causetg = EncryptionConfig {
+        let kms_causet = EncryptionConfig {
             data_encryption_method: EncryptionMethod::Aes128Ctr,
             data_key_rotation_period: ReadableDuration::days(14),
             master_key: MasterKeyConfig::Kms {
@@ -201,12 +201,12 @@ mod tests {
         brane = "brane"
         lightlikepoint = "lightlikepoint"
         "#;
-        let causetg: EncryptionConfig = toml::from_str(kms_str).unwrap();
+        let causet: EncryptionConfig = toml::from_str(kms_str).unwrap();
         assert_eq!(
-            causetg,
-            kms_causetg,
+            causet,
+            kms_causet,
             "\n{}\n",
-            toml::to_string_pretty(&kms_causetg).unwrap()
+            toml::to_string_pretty(&kms_causet).unwrap()
         );
     }
 }

@@ -319,9 +319,9 @@ fn test_multi_server_random_respacelike() {
 }
 
 fn test_leader_change_with_uncommitted_log<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 50;
+    cluster.causet.violetabft_store.violetabft_election_timeout_ticks = 50;
     // disable compact log to make test more sBlock.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
     // We use three peers([1, 2, 3]) for this test.
     cluster.run();
 
@@ -421,9 +421,9 @@ fn test_server_leader_change_with_uncommitted_log() {
 #[test]
 fn test_node_leader_change_with_log_overlap() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 50;
+    cluster.causet.violetabft_store.violetabft_election_timeout_ticks = 50;
     // disable compact log to make test more sBlock.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
     // We use three peers([1, 2, 3]) for this test.
     cluster.run();
 
@@ -507,9 +507,9 @@ fn test_node_leader_change_with_log_overlap() {
 }
 
 fn test_read_leader_with_unapplied_log<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 50;
+    cluster.causet.violetabft_store.violetabft_election_timeout_ticks = 50;
     // disable compact log to make test more sBlock.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
     // We use three peers([1, 2, 3]) for this test.
     cluster.run();
 
@@ -611,9 +611,9 @@ fn get_with_timeout<T: Simulator>(
 }
 
 fn test_remove_leader_with_uncommitted_log<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 50;
+    cluster.causet.violetabft_store.violetabft_election_timeout_ticks = 50;
     // disable compact log to make test more sBlock.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
     // We use three peers([1, 2, 3]) for this test.
     cluster.run();
 
@@ -679,9 +679,9 @@ fn test_server_remove_leader_with_uncommitted_log() {
 #[test]
 fn test_node_dropped_proposal() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 50;
+    cluster.causet.violetabft_store.violetabft_election_timeout_ticks = 50;
     // disable compact log to make test more sBlock.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
     // We use three peers([1, 2, 3]) for this test.
     cluster.run();
 
@@ -736,10 +736,10 @@ fn test_node_dropped_proposal() {
 }
 
 fn test_consistency_check<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 50;
+    cluster.causet.violetabft_store.violetabft_election_timeout_ticks = 50;
     // disable compact log to make test more sBlock.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
-    cluster.causetg.violetabft_store.consistency_check_interval = ReadableDuration::secs(1);
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
+    cluster.causet.violetabft_store.consistency_check_interval = ReadableDuration::secs(1);
     // We use three peers([1, 2, 3]) for this test.
     cluster.run();
 
@@ -802,14 +802,14 @@ fn test_server_batch_write() {
 #[test]
 fn test_node_catch_up_logs() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(500);
-    cluster.causetg.violetabft_store.violetabft_max_size_per_msg = ReadableSize(5);
-    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 50;
-    cluster.causetg.violetabft_store.max_leader_missing_duration = ReadableDuration::hours(1);
-    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration::minutes(30);
-    cluster.causetg.violetabft_store.abnormal_leader_missing_duration = ReadableDuration::hours(1);
+    cluster.causet.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(500);
+    cluster.causet.violetabft_store.violetabft_max_size_per_msg = ReadableSize(5);
+    cluster.causet.violetabft_store.violetabft_election_timeout_ticks = 50;
+    cluster.causet.violetabft_store.max_leader_missing_duration = ReadableDuration::hours(1);
+    cluster.causet.violetabft_store.peer_stale_state_check_interval = ReadableDuration::minutes(30);
+    cluster.causet.violetabft_store.abnormal_leader_missing_duration = ReadableDuration::hours(1);
     // disable compact log to make test more sBlock.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 3000;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 3000;
     cluster.fidel_client.disable_default_operator();
     // We use three peers([1, 2, 3]) for this test.
     let r1 = cluster.run_conf_change();

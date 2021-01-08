@@ -325,7 +325,7 @@ pub fn read_u8(data: &mut BytesSlice<'_>) -> Result<u8> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::codec::Error;

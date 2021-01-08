@@ -571,7 +571,7 @@ impl Collator for CollatorUtf8Mb4BinNoPadding {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::Collation;

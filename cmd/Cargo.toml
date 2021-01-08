@@ -92,5 +92,5 @@ vlog = "0.1.4"
 [deplightlikeencies.yatp]
 git = "https://github.com/einsteindb/yatp.git"
 
-[target.'causetg(unix)'.deplightlikeencies]
+[target.'causet(unix)'.deplightlikeencies]
 signal = "0.6"

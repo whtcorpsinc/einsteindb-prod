@@ -86,9 +86,9 @@ pub struct SyncTestStorage<E: Engine> {
 impl<E: Engine> SyncTestStorage<E> {
     pub fn spacelike_auto_gc<S: GcSafePointProvider, R: BraneInfoProvider>(
         &mut self,
-        causetg: AutoGcConfig<S, R>,
+        causet: AutoGcConfig<S, R>,
     ) {
-        self.gc_worker.spacelike_auto_gc(causetg).unwrap();
+        self.gc_worker.spacelike_auto_gc(causet).unwrap();
     }
 
     pub fn get_causetStorage(&self) -> CausetStorage<E, DummyLockManager> {

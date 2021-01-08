@@ -87,7 +87,7 @@ impl ScalarFunc {
     ) -> Result<Option<i64>> {
         let t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
-            if ctx.causetg.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
+            if ctx.causet.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
                 return ctx
                     .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
                     .map(|_| None);
@@ -105,7 +105,7 @@ impl ScalarFunc {
     ) -> Result<Option<Cow<'a, [u8]>>> {
         let t: Cow<'a, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         let month = t.month() as usize;
-        if t.is_zero() && ctx.causetg.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
+        if t.is_zero() && ctx.causet.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
                 .map(|_| None);
@@ -139,7 +139,7 @@ impl ScalarFunc {
     pub fn day_of_month(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
         let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
-            if ctx.causetg.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
+            if ctx.causet.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
                 return ctx
                     .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
                     .map(|_| None);
@@ -178,7 +178,7 @@ impl ScalarFunc {
     pub fn year(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
         let t: Cow<'_, Time> = try_opt!(self.children[0].eval_time(ctx, EventIdx));
         if t.is_zero() {
-            if ctx.causetg.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
+            if ctx.causet.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
                 return ctx
                     .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
                     .map(|_| None);
@@ -651,7 +651,7 @@ impl ScalarFunc {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::sync::Arc;
 
@@ -772,10 +772,10 @@ mod tests {
             Datum::Null,
         );
         // test zero case
-        let mut causetg = EvalConfig::new();
-        causetg.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+        let mut causet = EvalConfig::new();
+        causet.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
             .set_sql_mode(SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS);
-        ctx = EvalContext::new(Arc::new(causetg));
+        ctx = EvalContext::new(Arc::new(causet));
         test_err_case_two_arg(
             &mut ctx,
             ScalarFuncSig::DateFormatSig,
@@ -799,10 +799,10 @@ mod tests {
         // test NULL case
         test_err_case_one_arg(&mut ctx, ScalarFuncSig::Date, Datum::Null);
         // test zero case
-        let mut causetg = EvalConfig::new();
-        causetg.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+        let mut causet = EvalConfig::new();
+        causet.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
             .set_sql_mode(SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS);
-        ctx = EvalContext::new(Arc::new(causetg));
+        ctx = EvalContext::new(Arc::new(causet));
         let datetime =
             Datum::Time(Time::parse_datetime(&mut ctx, "0000-00-00 00:00:00", 6, true).unwrap());
         test_err_case_one_arg(&mut ctx, ScalarFuncSig::Date, datetime);
@@ -1499,8 +1499,8 @@ mod tests {
             );
         }
 
-        let mut causetg = EvalConfig::new();
-        causetg.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+        let mut causet = EvalConfig::new();
+        causet.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
             .set_sql_mode(SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS);
 
         test_err_case_two_arg(&mut ctx, ScalarFuncSig::DateDiff, Datum::Null, Datum::Null);

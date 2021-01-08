@@ -80,23 +80,23 @@ impl Default for EvalConfig {
 
 impl EvalConfig {
     pub fn from_request(req: &PosetDagRequest) -> Result<Self> {
-        let mut eval_causetg = Self::from_flag(Flag::from_bits_truncate(req.get_flags()));
+        let mut eval_causet = Self::from_flag(Flag::from_bits_truncate(req.get_flags()));
         // We respect time zone name first, then offset.
         if req.has_time_zone_name() && !req.get_time_zone_name().is_empty() {
-            box_try!(eval_causetg.set_time_zone_by_name(req.get_time_zone_name()));
+            box_try!(eval_causet.set_time_zone_by_name(req.get_time_zone_name()));
         } else if req.has_time_zone_offset() {
-            box_try!(eval_causetg.set_time_zone_by_offset(req.get_time_zone_offset()));
+            box_try!(eval_causet.set_time_zone_by_offset(req.get_time_zone_offset()));
         } else {
             // This should not be reachable. However we will not panic here in case
             // of compatibility issues.
         }
         if req.has_max_warning_count() {
-            eval_causetg.set_max_warning_cnt(req.get_max_warning_count() as usize);
+            eval_causet.set_max_warning_cnt(req.get_max_warning_count() as usize);
         }
         if req.has_sql_mode() {
-            eval_causetg.set_sql_mode(SqlMode::from_bits_truncate(req.get_sql_mode()));
+            eval_causet.set_sql_mode(SqlMode::from_bits_truncate(req.get_sql_mode()));
         }
-        Ok(eval_causetg)
+        Ok(eval_causet)
     }
 
     pub fn new() -> Self {
@@ -202,22 +202,22 @@ impl EvalWarnings {
 #[derive(Debug)]
 /// Some global variables needed in an evaluation.
 pub struct EvalContext {
-    pub causetg: Arc<EvalConfig>,
+    pub causet: Arc<EvalConfig>,
     pub warnings: EvalWarnings,
 }
 
 impl Default for EvalContext {
     fn default() -> EvalContext {
-        let causetg = Arc::new(EvalConfig::default());
-        let warnings = causetg.new_eval_warnings();
-        EvalContext { causetg, warnings }
+        let causet = Arc::new(EvalConfig::default());
+        let warnings = causet.new_eval_warnings();
+        EvalContext { causet, warnings }
     }
 }
 
 impl EvalContext {
-    pub fn new(causetg: Arc<EvalConfig>) -> EvalContext {
-        let warnings = causetg.new_eval_warnings();
-        EvalContext { causetg, warnings }
+    pub fn new(causet: Arc<EvalConfig>) -> EvalContext {
+        let warnings = causet.new_eval_warnings();
+        EvalContext { causet, warnings }
     }
 
     pub fn handle_truncate(&mut self, is_truncated: bool) -> Result<()> {
@@ -228,10 +228,10 @@ impl EvalContext {
     }
 
     pub fn handle_truncate_err(&mut self, err: Error) -> Result<()> {
-        if self.causetg.flag.contains(Flag::IGNORE_TRUNCATE) {
+        if self.causet.flag.contains(Flag::IGNORE_TRUNCATE) {
             return Ok(());
         }
-        if self.causetg.flag.contains(Flag::TRUNCATE_AS_WARNING) {
+        if self.causet.flag.contains(Flag::TRUNCATE_AS_WARNING) {
             self.warnings.applightlike_warning(err);
             return Ok(());
         }
@@ -239,9 +239,9 @@ impl EvalContext {
     }
 
     /// handle_overflow treats ErrOverflow as warnings or returns the error
-    /// based on the causetg.handle_overflow state.
+    /// based on the causet.handle_overflow state.
     pub fn handle_overflow_err(&mut self, err: Error) -> Result<()> {
-        if self.causetg.flag.contains(Flag::OVERFLOW_AS_WARNING) {
+        if self.causet.flag.contains(Flag::OVERFLOW_AS_WARNING) {
             self.warnings.applightlike_warning(err);
             Ok(())
         } else {
@@ -250,18 +250,18 @@ impl EvalContext {
     }
 
     pub fn handle_division_by_zero(&mut self) -> Result<()> {
-        if self.causetg.flag.contains(Flag::IN_INSERT_STMT)
-            || self.causetg.flag.contains(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+        if self.causet.flag.contains(Flag::IN_INSERT_STMT)
+            || self.causet.flag.contains(Flag::IN_UFIDelATE_OR_DELETE_STMT)
         {
             if !self
-                .causetg
+                .causet
                 .sql_mode
                 .contains(SqlMode::ERROR_FOR_DIVISION_BY_ZERO)
             {
                 return Ok(());
             }
-            if self.causetg.sql_mode.is_strict()
-                && !self.causetg.flag.contains(Flag::DIVIDED_BY_ZERO_AS_WARNING)
+            if self.causet.sql_mode.is_strict()
+                && !self.causet.flag.contains(Flag::DIVIDED_BY_ZERO_AS_WARNING)
             {
                 return Err(Error::division_by_zero());
             }
@@ -274,9 +274,9 @@ impl EvalContext {
         // FIXME: Only some of the errors can be converted to warning.
         // See `handleInvalidTimeError` in MilevaDB.
 
-        if self.causetg.sql_mode.is_strict()
-            && (self.causetg.flag.contains(Flag::IN_INSERT_STMT)
-                || self.causetg.flag.contains(Flag::IN_UFIDelATE_OR_DELETE_STMT))
+        if self.causet.sql_mode.is_strict()
+            && (self.causet.flag.contains(Flag::IN_INSERT_STMT)
+                || self.causet.flag.contains(Flag::IN_UFIDelATE_OR_DELETE_STMT))
         {
             return Err(err);
         }
@@ -290,8 +290,8 @@ impl EvalContext {
         orig_err: Error,
         negative: bool,
     ) -> Result<i64> {
-        if !self.causetg.flag.contains(Flag::IN_SELECT_STMT)
-            || !self.causetg.flag.contains(Flag::OVERFLOW_AS_WARNING)
+        if !self.causet.flag.contains(Flag::IN_SELECT_STMT)
+            || !self.causet.flag.contains(Flag::OVERFLOW_AS_WARNING)
         {
             return Err(orig_err);
         }
@@ -308,7 +308,7 @@ impl EvalContext {
     pub fn take_warnings(&mut self) -> EvalWarnings {
         mem::replace(
             &mut self.warnings,
-            EvalWarnings::new(self.causetg.max_warning_cnt),
+            EvalWarnings::new(self.causet.max_warning_cnt),
         )
     }
 
@@ -317,12 +317,12 @@ impl EvalContext {
     /// `load data infile` statements, when not in strict SQL mode.
     /// see https://dev.mysql.com/doc/refman/5.7/en/out-of-cone-and-overflow.html
     pub fn should_clip_to_zero(&self) -> bool {
-        self.causetg.flag.contains(Flag::IN_INSERT_STMT)
-            || self.causetg.flag.contains(Flag::IN_LOAD_DATA_STMT)
+        self.causet.flag.contains(Flag::IN_INSERT_STMT)
+            || self.causet.flag.contains(Flag::IN_LOAD_DATA_STMT)
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::Error;
     use super::*;
@@ -350,8 +350,8 @@ mod tests {
 
     #[test]
     fn test_max_warning_cnt() {
-        let eval_causetg = Arc::new(EvalConfig::from_flag(Flag::TRUNCATE_AS_WARNING));
-        let mut ctx = EvalContext::new(Arc::clone(&eval_causetg));
+        let eval_causet = Arc::new(EvalConfig::from_flag(Flag::TRUNCATE_AS_WARNING));
+        let mut ctx = EvalContext::new(Arc::clone(&eval_causet));
         assert!(ctx.handle_truncate(true).is_ok());
         assert!(ctx.handle_truncate(true).is_ok());
         assert_eq!(ctx.take_warnings().warnings.len(), 2);
@@ -360,7 +360,7 @@ mod tests {
         }
         let warnings = ctx.take_warnings();
         assert_eq!(warnings.warning_cnt, 2 * DEFAULT_MAX_WARNING_CNT);
-        assert_eq!(warnings.warnings.len(), eval_causetg.max_warning_cnt);
+        assert_eq!(warnings.warnings.len(), eval_causet.max_warning_cnt);
     }
 
     #[test]
@@ -400,9 +400,9 @@ mod tests {
             ), //warning
         ];
         for (flag, sql_mode, is_ok, is_empty) in cases {
-            let mut causetg = EvalConfig::new();
-            causetg.set_flag(flag).set_sql_mode(sql_mode);
-            let mut ctx = EvalContext::new(Arc::new(causetg));
+            let mut causet = EvalConfig::new();
+            causet.set_flag(flag).set_sql_mode(sql_mode);
+            let mut ctx = EvalContext::new(Arc::new(causet));
             assert_eq!(ctx.handle_division_by_zero().is_ok(), is_ok);
             assert_eq!(ctx.take_warnings().warnings.is_empty(), is_empty);
         }
@@ -421,12 +421,12 @@ mod tests {
         ];
         for (flag, strict_sql_mode, is_ok, is_empty) in cases {
             let err = Error::invalid_time_format("");
-            let mut causetg = EvalConfig::new();
-            causetg.set_flag(flag);
+            let mut causet = EvalConfig::new();
+            causet.set_flag(flag);
             if strict_sql_mode {
-                causetg.sql_mode.insert(SqlMode::STRICT_ALL_BlockS);
+                causet.sql_mode.insert(SqlMode::STRICT_ALL_BlockS);
             }
-            let mut ctx = EvalContext::new(Arc::new(causetg));
+            let mut ctx = EvalContext::new(Arc::new(causet));
             assert_eq!(ctx.handle_invalid_time_error(err).is_ok(), is_ok);
             assert_eq!(ctx.take_warnings().warnings.is_empty(), is_empty);
         }

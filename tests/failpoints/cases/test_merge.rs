@@ -42,7 +42,7 @@ fn test_node_merge_rollback() {
     let target_brane = fidel_client.get_brane(b"k3").unwrap();
 
     let schedule_merge_fp = "on_schedule_merge";
-    fail::causetg(schedule_merge_fp, "return()").unwrap();
+    fail::causet(schedule_merge_fp, "return()").unwrap();
 
     // The call is finished when prepare_merge is applied.
     cluster.must_try_merge(brane.get_id(), target_brane.get_id());
@@ -77,7 +77,7 @@ fn test_node_merge_rollback() {
     }
 
     fidel_client.must_remove_peer(right.get_id(), new_peer(3, 5));
-    fail::causetg(schedule_merge_fp, "return()").unwrap();
+    fail::causet(schedule_merge_fp, "return()").unwrap();
 
     let target_brane = fidel_client.get_brane(b"k3").unwrap();
     cluster.must_try_merge(brane.get_id(), target_brane.get_id());
@@ -123,7 +123,7 @@ fn test_node_merge_respacelike() {
     cluster.must_put(b"k3", b"v3");
 
     let schedule_merge_fp = "on_schedule_merge";
-    fail::causetg(schedule_merge_fp, "return()").unwrap();
+    fail::causet(schedule_merge_fp, "return()").unwrap();
 
     cluster.must_try_merge(left.get_id(), right.get_id());
     let leader = cluster.leader_of_brane(left.get_id()).unwrap();
@@ -179,7 +179,7 @@ fn test_node_merge_respacelike() {
     cluster.must_put(b"k11", b"v11");
     must_get_equal(&cluster.get_engine(3), b"k11", b"v11");
     let skip_destroy_fp = "violetabft_store_skip_destroy_peer";
-    fail::causetg(skip_destroy_fp, "return()").unwrap();
+    fail::causet(skip_destroy_fp, "return()").unwrap();
     cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
     fidel_client.must_merge(left.get_id(), right.get_id());
     let peer = find_peer(&right, 3).unwrap().to_owned();
@@ -223,7 +223,7 @@ fn test_node_merge_catch_up_logs_respacelike() {
     must_get_none(&cluster.get_engine(3), b"k11");
 
     // after source peer is applied but before set it to tombstone
-    fail::causetg("after_handle_catch_up_logs_for_merge_1003", "return()").unwrap();
+    fail::causet("after_handle_catch_up_logs_for_merge_1003", "return()").unwrap();
     fidel_client.must_merge(left.get_id(), right.get_id());
     thread::sleep(Duration::from_millis(100));
     cluster.shutdown();
@@ -238,11 +238,11 @@ fn test_node_merge_catch_up_logs_respacelike() {
 fn test_node_merge_catch_up_logs_leader_election() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
-    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 25;
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 12;
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 12;
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(100);
+    cluster.causet.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
+    cluster.causet.violetabft_store.violetabft_election_timeout_ticks = 25;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 12;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 12;
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(100);
     cluster.run();
 
     cluster.must_put(b"k1", b"v1");
@@ -258,7 +258,7 @@ fn test_node_merge_catch_up_logs_leader_election() {
 
     let state1 = cluster.truncated_state(1000, 1);
     // let the entries committed but not applied
-    fail::causetg("on_handle_apply_1003", "pause").unwrap();
+    fail::causet("on_handle_apply_1003", "pause").unwrap();
     for i in 2..20 {
         cluster.must_put(format!("k1{}", i).as_bytes(), b"v");
     }
@@ -281,7 +281,7 @@ fn test_node_merge_catch_up_logs_leader_election() {
     must_get_none(&cluster.get_engine(3), b"k11");
 
     // let peer not destroyed before election timeout
-    fail::causetg("before_peer_destroy_1003", "pause").unwrap();
+    fail::causet("before_peer_destroy_1003", "pause").unwrap();
     fail::remove("on_handle_apply_1003");
     fidel_client.must_merge(left.get_id(), right.get_id());
 
@@ -298,11 +298,11 @@ fn test_node_merge_catch_up_logs_leader_election() {
 fn test_node_merge_catch_up_logs_no_need() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
-    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 25;
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 12;
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 12;
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(100);
+    cluster.causet.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
+    cluster.causet.violetabft_store.violetabft_election_timeout_ticks = 25;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 12;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 12;
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(100);
     cluster.run();
 
     cluster.must_put(b"k1", b"v1");
@@ -333,7 +333,7 @@ fn test_node_merge_catch_up_logs_no_need() {
     must_get_none(&cluster.get_engine(3), b"k11");
 
     // propose merge but not let apply index make progress.
-    fail::causetg("apply_after_prepare_merge", "pause").unwrap();
+    fail::causet("apply_after_prepare_merge", "pause").unwrap();
     fidel_client.merge_brane(left.get_id(), right.get_id());
     must_get_none(&cluster.get_engine(3), b"k11");
 
@@ -341,8 +341,8 @@ fn test_node_merge_catch_up_logs_no_need() {
     thread::sleep(Duration::from_millis(100));
 
     // let source brane not merged
-    fail::causetg("before_handle_catch_up_logs_for_merge", "pause").unwrap();
-    fail::causetg("after_handle_catch_up_logs_for_merge", "pause").unwrap();
+    fail::causet("before_handle_catch_up_logs_for_merge", "pause").unwrap();
+    fail::causet("after_handle_catch_up_logs_for_merge", "pause").unwrap();
     // due to `before_handle_catch_up_logs_for_merge` failpoint, we already pass `apply_index < catch_up_logs.merge.get_commit()`
     // so now can let apply index make progress.
     fail::remove("apply_after_prepare_merge");
@@ -367,8 +367,8 @@ fn test_node_merge_catch_up_logs_no_need() {
 fn test_node_merge_recover_snapshot() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 12;
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 12;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 12;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 12;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -385,7 +385,7 @@ fn test_node_merge_recover_snapshot() {
     let target_brane = fidel_client.get_brane(b"k1").unwrap();
 
     let schedule_merge_fp = "on_schedule_merge";
-    fail::causetg(schedule_merge_fp, "return()").unwrap();
+    fail::causet(schedule_merge_fp, "return()").unwrap();
 
     cluster.must_try_merge(brane.get_id(), target_brane.get_id());
 
@@ -394,7 +394,7 @@ fn test_node_merge_recover_snapshot() {
     must_get_none(&cluster.get_engine(3), b"k4");
 
     let step_store_3_brane_1 = "step_message_3_1";
-    fail::causetg(step_store_3_brane_1, "return()").unwrap();
+    fail::causet(step_store_3_brane_1, "return()").unwrap();
     fail::remove(schedule_merge_fp);
 
     for i in 0..100 {
@@ -427,10 +427,10 @@ fn test_node_merge_multiple_snapshots(together: bool) {
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
     // make it gc quickly to trigger snapshot easily
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
-    cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 10;
-    cluster.causetg.violetabft_store.merge_max_log_gap = 9;
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
+    cluster.causet.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 10;
+    cluster.causet.violetabft_store.merge_max_log_gap = 9;
     cluster.run();
 
     cluster.must_put(b"k1", b"v1");
@@ -496,7 +496,7 @@ fn test_node_merge_multiple_snapshots(together: bool) {
     // Let peer of right brane on store 3 to make applightlike response to trigger a new snapshot
     // one is snapshot before merge, the other is snapshot after merge.
     // Here blocks violetabftstore for a while to make it not to apply snapshot and receive new log now.
-    fail::causetg("on_violetabft_ready", "sleep(100)").unwrap();
+    fail::causet("on_violetabft_ready", "sleep(100)").unwrap();
     cluster.clear_slightlike_filters();
     thread::sleep(Duration::from_millis(200));
     // Filter message again to make sure peer on store 3 can not catch up CommitMerge log
@@ -511,7 +511,7 @@ fn test_node_merge_multiple_snapshots(together: bool) {
             .msg_type(MessageType::MsgApplightlike),
     ));
     // Cause filter is added again, no need to block violetabftstore anymore
-    fail::causetg("on_violetabft_ready", "off").unwrap();
+    fail::causet("on_violetabft_ready", "off").unwrap();
 
     // Wait some time to let already merged peer on store 1 or store 2 to notify
     // the peer of left brane on store 3 is stale.
@@ -552,7 +552,7 @@ fn test_node_merge_reject_request_snapshot() {
     let (mut cluster, brane, target_brane) = prepare_request_snapshot_cluster();
 
     let apply_prepare_merge_fp = "apply_before_prepare_merge";
-    fail::causetg(apply_prepare_merge_fp, "pause").unwrap();
+    fail::causet(apply_prepare_merge_fp, "pause").unwrap();
     let prepare_merge = new_prepare_merge(target_brane);
     let mut req = new_admin_request(brane.get_id(), brane.get_brane_epoch(), prepare_merge);
     req.mut_header().set_peer(new_peer(1, 1));
@@ -590,7 +590,7 @@ fn test_node_request_snapshot_reject_merge() {
 
     // Pause generating snapshot.
     let brane_gen_snap_fp = "brane_gen_snap";
-    fail::causetg(brane_gen_snap_fp, "pause").unwrap();
+    fail::causet(brane_gen_snap_fp, "pause").unwrap();
 
     // Install snapshot filter before requesting snapshot.
     let (tx, rx) = mpsc::channel();
@@ -630,11 +630,11 @@ fn test_node_request_snapshot_reject_merge() {
 fn test_node_merge_respacelike_after_apply_premerge_before_apply_compact_log() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.violetabft_store.merge_max_log_gap = 10;
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 11;
+    cluster.causet.violetabft_store.merge_max_log_gap = 10;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 11;
     // Rely on this config to trigger a compact log
-    cluster.causetg.violetabft_store.violetabft_log_gc_size_limit = ReadableSize(1);
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(10);
+    cluster.causet.violetabft_store.violetabft_log_gc_size_limit = ReadableSize(1);
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(10);
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
@@ -642,7 +642,7 @@ fn test_node_merge_respacelike_after_apply_premerge_before_apply_compact_log() {
     cluster.run();
     // Prevent gc_log_tick to propose a compact log
     let violetabft_gc_log_tick_fp = "on_violetabft_gc_log_tick";
-    fail::causetg(violetabft_gc_log_tick_fp, "return()").unwrap();
+    fail::causet(violetabft_gc_log_tick_fp, "return()").unwrap();
     cluster.must_put(b"k1", b"v1");
     cluster.must_put(b"k3", b"v3");
 
@@ -662,14 +662,14 @@ fn test_node_merge_respacelike_after_apply_premerge_before_apply_compact_log() {
     // Prevent on_apply_res to ufidelate merge_state in Peer
     // If not, almost everything cannot propose including compact log
     let on_apply_res_fp = "on_apply_res";
-    fail::causetg(on_apply_res_fp, "return()").unwrap();
+    fail::causet(on_apply_res_fp, "return()").unwrap();
 
     cluster.must_try_merge(left.get_id(), right.get_id());
 
     cluster.clear_slightlike_filters();
     // Prevent apply fsm to apply compact log
     let handle_apply_fp = "on_handle_apply";
-    fail::causetg(handle_apply_fp, "return()").unwrap();
+    fail::causet(handle_apply_fp, "return()").unwrap();
 
     let state1 = cluster.truncated_state(left.get_id(), 1);
     fail::remove(violetabft_gc_log_tick_fp);
@@ -683,7 +683,7 @@ fn test_node_merge_respacelike_after_apply_premerge_before_apply_compact_log() {
     fail::remove(on_apply_res_fp);
     // Prevent sched_merge_tick to propose CommitMerge
     let schedule_merge_fp = "on_schedule_merge";
-    fail::causetg(schedule_merge_fp, "return()").unwrap();
+    fail::causet(schedule_merge_fp, "return()").unwrap();
 
     cluster.spacelike().unwrap();
 
@@ -709,9 +709,9 @@ fn test_node_merge_respacelike_after_apply_premerge_before_apply_compact_log() {
 fn test_node_failed_merge_before_succeed_merge() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.violetabft_store.merge_max_log_gap = 30;
-    cluster.causetg.violetabft_store.store_batch_system.max_batch_size = 1;
-    cluster.causetg.violetabft_store.store_batch_system.pool_size = 2;
+    cluster.causet.violetabft_store.merge_max_log_gap = 30;
+    cluster.causet.violetabft_store.store_batch_system.max_batch_size = 1;
+    cluster.causet.violetabft_store.store_batch_system.pool_size = 2;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -733,7 +733,7 @@ fn test_node_failed_merge_before_succeed_merge() {
 
     // Prevent sched_merge_tick to propose CommitMerge
     let schedule_merge_fp = "on_schedule_merge";
-    fail::causetg(schedule_merge_fp, "return()").unwrap();
+    fail::causet(schedule_merge_fp, "return()").unwrap();
 
     // To minimize peers log gap for merging
     cluster.must_put(b"k11", b"v2");
@@ -753,7 +753,7 @@ fn test_node_failed_merge_before_succeed_merge() {
     // cleaning slightlike filter. Since this method is just to check `RollbackMerge`,
     // the `PrepareMerge` may escape, but it makes the best effort.
     let before_slightlike_rollback_merge_1003_fp = "before_slightlike_rollback_merge_1003";
-    fail::causetg(before_slightlike_rollback_merge_1003_fp, "return").unwrap();
+    fail::causet(before_slightlike_rollback_merge_1003_fp, "return").unwrap();
     cluster.clear_slightlike_filters();
 
     right = fidel_client.get_brane(b"k5").unwrap();
@@ -776,7 +776,7 @@ fn test_node_failed_merge_before_succeed_merge() {
     // first `on_ready_prepare_merge` is sent after all committed log.
     // Sleep a while to wait apply fsm to slightlike `on_ready_prepare_merge` to peer fsm.
     let after_slightlike_to_apply_1003_fp = "after_slightlike_to_apply_1003";
-    fail::causetg(after_slightlike_to_apply_1003_fp, "sleep(300)").unwrap();
+    fail::causet(after_slightlike_to_apply_1003_fp, "sleep(300)").unwrap();
 
     fail::remove(before_slightlike_rollback_merge_1003_fp);
     // Wait `after_slightlike_to_apply_1003` timeout
@@ -796,8 +796,8 @@ fn test_node_failed_merge_before_succeed_merge() {
 fn test_node_merge_transfer_leader() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.violetabft_store.store_batch_system.max_batch_size = 1;
-    cluster.causetg.violetabft_store.store_batch_system.pool_size = 2;
+    cluster.causet.violetabft_store.store_batch_system.max_batch_size = 1;
+    cluster.causet.violetabft_store.store_batch_system.pool_size = 2;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -816,7 +816,7 @@ fn test_node_merge_transfer_leader() {
     cluster.must_transfer_leader(left.get_id(), left_peer_1.clone());
 
     let schedule_merge_fp = "on_schedule_merge";
-    fail::causetg(schedule_merge_fp, "return()").unwrap();
+    fail::causet(schedule_merge_fp, "return()").unwrap();
 
     cluster.must_try_merge(left.get_id(), right.get_id());
 
@@ -824,7 +824,7 @@ fn test_node_merge_transfer_leader() {
     assert_eq!(left_peer_3.get_id(), 1003);
     // Prevent peer 1003 to handle ready when it's leader
     let before_handle_violetabft_ready_1003 = "before_handle_violetabft_ready_1003";
-    fail::causetg(before_handle_violetabft_ready_1003, "pause").unwrap();
+    fail::causet(before_handle_violetabft_ready_1003, "pause").unwrap();
 
     let epoch = cluster.get_brane_epoch(left.get_id());
     let mut transfer_leader_req =
@@ -870,7 +870,7 @@ fn test_node_merge_cascade_merge_with_apply_yield() {
     fidel_client.must_merge(r2.get_id(), r1.get_id());
     assert_eq!(r1.get_id(), 1000);
     let yield_apply_1000_fp = "yield_apply_1000";
-    fail::causetg(yield_apply_1000_fp, "80%3*return()").unwrap();
+    fail::causet(yield_apply_1000_fp, "80%3*return()").unwrap();
 
     for i in 0..10 {
         cluster.must_put(format!("k{}", i).as_bytes(), b"v2");
@@ -888,8 +888,8 @@ fn test_node_merge_cascade_merge_with_apply_yield() {
 fn test_node_multiple_rollback_merge() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.violetabft_store.right_derive_when_split = true;
-    cluster.causetg.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(20);
+    cluster.causet.violetabft_store.right_derive_when_split = true;
+    cluster.causet.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(20);
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -915,14 +915,14 @@ fn test_node_multiple_rollback_merge() {
     let mut right_peer_1_id = find_peer(&right, 1).unwrap().get_id();
 
     for i in 0..3 {
-        fail::causetg(on_schedule_merge_fp, "return()").unwrap();
+        fail::causet(on_schedule_merge_fp, "return()").unwrap();
         cluster.must_try_merge(left.get_id(), right.get_id());
         // Change the epoch of target brane and the merge will fail
         fidel_client.must_remove_peer(right.get_id(), new_peer(1, right_peer_1_id));
         right_peer_1_id += 100;
         fidel_client.must_add_peer(right.get_id(), new_peer(1, right_peer_1_id));
         // Only the source leader is running `on_check_merge`
-        fail::causetg(on_check_merge_not_1001_fp, "return()").unwrap();
+        fail::causet(on_check_merge_not_1001_fp, "return()").unwrap();
         fail::remove(on_schedule_merge_fp);
         // In previous implementation, rollback merge proposal can be proposed by leader itself
         // So wait for the leader propose rollback merge if possible
@@ -972,12 +972,12 @@ fn test_node_multiple_rollback_merge() {
 #[test]
 fn test_node_merge_write_data_to_source_brane_after_merging() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(100);
+    cluster.causet.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(100);
     // For snapshot after merging
-    cluster.causetg.violetabft_store.merge_max_log_gap = 10;
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 12;
-    cluster.causetg.violetabft_store.apply_batch_system.max_batch_size = 1;
-    cluster.causetg.violetabft_store.apply_batch_system.pool_size = 2;
+    cluster.causet.violetabft_store.merge_max_log_gap = 10;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 12;
+    cluster.causet.violetabft_store.apply_batch_system.max_batch_size = 1;
+    cluster.causet.violetabft_store.apply_batch_system.pool_size = 2;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -995,7 +995,7 @@ fn test_node_merge_write_data_to_source_brane_after_merging() {
     let right_peer_2 = find_peer(&right, 2).cloned().unwrap();
     assert_eq!(right_peer_2.get_id(), 2);
     let on_handle_apply_2_fp = "on_handle_apply_2";
-    fail::causetg(on_handle_apply_2_fp, "pause").unwrap();
+    fail::causet(on_handle_apply_2_fp, "pause").unwrap();
 
     let right_peer_1 = find_peer(&right, 1).cloned().unwrap();
     cluster.must_transfer_leader(right.get_id(), right_peer_1);
@@ -1004,7 +1004,7 @@ fn test_node_merge_write_data_to_source_brane_after_merging() {
     cluster.must_transfer_leader(left.get_id(), left_peer_3.clone());
 
     let schedule_merge_fp = "on_schedule_merge";
-    fail::causetg(schedule_merge_fp, "return()").unwrap();
+    fail::causet(schedule_merge_fp, "return()").unwrap();
 
     cluster.must_try_merge(left.get_id(), right.get_id());
 
@@ -1030,7 +1030,7 @@ fn test_node_merge_write_data_to_source_brane_after_merging() {
     }
     // Ignore this msg to make left brane exist.
     let on_has_merge_target_fp = "on_has_merge_target";
-    fail::causetg(on_has_merge_target_fp, "return").unwrap();
+    fail::causet(on_has_merge_target_fp, "return").unwrap();
 
     cluster.clear_slightlike_filters();
     // On store 3, now the right brane is ufidelated by snapshot not applying logs
@@ -1077,22 +1077,22 @@ fn test_node_merge_write_data_to_source_brane_after_merging() {
 #[test]
 fn test_node_merge_crash_before_snapshot_then_catch_up_logs() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.violetabft_store.merge_max_log_gap = 10;
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 11;
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(50);
+    cluster.causet.violetabft_store.merge_max_log_gap = 10;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 11;
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(50);
     // Make merge check resume quickly.
-    cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
-    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 10;
+    cluster.causet.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
+    cluster.causet.violetabft_store.violetabft_election_timeout_ticks = 10;
     // election timeout must be greater than lease
-    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration::millis(99);
-    cluster.causetg.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(100);
-    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
+    cluster.causet.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration::millis(99);
+    cluster.causet.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(100);
+    cluster.causet.violetabft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
     let on_violetabft_gc_log_tick_fp = "on_violetabft_gc_log_tick";
-    fail::causetg(on_violetabft_gc_log_tick_fp, "return()").unwrap();
+    fail::causet(on_violetabft_gc_log_tick_fp, "return()").unwrap();
 
     cluster.run();
 
@@ -1159,15 +1159,15 @@ fn test_node_merge_crash_before_snapshot_then_catch_up_logs() {
     // In previous implementation, destroying its source peer and applying snapshot is not atomic.
     // So making its source peer be destroyed and do not apply snapshot to reproduce the problem
     let before_handle_snapshot_ready_3_fp = "before_handle_snapshot_ready_3";
-    fail::causetg(before_handle_snapshot_ready_3_fp, "return()").unwrap();
+    fail::causet(before_handle_snapshot_ready_3_fp, "return()").unwrap();
 
     cluster.clear_slightlike_filters();
     // Peer 1 will slightlike snapshot to peer 3
     // Source peer slightlikes msg to others to get target brane info until the election timeout.
     // The max election timeout is 2 * 10 * 10 = 200ms
     let election_timeout = 2
-        * cluster.causetg.violetabft_store.violetabft_base_tick_interval.as_millis()
-        * cluster.causetg.violetabft_store.violetabft_election_timeout_ticks as u64;
+        * cluster.causet.violetabft_store.violetabft_base_tick_interval.as_millis()
+        * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u64;
     sleep_ms(election_timeout + 100);
 
     cluster.stop_node(1);
@@ -1188,22 +1188,22 @@ fn test_node_merge_crash_before_snapshot_then_catch_up_logs() {
 #[test]
 fn test_node_merge_crash_when_snapshot() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.violetabft_store.merge_max_log_gap = 10;
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 11;
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(50);
+    cluster.causet.violetabft_store.merge_max_log_gap = 10;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 11;
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(50);
     // Make merge check resume quickly.
-    cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
-    cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = 10;
+    cluster.causet.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(10);
+    cluster.causet.violetabft_store.violetabft_election_timeout_ticks = 10;
     // election timeout must be greater than lease
-    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration::millis(99);
-    cluster.causetg.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(100);
-    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
+    cluster.causet.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration::millis(99);
+    cluster.causet.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(100);
+    cluster.causet.violetabft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
     let on_violetabft_gc_log_tick_fp = "on_violetabft_gc_log_tick";
-    fail::causetg(on_violetabft_gc_log_tick_fp, "return()").unwrap();
+    fail::causet(on_violetabft_gc_log_tick_fp, "return()").unwrap();
 
     cluster.run();
 
@@ -1272,9 +1272,9 @@ fn test_node_merge_crash_when_snapshot() {
     }
 
     let on_brane_worker_apply_fp = "on_brane_worker_apply";
-    fail::causetg(on_brane_worker_apply_fp, "return()").unwrap();
+    fail::causet(on_brane_worker_apply_fp, "return()").unwrap();
     let on_brane_worker_destroy_fp = "on_brane_worker_destroy";
-    fail::causetg(on_brane_worker_destroy_fp, "return()").unwrap();
+    fail::causet(on_brane_worker_destroy_fp, "return()").unwrap();
 
     cluster.clear_slightlike_filters();
     let timer = Instant::now();

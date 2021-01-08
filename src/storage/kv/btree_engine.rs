@@ -290,7 +290,7 @@ fn write_modifies(engine: &BTreeEngine, modifies: Vec<Modify>) -> EngineResult<(
     Ok(())
 }
 
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use super::super::tests::*;
     use super::super::CfStatistics;

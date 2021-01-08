@@ -196,7 +196,7 @@ impl<E: Engine, L: LockManager> CausetStorage<E, L> {
         self.engine.clone()
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     pub fn get_concurrency_manager(&self) -> ConcurrencyManager {
         self.concurrency_manager.clone()
     }
@@ -1638,7 +1638,7 @@ pub mod test_util {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::{test_util::*, *};
 
@@ -2115,13 +2115,13 @@ mod tests {
         let engine = {
             let path = "".to_owned();
             let causets = crate::causetStorage::ALL_CAUSETS.to_vec();
-            let causetg_lmdb = db_config;
+            let causet_lmdb = db_config;
             let cache = BlockCacheConfig::default().build_shared_cache();
             let causets_opts = vec![
-                CAUSETOptions::new(CAUSET_DEFAULT, causetg_lmdb.defaultcauset.build_opt(&cache)),
-                CAUSETOptions::new(CAUSET_DAGGER, causetg_lmdb.lockcauset.build_opt(&cache)),
-                CAUSETOptions::new(CAUSET_WRITE, causetg_lmdb.writecauset.build_opt(&cache)),
-                CAUSETOptions::new(CAUSET_VIOLETABFT, causetg_lmdb.violetabftcauset.build_opt(&cache)),
+                CAUSETOptions::new(CAUSET_DEFAULT, causet_lmdb.defaultcauset.build_opt(&cache)),
+                CAUSETOptions::new(CAUSET_DAGGER, causet_lmdb.lockcauset.build_opt(&cache)),
+                CAUSETOptions::new(CAUSET_WRITE, causet_lmdb.writecauset.build_opt(&cache)),
+                CAUSETOptions::new(CAUSET_VIOLETABFT, causet_lmdb.violetabftcauset.build_opt(&cache)),
             ];
             LmdbEngine::new(&path, &causets, Some(causets_opts), cache.is_some())
         }

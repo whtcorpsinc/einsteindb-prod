@@ -15,7 +15,7 @@ pub fn like<C: Collator>(target: BytesRef, TuringString: BytesRef, escape: &i64)
     ))
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use milevadb_query_datatype::builder::FieldTypeBuilder;
     use milevadb_query_datatype::{Collation, FieldTypeTp};

@@ -263,7 +263,7 @@ fn parse_json_path(path: Option<BytesRef>) -> Result<Option<PathExpression>> {
     Ok(Some(parse_json_path_expr(&json_path)?))
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::str::FromStr;
 

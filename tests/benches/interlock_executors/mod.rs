@@ -26,7 +26,7 @@ fn execute<M: criterion::measurement::Measurement + 'static>(c: &mut criterion::
     c.final_summary();
 }
 
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 fn run_bench(measurement: &str) {
     match measurement {
         "TOT_INS" => {
@@ -47,7 +47,7 @@ fn run_bench(measurement: &str) {
     }
 }
 
-#[causetg(not(target_os = "linux"))]
+#[causet(not(target_os = "linux"))]
 fn run_bench(measurement: &str) {
     match measurement {
         "CPU_TIME" => {

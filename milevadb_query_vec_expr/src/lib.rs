@@ -21,7 +21,7 @@ extern crate einsteindb_util;
 #[macro_use(other_err)]
 extern crate milevadb_query_common;
 
-#[causetg(test)]
+#[causet(test)]
 extern crate test;
 
 pub mod types;

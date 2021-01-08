@@ -122,7 +122,7 @@ impl ConcurrencyManager {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use txn_types::LockType;

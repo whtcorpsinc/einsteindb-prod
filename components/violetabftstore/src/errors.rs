@@ -6,7 +6,7 @@ use std::net;
 use std::result;
 
 use crossbeam::TrySlightlikeError;
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 use prost::{DecodeError, EncodeError};
 use protobuf::ProtobufError;
 
@@ -76,12 +76,12 @@ quick_error! {
             cause(err)
             display("Protobuf {}", err)
         }
-        #[causetg(feature = "prost-codec")]
+        #[causet(feature = "prost-codec")]
         ProstDecode(err: DecodeError) {
             cause(err)
             display("DecodeError {}", err)
         }
-        #[causetg(feature = "prost-codec")]
+        #[causet(feature = "prost-codec")]
         ProstEncode(err: EncodeError) {
             cause(err)
             display("EncodeError {}", err)
@@ -223,14 +223,14 @@ impl<T> From<TrySlightlikeError<T>> for Error {
     }
 }
 
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 impl From<prost::EncodeError> for Error {
     fn from(err: prost::EncodeError) -> Error {
         Error::ProstEncode(err.into())
     }
 }
 
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 impl From<prost::DecodeError> for Error {
     fn from(err: prost::DecodeError) -> Error {
         Error::ProstDecode(err.into())
@@ -261,9 +261,9 @@ impl ErrorCodeExt for Error {
             Error::Snapshot(e) => e.error_code(),
             Error::SstImporter(e) => e.error_code(),
             Error::Encryption(e) => e.error_code(),
-            #[causetg(feature = "prost-codec")]
+            #[causet(feature = "prost-codec")]
             Error::ProstDecode(_) => error_code::violetabftstore::PROTOBUF,
-            #[causetg(feature = "prost-codec")]
+            #[causet(feature = "prost-codec")]
             Error::ProstEncode(_) => error_code::violetabftstore::PROTOBUF,
 
             Error::Other(_) => error_code::violetabftstore::UNKNOWN,

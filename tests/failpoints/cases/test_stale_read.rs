@@ -17,7 +17,7 @@ use einsteindb_util::HandyRwLock;
 fn stale_read_during_splitting(right_derive: bool) {
     let count = 3;
     let mut cluster = new_node_cluster(0, count);
-    cluster.causetg.violetabft_store.right_derive_when_split = right_derive;
+    cluster.causet.violetabft_store.right_derive_when_split = right_derive;
     let election_timeout = configure_for_lease_read(&mut cluster, None, None);
     cluster.run();
 
@@ -48,7 +48,7 @@ fn stale_read_during_splitting(right_derive: bool) {
 
     // Pause the apply worker of peer 3.
     let apply_split = "apply_before_split_1_3";
-    fail::causetg(apply_split, "pause").unwrap();
+    fail::causet(apply_split, "pause").unwrap();
 
     // Split the first brane.
     cluster.split_brane(&brane1, key2, Callback::Write(Box::new(move |_| {})));
@@ -133,7 +133,7 @@ fn must_not_stale_read(
 
     // Leaders can always propose read index despite split/merge.
     let propose_readindex = "before_propose_readindex";
-    fail::causetg(propose_readindex, "return(true)").unwrap();
+    fail::causet(propose_readindex, "return(true)").unwrap();
 
     // Can not execute reads that are queued.
     let value1 = read_on_peer(
@@ -218,9 +218,9 @@ fn test_stale_read_during_merging() {
     let mut cluster = new_node_cluster(0, count);
     configure_for_merge(&mut cluster);
     let election_timeout = configure_for_lease_read(&mut cluster, None, None);
-    cluster.causetg.violetabft_store.right_derive_when_split = false;
-    cluster.causetg.violetabft_store.fidel_heartbeat_tick_interval =
-        cluster.causetg.violetabft_store.violetabft_base_tick_interval;
+    cluster.causet.violetabft_store.right_derive_when_split = false;
+    cluster.causet.violetabft_store.fidel_heartbeat_tick_interval =
+        cluster.causet.violetabft_store.violetabft_base_tick_interval;
     debug!("max leader lease: {:?}", election_timeout);
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
@@ -272,7 +272,7 @@ fn test_stale_read_during_merging() {
 
     // Pause the apply workers except for the peer 4.
     let apply_commit_merge = "apply_before_commit_merge_except_1_4";
-    fail::causetg(apply_commit_merge, "pause").unwrap();
+    fail::causet(apply_commit_merge, "pause").unwrap();
 
     // Wait for commit merge.
     // The EinsteinDBs that have followers of the old brane will elected a leader
@@ -326,7 +326,7 @@ fn test_read_index_when_transfer_leader_2() {
     // Increase the election tick to make this test case running reliably.
     configure_for_lease_read(&mut cluster, Some(50), Some(10_000));
     let max_lease = Duration::from_secs(2);
-    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(max_lease);
+    cluster.causet.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(max_lease);
 
     cluster.fidel_client.disable_default_operator();
     let r1 = cluster.run_conf_change();
@@ -401,11 +401,11 @@ fn test_read_index_when_transfer_leader_2() {
 
     // Resume reserved messages in one batch to make sure the old leader can get read and role
     // change in one `Ready`.
-    fail::causetg("pause_on_peer_collect_message", "pause").unwrap();
+    fail::causet("pause_on_peer_collect_message", "pause").unwrap();
     for violetabft_msg in reserved_msgs {
         router.slightlike_violetabft_message(violetabft_msg).unwrap();
     }
-    fail::causetg("pause_on_peer_collect_message", "off").unwrap();
+    fail::causet("pause_on_peer_collect_message", "off").unwrap();
     cluster.sim.wl().clear_recv_filters(old_leader.get_id());
 
     let resp1 = resp1.recv().unwrap();
@@ -438,7 +438,7 @@ fn test_read_after_peer_destroyed() {
     assert_eq!(cluster.get(key), Some(value.to_vec()));
 
     let destroy_peer_fp = "destroy_peer";
-    fail::causetg(destroy_peer_fp, "pause").unwrap();
+    fail::causet(destroy_peer_fp, "pause").unwrap();
     fidel_client.must_remove_peer(r1, new_peer(1, 1));
     sleep_ms(300);
 
@@ -497,7 +497,7 @@ fn test_stale_read_during_merging_2() {
     cluster.must_transfer_leader(right.get_id(), right_peer_3);
 
     let leader_commit_prepare_merge_fp = "leader_commit_prepare_merge";
-    fail::causetg(leader_commit_prepare_merge_fp, "pause").unwrap();
+    fail::causet(leader_commit_prepare_merge_fp, "pause").unwrap();
 
     fidel_client.must_merge(left.get_id(), right.get_id());
 

@@ -217,7 +217,7 @@ impl ScalarFunc {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use fidelpb::{Expr, ExprType, ScalarFuncSig};
 

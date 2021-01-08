@@ -57,7 +57,7 @@ fn test_destroy_local_reader() {
 
     // Local reader panics if it finds a delegate.
     let reader_has_delegate = "localreader_on_find_delegate";
-    fail::causetg(reader_has_delegate, "panic").unwrap();
+    fail::causet(reader_has_delegate, "panic").unwrap();
 
     let resp = read_on_peer(
         &mut cluster,
@@ -99,7 +99,7 @@ fn test_write_after_destroy() {
     must_get_equal(&engine_3, b"k1", b"v1");
 
     let apply_fp = "apply_on_conf_change_1_3_1";
-    fail::causetg(apply_fp, "pause").unwrap();
+    fail::causet(apply_fp, "pause").unwrap();
 
     cluster.must_transfer_leader(r1, new_peer(1, 1));
     let conf_change = new_change_peer_request(ConfChangeType::RemoveNode, new_peer(3, 3));
@@ -143,7 +143,7 @@ fn test_write_after_destroy() {
 fn test_tick_after_destroy() {
     // 3 nodes cluster.
     let mut cluster = new_server_cluster(0, 3);
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(50);
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(50);
 
     let fidel_client = cluster.fidel_client.clone();
     // Disable default max peer count check.
@@ -160,9 +160,9 @@ fn test_tick_after_destroy() {
     must_get_equal(&engine_3, b"k1", b"v1");
 
     let tick_fp = "on_violetabft_log_gc_tick_1";
-    fail::causetg(tick_fp, "return").unwrap();
+    fail::causet(tick_fp, "return").unwrap();
     let poll_fp = "pause_on_peer_destroy_res";
-    fail::causetg(poll_fp, "pause").unwrap();
+    fail::causet(poll_fp, "pause").unwrap();
 
     cluster.must_transfer_leader(1, new_peer(3, 3));
 
@@ -177,7 +177,7 @@ fn test_tick_after_destroy() {
     cluster.must_put(b"k3", b"v3");
 
     fail::remove(tick_fp);
-    thread::sleep(cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval.0);
+    thread::sleep(cluster.causet.violetabft_store.violetabft_log_gc_tick_interval.0);
     thread::sleep(Duration::from_millis(100));
     fail::remove(poll_fp);
 
@@ -197,7 +197,7 @@ fn test_stale_peer_cache() {
     let engine_3 = cluster.get_engine(3);
     must_get_equal(&engine_3, b"k1", b"v1");
     cluster.must_transfer_leader(1, new_peer(1, 1));
-    fail::causetg("stale_peer_cache_2", "return").unwrap();
+    fail::causet("stale_peer_cache_2", "return").unwrap();
     cluster.must_put(b"k2", b"v2");
 }
 
@@ -213,9 +213,9 @@ fn test_stale_peer_cache() {
 #[test]
 fn test_redundant_conf_change_by_snapshot() {
     let mut cluster = new_node_cluster(0, 4);
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 5;
-    cluster.causetg.violetabft_store.merge_max_log_gap = 4;
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 5;
+    cluster.causet.violetabft_store.merge_max_log_gap = 4;
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
@@ -228,7 +228,7 @@ fn test_redundant_conf_change_by_snapshot() {
     must_get_equal(&cluster.get_engine(2), b"k1", b"v1");
     must_get_equal(&cluster.get_engine(3), b"k1", b"v1");
 
-    fail::causetg("apply_on_conf_change_3_1", "pause").unwrap();
+    fail::causet("apply_on_conf_change_3_1", "pause").unwrap();
     cluster.fidel_client.must_add_peer(1, new_peer(4, 4));
 
     let filter = Box::new(
@@ -264,7 +264,7 @@ fn test_redundant_conf_change_by_snapshot() {
     cluster.sim.wl().add_slightlike_filter(3, filter);
 
     // Unpause the fail point, so peer 3 can apply the redundant conf change result.
-    fail::causetg("apply_on_conf_change_3_1", "off").unwrap();
+    fail::causet("apply_on_conf_change_3_1", "off").unwrap();
 
     cluster.must_transfer_leader(1, new_peer(3, 3));
     assert!(rx.try_recv().is_err());
@@ -290,7 +290,7 @@ fn test_handle_conf_change_when_apply_fsm_resume_plightlikeing_state() {
     cluster.must_transfer_leader(brane.get_id(), peer_on_store1);
 
     let yield_apply_conf_change_3_fp = "yield_apply_conf_change_3";
-    fail::causetg(yield_apply_conf_change_3_fp, "return()").unwrap();
+    fail::causet(yield_apply_conf_change_3_fp, "return()").unwrap();
 
     // Make store 1 and 3 become quorum
     cluster.add_slightlike_filter(IsolationFilterFactory::new(2));

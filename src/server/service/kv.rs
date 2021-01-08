@@ -1678,7 +1678,7 @@ txn_command_future!(future_tail_pointer_get_by_spacelike_ts, MvccGetByStartTsReq
     }
 });
 
-#[causetg(feature = "protobuf-codec")]
+#[causet(feature = "protobuf-codec")]
 pub mod batch_commands_response {
     pub type Response = ekvproto::einsteindbpb::BatchCommandsResponseResponse;
 
@@ -1687,7 +1687,7 @@ pub mod batch_commands_response {
     }
 }
 
-#[causetg(feature = "protobuf-codec")]
+#[causet(feature = "protobuf-codec")]
 pub mod batch_commands_request {
     pub type Request = ekvproto::einsteindbpb::BatchCommandsRequestRequest;
 
@@ -1696,9 +1696,9 @@ pub mod batch_commands_request {
     }
 }
 
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 pub use ekvproto::einsteindbpb::batch_commands_request;
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 pub use ekvproto::einsteindbpb::batch_commands_response;
 
 struct BatchRespCollector;
@@ -1716,7 +1716,7 @@ impl BatchCollector<BatchCommandsResponse, (u64, batch_commands_response::Respon
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use futures::channel::oneshot;

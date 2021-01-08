@@ -383,7 +383,7 @@ impl ScanFreeDaemonImpl for BlockScanFreeDaemonImpl {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

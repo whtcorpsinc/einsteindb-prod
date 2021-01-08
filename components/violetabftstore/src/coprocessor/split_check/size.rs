@@ -133,7 +133,7 @@ where
         let brane_size = match get_brane_approximate_size(
             engine,
             &brane,
-            host.causetg.brane_max_size.0 * host.causetg.batch_split_limit,
+            host.causet.brane_max_size.0 * host.causet.batch_split_limit,
         ) {
             Ok(size) => size,
             Err(e) => {
@@ -145,9 +145,9 @@ where
                 );
                 // Need to check size.
                 host.add_checker(Box::new(Checker::new(
-                    host.causetg.brane_max_size.0,
-                    host.causetg.brane_split_size.0,
-                    host.causetg.batch_split_limit,
+                    host.causet.brane_max_size.0,
+                    host.causet.brane_split_size.0,
+                    host.causet.batch_split_limit,
                     policy,
                 )));
                 return;
@@ -166,22 +166,22 @@ where
         }
 
         REGION_SIZE_HISTOGRAM.observe(brane_size as f64);
-        if brane_size >= host.causetg.brane_max_size.0 {
+        if brane_size >= host.causet.brane_max_size.0 {
             info!(
                 "approximate size over memory_barrier, need to do split check";
                 "brane_id" => brane.get_id(),
                 "size" => brane_size,
-                "memory_barrier" => host.causetg.brane_max_size.0,
+                "memory_barrier" => host.causet.brane_max_size.0,
             );
             // when meet large brane use approximate way to produce split tuplespaceInstanton
-            if brane_size >= host.causetg.brane_max_size.0 * host.causetg.batch_split_limit * 2 {
+            if brane_size >= host.causet.brane_max_size.0 * host.causet.batch_split_limit * 2 {
                 policy = CheckPolicy::Approximate
             }
             // Need to check size.
             host.add_checker(Box::new(Checker::new(
-                host.causetg.brane_max_size.0,
-                host.causetg.brane_split_size.0,
-                host.causetg.batch_split_limit,
+                host.causet.brane_max_size.0,
+                host.causet.brane_split_size.0,
+                host.causet.batch_split_limit,
                 policy,
             )));
         } else {
@@ -190,7 +190,7 @@ where
                 "approximate size less than memory_barrier, does not need to do split check";
                 "brane_id" => brane.get_id(),
                 "size" => brane_size,
-                "memory_barrier" => host.causetg.brane_max_size.0,
+                "memory_barrier" => host.causet.brane_max_size.0,
             );
         }
     }
@@ -249,7 +249,7 @@ fn get_approximate_split_tuplespaceInstanton(
     )))
 }
 
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use super::Checker;
     use crate::interlock::{Config, InterlockHost, ObserverContext, SplitChecker};
@@ -347,16 +347,16 @@ pub mod tests {
         brane.mut_brane_epoch().set_conf_ver(5);
 
         let (tx, rx) = mpsc::sync_channel(100);
-        let mut causetg = Config::default();
-        causetg.brane_max_size = ReadableSize(100);
-        causetg.brane_split_size = ReadableSize(60);
-        causetg.batch_split_limit = 5;
+        let mut causet = Config::default();
+        causet.brane_max_size = ReadableSize(100);
+        causet.brane_split_size = ReadableSize(60);
+        causet.batch_split_limit = 5;
 
         let mut runnable = SplitCheckRunner::new(
             engine.c().clone(),
             tx.clone(),
             InterlockHost::new(tx),
-            causetg,
+            causet,
         );
 
         let causet_handle = engine.causet_handle(data_causet).unwrap();
@@ -477,16 +477,16 @@ pub mod tests {
         brane.mut_brane_epoch().set_conf_ver(5);
 
         let (tx, rx) = mpsc::sync_channel(100);
-        let mut causetg = Config::default();
-        causetg.brane_max_size = ReadableSize(100);
-        causetg.brane_split_size = ReadableSize(60);
-        causetg.batch_split_limit = 5;
+        let mut causet = Config::default();
+        causet.brane_max_size = ReadableSize(100);
+        causet.brane_split_size = ReadableSize(60);
+        causet.batch_split_limit = 5;
 
         let mut runnable = SplitCheckRunner::new(
             engine.c().clone(),
             tx.clone(),
             InterlockHost::new(tx.clone()),
-            causetg.clone(),
+            causet.clone(),
         );
 
         for causet in LARGE_CAUSETS {
@@ -518,7 +518,7 @@ pub mod tests {
             engine.c().clone(),
             tx.clone(),
             InterlockHost::new(tx),
-            causetg,
+            causet,
         );
 
         // Flush a sst of CAUSET_DAGGER with cone properties.

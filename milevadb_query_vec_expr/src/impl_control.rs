@@ -140,7 +140,7 @@ fn case_when_validator<T: EvaluableRet>(expr: &fidelpb::Expr) -> Result<()> {
     Ok(())
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

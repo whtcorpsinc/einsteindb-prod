@@ -11,8 +11,8 @@ use test_violetabftstore::*;
 #[test]
 fn test_singleton_early_apply() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.violetabft_store.early_apply = true;
-    cluster.causetg.violetabft_store.store_batch_system.pool_size = 1;
+    cluster.causet.violetabft_store.early_apply = true;
+    cluster.causet.violetabft_store.store_batch_system.pool_size = 1;
     cluster.fidel_client.disable_default_operator();
     // So compact log will not be triggered automatically.
     configure_for_request_snapshot(&mut cluster);
@@ -23,7 +23,7 @@ fn test_singleton_early_apply() {
     let store_1_fp = "violetabft_before_save_on_store_1";
 
     // Check singleton brane can be scheduled correctly.
-    fail::causetg(store_1_fp, "pause").unwrap();
+    fail::causet(store_1_fp, "pause").unwrap();
     cluster.async_put(b"k1", b"v1").unwrap();
     thread::sleep(Duration::from_millis(100));
     must_get_none(&cluster.get_engine(1), b"k1");
@@ -50,7 +50,7 @@ fn test_singleton_early_apply() {
             .set_msg_callback(Arc::new(move |_| {
                 if !executed.swap(true, Ordering::SeqCst) {
                     info!("hook pause");
-                    fail::causetg(store_1_fp, "pause").unwrap();
+                    fail::causet(store_1_fp, "pause").unwrap();
                 }
             })),
     ));
@@ -58,7 +58,7 @@ fn test_singleton_early_apply() {
     // Sleep a while so that leader receives follower's response and commit log.
     thread::sleep(Duration::from_millis(100));
     cluster.async_put(b"k11", b"v22").unwrap();
-    fail::causetg(store_1_fp, "pause").unwrap();
+    fail::causet(store_1_fp, "pause").unwrap();
     must_get_equal(&cluster.get_engine(1), b"k4", b"v4");
     must_get_none(&cluster.get_engine(1), b"k11");
     fail::remove(store_1_fp);
@@ -69,7 +69,7 @@ fn test_singleton_early_apply() {
 #[test]
 fn test_disable_early_apply() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.violetabft_store.early_apply = false;
+    cluster.causet.violetabft_store.early_apply = false;
     // So compact log will not be triggered automatically.
     configure_for_request_snapshot(&mut cluster);
     cluster.run();
@@ -85,7 +85,7 @@ fn test_disable_early_apply() {
     let last_index = cluster.violetabft_local_state(1, 1).get_last_index();
     cluster.async_put(b"k2", b"v2").unwrap();
     cluster.wait_last_index(1, 1, last_index + 1, Duration::from_secs(3));
-    fail::causetg("violetabft_before_save_on_store_1", "pause").unwrap();
+    fail::causet("violetabft_before_save_on_store_1", "pause").unwrap();
     cluster.clear_slightlike_filters();
     must_get_equal(&cluster.get_engine(2), b"k2", b"v2");
     must_get_none(&cluster.get_engine(1), b"k2");

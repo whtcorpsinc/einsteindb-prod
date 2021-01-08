@@ -683,7 +683,7 @@ impl ReadMetrics {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::sync::mpsc::*;
     use std::thread;

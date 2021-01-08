@@ -36,7 +36,7 @@ const CHECK_CLUSTER_BOOTSTRAPPED_RETRY_SECONDS: u64 = 3;
 /// protocol.
 pub fn create_violetabft_causetStorage<S>(
     engine: VioletaBftKv<S>,
-    causetg: &StorageConfig,
+    causet: &StorageConfig,
     read_pool: ReadPoolHandle,
     lock_mgr: LockManager,
     concurrency_manager: ConcurrencyManager,
@@ -47,7 +47,7 @@ where
 {
     let store = CausetStorage::from_engine(
         engine,
-        causetg,
+        causet,
         read_pool,
         lock_mgr,
         concurrency_manager,
@@ -61,7 +61,7 @@ where
 pub struct Node<C: FidelClient + 'static, ER: VioletaBftEngine> {
     cluster_id: u64,
     store: metapb::CausetStore,
-    store_causetg: Arc<VersionTrack<StoreConfig>>,
+    store_causet: Arc<VersionTrack<StoreConfig>>,
     system: VioletaBftBatchSystem<LmdbEngine, ER>,
     has_spacelikeed: bool,
 
@@ -77,22 +77,22 @@ where
     /// Creates a new Node.
     pub fn new(
         system: VioletaBftBatchSystem<LmdbEngine, ER>,
-        causetg: &ServerConfig,
-        store_causetg: Arc<VersionTrack<StoreConfig>>,
+        causet: &ServerConfig,
+        store_causet: Arc<VersionTrack<StoreConfig>>,
         fidel_client: Arc<C>,
         state: Arc<Mutex<GlobalReplicationState>>,
     ) -> Node<C, ER> {
         let mut store = metapb::CausetStore::default();
         store.set_id(INVALID_ID);
-        if causetg.advertise_addr.is_empty() {
-            store.set_address(causetg.addr.clone());
+        if causet.advertise_addr.is_empty() {
+            store.set_address(causet.addr.clone());
         } else {
-            store.set_address(causetg.advertise_addr.clone())
+            store.set_address(causet.advertise_addr.clone())
         }
-        if causetg.advertise_status_addr.is_empty() {
-            store.set_status_address(causetg.status_addr.clone());
+        if causet.advertise_status_addr.is_empty() {
+            store.set_status_address(causet.status_addr.clone());
         } else {
-            store.set_status_address(causetg.advertise_status_addr.clone())
+            store.set_status_address(causet.advertise_status_addr.clone())
         }
         store.set_version(env!("CARGO_PKG_VERSION").to_string());
 
@@ -110,7 +110,7 @@ where
         );
 
         let mut labels = Vec::new();
-        for (k, v) in &causetg.labels {
+        for (k, v) in &causet.labels {
             let mut label = metapb::StoreLabel::default();
             label.set_key(k.to_owned());
             label.set_value(v.to_owned());
@@ -119,9 +119,9 @@ where
         store.set_labels(labels.into());
 
         Node {
-            cluster_id: causetg.cluster_id,
+            cluster_id: causet.cluster_id,
             store,
-            store_causetg,
+            store_causet,
             fidel_client,
             system,
             has_spacelikeed: false,
@@ -390,12 +390,12 @@ where
             return Err(box_err!("{} is already spacelikeed", store_id));
         }
         self.has_spacelikeed = true;
-        let causetg = self.store_causetg.clone();
+        let causet = self.store_causet.clone();
         let fidel_client = Arc::clone(&self.fidel_client);
         let store = self.store.clone();
         self.system.spawn(
             store,
-            causetg,
+            causet,
             engines,
             trans,
             fidel_client,

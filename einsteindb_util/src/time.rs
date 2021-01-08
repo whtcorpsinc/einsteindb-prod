@@ -184,7 +184,7 @@ const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
 const MILLISECOND_PER_SECOND: i64 = 1_000;
 const NANOSECONDS_PER_MILLISECOND: i64 = 1_000_000;
 
-#[causetg(not(target_os = "linux"))]
+#[causet(not(target_os = "linux"))]
 mod inner {
     use super::NANOSECONDS_PER_SECOND;
     use time::{self, Timespec};
@@ -209,7 +209,7 @@ mod inner {
     }
 }
 
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 mod inner {
     use std::io;
     use time::Timespec;
@@ -461,7 +461,7 @@ impl ThreadReadId {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use std::f64;

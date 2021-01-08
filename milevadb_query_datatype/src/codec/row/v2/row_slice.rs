@@ -140,7 +140,7 @@ impl EventSlice<'_> {
 ///
 /// Note:
 /// This method is only implemented on little lightlikeianness currently, since x86 use little lightlikeianness.
-#[causetg(target_lightlikeian = "little")]
+#[causet(target_lightlikeian = "little")]
 #[inline]
 fn read_le_bytes<'a, T>(buf: &mut &'a [u8], len: usize) -> Result<LEBytes<'a, T>>
 where
@@ -155,13 +155,13 @@ where
     Ok(LEBytes::new(slice))
 }
 
-#[causetg(target_lightlikeian = "little")]
+#[causet(target_lightlikeian = "little")]
 pub struct LEBytes<'a, T: PrimInt> {
     slice: &'a [u8],
     _marker: PhantomData<T>,
 }
 
-#[causetg(target_lightlikeian = "little")]
+#[causet(target_lightlikeian = "little")]
 impl<'a, T: PrimInt> LEBytes<'a, T> {
     fn new(slice: &'a [u8]) -> Self {
         Self {
@@ -217,7 +217,7 @@ impl<'a, T: PrimInt> LEBytes<'a, T> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::encoder_for_test::{PrimaryCauset, EventEncoder};
     use super::{read_le_bytes, EventSlice};
@@ -305,7 +305,7 @@ mod tests {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod benches {
     use super::super::encoder_for_test::{PrimaryCauset, EventEncoder};
     use super::EventSlice;

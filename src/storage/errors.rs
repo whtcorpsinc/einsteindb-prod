@@ -357,7 +357,7 @@ pub fn extract_key_errors(res: Result<Vec<Result<()>>>) -> Vec<kvrpcpb::KeyError
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod test {
     use super::*;
 

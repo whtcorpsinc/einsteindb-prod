@@ -25,7 +25,7 @@ fn new_cluster() -> (Cluster<ServerCluster>, Context) {
     let count = 1;
     let mut cluster = new_server_cluster(0, count);
     let cleanup_interval = Duration::from_millis(CLEANUP_SST_MILLIS);
-    cluster.causetg.violetabft_store.cleanup_import_sst_interval.0 = cleanup_interval;
+    cluster.causet.violetabft_store.cleanup_import_sst_interval.0 = cleanup_interval;
     cluster.run();
 
     let brane_id = 1;

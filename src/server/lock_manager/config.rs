@@ -94,7 +94,7 @@ impl ConfigManager for LockManagerConfigManager {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::Config;
 

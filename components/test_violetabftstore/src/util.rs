@@ -122,15 +122,15 @@ pub fn must_brane_cleared(engine: &Engines<LmdbEngine, LmdbEngine>, brane: &meta
 lazy_static! {
     static ref TEST_CONFIG: EINSTEINDBConfig = {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let common_test_causetg = manifest_dir.join("src/common-test.toml");
-        EINSTEINDBConfig::from_file(&common_test_causetg, None)
+        let common_test_causet = manifest_dir.join("src/common-test.toml");
+        EINSTEINDBConfig::from_file(&common_test_causet, None)
     };
 }
 
 pub fn new_einsteindb_config(cluster_id: u64) -> EINSTEINDBConfig {
-    let mut causetg = TEST_CONFIG.clone();
-    causetg.server.cluster_id = cluster_id;
-    causetg
+    let mut causet = TEST_CONFIG.clone();
+    causet.server.cluster_id = cluster_id;
+    causet
 }
 
 // Create a base request.
@@ -513,7 +513,7 @@ fn dummpy_filter(_: &LmdbCompactionJobInfo) -> bool {
 pub fn create_test_engine(
     // TODO: pass it in for all cases.
     router: Option<VioletaBftRouter<LmdbEngine, LmdbEngine>>,
-    causetg: &EINSTEINDBConfig,
+    causet: &EINSTEINDBConfig,
 ) -> (
     Engines<LmdbEngine, LmdbEngine>,
     Option<Arc<DataKeyManager>>,
@@ -521,17 +521,17 @@ pub fn create_test_engine(
 ) {
     let dir = Builder::new().prefix("test_cluster").temfidelir().unwrap();
     let key_manager =
-        DataKeyManager::from_config(&causetg.security.encryption, dir.path().to_str().unwrap())
+        DataKeyManager::from_config(&causet.security.encryption, dir.path().to_str().unwrap())
             .unwrap()
             .map(|key_manager| Arc::new(key_manager));
 
     let env = get_env(key_manager.clone(), None).unwrap();
-    let cache = causetg.causetStorage.block_cache.build_shared_cache();
+    let cache = causet.causetStorage.block_cache.build_shared_cache();
 
     let kv_path = dir.path().join(DEFAULT_LMDB_SUB_DIR);
     let kv_path_str = kv_path.to_str().unwrap();
 
-    let mut kv_db_opt = causetg.lmdb.build_opt();
+    let mut kv_db_opt = causet.lmdb.build_opt();
     kv_db_opt.set_env(env.clone());
 
     if let Some(router) = router {
@@ -549,7 +549,7 @@ pub fn create_test_engine(
         ));
     }
 
-    let kv_causets_opt = causetg.lmdb.build_causet_opts(&cache);
+    let kv_causets_opt = causet.lmdb.build_causet_opts(&cache);
 
     let engine = Arc::new(
         engine_lmdb::raw_util::new_engine_opt(kv_path_str, kv_db_opt, kv_causets_opt).unwrap(),
@@ -558,10 +558,10 @@ pub fn create_test_engine(
     let violetabft_path = dir.path().join("violetabft");
     let violetabft_path_str = violetabft_path.to_str().unwrap();
 
-    let mut violetabft_db_opt = causetg.violetabftdb.build_opt();
+    let mut violetabft_db_opt = causet.violetabftdb.build_opt();
     violetabft_db_opt.set_env(env);
 
-    let violetabft_causets_opt = causetg.violetabftdb.build_causet_opts(&cache);
+    let violetabft_causets_opt = causet.violetabftdb.build_causet_opts(&cache);
     let violetabft_engine = Arc::new(
         engine_lmdb::raw_util::new_engine_opt(violetabft_path_str, violetabft_db_opt, violetabft_causets_opt).unwrap(),
     );
@@ -577,45 +577,45 @@ pub fn create_test_engine(
 
 pub fn configure_for_request_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
     // We don't want to generate snapshots due to compact log.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 1000;
-    cluster.causetg.violetabft_store.violetabft_log_gc_size_limit = ReadableSize::mb(20);
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 1000;
+    cluster.causet.violetabft_store.violetabft_log_gc_size_limit = ReadableSize::mb(20);
 }
 
 pub fn configure_for_hibernate<T: Simulator>(cluster: &mut Cluster<T>) {
     // Uses long check interval to make leader keep sleeping during tests.
-    cluster.causetg.violetabft_store.abnormal_leader_missing_duration = ReadableDuration::secs(20);
-    cluster.causetg.violetabft_store.max_leader_missing_duration = ReadableDuration::secs(40);
-    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration::secs(10);
+    cluster.causet.violetabft_store.abnormal_leader_missing_duration = ReadableDuration::secs(20);
+    cluster.causet.violetabft_store.max_leader_missing_duration = ReadableDuration::secs(40);
+    cluster.causet.violetabft_store.peer_stale_state_check_interval = ReadableDuration::secs(10);
 }
 
 pub fn configure_for_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
     // Truncate the log quickly so that we can force slightlikeing snapshot.
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 2;
-    cluster.causetg.violetabft_store.merge_max_log_gap = 1;
-    cluster.causetg.violetabft_store.snap_mgr_gc_tick_interval = ReadableDuration::millis(50);
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 2;
+    cluster.causet.violetabft_store.merge_max_log_gap = 1;
+    cluster.causet.violetabft_store.snap_mgr_gc_tick_interval = ReadableDuration::millis(50);
 }
 
 pub fn configure_for_merge<T: Simulator>(cluster: &mut Cluster<T>) {
     // Avoid log compaction which will prevent merge.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 1000;
-    cluster.causetg.violetabft_store.violetabft_log_gc_size_limit = ReadableSize::mb(20);
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 1000;
+    cluster.causet.violetabft_store.violetabft_log_gc_size_limit = ReadableSize::mb(20);
     // Make merge check resume quickly.
-    cluster.causetg.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(100);
+    cluster.causet.violetabft_store.merge_check_tick_interval = ReadableDuration::millis(100);
     // When isolated, follower relies on stale check tick to detect failure leader,
     // choose a smaller number to make it recover faster.
-    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
+    cluster.causet.violetabft_store.peer_stale_state_check_interval = ReadableDuration::millis(500);
 }
 
 pub fn ignore_merge_target_integrity<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.dev_assert = false;
+    cluster.causet.violetabft_store.dev_assert = false;
     cluster.fidel_client.ignore_merge_target_integrity();
 }
 
 pub fn configure_for_transfer_leader<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.violetabft_reject_transfer_leader_duration = ReadableDuration::secs(1);
+    cluster.causet.violetabft_store.violetabft_reject_transfer_leader_duration = ReadableDuration::secs(1);
 }
 
 pub fn configure_for_lease_read<T: Simulator>(
@@ -624,22 +624,22 @@ pub fn configure_for_lease_read<T: Simulator>(
     election_ticks: Option<usize>,
 ) -> Duration {
     if let Some(base_tick_ms) = base_tick_ms {
-        cluster.causetg.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(base_tick_ms);
+        cluster.causet.violetabft_store.violetabft_base_tick_interval = ReadableDuration::millis(base_tick_ms);
     }
-    let base_tick_interval = cluster.causetg.violetabft_store.violetabft_base_tick_interval.0;
+    let base_tick_interval = cluster.causet.violetabft_store.violetabft_base_tick_interval.0;
     if let Some(election_ticks) = election_ticks {
-        cluster.causetg.violetabft_store.violetabft_election_timeout_ticks = election_ticks;
+        cluster.causet.violetabft_store.violetabft_election_timeout_ticks = election_ticks;
     }
-    let election_ticks = cluster.causetg.violetabft_store.violetabft_election_timeout_ticks as u32;
+    let election_ticks = cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32;
     let election_timeout = base_tick_interval * election_ticks;
     // Adjust max leader lease.
-    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(election_timeout);
+    cluster.causet.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration(election_timeout);
     // Use large peer check interval, abnormal and max leader missing duration to make a valid config,
     // that is election timeout x 2 < peer stale state check < abnormal < max leader missing duration.
-    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration(election_timeout * 3);
-    cluster.causetg.violetabft_store.abnormal_leader_missing_duration =
+    cluster.causet.violetabft_store.peer_stale_state_check_interval = ReadableDuration(election_timeout * 3);
+    cluster.causet.violetabft_store.abnormal_leader_missing_duration =
         ReadableDuration(election_timeout * 4);
-    cluster.causetg.violetabft_store.max_leader_missing_duration = ReadableDuration(election_timeout * 5);
+    cluster.causet.violetabft_store.max_leader_missing_duration = ReadableDuration(election_timeout * 5);
 
     election_timeout
 }
@@ -648,26 +648,26 @@ pub fn configure_for_enable_titan<T: Simulator>(
     cluster: &mut Cluster<T>,
     min_blob_size: ReadableSize,
 ) {
-    cluster.causetg.lmdb.titan.enabled = true;
-    cluster.causetg.lmdb.titan.purge_obsolete_files_period = ReadableDuration::secs(1);
-    cluster.causetg.lmdb.titan.max_background_gc = 10;
-    cluster.causetg.lmdb.defaultcauset.titan.min_blob_size = min_blob_size;
-    cluster.causetg.lmdb.defaultcauset.titan.blob_run_mode = BlobRunMode::Normal;
-    cluster.causetg.lmdb.defaultcauset.titan.min_gc_batch_size = ReadableSize::kb(0);
+    cluster.causet.lmdb.titan.enabled = true;
+    cluster.causet.lmdb.titan.purge_obsolete_files_period = ReadableDuration::secs(1);
+    cluster.causet.lmdb.titan.max_background_gc = 10;
+    cluster.causet.lmdb.defaultcauset.titan.min_blob_size = min_blob_size;
+    cluster.causet.lmdb.defaultcauset.titan.blob_run_mode = BlobRunMode::Normal;
+    cluster.causet.lmdb.defaultcauset.titan.min_gc_batch_size = ReadableSize::kb(0);
 }
 
 pub fn configure_for_disable_titan<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.lmdb.titan.enabled = false;
+    cluster.causet.lmdb.titan.enabled = false;
 }
 
 pub fn configure_for_encryption<T: Simulator>(cluster: &mut Cluster<T>) {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let master_key_file = manifest_dir.join("src/master-key.data");
 
-    let causetg = &mut cluster.causetg.security.encryption;
-    causetg.data_encryption_method = EncryptionMethod::Aes128Ctr;
-    causetg.data_key_rotation_period = ReadableDuration(Duration::from_millis(100));
-    causetg.master_key = MasterKeyConfig::File {
+    let causet = &mut cluster.causet.security.encryption;
+    causet.data_encryption_method = EncryptionMethod::Aes128Ctr;
+    causet.data_key_rotation_period = ReadableDuration(Duration::from_millis(100));
+    causet.master_key = MasterKeyConfig::File {
         config: FileConfig {
             path: master_key_file.to_str().unwrap().to_owned(),
         },

@@ -1086,7 +1086,7 @@ fn substring_index_negative(s: &str, delim: &str, count: usize) -> String {
     s[positions[0]..].to_string()
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::{encoded_size, TrimDirection};
     use std::{f64, i64, str};

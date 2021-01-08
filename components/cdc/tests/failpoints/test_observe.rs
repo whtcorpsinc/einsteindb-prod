@@ -3,9 +3,9 @@ use crate::{new_event_feed, TestSuite};
 use futures::executor::block_on;
 use futures::sink::SinkExt;
 use grpcio::WriteFlags;
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 use ekvproto::cdcpb::event::{Event as Event_oneof_event, LogType as EventLogType};
-#[causetg(not(feature = "prost-codec"))]
+#[causet(not(feature = "prost-codec"))]
 use ekvproto::cdcpb::*;
 use ekvproto::kvrpcpb::*;
 use ekvproto::violetabft_serverpb::VioletaBftMessage;
@@ -63,7 +63,7 @@ fn test_observe_duplicate_cmd() {
         other => panic!("unknown event {:?}", other),
     }
     let fp = "before_cdc_flush_apply";
-    fail::causetg(fp, "pause").unwrap();
+    fail::causet(fp, "pause").unwrap();
 
     // Async commit
     let commit_ts = block_on(suite.cluster.fidel_client.get_tso()).unwrap();
@@ -123,7 +123,7 @@ fn test_observe_duplicate_cmd() {
 fn test_delayed_change_cmd() {
     let mut cluster = new_server_cluster(1, 3);
     configure_for_lease_read(&mut cluster, Some(50), Some(20));
-    cluster.causetg.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration::millis(100);
+    cluster.causet.violetabft_store.violetabft_store_max_leader_lease = ReadableDuration::millis(100);
     cluster.fidel_client.disable_default_operator();
     let mut suite = TestSuite::with_cluster(3, cluster);
     suite.cluster.must_put(b"k1", b"v1");

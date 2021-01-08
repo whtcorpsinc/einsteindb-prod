@@ -36,7 +36,7 @@ fn test_wait_for_apply_index() {
     cluster.must_transfer_leader(brane.get_id(), p2);
 
     // Block all write cmd applying of Peer 3.
-    fail::causetg("on_apply_write_cmd", "sleep(2000)").unwrap();
+    fail::causet("on_apply_write_cmd", "sleep(2000)").unwrap();
     cluster.must_put(b"k1", b"v1");
     must_get_equal(&cluster.get_engine(2), b"k1", b"v1");
 
@@ -76,7 +76,7 @@ fn test_duplicate_read_index_ctx() {
     // Initialize cluster
     let mut cluster = new_node_cluster(0, 3);
     configure_for_lease_read(&mut cluster, Some(50), Some(10_000));
-    cluster.causetg.violetabft_store.violetabft_heartbeat_ticks = 1;
+    cluster.causet.violetabft_store.violetabft_heartbeat_ticks = 1;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -138,7 +138,7 @@ fn test_duplicate_read_index_ctx() {
     rx.recv_timeout(Duration::from_secs(5)).unwrap();
 
     let router = cluster.sim.wl().get_router(1).unwrap();
-    fail::causetg("pause_on_peer_collect_message", "pause").unwrap();
+    fail::causet("pause_on_peer_collect_message", "pause").unwrap();
     cluster.sim.wl().clear_recv_filters(1);
     for violetabft_msg in mem::replace(dropped_msgs.dagger().unwrap().as_mut(), vec![]) {
         router.slightlike_violetabft_message(violetabft_msg).unwrap();
@@ -167,7 +167,7 @@ fn test_read_before_init() {
     cluster.fidel_client.must_none_plightlikeing_peer(p2);
     must_get_equal(&cluster.get_engine(2), b"k0", b"v0");
 
-    fail::causetg("before_apply_snap_ufidelate_brane", "return").unwrap();
+    fail::causet("before_apply_snap_ufidelate_brane", "return").unwrap();
     // Add peer 3
     let p3 = new_peer(3, 3);
     cluster.fidel_client.must_add_peer(r1, p3.clone());
@@ -218,7 +218,7 @@ fn test_read_applying_snapshot() {
     cluster.fidel_client.must_none_plightlikeing_peer(p2);
 
     // Don't apply snapshot to init peer 3
-    fail::causetg("brane_apply_snap", "pause").unwrap();
+    fail::causet("brane_apply_snap", "pause").unwrap();
     let p3 = new_peer(3, 3);
     cluster.fidel_client.must_add_peer(r1, p3.clone());
     thread::sleep(Duration::from_millis(500));
@@ -294,7 +294,7 @@ fn test_read_after_cleanup_cone_for_snap() {
     // Ensure logs are compacted, then node 1 will slightlike a snapshot to node 3 later
     must_truncated_to(cluster.get_engine(1), r1, last_index + 1);
 
-    fail::causetg("slightlike_snapshot", "pause").unwrap();
+    fail::causet("slightlike_snapshot", "pause").unwrap();
     cluster.run_node(3).unwrap();
     // Sleep for a while to ensure peer 3 receives a HeartBeat
     thread::sleep(Duration::from_millis(500));
@@ -337,10 +337,10 @@ fn test_read_after_cleanup_cone_for_snap() {
     let read_index_msg = read_index_rx.recv_timeout(Duration::from_secs(5)).unwrap();
     let snap_msg = snap_rx.recv_timeout(Duration::from_secs(5)).unwrap();
 
-    fail::causetg("apply_snap_cleanup_cone", "pause").unwrap();
+    fail::causet("apply_snap_cleanup_cone", "pause").unwrap();
 
     let router = cluster.sim.wl().get_router(3).unwrap();
-    fail::causetg("pause_on_peer_collect_message", "pause").unwrap();
+    fail::causet("pause_on_peer_collect_message", "pause").unwrap();
     cluster.sim.wl().clear_recv_filters(3);
     cluster.clear_slightlike_filters();
     router.slightlike_violetabft_message(snap_msg).unwrap();

@@ -31,9 +31,9 @@ fn flush_then_check<T: Simulator>(cluster: &mut Cluster<T>, interval: u64, writt
 fn test_compact_lock_causet<T: Simulator>(cluster: &mut Cluster<T>) {
     let interval = 500;
     // Set lock_causet_compact_interval.
-    cluster.causetg.violetabft_store.lock_causet_compact_interval = ReadableDuration::millis(interval);
+    cluster.causet.violetabft_store.lock_causet_compact_interval = ReadableDuration::millis(interval);
     // Set lock_causet_compact_bytes_memory_barrier.
-    cluster.causetg.violetabft_store.lock_causet_compact_bytes_memory_barrier = ReadableSize(100);
+    cluster.causet.violetabft_store.lock_causet_compact_bytes_memory_barrier = ReadableSize(100);
     cluster.run();
 
     // Write 40 bytes, not reach lock_causet_compact_bytes_memory_barrier, so there is no compaction.

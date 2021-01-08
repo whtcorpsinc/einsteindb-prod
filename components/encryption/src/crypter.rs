@@ -7,7 +7,7 @@ use rand::{rngs::OsRng, RngCore};
 
 use crate::{Error, Result};
 
-#[causetg(not(feature = "prost-codec"))]
+#[causet(not(feature = "prost-codec"))]
 pub fn encryption_method_to_db_encryption_method(method: EncryptionMethod) -> DBEncryptionMethod {
     match method {
         EncryptionMethod::Plaintext => DBEncryptionMethod::Plaintext,
@@ -28,12 +28,12 @@ pub fn encryption_method_from_db_encryption_method(method: DBEncryptionMethod) -
     }
 }
 
-#[causetg(not(feature = "prost-codec"))]
+#[causet(not(feature = "prost-codec"))]
 pub fn compat(method: EncryptionMethod) -> EncryptionMethod {
     method
 }
 
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 pub fn encryption_method_to_db_encryption_method(
     method: i32, /* EncryptionMethod */
 ) -> DBEncryptionMethod {
@@ -46,7 +46,7 @@ pub fn encryption_method_to_db_encryption_method(
     }
 }
 
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 pub fn compat(method: EncryptionMethod) -> i32 {
     match method {
         EncryptionMethod::Unknown => 0,
@@ -197,7 +197,7 @@ pub fn verify_encryption_config(method: EncryptionMethod, key: &[u8]) -> Result<
     Ok(())
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use hex::FromHex;
 

@@ -304,7 +304,7 @@ impl<S: EngineSnapshot> OldValueReader<S> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use engine_lmdb::LmdbEngine;

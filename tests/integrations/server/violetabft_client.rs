@@ -19,12 +19,12 @@ use super::{mock_kv_service, MockKv, MockKvService};
 
 pub fn get_violetabft_client(pool: &tokio::runtime::Runtime) -> VioletaBftClient<VioletaBftStoreBlackHole> {
     let env = Arc::new(Environment::new(2));
-    let causetg = Arc::new(Config::default());
+    let causet = Arc::new(Config::default());
     let security_mgr = Arc::new(SecurityManager::new(&SecurityConfig::default()).unwrap());
     let grpc_thread_load = Arc::new(ThreadLoad::with_memory_barrier(1000));
     VioletaBftClient::new(
         env,
-        causetg,
+        causet,
         security_mgr,
         VioletaBftStoreBlackHole,
         grpc_thread_load,

@@ -71,7 +71,7 @@ where
 /// state. EinsteinDB should be able to recognize the situation and spacelike normally.
 fn test_early_apply(mode: DataLost) {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.violetabft_store.early_apply = true;
+    cluster.causet.violetabft_store.early_apply = true;
     cluster.fidel_client.disable_default_operator();
     // So compact log will not be triggered automatically.
     configure_for_request_snapshot(&mut cluster);
@@ -137,7 +137,7 @@ fn test_all_node_crash() {
 #[test]
 fn test_ufidelate_internal_apply_index() {
     let mut cluster = new_node_cluster(0, 4);
-    cluster.causetg.violetabft_store.early_apply = true;
+    cluster.causet.violetabft_store.early_apply = true;
     cluster.fidel_client.disable_default_operator();
     // So compact log will not be triggered automatically.
     configure_for_request_snapshot(&mut cluster);

@@ -477,7 +477,7 @@ where
     Ok(Some(res))
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crate::builtin_compare::cmp_i64_with_unsigned_flag;
     use crate::tests::{col_expr, datum_expr, str2dec};

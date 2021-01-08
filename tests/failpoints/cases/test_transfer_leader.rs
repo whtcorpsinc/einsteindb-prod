@@ -22,8 +22,8 @@ fn test_transfer_leader_slow_apply() {
     must_get_equal(&cluster.get_engine(3), b"k1", b"v1");
 
     let fp = "on_handle_apply_1003";
-    fail::causetg(fp, "pause").unwrap();
-    for i in 0..=cluster.causetg.violetabft_store.leader_transfer_max_log_lag {
+    fail::causet(fp, "pause").unwrap();
+    for i in 0..=cluster.causet.violetabft_store.leader_transfer_max_log_lag {
         let bytes = format!("k{:03}", i).into_bytes();
         cluster.must_put(&bytes, &bytes);
     }

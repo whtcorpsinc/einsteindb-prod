@@ -10,7 +10,7 @@ pub fn bit_count(arg: &Int) -> Result<Option<Int>> {
     Ok(Some(Int::from(arg.count_ones())))
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::i64;
     use fidelpb::ScalarFuncSig;

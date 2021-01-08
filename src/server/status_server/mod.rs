@@ -81,11 +81,11 @@ const COMPONENT_REQUEST_RETRY: usize = 5;
 
 static COMPONENT: &str = "einsteindb";
 
-#[causetg(feature = "failpoints")]
+#[causet(feature = "failpoints")]
 static MISSING_NAME: &[u8] = b"Missing param name";
-#[causetg(feature = "failpoints")]
+#[causet(feature = "failpoints")]
 static MISSING_ACTIONS: &[u8] = b"Missing param actions";
-#[causetg(feature = "failpoints")]
+#[causet(feature = "failpoints")]
 static FAIL_POINTS_REQUEST_PATH: &str = "/fail";
 
 pub struct StatusServer<E, R> {
@@ -95,7 +95,7 @@ pub struct StatusServer<E, R> {
     addr: Option<SocketAddr>,
     advertise_addr: Option<String>,
     fidel_client: Option<Arc<RpcClient>>,
-    causetg_controller: ConfigController,
+    causet_controller: ConfigController,
     router: R,
     security_config: Arc<SecurityConfig>,
     _snap: PhantomData<E>,
@@ -147,7 +147,7 @@ where
     pub fn new(
         status_thread_pool_size: usize,
         fidel_client: Option<Arc<RpcClient>>,
-        causetg_controller: ConfigController,
+        causet_controller: ConfigController,
         security_config: Arc<SecurityConfig>,
         router: R,
     ) -> Result<Self> {
@@ -171,7 +171,7 @@ where
             addr: None,
             advertise_addr: None,
             fidel_client,
-            causetg_controller,
+            causet_controller,
             router,
             security_config,
             _snap: PhantomData,
@@ -241,7 +241,7 @@ where
 
     async fn get_config(
         req: Request<Body>,
-        causetg_controller: &ConfigController,
+        causet_controller: &ConfigController,
     ) -> hyper::Result<Response<Body>> {
         let mut full = false;
         if let Some(query) = req.uri().query() {
@@ -262,10 +262,10 @@ where
         }
         let encode_res = if full {
             // Get all config
-            serde_json::to_string(&causetg_controller.get_current())
+            serde_json::to_string(&causet_controller.get_current())
         } else {
             // Filter hidden config
-            serde_json::to_string(&causetg_controller.get_current().get_encoder())
+            serde_json::to_string(&causet_controller.get_current().get_encoder())
         };
         Ok(match encode_res {
             Ok(json) => Response::builder()
@@ -280,7 +280,7 @@ where
     }
 
     async fn ufidelate_config(
-        causetg_controller: ConfigController,
+        causet_controller: ConfigController,
         req: Request<Body>,
     ) -> hyper::Result<Response<Body>> {
         let mut body = Vec::new();
@@ -291,7 +291,7 @@ where
             })
             .await?;
         Ok(match decode_json(&body) {
-            Ok(change) => match causetg_controller.ufidelate(change) {
+            Ok(change) => match causet_controller.ufidelate(change) {
                 Err(e) => StatusServer::err_response(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     format!("failed to ufidelate, error: {:?}", e),
@@ -656,26 +656,26 @@ where
         C: ServerConnection,
     {
         let security_config = self.security_config.clone();
-        let causetg_controller = self.causetg_controller.clone();
+        let causet_controller = self.causet_controller.clone();
         let router = self.router.clone();
         // Start to serve.
         let server = builder.serve(make_service_fn(move |conn: &C| {
             let x509 = conn.get_x509();
             let security_config = security_config.clone();
-            let causetg_controller = causetg_controller.clone();
+            let causet_controller = causet_controller.clone();
             let router = router.clone();
             async move {
                 // Create a status service.
                 Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
                     let x509 = x509.clone();
                     let security_config = security_config.clone();
-                    let causetg_controller = causetg_controller.clone();
+                    let causet_controller = causet_controller.clone();
                     let router = router.clone();
                     async move {
                         let path = req.uri().path().to_owned();
                         let method = req.method().to_owned();
 
-                        #[causetg(feature = "failpoints")]
+                        #[causet(feature = "failpoints")]
                         {
                             if path.spacelikes_with(FAIL_POINTS_REQUEST_PATH) {
                                 return handle_fail_points_request(req).await;
@@ -709,10 +709,10 @@ where
                                 Self::dump_prof_to_resp(req).await
                             }
                             (Method::GET, "/config") => {
-                                Self::get_config(req, &causetg_controller).await
+                                Self::get_config(req, &causet_controller).await
                             }
                             (Method::POST, "/config") => {
-                                Self::ufidelate_config(causetg_controller.clone(), req).await
+                                Self::ufidelate_config(causet_controller.clone(), req).await
                             }
                             (Method::GET, "/debug/pprof/profile") => {
                                 Self::dump_rsperf_to_resp(req).await
@@ -860,7 +860,7 @@ where
 }
 
 // For handling fail points related requests
-#[causetg(feature = "failpoints")]
+#[causet(feature = "failpoints")]
 async fn handle_fail_points_request(req: Request<Body>) -> hyper::Result<Response<Body>> {
     let path = req.uri().path().to_owned();
     let method = req.method().to_owned();
@@ -892,7 +892,7 @@ async fn handle_fail_points_request(req: Request<Body>) -> hyper::Result<Respons
                     .unwrap());
             };
 
-            if let Err(e) = fail::causetg(name.to_owned(), &actions) {
+            if let Err(e) = fail::causet(name.to_owned(), &actions) {
                 return Ok(Response::builder()
                     .status(StatusCode::BAD_REQUEST)
                     .body(e.into())
@@ -962,7 +962,7 @@ fn decode_json(
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use futures::executor::block_on;
     use futures::future::ok;
@@ -984,7 +984,7 @@ mod tests {
     use violetabftstore::store::transport::CasualRouter;
     use violetabftstore::store::CasualMessage;
     use security::SecurityConfig;
-    use test_util::new_security_causetg;
+    use test_util::new_security_causet;
     use einsteindb_util::collections::HashSet;
 
     #[derive(Clone)]
@@ -1074,10 +1074,10 @@ mod tests {
                 .await
                 .unwrap();
             let resp_json = String::from_utf8_lossy(&v).to_string();
-            let causetg = EINSTEINDBConfig::default();
-            serde_json::to_string(&causetg.get_encoder())
-                .map(|causetg_json| {
-                    assert_eq!(resp_json, causetg_json);
+            let causet = EINSTEINDBConfig::default();
+            serde_json::to_string(&causet.get_encoder())
+                .map(|causet_json| {
+                    assert_eq!(resp_json, causet_json);
                 })
                 .expect("Could not convert EINSTEINDBConfig to string");
         });
@@ -1085,7 +1085,7 @@ mod tests {
         status_server.stop();
     }
 
-    #[causetg(feature = "failpoints")]
+    #[causet(feature = "failpoints")]
     #[test]
     fn test_status_service_fail_lightlikepoints() {
         let _guard = fail::FailScenario::setup();
@@ -1200,7 +1200,7 @@ mod tests {
         status_server.stop();
     }
 
-    #[causetg(feature = "failpoints")]
+    #[causet(feature = "failpoints")]
     #[test]
     fn test_status_service_fail_lightlikepoints_can_trigger_fails() {
         let _guard = fail::FailScenario::setup();
@@ -1243,7 +1243,7 @@ mod tests {
         assert!(true_only_if_fail_point_triggered());
     }
 
-    #[causetg(not(feature = "failpoints"))]
+    #[causet(not(feature = "failpoints"))]
     #[test]
     fn test_status_service_fail_lightlikepoints_should_give_404_when_failpoints_are_disable() {
         let _guard = fail::FailScenario::setup();
@@ -1314,7 +1314,7 @@ mod tests {
             1,
             None,
             ConfigController::default(),
-            Arc::new(new_security_causetg(Some(allowed_cn))),
+            Arc::new(new_security_causet(Some(allowed_cn))),
             MockRouter,
         )
         .unwrap();
@@ -1378,7 +1378,7 @@ mod tests {
         status_server.stop();
     }
 
-    #[causetg(feature = "mem-profiling")]
+    #[causet(feature = "mem-profiling")]
     #[test]
     #[ignore]
     fn test_pprof_heap_service() {

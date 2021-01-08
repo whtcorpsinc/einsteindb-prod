@@ -79,7 +79,7 @@ fn decode_escaped_unicode(s: &str) -> Result<char> {
     char::from_u32(u).ok_or(box_err!("invalid char from: {}", s))
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::Json;
     use super::*;

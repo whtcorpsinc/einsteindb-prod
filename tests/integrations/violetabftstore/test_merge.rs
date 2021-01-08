@@ -114,9 +114,9 @@ fn test_node_base_merge() {
 fn test_node_merge_with_slow_learner() {
     let mut cluster = new_node_cluster(0, 2);
     configure_for_merge(&mut cluster);
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 40;
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 40;
-    cluster.causetg.violetabft_store.merge_max_log_gap = 15;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 40;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 40;
+    cluster.causet.violetabft_store.merge_max_log_gap = 15;
     cluster.fidel_client.disable_default_operator();
 
     // Create a cluster with peer 1 as leader and peer 2 as learner.
@@ -195,7 +195,7 @@ fn test_node_merge_with_slow_learner() {
 
 /// Test whether merge will be aborted if prerequisites is not met.
 // FIXME(nrc) failing on CI only
-#[causetg(feature = "protobuf-codec")]
+#[causet(feature = "protobuf-codec")]
 #[test]
 fn test_node_merge_prerequisites_check() {
     let mut cluster = new_node_cluster(0, 3);
@@ -353,7 +353,7 @@ fn test_node_merge_slow_split(is_right_derive: bool) {
     ignore_merge_target_integrity(&mut cluster);
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
-    cluster.causetg.violetabft_store.right_derive_when_split = is_right_derive;
+    cluster.causet.violetabft_store.right_derive_when_split = is_right_derive;
 
     cluster.run();
 
@@ -492,8 +492,8 @@ fn test_node_merge_brain_split() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
     ignore_merge_target_integrity(&mut cluster);
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 12;
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 12;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 12;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 12;
 
     cluster.run();
     cluster.must_put(b"k1", b"v1");
@@ -594,7 +594,7 @@ fn test_node_merge_brain_split() {
 #[test]
 fn test_merge_approximate_size_and_tuplespaceInstanton() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.violetabft_store.split_brane_check_tick_interval = ReadableDuration::millis(20);
+    cluster.causet.violetabft_store.split_brane_check_tick_interval = ReadableDuration::millis(20);
     cluster.run();
 
     let mut cone = 1..;
@@ -893,7 +893,7 @@ fn test_merge_isolated_store_with_no_target_peer() {
     let mut cluster = new_node_cluster(0, 4);
     configure_for_merge(&mut cluster);
     ignore_merge_target_integrity(&mut cluster);
-    cluster.causetg.violetabft_store.right_derive_when_split = true;
+    cluster.causet.violetabft_store.right_derive_when_split = true;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -1040,11 +1040,11 @@ fn test_merge_isloated_not_in_merge_learner() {
 fn test_merge_isloated_stale_learner() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
-    cluster.causetg.violetabft_store.right_derive_when_split = true;
+    cluster.causet.violetabft_store.right_derive_when_split = true;
     // Do not rely on fidel to remove stale peer
-    cluster.causetg.violetabft_store.max_leader_missing_duration = ReadableDuration::hours(2);
-    cluster.causetg.violetabft_store.abnormal_leader_missing_duration = ReadableDuration::minutes(10);
-    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration::minutes(5);
+    cluster.causet.violetabft_store.max_leader_missing_duration = ReadableDuration::hours(2);
+    cluster.causet.violetabft_store.abnormal_leader_missing_duration = ReadableDuration::minutes(10);
+    cluster.causet.violetabft_store.peer_stale_state_check_interval = ReadableDuration::minutes(5);
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 

@@ -319,7 +319,7 @@ fn to_rocks_compression_type(ct: SstCompressionType) -> DBCompressionType {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::util::new_default_engine;

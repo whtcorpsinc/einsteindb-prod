@@ -112,7 +112,7 @@ fn test_server_stale_peer_out_of_brane() {
 /// and it's an initialized peer without any data. It would destroy itself as
 /// as stale peer directly and should not impact other brane data on the same store.
 fn test_stale_peer_without_data<T: Simulator>(cluster: &mut Cluster<T>, right_derive: bool) {
-    cluster.causetg.violetabft_store.right_derive_when_split = right_derive;
+    cluster.causet.violetabft_store.right_derive_when_split = right_derive;
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     // Disable default max peer number check.

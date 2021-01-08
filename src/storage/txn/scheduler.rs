@@ -698,7 +698,7 @@ impl<E: Engine, L: LockManager> Clone for Scheduler<E, L> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::causetStorage::tail_pointer::{self, Mutation};

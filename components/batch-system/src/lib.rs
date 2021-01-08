@@ -2,7 +2,7 @@
 
 #[macro_use]
 extern crate einsteindb_util;
-#[causetg(feature = "test-runner")]
+#[causet(feature = "test-runner")]
 #[macro_use]
 extern crate derive_more;
 #[macro_use]
@@ -14,7 +14,7 @@ mod fsm;
 mod mailbox;
 mod router;
 
-#[causetg(feature = "test-runner")]
+#[causet(feature = "test-runner")]
 pub mod test_runner;
 
 pub use self::batch::{create_system, BatchRouter, BatchSystem, HandlerBuilder, PollHandler};

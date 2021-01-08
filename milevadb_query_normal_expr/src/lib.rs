@@ -15,7 +15,7 @@ extern crate failure;
 #[macro_use(box_err, box_try, try_opt, debug)]
 extern crate einsteindb_util;
 
-#[causetg(test)]
+#[causet(test)]
 extern crate test;
 
 use std::borrow::Cow;
@@ -95,7 +95,7 @@ impl Expression {
         }
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     #[inline]
     fn mut_field_type(&mut self) -> &mut FieldType {
         match *self {
@@ -324,7 +324,7 @@ where
     f(left, ctx, right).map_err(From::from)
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::sync::Arc;
     use std::{i64, u64};

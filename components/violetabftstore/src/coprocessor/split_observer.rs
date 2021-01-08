@@ -148,7 +148,7 @@ impl AdminObserver for SplitObserver {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::interlock::AdminObserver;

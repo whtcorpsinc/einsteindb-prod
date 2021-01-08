@@ -570,7 +570,7 @@ impl<'a> slog::Serializer for Serializer<'a> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use chrono::DateTime;

@@ -138,7 +138,7 @@ impl<'a> UnsafeRefInto<&'static SolitonedVecJson> for &'a SolitonedVecJson {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

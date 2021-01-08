@@ -112,7 +112,7 @@ impl<'a> JsonRef<'a> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::Json;
     use super::*;

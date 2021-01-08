@@ -2,10 +2,10 @@
 
 pub mod cpu_time;
 
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 mod cgroup;
 
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 pub mod sys_quota {
     use super::super::config::KB;
     use super::cgroup::CGroupSys;
@@ -52,7 +52,7 @@ pub mod sys_quota {
     }
 }
 
-#[causetg(not(target_os = "linux"))]
+#[causet(not(target_os = "linux"))]
 pub mod sys_quota {
     use super::super::config::KB;
 
@@ -86,7 +86,7 @@ pub mod sys_quota {
 
 pub const HIGH_PRI: i32 = -1;
 
-#[causetg(target_os = "linux")]
+#[causet(target_os = "linux")]
 pub mod thread {
     use libc::{self, c_int};
     use std::io::Error;
@@ -135,7 +135,7 @@ pub mod thread {
         }
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     mod tests {
         use super::super::HIGH_PRI;
         use super::*;
@@ -160,7 +160,7 @@ pub mod thread {
     }
 }
 
-#[causetg(not(target_os = "linux"))]
+#[causet(not(target_os = "linux"))]
 pub mod thread {
     use std::io::Error;
 

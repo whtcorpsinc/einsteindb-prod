@@ -168,7 +168,7 @@ impl PartialOrd for SortEvent {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::cell::RefCell;
     use std::sync::Arc;

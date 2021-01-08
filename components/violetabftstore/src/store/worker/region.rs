@@ -723,7 +723,7 @@ where
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::io;
     use std::sync::atomic::AtomicUsize;

@@ -207,7 +207,7 @@ fn causets_diff<'a>(a: &[&'a str], b: &[&str]) -> Vec<&'a str> {
         .collect()
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use engine_promises::CAUSET_DEFAULT;

@@ -81,7 +81,7 @@ impl BatchTopNFreeDaemon<Box<dyn BatchFreeDaemon<StorageStats = ()>>> {
 }
 
 impl<Src: BatchFreeDaemon> BatchTopNFreeDaemon<Src> {
-    #[causetg(test)]
+    #[causet(test)]
     pub fn new_for_test(
         src: Src,
         order_exprs: Vec<RpnExpression>,
@@ -474,7 +474,7 @@ impl PartialEq for HeapItemUnsafe {
 
 impl Eq for HeapItemUnsafe {}
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

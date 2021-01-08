@@ -18,9 +18,9 @@ use einsteindb_util::config::*;
 use einsteindb_util::HandyRwLock;
 
 fn test_huge_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 1000;
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(10);
-    cluster.causetg.violetabft_store.snap_apply_batch_size = ReadableSize(500);
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 1000;
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(10);
+    cluster.causet.violetabft_store.snap_apply_batch_size = ReadableSize(500);
     let fidel_client = Arc::clone(&cluster.fidel_client);
     // Disable default max peer count check.
     fidel_client.disable_default_operator();
@@ -95,7 +95,7 @@ fn test_server_huge_snapshot() {
 fn test_server_snap_gc() {
     let mut cluster = new_server_cluster(0, 3);
     configure_for_snapshot(&mut cluster);
-    cluster.causetg.violetabft_store.snap_gc_timeout = ReadableDuration::millis(300);
+    cluster.causet.violetabft_store.snap_gc_timeout = ReadableDuration::millis(300);
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     // Disable default max peer count check.
@@ -182,7 +182,7 @@ fn test_server_snap_gc() {
 /// arrive at the same violetabftstore.
 fn test_concurrent_snap<T: Simulator>(cluster: &mut Cluster<T>) {
     // Disable violetabft log gc in this test case.
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::secs(60);
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::secs(60);
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     // Disable default max peer count check.
@@ -324,8 +324,8 @@ impl Filter for StaleSnap {
 fn test_node_stale_snap() {
     let mut cluster = new_node_cluster(0, 3);
     // disable compact log to make snapshot only be sent when peer is first added.
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 1000;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 1000;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 1000;
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     // Disable default max peer count check.

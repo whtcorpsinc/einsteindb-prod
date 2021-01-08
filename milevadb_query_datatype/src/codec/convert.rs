@@ -633,8 +633,8 @@ pub fn produce_dec_with_specified_tp(
                     Error::overflow("Decimal", &format!("({}, {})", flen, decimal)),
                 )?;
             if !rounded.is_zero() && frac > decimal && rounded != old {
-                if ctx.causetg.flag.contains(Flag::IN_INSERT_STMT)
-                    || ctx.causetg.flag.contains(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+                if ctx.causet.flag.contains(Flag::IN_INSERT_STMT)
+                    || ctx.causet.flag.contains(Flag::IN_UFIDelATE_OR_DELETE_STMT)
                 {
                     ctx.warnings.applightlike_warning(Error::truncated());
                 } else {
@@ -820,7 +820,7 @@ impl ConvertTo<f64> for Bytes {
 }
 
 pub fn get_valid_int_prefix<'a>(ctx: &mut EvalContext, s: &'a str) -> Result<Cow<'a, str>> {
-    if !ctx.causetg.flag.contains(Flag::IN_SELECT_STMT) {
+    if !ctx.causet.flag.contains(Flag::IN_SELECT_STMT) {
         let vs = get_valid_float_prefix(ctx, s)?;
         float_str_to_int_string(ctx, vs)
     } else {
@@ -1095,7 +1095,7 @@ fn no_exp_float_str_to_int_str(valid_float: &str, mut dot_idx: usize) -> Result<
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     #![allow(clippy::float_cmp)]
 
@@ -2086,8 +2086,8 @@ mod tests {
             ("世界，中国", 6, charset::CHARSET_ASCII),
         ];
 
-        let causetg = EvalConfig::from_flag(Flag::TRUNCATE_AS_WARNING);
-        let mut ctx = EvalContext::new(Arc::new(causetg));
+        let causet = EvalConfig::from_flag(Flag::TRUNCATE_AS_WARNING);
+        let mut ctx = EvalContext::new(Arc::new(causet));
         let mut ft = FieldType::default();
 
         for (s, char_num, cs) in cases {
@@ -2122,8 +2122,8 @@ mod tests {
 
         use crate::FieldTypeAccessor;
 
-        let causetg = EvalConfig::from_flag(Flag::TRUNCATE_AS_WARNING);
-        let mut ctx = EvalContext::new(Arc::new(causetg));
+        let causet = EvalConfig::from_flag(Flag::TRUNCATE_AS_WARNING);
+        let mut ctx = EvalContext::new(Arc::new(causet));
         let mut ft = FieldType::default();
         let fta = ft.as_mut_accessor();
         fta.set_tp(FieldTypeTp::String);
@@ -2174,8 +2174,8 @@ mod tests {
             ),
         ];
 
-        let causetg = EvalConfig::from_flag(Flag::TRUNCATE_AS_WARNING | Flag::OVERFLOW_AS_WARNING);
-        let mut ctx = EvalContext::new(Arc::new(causetg));
+        let causet = EvalConfig::from_flag(Flag::TRUNCATE_AS_WARNING | Flag::OVERFLOW_AS_WARNING);
+        let mut ctx = EvalContext::new(Arc::new(causet));
         let mut ft = FieldType::default();
 
         for (dec, flen, decimal, want) in cases {
@@ -2555,8 +2555,8 @@ mod tests {
                 if in_dml {
                     flag |= in_dml_flag;
                 }
-                let causetg = Arc::new(EvalConfig::from_flag(flag));
-                let mut ctx = EvalContext::new(causetg);
+                let causet = Arc::new(EvalConfig::from_flag(flag));
+                let mut ctx = EvalContext::new(causet);
 
                 // make field_type
                 let mut rft = FieldType::default();

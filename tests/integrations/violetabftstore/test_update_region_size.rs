@@ -15,11 +15,11 @@ fn flush<T: Simulator>(cluster: &mut Cluster<T>) {
 }
 
 fn test_ufidelate_brane_size<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.fidel_heartbeat_tick_interval = ReadableDuration::millis(50);
-    cluster.causetg.violetabft_store.split_brane_check_tick_interval = ReadableDuration::millis(50);
-    cluster.causetg.violetabft_store.brane_split_check_diff = ReadableSize::kb(1);
+    cluster.causet.violetabft_store.fidel_heartbeat_tick_interval = ReadableDuration::millis(50);
+    cluster.causet.violetabft_store.split_brane_check_tick_interval = ReadableDuration::millis(50);
+    cluster.causet.violetabft_store.brane_split_check_diff = ReadableSize::kb(1);
     cluster
-        .causetg
+        .causet
         .lmdb
         .defaultcauset
         .level0_file_num_compaction_trigger = 10;

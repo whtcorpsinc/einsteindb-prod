@@ -53,7 +53,7 @@ impl ScalarFunc {
         };
 
         if overflow {
-            if !ctx.causetg.flag.contains(Flag::OVERFLOW_AS_WARNING) {
+            if !ctx.causet.flag.contains(Flag::OVERFLOW_AS_WARNING) {
                 return Err(Error::overflow("CastDecimalAsInt", &format!("{}", val)));
             }
             ctx.warnings
@@ -747,7 +747,7 @@ impl ScalarFunc {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::str::FromStr;
     use std::sync::Arc;
@@ -1830,8 +1830,8 @@ mod tests {
 
     #[test]
     fn test_cast_time_as_json() {
-        let causetg = EvalConfig::default_for_test();
-        let mut ctx = EvalContext::new(Arc::new(causetg));
+        let causet = EvalConfig::default_for_test();
+        let mut ctx = EvalContext::new(Arc::new(causet));
         let time_str = "2012-12-12 11:11:11";
         let date_str = "2012-12-12";
         let time = Time::parse_datetime(&mut ctx, time_str, mysql::DEFAULT_FSP, false).unwrap();
@@ -2037,9 +2037,9 @@ mod tests {
             ex.mut_field_type().as_mut_accessor().set_flag(flag);
 
             // test with overflow as warning && in select stmt
-            let mut causetg = EvalConfig::new();
-            causetg.set_flag(Flag::OVERFLOW_AS_WARNING | Flag::IN_SELECT_STMT);
-            let mut ctx = EvalContext::new(Arc::new(causetg));
+            let mut causet = EvalConfig::new();
+            causet.set_flag(Flag::OVERFLOW_AS_WARNING | Flag::IN_SELECT_STMT);
+            let mut ctx = EvalContext::new(Arc::new(causet));
             let e = Expression::build(&mut ctx, ex.clone()).unwrap();
             let res = e.eval_int(&mut ctx, &cols).unwrap().unwrap();
             assert_eq!(res, exp);

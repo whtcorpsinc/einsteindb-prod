@@ -882,7 +882,7 @@ impl<'a> ChangePeerI for &'a ChangePeerV2Request {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::thread;
 
@@ -1470,7 +1470,7 @@ mod tests {
 
     #[test]
     fn test_admin_cmd_epoch_map_include_all_cmd_type() {
-        #[causetg(feature = "protobuf-codec")]
+        #[causet(feature = "protobuf-codec")]
         use protobuf::ProtobufEnum;
         for cmd_type in AdminCmdType::values() {
             assert!(ADMIN_CMD_EPOCH_MAP.contains_key(cmd_type));

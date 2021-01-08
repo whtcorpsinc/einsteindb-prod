@@ -72,10 +72,10 @@ pub struct ImportModeSwitcher<E: KvEngine> {
 }
 
 impl<E: KvEngine> ImportModeSwitcher<E> {
-    pub fn new(causetg: &Config, executor: &ThreadPool, db: E) -> ImportModeSwitcher<E> {
+    pub fn new(causet: &Config, executor: &ThreadPool, db: E) -> ImportModeSwitcher<E> {
         fn mf(_causet: &str, _name: &str, _v: f64) {}
 
-        let timeout = causetg.import_mode_timeout.0;
+        let timeout = causet.import_mode_timeout.0;
         let inner = Arc::new(Mutex::new(ImportModeSwitcherInner {
             mode: SwitchMode::Normal,
             backup_db_options: ImportModeDBOptions::new(),
@@ -231,7 +231,7 @@ impl ImportModeCAUSETOptions {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 
@@ -297,14 +297,14 @@ mod tests {
 
         fn mf(_causet: &str, _name: &str, _v: f64) {}
 
-        let causetg = Config::default();
+        let causet = Config::default();
         let threads = ThreadPoolBuilder::new()
-            .pool_size(causetg.num_threads)
+            .pool_size(causet.num_threads)
             .name_prefix("sst-importer")
             .create()
             .unwrap();
 
-        let mut switcher = ImportModeSwitcher::new(&causetg, &threads, db.clone());
+        let mut switcher = ImportModeSwitcher::new(&causet, &threads, db.clone());
         check_import_options(&db, &normal_db_options, &normal_causet_options);
         switcher.enter_import_mode(mf).unwrap();
         check_import_options(&db, &import_db_options, &import_causet_options);
@@ -331,17 +331,17 @@ mod tests {
 
         fn mf(_causet: &str, _name: &str, _v: f64) {}
 
-        let causetg = Config {
+        let causet = Config {
             import_mode_timeout: ReadableDuration::millis(300),
             ..Config::default()
         };
         let threads = ThreadPoolBuilder::new()
-            .pool_size(causetg.num_threads)
+            .pool_size(causet.num_threads)
             .name_prefix("sst-importer")
             .create()
             .unwrap();
 
-        let mut switcher = ImportModeSwitcher::new(&causetg, &threads, db.clone());
+        let mut switcher = ImportModeSwitcher::new(&causet, &threads, db.clone());
         check_import_options(&db, &normal_db_options, &normal_causet_options);
         switcher.enter_import_mode(mf).unwrap();
         check_import_options(&db, &import_db_options, &import_causet_options);

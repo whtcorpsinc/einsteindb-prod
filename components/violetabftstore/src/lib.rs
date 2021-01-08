@@ -1,6 +1,6 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
-#![causetg_attr(test, feature(test))]
+#![causet_attr(test, feature(test))]
 #![feature(cell_ufidelate)]
 #![feature(shrink_to)]
 #![feature(div_duration)]
@@ -23,7 +23,7 @@ extern crate serde_with;
 #[macro_use]
 extern crate einsteindb_util;
 
-#[causetg(test)]
+#[causet(test)]
 extern crate test;
 
 pub mod interlock;

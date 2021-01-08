@@ -228,7 +228,7 @@ impl Default for IterOptions {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use std::ops::Bound;

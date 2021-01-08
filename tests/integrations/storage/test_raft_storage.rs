@@ -78,7 +78,7 @@ fn test_violetabft_causetStorage_get_after_lease() {
     );
 
     // Sleep until the leader lease is expired.
-    thread::sleep(cluster.causetg.violetabft_store.violetabft_store_max_leader_lease.0);
+    thread::sleep(cluster.causet.violetabft_store.violetabft_store_max_leader_lease.0);
     assert_eq!(
         causetStorage
             .raw_get(ctx, "".to_string(), key.to_vec())
@@ -278,13 +278,13 @@ fn test_auto_gc() {
     for (id, causetStorage) in &mut causetStorages {
         let tx = finish_signal_tx.clone();
 
-        let mut causetg = AutoGcConfig::new_test_causetg(
+        let mut causet = AutoGcConfig::new_test_causet(
             Arc::clone(&fidel_client),
             brane_info_accessors.remove(id).unwrap(),
             *id,
         );
-        causetg.post_a_round_of_gc = Some(Box::new(move || tx.slightlike(()).unwrap()));
-        causetStorage.spacelike_auto_gc(causetg);
+        causet.post_a_round_of_gc = Some(Box::new(move || tx.slightlike(()).unwrap()));
+        causetStorage.spacelike_auto_gc(causet);
     }
 
     assert_eq!(causetStorages.len(), count);

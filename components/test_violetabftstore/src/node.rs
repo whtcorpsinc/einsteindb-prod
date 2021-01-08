@@ -177,7 +177,7 @@ impl Simulator for NodeCluster {
     fn run_node(
         &mut self,
         node_id: u64,
-        causetg: EINSTEINDBConfig,
+        causet: EINSTEINDBConfig,
         engines: Engines<LmdbEngine, LmdbEngine>,
         store_meta: Arc<Mutex<StoreMeta>>,
         key_manager: Option<Arc<DataKeyManager>>,
@@ -188,11 +188,11 @@ impl Simulator for NodeCluster {
         let fidel_worker = FutureWorker::new("test-fidel-worker");
 
         let simulate_trans = SimulateTransport::new(self.trans.clone());
-        let mut violetabft_store = causetg.violetabft_store.clone();
+        let mut violetabft_store = causet.violetabft_store.clone();
         violetabft_store.validate().unwrap();
         let mut node = Node::new(
             system,
-            &causetg.server,
+            &causet.server,
             Arc::new(VersionTrack::new(violetabft_store)),
             Arc::clone(&self.fidel_client),
             Arc::default(),
@@ -231,25 +231,25 @@ impl Simulator for NodeCluster {
         };
 
         let local_reader = LocalReader::new(engines.kv.clone(), store_meta.clone(), router.clone());
-        let causetg_controller = ConfigController::new(causetg.clone());
+        let causet_controller = ConfigController::new(causet.clone());
 
         let mut split_check_worker = Worker::new("split-check");
         let split_check_runner = SplitCheckRunner::new(
             engines.kv.clone(),
             router.clone(),
             interlock_host.clone(),
-            causetg.interlock.clone(),
+            causet.interlock.clone(),
         );
         split_check_worker.spacelike(split_check_runner).unwrap();
-        causetg_controller.register(
+        causet_controller.register(
             Module::Interlock,
             Box::new(SplitCheckConfigManager(split_check_worker.scheduler())),
         );
 
-        let mut violetabftstore_causetg = causetg.violetabft_store;
-        violetabftstore_causetg.validate().unwrap();
-        let violetabft_store = Arc::new(VersionTrack::new(violetabftstore_causetg));
-        causetg_controller.register(
+        let mut violetabftstore_causet = causet.violetabft_store;
+        violetabftstore_causet.validate().unwrap();
+        let violetabft_store = Arc::new(VersionTrack::new(violetabftstore_causet));
+        causet_controller.register(
             Module::VioletaBftstore,
             Box::new(VioletaBftstoreConfigManager(violetabft_store)),
         );

@@ -96,14 +96,14 @@ impl LockManager {
         fidel_client: Arc<P>,
         resolver: S,
         security_mgr: Arc<SecurityManager>,
-        causetg: &Config,
+        causet: &Config,
     ) -> Result<()>
     where
         S: StoreAddrResolver + 'static,
         P: FidelClient + 'static,
     {
-        self.spacelike_waiter_manager(causetg)?;
-        self.spacelike_deadlock_detector(store_id, fidel_client, resolver, security_mgr, causetg)?;
+        self.spacelike_waiter_manager(causet)?;
+        self.spacelike_deadlock_detector(store_id, fidel_client, resolver, security_mgr, causet)?;
         Ok(())
     }
 
@@ -113,11 +113,11 @@ impl LockManager {
         self.stop_deadlock_detector();
     }
 
-    fn spacelike_waiter_manager(&mut self, causetg: &Config) -> Result<()> {
+    fn spacelike_waiter_manager(&mut self, causet: &Config) -> Result<()> {
         let waiter_mgr_runner = WaiterManager::new(
             Arc::clone(&self.waiter_count),
             self.detector_scheduler.clone(),
-            causetg,
+            causet,
         );
         self.waiter_mgr_worker
             .as_mut()
@@ -146,7 +146,7 @@ impl LockManager {
         fidel_client: Arc<P>,
         resolver: S,
         security_mgr: Arc<SecurityManager>,
-        causetg: &Config,
+        causet: &Config,
     ) -> Result<()>
     where
         S: StoreAddrResolver + 'static,
@@ -158,7 +158,7 @@ impl LockManager {
             resolver,
             security_mgr,
             self.waiter_mgr_scheduler.clone(),
-            causetg,
+            causet,
         );
         self.detector_worker
             .as_mut()
@@ -271,7 +271,7 @@ impl LockManagerTrait for LockManager {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use self::deadlock::tests::*;
     use self::metrics::*;
@@ -292,9 +292,9 @@ mod tests {
         let mut interlock_host = InterlockHost::default();
 
         let mut lock_mgr = LockManager::new();
-        let mut causetg = Config::default();
-        causetg.wait_for_lock_timeout = ReadableDuration::millis(3000);
-        causetg.wake_up_delay_duration = ReadableDuration::millis(100);
+        let mut causet = Config::default();
+        causet.wait_for_lock_timeout = ReadableDuration::millis(3000);
+        causet.wake_up_delay_duration = ReadableDuration::millis(100);
         lock_mgr.register_detector_role_change_observer(&mut interlock_host);
         lock_mgr
             .spacelike(
@@ -302,7 +302,7 @@ mod tests {
                 Arc::new(MockFidelClient {}),
                 MockResolver {},
                 Arc::new(SecurityManager::new(&SecurityConfig::default()).unwrap()),
-                &causetg,
+                &causet,
             )
             .unwrap();
 

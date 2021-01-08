@@ -42,10 +42,10 @@ fn test_prevote<T: Simulator>(
     detect_during_failure: impl Into<Option<(u64, bool)>>,
     detect_during_recovery: impl Into<Option<(u64, bool)>>,
 ) {
-    cluster.causetg.violetabft_store.prevote = true;
+    cluster.causet.violetabft_store.prevote = true;
     // Disable this feature because the test could run slow, in which case peers shouldn't
     // hibernate, otherwise it's possible to detect no vote messages.
-    cluster.causetg.violetabft_store.hibernate_branes = false;
+    cluster.causet.violetabft_store.hibernate_branes = false;
     // To sBlock the test, we use a large election timeout to make
     // leader's readiness get handle within an election timeout
     configure_for_lease_read(cluster, Some(20), Some(10));
@@ -216,7 +216,7 @@ fn test_prevote_reboot_minority_followers() {
 }
 
 // Test isolating a minority of the cluster and make sure that the remove themselves.
-#[causetg(feature = "protobuf-codec")]
+#[causet(feature = "protobuf-codec")]
 fn test_pair_isolated<T: Simulator>(cluster: &mut Cluster<T>) {
     let brane = 1;
     let fidel_client = Arc::clone(&cluster.fidel_client);
@@ -237,7 +237,7 @@ fn test_pair_isolated<T: Simulator>(cluster: &mut Cluster<T>) {
 }
 
 // FIXME(nrc) failing on CI only
-#[causetg(feature = "protobuf-codec")]
+#[causet(feature = "protobuf-codec")]
 #[test]
 fn test_server_pair_isolated() {
     let mut cluster = new_server_cluster(0, 5);
@@ -255,8 +255,8 @@ fn test_isolated_follower_leader_does_not_change<T: Simulator>(cluster: &mut Clu
     let term = resp.get_header().get_current_term();
     // Isolate peer5.
     cluster.partition(vec![1, 2, 3, 4], vec![5]);
-    let election_timeout = cluster.causetg.violetabft_store.violetabft_base_tick_interval.0
-        * cluster.causetg.violetabft_store.violetabft_election_timeout_ticks as u32;
+    let election_timeout = cluster.causet.violetabft_store.violetabft_base_tick_interval.0
+        * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32;
     // Peer5 should not increase its term.
     thread::sleep(election_timeout * 2);
     // Now peer5 can slightlike messages to others
@@ -303,6 +303,6 @@ fn test_create_peer_from_pre_vote<T: Simulator>(cluster: &mut Cluster<T>) {
 #[test]
 fn test_node_create_peer_from_pre_vote() {
     let mut cluster = new_node_cluster(0, 2);
-    cluster.causetg.violetabft_store.prevote = true;
+    cluster.causet.violetabft_store.prevote = true;
     test_create_peer_from_pre_vote(&mut cluster);
 }

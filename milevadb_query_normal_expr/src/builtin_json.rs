@@ -233,7 +233,7 @@ impl<'a> JsonFuncArgsParser<'a> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crate::tests::{datum_expr, make_null_datums, scalar_func_expr};
     use crate::Expression;

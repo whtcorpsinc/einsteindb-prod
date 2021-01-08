@@ -1064,7 +1064,7 @@ pub trait NumberEncoder: BufferWriter {
 /// Any types who implemented `BufferWriter` also implements `NumberEncoder`.
 impl<T: BufferWriter> NumberEncoder for T {}
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use protobuf::CodedOutputStream;
 
@@ -1814,7 +1814,7 @@ mod tests {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod benches {
     use crate::ErrorInner;
 

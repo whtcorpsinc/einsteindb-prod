@@ -41,7 +41,7 @@ fn depth_json(j: &JsonRef<'_>) -> Result<i64> {
     } + 1)
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::Json;
 

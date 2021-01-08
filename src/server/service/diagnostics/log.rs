@@ -339,7 +339,7 @@ pub fn search<P: AsRef<Path>>(
     Ok(batch_log_item(item))
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use futures::executor::block_on;

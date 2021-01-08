@@ -10,7 +10,7 @@ use einsteindb_util::config::*;
 #[test]
 fn test_plightlikeing_peers() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.violetabft_store.fidel_heartbeat_tick_interval = ReadableDuration::millis(100);
+    cluster.causet.violetabft_store.fidel_heartbeat_tick_interval = ReadableDuration::millis(100);
 
     let brane_worker_fp = "brane_apply_snap";
 
@@ -23,7 +23,7 @@ fn test_plightlikeing_peers() {
 
     cluster.must_put(b"k1", b"v1");
 
-    fail::causetg(brane_worker_fp, "sleep(2000)").unwrap();
+    fail::causet(brane_worker_fp, "sleep(2000)").unwrap();
     fidel_client.must_add_peer(brane_id, new_peer(3, 3));
     sleep_ms(1000);
     let plightlikeing_peers = fidel_client.get_plightlikeing_peers();
@@ -43,12 +43,12 @@ fn test_plightlikeing_snapshot() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_snapshot(&mut cluster);
     let election_timeout = configure_for_lease_read(&mut cluster, None, Some(15));
-    let gc_limit = cluster.causetg.violetabft_store.violetabft_log_gc_count_limit;
-    cluster.causetg.violetabft_store.fidel_heartbeat_tick_interval = ReadableDuration::millis(100);
+    let gc_limit = cluster.causet.violetabft_store.violetabft_log_gc_count_limit;
+    cluster.causet.violetabft_store.fidel_heartbeat_tick_interval = ReadableDuration::millis(100);
 
     let handle_snapshot_fp = "apply_on_handle_snapshot_1_1";
     let handle_snapshot_finish_fp = "apply_on_handle_snapshot_finish_1_1";
-    fail::causetg("apply_on_handle_snapshot_sync", "return").unwrap();
+    fail::causet("apply_on_handle_snapshot_sync", "return").unwrap();
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     // Disable default max peer count check.
@@ -59,7 +59,7 @@ fn test_plightlikeing_snapshot() {
     cluster.must_transfer_leader(brane_id, new_peer(1, 1));
     cluster.must_put(b"k1", b"v1");
 
-    fail::causetg(handle_snapshot_fp, "pause").unwrap();
+    fail::causet(handle_snapshot_fp, "pause").unwrap();
     fidel_client.must_add_peer(brane_id, new_peer(3, 3));
     // Give some time for peer 3 to request snapshot.
     sleep_ms(100);
@@ -101,7 +101,7 @@ fn test_plightlikeing_snapshot() {
     let state1 = cluster.truncated_state(1, 1);
 
     // Peer 2 continues to handle snapshot.
-    fail::causetg(handle_snapshot_finish_fp, "pause").unwrap();
+    fail::causet(handle_snapshot_finish_fp, "pause").unwrap();
     fail::remove(handle_snapshot_fp);
     sleep_ms(200);
     let state2 = cluster.truncated_state(1, 1);

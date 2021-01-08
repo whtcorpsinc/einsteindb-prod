@@ -72,7 +72,7 @@ pub struct Server<T: VioletaBftStoreRouter<LmdbEngine> + 'static, S: StoreAddrRe
 impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Server<T, S> {
     #[allow(clippy::too_many_arguments)]
     pub fn new<E: Engine, L: LockManager>(
-        causetg: &Arc<Config>,
+        causet: &Arc<Config>,
         security_mgr: &Arc<SecurityManager>,
         causetStorage: CausetStorage<E, L>,
         causet: Endpoint<E>,
@@ -84,25 +84,25 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
         debug_thread_pool: Arc<Runtime>,
     ) -> Result<Self> {
         // A helper thread (or pool) for transport layer.
-        let stats_pool = if causetg.stats_concurrency > 0 {
+        let stats_pool = if causet.stats_concurrency > 0 {
             Some(
                 RuntimeBuilder::new()
                     .threaded_scheduler()
                     .thread_name(STATS_THREAD_PREFIX)
-                    .core_threads(causetg.stats_concurrency)
+                    .core_threads(causet.stats_concurrency)
                     .build()
                     .unwrap(),
             )
         } else {
             None
         };
-        let grpc_thread_load = Arc::new(ThreadLoad::with_memory_barrier(causetg.heavy_load_memory_barrier));
+        let grpc_thread_load = Arc::new(ThreadLoad::with_memory_barrier(causet.heavy_load_memory_barrier));
         let readpool_normal_thread_load =
-            Arc::new(ThreadLoad::with_memory_barrier(causetg.heavy_load_memory_barrier));
+            Arc::new(ThreadLoad::with_memory_barrier(causet.heavy_load_memory_barrier));
 
         let env = Arc::new(
             EnvBuilder::new()
-                .cq_count(causetg.grpc_concurrency)
+                .cq_count(causet.grpc_concurrency)
                 .name_prefix(thd_name!(GRPC_THREAD_PREFIX))
                 .build(),
         );
@@ -116,23 +116,23 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
             snap_worker.scheduler(),
             Arc::clone(&grpc_thread_load),
             Arc::clone(&readpool_normal_thread_load),
-            causetg.enable_request_batch,
+            causet.enable_request_batch,
             security_mgr.clone(),
         );
 
-        let addr = SocketAddr::from_str(&causetg.addr)?;
+        let addr = SocketAddr::from_str(&causet.addr)?;
         let ip = format!("{}", addr.ip());
         let mem_quota = ResourceQuota::new(Some("ServerMemQuota"))
-            .resize_memory(causetg.grpc_memory_pool_quota.0 as usize);
+            .resize_memory(causet.grpc_memory_pool_quota.0 as usize);
         let channel_args = ChannelBuilder::new(Arc::clone(&env))
-            .stream_initial_window_size(causetg.grpc_stream_initial_window_size.0 as i32)
-            .max_concurrent_stream(causetg.grpc_concurrent_stream)
+            .stream_initial_window_size(causet.grpc_stream_initial_window_size.0 as i32)
+            .max_concurrent_stream(causet.grpc_concurrent_stream)
             .max_receive_message_len(-1)
             .set_resource_quota(mem_quota)
             .max_slightlike_message_len(-1)
             .http2_max_ping_strikes(i32::MAX) // For pings without data from clients.
-            .keepalive_time(causetg.grpc_keepalive_time.into())
-            .keepalive_timeout(causetg.grpc_keepalive_timeout.into())
+            .keepalive_time(causet.grpc_keepalive_time.into())
+            .keepalive_timeout(causet.grpc_keepalive_timeout.into())
             .build_args();
         let builder = {
             let mut sb = ServerBuilder::new(Arc::clone(&env))
@@ -144,7 +144,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
 
         let violetabft_client = Arc::new(RwLock::new(VioletaBftClient::new(
             Arc::clone(&env),
-            Arc::clone(causetg),
+            Arc::clone(causet),
             Arc::clone(security_mgr),
             violetabft_router.clone(),
             Arc::clone(&grpc_thread_load),
@@ -215,13 +215,13 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
 
     /// Starts the EinsteinDB server.
     /// Notice: Make sure call `build_and_bind` first.
-    pub fn spacelike(&mut self, causetg: Arc<Config>, security_mgr: Arc<SecurityManager>) -> Result<()> {
+    pub fn spacelike(&mut self, causet: Arc<Config>, security_mgr: Arc<SecurityManager>) -> Result<()> {
         let snap_runner = SnapHandler::new(
             Arc::clone(&self.env),
             self.snap_mgr.clone(),
             self.violetabft_router.clone(),
             security_mgr,
-            Arc::clone(&causetg),
+            Arc::clone(&causet),
         );
         box_try!(self.snap_worker.spacelike(snap_runner));
 
@@ -276,7 +276,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::sync::atomic::*;
     use std::sync::mpsc::Slightlikeer;
@@ -407,8 +407,8 @@ mod tests {
     // if this failed, unset the environmental variables 'http_proxy' and 'https_proxy', and retry.
     #[test]
     fn test_peer_resolve() {
-        let mut causetg = Config::default();
-        causetg.addr = "127.0.0.1:0".to_owned();
+        let mut causet = Config::default();
+        causet.addr = "127.0.0.1:0".to_owned();
 
         let causetStorage = TestStorageBuilder::new(DummyLockManager {})
             .build()
@@ -430,7 +430,7 @@ mod tests {
         gc_worker.spacelike().unwrap();
 
         let quick_fail = Arc::new(AtomicBool::new(false));
-        let causetg = Arc::new(causetg);
+        let causet = Arc::new(causet);
         let security_mgr = Arc::new(SecurityManager::new(&SecurityConfig::default()).unwrap());
 
         let cop_read_pool = ReadPool::from(readpool_impl::build_read_pool_for_test(
@@ -438,7 +438,7 @@ mod tests {
             causetStorage.get_engine(),
         ));
         let causet = interlock::Endpoint::new(
-            &causetg,
+            &causet,
             cop_read_pool.handle(),
             causetStorage.get_concurrency_manager(),
         );
@@ -452,7 +452,7 @@ mod tests {
         );
         let addr = Arc::new(Mutex::new(None));
         let mut server = Server::new(
-            &causetg,
+            &causet,
             &security_mgr,
             causetStorage,
             causet,
@@ -469,7 +469,7 @@ mod tests {
         .unwrap();
 
         server.build_and_bind().unwrap();
-        server.spacelike(causetg, security_mgr).unwrap();
+        server.spacelike(causet, security_mgr).unwrap();
 
         let mut trans = server.transport();
         trans.report_unreachable(VioletaBftMessage::default());

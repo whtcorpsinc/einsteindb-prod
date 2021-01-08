@@ -3,9 +3,9 @@ use crate::{new_event_feed, TestSuite};
 use futures::executor::block_on;
 use futures::sink::SinkExt;
 use grpcio::WriteFlags;
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 use ekvproto::cdcpb::event::{Event as Event_oneof_event, LogType as EventLogType};
-#[causetg(not(feature = "prost-codec"))]
+#[causet(not(feature = "prost-codec"))]
 use ekvproto::cdcpb::*;
 use ekvproto::kvrpcpb::*;
 use fidel_client::FidelClient;
@@ -16,7 +16,7 @@ fn test_stale_resolver() {
     let mut suite = TestSuite::new(3);
 
     let fp = "before_schedule_resolver_ready";
-    fail::causetg(fp, "pause").unwrap();
+    fail::causet(fp, "pause").unwrap();
 
     // Close previous connection and open a new one twice time
     let brane = suite.cluster.get_brane(&[]);
@@ -43,7 +43,7 @@ fn test_stale_resolver() {
 
     // Block next scan
     let fp1 = "cdc_incremental_scan_spacelike";
-    fail::causetg(fp1, "pause").unwrap();
+    fail::causet(fp1, "pause").unwrap();
     // Close previous connection and open two new connections
     let (mut req_tx, resp_rx) = suite
         .get_brane_cdc_client(brane.get_id())

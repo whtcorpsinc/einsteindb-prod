@@ -291,7 +291,7 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use byteorder::{BigEndian, WriteBytesExt};

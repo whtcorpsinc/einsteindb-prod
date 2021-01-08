@@ -243,7 +243,7 @@ fn collect_cones_need_compact(
     Ok(cones_need_compact)
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::thread::sleep;
     use std::time::Duration;

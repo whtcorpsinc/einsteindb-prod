@@ -55,7 +55,7 @@ fn create_tmp_engine(dir: &TempDir) -> Engines<LmdbEngine, LmdbEngine> {
 }
 
 fn spacelike_violetabftstore(
-    causetg: EINSTEINDBConfig,
+    causet: EINSTEINDBConfig,
     dir: &TempDir,
 ) -> (
     ConfigController,
@@ -63,7 +63,7 @@ fn spacelike_violetabftstore(
     ApplyRouter<LmdbEngine>,
     VioletaBftBatchSystem<LmdbEngine, LmdbEngine>,
 ) {
-    let (violetabft_router, mut system) = create_violetabft_batch_system(&causetg.violetabft_store);
+    let (violetabft_router, mut system) = create_violetabft_batch_system(&causet.violetabft_store);
     let engines = create_tmp_engine(dir);
     let host = InterlockHost::default();
     let importer = {
@@ -85,18 +85,18 @@ fn spacelike_violetabftstore(
         SnapManager::new(p)
     };
     let store_meta = Arc::new(Mutex::new(StoreMeta::new(0)));
-    let causetg_track = Arc::new(VersionTrack::new(causetg.violetabft_store.clone()));
-    let causetg_controller = ConfigController::new(causetg);
-    causetg_controller.register(
+    let causet_track = Arc::new(VersionTrack::new(causet.violetabft_store.clone()));
+    let causet_controller = ConfigController::new(causet);
+    causet_controller.register(
         Module::VioletaBftstore,
-        Box::new(VioletaBftstoreConfigManager(causetg_track.clone())),
+        Box::new(VioletaBftstoreConfigManager(causet_track.clone())),
     );
     let fidel_worker = FutureWorker::new("store-config");
 
     system
         .spawn(
             Default::default(),
-            causetg_track,
+            causet_track,
             engines,
             MockTransport,
             Arc::new(TestFidelClient::new(0, true)),
@@ -111,7 +111,7 @@ fn spacelike_violetabftstore(
             ConcurrencyManager::new(1.into()),
         )
         .unwrap();
-    (causetg_controller, violetabft_router, system.apply_router(), system)
+    (causet_controller, violetabft_router, system.apply_router(), system)
 }
 
 fn validate_store<F>(router: &VioletaBftRouter<LmdbEngine, LmdbEngine>, f: F)
@@ -120,8 +120,8 @@ where
 {
     let (tx, rx) = mpsc::channel();
     router
-        .slightlike_control(StoreMsg::Validate(Box::new(move |causetg: &Config| {
-            f(causetg);
+        .slightlike_control(StoreMsg::Validate(Box::new(move |causet: &Config| {
+            f(causet);
             tx.slightlike(()).unwrap();
         })))
         .unwrap();
@@ -132,7 +132,7 @@ where
 fn test_ufidelate_violetabftstore_config() {
     let (mut config, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
     config.validate().unwrap();
-    let (causetg_controller, router, _, mut system) = spacelike_violetabftstore(config.clone(), &_dir);
+    let (causet_controller, router, _, mut system) = spacelike_violetabftstore(config.clone(), &_dir);
 
     // dispatch ufidelated config
     let change = {
@@ -144,14 +144,14 @@ fn test_ufidelate_violetabftstore_config() {
         );
         m
     };
-    causetg_controller.ufidelate(change).unwrap();
+    causet_controller.ufidelate(change).unwrap();
 
     // config should be ufidelated
     let mut violetabft_store = config.violetabft_store;
     violetabft_store.messages_per_tick = 12345;
     violetabft_store.violetabft_log_gc_memory_barrier = 54321;
-    validate_store(&router, move |causetg: &Config| {
-        assert_eq!(causetg, &violetabft_store);
+    validate_store(&router, move |causet: &Config| {
+        assert_eq!(causet, &violetabft_store);
     });
 
     system.shutdown();

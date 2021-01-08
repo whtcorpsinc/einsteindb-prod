@@ -62,7 +62,7 @@ impl LazyBatchPrimaryCausetVec {
     }
 
     /// Creates a new `LazyBatchPrimaryCausetVec`, which contains `PrimaryCausets_count` number of raw PrimaryCausets.
-    #[causetg(test)]
+    #[causet(test)]
     pub fn with_raw_PrimaryCausets(PrimaryCausets_count: usize) -> Self {
         let mut PrimaryCausets = Vec::with_capacity(PrimaryCausets_count);
         for _ in 0..PrimaryCausets_count {

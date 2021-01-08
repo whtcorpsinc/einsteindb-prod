@@ -558,7 +558,7 @@ impl EncryptionKeyManager for DataKeyManager {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::config::{FileConfig, Mock};

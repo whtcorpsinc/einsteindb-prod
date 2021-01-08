@@ -10,7 +10,7 @@ use concurrency_manager::ConcurrencyManager;
 use crossbeam::atomic::AtomicCell;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
 use futures::compat::Future01CompatExt;
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 use ekvproto::cdcpb::event::Event as Event_oneof_event;
 use ekvproto::cdcpb::*;
 use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
@@ -256,7 +256,7 @@ pub struct Endpoint<T> {
 
 impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
     pub fn new(
-        causetg: &CdcConfig,
+        causet: &CdcConfig,
         fidel_client: Arc<dyn FidelClient>,
         scheduler: Scheduler<Task>,
         violetabft_router: T,
@@ -289,10 +289,10 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
             store_meta,
             concurrency_manager,
             scan_batch_size: 1024,
-            min_ts_interval: causetg.min_ts_interval.0,
+            min_ts_interval: causet.min_ts_interval.0,
             min_resolved_ts: TimeStamp::max(),
             min_ts_brane_id: 0,
-            old_value_cache: OldValueCache::new(causetg.old_value_cache_size),
+            old_value_cache: OldValueCache::new(causet.old_value_cache_size),
         };
         ep.register_min_ts_event();
         ep
@@ -1066,11 +1066,11 @@ impl TxnExtraScheduler for CdcTxnExtraScheduler {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use engine_promises::DATA_CAUSETS;
-    #[causetg(feature = "prost-codec")]
+    #[causet(feature = "prost-codec")]
     use ekvproto::cdcpb::event::Event as Event_oneof_event;
     use ekvproto::errorpb::Error as ErrorHeader;
     use ekvproto::kvrpcpb::Context;

@@ -87,7 +87,7 @@ impl RpnExpressionBuilder {
     }
 
     /// Only used in tests, with a customized function mapper.
-    #[causetg(test)]
+    #[causet(test)]
     pub fn build_from_expr_tree_with_fn_mapper<F>(
         tree_node: Expr,
         fn_mapper: F,
@@ -131,7 +131,7 @@ impl RpnExpressionBuilder {
         self
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     pub fn push_fn_call_with_metadata(
         mut self,
         func_meta: RpnFnMeta,
@@ -163,7 +163,7 @@ impl RpnExpressionBuilder {
     }
 
     /// Pushes a `Constant` node.
-    #[causetg(test)]
+    #[causet(test)]
     pub fn push_constant_with_field_type(
         mut self,
         value: impl Into<ScalarValue>,
@@ -455,7 +455,7 @@ fn extract_scalar_value_json(val: Vec<u8>) -> Result<ScalarValue> {
     Ok(ScalarValue::Json(Some(value)))
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

@@ -38,9 +38,9 @@ fn test_bootstrap_idempotent<T: Simulator>(cluster: &mut Cluster<T>) {
 fn test_node_bootstrap_with_prepared_data() {
     // create a node
     let fidel_client = Arc::new(TestFidelClient::new(0, false));
-    let causetg = new_einsteindb_config(0);
+    let causet = new_einsteindb_config(0);
 
-    let (_, system) = fsm::create_violetabft_batch_system(&causetg.violetabft_store);
+    let (_, system) = fsm::create_violetabft_batch_system(&causet.violetabft_store);
     let simulate_trans = SimulateTransport::new(ChannelTransport::new());
     let tmp_path = Builder::new().prefix("test_cluster").temfidelir().unwrap();
     let engine = Arc::new(
@@ -60,8 +60,8 @@ fn test_node_bootstrap_with_prepared_data() {
 
     let mut node = Node::new(
         system,
-        &causetg.server,
-        Arc::new(VersionTrack::new(causetg.violetabft_store.clone())),
+        &causet.server,
+        Arc::new(VersionTrack::new(causet.violetabft_store.clone())),
         Arc::clone(&fidel_client),
         Arc::default(),
     );

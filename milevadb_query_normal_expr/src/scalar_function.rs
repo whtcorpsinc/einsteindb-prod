@@ -1027,7 +1027,7 @@ dispatch_call! {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crate::{Error, ScalarFunc};
     use fidelpb::ScalarFuncSig;

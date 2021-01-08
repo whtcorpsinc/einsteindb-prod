@@ -65,7 +65,7 @@ impl slog::KV for PerfStatisticsDelta {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

@@ -184,7 +184,7 @@ impl BlockCacheConfig {
     fn new_memory_allocator(&self) -> Option<MemoryAllocator> {
         if let Some(ref alloc) = self.memory_allocator {
             match alloc.as_str() {
-                #[causetg(feature = "jemalloc")]
+                #[causet(feature = "jemalloc")]
                 "nodump" => match MemoryAllocator::new_jemalloc_memory_allocator() {
                     Ok(allocator) => {
                         return Some(allocator);

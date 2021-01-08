@@ -59,7 +59,7 @@ impl<S: GcSafePointProvider, R: BraneInfoProvider> AutoGcConfig<S, R> {
 
     /// Creates a config for test purpose. The interval to poll safe point is as short as 0.1s and
     /// during GC it never skips checking safe point.
-    pub fn new_test_causetg(
+    pub fn new_test_causet(
         safe_point_provider: S,
         brane_info_provider: R,
         self_store_id: u64,
@@ -216,7 +216,7 @@ impl GcManagerHandle {
 /// It polls safe point periodically, and when the safe point is ufidelated, `GcManager` will spacelike to
 /// scan all branes (whose leader is on this EinsteinDB), and does GC on all those branes.
 pub(super) struct GcManager<S: GcSafePointProvider, R: BraneInfoProvider> {
-    causetg: AutoGcConfig<S, R>,
+    causet: AutoGcConfig<S, R>,
 
     /// The current safe point. `GcManager` will try to ufidelate it periodically. When `safe_point` is
     /// ufidelated, `GCManager` will spacelike to do GC on all branes.
@@ -230,25 +230,25 @@ pub(super) struct GcManager<S: GcSafePointProvider, R: BraneInfoProvider> {
     /// Holds the running status. It will tell us if `GcManager` should stop working and exit.
     gc_manager_ctx: GcManagerContext,
 
-    causetg_tracker: GcWorkerConfigManager,
+    causet_tracker: GcWorkerConfigManager,
     cluster_version: ClusterVersion,
 }
 
 impl<S: GcSafePointProvider, R: BraneInfoProvider> GcManager<S, R> {
     pub fn new(
-        causetg: AutoGcConfig<S, R>,
+        causet: AutoGcConfig<S, R>,
         safe_point: Arc<AtomicU64>,
         worker_scheduler: FutureScheduler<GcTask>,
-        causetg_tracker: GcWorkerConfigManager,
+        causet_tracker: GcWorkerConfigManager,
         cluster_version: ClusterVersion,
     ) -> GcManager<S, R> {
         GcManager {
-            causetg,
+            causet,
             safe_point,
             safe_point_last_check_time: Instant::now(),
             worker_scheduler,
             gc_manager_ctx: GcManagerContext::new(),
-            causetg_tracker,
+            causet_tracker,
             cluster_version,
         }
     }
@@ -307,10 +307,10 @@ impl<S: GcSafePointProvider, R: BraneInfoProvider> GcManager<S, R> {
             self.wait_for_next_safe_point()?;
 
             // Don't need to run GC any more if compaction filter is enabled.
-            if !is_compaction_filter_allowd(&*self.causetg_tracker.value(), &self.cluster_version) {
+            if !is_compaction_filter_allowd(&*self.causet_tracker.value(), &self.cluster_version) {
                 set_status_metrics(GcManagerState::Working);
                 self.gc_a_round()?;
-                if let Some(on_finished) = self.causetg.post_a_round_of_gc.as_ref() {
+                if let Some(on_finished) = self.causet.post_a_round_of_gc.as_ref() {
                     on_finished();
                 }
             }
@@ -336,7 +336,7 @@ impl<S: GcSafePointProvider, R: BraneInfoProvider> GcManager<S, R> {
             }
 
             self.gc_manager_ctx
-                .sleep_or_stop(self.causetg.poll_safe_point_interval)?;
+                .sleep_or_stop(self.causet.poll_safe_point_interval)?;
         }
     }
 
@@ -345,7 +345,7 @@ impl<S: GcSafePointProvider, R: BraneInfoProvider> GcManager<S, R> {
     fn try_ufidelate_safe_point(&mut self) -> bool {
         self.safe_point_last_check_time = Instant::now();
 
-        let safe_point = match self.causetg.safe_point_provider.get_safe_point() {
+        let safe_point = match self.causet.safe_point_provider.get_safe_point() {
             Ok(res) => res,
             // Return false directly so we will check it a while later.
             Err(e) => {
@@ -489,8 +489,8 @@ impl<S: GcSafePointProvider, R: BraneInfoProvider> GcManager<S, R> {
         need_rewind: &mut bool,
         lightlike: &mut Option<Key>,
     ) {
-        if self.safe_point_last_check_time.elapsed() < self.causetg.poll_safe_point_interval
-            && !self.causetg.always_check_safe_point
+        if self.safe_point_last_check_time.elapsed() < self.causet.poll_safe_point_interval
+            && !self.causet.always_check_safe_point
         {
             // Skip this check.
             return;
@@ -564,9 +564,9 @@ impl<S: GcSafePointProvider, R: BraneInfoProvider> GcManager<S, R> {
     #[allow(clippy::type_complexity)]
     fn get_next_gc_context(&mut self, key: Key) -> (Option<(u64, Vec<u8>, Vec<u8>)>, Option<Key>) {
         let (tx, rx) = mpsc::channel();
-        let store_id = self.causetg.self_store_id;
+        let store_id = self.causet.self_store_id;
 
-        let res = self.causetg.brane_info_provider.seek_brane(
+        let res = self.causet.brane_info_provider.seek_brane(
             key.as_encoded(),
             Box::new(move |iter| {
                 let mut scanned_branes = 0;
@@ -613,7 +613,7 @@ impl<S: GcSafePointProvider, R: BraneInfoProvider> GcManager<S, R> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::causetStorage::Callback;
@@ -696,18 +696,18 @@ mod tests {
 
             let (safe_point_slightlikeer, safe_point_receiver) = channel();
 
-            let mut causetg = AutoGcConfig::new(
+            let mut causet = AutoGcConfig::new(
                 MockSafePointProvider {
                     rx: safe_point_receiver,
                 },
                 MockBraneInfoProvider { branes },
                 1,
             );
-            causetg.poll_safe_point_interval = Duration::from_millis(100);
-            causetg.always_check_safe_point = true;
+            causet.poll_safe_point_interval = Duration::from_millis(100);
+            causet.always_check_safe_point = true;
 
             let gc_manager = GcManager::new(
-                causetg,
+                causet,
                 Arc::new(AtomicU64::new(0)),
                 worker.scheduler(),
                 GcWorkerConfigManager::default(),

@@ -1560,7 +1560,7 @@ lazy_static! {
     ).unwrap();
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

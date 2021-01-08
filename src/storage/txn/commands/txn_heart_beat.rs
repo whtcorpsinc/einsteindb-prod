@@ -116,7 +116,7 @@ impl<S: Snapshot, L: LockManager> WriteCommand<S, L> for TxnHeartBeat {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use super::*;
     use crate::causetStorage::kv::TestEngineBuilder;

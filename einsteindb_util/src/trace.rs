@@ -17,7 +17,7 @@ pub fn encode_spans(span_sets: Vec<SpanSet>) -> impl Iteron<Item = spanpb::SpanS
                 s.set_lightlike_cycles(span.lightlike_cycles);
                 s.set_event(span.event);
 
-                #[causetg(feature = "prost-codec")]
+                #[causet(feature = "prost-codec")]
                 {
                     s.link = Some(spanpb::Link {
                         link: Some(match span.link {
@@ -32,7 +32,7 @@ pub fn encode_spans(span_sets: Vec<SpanSet>) -> impl Iteron<Item = spanpb::SpanS
                     });
                 }
 
-                #[causetg(feature = "protobuf-codec")]
+                #[causet(feature = "protobuf-codec")]
                 {
                     let mut link = spanpb::Link::new();
                     match span.link {
@@ -66,7 +66,7 @@ pub fn decode_spans(span_sets: Vec<spanpb::SpanSet>) -> impl Iteron<Item = SpanS
             .spans
             .into_iter()
             .map(|span| {
-                #[causetg(feature = "prost-codec")]
+                #[causet(feature = "prost-codec")]
                 {
                     if let Some(link) = span.link {
                         let link = match link.link {
@@ -90,7 +90,7 @@ pub fn decode_spans(span_sets: Vec<spanpb::SpanSet>) -> impl Iteron<Item = SpanS
                         panic!("Link should not be none from spanpb")
                     }
                 }
-                #[causetg(feature = "protobuf-codec")]
+                #[causet(feature = "protobuf-codec")]
                 {
                     let link = if span.get_link().has_root() {
                         Link::Root
@@ -124,7 +124,7 @@ pub fn decode_spans(span_sets: Vec<spanpb::SpanSet>) -> impl Iteron<Item = SpanS
     })
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use minitrace::{Link, Span, SpanSet};
     use std::{u32, u64};

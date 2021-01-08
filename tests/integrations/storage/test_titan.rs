@@ -31,8 +31,8 @@ use txn_types::{Key, Write, WriteType};
 #[test]
 fn test_turnoff_titan() {
     let mut cluster = new_node_cluster(0, 3);
-    cluster.causetg.lmdb.defaultcauset.disable_auto_compactions = true;
-    cluster.causetg.lmdb.defaultcauset.num_levels = 1;
+    cluster.causet.lmdb.defaultcauset.disable_auto_compactions = true;
+    cluster.causet.lmdb.defaultcauset.num_levels = 1;
     configure_for_enable_titan(&mut cluster, ReadableSize::kb(0));
     cluster.run();
     assert_eq!(cluster.must_get(b"k1"), None);
@@ -147,20 +147,20 @@ fn test_delete_files_in_cone_for_titan() {
         .unwrap();
 
     // Set configs and create engines
-    let mut causetg = EINSTEINDBConfig::default();
-    let cache = causetg.causetStorage.block_cache.build_shared_cache();
-    causetg.lmdb.titan.enabled = true;
-    causetg.lmdb.titan.disable_gc = true;
-    causetg.lmdb.titan.purge_obsolete_files_period = ReadableDuration::secs(1);
-    causetg.lmdb.defaultcauset.disable_auto_compactions = true;
+    let mut causet = EINSTEINDBConfig::default();
+    let cache = causet.causetStorage.block_cache.build_shared_cache();
+    causet.lmdb.titan.enabled = true;
+    causet.lmdb.titan.disable_gc = true;
+    causet.lmdb.titan.purge_obsolete_files_period = ReadableDuration::secs(1);
+    causet.lmdb.defaultcauset.disable_auto_compactions = true;
     // Disable dynamic_level_bytes, otherwise SST files would be ingested to L0.
-    causetg.lmdb.defaultcauset.dynamic_level_bytes = false;
-    causetg.lmdb.defaultcauset.titan.min_gc_batch_size = ReadableSize(0);
-    causetg.lmdb.defaultcauset.titan.discardable_ratio = 0.4;
-    causetg.lmdb.defaultcauset.titan.sample_ratio = 1.0;
-    causetg.lmdb.defaultcauset.titan.min_blob_size = ReadableSize(0);
-    let kv_db_opts = causetg.lmdb.build_opt();
-    let kv_causets_opts = causetg.lmdb.build_causet_opts(&cache);
+    causet.lmdb.defaultcauset.dynamic_level_bytes = false;
+    causet.lmdb.defaultcauset.titan.min_gc_batch_size = ReadableSize(0);
+    causet.lmdb.defaultcauset.titan.discardable_ratio = 0.4;
+    causet.lmdb.defaultcauset.titan.sample_ratio = 1.0;
+    causet.lmdb.defaultcauset.titan.min_blob_size = ReadableSize(0);
+    let kv_db_opts = causet.lmdb.build_opt();
+    let kv_causets_opts = causet.lmdb.build_causet_opts(&cache);
 
     let violetabft_path = path.path().join(Path::new("titan"));
     let engines = Engines::new(

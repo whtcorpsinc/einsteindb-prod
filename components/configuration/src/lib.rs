@@ -126,7 +126,7 @@ pub trait ConfigManager: Slightlike + Sync {
     fn dispatch(&mut self, _: ConfigChange) -> Result<()>;
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate as configuration;
@@ -151,16 +151,16 @@ mod tests {
 
     #[test]
     fn test_ufidelate_fields() {
-        let mut causetg = TestConfig::default();
-        let mut ufidelated_causetg = causetg.clone();
+        let mut causet = TestConfig::default();
+        let mut ufidelated_causet = causet.clone();
         {
             // ufidelate fields
-            ufidelated_causetg.field1 = 100;
-            ufidelated_causetg.field2 = "1".to_owned();
-            ufidelated_causetg.submodule_field.field1 = 1000;
-            ufidelated_causetg.submodule_field.field2 = true;
+            ufidelated_causet.field1 = 100;
+            ufidelated_causet.field2 = "1".to_owned();
+            ufidelated_causet.submodule_field.field1 = 1000;
+            ufidelated_causet.submodule_field.field2 = true;
         }
-        let diff = causetg.diff(&ufidelated_causetg);
+        let diff = causet.diff(&ufidelated_causet);
         {
             let mut diff = diff.clone();
             assert_eq!(diff.len(), 3);
@@ -174,43 +174,43 @@ mod tests {
             assert_eq!(sub_diff.remove("field1").map(Into::into), Some(1000u64));
             assert_eq!(sub_diff.remove("field2").map(Into::into), Some(true));
         }
-        causetg.ufidelate(diff);
-        assert_eq!(causetg, ufidelated_causetg, "causetg should be ufidelated");
+        causet.ufidelate(diff);
+        assert_eq!(causet, ufidelated_causet, "causet should be ufidelated");
     }
 
     #[test]
     fn test_not_ufidelate() {
-        let mut causetg = TestConfig::default();
-        let diff = causetg.diff(&causetg.clone());
+        let mut causet = TestConfig::default();
+        let diff = causet.diff(&causet.clone());
         assert!(diff.is_empty(), "diff should be empty");
 
-        causetg.ufidelate(diff);
-        assert_eq!(causetg, TestConfig::default(), "causetg should not be ufidelated");
+        causet.ufidelate(diff);
+        assert_eq!(causet, TestConfig::default(), "causet should not be ufidelated");
     }
 
     #[test]
     fn test_ufidelate_skip_field() {
-        let mut causetg = TestConfig::default();
-        let mut ufidelated_causetg = causetg.clone();
+        let mut causet = TestConfig::default();
+        let mut ufidelated_causet = causet.clone();
 
-        ufidelated_causetg.skip_field = 100;
-        assert!(causetg.diff(&ufidelated_causetg).is_empty(), "diff should be empty");
+        ufidelated_causet.skip_field = 100;
+        assert!(causet.diff(&ufidelated_causet).is_empty(), "diff should be empty");
 
         let mut diff = HashMap::new();
         diff.insert("skip_field".to_owned(), ConfigValue::U64(123));
-        causetg.ufidelate(diff);
-        assert_eq!(causetg, TestConfig::default(), "causetg should not be ufidelated");
+        causet.ufidelate(diff);
+        assert_eq!(causet, TestConfig::default(), "causet should not be ufidelated");
     }
 
     #[test]
     fn test_ufidelate_submodule() {
-        let mut causetg = TestConfig::default();
-        let mut ufidelated_causetg = causetg.clone();
+        let mut causet = TestConfig::default();
+        let mut ufidelated_causet = causet.clone();
 
-        ufidelated_causetg.submodule_field.field1 = 12345;
-        ufidelated_causetg.submodule_field.field2 = true;
+        ufidelated_causet.submodule_field.field1 = 12345;
+        ufidelated_causet.submodule_field.field2 = true;
 
-        let diff = causetg.diff(&ufidelated_causetg);
+        let diff = causet.diff(&ufidelated_causet);
         {
             let mut diff = diff.clone();
             assert_eq!(diff.len(), 1);
@@ -221,12 +221,12 @@ mod tests {
             assert_eq!(sub_diff.remove("field2").map(Into::into), Some(true));
         }
 
-        causetg.ufidelate(diff);
+        causet.ufidelate(diff);
         assert_eq!(
-            causetg.submodule_field, ufidelated_causetg.submodule_field,
+            causet.submodule_field, ufidelated_causet.submodule_field,
             "submodule should be ufidelated"
         );
-        assert_eq!(causetg, ufidelated_causetg, "causetg should be ufidelated");
+        assert_eq!(causet, ufidelated_causet, "causet should be ufidelated");
     }
 
     #[test]
@@ -255,23 +255,23 @@ mod tests {
             hidden_field: usize,
         }
 
-        let causetg = SubConfig::default();
+        let causet = SubConfig::default();
         assert_eq!(
-            toml::to_string(&causetg).unwrap(),
+            toml::to_string(&causet).unwrap(),
             "rename_field = false\nhidden-field = 0\n"
         );
         assert_eq!(
-            toml::to_string(&causetg.get_encoder()).unwrap(),
+            toml::to_string(&causet.get_encoder()).unwrap(),
             "rename_field = false\n"
         );
 
-        let causetg = TestConfig::default();
+        let causet = TestConfig::default();
         assert_eq!(
-            toml::to_string(&causetg).unwrap(),
+            toml::to_string(&causet).unwrap(),
             "skip-field = \"\"\nhidden-field = 0\n\n[submodule-field]\nrename_field = false\nhidden-field = 0\n"
         );
         assert_eq!(
-            toml::to_string(&causetg.get_encoder()).unwrap(),
+            toml::to_string(&causet.get_encoder()).unwrap(),
             "skip-field = \"\"\n\n[submodule-field]\nrename_field = false\n"
         );
     }

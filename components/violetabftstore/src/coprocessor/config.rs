@@ -109,23 +109,23 @@ impl std::ops::Deref for SplitCheckConfigManager {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_config_validate() {
-        let mut causetg = Config::default();
-        causetg.validate().unwrap();
+        let mut causet = Config::default();
+        causet.validate().unwrap();
 
-        causetg = Config::default();
-        causetg.brane_max_size = ReadableSize(10);
-        causetg.brane_split_size = ReadableSize(20);
-        assert!(causetg.validate().is_err());
+        causet = Config::default();
+        causet.brane_max_size = ReadableSize(10);
+        causet.brane_split_size = ReadableSize(20);
+        assert!(causet.validate().is_err());
 
-        causetg = Config::default();
-        causetg.brane_max_tuplespaceInstanton = 10;
-        causetg.brane_split_tuplespaceInstanton = 20;
-        assert!(causetg.validate().is_err());
+        causet = Config::default();
+        causet.brane_max_tuplespaceInstanton = 10;
+        causet.brane_split_tuplespaceInstanton = 20;
+        assert!(causet.validate().is_err());
     }
 }

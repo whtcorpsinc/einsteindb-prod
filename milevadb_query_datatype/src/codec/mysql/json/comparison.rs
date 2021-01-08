@@ -178,7 +178,7 @@ impl PartialOrd for Json {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

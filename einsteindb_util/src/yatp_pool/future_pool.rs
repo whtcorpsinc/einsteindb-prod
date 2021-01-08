@@ -165,7 +165,7 @@ impl std::error::Error for Full {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

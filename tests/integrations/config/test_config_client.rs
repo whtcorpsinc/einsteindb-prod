@@ -16,37 +16,37 @@ fn change(name: &str, value: &str) -> HashMap<String, String> {
 
 #[test]
 fn test_ufidelate_config() {
-    let (causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-    let causetg_controller = ConfigController::new(causetg);
-    let mut causetg = causetg_controller.get_current().clone();
+    let (causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
+    let causet_controller = ConfigController::new(causet);
+    let mut causet = causet_controller.get_current().clone();
 
     // normal ufidelate
-    causetg_controller
+    causet_controller
         .ufidelate(change("violetabftstore.violetabft-log-gc-memory_barrier", "2000"))
         .unwrap();
-    causetg.violetabft_store.violetabft_log_gc_memory_barrier = 2000;
-    assert_eq!(causetg_controller.get_current(), causetg);
+    causet.violetabft_store.violetabft_log_gc_memory_barrier = 2000;
+    assert_eq!(causet_controller.get_current(), causet);
 
     // ufidelate not support config
-    let res = causetg_controller.ufidelate(change("server.addr", "localhost:3000"));
+    let res = causet_controller.ufidelate(change("server.addr", "localhost:3000"));
     assert!(res.is_err());
-    assert_eq!(causetg_controller.get_current(), causetg);
+    assert_eq!(causet_controller.get_current(), causet);
 
     // ufidelate to invalid config
-    let res = causetg_controller.ufidelate(change("violetabftstore.violetabft-log-gc-memory_barrier", "0"));
+    let res = causet_controller.ufidelate(change("violetabftstore.violetabft-log-gc-memory_barrier", "0"));
     assert!(res.is_err());
-    assert_eq!(causetg_controller.get_current(), causetg);
+    assert_eq!(causet_controller.get_current(), causet);
 
     // bad ufidelate request
-    let res = causetg_controller.ufidelate(change("xxx.yyy", "0"));
+    let res = causet_controller.ufidelate(change("xxx.yyy", "0"));
     assert!(res.is_err());
-    let res = causetg_controller.ufidelate(change("violetabftstore.xxx", "0"));
+    let res = causet_controller.ufidelate(change("violetabftstore.xxx", "0"));
     assert!(res.is_err());
-    let res = causetg_controller.ufidelate(change("violetabftstore.violetabft-log-gc-memory_barrier", "10MB"));
+    let res = causet_controller.ufidelate(change("violetabftstore.violetabft-log-gc-memory_barrier", "10MB"));
     assert!(res.is_err());
-    let res = causetg_controller.ufidelate(change("violetabft-log-gc-memory_barrier", "10MB"));
+    let res = causet_controller.ufidelate(change("violetabft-log-gc-memory_barrier", "10MB"));
     assert!(res.is_err());
-    assert_eq!(causetg_controller.get_current(), causetg);
+    assert_eq!(causet_controller.get_current(), causet);
 }
 
 #[test]
@@ -65,19 +65,19 @@ fn test_dispatch_change() {
         }
     }
 
-    let (causetg, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-    let causetg_controller = ConfigController::new(causetg);
-    let mut causetg = causetg_controller.get_current().clone();
-    let mgr = CfgManager(Arc::new(Mutex::new(causetg.violetabft_store.clone())));
-    causetg_controller.register(Module::VioletaBftstore, Box::new(mgr.clone()));
+    let (causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
+    let causet_controller = ConfigController::new(causet);
+    let mut causet = causet_controller.get_current().clone();
+    let mgr = CfgManager(Arc::new(Mutex::new(causet.violetabft_store.clone())));
+    causet_controller.register(Module::VioletaBftstore, Box::new(mgr.clone()));
 
-    causetg_controller
+    causet_controller
         .ufidelate(change("violetabftstore.violetabft-log-gc-memory_barrier", "2000"))
         .unwrap();
 
     // config ufidelate
-    causetg.violetabft_store.violetabft_log_gc_memory_barrier = 2000;
-    assert_eq!(causetg_controller.get_current(), causetg);
+    causet.violetabft_store.violetabft_log_gc_memory_barrier = 2000;
+    assert_eq!(causet_controller.get_current(), causet);
 
     // config change should also dispatch to violetabftstore config manager
     assert_eq!(mgr.0.dagger().unwrap().violetabft_log_gc_memory_barrier, 2000);
@@ -85,8 +85,8 @@ fn test_dispatch_change() {
 
 #[test]
 fn test_write_ufidelate_to_file() {
-    let (mut causetg, tmp_dir) = EINSTEINDBConfig::with_tmp().unwrap();
-    causetg.causetg_path = tmp_dir.path().join("causetg_file").to_str().unwrap().to_owned();
+    let (mut causet, tmp_dir) = EINSTEINDBConfig::with_tmp().unwrap();
+    causet.causet_path = tmp_dir.path().join("causet_file").to_str().unwrap().to_owned();
     {
         let c = r#"
 ## comment should be reserve
@@ -116,11 +116,11 @@ max-write-bytes-per-sec = "1KB"
 [lmdb.defaultcauset.titan]
 blob-run-mode = "normal"
 "#;
-        let mut f = File::create(&causetg.causetg_path).unwrap();
+        let mut f = File::create(&causet.causet_path).unwrap();
         f.write_all(c.as_bytes()).unwrap();
         f.sync_all().unwrap();
     }
-    let causetg_controller = ConfigController::new(causetg);
+    let causet_controller = ConfigController::new(causet);
     let change = {
         let mut change = HashMap::new();
         change.insert(
@@ -142,10 +142,10 @@ blob-run-mode = "normal"
         );
         change
     };
-    causetg_controller.ufidelate(change).unwrap();
+    causet_controller.ufidelate(change).unwrap();
     let res = {
         let mut buf = Vec::new();
-        let mut f = File::open(&causetg_controller.get_current().causetg_path).unwrap();
+        let mut f = File::open(&causet_controller.get_current().causet_path).unwrap();
         f.read_to_lightlike(&mut buf).unwrap();
         buf
     };

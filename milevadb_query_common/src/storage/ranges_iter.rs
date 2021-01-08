@@ -66,7 +66,7 @@ impl ConesIterator {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::cone::IntervalCone;
     use super::*;

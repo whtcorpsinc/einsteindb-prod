@@ -15,8 +15,8 @@ fn prepare_cluster() -> Cluster<ServerCluster> {
     let mut cluster = new_server_cluster(0, 3);
     cluster.fidel_client.disable_default_operator();
     cluster.fidel_client.configure_dr_auto_sync("zone");
-    cluster.causetg.violetabft_store.fidel_store_heartbeat_tick_interval = ReadableDuration::millis(50);
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 10;
+    cluster.causet.violetabft_store.fidel_store_heartbeat_tick_interval = ReadableDuration::millis(50);
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 10;
     cluster.add_label(1, "zone", "ES");
     cluster.add_label(2, "zone", "ES");
     cluster.add_label(3, "zone", "WS");
@@ -129,8 +129,8 @@ fn test_ufidelate_group_id() {
     cluster.add_label(2, "zone", "WS");
     fidel_client.disable_default_operator();
     fidel_client.configure_dr_auto_sync("zone");
-    cluster.causetg.violetabft_store.fidel_store_heartbeat_tick_interval = ReadableDuration::millis(50);
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 10;
+    cluster.causet.violetabft_store.fidel_store_heartbeat_tick_interval = ReadableDuration::millis(50);
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 10;
     cluster.run_conf_change();
     cluster.must_put(b"k1", b"v0");
     let brane = fidel_client.get_brane(b"k1").unwrap();
@@ -239,14 +239,14 @@ fn test_switching_replication_mode() {
 #[test]
 fn test_switching_replication_mode_hibernate() {
     let mut cluster = new_server_cluster(0, 3);
-    cluster.causetg.violetabft_store.max_leader_missing_duration = ReadableDuration::hours(1);
-    cluster.causetg.violetabft_store.peer_stale_state_check_interval = ReadableDuration::minutes(30);
-    cluster.causetg.violetabft_store.abnormal_leader_missing_duration = ReadableDuration::hours(1);
+    cluster.causet.violetabft_store.max_leader_missing_duration = ReadableDuration::hours(1);
+    cluster.causet.violetabft_store.peer_stale_state_check_interval = ReadableDuration::minutes(30);
+    cluster.causet.violetabft_store.abnormal_leader_missing_duration = ReadableDuration::hours(1);
     let fidel_client = cluster.fidel_client.clone();
     fidel_client.disable_default_operator();
     fidel_client.configure_dr_auto_sync("zone");
-    cluster.causetg.violetabft_store.fidel_store_heartbeat_tick_interval = ReadableDuration::millis(50);
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 20;
+    cluster.causet.violetabft_store.fidel_store_heartbeat_tick_interval = ReadableDuration::millis(50);
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 20;
     cluster.add_label(1, "zone", "ES");
     cluster.add_label(2, "zone", "ES");
     cluster.add_label(3, "zone", "WS");
@@ -266,9 +266,9 @@ fn test_switching_replication_mode_hibernate() {
     fidel_client.must_add_peer(r, new_peer(3, 3));
     // Wait for leader become hibernated.
     thread::sleep(
-        cluster.causetg.violetabft_store.violetabft_base_tick_interval.0
+        cluster.causet.violetabft_store.violetabft_base_tick_interval.0
             * 2
-            * (cluster.causetg.violetabft_store.violetabft_election_timeout_ticks as u32),
+            * (cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32),
     );
     cluster.clear_slightlike_filters();
     // Wait for brane heartbeat.
@@ -283,8 +283,8 @@ fn test_switching_replication_mode_hibernate() {
 fn test_migrate_replication_mode() {
     let mut cluster = new_server_cluster(0, 3);
     cluster.fidel_client.disable_default_operator();
-    cluster.causetg.violetabft_store.fidel_store_heartbeat_tick_interval = ReadableDuration::millis(50);
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 10;
+    cluster.causet.violetabft_store.fidel_store_heartbeat_tick_interval = ReadableDuration::millis(50);
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 10;
     cluster.add_label(1, "zone", "ES");
     cluster.add_label(2, "zone", "ES");
     cluster.add_label(3, "zone", "WS");
@@ -333,8 +333,8 @@ fn test_migrate_replication_mode() {
 fn test_loading_label_after_rolling_spacelike() {
     let mut cluster = new_server_cluster(0, 3);
     cluster.fidel_client.disable_default_operator();
-    cluster.causetg.violetabft_store.fidel_store_heartbeat_tick_interval = ReadableDuration::millis(50);
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 10;
+    cluster.causet.violetabft_store.fidel_store_heartbeat_tick_interval = ReadableDuration::millis(50);
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 10;
     cluster.create_engines();
     let r = cluster.bootstrap_conf_change();
     cluster.add_label(1, "zone", "ES");

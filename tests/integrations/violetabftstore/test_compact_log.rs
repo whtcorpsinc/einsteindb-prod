@@ -87,9 +87,9 @@ fn check_compacted(
 }
 
 fn test_compact_count_limit<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 100;
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 500;
-    cluster.causetg.violetabft_store.violetabft_log_gc_size_limit = ReadableSize::mb(20);
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 100;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 500;
+    cluster.causet.violetabft_store.violetabft_log_gc_size_limit = ReadableSize::mb(20);
     cluster.run();
 
     cluster.must_put(b"k1", b"v1");
@@ -143,9 +143,9 @@ fn test_compact_count_limit<T: Simulator>(cluster: &mut Cluster<T>) {
 
 fn test_compact_many_times<T: Simulator>(cluster: &mut Cluster<T>) {
     let gc_limit: u64 = 100;
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = gc_limit;
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 500;
-    cluster.causetg.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(100);
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = gc_limit;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 500;
+    cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(100);
     cluster.run();
 
     cluster.must_put(b"k1", b"v1");
@@ -200,8 +200,8 @@ fn test_node_compact_many_times() {
 }
 
 fn test_compact_size_limit<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 100000;
-    cluster.causetg.violetabft_store.violetabft_log_gc_size_limit = ReadableSize::mb(2);
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 100000;
+    cluster.causet.violetabft_store.violetabft_log_gc_size_limit = ReadableSize::mb(2);
     cluster.run();
     cluster.stop_node(1);
 
@@ -288,10 +288,10 @@ fn test_node_compact_size_limit() {
 }
 
 fn test_compact_reserve_max_ticks<T: Simulator>(cluster: &mut Cluster<T>) {
-    cluster.causetg.violetabft_store.violetabft_log_gc_count_limit = 100;
-    cluster.causetg.violetabft_store.violetabft_log_gc_memory_barrier = 500;
-    cluster.causetg.violetabft_store.violetabft_log_gc_size_limit = ReadableSize::mb(20);
-    cluster.causetg.violetabft_store.violetabft_log_reserve_max_ticks = 2;
+    cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 100;
+    cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 500;
+    cluster.causet.violetabft_store.violetabft_log_gc_size_limit = ReadableSize::mb(20);
+    cluster.causet.violetabft_store.violetabft_log_reserve_max_ticks = 2;
     cluster.run();
     let apply_key = tuplespaceInstanton::apply_state_key(1);
 

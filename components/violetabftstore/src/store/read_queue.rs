@@ -107,13 +107,13 @@ where
     /// 1. more than an election timeout elapsed from the last request push;
     /// 2. more than an election timeout elapsed from the last retry;
     /// 3. there are still unresolved requests in the queue.
-    pub fn check_needs_retry(&mut self, causetg: &Config) -> bool {
+    pub fn check_needs_retry(&mut self, causet: &Config) -> bool {
         if self.reads.len() == self.ready_cnt {
             return false;
         }
 
         if self.retry_countdown == usize::MAX {
-            self.retry_countdown = causetg.violetabft_election_timeout_ticks - 1;
+            self.retry_countdown = causet.violetabft_election_timeout_ticks - 1;
             return false;
         }
 
@@ -122,7 +122,7 @@ where
             return false;
         }
 
-        self.retry_countdown = causetg.violetabft_election_timeout_ticks;
+        self.retry_countdown = causet.violetabft_election_timeout_ticks;
         true
     }
 
@@ -294,7 +294,7 @@ where
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use engine_lmdb::LmdbSnapshot;

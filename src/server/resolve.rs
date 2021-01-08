@@ -171,7 +171,7 @@ impl StoreAddrResolver for FidelStoreAddrResolver {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use std::net::SocketAddr;

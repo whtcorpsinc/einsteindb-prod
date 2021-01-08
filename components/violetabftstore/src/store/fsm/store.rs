@@ -289,7 +289,7 @@ where
     EK: KvEngine,
     ER: VioletaBftEngine,
 {
-    pub causetg: Config,
+    pub causet: Config,
     pub store: metapb::CausetStore,
     pub fidel_scheduler: FutureScheduler<FidelTask<EK>>,
     pub consistency_check_scheduler: Scheduler<ConsistencyCheckTask<EK::Snapshot>>,
@@ -382,7 +382,7 @@ where
     /// https://github.com/einsteindb/einsteindb/issues/7747
     pub fn is_hibernate_timeout(&mut self) -> bool {
         let timeout = match self.node_spacelike_time {
-            Some(t) => t.elapsed() >= self.causetg.hibernate_timeout.0,
+            Some(t) => t.elapsed() >= self.causet.hibernate_timeout.0,
             None => return true,
         };
         if timeout {
@@ -393,17 +393,17 @@ where
 
     pub fn ufidelate_ticks_timeout(&mut self) {
         self.tick_batch[PeerTicks::VIOLETABFT.bits() as usize].wait_duration =
-            self.causetg.violetabft_base_tick_interval.0;
+            self.causet.violetabft_base_tick_interval.0;
         self.tick_batch[PeerTicks::VIOLETABFT_LOG_GC.bits() as usize].wait_duration =
-            self.causetg.violetabft_log_gc_tick_interval.0;
+            self.causet.violetabft_log_gc_tick_interval.0;
         self.tick_batch[PeerTicks::FIDel_HEARTBEAT.bits() as usize].wait_duration =
-            self.causetg.fidel_heartbeat_tick_interval.0;
+            self.causet.fidel_heartbeat_tick_interval.0;
         self.tick_batch[PeerTicks::SPLIT_REGION_CHECK.bits() as usize].wait_duration =
-            self.causetg.split_brane_check_tick_interval.0;
+            self.causet.split_brane_check_tick_interval.0;
         self.tick_batch[PeerTicks::CHECK_PEER_STALE_STATE.bits() as usize].wait_duration =
-            self.causetg.peer_stale_state_check_interval.0;
+            self.causet.peer_stale_state_check_interval.0;
         self.tick_batch[PeerTicks::CHECK_MERGE.bits() as usize].wait_duration =
-            self.causetg.merge_check_tick_interval.0;
+            self.causet.merge_check_tick_interval.0;
     }
 }
 
@@ -501,8 +501,8 @@ impl<EK> StoreFsm<EK>
 where
     EK: KvEngine,
 {
-    pub fn new(causetg: &Config) -> (LooseBoundedSlightlikeer<StoreMsg<EK>>, Box<StoreFsm<EK>>) {
-        let (tx, rx) = mpsc::loose_bounded(causetg.notify_capacity);
+    pub fn new(causet: &Config) -> (LooseBoundedSlightlikeer<StoreMsg<EK>>, Box<StoreFsm<EK>>) {
+        let (tx, rx) = mpsc::loose_bounded(causet.notify_capacity);
         let fsm = Box::new(StoreFsm {
             store: CausetStore {
                 id: 0,
@@ -590,8 +590,8 @@ impl<'a, EK: KvEngine + 'static, ER: VioletaBftEngine + 'static, T: Transport, C
                     self.on_store_unreachable(store_id);
                 }
                 StoreMsg::Start { store } => self.spacelike(store),
-                #[causetg(any(test, feature = "testexport"))]
-                StoreMsg::Validate(f) => f(&self.ctx.causetg),
+                #[causet(any(test, feature = "testexport"))]
+                StoreMsg::Validate(f) => f(&self.ctx.causet),
                 StoreMsg::UfidelateReplicationMode(status) => self.on_ufidelate_replication_mode(status),
             }
         }
@@ -624,7 +624,7 @@ pub struct VioletaBftPoller<EK: KvEngine + 'static, ER: VioletaBftEngine + 'stat
     timer: TiInstant,
     poll_ctx: PollContext<EK, ER, T, C>,
     messages_per_tick: usize,
-    causetg_tracker: Tracker<Config>,
+    causet_tracker: Tracker<Config>,
 }
 
 impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBftPoller<EK, ER, T, C> {
@@ -639,7 +639,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBf
             self.poll_ctx.need_flush_trans = false;
         }
         let ready_cnt = self.poll_ctx.ready_res.len();
-        if ready_cnt != 0 && self.poll_ctx.causetg.early_apply {
+        if ready_cnt != 0 && self.poll_ctx.causet.early_apply {
             let mut batch_pos = 0;
             let mut ready_res = mem::replace(&mut self.poll_ctx.ready_res, vec![]);
             for (ready, invoke_ctx) in &mut ready_res {
@@ -719,8 +719,8 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBf
         let dur = self.timer.elapsed();
         if !self.poll_ctx.store_stat.is_busy {
             let election_timeout = Duration::from_millis(
-                self.poll_ctx.causetg.violetabft_base_tick_interval.as_millis()
-                    * self.poll_ctx.causetg.violetabft_election_timeout_ticks as u64,
+                self.poll_ctx.causet.violetabft_base_tick_interval.as_millis()
+                    * self.poll_ctx.causet.violetabft_election_timeout_ticks as u64,
             );
             if dur >= election_timeout {
                 self.poll_ctx.store_stat.is_busy = true;
@@ -778,10 +778,10 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         self.timer = TiInstant::now_coarse();
         // ufidelate config
         self.poll_ctx.perf_context_statistics.spacelike();
-        if let Some(incoming) = self.causetg_tracker.any_new() {
+        if let Some(incoming) = self.causet_tracker.any_new() {
             match Ord::cmp(
                 &incoming.messages_per_tick,
-                &self.poll_ctx.causetg.messages_per_tick,
+                &self.poll_ctx.causet.messages_per_tick,
             ) {
                 CmpOrdering::Greater => {
                     self.store_msg_buf.reserve(incoming.messages_per_tick);
@@ -795,7 +795,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                 }
                 _ => {}
             }
-            self.poll_ctx.causetg = incoming.clone();
+            self.poll_ctx.causet = incoming.clone();
             self.poll_ctx.ufidelate_ticks_timeout();
         }
     }
@@ -890,7 +890,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
 }
 
 pub struct VioletaBftPollerBuilder<EK: KvEngine, ER: VioletaBftEngine, T, C> {
-    pub causetg: Arc<VersionTrack<Config>>,
+    pub causet: Arc<VersionTrack<Config>>,
     pub store: metapb::CausetStore,
     fidel_scheduler: FutureScheduler<FidelTask<EK>>,
     consistency_check_scheduler: Scheduler<ConsistencyCheckTask<EK::Snapshot>>,
@@ -968,7 +968,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
 
             let (tx, mut peer) = box_try!(PeerFsm::create(
                 store_id,
-                &self.causetg.value(),
+                &self.causet.value(),
                 self.brane_scheduler.clone(),
                 self.engines.clone(),
                 brane,
@@ -1005,7 +1005,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
             info!("brane is applying snapshot"; "brane" => ?brane, "store_id" => store_id);
             let (tx, mut peer) = PeerFsm::create(
                 store_id,
-                &self.causetg.value(),
+                &self.causet.value(),
                 self.brane_scheduler.clone(),
                 self.engines.clone(),
                 &brane,
@@ -1088,7 +1088,7 @@ where
 
     fn build(&mut self) -> VioletaBftPoller<EK, ER, T, C> {
         let mut ctx = PollContext {
-            causetg: self.causetg.value().clone(),
+            causet: self.causet.value().clone(),
             store: self.store.clone(),
             fidel_scheduler: self.fidel_scheduler.clone(),
             consistency_check_scheduler: self.consistency_check_scheduler.clone(),
@@ -1120,7 +1120,7 @@ where
             ready_res: Vec::new(),
             need_flush_trans: false,
             current_time: None,
-            perf_context_statistics: PerfContextStatistics::new(self.causetg.value().perf_level),
+            perf_context_statistics: PerfContextStatistics::new(self.causet.value().perf_level),
             tick_batch: vec![PeerTickBatch::default(); 256],
             node_spacelike_time: Some(TiInstant::now_coarse()),
         };
@@ -1128,13 +1128,13 @@ where
         let tag = format!("[store {}]", ctx.store.get_id());
         VioletaBftPoller {
             tag: tag.clone(),
-            store_msg_buf: Vec::with_capacity(ctx.causetg.messages_per_tick),
-            peer_msg_buf: Vec::with_capacity(ctx.causetg.messages_per_tick),
+            store_msg_buf: Vec::with_capacity(ctx.causet.messages_per_tick),
+            peer_msg_buf: Vec::with_capacity(ctx.causet.messages_per_tick),
             previous_metrics: ctx.violetabft_metrics.clone(),
             timer: TiInstant::now_coarse(),
-            messages_per_tick: ctx.causetg.messages_per_tick,
+            messages_per_tick: ctx.causet.messages_per_tick,
             poll_ctx: ctx,
-            causetg_tracker: self.causetg.clone().tracker(tag),
+            causet_tracker: self.causet.clone().tracker(tag),
         }
     }
 }
@@ -1171,7 +1171,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
     pub fn spawn<T: Transport + 'static, C: FidelClient + 'static>(
         &mut self,
         meta: metapb::CausetStore,
-        causetg: Arc<VersionTrack<Config>>,
+        causet: Arc<VersionTrack<Config>>,
         engines: Engines<EK, ER>,
         trans: T,
         fidel_client: Arc<C>,
@@ -1203,7 +1203,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
             interlock_host: interlock_host.clone(),
         };
         let mut builder = VioletaBftPollerBuilder {
-            causetg,
+            causet,
             store: meta,
             engines,
             router: self.router.clone(),
@@ -1262,7 +1262,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
 
         let engines = builder.engines.clone();
         let snap_mgr = builder.snap_mgr.clone();
-        let causetg = builder.causetg.value().clone();
+        let causet = builder.causet.value().clone();
         let store = builder.store.clone();
         let fidel_client = builder.fidel_client.clone();
         let importer = builder.importer.clone();
@@ -1318,8 +1318,8 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
         let brane_runner = BraneRunner::new(
             engines.clone(),
             snap_mgr,
-            causetg.snap_apply_batch_size.0 as usize,
-            causetg.use_delete_cone,
+            causet.snap_apply_batch_size.0 as usize,
+            causet.use_delete_cone,
             workers.interlock_host.clone(),
             self.router(),
         );
@@ -1348,7 +1348,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
             self.router.clone(),
             engines.kv,
             workers.fidel_worker.scheduler(),
-            causetg.fidel_store_heartbeat_tick_interval.0,
+            causet.fidel_store_heartbeat_tick_interval.0,
             auto_split_controller,
             concurrency_manager,
         );
@@ -1392,12 +1392,12 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
 }
 
 pub fn create_violetabft_batch_system<EK: KvEngine, ER: VioletaBftEngine>(
-    causetg: &Config,
+    causet: &Config,
 ) -> (VioletaBftRouter<EK, ER>, VioletaBftBatchSystem<EK, ER>) {
-    let (store_tx, store_fsm) = StoreFsm::new(causetg);
-    let (apply_router, apply_system) = create_apply_batch_system(&causetg);
+    let (store_tx, store_fsm) = StoreFsm::new(causet);
+    let (apply_router, apply_system) = create_apply_batch_system(&causet);
     let (router, system) =
-        batch_system::create_system(&causetg.store_batch_system, store_tx, store_fsm);
+        batch_system::create_system(&causet.store_batch_system, store_tx, store_fsm);
     let violetabft_router = VioletaBftRouter { router };
     let system = VioletaBftBatchSystem {
         system,
@@ -1753,7 +1753,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                         "peer_id" => target.get_id(),
                         "source_brane" => ?exist_brane,
                     );
-                    if self.ctx.causetg.dev_assert {
+                    if self.ctx.causet.dev_assert {
                         panic!("something is wrong, maybe FIDel do not ensure all target peers exist before merging");
                     }
                 }
@@ -1793,7 +1793,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         // New created peers should know it's learner or not.
         let (tx, mut peer) = PeerFsm::replicate(
             self.ctx.store_id(),
-            &self.ctx.causetg,
+            &self.ctx.causet,
             self.ctx.brane_scheduler.clone(),
             self.ctx.engines.clone(),
             brane_id,
@@ -1824,7 +1824,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     }
 
     fn on_compaction_finished(&mut self, event: EK::CompactedEvent) {
-        if event.is_size_declining_trivial(self.ctx.causetg.brane_split_check_diff.0) {
+        if event.is_size_declining_trivial(self.ctx.causet.brane_split_check_diff.0) {
             return;
         }
 
@@ -1833,12 +1833,12 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             .with_label_values(&[&output_level_str])
             .observe(event.total_bytes_declined() as f64);
 
-        // self.causetg.brane_split_check_diff.0 / 16 is an experienced value.
+        // self.causet.brane_split_check_diff.0 / 16 is an experienced value.
         let mut brane_declined_bytes = {
             let meta = self.ctx.store_meta.dagger().unwrap();
             event.calc_cones_declined_bytes(
                 &meta.brane_cones,
-                self.ctx.causetg.brane_split_check_diff.0 / 16,
+                self.ctx.causet.brane_split_check_diff.0 / 16,
             )
         };
 
@@ -1859,7 +1859,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     fn register_compact_check_tick(&self) {
         self.ctx.schedule_store_tick(
             StoreTick::CompactCheck,
-            self.ctx.causetg.brane_compact_check_interval.0,
+            self.ctx.causet.brane_compact_check_interval.0,
         )
     }
 
@@ -1889,7 +1889,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
 
         // Start from last checked key.
         let mut cones_need_check =
-            Vec::with_capacity(self.ctx.causetg.brane_compact_check_step as usize + 1);
+            Vec::with_capacity(self.ctx.causet.brane_compact_check_step as usize + 1);
         cones_need_check.push(self.fsm.store.last_compact_checked_key.clone());
 
         let largest_key = {
@@ -1909,7 +1909,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             ));
             cones_need_check.extlightlike(
                 left_cones
-                    .take(self.ctx.causetg.brane_compact_check_step as usize)
+                    .take(self.ctx.causet.brane_compact_check_step as usize)
                     .map(|(k, _)| k.to_owned()),
             );
 
@@ -1935,8 +1935,8 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             CompactTask::CheckAndCompact {
                 causet_names,
                 cones: cones_need_check,
-                tombstones_num_memory_barrier: self.ctx.causetg.brane_compact_min_tombstones,
-                tombstones_percent_memory_barrier: self.ctx.causetg.brane_compact_tombstones_percent,
+                tombstones_num_memory_barrier: self.ctx.causet.brane_compact_min_tombstones,
+                tombstones_percent_memory_barrier: self.ctx.causet.brane_compact_tombstones_percent,
             },
         )) {
             error!(
@@ -2002,7 +2002,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
 
         let store_info = StoreInfo {
             engine: self.ctx.engines.kv.clone(),
-            capacity: self.ctx.causetg.capacity.0,
+            capacity: self.ctx.causet.capacity.0,
         };
 
         let task = FidelTask::StoreHeartbeat { stats, store_info };
@@ -2103,7 +2103,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             .stat
             .lock_causet_bytes_written
             .load(Ordering::SeqCst);
-        if lock_causet_bytes_written > self.ctx.causetg.lock_causet_compact_bytes_memory_barrier.0 {
+        if lock_causet_bytes_written > self.ctx.causet.lock_causet_compact_bytes_memory_barrier.0 {
             self.ctx
                 .global_stat
                 .stat
@@ -2134,19 +2134,19 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     fn register_fidel_store_heartbeat_tick(&self) {
         self.ctx.schedule_store_tick(
             StoreTick::FidelStoreHeartbeat,
-            self.ctx.causetg.fidel_store_heartbeat_tick_interval.0,
+            self.ctx.causet.fidel_store_heartbeat_tick_interval.0,
         );
     }
 
     fn register_snap_mgr_gc_tick(&self) {
         self.ctx
-            .schedule_store_tick(StoreTick::SnapGc, self.ctx.causetg.snap_mgr_gc_tick_interval.0)
+            .schedule_store_tick(StoreTick::SnapGc, self.ctx.causet.snap_mgr_gc_tick_interval.0)
     }
 
     fn register_compact_lock_causet_tick(&self) {
         self.ctx.schedule_store_tick(
             StoreTick::CompactLockCf,
-            self.ctx.causetg.lock_causet_compact_interval.0,
+            self.ctx.causet.lock_causet_compact_interval.0,
         )
     }
 }
@@ -2249,7 +2249,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     fn register_consistency_check_tick(&mut self) {
         self.ctx.schedule_store_tick(
             StoreTick::ConsistencyCheck,
-            self.ctx.causetg.consistency_check_interval.0,
+            self.ctx.causet.consistency_check_interval.0,
         )
     }
 
@@ -2319,7 +2319,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     fn register_cleanup_import_sst_tick(&self) {
         self.ctx.schedule_store_tick(
             StoreTick::CleanupImportSST,
-            self.ctx.causetg.cleanup_import_sst_interval.0,
+            self.ctx.causet.cleanup_import_sst_interval.0,
         )
     }
 
@@ -2390,7 +2390,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     fn register_violetabft_engine_purge_tick(&self) {
         self.ctx.schedule_store_tick(
             StoreTick::VioletaBftEnginePurge,
-            self.ctx.causetg.violetabft_engine_purge_interval.0,
+            self.ctx.causet.violetabft_engine_purge_interval.0,
         )
     }
 
@@ -2401,7 +2401,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use engine_lmdb::ConeOffsets;
     use engine_lmdb::ConeProperties;

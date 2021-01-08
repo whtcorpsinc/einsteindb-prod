@@ -241,7 +241,7 @@ pub fn year(ctx: &mut EvalContext, t: Option<&DateTime>) -> Result<Option<Int>> 
     };
 
     if t.is_zero() {
-        if ctx.causetg.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
+        if ctx.causet.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
                 .map(|_| Ok(None))?;
@@ -260,7 +260,7 @@ pub fn day_of_month(ctx: &mut EvalContext, t: Option<&DateTime>) -> Result<Optio
     };
 
     if t.is_zero() {
-        if ctx.causetg.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
+        if ctx.causet.sql_mode.contains(SqlMode::NO_ZERO_DATE) {
             return ctx
                 .handle_invalid_time_error(Error::incorrect_datetime_value(&format!("{}", t)))
                 .map(|_| Ok(None))?;
@@ -335,7 +335,7 @@ pub fn last_day(ctx: &mut EvalContext, t: Option<&Time>) -> Result<Option<Time>>
     Ok(t.last_date_of_month())
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 
@@ -410,10 +410,10 @@ mod tests {
         //                    let format: Option<Bytes> =  Some("abc%b %M %m %c %D %d %e %j".as_bytes().to_vec());
         //                    let time: Option<DateTime> = Some( DateTime::parse_utc_datetime("0000-00-00 00:00:00", 6).unwrap());
         //
-        //                    let mut causetg = EvalConfig::new();
-        //                    causetg.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+        //                    let mut causet = EvalConfig::new();
+        //                    causet.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
         //                        .set_sql_mode(SqlMode::NO_ZERO_DATE | SqlMode::STRICT_ALL_BlockS);
-        //                    let ctx = EvalContext::new(Arc::new(causetg));
+        //                    let ctx = EvalContext::new(Arc::new(causet));
         //
         //                    let output = RpnFnScalarEvaluator::new()
         //                        .context(ctx)
@@ -424,10 +424,10 @@ mod tests {
         //                }
 
         {
-            let mut causetg = EvalConfig::new();
-            causetg.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+            let mut causet = EvalConfig::new();
+            causet.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
                 .set_sql_mode(SqlMode::NO_ZERO_DATE | SqlMode::STRICT_ALL_BlockS);
-            let ctx = EvalContext::new(Arc::new(causetg));
+            let ctx = EvalContext::new(Arc::new(causet));
 
             let output = RpnFnScalarEvaluator::new()
                 .context(ctx)

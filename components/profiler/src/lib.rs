@@ -45,14 +45,14 @@
 #[allow(unused_extern_crates)]
 extern crate einsteindb_alloc;
 
-#[causetg(all(unix, feature = "profiling"))]
+#[causet(all(unix, feature = "profiling"))]
 mod profiler_unix;
 
-#[causetg(all(unix, feature = "profiling"))]
+#[causet(all(unix, feature = "profiling"))]
 pub use profiler_unix::*;
 
-#[causetg(not(all(unix, feature = "profiling")))]
+#[causet(not(all(unix, feature = "profiling")))]
 mod profiler_dummy;
 
-#[causetg(not(all(unix, feature = "profiling")))]
+#[causet(not(all(unix, feature = "profiling")))]
 pub use profiler_dummy::*;

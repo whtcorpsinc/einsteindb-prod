@@ -499,7 +499,7 @@ fn get_tail_pointer_properties(
     Some(props)
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

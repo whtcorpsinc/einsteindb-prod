@@ -1104,7 +1104,7 @@ pub fn skip_n(buf: &mut &[u8], n: usize) -> Result<()> {
     Ok(())
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::codec::mysql::{Decimal, Duration, Time, MAX_FSP};

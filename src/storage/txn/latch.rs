@@ -213,7 +213,7 @@ impl Latches {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

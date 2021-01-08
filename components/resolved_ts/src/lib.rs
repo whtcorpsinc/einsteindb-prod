@@ -145,7 +145,7 @@ impl Resolver {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use txn_types::Key;

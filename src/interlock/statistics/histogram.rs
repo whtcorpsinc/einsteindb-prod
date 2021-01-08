@@ -150,7 +150,7 @@ impl Histogram {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

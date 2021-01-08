@@ -179,7 +179,7 @@ fn hex_digest(hashtype: MessageDigest, input: &[u8]) -> Result<Vec<u8>> {
         .map_err(|e| Error::Other(box_err!("OpenSSL error: {:?}", e)))
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crate::tests::{check_overflow, datum_expr, eval_func, scalar_func_expr};
     use crate::Expression;

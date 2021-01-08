@@ -44,20 +44,20 @@ impl Conn {
         env: Arc<Environment>,
         router: T,
         addr: &str,
-        causetg: &Config,
+        causet: &Config,
         security_mgr: &SecurityManager,
         store_id: u64,
     ) -> Conn {
         info!("server: new connection with einsteindb lightlikepoint"; "addr" => addr);
 
         let cb = ChannelBuilder::new(env)
-            .stream_initial_window_size(causetg.grpc_stream_initial_window_size.0 as i32)
-            .max_slightlike_message_len(causetg.max_grpc_slightlike_msg_len)
-            .keepalive_time(causetg.grpc_keepalive_time.0)
-            .keepalive_timeout(causetg.grpc_keepalive_timeout.0)
-            .default_compression_algorithm(causetg.grpc_compression_algorithm())
+            .stream_initial_window_size(causet.grpc_stream_initial_window_size.0 as i32)
+            .max_slightlike_message_len(causet.max_grpc_slightlike_msg_len)
+            .keepalive_time(causet.grpc_keepalive_time.0)
+            .keepalive_timeout(causet.grpc_keepalive_timeout.0)
+            .default_compression_algorithm(causet.grpc_compression_algorithm())
             // hack: so it's different args, grpc will always create a new connection.
-            .raw_causetg_int(
+            .raw_causet_int(
                 CString::new("random id").unwrap(),
                 CONN_ID.fetch_add(1, Ordering::SeqCst),
             );
@@ -70,7 +70,7 @@ impl Conn {
             rx,
             VIOLETABFT_MSG_MAX_BATCH_SIZE,
             Vec::new,
-            VioletaBftMsgCollector::new(causetg.max_grpc_slightlike_msg_len as usize),
+            VioletaBftMsgCollector::new(causet.max_grpc_slightlike_msg_len as usize),
         );
 
         // Use a mutex to make compiler happy.
@@ -148,7 +148,7 @@ pub struct VioletaBftClient<T: 'static> {
     router: Mutex<T>,
     conns: HashMap<(String, usize), Conn>,
     pub addrs: HashMap<u64, String>,
-    causetg: Arc<Config>,
+    causet: Arc<Config>,
     security_mgr: Arc<SecurityManager>,
 
     // To access CPU load of gRPC threads.
@@ -162,7 +162,7 @@ pub struct VioletaBftClient<T: 'static> {
 impl<T: VioletaBftStoreRouter<LmdbEngine>> VioletaBftClient<T> {
     pub fn new(
         env: Arc<Environment>,
-        causetg: Arc<Config>,
+        causet: Arc<Config>,
         security_mgr: Arc<SecurityManager>,
         router: T,
         grpc_thread_load: Arc<ThreadLoad>,
@@ -173,7 +173,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>> VioletaBftClient<T> {
             router: Mutex::new(router),
             conns: HashMap::default(),
             addrs: HashMap::default(),
-            causetg,
+            causet,
             security_mgr,
             grpc_thread_load,
             stats_pool,
@@ -182,7 +182,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>> VioletaBftClient<T> {
     }
 
     fn get_conn(&mut self, addr: &str, brane_id: u64, store_id: u64) -> &mut Conn {
-        let index = brane_id as usize % self.causetg.grpc_violetabft_conn_num;
+        let index = brane_id as usize % self.causet.grpc_violetabft_conn_num;
         match self.conns.entry((addr.to_owned(), index)) {
             HashMapEntry::Occupied(e) => e.into_mut(),
             HashMapEntry::Vacant(e) => {
@@ -190,7 +190,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>> VioletaBftClient<T> {
                     Arc::clone(&self.env),
                     self.router.dagger().unwrap().clone(),
                     addr,
-                    &self.causetg,
+                    &self.causet,
                     &self.security_mgr,
                     store_id,
                 );
@@ -206,7 +206,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>> VioletaBftClient<T> {
             .slightlike(msg)
         {
             warn!("slightlike to {} fail, the gRPC connection could be broken", addr);
-            let index = msg.brane_id as usize % self.causetg.grpc_violetabft_conn_num;
+            let index = msg.brane_id as usize % self.causet.grpc_violetabft_conn_num;
             self.conns.remove(&(addr.to_owned(), index));
 
             if let Some(current_addr) = self.addrs.remove(&store_id) {
@@ -231,7 +231,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>> VioletaBftClient<T> {
                     counter += 1;
                     continue;
                 }
-                let wait = self.causetg.heavy_load_wait_duration.0;
+                let wait = self.causet.heavy_load_wait_duration.0;
                 self.stats_pool.as_ref().unwrap().spawn(
                     self.timer
                         .delay(Instant::now() + wait)

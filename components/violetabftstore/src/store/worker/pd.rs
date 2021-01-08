@@ -394,7 +394,7 @@ where
                     }
                     // modules timer_cnt with the least common multiple of intervals to avoid overflow
                     timer_cnt = (timer_cnt + 1) % (qps_info_interval * thread_info_interval);
-                    auto_split_controller.refresh_causetg();
+                    auto_split_controller.refresh_causet();
                 }
                 einsteindb_alloc::remove_thread_memory_accessor();
             })?;
@@ -1254,8 +1254,8 @@ fn slightlike_destroy_peer_message<EK, ER>(
     }
 }
 
-#[causetg(not(target_os = "macos"))]
-#[causetg(test)]
+#[causet(not(target_os = "macos"))]
+#[causet(test)]
 mod tests {
     use engine_lmdb::LmdbEngine;
     use std::sync::Mutex;

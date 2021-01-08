@@ -118,7 +118,7 @@ impl<S: CausetStorage> IndexScanFreeDaemon<S> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use byteorder::{BigEndian, WriteBytesExt};
     use std::i64;

@@ -26,7 +26,7 @@ const REVERSE_SEEK_BOUND: u64 = 16;
 ///
 /// Use `ScannerBuilder` to build `BackwardKvScanner`.
 pub struct BackwardKvScanner<S: Snapshot> {
-    causetg: ScannerConfig<S>,
+    causet: ScannerConfig<S>,
     lock_cursor: Cursor<S::Iter>,
     write_cursor: Cursor<S::Iter>,
     /// `default cursor` is lazy created only when it's needed.
@@ -39,17 +39,17 @@ pub struct BackwardKvScanner<S: Snapshot> {
 
 impl<S: Snapshot> BackwardKvScanner<S> {
     pub fn new(
-        causetg: ScannerConfig<S>,
+        causet: ScannerConfig<S>,
         lock_cursor: Cursor<S::Iter>,
         write_cursor: Cursor<S::Iter>,
     ) -> BackwardKvScanner<S> {
         BackwardKvScanner {
-            met_newer_ts_data: if causetg.check_has_newer_ts_data {
+            met_newer_ts_data: if causet.check_has_newer_ts_data {
                 NewerTsCheckState::NotMetYet
             } else {
                 NewerTsCheckState::Unknown
             },
-            causetg,
+            causet,
             lock_cursor,
             write_cursor,
             statistics: Statistics::default(),
@@ -73,18 +73,18 @@ impl<S: Snapshot> BackwardKvScanner<S> {
     /// Get the next key-value pair, in backward order.
     pub fn read_next(&mut self) -> Result<Option<(Key, Value)>> {
         if !self.is_spacelikeed {
-            if self.causetg.upper_bound.is_some() {
+            if self.causet.upper_bound.is_some() {
                 // TODO: `seek_to_last` is better, however it has performance issues currently.
                 // TODO: We have no guarantee about whether or not the upper_bound has a
                 // timestamp suffix, so currently it is not safe to change write_cursor's
                 // reverse_seek to seek_for_prev. However in future, once we have different types
                 // for them, this can be done safely.
                 self.write_cursor.reverse_seek(
-                    self.causetg.upper_bound.as_ref().unwrap(),
+                    self.causet.upper_bound.as_ref().unwrap(),
                     &mut self.statistics.write,
                 )?;
                 self.lock_cursor.reverse_seek(
-                    self.causetg.upper_bound.as_ref().unwrap(),
+                    self.causet.upper_bound.as_ref().unwrap(),
                     &mut self.statistics.dagger,
                 )?;
             } else {
@@ -140,10 +140,10 @@ impl<S: Snapshot> BackwardKvScanner<S> {
 
             let mut result = Ok(None);
             let mut met_prev_user_key = false;
-            let ts = self.causetg.ts;
+            let ts = self.causet.ts;
 
             if has_lock {
-                match self.causetg.isolation_level {
+                match self.causet.isolation_level {
                     IsolationLevel::Si => {
                         let dagger = {
                             let lock_value = self.lock_cursor.value(&mut self.statistics.dagger);
@@ -156,7 +156,7 @@ impl<S: Snapshot> BackwardKvScanner<S> {
                             Cow::Owned(dagger),
                             &current_user_key,
                             ts,
-                            &self.causetg.bypass_locks,
+                            &self.causet.bypass_locks,
                         )
                         .map(|_| None)
                         .map_err(Into::into);
@@ -185,7 +185,7 @@ impl<S: Snapshot> BackwardKvScanner<S> {
         }
     }
 
-    /// Attempt to get the value of a key specified by `user_key` and `self.causetg.ts` in reverse order.
+    /// Attempt to get the value of a key specified by `user_key` and `self.causet.ts` in reverse order.
     /// This function requires that the write cursor is currently pointing to the earliest version
     /// of `user_key`.
     #[inline]
@@ -362,7 +362,7 @@ impl<S: Snapshot> BackwardKvScanner<S> {
     /// The implementation is similar to `PointGetter::load_data_by_write`.
     #[inline]
     fn reverse_load_data_by_write(&mut self, write: Write, user_key: &Key) -> Result<Value> {
-        if self.causetg.omit_value {
+        if self.causet.omit_value {
             return Ok(vec![]);
         }
         match write.short_value {
@@ -423,12 +423,12 @@ impl<S: Snapshot> BackwardKvScanner<S> {
         if self.default_cursor.is_some() {
             return Ok(());
         }
-        self.default_cursor = Some(self.causetg.create_causet_cursor(CAUSET_DEFAULT)?);
+        self.default_cursor = Some(self.causet.create_causet_cursor(CAUSET_DEFAULT)?);
         Ok(())
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::ScannerBuilder;
     use super::*;

@@ -506,7 +506,7 @@ thread_local! {
    static MYSQL_RNG: RefCell<MySQLRng> = RefCell::new(MySQLRng::new())
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::f64::consts::{FRAC_1_SQRT_2, PI};
     use std::{f64, i64, u64};

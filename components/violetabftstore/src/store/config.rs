@@ -611,7 +611,7 @@ impl ConfigManager for VioletaBftstoreConfigManager {
     ) -> std::result::Result<(), Box<dyn std::error::Error>> {
         {
             let change = change.clone();
-            self.0.ufidelate(move |causetg: &mut Config| causetg.ufidelate(change));
+            self.0.ufidelate(move |causet: &mut Config| causet.ufidelate(change));
         }
         info!(
             "violetabftstore config changed";
@@ -630,95 +630,95 @@ impl std::ops::Deref for VioletaBftstoreConfigManager {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_config_validate() {
-        let mut causetg = Config::new();
-        causetg.validate().unwrap();
+        let mut causet = Config::new();
+        causet.validate().unwrap();
         assert_eq!(
-            causetg.violetabft_min_election_timeout_ticks,
-            causetg.violetabft_election_timeout_ticks
+            causet.violetabft_min_election_timeout_ticks,
+            causet.violetabft_election_timeout_ticks
         );
         assert_eq!(
-            causetg.violetabft_max_election_timeout_ticks,
-            causetg.violetabft_election_timeout_ticks * 2
+            causet.violetabft_max_election_timeout_ticks,
+            causet.violetabft_election_timeout_ticks * 2
         );
 
-        causetg.violetabft_heartbeat_ticks = 0;
-        assert!(causetg.validate().is_err());
+        causet.violetabft_heartbeat_ticks = 0;
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.violetabft_election_timeout_ticks = 10;
-        causetg.violetabft_heartbeat_ticks = 10;
-        assert!(causetg.validate().is_err());
+        causet = Config::new();
+        causet.violetabft_election_timeout_ticks = 10;
+        causet.violetabft_heartbeat_ticks = 10;
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.violetabft_min_election_timeout_ticks = 5;
-        causetg.validate().unwrap_err();
-        causetg.violetabft_min_election_timeout_ticks = 25;
-        causetg.validate().unwrap_err();
-        causetg.violetabft_min_election_timeout_ticks = 10;
-        causetg.validate().unwrap();
+        causet = Config::new();
+        causet.violetabft_min_election_timeout_ticks = 5;
+        causet.validate().unwrap_err();
+        causet.violetabft_min_election_timeout_ticks = 25;
+        causet.validate().unwrap_err();
+        causet.violetabft_min_election_timeout_ticks = 10;
+        causet.validate().unwrap();
 
-        causetg.violetabft_heartbeat_ticks = 11;
-        assert!(causetg.validate().is_err());
+        causet.violetabft_heartbeat_ticks = 11;
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.violetabft_log_gc_memory_barrier = 0;
-        assert!(causetg.validate().is_err());
+        causet = Config::new();
+        causet.violetabft_log_gc_memory_barrier = 0;
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.violetabft_log_gc_size_limit = ReadableSize(0);
-        assert!(causetg.validate().is_err());
+        causet = Config::new();
+        causet.violetabft_log_gc_size_limit = ReadableSize(0);
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.violetabft_base_tick_interval = ReadableDuration::secs(1);
-        causetg.violetabft_election_timeout_ticks = 10;
-        causetg.violetabft_store_max_leader_lease = ReadableDuration::secs(20);
-        assert!(causetg.validate().is_err());
+        causet = Config::new();
+        causet.violetabft_base_tick_interval = ReadableDuration::secs(1);
+        causet.violetabft_election_timeout_ticks = 10;
+        causet.violetabft_store_max_leader_lease = ReadableDuration::secs(20);
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.violetabft_log_gc_count_limit = 100;
-        causetg.merge_max_log_gap = 110;
-        assert!(causetg.validate().is_err());
+        causet = Config::new();
+        causet.violetabft_log_gc_count_limit = 100;
+        causet.merge_max_log_gap = 110;
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.merge_check_tick_interval = ReadableDuration::secs(0);
-        assert!(causetg.validate().is_err());
+        causet = Config::new();
+        causet.merge_check_tick_interval = ReadableDuration::secs(0);
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.violetabft_base_tick_interval = ReadableDuration::secs(1);
-        causetg.violetabft_election_timeout_ticks = 10;
-        causetg.peer_stale_state_check_interval = ReadableDuration::secs(5);
-        assert!(causetg.validate().is_err());
+        causet = Config::new();
+        causet.violetabft_base_tick_interval = ReadableDuration::secs(1);
+        causet.violetabft_election_timeout_ticks = 10;
+        causet.peer_stale_state_check_interval = ReadableDuration::secs(5);
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.peer_stale_state_check_interval = ReadableDuration::minutes(2);
-        causetg.abnormal_leader_missing_duration = ReadableDuration::minutes(1);
-        assert!(causetg.validate().is_err());
+        causet = Config::new();
+        causet.peer_stale_state_check_interval = ReadableDuration::minutes(2);
+        causet.abnormal_leader_missing_duration = ReadableDuration::minutes(1);
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.abnormal_leader_missing_duration = ReadableDuration::minutes(2);
-        causetg.max_leader_missing_duration = ReadableDuration::minutes(1);
-        assert!(causetg.validate().is_err());
+        causet = Config::new();
+        causet.abnormal_leader_missing_duration = ReadableDuration::minutes(2);
+        causet.max_leader_missing_duration = ReadableDuration::minutes(1);
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.local_read_batch_size = 0;
-        assert!(causetg.validate().is_err());
+        causet = Config::new();
+        causet.local_read_batch_size = 0;
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.apply_batch_system.max_batch_size = 0;
-        assert!(causetg.validate().is_err());
+        causet = Config::new();
+        causet.apply_batch_system.max_batch_size = 0;
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.apply_batch_system.pool_size = 0;
-        assert!(causetg.validate().is_err());
+        causet = Config::new();
+        causet.apply_batch_system.pool_size = 0;
+        assert!(causet.validate().is_err());
 
-        causetg = Config::new();
-        causetg.future_poll_size = 0;
-        assert!(causetg.validate().is_err());
+        causet = Config::new();
+        causet.future_poll_size = 0;
+        assert!(causet.validate().is_err());
     }
 }

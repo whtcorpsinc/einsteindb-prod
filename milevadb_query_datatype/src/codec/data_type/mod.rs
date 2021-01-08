@@ -382,7 +382,7 @@ impl<'a> EvaluableRef<'a> for JsonRef<'a> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use std::f64;

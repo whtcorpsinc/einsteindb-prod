@@ -31,7 +31,7 @@ pub fn gen_random_bytes(len: usize) -> Vec<u8> {
     (0..len).map(|_| rand::random::<u8>()).collect()
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

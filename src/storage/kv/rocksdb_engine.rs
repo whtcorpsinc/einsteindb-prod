@@ -202,11 +202,11 @@ impl TestEngineBuilder {
 
     /// Build a `LmdbEngine`.
     pub fn build(self) -> Result<LmdbEngine> {
-        let causetg_lmdb = crate::config::DbConfig::default();
-        self.build_with_causetg(&causetg_lmdb)
+        let causet_lmdb = crate::config::DbConfig::default();
+        self.build_with_causet(&causet_lmdb)
     }
 
-    pub fn build_with_causetg(self, causetg_lmdb: &crate::config::DbConfig) -> Result<LmdbEngine> {
+    pub fn build_with_causet(self, causet_lmdb: &crate::config::DbConfig) -> Result<LmdbEngine> {
         let path = match self.path {
             None => TEMP_DIR.to_owned(),
             Some(p) => p.to_str().unwrap().to_owned(),
@@ -216,10 +216,10 @@ impl TestEngineBuilder {
         let causets_opts = causets
             .iter()
             .map(|causet| match *causet {
-                CAUSET_DEFAULT => CAUSETOptions::new(CAUSET_DEFAULT, causetg_lmdb.defaultcauset.build_opt(&cache)),
-                CAUSET_DAGGER => CAUSETOptions::new(CAUSET_DAGGER, causetg_lmdb.lockcauset.build_opt(&cache)),
-                CAUSET_WRITE => CAUSETOptions::new(CAUSET_WRITE, causetg_lmdb.writecauset.build_opt(&cache)),
-                CAUSET_VIOLETABFT => CAUSETOptions::new(CAUSET_VIOLETABFT, causetg_lmdb.violetabftcauset.build_opt(&cache)),
+                CAUSET_DEFAULT => CAUSETOptions::new(CAUSET_DEFAULT, causet_lmdb.defaultcauset.build_opt(&cache)),
+                CAUSET_DAGGER => CAUSETOptions::new(CAUSET_DAGGER, causet_lmdb.lockcauset.build_opt(&cache)),
+                CAUSET_WRITE => CAUSETOptions::new(CAUSET_WRITE, causet_lmdb.writecauset.build_opt(&cache)),
+                CAUSET_VIOLETABFT => CAUSETOptions::new(CAUSET_VIOLETABFT, causet_lmdb.violetabftcauset.build_opt(&cache)),
                 _ => CAUSETOptions::new(*causet, PrimaryCausetNetworkOptions::new()),
             })
             .collect();
@@ -442,7 +442,7 @@ impl<D: Borrow<DB> + Slightlike> EngineIterator for DBIterator<D> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::perf_context::PerfStatisticsInstant;
     use super::super::tests::*;

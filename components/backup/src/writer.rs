@@ -286,7 +286,7 @@ impl BackupRawKVWriter {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use engine_promises::Iterable;

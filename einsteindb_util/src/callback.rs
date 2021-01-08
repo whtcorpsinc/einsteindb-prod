@@ -50,7 +50,7 @@ where
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicI32, Ordering::SeqCst};

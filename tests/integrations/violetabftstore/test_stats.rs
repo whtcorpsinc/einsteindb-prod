@@ -37,7 +37,7 @@ fn check_available<T: Simulator>(cluster: &mut Cluster<T>) {
 fn test_simple_store_stats<T: Simulator>(cluster: &mut Cluster<T>) {
     let fidel_client = Arc::clone(&cluster.fidel_client);
 
-    cluster.causetg.violetabft_store.fidel_store_heartbeat_tick_interval = ReadableDuration::millis(20);
+    cluster.causet.violetabft_store.fidel_store_heartbeat_tick_interval = ReadableDuration::millis(20);
     cluster.run();
 
     // wait store reports stats.

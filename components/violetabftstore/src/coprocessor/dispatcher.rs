@@ -414,13 +414,13 @@ impl<E: KvEngine> InterlockHost<E> {
 
     pub fn new_split_checker_host<'a>(
         &self,
-        causetg: &'a Config,
+        causet: &'a Config,
         brane: &Brane,
         engine: &E,
         auto_split: bool,
         policy: CheckPolicy,
     ) -> SplitCheckerHost<'a, E> {
-        let mut host = SplitCheckerHost::new(auto_split, causetg);
+        let mut host = SplitCheckerHost::new(auto_split, causet);
         loop_ob!(
             brane,
             &self.registry.split_check_observers,
@@ -548,7 +548,7 @@ impl<E: KvEngine> InterlockHost<E> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crate::interlock::*;
     use std::sync::atomic::*;

@@ -215,7 +215,7 @@ pub trait ScalarValueEncoder: NumberEncoder + DecimalEncoder + JsonEncoder {
 }
 impl<T: BufferWriter> ScalarValueEncoder for T {}
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::{PrimaryCauset, EventEncoder};
     use crate::codec::{

@@ -75,7 +75,7 @@ impl<S: CausetStorage> BlockScanFreeDaemon<S> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::i64;
 

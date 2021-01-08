@@ -2393,7 +2393,7 @@ impl Hash for Decimal {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use super::{DEFAULT_DIV_FRAC_INCR, WORD_BUF_LEN};

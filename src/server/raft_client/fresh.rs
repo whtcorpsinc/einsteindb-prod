@@ -147,16 +147,16 @@ struct BatchMessageBuffer {
     batch: BatchVioletaBftMessage,
     overflowing: Option<VioletaBftMessage>,
     size: usize,
-    causetg: Arc<Config>,
+    causet: Arc<Config>,
 }
 
 impl BatchMessageBuffer {
-    fn new(causetg: Arc<Config>) -> BatchMessageBuffer {
+    fn new(causet: Arc<Config>) -> BatchMessageBuffer {
         BatchMessageBuffer {
             batch: BatchVioletaBftMessage::default(),
             overflowing: None,
             size: 0,
-            causetg,
+            causet,
         }
     }
 }
@@ -178,7 +178,7 @@ impl Buffer for BatchMessageBuffer {
         // To avoid building too large batch, we limit each batch's size. Since `msg_size`
         // is estimated, `GRPC_SEND_MSG_BUF` is reserved for errors.
         if self.size > 0
-            && (self.size + msg_size + GRPC_SEND_MSG_BUF >= self.causetg.max_grpc_slightlike_msg_len as usize
+            && (self.size + msg_size + GRPC_SEND_MSG_BUF >= self.causet.max_grpc_slightlike_msg_len as usize
                 || self.batch.get_msgs().len() >= VIOLETABFT_MSG_MAX_BATCH_SIZE)
         {
             self.size += msg_size;
@@ -464,7 +464,7 @@ where
 #[derive(Clone)]
 pub struct ConnectionBuilder<S, R> {
     env: Arc<Environment>,
-    causetg: Arc<Config>,
+    causet: Arc<Config>,
     security_mgr: Arc<SecurityManager>,
     resolver: S,
     router: R,
@@ -475,7 +475,7 @@ impl<S, R> ConnectionBuilder<S, R> {
     #[allow(unused)]
     pub fn new(
         env: Arc<Environment>,
-        causetg: Arc<Config>,
+        causet: Arc<Config>,
         security_mgr: Arc<SecurityManager>,
         resolver: S,
         router: R,
@@ -483,7 +483,7 @@ impl<S, R> ConnectionBuilder<S, R> {
     ) -> ConnectionBuilder<S, R> {
         ConnectionBuilder {
             env,
-            causetg,
+            causet,
             security_mgr,
             resolver,
             router,
@@ -552,13 +552,13 @@ where
         info!("server: new connection with einsteindb lightlikepoint"; "addr" => addr, "store_id" => self.store_id);
 
         let cb = ChannelBuilder::new(self.builder.env.clone())
-            .stream_initial_window_size(self.builder.causetg.grpc_stream_initial_window_size.0 as i32)
-            .max_slightlike_message_len(self.builder.causetg.max_grpc_slightlike_msg_len)
-            .keepalive_time(self.builder.causetg.grpc_keepalive_time.0)
-            .keepalive_timeout(self.builder.causetg.grpc_keepalive_timeout.0)
-            .default_compression_algorithm(self.builder.causetg.grpc_compression_algorithm())
+            .stream_initial_window_size(self.builder.causet.grpc_stream_initial_window_size.0 as i32)
+            .max_slightlike_message_len(self.builder.causet.max_grpc_slightlike_msg_len)
+            .keepalive_time(self.builder.causet.grpc_keepalive_time.0)
+            .keepalive_timeout(self.builder.causet.grpc_keepalive_timeout.0)
+            .default_compression_algorithm(self.builder.causet.grpc_compression_algorithm())
             // hack: so it's different args, grpc will always create a new connection.
-            .raw_causetg_int(
+            .raw_causet_int(
                 CString::new("random id").unwrap(),
                 CONN_ID.fetch_add(1, Ordering::SeqCst),
             );
@@ -577,7 +577,7 @@ where
             slightlikeer: batch_sink,
             receiver: batch_stream,
             queue: self.queue.clone(),
-            buffer: BatchMessageBuffer::new(self.builder.causetg.clone()),
+            buffer: BatchMessageBuffer::new(self.builder.causet.clone()),
             router: self.builder.router.clone(),
             snap_scheduler: self.builder.snap_scheduler.clone(),
             lifetime: Some(tx),
@@ -802,7 +802,7 @@ where
     #[allow(unused)]
     pub fn slightlike(&mut self, msg: VioletaBftMessage) -> bool {
         let store_id = msg.get_to_peer().store_id;
-        let conn_id = (msg.brane_id % self.builder.causetg.grpc_violetabft_conn_num as u64) as usize;
+        let conn_id = (msg.brane_id % self.builder.causet.grpc_violetabft_conn_num as u64) as usize;
         loop {
             if let Some(s) = self.cache.get_mut(&(store_id, conn_id)) {
                 match s.queue.push(msg) {

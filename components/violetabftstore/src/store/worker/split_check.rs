@@ -129,7 +129,7 @@ pub enum Task {
         policy: CheckPolicy,
     },
     ChangeConfig(ConfigChange),
-    #[causetg(any(test, feature = "testexport"))]
+    #[causet(any(test, feature = "testexport"))]
     Validate(Box<dyn FnOnce(&Config) + Slightlike>),
 }
 
@@ -155,7 +155,7 @@ impl Display for Task {
                 auto_split
             ),
             Task::ChangeConfig(_) => write!(f, "[split check worker] Change Config Task"),
-            #[causetg(any(test, feature = "testexport"))]
+            #[causet(any(test, feature = "testexport"))]
             Task::Validate(_) => write!(f, "[split check worker] Validate config"),
         }
     }
@@ -168,7 +168,7 @@ where
     engine: E,
     router: S,
     interlock: InterlockHost<E>,
-    causetg: Config,
+    causet: Config,
 }
 
 impl<E, S> Runner<E, S>
@@ -176,12 +176,12 @@ where
     E: KvEngine,
     S: CasualRouter<E>,
 {
-    pub fn new(engine: E, router: S, interlock: InterlockHost<E>, causetg: Config) -> Runner<E, S> {
+    pub fn new(engine: E, router: S, interlock: InterlockHost<E>, causet: Config) -> Runner<E, S> {
         Runner {
             engine,
             router,
             interlock,
-            causetg,
+            causet,
         }
     }
 
@@ -199,7 +199,7 @@ where
         CHECK_SPILT_COUNTER.all.inc();
 
         let mut host = self.interlock.new_split_checker_host(
-            &self.causetg,
+            &self.causet,
             brane,
             &self.engine,
             auto_split,
@@ -309,12 +309,12 @@ where
         Ok(host.split_tuplespaceInstanton())
     }
 
-    fn change_causetg(&mut self, change: ConfigChange) {
+    fn change_causet(&mut self, change: ConfigChange) {
         info!(
             "split check config ufidelated";
             "change" => ?change
         );
-        self.causetg.ufidelate(change);
+        self.causet.ufidelate(change);
     }
 }
 
@@ -332,9 +332,9 @@ where
                 auto_split,
                 policy,
             } => self.check_split(&brane, auto_split, policy),
-            Task::ChangeConfig(c) => self.change_causetg(c),
-            #[causetg(any(test, feature = "testexport"))]
-            Task::Validate(f) => f(&self.causetg),
+            Task::ChangeConfig(c) => self.change_causet(c),
+            #[causet(any(test, feature = "testexport"))]
+            Task::Validate(f) => f(&self.causet),
         }
     }
 }

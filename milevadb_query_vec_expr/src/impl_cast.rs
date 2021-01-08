@@ -1259,7 +1259,7 @@ fn cast_json_as_bytes(ctx: &mut EvalContext, val: Option<JsonRef>) -> Result<Opt
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::Result;
     use crate::impl_cast::*;
@@ -1405,8 +1405,8 @@ mod tests {
             if config.in_ufidelate_or_delete_stmt {
                 flag |= Flag::IN_UFIDelATE_OR_DELETE_STMT;
             }
-            let causetg = Arc::new(EvalConfig::from_flag(flag));
-            EvalContext::new(causetg)
+            let causet = Arc::new(EvalConfig::from_flag(flag));
+            EvalContext::new(causet)
         }
     }
 

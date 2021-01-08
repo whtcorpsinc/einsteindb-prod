@@ -522,7 +522,7 @@ pub fn generate_index_data_for_test(
     (expect_row, idx_key)
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::i64;
 

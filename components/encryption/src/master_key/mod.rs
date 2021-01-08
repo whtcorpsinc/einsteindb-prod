@@ -2,7 +2,7 @@
 
 use ekvproto::encryptionpb::EncryptedContent;
 
-#[causetg(test)]
+#[causet(test)]
 use crate::config::Mock;
 use crate::{Error, MasterKeyConfig, Result};
 
@@ -79,20 +79,20 @@ pub(crate) fn create_backlightlike(config: &MasterKeyConfig) -> Result<Arc<dyn B
             Arc::new(FileBacklightlike::new(Path::new(&config.path))?) as _
         }
         MasterKeyConfig::Kms { config } => Arc::new(KmsBacklightlike::new(config.clone())?) as _,
-        #[causetg(test)]
+        #[causet(test)]
         MasterKeyConfig::Mock(Mock(mock)) => mock.clone() as _,
     })
 }
 
 // To make MasterKeyConfig able to compile.
-#[causetg(test)]
+#[causet(test)]
 impl std::fmt::Debug for dyn Backlightlike {
     fn fmt(&self, _f: &mut std::fmt::Formatter) -> std::fmt::Result {
         Ok(())
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use super::*;
     use crate::*;

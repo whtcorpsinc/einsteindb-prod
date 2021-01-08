@@ -36,7 +36,7 @@ pub struct RpcClient {
 }
 
 impl RpcClient {
-    pub fn new(causetg: &Config, security_mgr: Arc<SecurityManager>) -> Result<RpcClient> {
+    pub fn new(causet: &Config, security_mgr: Arc<SecurityManager>) -> Result<RpcClient> {
         let env = Arc::new(
             EnvBuilder::new()
                 .cq_count(CQ_COUNT)
@@ -45,12 +45,12 @@ impl RpcClient {
         );
 
         // -1 means the max.
-        let retries = match causetg.retry_max_count {
+        let retries = match causet.retry_max_count {
             -1 => std::isize::MAX,
             v => v.checked_add(1).unwrap_or(std::isize::MAX),
         };
         for i in 0..retries {
-            match validate_lightlikepoints(Arc::clone(&env), causetg, security_mgr.clone()) {
+            match validate_lightlikepoints(Arc::clone(&env), causet, security_mgr.clone()) {
                 Ok((client, members)) => {
                     let rpc_client = RpcClient {
                         cluster_id: members.get_header().get_cluster_id(),
@@ -63,7 +63,7 @@ impl RpcClient {
                     };
 
                     // spawn a background future to ufidelate FIDel information periodically
-                    let duration = causetg.ufidelate_interval.0;
+                    let duration = causet.ufidelate_interval.0;
                     let client = Arc::downgrade(&rpc_client.leader_client);
                     let ufidelate_loop = async move {
                         loop {
@@ -102,10 +102,10 @@ impl RpcClient {
                     return Ok(rpc_client);
                 }
                 Err(e) => {
-                    if i as usize % causetg.retry_log_every == 0 {
+                    if i as usize % causet.retry_log_every == 0 {
                         warn!("validate FIDel lightlikepoints failed"; "err" => ?e);
                     }
-                    thread::sleep(causetg.retry_interval.0);
+                    thread::sleep(causet.retry_interval.0);
                 }
             }
         }

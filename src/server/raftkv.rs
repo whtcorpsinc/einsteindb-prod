@@ -226,7 +226,7 @@ where
         reqs: Vec<Request>,
         cb: Callback<CmdRes>,
     ) -> Result<()> {
-        #[causetg(feature = "failpoints")]
+        #[causet(feature = "failpoints")]
         {
             // If rid is some, only the specified brane reports error.
             // If rid is None, all branes report error.

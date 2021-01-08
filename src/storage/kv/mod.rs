@@ -401,7 +401,7 @@ pub fn drop_snapshot_callback<E: Engine>() -> (CbContext, Result<E::Snap>) {
     (CbContext::new(), Err(Error::from(ErrorInner::Request(err))))
 }
 
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use super::*;
     use einsteindb_util::codec::bytes;

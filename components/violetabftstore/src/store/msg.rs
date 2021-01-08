@@ -439,7 +439,7 @@ where
     },
 
     /// Message only used for test.
-    #[causetg(any(test, feature = "testexport"))]
+    #[causet(any(test, feature = "testexport"))]
     Validate(Box<dyn FnOnce(&crate::store::Config) + Slightlike>),
     /// Asks the store to ufidelate replication mode.
     UfidelateReplicationMode(ReplicationStatus),
@@ -467,7 +467,7 @@ where
             ),
             StoreMsg::Tick(tick) => write!(fmt, "StoreTick {:?}", tick),
             StoreMsg::Start { ref store } => write!(fmt, "Start store {:?}", store),
-            #[causetg(any(test, feature = "testexport"))]
+            #[causet(any(test, feature = "testexport"))]
             StoreMsg::Validate(_) => write!(fmt, "Validate config"),
             StoreMsg::UfidelateReplicationMode(_) => write!(fmt, "UfidelateReplicationMode"),
         }

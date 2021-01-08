@@ -70,7 +70,7 @@ impl CommandExt for Prewrite {
 }
 
 impl Prewrite {
-    #[causetg(test)]
+    #[causet(test)]
     pub fn with_defaults(
         mutations: Vec<Mutation>,
         primary: Vec<u8>,
@@ -89,7 +89,7 @@ impl Prewrite {
         )
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     pub fn with_lock_ttl(
         mutations: Vec<Mutation>,
         primary: Vec<u8>,
@@ -256,7 +256,7 @@ impl<S: Snapshot, L: LockManager> WriteCommand<S, L> for Prewrite {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use ekvproto::kvrpcpb::{Context, ExtraOp};
 

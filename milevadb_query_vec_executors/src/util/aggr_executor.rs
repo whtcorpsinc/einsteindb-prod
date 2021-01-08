@@ -328,7 +328,7 @@ impl<Src: BatchFreeDaemon, I: AggregationFreeDaemonImpl<Src>> BatchFreeDaemon
 }
 
 /// Shared test facilities for different aggregation executors.
-#[causetg(test)]
+#[causet(test)]
 pub mod tests {
     use milevadb_query_codegen::AggrFunction;
     use milevadb_query_datatype::builder::FieldTypeBuilder;

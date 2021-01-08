@@ -118,7 +118,7 @@ pub fn random_bytes(_ctx: &mut EvalContext, arg: Option<&Int>) -> Result<Option<
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use fidelpb::ScalarFuncSig;
 

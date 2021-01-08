@@ -132,7 +132,7 @@ fn test_read_index_on_replica() {
 fn test_read_on_replica() {
     let count = 3;
     let mut cluster = new_server_cluster(0, count);
-    cluster.causetg.violetabft_store.hibernate_branes = false;
+    cluster.causet.violetabft_store.hibernate_branes = false;
     cluster.run();
 
     let k1 = b"k1";
@@ -194,8 +194,8 @@ fn test_invalid_read_index_when_no_leader() {
     // Initialize cluster
     let mut cluster = new_node_cluster(0, 3);
     configure_for_lease_read(&mut cluster, Some(10), Some(6));
-    cluster.causetg.violetabft_store.violetabft_heartbeat_ticks = 1;
-    cluster.causetg.violetabft_store.hibernate_branes = false;
+    cluster.causet.violetabft_store.violetabft_heartbeat_ticks = 1;
+    cluster.causet.violetabft_store.hibernate_branes = false;
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 

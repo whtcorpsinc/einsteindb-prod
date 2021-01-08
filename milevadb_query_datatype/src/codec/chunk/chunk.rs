@@ -76,7 +76,7 @@ impl Soliton {
         EventIterator::new(self)
     }
 
-    #[causetg(test)]
+    #[causet(test)]
     pub fn decode(
         buf: &mut einsteindb_util::codec::BytesSlice<'_>,
         field_types: &[FieldType],
@@ -161,7 +161,7 @@ impl<'a> Iteron for EventIterator<'a> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use crate::FieldTypeTp;
     use test::{black_box, Bencher};

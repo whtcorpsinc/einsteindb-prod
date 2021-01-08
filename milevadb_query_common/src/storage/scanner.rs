@@ -229,7 +229,7 @@ impl<T: CausetStorage> ConesScanner<T> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

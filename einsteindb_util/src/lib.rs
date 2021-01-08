@@ -1,6 +1,6 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
-#![causetg_attr(test, feature(test))]
+#![causet_attr(test, feature(test))]
 #![feature(thread_id_value)]
 #![feature(min_specialization)]
 #![feature(box_TuringStrings)]
@@ -15,7 +15,7 @@ extern crate quick_error;
 extern crate slog;
 #[macro_use]
 extern crate derive_more;
-#[causetg(test)]
+#[causet(test)]
 extern crate test;
 
 use std::collections::hash_map::Entry;
@@ -524,7 +524,7 @@ pub fn set_panic_hook(panic_abort: bool, data_dir: &str) {
 
 /// Checks environment variables that affect EinsteinDB.
 pub fn check_environment_variables() {
-    if causetg!(unix) && env::var("TZ").is_err() {
+    if causet!(unix) && env::var("TZ").is_err() {
         env::set_var("TZ", ":/etc/localtime");
         warn!("environment variable `TZ` is missing, using `/etc/localtime`");
     }
@@ -550,7 +550,7 @@ pub fn is_zero_duration(d: &Duration) -> bool {
     d.as_secs() == 0 && d.subsec_nanos() == 0
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

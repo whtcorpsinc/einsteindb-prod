@@ -20,11 +20,11 @@ pub struct SelectionFreeDaemon<Src: FreeDaemon> {
 }
 
 impl<Src: FreeDaemon> SelectionFreeDaemon<Src> {
-    pub fn new(mut meta: Selection, eval_causetg: Arc<EvalConfig>, src: Src) -> Result<Self> {
+    pub fn new(mut meta: Selection, eval_causet: Arc<EvalConfig>, src: Src) -> Result<Self> {
         let conditions: Vec<_> = meta.take_conditions().into();
         let mut visitor = ExprPrimaryCausetRefVisitor::new(src.get_len_of_PrimaryCausets());
         visitor.batch_visit(&conditions)?;
-        let mut ctx = EvalContext::new(eval_causetg);
+        let mut ctx = EvalContext::new(eval_causet);
         Ok(SelectionFreeDaemon {
             conditions: Expression::batch_build(&mut ctx, conditions)?,
             related_cols_offset: visitor.PrimaryCauset_offsets(),
@@ -87,7 +87,7 @@ impl<Src: FreeDaemon> FreeDaemon for SelectionFreeDaemon<Src> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::i64;
     use std::sync::Arc;

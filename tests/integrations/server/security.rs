@@ -13,7 +13,7 @@ fn test_check_cn_success() {
     let mut cluster = new_server_cluster(0, 1);
     let mut allowed_cn = HashSet::default();
     allowed_cn.insert("einsteindb-server".to_owned());
-    cluster.causetg.security = test_util::new_security_causetg(Some(allowed_cn));
+    cluster.causet.security = test_util::new_security_causet(Some(allowed_cn));
     cluster.run();
 
     let leader = cluster.get_brane(b"").get_peers()[0].clone();
@@ -33,7 +33,7 @@ fn test_check_cn_fail() {
     let mut cluster = new_server_cluster(0, 1);
     let mut allowed_cn = HashSet::default();
     allowed_cn.insert("invaild-server".to_owned());
-    cluster.causetg.security = test_util::new_security_causetg(Some(allowed_cn));
+    cluster.causet.security = test_util::new_security_causet(Some(allowed_cn));
     cluster.run();
 
     let leader = cluster.get_brane(b"").get_peers()[0].clone();

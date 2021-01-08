@@ -249,7 +249,7 @@ impl<E: Engine> ToTxnStore<FixtureStore> for CausetStore<E> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

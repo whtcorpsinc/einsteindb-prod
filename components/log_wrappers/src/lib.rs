@@ -49,7 +49,7 @@ impl<T: std::fmt::Debug> slog::Value for DebugValue<T> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 #[test]
 fn test_debug() {
     let buffer = crate::test_util::SyncLoggerBuffer::new();
@@ -90,7 +90,7 @@ impl<'a> slog::Value for Key<'a> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 #[test]
 fn test_log_key() {
     let buffer = crate::test_util::SyncLoggerBuffer::new();

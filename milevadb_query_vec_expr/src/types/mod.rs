@@ -4,7 +4,7 @@ mod expr;
 mod expr_builder;
 mod expr_eval;
 pub mod function;
-#[causetg(test)]
+#[causet(test)]
 pub mod test_util;
 
 pub use self::expr::{RpnExpression, RpnExpressionNode};

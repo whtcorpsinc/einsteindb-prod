@@ -286,7 +286,7 @@ impl Backlightlike for KmsBacklightlike {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use hex::FromHex;

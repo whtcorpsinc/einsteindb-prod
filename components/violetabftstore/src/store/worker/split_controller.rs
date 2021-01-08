@@ -298,16 +298,16 @@ impl ReadStats {
 
 pub struct AutoSplitController {
     pub recorders: HashMap<u64, Recorder>,
-    causetg: SplitConfig,
-    causetg_tracker: Tracker<SplitConfig>,
+    causet: SplitConfig,
+    causet_tracker: Tracker<SplitConfig>,
 }
 
 impl AutoSplitController {
     pub fn new(config_manager: SplitConfigManager) -> AutoSplitController {
         AutoSplitController {
             recorders: HashMap::default(),
-            causetg: config_manager.value().clone(),
-            causetg_tracker: config_manager.0.clone().tracker("split_hub".to_owned()),
+            causet: config_manager.value().clone(),
+            causet_tracker: config_manager.0.clone().tracker("split_hub".to_owned()),
         }
     }
 
@@ -324,7 +324,7 @@ impl AutoSplitController {
         let capacity = others.len();
         for other in others {
             for (brane_id, brane_info) in other.brane_infos {
-                if brane_info.key_cones.len() >= self.causetg.sample_num {
+                if brane_info.key_cones.len() >= self.causet.sample_num {
                     let brane_infos = brane_infos_map
                         .entry(brane_id)
                         .or_insert_with(|| Vec::with_capacity(capacity));
@@ -337,8 +337,8 @@ impl AutoSplitController {
             let pre_sum = prefix_sum(brane_infos.iter(), BraneInfo::get_qps);
 
             let qps = *pre_sum.last().unwrap(); // brane_infos is not empty
-            let num = self.causetg.detect_times;
-            if qps > self.causetg.qps_memory_barrier {
+            let num = self.causet.detect_times;
+            if qps > self.causet.qps_memory_barrier {
                 let recorder = self
                     .recorders
                     .entry(brane_id)
@@ -347,7 +347,7 @@ impl AutoSplitController {
                 recorder.ufidelate_peer(&brane_infos[0].peer);
 
                 let key_cones = sample(
-                    self.causetg.sample_num,
+                    self.causet.sample_num,
                     &pre_sum,
                     brane_infos,
                     BraneInfo::get_key_cones_mut,
@@ -355,7 +355,7 @@ impl AutoSplitController {
 
                 recorder.record(key_cones);
                 if recorder.is_ready() {
-                    let key = recorder.collect(&self.causetg);
+                    let key = recorder.collect(&self.causet);
                     if !key.is_empty() {
                         let split_info = SplitInfo {
                             brane_id,
@@ -377,19 +377,19 @@ impl AutoSplitController {
     }
 
     pub fn clear(&mut self) {
-        let interval = Duration::from_secs(self.causetg.detect_times * 2);
+        let interval = Duration::from_secs(self.causet.detect_times * 2);
         self.recorders
             .retain(|_, recorder| recorder.create_time.elapsed().unwrap() < interval);
     }
 
-    pub fn refresh_causetg(&mut self) {
-        if let Some(incoming) = self.causetg_tracker.any_new() {
-            self.causetg = incoming.clone();
+    pub fn refresh_causet(&mut self) {
+        if let Some(incoming) = self.causet_tracker.any_new() {
+            self.causet = incoming.clone();
         }
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use crate::store::util::build_key_cone;
@@ -468,8 +468,8 @@ mod tests {
     #[test]
     fn test_hub() {
         let mut hub = AutoSplitController::new(SplitConfigManager::default());
-        hub.causetg.qps_memory_barrier = 1;
-        hub.causetg.sample_memory_barrier = 0;
+        hub.causet.qps_memory_barrier = 1;
+        hub.causet.sample_memory_barrier = 0;
 
         for i in 0..100 {
             let mut qps_stats = ReadStats::default();
@@ -478,7 +478,7 @@ mod tests {
                 qps_stats.add_qps(1, &Peer::default(), build_key_cone(b"b", b"c", false));
             }
             let (_, split_infos) = hub.flush(vec![qps_stats]);
-            if (i + 1) % hub.causetg.detect_times == 0 {
+            if (i + 1) % hub.causet.detect_times == 0 {
                 assert_eq!(split_infos.len(), 1);
                 assert_eq!(
                     Key::from_encoded(split_infos[0].split_key.clone())

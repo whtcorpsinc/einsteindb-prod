@@ -704,12 +704,12 @@ fn diff_config(lhs: &EINSTEINDBConfig, rhs: &EINSTEINDBConfig) {
 
 #[test]
 fn test_serde_default_config() {
-    let causetg: EINSTEINDBConfig = toml::from_str("").unwrap();
-    assert_eq!(causetg, EINSTEINDBConfig::default());
+    let causet: EINSTEINDBConfig = toml::from_str("").unwrap();
+    assert_eq!(causet, EINSTEINDBConfig::default());
 
     let content = read_file_in_project_dir("integrations/config/test-default.toml");
-    let causetg: EINSTEINDBConfig = toml::from_str(&content).unwrap();
-    assert_eq!(causetg, EINSTEINDBConfig::default());
+    let causet: EINSTEINDBConfig = toml::from_str(&content).unwrap();
+    assert_eq!(causet, EINSTEINDBConfig::default());
 }
 
 #[test]
@@ -718,10 +718,10 @@ fn test_readpool_default_config() {
         [readpool.unified]
         max-thread-count = 1
     "#;
-    let causetg: EINSTEINDBConfig = toml::from_str(content).unwrap();
+    let causet: EINSTEINDBConfig = toml::from_str(content).unwrap();
     let mut expected = EINSTEINDBConfig::default();
     expected.readpool.unified.max_thread_count = 1;
-    assert_eq!(causetg, expected);
+    assert_eq!(causet, expected);
 }
 
 #[test]
@@ -733,23 +733,23 @@ fn test_do_not_use_unified_readpool_with_legacy_config() {
         [readpool.interlock]
         normal-concurrency = 1
     "#;
-    let causetg: EINSTEINDBConfig = toml::from_str(content).unwrap();
-    assert!(!causetg.readpool.is_unified_pool_enabled());
+    let causet: EINSTEINDBConfig = toml::from_str(content).unwrap();
+    assert!(!causet.readpool.is_unified_pool_enabled());
 }
 
 #[test]
 fn test_block_cache_backward_compatible() {
     let content = read_file_in_project_dir("integrations/config/test-cache-compatible.toml");
-    let mut causetg: EINSTEINDBConfig = toml::from_str(&content).unwrap();
-    assert!(causetg.causetStorage.block_cache.shared);
-    assert!(causetg.causetStorage.block_cache.capacity.0.is_none());
-    causetg.compatible_adjust();
-    assert!(causetg.causetStorage.block_cache.capacity.0.is_some());
+    let mut causet: EINSTEINDBConfig = toml::from_str(&content).unwrap();
+    assert!(causet.causetStorage.block_cache.shared);
+    assert!(causet.causetStorage.block_cache.capacity.0.is_none());
+    causet.compatible_adjust();
+    assert!(causet.causetStorage.block_cache.capacity.0.is_some());
     assert_eq!(
-        causetg.causetStorage.block_cache.capacity.0.unwrap().0,
-        causetg.lmdb.defaultcauset.block_cache_size.0
-            + causetg.lmdb.writecauset.block_cache_size.0
-            + causetg.lmdb.lockcauset.block_cache_size.0
-            + causetg.violetabftdb.defaultcauset.block_cache_size.0
+        causet.causetStorage.block_cache.capacity.0.unwrap().0,
+        causet.lmdb.defaultcauset.block_cache_size.0
+            + causet.lmdb.writecauset.block_cache_size.0
+            + causet.lmdb.lockcauset.block_cache_size.0
+            + causet.violetabftdb.defaultcauset.block_cache_size.0
     );
 }

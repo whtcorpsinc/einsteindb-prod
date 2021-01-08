@@ -103,7 +103,7 @@ fn test_wrong_store_id<T: Simulator>(cluster: &mut Cluster<T>) {
 
 fn test_put_large_entry<T: Simulator>(cluster: &mut Cluster<T>) {
     let max_size: usize = 1024;
-    cluster.causetg.violetabft_store.violetabft_entry_max_size = ReadableSize(max_size as u64);
+    cluster.causet.violetabft_store.violetabft_entry_max_size = ReadableSize(max_size as u64);
 
     cluster.run();
 
@@ -127,7 +127,7 @@ fn test_node_delete() {
 #[test]
 fn test_node_use_delete_cone() {
     let mut cluster = new_node_cluster(0, 1);
-    cluster.causetg.violetabft_store.use_delete_cone = true;
+    cluster.causet.violetabft_store.use_delete_cone = true;
     cluster.run();
     test_delete_cone(&mut cluster, CAUSET_DEFAULT);
     // Prefix bloom filter is always enabled in the Write CAUSET.
@@ -137,7 +137,7 @@ fn test_node_use_delete_cone() {
 #[test]
 fn test_node_not_use_delete_cone() {
     let mut cluster = new_node_cluster(0, 1);
-    cluster.causetg.violetabft_store.use_delete_cone = false;
+    cluster.causet.violetabft_store.use_delete_cone = false;
     cluster.run();
     test_delete_cone(&mut cluster, CAUSET_DEFAULT);
     // Prefix bloom filter is always enabled in the Write CAUSET.

@@ -567,7 +567,7 @@ impl<T: Read> CompactByteDecoder for std::io::BufReader<T> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use rand::prelude::*;
 
@@ -1226,7 +1226,7 @@ mod tests {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod benches {
     use crate::ErrorInner;
 

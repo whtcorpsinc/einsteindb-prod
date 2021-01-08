@@ -118,7 +118,7 @@ where
         let brane_tuplespaceInstanton = match get_brane_approximate_tuplespaceInstanton(
             engine,
             brane,
-            host.causetg.brane_max_tuplespaceInstanton * host.causetg.batch_split_limit,
+            host.causet.brane_max_tuplespaceInstanton * host.causet.batch_split_limit,
         ) {
             Ok(tuplespaceInstanton) => tuplespaceInstanton,
             Err(e) => {
@@ -130,9 +130,9 @@ where
                 );
                 // Need to check tuplespaceInstanton.
                 host.add_checker(Box::new(Checker::new(
-                    host.causetg.brane_max_tuplespaceInstanton,
-                    host.causetg.brane_split_tuplespaceInstanton,
-                    host.causetg.batch_split_limit,
+                    host.causet.brane_max_tuplespaceInstanton,
+                    host.causet.brane_split_tuplespaceInstanton,
+                    host.causet.batch_split_limit,
                     policy,
                 )));
                 return;
@@ -150,18 +150,18 @@ where
         }
 
         REGION_KEYS_HISTOGRAM.observe(brane_tuplespaceInstanton as f64);
-        if brane_tuplespaceInstanton >= host.causetg.brane_max_tuplespaceInstanton {
+        if brane_tuplespaceInstanton >= host.causet.brane_max_tuplespaceInstanton {
             info!(
                 "approximate tuplespaceInstanton over memory_barrier, need to do split check";
                 "brane_id" => brane.get_id(),
                 "tuplespaceInstanton" => brane_tuplespaceInstanton,
-                "memory_barrier" => host.causetg.brane_max_tuplespaceInstanton,
+                "memory_barrier" => host.causet.brane_max_tuplespaceInstanton,
             );
             // Need to check tuplespaceInstanton.
             host.add_checker(Box::new(Checker::new(
-                host.causetg.brane_max_tuplespaceInstanton,
-                host.causetg.brane_split_tuplespaceInstanton,
-                host.causetg.batch_split_limit,
+                host.causet.brane_max_tuplespaceInstanton,
+                host.causet.brane_split_tuplespaceInstanton,
+                host.causet.batch_split_limit,
                 policy,
             )));
         } else {
@@ -170,7 +170,7 @@ where
                 "approximate tuplespaceInstanton less than memory_barrier, does not need to do split check";
                 "brane_id" => brane.get_id(),
                 "tuplespaceInstanton" => brane_tuplespaceInstanton,
-                "memory_barrier" => host.causetg.brane_max_tuplespaceInstanton,
+                "memory_barrier" => host.causet.brane_max_tuplespaceInstanton,
             );
         }
     }
@@ -209,7 +209,7 @@ pub fn get_brane_approximate_tuplespaceInstanton_causet(
     )))
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::size::tests::must_split_at;
     use crate::interlock::{Config, InterlockHost};
@@ -290,16 +290,16 @@ mod tests {
         brane.mut_brane_epoch().set_conf_ver(5);
 
         let (tx, rx) = mpsc::sync_channel(100);
-        let mut causetg = Config::default();
-        causetg.brane_max_tuplespaceInstanton = 100;
-        causetg.brane_split_tuplespaceInstanton = 80;
-        causetg.batch_split_limit = 5;
+        let mut causet = Config::default();
+        causet.brane_max_tuplespaceInstanton = 100;
+        causet.brane_split_tuplespaceInstanton = 80;
+        causet.batch_split_limit = 5;
 
         let mut runnable = SplitCheckRunner::new(
             engine.c().clone(),
             tx.clone(),
             InterlockHost::new(tx),
-            causetg,
+            causet,
         );
 
         // so split key will be z0080

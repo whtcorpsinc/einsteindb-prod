@@ -134,7 +134,7 @@ impl<R: Read> Read for Sha256Reader<R> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use rand::distributions::Alphanumeric;
     use rand::{thread_rng, Rng};

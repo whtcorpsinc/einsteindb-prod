@@ -202,7 +202,7 @@ macro_rules! safe_panic {
     });
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::error::Error;
     #[test]

@@ -328,7 +328,7 @@ impl<S: Snapshot> PointGetter<S> {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

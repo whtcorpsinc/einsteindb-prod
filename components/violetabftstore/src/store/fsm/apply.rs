@@ -7,7 +7,7 @@ use std::fmt::{self, Debug, Formatter};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
-#[causetg(test)]
+#[causet(test)]
 use std::sync::mpsc::Slightlikeer;
 use std::sync::mpsc::SyncSlightlikeer;
 use std::sync::{Arc, Mutex};
@@ -352,7 +352,7 @@ where
         engine: EK,
         router: ApplyRouter<EK>,
         notifier: Box<dyn Notifier<EK>>,
-        causetg: &Config,
+        causet: &Config,
         store_id: u64,
         plightlikeing_create_peers: Arc<Mutex<HashMap<u64, (u64, bool)>>>,
     ) -> ApplyContext<EK, W> {
@@ -374,9 +374,9 @@ where
             committed_count: 0,
             sync_log_hint: false,
             exec_ctx: None,
-            use_delete_cone: causetg.use_delete_cone,
-            perf_context_statistics: PerfContextStatistics::new(causetg.perf_level),
-            yield_duration: causetg.apply_yield_duration.0,
+            use_delete_cone: causet.use_delete_cone,
+            perf_context_statistics: PerfContextStatistics::new(causet.perf_level),
+            yield_duration: causet.apply_yield_duration.0,
             store_id,
             plightlikeing_create_peers,
         }
@@ -1260,7 +1260,7 @@ where
     ) -> Result<(VioletaBftCmdResponse, ApplyResult<EK::Snapshot>)> {
         fail_point!(
             "on_apply_write_cmd",
-            causetg!(release) || self.id() == 3,
+            causet!(release) || self.id() == 3,
             |_| {
                 unimplemented!();
             }
@@ -2600,7 +2600,7 @@ where
         brane_epoch: BraneEpoch,
         cb: Callback<EK::Snapshot>,
     },
-    #[causetg(any(test, feature = "testexport"))]
+    #[causet(any(test, feature = "testexport"))]
     #[allow(clippy::type_complexity)]
     Validate(u64, Box<dyn FnOnce(*const u8) + Slightlike>),
 }
@@ -2652,7 +2652,7 @@ where
                 cmd: ChangeCmd::Snapshot { brane_id, .. },
                 ..
             } => write!(f, "[brane {}] cmd snapshot", brane_id),
-            #[causetg(any(test, feature = "testexport"))]
+            #[causet(any(test, feature = "testexport"))]
             Msg::Validate(brane_id, _) => write!(f, "[brane {}] validate", brane_id),
         }
     }
@@ -3100,7 +3100,7 @@ where
                     brane_epoch,
                     cb,
                 }) => self.handle_change(apply_ctx, cmd, brane_epoch, cb),
-                #[causetg(any(test, feature = "testexport"))]
+                #[causet(any(test, feature = "testexport"))]
                 Some(Msg::Validate(_, f)) => {
                     let delegate: *const u8 = unsafe { std::mem::transmute(&self.delegate) };
                     f(delegate)
@@ -3173,7 +3173,7 @@ where
     msg_buf: Vec<Msg<EK>>,
     apply_ctx: ApplyContext<EK, W>,
     messages_per_tick: usize,
-    causetg_tracker: Tracker<Config>,
+    causet_tracker: Tracker<Config>,
 }
 
 impl<EK, W> PollHandler<ApplyFsm<EK>, ControlFsm> for ApplyPoller<EK, W>
@@ -3182,7 +3182,7 @@ where
     W: WriteBatch<EK>,
 {
     fn begin(&mut self, _batch_size: usize) {
-        if let Some(incoming) = self.causetg_tracker.any_new() {
+        if let Some(incoming) = self.causet_tracker.any_new() {
             match Ord::cmp(&incoming.messages_per_tick, &self.messages_per_tick) {
                 CmpOrdering::Greater => {
                     self.msg_buf.reserve(incoming.messages_per_tick);
@@ -3267,7 +3267,7 @@ where
 
 pub struct Builder<EK: KvEngine, W: WriteBatch<EK>> {
     tag: String,
-    causetg: Arc<VersionTrack<Config>>,
+    causet: Arc<VersionTrack<Config>>,
     interlock_host: InterlockHost<EK>,
     importer: Arc<SSTImporter>,
     brane_scheduler: Scheduler<BraneTask<<EK as KvEngine>::Snapshot>>,
@@ -3290,7 +3290,7 @@ where
     ) -> Builder<EK, W> {
         Builder {
             tag: format!("[store {}]", builder.store.get_id()),
-            causetg: builder.causetg.clone(),
+            causet: builder.causet.clone(),
             interlock_host: builder.interlock_host.clone(),
             importer: builder.importer.clone(),
             brane_scheduler: builder.brane_scheduler.clone(),
@@ -3312,9 +3312,9 @@ where
     type Handler = ApplyPoller<EK, W>;
 
     fn build(&mut self) -> ApplyPoller<EK, W> {
-        let causetg = self.causetg.value();
+        let causet = self.causet.value();
         ApplyPoller {
-            msg_buf: Vec::with_capacity(causetg.messages_per_tick),
+            msg_buf: Vec::with_capacity(causet.messages_per_tick),
             apply_ctx: ApplyContext::new(
                 self.tag.clone(),
                 self.interlock_host.clone(),
@@ -3323,12 +3323,12 @@ where
                 self.engine.clone(),
                 self.router.clone(),
                 self.slightlikeer.clone_box(),
-                &causetg,
+                &causet,
                 self.store_id,
                 self.plightlikeing_create_peers.clone(),
             ),
-            messages_per_tick: causetg.messages_per_tick,
-            causetg_tracker: self.causetg.clone().tracker(self.tag.clone()),
+            messages_per_tick: causet.messages_per_tick,
+            causet_tracker: self.causet.clone().tracker(self.tag.clone()),
         }
     }
 }
@@ -3423,7 +3423,7 @@ where
                     cb.invoke_read(resp);
                     return;
                 }
-                #[causetg(any(test, feature = "testexport"))]
+                #[causet(any(test, feature = "testexport"))]
                 Msg::Validate(_, _) => return,
             },
             Either::Left(Err(TrySlightlikeError::Full(_))) => unreachable!(),
@@ -3469,15 +3469,15 @@ impl<EK: KvEngine> ApplyBatchSystem<EK> {
 }
 
 pub fn create_apply_batch_system<EK: KvEngine>(
-    causetg: &Config,
+    causet: &Config,
 ) -> (ApplyRouter<EK>, ApplyBatchSystem<EK>) {
     let (tx, _) = loose_bounded(usize::MAX);
     let (router, system) =
-        batch_system::create_system(&causetg.apply_batch_system, tx, Box::new(ControlFsm));
+        batch_system::create_system(&causet.apply_batch_system, tx, Box::new(ControlFsm));
     (ApplyRouter { router }, ApplyBatchSystem { system })
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -3700,12 +3700,12 @@ mod tests {
         let (_tmp, engine) = create_tmp_engine("apply-basic");
         let (_dir, importer) = create_tmp_importer("apply-basic");
         let (brane_scheduler, snapshot_rx) = dummy_scheduler();
-        let causetg = Arc::new(VersionTrack::new(Config::default()));
-        let (router, mut system) = create_apply_batch_system(&causetg.value());
+        let causet = Arc::new(VersionTrack::new(Config::default()));
+        let (router, mut system) = create_apply_batch_system(&causet.value());
         let plightlikeing_create_peers = Arc::new(Mutex::new(HashMap::default()));
         let builder = super::Builder::<LmdbEngine, LmdbWriteBatch> {
             tag: "test-store".to_owned(),
-            causetg,
+            causet,
             interlock_host: InterlockHost::<LmdbEngine>::default(),
             importer,
             brane_scheduler,
@@ -4065,12 +4065,12 @@ mod tests {
         let (tx, rx) = mpsc::channel();
         let (brane_scheduler, _) = dummy_scheduler();
         let slightlikeer = Box::new(TestNotifier { tx });
-        let causetg = Arc::new(VersionTrack::new(Config::default()));
-        let (router, mut system) = create_apply_batch_system(&causetg.value());
+        let causet = Arc::new(VersionTrack::new(Config::default()));
+        let (router, mut system) = create_apply_batch_system(&causet.value());
         let plightlikeing_create_peers = Arc::new(Mutex::new(HashMap::default()));
         let builder = super::Builder::<LmdbEngine, LmdbWriteBatch> {
             tag: "test-store".to_owned(),
-            causetg,
+            causet,
             slightlikeer,
             brane_scheduler,
             interlock_host: host,
@@ -4423,12 +4423,12 @@ mod tests {
         let (tx, rx) = mpsc::channel();
         let (brane_scheduler, _) = dummy_scheduler();
         let slightlikeer = Box::new(TestNotifier { tx });
-        let causetg = Config::default();
-        let (router, mut system) = create_apply_batch_system(&causetg);
+        let causet = Config::default();
+        let (router, mut system) = create_apply_batch_system(&causet);
         let plightlikeing_create_peers = Arc::new(Mutex::new(HashMap::default()));
         let builder = super::Builder::<LmdbEngine, LmdbWriteBatch> {
             tag: "test-store".to_owned(),
-            causetg: Arc::new(VersionTrack::new(causetg)),
+            causet: Arc::new(VersionTrack::new(causet)),
             slightlikeer,
             brane_scheduler,
             interlock_host: host,
@@ -4722,12 +4722,12 @@ mod tests {
         host.registry
             .register_cmd_observer(1, BoxCmdObserver::new(obs));
         let (brane_scheduler, _) = dummy_scheduler();
-        let causetg = Arc::new(VersionTrack::new(Config::default()));
-        let (router, mut system) = create_apply_batch_system(&causetg.value());
+        let causet = Arc::new(VersionTrack::new(Config::default()));
+        let (router, mut system) = create_apply_batch_system(&causet.value());
         let plightlikeing_create_peers = Arc::new(Mutex::new(HashMap::default()));
         let builder = super::Builder::<LmdbEngine, LmdbWriteBatch> {
             tag: "test-store".to_owned(),
-            causetg,
+            causet,
             slightlikeer,
             importer,
             brane_scheduler,

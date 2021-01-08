@@ -12,7 +12,7 @@ fn test_bootstrap_half_way_failure(fp: &str) {
     let mut cluster = Cluster::new(0, 5, sim, fidel_client);
 
     // Try to spacelike this node, return after persisted some tuplespaceInstanton.
-    fail::causetg(fp, "return").unwrap();
+    fail::causet(fp, "return").unwrap();
     cluster.spacelike().unwrap_err();
 
     let engines = cluster.dbs[0].clone();

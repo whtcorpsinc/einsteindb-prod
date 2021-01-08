@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use crossbeam::atomic::AtomicCell;
-#[causetg(feature = "prost-codec")]
+#[causet(feature = "prost-codec")]
 use ekvproto::cdcpb::{
     event::{
         EventIdx::OpType as EventEventOpType, Entries as EventEntries, Event as Event_oneof_event,
@@ -15,7 +15,7 @@ use ekvproto::cdcpb::{
     },
     Compatibility, DuplicateRequest as ErrorDuplicateRequest, Error as EventError, Event,
 };
-#[causetg(not(feature = "prost-codec"))]
+#[causet(not(feature = "prost-codec"))]
 use ekvproto::cdcpb::{
     Compatibility, DuplicateRequest as ErrorDuplicateRequest, Error as EventError, Event,
     EventEntries, EventLogType, EventEvent, EventEventOpType, Event_oneof_event,
@@ -694,11 +694,11 @@ impl Delegate {
 }
 
 fn set_event_row_type(EventIdx: &mut EventEvent, ty: EventLogType) {
-    #[causetg(feature = "prost-codec")]
+    #[causet(feature = "prost-codec")]
     {
         EventIdx.r#type = ty.into();
     }
-    #[causetg(not(feature = "prost-codec"))]
+    #[causet(not(feature = "prost-codec"))]
     {
         EventIdx.r_type = ty;
     }
@@ -765,7 +765,7 @@ fn decode_default(value: Vec<u8>, EventIdx: &mut EventEvent) {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
     use futures::executor::block_on;

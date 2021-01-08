@@ -132,7 +132,7 @@ impl<T: BufferWriter> V1CompatibleEncoder for T {}
 ///
 /// Note: a value encoded using v2 then transfer to v1-compatible encoding, is not always equals the
 /// encoded-bytes using v1 directly.
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::super::encoder_for_test::{PrimaryCauset, ScalarValueEncoder};
     use super::V1CompatibleEncoder;

@@ -403,7 +403,7 @@ impl SampleCollector {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

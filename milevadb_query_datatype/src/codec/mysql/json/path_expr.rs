@@ -146,7 +146,7 @@ pub fn parse_json_path_expr(path_expr: &str) -> Result<PathExpression> {
     Ok(PathExpression { legs, flags })
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 

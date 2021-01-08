@@ -133,7 +133,7 @@ impl super::AggrFunctionState for AggrFnStateCount {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use milevadb_query_datatype::EvalType;
 

@@ -1,6 +1,6 @@
 [package]
 name = "einsteindb-prod"
-version = "0.0.1-alpha"
+version = "1.0.0"
 authors = ["WHTCORPS INC"]
 description = "MemCAM inspired Distributed Relativistic Semi-Relational Allegro SQL"
 license = "Apache-2.0"
@@ -8,7 +8,7 @@ keywords = ["einsteindb", "distributed-systems", "violetabft"]
 homepage = "https://einsteindb.com"
 repository = "https://github.com/whtcorpsinc/einsteindb-prod/"
 readme = "README.md"
-edition = "2020"
+edition = "2018"
 publish = false
 
 [features]
@@ -184,7 +184,7 @@ protobuf-codegen = { git = "https://github.com/whtcorpsinc/rust-protobuf", rev =
 fail = { git = "https://github.com/einsteindb/fail-rs.git", rev = "2causet1175a1a5cc2c70bd20ebd45313afd69b558fc" }
 prometheus = { git = "https://github.com/einsteindb/rust-prometheus.git", rev = "fd122caa03de8e7e5e4fae9372583aebf19e39f6" }
 
-[target.'causetg(target_os = "linux")'.deplightlikeencies]
+[target.'causet(target_os = "linux")'.deplightlikeencies]
 procinfo = { git = "https://github.com/einsteindb/procinfo-rs", rev = "5125fc1a69496b73b26b3c08b6e8afc3c665a56e" }
 
 [workspace]

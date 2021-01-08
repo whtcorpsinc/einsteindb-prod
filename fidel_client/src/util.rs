@@ -333,15 +333,15 @@ where
 
 pub fn validate_lightlikepoints(
     env: Arc<Environment>,
-    causetg: &Config,
+    causet: &Config,
     security_mgr: Arc<SecurityManager>,
 ) -> Result<(FidelClientStub, GetMembersResponse)> {
-    let len = causetg.lightlikepoints.len();
+    let len = causet.lightlikepoints.len();
     let mut lightlikepoints_set = HashSet::with_capacity_and_hasher(len, Default::default());
 
     let mut members = None;
     let mut cluster_id = None;
-    for ep in &causetg.lightlikepoints {
+    for ep in &causet.lightlikepoints {
         if !lightlikepoints_set.insert(ep) {
             return Err(box_err!("duplicate FIDel lightlikepoint {}", ep));
         }
@@ -379,7 +379,7 @@ pub fn validate_lightlikepoints(
         Some(members) => {
             let (client, members) =
                 block_on(try_connect_leader(Arc::clone(&env), security_mgr, members))?;
-            info!("all FIDel lightlikepoints are consistent"; "lightlikepoints" => ?causetg.lightlikepoints);
+            info!("all FIDel lightlikepoints are consistent"; "lightlikepoints" => ?causet.lightlikepoints);
             Ok((client, members))
         }
         _ => Err(box_err!("FIDel cluster failed to respond")),

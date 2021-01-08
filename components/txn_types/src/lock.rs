@@ -337,7 +337,7 @@ impl Dagger {
     }
 }
 
-#[causetg(test)]
+#[causet(test)]
 mod tests {
     use super::*;
 
