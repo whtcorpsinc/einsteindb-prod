@@ -39,7 +39,7 @@ use crate::causetStorage::{
     lock_manager::{DummyLockManager, LockManager},
     metrics::*,
     tail_pointer::PointGetterBuilder,
-    txn::{commands::TypedCommand, scheduler::Scheduler as TxnScheduler, Command},
+    txn::{commands::TypedCommand, interlock_semaphore::Interlock_Semaphore as TxnInterlock_Semaphore, Command},
     types::StorageCallbackType,
 };
 use concurrency_manager::ConcurrencyManager;
@@ -86,7 +86,7 @@ pub struct CausetStorage<E: Engine, L: LockManager> {
     // TODO: Too many Arcs, would be slow when clone.
     engine: E,
 
-    sched: TxnScheduler<E, L>,
+    sched: TxnInterlock_Semaphore<E, L>,
 
     /// The thread pool used to run most read operations.
     read_pool: ReadPoolHandle,
@@ -167,13 +167,13 @@ impl<E: Engine, L: LockManager> CausetStorage<E, L> {
         concurrency_manager: ConcurrencyManager,
         pipelined_pessimistic_lock: bool,
     ) -> Result<Self> {
-        let sched = TxnScheduler::new(
+        let sched = TxnInterlock_Semaphore::new(
             engine.clone(),
             lock_mgr,
             concurrency_manager.clone(),
-            config.scheduler_concurrency,
-            config.scheduler_worker_pool_size,
-            config.scheduler_plightlikeing_write_memory_barrier.0 as usize,
+            config.interlock_semaphore_concurrency,
+            config.interlock_semaphore_worker_pool_size,
+            config.interlock_semaphore_plightlikeing_write_memory_barrier.0 as usize,
             pipelined_pessimistic_lock,
             config.enable_async_commit,
         );
@@ -2569,7 +2569,7 @@ mod tests {
     #[test]
     fn test_sched_too_busy() {
         let mut config = Config::default();
-        config.scheduler_plightlikeing_write_memory_barrier = ReadableSize(1);
+        config.interlock_semaphore_plightlikeing_write_memory_barrier = ReadableSize(1);
         let causetStorage = TestStorageBuilder::new(DummyLockManager {})
             .config(config)
             .build()
@@ -2753,7 +2753,7 @@ mod tests {
     #[test]
     fn test_high_priority_no_block() {
         let mut config = Config::default();
-        config.scheduler_worker_pool_size = 1;
+        config.interlock_semaphore_worker_pool_size = 1;
         let causetStorage = TestStorageBuilder::new(DummyLockManager {})
             .config(config)
             .build()

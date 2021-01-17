@@ -2480,7 +2480,7 @@
             "executionErrorState": "alerting",
             "frequency": "60s",
             "handler": 1,
-            "name": "Scheduler latch wait duration alert",
+            "name": "Interlock_Semaphore latch wait duration alert",
             "noDataState": "no_data",
             "notifications": []
           },
@@ -2537,7 +2537,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_scheduler_latch_wait_duration_seconds_bucket[5m])) by (le, type))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_bucket[5m])) by (le, type))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "99% - {{ type }}",
@@ -2546,7 +2546,7 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_scheduler_latch_wait_duration_seconds_bucket[5m])) by (le, type))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_bucket[5m])) by (le, type))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "95% - {{ type }}",
@@ -2555,7 +2555,7 @@
               "step": 10
             },
             {
-              "expr": "rate(einsteindb_scheduler_latch_wait_duration_seconds_sum[5m]) / rate(einsteindb_scheduler_latch_wait_duration_seconds_count[5m])",
+              "expr": "rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_sum[5m]) / rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_count[5m])",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "avg - {{ type }}",
@@ -2577,7 +2577,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler latch wait duration",
+          "title": "Interlock_Semaphore latch wait duration",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -2645,7 +2645,7 @@
             "executionErrorState": "alerting",
             "frequency": "60s",
             "handler": 1,
-            "name": "Scheduler worker CPU alert",
+            "name": "Interlock_Semaphore worker CPU alert",
             "noDataState": "no_data",
             "notifications": []
           },
@@ -2655,7 +2655,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The CPU utilization of scheduler worker",
+          "description": "The CPU utilization of interlock_semaphore worker",
           "ediBlock": true,
           "error": false,
           "fill": 0,
@@ -2716,7 +2716,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler worker CPU",
+          "title": "Interlock_Semaphore worker CPU",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -2810,7 +2810,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_scheduler_command_duration_seconds_bucket[1m])) by (le, type))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_bucket[1m])) by (le, type))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{ type }}",
@@ -2823,7 +2823,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "99% scheduler command duration",
+          "title": "99% interlock_semaphore command duration",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -2863,7 +2863,7 @@
         }
       ],
       "repeat": null,
-      "title": "Scheduler",
+      "title": "Interlock_Semaphore",
       "type": "EventIdx"
     },
     {

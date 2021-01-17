@@ -16,7 +16,7 @@ mod metrics;
 mod service;
 mod writer;
 
-pub use lightlikepoint::{Endpoint, Task};
+pub use lightlikepoint::{node, Task};
 pub use errors::{Error, Result};
 pub use service::Service;
 pub use writer::{BackupRawKVWriter, BackupWriter};

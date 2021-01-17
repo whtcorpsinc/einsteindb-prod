@@ -23,17 +23,17 @@ const DEFAULT_GRPC_MEMORY_POOL_QUOTA: u64 = isize::MAX as u64;
 const DEFAULT_GRPC_STREAM_INITIAL_WINDOW_SIZE: u64 = 2 * 1024 * 1024;
 
 // Number of events in each Soliton.
-const DEFAULT_ENDPOINT_BATCH_ROW_LIMIT: usize = 64;
+const DEFAULT_node_BATCH_ROW_LIMIT: usize = 64;
 
 // If a request has been handled for more than 60 seconds, the client should
 // be timeout already, so it can be safely aborted.
-const DEFAULT_ENDPOINT_REQUEST_MAX_HANDLE_SECS: u64 = 60;
+const DEFAULT_node_REQUEST_MAX_HANDLE_SECS: u64 = 60;
 
 // Number of events in each Soliton for streaming interlock.
-const DEFAULT_ENDPOINT_STREAM_BATCH_ROW_LIMIT: usize = 128;
+const DEFAULT_node_STREAM_BATCH_ROW_LIMIT: usize = 128;
 
 // At least 4 long interlock requests are allowed to run concurrently.
-const MIN_ENDPOINT_MAX_CONCURRENCY: usize = 4;
+const MIN_node_MAX_CONCURRENCY: usize = 4;
 
 const DEFAULT_SNAP_MAX_BYTES_PER_SEC: u64 = 100 * 1024 * 1024;
 
@@ -153,13 +153,13 @@ impl Default for Config {
             lightlike_point_stack_size: None,  // deprecated
             lightlike_point_recursion_limit: 1000,
             lightlike_point_stream_channel_size: 8,
-            lightlike_point_batch_row_limit: DEFAULT_ENDPOINT_BATCH_ROW_LIMIT,
-            lightlike_point_stream_batch_row_limit: DEFAULT_ENDPOINT_STREAM_BATCH_ROW_LIMIT,
+            lightlike_point_batch_row_limit: DEFAULT_node_BATCH_ROW_LIMIT,
+            lightlike_point_stream_batch_row_limit: DEFAULT_node_STREAM_BATCH_ROW_LIMIT,
             lightlike_point_enable_batch_if_possible: true,
             lightlike_point_request_max_handle_duration: ReadableDuration::secs(
-                DEFAULT_ENDPOINT_REQUEST_MAX_HANDLE_SECS,
+                DEFAULT_node_REQUEST_MAX_HANDLE_SECS,
             ),
-            lightlike_point_max_concurrency: cmp::max(cpu_num as usize, MIN_ENDPOINT_MAX_CONCURRENCY),
+            lightlike_point_max_concurrency: cmp::max(cpu_num as usize, MIN_node_MAX_CONCURRENCY),
             lightlike_point_check_memory_locks: true,
             snap_max_write_bytes_per_sec: ReadableSize(DEFAULT_SNAP_MAX_BYTES_PER_SEC),
             snap_max_total_size: ReadableSize(0),
@@ -241,7 +241,7 @@ impl Config {
         }
 
         if self.lightlike_point_request_max_handle_duration.as_secs()
-            < DEFAULT_ENDPOINT_REQUEST_MAX_HANDLE_SECS
+            < DEFAULT_node_REQUEST_MAX_HANDLE_SECS
         {
             return Err(box_err!(
                 "server.lightlike-point-request-max-handle-secs is too small."

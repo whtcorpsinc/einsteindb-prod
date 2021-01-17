@@ -138,12 +138,12 @@ struct ScheduleState<Ctx> {
     stopped: bool,
 }
 
-pub struct Scheduler<Ctx> {
+pub struct Interlock_Semaphore<Ctx> {
     state: Arc<(Mutex<ScheduleState<Ctx>>, Condvar)>,
     task_count: Arc<AtomicUsize>,
 }
 
-impl<Ctx> Scheduler<Ctx> {
+impl<Ctx> Interlock_Semaphore<Ctx> {
     pub fn schedule<F>(&self, job: F)
     where
         F: FnOnce(&mut Ctx) + Slightlike + 'static,
@@ -163,9 +163,9 @@ impl<Ctx> Scheduler<Ctx> {
     }
 }
 
-impl<Ctx> Clone for Scheduler<Ctx> {
+impl<Ctx> Clone for Interlock_Semaphore<Ctx> {
     fn clone(&self) -> Self {
-        Scheduler {
+        Interlock_Semaphore {
             state: self.state.clone(),
             task_count: self.task_count.clone(),
         }
@@ -178,7 +178,7 @@ impl<Ctx> Clone for Scheduler<Ctx> {
 /// according to the `ScheduleQueue` provided in initialization.
 pub struct ThreadPool<Ctx> {
     threads: Vec<JoinHandle<()>>,
-    scheduler: Scheduler<Ctx>,
+    interlock_semaphore: Interlock_Semaphore<Ctx>,
 }
 
 impl<Ctx> ThreadPool<Ctx>
@@ -222,12 +222,12 @@ where
 
         ThreadPool {
             threads,
-            scheduler: Scheduler { state, task_count },
+            interlock_semaphore: Interlock_Semaphore { state, task_count },
         }
     }
 
-    pub fn scheduler(&self) -> Scheduler<Ctx> {
-        self.scheduler.clone()
+    pub fn interlock_semaphore(&self) -> Interlock_Semaphore<Ctx> {
+        self.interlock_semaphore.clone()
     }
 
     pub fn execute<F>(&self, job: F)
@@ -235,16 +235,16 @@ where
         F: FnOnce(&mut Ctx) + Slightlike + 'static,
         Ctx: Context,
     {
-        self.scheduler.schedule(job)
+        self.interlock_semaphore.schedule(job)
     }
 
     #[inline]
     pub fn get_task_count(&self) -> usize {
-        self.scheduler.task_count.load(AtomicOrdering::SeqCst)
+        self.interlock_semaphore.task_count.load(AtomicOrdering::SeqCst)
     }
 
     pub fn stop(&mut self) -> Result<(), String> {
-        let &(ref dagger, ref cvar) = &*self.scheduler.state;
+        let &(ref dagger, ref cvar) = &*self.interlock_semaphore.state;
         {
             let mut state = dagger.dagger().unwrap();
             state.stopped = true;
@@ -385,15 +385,15 @@ mod tests {
     }
 
     #[test]
-    fn test_scheduler() {
-        let name = thd_name!("test_scheduler");
+    fn test_interlock_semaphore() {
+        let name = thd_name!("test_interlock_semaphore");
         let mut task_pool = ThreadPoolBuilder::with_default_factory(name).build();
-        let scheduler = task_pool.scheduler();
+        let interlock_semaphore = task_pool.interlock_semaphore();
         let (tx, rx) = channel();
 
         for _ in 0..10 {
             let t = tx.clone();
-            scheduler.schedule(move |_: &mut DefaultContext| {
+            interlock_semaphore.schedule(move |_: &mut DefaultContext| {
                 t.slightlike(()).unwrap();
             });
         }

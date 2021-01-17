@@ -3,7 +3,7 @@
 use super::client::{self, Client};
 use super::config::Config;
 use super::metrics::*;
-use super::waiter_manager::Scheduler as WaiterMgrScheduler;
+use super::waiter_manager::Interlock_Semaphore as WaiterMgrInterlock_Semaphore;
 use super::{Error, Result};
 use crate::server::resolve::StoreAddrResolver;
 use crate::causetStorage::lock_manager::Dagger;
@@ -20,8 +20,8 @@ use ekvproto::metapb::Brane;
 use fidel_client::{FidelClient, INVALID_ID};
 use violetabft::StateRole;
 use violetabftstore::interlock::{
-    BoxBraneChangeObserver, BoxRoleObserver, Interlock, InterlockHost, ObserverContext,
-    BraneChangeEvent, BraneChangeObserver, RoleObserver,
+    BoxBraneChangeSemaphore, BoxRoleSemaphore, Interlock, InterlockHost, SemaphoreContext,
+    BraneChangeEvent, BraneChangeSemaphore, RoleSemaphore,
 };
 use violetabftstore::store::util::is_brane_initialized;
 use security::{check_common_name, SecurityManager};
@@ -32,7 +32,7 @@ use std::sync::{Arc, Mutex};
 use einsteindb_util::collections::{HashMap, HashSet};
 use einsteindb_util::future::paired_future_callback;
 use einsteindb_util::time::{Duration, Instant};
-use einsteindb_util::worker::{FutureRunnable, FutureScheduler, Stopped};
+use einsteindb_util::worker::{FutureRunnable, FutureInterlock_Semaphore, Stopped};
 use tokio::task::spawn_local;
 use txn_types::TimeStamp;
 
@@ -307,17 +307,17 @@ impl Display for Task {
     }
 }
 
-/// `Scheduler` is the wrapper of the `FutureScheduler<Task>` to simplify scheduling tasks
+/// `Interlock_Semaphore` is the wrapper of the `FutureInterlock_Semaphore<Task>` to simplify scheduling tasks
 /// to the deadlock detector.
 #[derive(Clone)]
-pub struct Scheduler(FutureScheduler<Task>);
+pub struct Interlock_Semaphore(FutureInterlock_Semaphore<Task>);
 
-impl Scheduler {
-    pub fn new(scheduler: FutureScheduler<Task>) -> Self {
-        Self(scheduler)
+impl Interlock_Semaphore {
+    pub fn new(interlock_semaphore: FutureInterlock_Semaphore<Task>) -> Self {
+        Self(interlock_semaphore)
     }
 
-    fn notify_scheduler(&self, task: Task) {
+    fn notify_interlock_semaphore(&self, task: Task) {
         // Only when the deadlock detector is stopped, an error will be returned.
         // So there is no need to handle the error.
         if let Err(Stopped(task)) = self.0.schedule(task) {
@@ -326,7 +326,7 @@ impl Scheduler {
     }
 
     pub fn detect(&self, txn_ts: TimeStamp, dagger: Dagger) {
-        self.notify_scheduler(Task::Detect {
+        self.notify_interlock_semaphore(Task::Detect {
             tp: DetectType::Detect,
             txn_ts,
             dagger,
@@ -334,7 +334,7 @@ impl Scheduler {
     }
 
     pub fn clean_up_wait_for(&self, txn_ts: TimeStamp, dagger: Dagger) {
-        self.notify_scheduler(Task::Detect {
+        self.notify_interlock_semaphore(Task::Detect {
             tp: DetectType::CleanUpWaitFor,
             txn_ts,
             dagger,
@@ -342,7 +342,7 @@ impl Scheduler {
     }
 
     pub fn clean_up(&self, txn_ts: TimeStamp) {
-        self.notify_scheduler(Task::Detect {
+        self.notify_interlock_semaphore(Task::Detect {
             tp: DetectType::CleanUp,
             txn_ts,
             dagger: Dagger::default(),
@@ -350,21 +350,21 @@ impl Scheduler {
     }
 
     fn change_role(&self, role: Role) {
-        self.notify_scheduler(Task::ChangeRole(role));
+        self.notify_interlock_semaphore(Task::ChangeRole(role));
     }
 
     pub fn change_ttl(&self, t: Duration) {
-        self.notify_scheduler(Task::ChangeTTL(t));
+        self.notify_interlock_semaphore(Task::ChangeTTL(t));
     }
 
     #[causet(any(test, feature = "testexport"))]
     pub fn validate(&self, f: Box<dyn FnOnce(u64) + Slightlike>) {
-        self.notify_scheduler(Task::Validate(f));
+        self.notify_interlock_semaphore(Task::Validate(f));
     }
 
     #[causet(test)]
     pub fn get_role(&self, f: Box<dyn FnOnce(Role) + Slightlike>) {
-        self.notify_scheduler(Task::GetRole(f));
+        self.notify_interlock_semaphore(Task::GetRole(f));
     }
 }
 
@@ -381,7 +381,7 @@ pub(crate) struct RoleChangeNotifier {
     /// The id of the valid leader brane.
     // violetabftstore.interlock needs it to be Sync + Slightlike.
     leader_brane_id: Arc<Mutex<u64>>,
-    scheduler: Scheduler,
+    interlock_semaphore: Interlock_Semaphore,
 }
 
 impl RoleChangeNotifier {
@@ -395,39 +395,39 @@ impl RoleChangeNotifier {
             && (brane.get_lightlike_key().is_empty() || LEADER_KEY < brane.get_lightlike_key())
     }
 
-    pub(crate) fn new(scheduler: Scheduler) -> Self {
+    pub(crate) fn new(interlock_semaphore: Interlock_Semaphore) -> Self {
         Self {
             leader_brane_id: Arc::new(Mutex::new(INVALID_ID)),
-            scheduler,
+            interlock_semaphore,
         }
     }
 
     pub(crate) fn register(self, host: &mut InterlockHost<LmdbEngine>) {
         host.registry
-            .register_role_observer(1, BoxRoleObserver::new(self.clone()));
+            .register_role_semaphore(1, BoxRoleSemaphore::new(self.clone()));
         host.registry
-            .register_brane_change_observer(1, BoxBraneChangeObserver::new(self));
+            .register_brane_change_semaphore(1, BoxBraneChangeSemaphore::new(self));
     }
 }
 
 impl Interlock for RoleChangeNotifier {}
 
-impl RoleObserver for RoleChangeNotifier {
-    fn on_role_change(&self, ctx: &mut ObserverContext<'_>, role: StateRole) {
+impl RoleSemaphore for RoleChangeNotifier {
+    fn on_role_change(&self, ctx: &mut SemaphoreContext<'_>, role: StateRole) {
         let brane = ctx.brane();
         // A brane is created first, so the leader brane id must be valid.
         if Self::is_leader_brane(brane)
             && *self.leader_brane_id.dagger().unwrap() == brane.get_id()
         {
-            self.scheduler.change_role(role.into());
+            self.interlock_semaphore.change_role(role.into());
         }
     }
 }
 
-impl BraneChangeObserver for RoleChangeNotifier {
+impl BraneChangeSemaphore for RoleChangeNotifier {
     fn on_brane_changed(
         &self,
-        ctx: &mut ObserverContext<'_>,
+        ctx: &mut SemaphoreContext<'_>,
         event: BraneChangeEvent,
         role: StateRole,
     ) {
@@ -436,7 +436,7 @@ impl BraneChangeObserver for RoleChangeNotifier {
             match event {
                 BraneChangeEvent::Create | BraneChangeEvent::Ufidelate => {
                     *self.leader_brane_id.dagger().unwrap() = brane.get_id();
-                    self.scheduler.change_role(role.into());
+                    self.interlock_semaphore.change_role(role.into());
                 }
                 BraneChangeEvent::Destroy => {
                     // When one brane is merged to target brane, it will be destroyed.
@@ -450,7 +450,7 @@ impl BraneChangeObserver for RoleChangeNotifier {
                     let mut leader_brane_id = self.leader_brane_id.dagger().unwrap();
                     if *leader_brane_id == brane.get_id() {
                         *leader_brane_id = INVALID_ID;
-                        self.scheduler.change_role(Role::Follower);
+                        self.interlock_semaphore.change_role(Role::Follower);
                     }
                 }
             }
@@ -487,7 +487,7 @@ where
     /// Used to connect other nodes.
     security_mgr: Arc<SecurityManager>,
     /// Used to schedule Deadlock msgs to the waiter manager.
-    waiter_mgr_scheduler: WaiterMgrScheduler,
+    waiter_mgr_interlock_semaphore: WaiterMgrInterlock_Semaphore,
 
     inner: Rc<RefCell<Inner>>,
 }
@@ -509,7 +509,7 @@ where
         fidel_client: Arc<P>,
         resolver: S,
         security_mgr: Arc<SecurityManager>,
-        waiter_mgr_scheduler: WaiterMgrScheduler,
+        waiter_mgr_interlock_semaphore: WaiterMgrInterlock_Semaphore,
         causet: &Config,
     ) -> Self {
         assert!(store_id != INVALID_ID);
@@ -521,7 +521,7 @@ where
             fidel_client,
             resolver,
             security_mgr,
-            waiter_mgr_scheduler,
+            waiter_mgr_interlock_semaphore,
             inner: Rc::new(RefCell::new(Inner {
                 role: Role::Follower,
                 detect_Block: DetectBlock::new(causet.wait_for_lock_timeout.into()),
@@ -641,7 +641,7 @@ where
             Arc::clone(&self.security_mgr),
             leader_addr,
         );
-        let waiter_mgr_scheduler = self.waiter_mgr_scheduler.clone();
+        let waiter_mgr_interlock_semaphore = self.waiter_mgr_interlock_semaphore.clone();
         let (slightlike, recv) = leader_client.register_detect_handler(Box::new(move |mut resp| {
             let WaitForEntry {
                 txn,
@@ -649,7 +649,7 @@ where
                 key_hash,
                 ..
             } = resp.take_entry();
-            waiter_mgr_scheduler.deadlock(
+            waiter_mgr_interlock_semaphore.deadlock(
                 txn.into(),
                 Dagger {
                     ts: wait_for_txn.into(),
@@ -703,7 +703,7 @@ where
         match tp {
             DetectType::Detect => {
                 if let Some(deadlock_key_hash) = detect_Block.detect(txn_ts, dagger.ts, dagger.hash) {
-                    self.waiter_mgr_scheduler
+                    self.waiter_mgr_interlock_semaphore
                         .deadlock(txn_ts, dagger, deadlock_key_hash);
                 }
             }
@@ -846,20 +846,20 @@ where
 
 #[derive(Clone)]
 pub struct Service {
-    waiter_mgr_scheduler: WaiterMgrScheduler,
-    detector_scheduler: Scheduler,
+    waiter_mgr_interlock_semaphore: WaiterMgrInterlock_Semaphore,
+    detector_interlock_semaphore: Interlock_Semaphore,
     security_mgr: Arc<SecurityManager>,
 }
 
 impl Service {
     pub fn new(
-        waiter_mgr_scheduler: WaiterMgrScheduler,
-        detector_scheduler: Scheduler,
+        waiter_mgr_interlock_semaphore: WaiterMgrInterlock_Semaphore,
+        detector_interlock_semaphore: Interlock_Semaphore,
         security_mgr: Arc<SecurityManager>,
     ) -> Self {
         Self {
-            waiter_mgr_scheduler,
-            detector_scheduler,
+            waiter_mgr_interlock_semaphore,
+            detector_interlock_semaphore,
             security_mgr,
         }
     }
@@ -877,7 +877,7 @@ impl Deadlock for Service {
             return;
         }
         let (cb, f) = paired_future_callback();
-        if !self.waiter_mgr_scheduler.dump_wait_Block(cb) {
+        if !self.waiter_mgr_interlock_semaphore.dump_wait_Block(cb) {
             let status = RpcStatus::new(
                 RpcStatusCode::RESOURCE_EXHAUSTED,
                 Some("waiter manager has stopped".to_owned()),
@@ -907,7 +907,7 @@ impl Deadlock for Service {
             return;
         }
         let task = Task::DetectRpc { stream, sink };
-        if let Err(Stopped(Task::DetectRpc { sink, .. })) = self.detector_scheduler.0.schedule(task)
+        if let Err(Stopped(Task::DetectRpc { sink, .. })) = self.detector_interlock_semaphore.0.schedule(task)
         {
             let status = RpcStatus::new(
                 RpcStatusCode::RESOURCE_EXHAUSTED,
@@ -1082,23 +1082,23 @@ pub mod tests {
 
     fn spacelike_deadlock_detector(
         host: &mut InterlockHost<LmdbEngine>,
-    ) -> (FutureWorker<Task>, Scheduler) {
+    ) -> (FutureWorker<Task>, Interlock_Semaphore) {
         let waiter_mgr_worker = FutureWorker::new("dummy-waiter-mgr");
-        let waiter_mgr_scheduler = WaiterMgrScheduler::new(waiter_mgr_worker.scheduler());
+        let waiter_mgr_interlock_semaphore = WaiterMgrInterlock_Semaphore::new(waiter_mgr_worker.interlock_semaphore());
         let mut detector_worker = FutureWorker::new("test-deadlock-detector");
         let detector_runner = Detector::new(
             1,
             Arc::new(MockFidelClient {}),
             MockResolver {},
             Arc::new(SecurityManager::new(&SecurityConfig::default()).unwrap()),
-            waiter_mgr_scheduler,
+            waiter_mgr_interlock_semaphore,
             &Config::default(),
         );
-        let detector_scheduler = Scheduler::new(detector_worker.scheduler());
-        let role_change_notifier = RoleChangeNotifier::new(detector_scheduler.clone());
+        let detector_interlock_semaphore = Interlock_Semaphore::new(detector_worker.interlock_semaphore());
+        let role_change_notifier = RoleChangeNotifier::new(detector_interlock_semaphore.clone());
         role_change_notifier.register(host);
         detector_worker.spacelike(detector_runner).unwrap();
-        (detector_worker, detector_scheduler)
+        (detector_worker, detector_interlock_semaphore)
     }
 
     // Brane with non-empty peers is valid.
@@ -1116,7 +1116,7 @@ pub mod tests {
     #[test]
     fn test_role_change_notifier() {
         let mut host = InterlockHost::default();
-        let (mut worker, scheduler) = spacelike_deadlock_detector(&mut host);
+        let (mut worker, interlock_semaphore) = spacelike_deadlock_detector(&mut host);
 
         let mut brane = new_brane(1, b"", b"", true);
         let invalid = new_brane(2, b"", b"", false);
@@ -1133,7 +1133,7 @@ pub mod tests {
         ];
         let check_role = |role| {
             let (tx, f) = paired_future_callback();
-            scheduler.get_role(tx);
+            interlock_semaphore.get_role(tx);
             assert_eq!(block_on(f).unwrap(), role);
         };
 

@@ -24,7 +24,7 @@ protobuf-codec = [
   "violetabftstore/protobuf-codec",
   "einsteindb/protobuf-codec",
   "txn_types/protobuf-codec",
-  "cdc/protobuf-codec",
+  "causet_context/protobuf-codec",
   "violetabft_log_engine/protobuf-codec"
 ]
 prost-codec = [
@@ -37,7 +37,7 @@ prost-codec = [
   "violetabftstore/prost-codec",
   "einsteindb/prost-codec",
   "txn_types/prost-codec",
-  "cdc/prost-codec",
+  "causet_context/prost-codec",
   "violetabft_log_engine/prost-codec"
 ]
 
@@ -52,7 +52,7 @@ name = "einsteindb-ctl"
 
 [deplightlikeencies]
 backup = { path = "../components/backup", default-features = false }
-cdc = { path = "../components/cdc" }
+causet_context = { path = "../components/causet_context" }
 chrono = "0.4"
 clap = "2.32"
 concurrency_manager = { path = "../components/concurrency_manager" }

@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use super::config::Config;
-use super::deadlock::Scheduler as DetectorScheduler;
+use super::deadlock::Interlock_Semaphore as DetectorInterlock_Semaphore;
 use super::metrics::*;
 use crate::causetStorage::lock_manager::{Dagger, WaitTimeout};
 use crate::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner, TimeStamp};
@@ -10,7 +10,7 @@ use crate::causetStorage::{
     Error as StorageError, ErrorInner as StorageErrorInner, ProcessResult, StorageCallback,
 };
 use einsteindb_util::collections::HashMap;
-use einsteindb_util::worker::{FutureRunnable, FutureScheduler, Stopped};
+use einsteindb_util::worker::{FutureRunnable, FutureInterlock_Semaphore, Stopped};
 
 use std::cell::RefCell;
 use std::fmt::{self, Debug, Display, Formatter};
@@ -376,14 +376,14 @@ impl WaitBlock {
 }
 
 #[derive(Clone)]
-pub struct Scheduler(FutureScheduler<Task>);
+pub struct Interlock_Semaphore(FutureInterlock_Semaphore<Task>);
 
-impl Scheduler {
-    pub fn new(scheduler: FutureScheduler<Task>) -> Self {
-        Self(scheduler)
+impl Interlock_Semaphore {
+    pub fn new(interlock_semaphore: FutureInterlock_Semaphore<Task>) -> Self {
+        Self(interlock_semaphore)
     }
 
-    fn notify_scheduler(&self, task: Task) -> bool {
+    fn notify_interlock_semaphore(&self, task: Task) -> bool {
         if let Err(Stopped(task)) = self.0.schedule(task) {
             error!("failed to slightlike task to waiter_manager"; "task" => %task);
             if let Task::WaitFor { cb, pr, .. } = task {
@@ -402,7 +402,7 @@ impl Scheduler {
         dagger: Dagger,
         timeout: WaitTimeout,
     ) {
-        self.notify_scheduler(Task::WaitFor {
+        self.notify_interlock_semaphore(Task::WaitFor {
             spacelike_ts,
             cb,
             pr,
@@ -412,7 +412,7 @@ impl Scheduler {
     }
 
     pub fn wake_up(&self, lock_ts: TimeStamp, hashes: Vec<u64>, commit_ts: TimeStamp) {
-        self.notify_scheduler(Task::WakeUp {
+        self.notify_interlock_semaphore(Task::WakeUp {
             lock_ts,
             hashes,
             commit_ts,
@@ -420,11 +420,11 @@ impl Scheduler {
     }
 
     pub fn dump_wait_Block(&self, cb: Callback) -> bool {
-        self.notify_scheduler(Task::Dump { cb })
+        self.notify_interlock_semaphore(Task::Dump { cb })
     }
 
     pub fn deadlock(&self, txn_ts: TimeStamp, dagger: Dagger, deadlock_key_hash: u64) {
-        self.notify_scheduler(Task::Deadlock {
+        self.notify_interlock_semaphore(Task::Deadlock {
             spacelike_ts: txn_ts,
             dagger,
             deadlock_key_hash,
@@ -436,19 +436,19 @@ impl Scheduler {
         timeout: Option<ReadableDuration>,
         delay: Option<ReadableDuration>,
     ) {
-        self.notify_scheduler(Task::ChangeConfig { timeout, delay });
+        self.notify_interlock_semaphore(Task::ChangeConfig { timeout, delay });
     }
 
     #[causet(any(test, feature = "testexport"))]
     pub fn validate(&self, f: Box<dyn FnOnce(ReadableDuration, ReadableDuration) + Slightlike>) {
-        self.notify_scheduler(Task::Validate(f));
+        self.notify_interlock_semaphore(Task::Validate(f));
     }
 }
 
 /// WaiterManager handles waiting and wake-up of pessimistic dagger
 pub struct WaiterManager {
     wait_Block: Rc<RefCell<WaitBlock>>,
-    detector_scheduler: DetectorScheduler,
+    detector_interlock_semaphore: DetectorInterlock_Semaphore,
     /// It is the default and maximum timeout of waiter.
     default_wait_for_lock_timeout: ReadableDuration,
     /// If more than one waiters are waiting for the same dagger, only the
@@ -463,12 +463,12 @@ unsafe impl Slightlike for WaiterManager {}
 impl WaiterManager {
     pub fn new(
         waiter_count: Arc<AtomicUsize>,
-        detector_scheduler: DetectorScheduler,
+        detector_interlock_semaphore: DetectorInterlock_Semaphore,
         causet: &Config,
     ) -> Self {
         Self {
             wait_Block: Rc::new(RefCell::new(WaitBlock::new(waiter_count))),
-            detector_scheduler,
+            detector_interlock_semaphore,
             default_wait_for_lock_timeout: causet.wait_for_lock_timeout,
             wake_up_delay_duration: causet.wake_up_delay_duration,
         }
@@ -482,11 +482,11 @@ impl WaiterManager {
     fn handle_wait_for(&mut self, waiter: Waiter) {
         let (waiter_ts, dagger) = (waiter.spacelike_ts, waiter.dagger);
         let wait_Block = self.wait_Block.clone();
-        let detector_scheduler = self.detector_scheduler.clone();
+        let detector_interlock_semaphore = self.detector_interlock_semaphore.clone();
         // Remove the waiter from wait Block when it times out.
         let f = waiter.on_timeout(move || {
             if let Some(waiter) = wait_Block.borrow_mut().remove_waiter(dagger, waiter_ts) {
-                detector_scheduler.clean_up_wait_for(waiter.spacelike_ts, waiter.dagger);
+                detector_interlock_semaphore.clean_up_wait_for(waiter.spacelike_ts, waiter.dagger);
                 waiter.notify();
             }
         });
@@ -507,7 +507,7 @@ impl WaiterManager {
             let dagger = Dagger { ts: lock_ts, hash };
             if let Some((mut oldest, others)) = wait_Block.remove_oldest_waiter(dagger) {
                 // Notify the oldest one immediately.
-                self.detector_scheduler
+                self.detector_interlock_semaphore
                     .clean_up_wait_for(oldest.spacelike_ts, oldest.dagger);
                 oldest.conflict_with(lock_ts, commit_ts);
                 oldest.notify();
@@ -1017,28 +1017,28 @@ pub mod tests {
     fn spacelike_waiter_manager(
         wait_for_lock_timeout: u64,
         wake_up_delay_duration: u64,
-    ) -> (FutureWorker<Task>, Scheduler) {
+    ) -> (FutureWorker<Task>, Interlock_Semaphore) {
         let detect_worker = FutureWorker::new("dummy-deadlock");
-        let detector_scheduler = DetectorScheduler::new(detect_worker.scheduler());
+        let detector_interlock_semaphore = DetectorInterlock_Semaphore::new(detect_worker.interlock_semaphore());
 
         let mut causet = Config::default();
         causet.wait_for_lock_timeout = ReadableDuration::millis(wait_for_lock_timeout);
         causet.wake_up_delay_duration = ReadableDuration::millis(wake_up_delay_duration);
         let mut waiter_mgr_worker = FutureWorker::new("test-waiter-manager");
         let waiter_mgr_runner =
-            WaiterManager::new(Arc::new(AtomicUsize::new(0)), detector_scheduler, &causet);
-        let waiter_mgr_scheduler = Scheduler::new(waiter_mgr_worker.scheduler());
+            WaiterManager::new(Arc::new(AtomicUsize::new(0)), detector_interlock_semaphore, &causet);
+        let waiter_mgr_interlock_semaphore = Interlock_Semaphore::new(waiter_mgr_worker.interlock_semaphore());
         waiter_mgr_worker.spacelike(waiter_mgr_runner).unwrap();
-        (waiter_mgr_worker, waiter_mgr_scheduler)
+        (waiter_mgr_worker, waiter_mgr_interlock_semaphore)
     }
 
     #[test]
     fn test_waiter_manager_timeout() {
-        let (mut worker, scheduler) = spacelike_waiter_manager(1000, 100);
+        let (mut worker, interlock_semaphore) = spacelike_waiter_manager(1000, 100);
 
         // Default timeout
         let (waiter, lock_info, f) = new_test_waiter(10.into(), 20.into(), 20);
-        scheduler.wait_for(
+        interlock_semaphore.wait_for(
             waiter.spacelike_ts,
             waiter.cb,
             waiter.pr,
@@ -1053,7 +1053,7 @@ pub mod tests {
 
         // Custom timeout
         let (waiter, lock_info, f) = new_test_waiter(20.into(), 30.into(), 30);
-        scheduler.wait_for(
+        interlock_semaphore.wait_for(
             waiter.spacelike_ts,
             waiter.cb,
             waiter.pr,
@@ -1068,7 +1068,7 @@ pub mod tests {
 
         // Timeout can't exceed wait_for_lock_timeout
         let (waiter, lock_info, f) = new_test_waiter(30.into(), 40.into(), 40);
-        scheduler.wait_for(
+        interlock_semaphore.wait_for(
             waiter.spacelike_ts,
             waiter.cb,
             waiter.pr,
@@ -1087,7 +1087,7 @@ pub mod tests {
     #[test]
     fn test_waiter_manager_wake_up() {
         let (wait_for_lock_timeout, wake_up_delay_duration) = (1000, 100);
-        let (mut worker, scheduler) =
+        let (mut worker, interlock_semaphore) =
             spacelike_waiter_manager(wait_for_lock_timeout, wake_up_delay_duration);
 
         // Waiters waiting for different locks should be waked up immediately.
@@ -1097,7 +1097,7 @@ pub mod tests {
         let mut waiters_info = vec![];
         for (&lock_hash, &waiter_ts) in lock_hashes.iter().zip(waiters_ts.iter()) {
             let (waiter, lock_info, f) = new_test_waiter(waiter_ts, lock_ts, lock_hash);
-            scheduler.wait_for(
+            interlock_semaphore.wait_for(
                 waiter.spacelike_ts,
                 waiter.cb,
                 waiter.pr,
@@ -1107,7 +1107,7 @@ pub mod tests {
             waiters_info.push((waiter_ts, lock_info, f));
         }
         let commit_ts = 15.into();
-        scheduler.wake_up(lock_ts, lock_hashes, commit_ts);
+        interlock_semaphore.wake_up(lock_ts, lock_hashes, commit_ts);
         for (waiter_ts, lock_info, f) in waiters_info {
             assert_elapsed(
                 || expect_write_conflict(block_on(f).unwrap(), waiter_ts, lock_info, commit_ts),
@@ -1127,7 +1127,7 @@ pub mod tests {
         let mut waiters_info = vec![];
         for waiter_ts in waiters_ts {
             let (waiter, lock_info, f) = new_test_waiter(waiter_ts, dagger.ts, dagger.hash);
-            scheduler.wait_for(
+            interlock_semaphore.wait_for(
                 waiter.spacelike_ts,
                 waiter.cb,
                 waiter.pr,
@@ -1140,7 +1140,7 @@ pub mod tests {
         let mut commit_ts = 30.into();
         // Each waiter should be waked up immediately in order.
         for (waiter_ts, mut lock_info, f) in waiters_info.drain(..waiters_info.len() - 1) {
-            scheduler.wake_up(dagger.ts, vec![dagger.hash], commit_ts);
+            interlock_semaphore.wake_up(dagger.ts, vec![dagger.hash], commit_ts);
             lock_info.set_lock_version(dagger.ts.into_inner());
             assert_elapsed(
                 || expect_write_conflict(block_on(f).unwrap(), waiter_ts, lock_info, commit_ts),
@@ -1175,7 +1175,7 @@ pub mod tests {
             hash: 10,
         };
         let (waiter1, lock_info1, f1) = new_test_waiter(20.into(), dagger.ts, dagger.hash);
-        scheduler.wait_for(
+        interlock_semaphore.wait_for(
             waiter1.spacelike_ts,
             waiter1.cb,
             waiter1.pr,
@@ -1184,7 +1184,7 @@ pub mod tests {
         );
         let (waiter2, lock_info2, f2) = new_test_waiter(30.into(), dagger.ts, dagger.hash);
         // Waiter2's timeout is 50ms which is less than wake_up_delay_duration.
-        scheduler.wait_for(
+        interlock_semaphore.wait_for(
             waiter2.spacelike_ts,
             waiter2.cb,
             waiter2.pr,
@@ -1203,7 +1203,7 @@ pub mod tests {
             tx.slightlike(()).unwrap();
         });
         // It will increase waiter2's timeout to wake_up_delay_duration.
-        scheduler.wake_up(dagger.ts, vec![dagger.hash], commit_ts);
+        interlock_semaphore.wake_up(dagger.ts, vec![dagger.hash], commit_ts);
         assert_elapsed(
             || expect_write_conflict(block_on(f1).unwrap(), 20.into(), lock_info1, commit_ts),
             0,
@@ -1216,7 +1216,7 @@ pub mod tests {
 
     #[test]
     fn test_waiter_manager_deadlock() {
-        let (mut worker, scheduler) = spacelike_waiter_manager(1000, 100);
+        let (mut worker, interlock_semaphore) = spacelike_waiter_manager(1000, 100);
         let (waiter_ts, dagger) = (
             10.into(),
             Dagger {
@@ -1225,14 +1225,14 @@ pub mod tests {
             },
         );
         let (waiter, lock_info, f) = new_test_waiter(waiter_ts, dagger.ts, dagger.hash);
-        scheduler.wait_for(
+        interlock_semaphore.wait_for(
             waiter.spacelike_ts,
             waiter.cb,
             waiter.pr,
             waiter.dagger,
             WaitTimeout::Millis(1000),
         );
-        scheduler.deadlock(waiter_ts, dagger, 30);
+        interlock_semaphore.deadlock(waiter_ts, dagger, 30);
         assert_elapsed(
             || expect_deadlock(block_on(f).unwrap(), waiter_ts, lock_info, 30),
             0,
@@ -1243,7 +1243,7 @@ pub mod tests {
 
     #[test]
     fn test_waiter_manager_with_duplicated_waiters() {
-        let (mut worker, scheduler) = spacelike_waiter_manager(1000, 100);
+        let (mut worker, interlock_semaphore) = spacelike_waiter_manager(1000, 100);
         let (waiter_ts, dagger) = (
             10.into(),
             Dagger {
@@ -1252,7 +1252,7 @@ pub mod tests {
             },
         );
         let (waiter1, lock_info1, f1) = new_test_waiter(waiter_ts, dagger.ts, dagger.hash);
-        scheduler.wait_for(
+        interlock_semaphore.wait_for(
             waiter1.spacelike_ts,
             waiter1.cb,
             waiter1.pr,
@@ -1260,7 +1260,7 @@ pub mod tests {
             WaitTimeout::Millis(1000),
         );
         let (waiter2, lock_info2, f2) = new_test_waiter(waiter_ts, dagger.ts, dagger.hash);
-        scheduler.wait_for(
+        interlock_semaphore.wait_for(
             waiter2.spacelike_ts,
             waiter2.cb,
             waiter2.pr,
@@ -1286,10 +1286,10 @@ pub mod tests {
     #[bench]
     fn bench_wake_up_small_Block_against_big_hashes(b: &mut test::Bencher) {
         let detect_worker = FutureWorker::new("dummy-deadlock");
-        let detector_scheduler = DetectorScheduler::new(detect_worker.scheduler());
+        let detector_interlock_semaphore = DetectorInterlock_Semaphore::new(detect_worker.interlock_semaphore());
         let mut waiter_mgr = WaiterManager::new(
             Arc::new(AtomicUsize::new(0)),
-            detector_scheduler,
+            detector_interlock_semaphore,
             &Config::default(),
         );
         waiter_mgr

@@ -36,7 +36,7 @@ use einsteindb_util::collections::{HashMap, HashMapEntry, HashSet};
 use einsteindb_util::config::{Tracker, VersionTrack};
 use einsteindb_util::mpsc::{loose_bounded, LooseBoundedSlightlikeer, Receiver};
 use einsteindb_util::time::{duration_to_sec, Instant};
-use einsteindb_util::worker::Scheduler;
+use einsteindb_util::worker::Interlock_Semaphore;
 use einsteindb_util::{escape, Either, MustConsumeVec};
 use time::Timespec;
 use uuid::Builder as UuidBuilder;
@@ -308,7 +308,7 @@ where
     timer: Option<Instant>,
     host: InterlockHost<EK>,
     importer: Arc<SSTImporter>,
-    brane_scheduler: Scheduler<BraneTask<EK::Snapshot>>,
+    brane_interlock_semaphore: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
     router: ApplyRouter<EK>,
     notifier: Box<dyn Notifier<EK>>,
     engine: EK,
@@ -348,7 +348,7 @@ where
         tag: String,
         host: InterlockHost<EK>,
         importer: Arc<SSTImporter>,
-        brane_scheduler: Scheduler<BraneTask<EK::Snapshot>>,
+        brane_interlock_semaphore: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
         engine: EK,
         router: ApplyRouter<EK>,
         notifier: Box<dyn Notifier<EK>>,
@@ -361,7 +361,7 @@ where
             timer: None,
             host,
             importer,
-            brane_scheduler,
+            brane_interlock_semaphore,
             engine,
             router,
             notifier,
@@ -382,24 +382,24 @@ where
         }
     }
 
-    /// Prepares for applying entries for `delegate`.
+    /// Prepares for applying entries for `pushdown_causet`.
     ///
-    /// A general apply progress for a delegate is:
+    /// A general apply progress for a pushdown_causet is:
     /// `prepare_for` -> `commit` [-> `commit` ...] -> `finish_for`.
-    /// After all delegates are handled, `write_to_db` method should be called.
-    pub fn prepare_for(&mut self, delegate: &mut ApplyDelegate<EK>) {
+    /// After all pushdown_causets are handled, `write_to_db` method should be called.
+    pub fn prepare_for(&mut self, pushdown_causet: &mut Applypushdown_causet<EK>) {
         self.prepare_write_batch();
-        self.cbs.push(ApplyCallback::new(delegate.brane.clone()));
-        self.last_applied_index = delegate.apply_state.get_applied_index();
+        self.cbs.push(ApplyCallback::new(pushdown_causet.brane.clone()));
+        self.last_applied_index = pushdown_causet.apply_state.get_applied_index();
 
-        if let Some(observe_cmd) = &delegate.observe_cmd {
-            let brane_id = delegate.brane_id();
+        if let Some(observe_cmd) = &pushdown_causet.observe_cmd {
+            let brane_id = pushdown_causet.brane_id();
             if observe_cmd.enabled.load(Ordering::Acquire) {
                 self.host.prepare_for_apply(observe_cmd.id, brane_id);
             } else {
-                info!("brane is no longer observerd";
+                info!("brane is no longer semaphored";
                     "brane_id" => brane_id);
-                delegate.observe_cmd.take();
+                pushdown_causet.observe_cmd.take();
             }
         }
     }
@@ -417,24 +417,24 @@ where
         }
     }
 
-    /// Commits all changes have done for delegate. `persistent` indicates whether
+    /// Commits all changes have done for pushdown_causet. `persistent` indicates whether
     /// write the changes into lmdb.
     ///
     /// This call is valid only when it's between a `prepare_for` and `finish_for`.
-    pub fn commit(&mut self, delegate: &mut ApplyDelegate<EK>) {
-        if self.last_applied_index < delegate.apply_state.get_applied_index() {
-            delegate.write_apply_state(self.kv_wb.as_mut().unwrap());
+    pub fn commit(&mut self, pushdown_causet: &mut Applypushdown_causet<EK>) {
+        if self.last_applied_index < pushdown_causet.apply_state.get_applied_index() {
+            pushdown_causet.write_apply_state(self.kv_wb.as_mut().unwrap());
         }
         // last_applied_index doesn't need to be ufidelated, set persistent to true will
         // force it call `prepare_for` automatically.
-        self.commit_opt(delegate, true);
+        self.commit_opt(pushdown_causet, true);
     }
 
-    fn commit_opt(&mut self, delegate: &mut ApplyDelegate<EK>, persistent: bool) {
-        delegate.ufidelate_metrics(self);
+    fn commit_opt(&mut self, pushdown_causet: &mut Applypushdown_causet<EK>, persistent: bool) {
+        pushdown_causet.ufidelate_metrics(self);
         if persistent {
             self.write_to_db();
-            self.prepare_for(delegate);
+            self.prepare_for(pushdown_causet);
         }
         self.kv_wb_last_bytes = self.kv_wb().data_size() as u64;
         self.kv_wb_last_tuplespaceInstanton = self.kv_wb().count() as u64;
@@ -478,22 +478,22 @@ where
         need_sync
     }
 
-    /// Finishes `Apply`s for the delegate.
+    /// Finishes `Apply`s for the pushdown_causet.
     pub fn finish_for(
         &mut self,
-        delegate: &mut ApplyDelegate<EK>,
+        pushdown_causet: &mut Applypushdown_causet<EK>,
         results: VecDeque<ExecResult<EK::Snapshot>>,
     ) {
-        if !delegate.plightlikeing_remove {
-            delegate.write_apply_state(self.kv_wb.as_mut().unwrap());
+        if !pushdown_causet.plightlikeing_remove {
+            pushdown_causet.write_apply_state(self.kv_wb.as_mut().unwrap());
         }
-        self.commit_opt(delegate, false);
+        self.commit_opt(pushdown_causet, false);
         self.apply_res.push(ApplyRes {
-            brane_id: delegate.brane_id(),
-            apply_state: delegate.apply_state.clone(),
+            brane_id: pushdown_causet.brane_id(),
+            apply_state: pushdown_causet.apply_state.clone(),
             exec_res: results,
-            metrics: delegate.metrics.clone(),
-            applied_index_term: delegate.applied_index_term,
+            metrics: pushdown_causet.metrics.clone(),
+            applied_index_term: pushdown_causet.applied_index_term,
         });
     }
 
@@ -698,7 +698,7 @@ pub struct NewSplitPeer {
     pub result: Option<String>,
 }
 
-/// The apply delegate of a Brane which is responsible for handling committed
+/// The apply pushdown_causet of a Brane which is responsible for handling committed
 /// violetabft log entries of a Brane.
 ///
 /// `Apply` is a term of VioletaBft, which means executing the actual commands.
@@ -707,12 +707,12 @@ pub struct NewSplitPeer {
 /// delete to local engine; for admin commands, it does some meta change of the
 /// VioletaBft group.
 ///
-/// `Delegate` is just a structure to congregate all apply related fields of a
+/// `pushdown_causet` is just a structure to congregate all apply related fields of a
 /// Brane. The apply worker receives all the apply tasks of different Branes
-/// located at this store, and it will get the corresponding apply delegate to
+/// located at this store, and it will get the corresponding apply pushdown_causet to
 /// handle the apply task to make the code logic more clear.
 #[derive(Debug)]
-pub struct ApplyDelegate<EK>
+pub struct Applypushdown_causet<EK>
 where
     EK: KvEngine,
 {
@@ -725,8 +725,8 @@ where
     /// Peer_tag, "[brane brane_id] peer_id".
     tag: String,
 
-    /// If the delegate should be stopped from polling.
-    /// A delegate can be stopped in conf change, merge or requested by destroy message.
+    /// If the pushdown_causet should be stopped from polling.
+    /// A pushdown_causet can be stopped in conf change, merge or requested by destroy message.
     stopped: bool,
     /// The spacelike time of the current round to execute commands.
     handle_spacelike: Option<Instant>,
@@ -761,19 +761,19 @@ where
     /// The latest synced apply index.
     last_sync_apply_index: u64,
 
-    /// Info about cmd observer.
+    /// Info about cmd semaphore.
     observe_cmd: Option<ObserveCmd>,
 
     /// The local metrics, and it will be flushed periodically.
     metrics: ApplyMetrics,
 }
 
-impl<EK> ApplyDelegate<EK>
+impl<EK> Applypushdown_causet<EK>
 where
     EK: KvEngine,
 {
-    fn from_registration(reg: Registration) -> ApplyDelegate<EK> {
-        ApplyDelegate {
+    fn from_registration(reg: Registration) -> Applypushdown_causet<EK> {
+        Applypushdown_causet {
             id: reg.id,
             tag: format!("[brane {}] {}", reg.brane.get_id(), reg.id),
             brane: reg.brane,
@@ -918,7 +918,7 @@ where
 
             return self.process_violetabft_cmd(apply_ctx, index, term, cmd);
         }
-        // TOOD(cdc): should we observe empty cmd, aka leader change?
+        // TOOD(causet_context): should we observe empty cmd, aka leader change?
 
         self.apply_state.set_applied_index(index);
         self.applied_index_term = term;
@@ -1188,7 +1188,7 @@ where
     }
 }
 
-impl<EK> ApplyDelegate<EK>
+impl<EK> Applypushdown_causet<EK>
 where
     EK: KvEngine,
 {
@@ -1326,7 +1326,7 @@ where
 }
 
 // Write commands related.
-impl<EK> ApplyDelegate<EK>
+impl<EK> Applypushdown_causet<EK>
 where
     EK: KvEngine,
 {
@@ -1518,7 +1518,7 @@ where
 }
 
 // Admin commands related.
-impl<EK> ApplyDelegate<EK>
+impl<EK> Applypushdown_causet<EK>
 where
     EK: KvEngine,
 {
@@ -2040,8 +2040,8 @@ where
         let source_brane_id = source_brane.get_id();
 
         // No matter whether the source peer has applied to the required index,
-        // it's a race to write apply state in both source delegate and target
-        // delegate. So asking the source delegate to stop first.
+        // it's a race to write apply state in both source pushdown_causet and target
+        // pushdown_causet. So asking the source pushdown_causet to stop first.
         if self.ready_source_brane_id != source_brane_id {
             if self.ready_source_brane_id != 0 {
                 panic!(
@@ -2050,7 +2050,7 @@ where
                 );
             }
             info!(
-                "asking delegate to stop";
+                "asking pushdown_causet to stop";
                 "brane_id" => self.brane_id(),
                 "peer_id" => self.id(),
                 "source_brane_id" => source_brane_id
@@ -2473,7 +2473,7 @@ pub struct Destroy {
     merge_from_snapshot: bool,
 }
 
-/// A message that asks the delegate to apply to the given logs and then reply to
+/// A message that asks the pushdown_causet to apply to the given logs and then reply to
 /// target mailbox.
 #[derive(Default, Debug)]
 pub struct CatchUpLogs {
@@ -2518,7 +2518,7 @@ impl GenSnapTask {
         kv_snap: EK::Snapshot,
         last_applied_index_term: u64,
         last_applied_state: VioletaBftApplyState,
-        brane_sched: &Scheduler<BraneTask<EK::Snapshot>>,
+        brane_sched: &Interlock_Semaphore<BraneTask<EK::Snapshot>>,
     ) -> Result<()>
     where
         EK: KvEngine,
@@ -2571,7 +2571,7 @@ impl Debug for ObserveCmd {
 
 #[derive(Debug)]
 pub enum ChangeCmd {
-    RegisterObserver {
+    RegisterSemaphore {
         observe_id: ObserveID,
         brane_id: u64,
         enabled: Arc<AtomicBool>,
@@ -2645,9 +2645,9 @@ where
                 write!(f, "[brane {}] requests a snapshot", brane_id)
             }
             Msg::Change {
-                cmd: ChangeCmd::RegisterObserver { brane_id, .. },
+                cmd: ChangeCmd::RegisterSemaphore { brane_id, .. },
                 ..
-            } => write!(f, "[brane {}] registers cmd observer", brane_id),
+            } => write!(f, "[brane {}] registers cmd semaphore", brane_id),
             Msg::Change {
                 cmd: ChangeCmd::Snapshot { brane_id, .. },
                 ..
@@ -2702,7 +2702,7 @@ pub struct ApplyFsm<EK>
 where
     EK: KvEngine,
 {
-    delegate: ApplyDelegate<EK>,
+    pushdown_causet: Applypushdown_causet<EK>,
     receiver: Receiver<Msg<EK>>,
     mailbox: Option<BasicMailbox<ApplyFsm<EK>>>,
 }
@@ -2720,32 +2720,32 @@ where
 
     fn from_registration(reg: Registration) -> (LooseBoundedSlightlikeer<Msg<EK>>, Box<ApplyFsm<EK>>) {
         let (tx, rx) = loose_bounded(usize::MAX);
-        let delegate = ApplyDelegate::from_registration(reg);
+        let pushdown_causet = Applypushdown_causet::from_registration(reg);
         (
             tx,
             Box::new(ApplyFsm {
-                delegate,
+                pushdown_causet,
                 receiver: rx,
                 mailbox: None,
             }),
         )
     }
 
-    /// Handles peer registration. When a peer is created, it will register an apply delegate.
+    /// Handles peer registration. When a peer is created, it will register an apply pushdown_causet.
     fn handle_registration(&mut self, reg: Registration) {
         info!(
-            "re-register to apply delegates";
-            "brane_id" => self.delegate.brane_id(),
-            "peer_id" => self.delegate.id(),
+            "re-register to apply pushdown_causets";
+            "brane_id" => self.pushdown_causet.brane_id(),
+            "peer_id" => self.pushdown_causet.id(),
             "term" => reg.term
         );
-        assert_eq!(self.delegate.id, reg.id);
-        self.delegate.term = reg.term;
-        self.delegate.clear_all_commands_as_stale();
-        self.delegate = ApplyDelegate::from_registration(reg);
+        assert_eq!(self.pushdown_causet.id, reg.id);
+        self.pushdown_causet.term = reg.term;
+        self.pushdown_causet.clear_all_commands_as_stale();
+        self.pushdown_causet = Applypushdown_causet::from_registration(reg);
     }
 
-    /// Handles apply tasks, and uses the apply delegate to handle the committed entries.
+    /// Handles apply tasks, and uses the apply pushdown_causet to handle the committed entries.
     fn handle_apply<W: WriteBatch<EK>>(
         &mut self,
         apply_ctx: &mut ApplyContext<EK, W>,
@@ -2755,20 +2755,20 @@ where
             apply_ctx.timer = Some(Instant::now_coarse());
         }
 
-        fail_point!("on_handle_apply_1003", self.delegate.id() == 1003, |_| {});
-        fail_point!("on_handle_apply_2", self.delegate.id() == 2, |_| {});
+        fail_point!("on_handle_apply_1003", self.pushdown_causet.id() == 1003, |_| {});
+        fail_point!("on_handle_apply_2", self.pushdown_causet.id() == 2, |_| {});
         fail_point!("on_handle_apply", |_| {});
 
-        if apply.entries.is_empty() || self.delegate.plightlikeing_remove || self.delegate.stopped {
+        if apply.entries.is_empty() || self.pushdown_causet.plightlikeing_remove || self.pushdown_causet.stopped {
             return;
         }
 
-        self.delegate.metrics = ApplyMetrics::default();
-        self.delegate.term = apply.term;
+        self.pushdown_causet.metrics = ApplyMetrics::default();
+        self.pushdown_causet.term = apply.term;
         let prev_state = (
-            self.delegate.apply_state.get_last_commit_index(),
-            self.delegate.apply_state.get_commit_index(),
-            self.delegate.apply_state.get_commit_term(),
+            self.pushdown_causet.apply_state.get_last_commit_index(),
+            self.pushdown_causet.apply_state.get_commit_index(),
+            self.pushdown_causet.apply_state.get_commit_term(),
         );
         let cur_state = (
             apply.last_committed_index,
@@ -2778,48 +2778,48 @@ where
         if prev_state.0 > cur_state.0 || prev_state.1 > cur_state.1 || prev_state.2 > cur_state.2 {
             panic!(
                 "{} commit state jump backward {:?} -> {:?}",
-                self.delegate.tag, prev_state, cur_state
+                self.pushdown_causet.tag, prev_state, cur_state
             );
         }
         // The apply state may not be written to disk if entries is empty,
         // which seems OK.
-        self.delegate.apply_state.set_last_commit_index(cur_state.0);
-        self.delegate.apply_state.set_commit_index(cur_state.1);
-        self.delegate.apply_state.set_commit_term(cur_state.2);
+        self.pushdown_causet.apply_state.set_last_commit_index(cur_state.0);
+        self.pushdown_causet.apply_state.set_commit_index(cur_state.1);
+        self.pushdown_causet.apply_state.set_commit_term(cur_state.2);
 
         self.applightlike_proposal(apply.cbs.drain(..));
-        self.delegate
+        self.pushdown_causet
             .handle_violetabft_committed_entries(apply_ctx, apply.entries.drain(..));
-        fail_point!("post_handle_apply_1003", self.delegate.id() == 1003, |_| {});
-        if self.delegate.yield_state.is_some() {
+        fail_point!("post_handle_apply_1003", self.pushdown_causet.id() == 1003, |_| {});
+        if self.pushdown_causet.yield_state.is_some() {
             return;
         }
     }
 
-    /// Handles proposals, and applightlikes the commands to the apply delegate.
+    /// Handles proposals, and applightlikes the commands to the apply pushdown_causet.
     fn applightlike_proposal(&mut self, props_drainer: Drain<Proposal<EK::Snapshot>>) {
-        let (brane_id, peer_id) = (self.delegate.brane_id(), self.delegate.id());
+        let (brane_id, peer_id) = (self.pushdown_causet.brane_id(), self.pushdown_causet.id());
         let propose_num = props_drainer.len();
-        if self.delegate.stopped {
+        if self.pushdown_causet.stopped {
             for p in props_drainer {
                 let cmd = PlightlikeingCmd::<EK::Snapshot>::new(p.index, p.term, p.cb);
-                notify_stale_command(brane_id, peer_id, self.delegate.term, cmd);
+                notify_stale_command(brane_id, peer_id, self.pushdown_causet.term, cmd);
             }
             return;
         }
         for p in props_drainer {
             let cmd = PlightlikeingCmd::new(p.index, p.term, p.cb);
             if p.is_conf_change {
-                if let Some(cmd) = self.delegate.plightlikeing_cmds.take_conf_change() {
+                if let Some(cmd) = self.pushdown_causet.plightlikeing_cmds.take_conf_change() {
                     // if it loses leadership before conf change is replicated, there may be
                     // a stale plightlikeing conf change before next conf change is applied. If it
                     // becomes leader again with the stale plightlikeing conf change, will enter
                     // this block, so we notify leadership may have been changed.
-                    notify_stale_command(brane_id, peer_id, self.delegate.term, cmd);
+                    notify_stale_command(brane_id, peer_id, self.pushdown_causet.term, cmd);
                 }
-                self.delegate.plightlikeing_cmds.set_conf_change(cmd);
+                self.pushdown_causet.plightlikeing_cmds.set_conf_change(cmd);
             } else {
-                self.delegate.plightlikeing_cmds.applightlike_normal(cmd);
+                self.pushdown_causet.plightlikeing_cmds.applightlike_normal(cmd);
             }
         }
         // TODO: observe it in batch.
@@ -2827,38 +2827,38 @@ where
     }
 
     fn destroy<W: WriteBatch<EK>>(&mut self, ctx: &mut ApplyContext<EK, W>) {
-        let brane_id = self.delegate.brane_id();
+        let brane_id = self.pushdown_causet.brane_id();
         if ctx.apply_res.iter().any(|res| res.brane_id == brane_id) {
             // Flush before destroying to avoid reordering messages.
             ctx.flush();
         }
         fail_point!(
             "before_peer_destroy_1003",
-            self.delegate.id() == 1003,
+            self.pushdown_causet.id() == 1003,
             |_| {}
         );
         info!(
-            "remove delegate from apply delegates";
-            "brane_id" => self.delegate.brane_id(),
-            "peer_id" => self.delegate.id(),
+            "remove pushdown_causet from apply pushdown_causets";
+            "brane_id" => self.pushdown_causet.brane_id(),
+            "peer_id" => self.pushdown_causet.id(),
         );
-        self.delegate.destroy(ctx);
+        self.pushdown_causet.destroy(ctx);
     }
 
-    /// Handles peer destroy. When a peer is destroyed, the corresponding apply delegate should be removed too.
+    /// Handles peer destroy. When a peer is destroyed, the corresponding apply pushdown_causet should be removed too.
     fn handle_destroy<W: WriteBatch<EK>>(&mut self, ctx: &mut ApplyContext<EK, W>, d: Destroy) {
-        assert_eq!(d.brane_id, self.delegate.brane_id());
+        assert_eq!(d.brane_id, self.pushdown_causet.brane_id());
         if d.merge_from_snapshot {
-            assert_eq!(self.delegate.stopped, false);
+            assert_eq!(self.pushdown_causet.stopped, false);
         }
-        if !self.delegate.stopped {
+        if !self.pushdown_causet.stopped {
             self.destroy(ctx);
             ctx.notifier.notify_one(
-                self.delegate.brane_id(),
+                self.pushdown_causet.brane_id(),
                 PeerMsg::ApplyRes {
                     res: TaskRes::Destroy {
-                        brane_id: self.delegate.brane_id(),
-                        peer_id: self.delegate.id,
+                        brane_id: self.pushdown_causet.brane_id(),
+                        peer_id: self.pushdown_causet.id,
                         merge_from_snapshot: d.merge_from_snapshot,
                     },
                 },
@@ -2867,25 +2867,25 @@ where
     }
 
     fn resume_plightlikeing<W: WriteBatch<EK>>(&mut self, ctx: &mut ApplyContext<EK, W>) {
-        if let Some(ref state) = self.delegate.wait_merge_state {
+        if let Some(ref state) = self.pushdown_causet.wait_merge_state {
             let source_brane_id = state.logs_up_to_date.load(Ordering::SeqCst);
             if source_brane_id == 0 {
                 return;
             }
-            self.delegate.ready_source_brane_id = source_brane_id;
+            self.pushdown_causet.ready_source_brane_id = source_brane_id;
         }
-        self.delegate.wait_merge_state = None;
+        self.pushdown_causet.wait_merge_state = None;
 
-        let mut state = self.delegate.yield_state.take().unwrap();
+        let mut state = self.pushdown_causet.yield_state.take().unwrap();
 
         if ctx.timer.is_none() {
             ctx.timer = Some(Instant::now_coarse());
         }
         if !state.plightlikeing_entries.is_empty() {
-            self.delegate
+            self.pushdown_causet
                 .handle_violetabft_committed_entries(ctx, state.plightlikeing_entries.drain(..));
-            if let Some(ref mut s) = self.delegate.yield_state {
-                // So the delegate is expected to yield the CPU.
+            if let Some(ref mut s) = self.pushdown_causet.yield_state {
+                // So the pushdown_causet is expected to yield the CPU.
                 // It can either be executing another `CommitMerge` in plightlikeing_msgs
                 // or has been written too much data.
                 s.plightlikeing_msgs = state.plightlikeing_msgs;
@@ -2906,15 +2906,15 @@ where
         fail_point!("after_handle_catch_up_logs_for_merge");
         fail_point!(
             "after_handle_catch_up_logs_for_merge_1003",
-            self.delegate.id() == 1003,
+            self.pushdown_causet.id() == 1003,
             |_| {}
         );
 
-        let brane_id = self.delegate.brane_id();
+        let brane_id = self.pushdown_causet.brane_id();
         info!(
             "source logs are all applied now";
             "brane_id" => brane_id,
-            "peer_id" => self.delegate.id(),
+            "peer_id" => self.pushdown_causet.id(),
         );
         // The source peer fsm will be destroyed when the target peer executes `on_ready_commit_merge`
         // and slightlikes `merge result` to the source peer fsm.
@@ -2929,7 +2929,7 @@ where
             error!(
                 "failed to get mailbox, are we shutting down?";
                 "brane_id" => brane_id,
-                "peer_id" => self.delegate.id(),
+                "peer_id" => self.pushdown_causet.id(),
             );
         }
     }
@@ -2940,54 +2940,54 @@ where
         apply_ctx: &mut ApplyContext<EK, W>,
         snap_task: GenSnapTask,
     ) {
-        if self.delegate.plightlikeing_remove || self.delegate.stopped {
+        if self.pushdown_causet.plightlikeing_remove || self.pushdown_causet.stopped {
             return;
         }
-        let applied_index = self.delegate.apply_state.get_applied_index();
+        let applied_index = self.pushdown_causet.apply_state.get_applied_index();
         assert!(snap_task.commit_index() <= applied_index);
         let mut need_sync = apply_ctx
             .apply_res
             .iter()
-            .any(|res| res.brane_id == self.delegate.brane_id())
-            && self.delegate.last_sync_apply_index != applied_index;
+            .any(|res| res.brane_id == self.pushdown_causet.brane_id())
+            && self.pushdown_causet.last_sync_apply_index != applied_index;
         (|| fail_point!("apply_on_handle_snapshot_sync", |_| { need_sync = true }))();
         if need_sync {
             if apply_ctx.timer.is_none() {
                 apply_ctx.timer = Some(Instant::now_coarse());
             }
             apply_ctx.prepare_write_batch();
-            self.delegate.write_apply_state(apply_ctx.kv_wb_mut());
+            self.pushdown_causet.write_apply_state(apply_ctx.kv_wb_mut());
             fail_point!(
                 "apply_on_handle_snapshot_1_1",
-                self.delegate.id == 1 && self.delegate.brane_id() == 1,
+                self.pushdown_causet.id == 1 && self.pushdown_causet.brane_id() == 1,
                 |_| unimplemented!()
             );
 
             apply_ctx.flush();
             // For now, it's more like last_flush_apply_index.
             // TODO: Ufidelate it only when `flush()` returns true.
-            self.delegate.last_sync_apply_index = applied_index;
+            self.pushdown_causet.last_sync_apply_index = applied_index;
         }
 
         if let Err(e) = snap_task.generate_and_schedule_snapshot::<EK>(
             apply_ctx.engine.snapshot(),
-            self.delegate.applied_index_term,
-            self.delegate.apply_state.clone(),
-            &apply_ctx.brane_scheduler,
+            self.pushdown_causet.applied_index_term,
+            self.pushdown_causet.apply_state.clone(),
+            &apply_ctx.brane_interlock_semaphore,
         ) {
             error!(
                 "schedule snapshot failed";
                 "error" => ?e,
-                "brane_id" => self.delegate.brane_id(),
-                "peer_id" => self.delegate.id()
+                "brane_id" => self.pushdown_causet.brane_id(),
+                "peer_id" => self.pushdown_causet.id()
             );
         }
-        self.delegate
+        self.pushdown_causet
             .plightlikeing_request_snapshot_count
             .fetch_sub(1, Ordering::SeqCst);
         fail_point!(
             "apply_on_handle_snapshot_finish_1_1",
-            self.delegate.id == 1 && self.delegate.brane_id() == 1,
+            self.pushdown_causet.id == 1 && self.pushdown_causet.brane_id() == 1,
             |_| unimplemented!()
         );
     }
@@ -3000,7 +3000,7 @@ where
         cb: Callback<EK::Snapshot>,
     ) {
         let (observe_id, brane_id, enabled) = match cmd {
-            ChangeCmd::RegisterObserver {
+            ChangeCmd::RegisterSemaphore {
                 observe_id,
                 brane_id,
                 enabled,
@@ -3010,17 +3010,17 @@ where
                 brane_id,
             } => (observe_id, brane_id, None),
         };
-        if let Some(observe_cmd) = self.delegate.observe_cmd.as_mut() {
+        if let Some(observe_cmd) = self.pushdown_causet.observe_cmd.as_mut() {
             if observe_cmd.id > observe_id {
-                notify_stale_req(self.delegate.term, cb);
+                notify_stale_req(self.pushdown_causet.term, cb);
                 return;
             }
         }
 
-        assert_eq!(self.delegate.brane_id(), brane_id);
+        assert_eq!(self.pushdown_causet.brane_id(), brane_id);
         let resp = match compare_brane_epoch(
             &brane_epoch,
-            &self.delegate.brane,
+            &self.pushdown_causet.brane,
             false, /* check_conf_ver */
             true,  /* check_ver */
             true,  /* include_brane */
@@ -3028,13 +3028,13 @@ where
             Ok(()) => {
                 // Commit the writebatch for ensuring the following snapshot can get all previous writes.
                 if apply_ctx.kv_wb.is_some() && apply_ctx.kv_wb().count() > 0 {
-                    apply_ctx.commit(&mut self.delegate);
+                    apply_ctx.commit(&mut self.pushdown_causet);
                 }
                 ReadResponse {
                     response: Default::default(),
                     snapshot: Some(BraneSnapshot::from_snapshot(
                         Arc::new(apply_ctx.engine.snapshot()),
-                        Arc::new(self.delegate.brane.clone()),
+                        Arc::new(self.pushdown_causet.brane.clone()),
                     )),
                     txn_extra_op: TxnExtraOp::Noop,
                 }
@@ -3052,17 +3052,17 @@ where
         if let Some(enabled) = enabled {
             assert!(
                 !self
-                    .delegate
+                    .pushdown_causet
                     .observe_cmd
                     .as_ref()
                     .map_or(false, |o| o.enabled.load(Ordering::SeqCst)),
-                "{} observer already exists {:?} {:?}",
-                self.delegate.tag,
-                self.delegate.observe_cmd,
+                "{} semaphore already exists {:?} {:?}",
+                self.pushdown_causet.tag,
+                self.pushdown_causet.observe_cmd,
                 observe_id
             );
-            // TODO(cdc): take observe_cmd when enabled is false.
-            self.delegate.observe_cmd = Some(ObserveCmd {
+            // TODO(causet_context): take observe_cmd when enabled is false.
+            self.pushdown_causet.observe_cmd = Some(ObserveCmd {
                 id: observe_id,
                 enabled,
             });
@@ -3085,7 +3085,7 @@ where
                         channel_timer = Some(spacelike);
                     }
                     self.handle_apply(apply_ctx, apply);
-                    if let Some(ref mut state) = self.delegate.yield_state {
+                    if let Some(ref mut state) = self.pushdown_causet.yield_state {
                         state.plightlikeing_msgs = drainer.collect();
                         break;
                     }
@@ -3102,8 +3102,8 @@ where
                 }) => self.handle_change(apply_ctx, cmd, brane_epoch, cb),
                 #[causet(any(test, feature = "testexport"))]
                 Some(Msg::Validate(_, f)) => {
-                    let delegate: *const u8 = unsafe { std::mem::transmute(&self.delegate) };
-                    f(delegate)
+                    let pushdown_causet: *const u8 = unsafe { std::mem::transmute(&self.pushdown_causet) };
+                    f(pushdown_causet)
                 }
                 None => break,
             }
@@ -3123,7 +3123,7 @@ where
 
     #[inline]
     fn is_stopped(&self) -> bool {
-        self.delegate.stopped
+        self.pushdown_causet.stopped
     }
 
     #[inline]
@@ -3148,7 +3148,7 @@ where
     EK: KvEngine,
 {
     fn drop(&mut self) {
-        self.delegate.clear_all_commands_as_stale();
+        self.pushdown_causet.clear_all_commands_as_stale();
     }
 }
 
@@ -3205,21 +3205,21 @@ where
 
     fn handle_normal(&mut self, normal: &mut ApplyFsm<EK>) -> Option<usize> {
         let mut expected_msg_count = None;
-        normal.delegate.handle_spacelike = Some(Instant::now_coarse());
-        if normal.delegate.yield_state.is_some() {
-            if normal.delegate.wait_merge_state.is_some() {
+        normal.pushdown_causet.handle_spacelike = Some(Instant::now_coarse());
+        if normal.pushdown_causet.yield_state.is_some() {
+            if normal.pushdown_causet.wait_merge_state.is_some() {
                 // We need to query the length first, otherwise there is a race
                 // condition that new messages are queued after resuming and before
                 // query the length.
                 expected_msg_count = Some(normal.receiver.len());
             }
             normal.resume_plightlikeing(&mut self.apply_ctx);
-            if normal.delegate.wait_merge_state.is_some() {
+            if normal.pushdown_causet.wait_merge_state.is_some() {
                 // Yield due to applying CommitMerge, this fsm can be released if its
                 // channel msg count equals to expected_msg_count because it will receive
                 // a new message if its source brane has applied all needed logs.
                 return expected_msg_count;
-            } else if normal.delegate.yield_state.is_some() {
+            } else if normal.pushdown_causet.yield_state.is_some() {
                 // Yield due to other reasons, this fsm must not be released because
                 // it's possible that no new message will be sent to itself.
                 // The remaining messages will be handled in next rounds.
@@ -3227,7 +3227,7 @@ where
             }
             expected_msg_count = None;
         }
-        fail_point!("before_handle_normal_3", normal.delegate.id() == 3, |_| {
+        fail_point!("before_handle_normal_3", normal.pushdown_causet.id() == 3, |_| {
             None
         });
         while self.msg_buf.len() < self.messages_per_tick {
@@ -3238,17 +3238,17 @@ where
                     break;
                 }
                 Err(TryRecvError::Disconnected) => {
-                    normal.delegate.stopped = true;
+                    normal.pushdown_causet.stopped = true;
                     expected_msg_count = Some(0);
                     break;
                 }
             }
         }
         normal.handle_tasks(&mut self.apply_ctx, &mut self.msg_buf);
-        if normal.delegate.wait_merge_state.is_some() {
+        if normal.pushdown_causet.wait_merge_state.is_some() {
             // Check it again immediately as catching up logs can be very fast.
             expected_msg_count = Some(0);
-        } else if normal.delegate.yield_state.is_some() {
+        } else if normal.pushdown_causet.yield_state.is_some() {
             // Let it continue to run next time.
             expected_msg_count = None;
         }
@@ -3259,7 +3259,7 @@ where
         let is_synced = self.apply_ctx.flush();
         if is_synced {
             for fsm in fsms {
-                fsm.delegate.last_sync_apply_index = fsm.delegate.apply_state.get_applied_index();
+                fsm.pushdown_causet.last_sync_apply_index = fsm.pushdown_causet.apply_state.get_applied_index();
             }
         }
     }
@@ -3270,7 +3270,7 @@ pub struct Builder<EK: KvEngine, W: WriteBatch<EK>> {
     causet: Arc<VersionTrack<Config>>,
     interlock_host: InterlockHost<EK>,
     importer: Arc<SSTImporter>,
-    brane_scheduler: Scheduler<BraneTask<<EK as KvEngine>::Snapshot>>,
+    brane_interlock_semaphore: Interlock_Semaphore<BraneTask<<EK as KvEngine>::Snapshot>>,
     engine: EK,
     slightlikeer: Box<dyn Notifier<EK>>,
     router: ApplyRouter<EK>,
@@ -3293,7 +3293,7 @@ where
             causet: builder.causet.clone(),
             interlock_host: builder.interlock_host.clone(),
             importer: builder.importer.clone(),
-            brane_scheduler: builder.brane_scheduler.clone(),
+            brane_interlock_semaphore: builder.brane_interlock_semaphore.clone(),
             engine: builder.engines.kv.clone(),
             _phantom: PhantomData,
             slightlikeer,
@@ -3319,7 +3319,7 @@ where
                 self.tag.clone(),
                 self.interlock_host.clone(),
                 self.importer.clone(),
-                self.brane_scheduler.clone(),
+                self.brane_interlock_semaphore.clone(),
                 self.engine.clone(),
                 self.router.clone(),
                 self.slightlikeer.clone_box(),
@@ -3404,7 +3404,7 @@ where
                     return;
                 }
                 Msg::Change {
-                    cmd: ChangeCmd::RegisterObserver { brane_id, .. },
+                    cmd: ChangeCmd::RegisterSemaphore { brane_id, .. },
                     cb,
                     ..
                 }
@@ -3501,7 +3501,7 @@ mod tests {
     use crate::store::{Config, BraneTask};
     use test_sst_importer::*;
     use einsteindb_util::config::VersionTrack;
-    use einsteindb_util::worker::dummy_scheduler;
+    use einsteindb_util::worker::dummy_interlock_semaphore;
 
     use super::*;
 
@@ -3600,16 +3600,16 @@ mod tests {
 
     fn validate<F>(router: &ApplyRouter<LmdbEngine>, brane_id: u64, validate: F)
     where
-        F: FnOnce(&ApplyDelegate<LmdbEngine>) + Slightlike + 'static,
+        F: FnOnce(&Applypushdown_causet<LmdbEngine>) + Slightlike + 'static,
     {
         let (validate_tx, validate_rx) = mpsc::channel();
         router.schedule_task(
             brane_id,
             Msg::Validate(
                 brane_id,
-                Box::new(move |delegate: *const u8| {
-                    let delegate = unsafe { &*(delegate as *const ApplyDelegate<LmdbEngine>) };
-                    validate(delegate);
+                Box::new(move |pushdown_causet: *const u8| {
+                    let pushdown_causet = unsafe { &*(pushdown_causet as *const Applypushdown_causet<LmdbEngine>) };
+                    validate(pushdown_causet);
                     validate_tx.slightlike(()).unwrap();
                 }),
             ),
@@ -3699,7 +3699,7 @@ mod tests {
         let slightlikeer = Box::new(TestNotifier { tx });
         let (_tmp, engine) = create_tmp_engine("apply-basic");
         let (_dir, importer) = create_tmp_importer("apply-basic");
-        let (brane_scheduler, snapshot_rx) = dummy_scheduler();
+        let (brane_interlock_semaphore, snapshot_rx) = dummy_interlock_semaphore();
         let causet = Arc::new(VersionTrack::new(Config::default()));
         let (router, mut system) = create_apply_batch_system(&causet.value());
         let plightlikeing_create_peers = Arc::new(Mutex::new(HashMap::default()));
@@ -3708,7 +3708,7 @@ mod tests {
             causet,
             interlock_host: InterlockHost::<LmdbEngine>::default(),
             importer,
-            brane_scheduler,
+            brane_interlock_semaphore,
             slightlikeer,
             engine,
             router: router.clone(),
@@ -3725,14 +3725,14 @@ mod tests {
         reg.term = 4;
         reg.applied_index_term = 5;
         router.schedule_task(2, Msg::Registration(reg.clone()));
-        validate(&router, 2, move |delegate| {
-            assert_eq!(delegate.id, 1);
-            assert_eq!(delegate.tag, "[brane 2] 1");
-            assert_eq!(delegate.brane, reg.brane);
-            assert!(!delegate.plightlikeing_remove);
-            assert_eq!(delegate.apply_state, reg.apply_state);
-            assert_eq!(delegate.term, reg.term);
-            assert_eq!(delegate.applied_index_term, reg.applied_index_term);
+        validate(&router, 2, move |pushdown_causet| {
+            assert_eq!(pushdown_causet.id, 1);
+            assert_eq!(pushdown_causet.tag, "[brane 2] 1");
+            assert_eq!(pushdown_causet.brane, reg.brane);
+            assert!(!pushdown_causet.plightlikeing_remove);
+            assert_eq!(pushdown_causet.apply_state, reg.apply_state);
+            assert_eq!(pushdown_causet.term, reg.term);
+            assert_eq!(pushdown_causet.applied_index_term, reg.applied_index_term);
         });
 
         let (resp_tx, resp_rx) = mpsc::channel();
@@ -3779,8 +3779,8 @@ mod tests {
             Msg::apply(apply(1, 2, 11, vec![new_entry(5, 4, true)], 3, 5, 4, pops)),
         );
         // proposal with not commit entry should be ignore
-        validate(&router, 2, move |delegate| {
-            assert_eq!(delegate.term, 11);
+        validate(&router, 2, move |pushdown_causet| {
+            assert_eq!(pushdown_causet.term, 11);
         });
         let cc_resp = cc_rx.try_recv().unwrap();
         assert!(cc_resp.get_header().get_error().has_stale_command());
@@ -3827,13 +3827,13 @@ mod tests {
         // empty entry will make applied_index step forward and should write apply state to engine.
         assert_eq!(apply_res.metrics.written_tuplespaceInstanton, 1);
         assert_eq!(apply_res.applied_index_term, 5);
-        validate(&router, 2, |delegate| {
-            assert_eq!(delegate.term, 11);
-            assert_eq!(delegate.applied_index_term, 5);
-            assert_eq!(delegate.apply_state.get_applied_index(), 5);
+        validate(&router, 2, |pushdown_causet| {
+            assert_eq!(pushdown_causet.term, 11);
+            assert_eq!(pushdown_causet.applied_index_term, 5);
+            assert_eq!(pushdown_causet.apply_state.get_applied_index(), 5);
             assert_eq!(
-                delegate.apply_state.get_applied_index(),
-                delegate.last_sync_apply_index
+                pushdown_causet.apply_state.get_applied_index(),
+                pushdown_causet.last_sync_apply_index
             );
         });
 
@@ -4005,7 +4005,7 @@ mod tests {
     }
 
     #[derive(Clone, Default)]
-    struct ApplyObserver {
+    struct ApplySemaphore {
         pre_admin_count: Arc<AtomicUsize>,
         pre_query_count: Arc<AtomicUsize>,
         post_admin_count: Arc<AtomicUsize>,
@@ -4014,19 +4014,19 @@ mod tests {
         cmd_sink: Option<Arc<Mutex<Slightlikeer<CmdBatch>>>>,
     }
 
-    impl Interlock for ApplyObserver {}
+    impl Interlock for ApplySemaphore {}
 
-    impl QueryObserver for ApplyObserver {
-        fn pre_apply_query(&self, _: &mut ObserverContext<'_>, _: &[Request]) {
+    impl QuerySemaphore for ApplySemaphore {
+        fn pre_apply_query(&self, _: &mut SemaphoreContext<'_>, _: &[Request]) {
             self.pre_query_count.fetch_add(1, Ordering::SeqCst);
         }
 
-        fn post_apply_query(&self, _: &mut ObserverContext<'_>, _: &mut Cmd) {
+        fn post_apply_query(&self, _: &mut SemaphoreContext<'_>, _: &mut Cmd) {
             self.post_query_count.fetch_add(1, Ordering::SeqCst);
         }
     }
 
-    impl CmdObserver<LmdbEngine> for ApplyObserver {
+    impl CmdSemaphore<LmdbEngine> for ApplySemaphore {
         fn on_prepare_for_apply(&self, observe_id: ObserveID, brane_id: u64) {
             self.cmd_batches
                 .borrow_mut()
@@ -4055,15 +4055,15 @@ mod tests {
 
     #[test]
     fn test_handle_violetabft_committed_entries() {
-        let (_path, engine) = create_tmp_engine("test-delegate");
-        let (import_dir, importer) = create_tmp_importer("test-delegate");
-        let obs = ApplyObserver::default();
+        let (_path, engine) = create_tmp_engine("test-pushdown_causet");
+        let (import_dir, importer) = create_tmp_importer("test-pushdown_causet");
+        let obs = ApplySemaphore::default();
         let mut host = InterlockHost::<LmdbEngine>::default();
         host.registry
-            .register_query_observer(1, BoxQueryObserver::new(obs.clone()));
+            .register_query_semaphore(1, BoxQuerySemaphore::new(obs.clone()));
 
         let (tx, rx) = mpsc::channel();
-        let (brane_scheduler, _) = dummy_scheduler();
+        let (brane_interlock_semaphore, _) = dummy_interlock_semaphore();
         let slightlikeer = Box::new(TestNotifier { tx });
         let causet = Arc::new(VersionTrack::new(Config::default()));
         let (router, mut system) = create_apply_batch_system(&causet.value());
@@ -4072,7 +4072,7 @@ mod tests {
             tag: "test-store".to_owned(),
             causet,
             slightlikeer,
-            brane_scheduler,
+            brane_interlock_semaphore,
             interlock_host: host,
             importer: importer.clone(),
             engine: engine.clone(),
@@ -4122,9 +4122,9 @@ mod tests {
         assert_eq!(engine.get_value(&dk_k1).unwrap().unwrap(), b"v1");
         assert_eq!(engine.get_value(&dk_k2).unwrap().unwrap(), b"v1");
         assert_eq!(engine.get_value(&dk_k3).unwrap().unwrap(), b"v1");
-        validate(&router, 1, |delegate| {
-            assert_eq!(delegate.applied_index_term, 1);
-            assert_eq!(delegate.apply_state.get_applied_index(), 1);
+        validate(&router, 1, |pushdown_causet| {
+            assert_eq!(pushdown_causet.applied_index_term, 1);
+            assert_eq!(pushdown_causet.apply_state.get_applied_index(), 1);
         });
         fetch_apply_res(&rx);
 
@@ -4410,18 +4410,18 @@ mod tests {
     }
 
     #[test]
-    fn test_cmd_observer() {
-        let (_path, engine) = create_tmp_engine("test-delegate");
-        let (_import_dir, importer) = create_tmp_importer("test-delegate");
+    fn test_cmd_semaphore() {
+        let (_path, engine) = create_tmp_engine("test-pushdown_causet");
+        let (_import_dir, importer) = create_tmp_importer("test-pushdown_causet");
         let mut host = InterlockHost::<LmdbEngine>::default();
-        let mut obs = ApplyObserver::default();
+        let mut obs = ApplySemaphore::default();
         let (sink, cmdbatch_rx) = mpsc::channel();
         obs.cmd_sink = Some(Arc::new(Mutex::new(sink)));
         host.registry
-            .register_cmd_observer(1, BoxCmdObserver::new(obs));
+            .register_cmd_semaphore(1, BoxCmdSemaphore::new(obs));
 
         let (tx, rx) = mpsc::channel();
-        let (brane_scheduler, _) = dummy_scheduler();
+        let (brane_interlock_semaphore, _) = dummy_interlock_semaphore();
         let slightlikeer = Box::new(TestNotifier { tx });
         let causet = Config::default();
         let (router, mut system) = create_apply_batch_system(&causet);
@@ -4430,7 +4430,7 @@ mod tests {
             tag: "test-store".to_owned(),
             causet: Arc::new(VersionTrack::new(causet)),
             slightlikeer,
-            brane_scheduler,
+            brane_interlock_semaphore,
             interlock_host: host,
             importer,
             engine,
@@ -4486,14 +4486,14 @@ mod tests {
             1,
             Msg::apply(apply(peer_id, 1, 2, vec![put_entry], 1, 2, 2, vec![])),
         );
-        // Register cmd observer to brane 1.
+        // Register cmd semaphore to brane 1.
         let enabled = Arc::new(AtomicBool::new(true));
         let observe_id = ObserveID::new();
         router.schedule_task(
             1,
             Msg::Change {
                 brane_epoch: brane_epoch.clone(),
-                cmd: ChangeCmd::RegisterObserver {
+                cmd: ChangeCmd::RegisterSemaphore {
                     observe_id,
                     brane_id: 1,
                     enabled: enabled.clone(),
@@ -4558,7 +4558,7 @@ mod tests {
         let cmd_batch = cmdbatch_rx.recv_timeout(Duration::from_secs(3)).unwrap();
         assert_eq!(2, cmd_batch.len());
 
-        // Stop observer regoin 1.
+        // Stop semaphore regoin 1.
         enabled.store(false, Ordering::SeqCst);
         let put_entry = EntryBuilder::new(6, 2)
             .put(b"k2", b"v2")
@@ -4578,7 +4578,7 @@ mod tests {
             2,
             Msg::Change {
                 brane_epoch,
-                cmd: ChangeCmd::RegisterObserver {
+                cmd: ChangeCmd::RegisterSemaphore {
                     observe_id,
                     brane_id: 2,
                     enabled,
@@ -4701,8 +4701,8 @@ mod tests {
 
     #[test]
     fn test_split() {
-        let (_path, engine) = create_tmp_engine("test-delegate");
-        let (_import_dir, importer) = create_tmp_importer("test-delegate");
+        let (_path, engine) = create_tmp_engine("test-pushdown_causet");
+        let (_import_dir, importer) = create_tmp_importer("test-pushdown_causet");
         let peer_id = 3;
         let mut reg = Registration::default();
         reg.id = peer_id;
@@ -4716,12 +4716,12 @@ mod tests {
         let (tx, _rx) = mpsc::channel();
         let slightlikeer = Box::new(TestNotifier { tx });
         let mut host = InterlockHost::<LmdbEngine>::default();
-        let mut obs = ApplyObserver::default();
+        let mut obs = ApplySemaphore::default();
         let (sink, cmdbatch_rx) = mpsc::channel();
         obs.cmd_sink = Some(Arc::new(Mutex::new(sink)));
         host.registry
-            .register_cmd_observer(1, BoxCmdObserver::new(obs));
-        let (brane_scheduler, _) = dummy_scheduler();
+            .register_cmd_semaphore(1, BoxCmdSemaphore::new(obs));
+        let (brane_interlock_semaphore, _) = dummy_interlock_semaphore();
         let causet = Arc::new(VersionTrack::new(Config::default()));
         let (router, mut system) = create_apply_batch_system(&causet.value());
         let plightlikeing_create_peers = Arc::new(Mutex::new(HashMap::default()));
@@ -4730,7 +4730,7 @@ mod tests {
             causet,
             slightlikeer,
             importer,
-            brane_scheduler,
+            brane_interlock_semaphore,
             interlock_host: host,
             engine: engine.clone(),
             router: router.clone(),
@@ -4747,7 +4747,7 @@ mod tests {
             1,
             Msg::Change {
                 brane_epoch: brane_epoch.clone(),
-                cmd: ChangeCmd::RegisterObserver {
+                cmd: ChangeCmd::RegisterSemaphore {
                     observe_id,
                     brane_id: 1,
                     enabled: enabled.clone(),
@@ -4909,7 +4909,7 @@ mod tests {
             1,
             Msg::Change {
                 brane_epoch,
-                cmd: ChangeCmd::RegisterObserver {
+                cmd: ChangeCmd::RegisterSemaphore {
                     observe_id,
                     brane_id: 1,
                     enabled: Arc::new(AtomicBool::new(true)),

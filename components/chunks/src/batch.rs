@@ -6,7 +6,7 @@
 //! that controls how the former is created or metrics are collected.
 
 use crate::config::Config;
-use crate::fsm::{Fsm, FsmScheduler};
+use crate::fsm::{Fsm, FsmInterlock_Semaphore};
 use crate::mailbox::BasicMailbox;
 use crate::router::Router;
 use crossbeam::channel::{self, SlightlikeError};
@@ -20,11 +20,11 @@ use einsteindb_util::time::Instant;
 enum FsmTypes<N, C> {
     Normal(Box<N>),
     Control(Box<C>),
-    // Used as a signal that scheduler should be shutdown.
+    // Used as a signal that interlock_semaphore should be shutdown.
     Empty,
 }
 
-// A macro to introduce common definition of scheduler.
+// A macro to introduce common definition of interlock_semaphore.
 macro_rules! impl_sched {
     ($name:ident, $ty:path, Fsm = $fsm:tt) => {
         pub struct $name<N, C> {
@@ -40,7 +40,7 @@ macro_rules! impl_sched {
             }
         }
 
-        impl<N, C> FsmScheduler for $name<N, C>
+        impl<N, C> FsmInterlock_Semaphore for $name<N, C>
         where
             $fsm: Fsm,
         {
@@ -67,8 +67,8 @@ macro_rules! impl_sched {
     };
 }
 
-impl_sched!(NormalScheduler, FsmTypes::Normal, Fsm = N);
-impl_sched!(ControlScheduler, FsmTypes::Control, Fsm = C);
+impl_sched!(NormalInterlock_Semaphore, FsmTypes::Normal, Fsm = N);
+impl_sched!(ControlInterlock_Semaphore, FsmTypes::Control, Fsm = C);
 
 /// A basic struct for a round of polling.
 #[allow(clippy::vec_box)]
@@ -160,7 +160,7 @@ impl<N: Fsm, C: Fsm> Batch<N, C> {
     pub fn reschedule(&mut self, router: &BatchRouter<N, C>, index: usize) {
         let fsm = self.normals.swap_remove(index);
         self.timers.swap_remove(index);
-        router.normal_scheduler.schedule(fsm);
+        router.normal_interlock_semaphore.schedule(fsm);
     }
 
     /// Same as `release`, but working on control FSM.
@@ -232,7 +232,7 @@ pub trait PollHandler<N, C> {
 
 /// Internal poller that fetches batch and call handler hooks for readiness.
 struct Poller<N: Fsm, C: Fsm, Handler> {
-    router: Router<N, C, NormalScheduler<N, C>, ControlScheduler<N, C>>,
+    router: Router<N, C, NormalInterlock_Semaphore<N, C>, ControlInterlock_Semaphore<N, C>>,
     fsm_receiver: channel::Receiver<FsmTypes<N, C>>,
     handler: Handler,
     max_batch_size: usize,
@@ -425,7 +425,7 @@ where
     }
 }
 
-pub type BatchRouter<N, C> = Router<N, C, NormalScheduler<N, C>, ControlScheduler<N, C>>;
+pub type BatchRouter<N, C> = Router<N, C, NormalInterlock_Semaphore<N, C>, ControlInterlock_Semaphore<N, C>>;
 
 /// Create a batch system with the given thread name prefix and pool size.
 ///
@@ -437,9 +437,9 @@ pub fn create_system<N: Fsm, C: Fsm>(
 ) -> (BatchRouter<N, C>, BatchSystem<N, C>) {
     let control_box = BasicMailbox::new(slightlikeer, controller);
     let (tx, rx) = channel::unbounded();
-    let normal_scheduler = NormalScheduler { slightlikeer: tx.clone() };
-    let control_scheduler = ControlScheduler { slightlikeer: tx };
-    let router = Router::new(control_box, normal_scheduler, control_scheduler);
+    let normal_interlock_semaphore = NormalInterlock_Semaphore { slightlikeer: tx.clone() };
+    let control_interlock_semaphore = ControlInterlock_Semaphore { slightlikeer: tx };
+    let router = Router::new(control_box, normal_interlock_semaphore, control_interlock_semaphore);
     let system = BatchSystem {
         name_prefix: None,
         router: router.clone(),

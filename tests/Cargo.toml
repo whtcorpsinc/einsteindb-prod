@@ -59,7 +59,7 @@ protobuf-codec = [
   "milevadb_query_datatype/protobuf-codec",
   "fidelpb/protobuf-codec",
   "txn_types/protobuf-codec",
-  "cdc/protobuf-codec",
+  "causet_context/protobuf-codec",
 ]
 prost-codec = [
   "grpcio/prost-codec",
@@ -71,7 +71,7 @@ prost-codec = [
   "milevadb_query_datatype/prost-codec",
   "fidelpb/prost-codec",
   "txn_types/prost-codec",
-  "cdc/prost-codec",
+  "causet_context/prost-codec",
 ]
 jemalloc = ["einsteindb/jemalloc"]
 sse = ["einsteindb/sse"]
@@ -84,7 +84,7 @@ crc64fast = "0.1"
 crossbeam = "0.7.2"
 configuration = { path = "../components/configuration" }
 encryption = { path = "../components/encryption" }
-cdc = { path = "../components/cdc" }
+causet_context = { path = "../components/causet_context" }
 futures = "0.3"
 grpcio = { version = "0.6", default-features = false, features = ["openssl-vlightlikeored"] }
 hex = "0.4"

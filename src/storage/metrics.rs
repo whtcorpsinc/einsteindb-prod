@@ -258,7 +258,7 @@ lazy_static! {
         auto_flush_from!(KV_COMMAND_COUNTER_VEC, KvCommandCounterVec);
     pub static ref SCHED_STAGE_COUNTER: IntCounterVec = {
         register_int_counter_vec!(
-            "einsteindb_scheduler_stage_total",
+            "einsteindb_interlock_semaphore_stage_total",
             "Total number of commands on each stage.",
             &["type", "stage"]
         )
@@ -267,17 +267,17 @@ lazy_static! {
     pub static ref SCHED_STAGE_COUNTER_VEC: SchedStageCounterVec =
         auto_flush_from!(SCHED_STAGE_COUNTER, SchedStageCounterVec);
     pub static ref SCHED_WRITING_BYTES_GAUGE: IntGauge = register_int_gauge!(
-        "einsteindb_scheduler_writing_bytes",
+        "einsteindb_interlock_semaphore_writing_bytes",
         "Total number of writing kv."
     )
     .unwrap();
     pub static ref SCHED_CONTEX_GAUGE: IntGauge = register_int_gauge!(
-        "einsteindb_scheduler_contex_total",
+        "einsteindb_interlock_semaphore_contex_total",
         "Total number of plightlikeing commands."
     )
     .unwrap();
     pub static ref SCHED_HISTOGRAM_VEC: HistogramVec = register_histogram_vec!(
-        "einsteindb_scheduler_command_duration_seconds",
+        "einsteindb_interlock_semaphore_command_duration_seconds",
         "Bucketed histogram of command execution",
         &["type"],
         exponential_buckets(0.0005, 2.0, 20).unwrap()
@@ -286,7 +286,7 @@ lazy_static! {
     pub static ref SCHED_HISTOGRAM_VEC_STATIC: SchedDurationVec =
         auto_flush_from!(SCHED_HISTOGRAM_VEC, SchedDurationVec);
     pub static ref SCHED_LATCH_HISTOGRAM: HistogramVec = register_histogram_vec!(
-        "einsteindb_scheduler_latch_wait_duration_seconds",
+        "einsteindb_interlock_semaphore_latch_wait_duration_seconds",
         "Bucketed histogram of latch wait",
         &["type"],
         exponential_buckets(0.0005, 2.0, 20).unwrap()
@@ -295,7 +295,7 @@ lazy_static! {
     pub static ref SCHED_LATCH_HISTOGRAM_VEC: SchedLatchDurationVec =
         auto_flush_from!(SCHED_LATCH_HISTOGRAM, SchedLatchDurationVec);
     pub static ref SCHED_PROCESSING_READ_HISTOGRAM_VEC: HistogramVec = register_histogram_vec!(
-        "einsteindb_scheduler_processing_read_duration_seconds",
+        "einsteindb_interlock_semaphore_processing_read_duration_seconds",
         "Bucketed histogram of processing read duration",
         &["type"],
         exponential_buckets(0.0005, 2.0, 20).unwrap()
@@ -304,22 +304,22 @@ lazy_static! {
     pub static ref SCHED_PROCESSING_READ_HISTOGRAM_STATIC: ProcessingReadVec =
         auto_flush_from!(SCHED_PROCESSING_READ_HISTOGRAM_VEC, ProcessingReadVec);
     pub static ref SCHED_PROCESSING_WRITE_HISTOGRAM_VEC: HistogramVec = register_histogram_vec!(
-        "einsteindb_scheduler_processing_write_duration_seconds",
+        "einsteindb_interlock_semaphore_processing_write_duration_seconds",
         "Bucketed histogram of processing write duration",
         &["type"],
         exponential_buckets(0.0005, 2.0, 20).unwrap()
     )
     .unwrap();
     pub static ref SCHED_TOO_BUSY_COUNTER: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_scheduler_too_busy_total",
-        "Total count of scheduler too busy",
+        "einsteindb_interlock_semaphore_too_busy_total",
+        "Total count of interlock_semaphore too busy",
         &["type"]
     )
     .unwrap();
     pub static ref SCHED_TOO_BUSY_COUNTER_VEC: SchedTooBusyVec =
         auto_flush_from!(SCHED_TOO_BUSY_COUNTER, SchedTooBusyVec);
     pub static ref SCHED_COMMANDS_PRI_COUNTER_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_scheduler_commands_pri_total",
+        "einsteindb_interlock_semaphore_commands_pri_total",
         "Total count of different priority commands",
         &["priority"]
     )
@@ -327,7 +327,7 @@ lazy_static! {
     pub static ref SCHED_COMMANDS_PRI_COUNTER_VEC_STATIC: SchedCommandPriCounterVec =
         auto_flush_from!(SCHED_COMMANDS_PRI_COUNTER_VEC, SchedCommandPriCounterVec);
     pub static ref KV_COMMAND_KEYREAD_HISTOGRAM_VEC: HistogramVec = register_histogram_vec!(
-        "einsteindb_scheduler_kv_command_key_read",
+        "einsteindb_interlock_semaphore_kv_command_key_read",
         "Bucketed histogram of tuplespaceInstanton read of a kv command",
         &["type"],
         exponential_buckets(1.0, 2.0, 21).unwrap()
@@ -336,7 +336,7 @@ lazy_static! {
     pub static ref KV_COMMAND_KEYREAD_HISTOGRAM_STATIC: KReadVec =
         auto_flush_from!(KV_COMMAND_KEYREAD_HISTOGRAM_VEC, KReadVec);
     pub static ref KV_COMMAND_SCAN_DETAILS: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_scheduler_kv_scan_details",
+        "einsteindb_interlock_semaphore_kv_scan_details",
         "Bucketed counter of kv tuplespaceInstanton scan details for each causet",
         &["req", "causet", "tag"]
     )
@@ -344,7 +344,7 @@ lazy_static! {
     pub static ref KV_COMMAND_SCAN_DETAILS_STATIC: CommandScanDetails =
         auto_flush_from!(KV_COMMAND_SCAN_DETAILS, CommandScanDetails);
     pub static ref KV_COMMAND_KEYWRITE_HISTOGRAM: HistogramVec = register_histogram_vec!(
-        "einsteindb_scheduler_kv_command_key_write",
+        "einsteindb_interlock_semaphore_kv_command_key_write",
         "Bucketed histogram of tuplespaceInstanton write of a kv command",
         &["type"],
         exponential_buckets(1.0, 2.0, 21).unwrap()

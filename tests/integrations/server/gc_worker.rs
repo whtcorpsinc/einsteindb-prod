@@ -111,16 +111,16 @@ fn test_applied_lock_collector() {
         assert_eq!(dagger.get_dagger_version(), ts);
     };
 
-    // Register dagger observer at safe point 10000.
+    // Register dagger semaphore at safe point 10000.
     let mut safe_point = 10000;
     clients.iter().for_each(|(_, c)| {
-        // Should report error when checking non-existent observer.
-        assert!(!check_lock_observer(c, safe_point).get_error().is_empty());
-        must_register_lock_observer(c, safe_point);
-        assert!(must_check_lock_observer(c, safe_point, true).is_empty());
+        // Should report error when checking non-existent semaphore.
+        assert!(!check_lock_semaphore(c, safe_point).get_error().is_empty());
+        must_register_lock_semaphore(c, safe_point);
+        assert!(must_check_lock_semaphore(c, safe_point, true).is_empty());
     });
 
-    // Dagger observer should only collect values in dagger CAUSET.
+    // Dagger semaphore should only collect values in dagger CAUSET.
     let key = b"key0";
     must_kv_prewrite(
         &leader_client,
@@ -132,12 +132,12 @@ fn test_applied_lock_collector() {
     must_kv_commit(&leader_client, ctx.clone(), vec![key.to_vec()], 1, 2, 2);
     wait_for_apply(&mut cluster, &brane);
     clients.iter().for_each(|(_, c)| {
-        let locks = must_check_lock_observer(c, safe_point, true);
+        let locks = must_check_lock_semaphore(c, safe_point, true);
         assert_eq!(locks.len(), 1);
         check_lock(&locks[0], key, key, 1);
     });
 
-    // Dagger observer shouldn't collect locks after the safe point.
+    // Dagger semaphore shouldn't collect locks after the safe point.
     must_kv_prewrite(
         &leader_client,
         ctx.clone(),
@@ -147,7 +147,7 @@ fn test_applied_lock_collector() {
     );
     wait_for_apply(&mut cluster, &brane);
     clients.iter().for_each(|(_, c)| {
-        let locks = must_check_lock_observer(c, safe_point, true);
+        let locks = must_check_lock_semaphore(c, safe_point, true);
         assert_eq!(locks.len(), 1);
         check_lock(&locks[0], key, key, 1);
     });
@@ -159,24 +159,24 @@ fn test_applied_lock_collector() {
     must_kv_prewrite(&leader_client, ctx.clone(), mutations, b"key1".to_vec(), 10);
     wait_for_apply(&mut cluster, &brane);
     clients.iter().for_each(|(_, c)| {
-        let locks = must_check_lock_observer(c, safe_point, true);
+        let locks = must_check_lock_semaphore(c, safe_point, true);
         // Plus the first dagger.
         assert_eq!(locks.len(), 1000);
     });
 
-    // Add a new store and register dagger observer.
+    // Add a new store and register dagger semaphore.
     let store_id = cluster.add_new_engine();
     let channel =
         ChannelBuilder::new(Arc::clone(&env)).connect(cluster.sim.rl().get_addr(store_id));
     let client = EINSTEINDBClient::new(channel);
-    must_register_lock_observer(&client, safe_point);
+    must_register_lock_semaphore(&client, safe_point);
 
-    // Add a new peer. Dagger observer should collect all locks from snapshot.
+    // Add a new peer. Dagger semaphore should collect all locks from snapshot.
     let peer = new_peer(store_id, store_id);
     cluster.fidel_client.must_add_peer(brane_id, peer.clone());
     cluster.fidel_client.must_none_plightlikeing_peer(peer);
     wait_for_apply(&mut cluster, &brane);
-    let locks = must_check_lock_observer(&client, safe_point, true);
+    let locks = must_check_lock_semaphore(&client, safe_point, true);
     assert_eq!(locks.len(), 999);
 
     // Should be dirty when collects too many locks.
@@ -193,7 +193,7 @@ fn test_applied_lock_collector() {
     wait_for_apply(&mut cluster, &brane);
     clients.insert(store_id, client);
     clients.iter().for_each(|(_, c)| {
-        let resp = check_lock_observer(c, safe_point);
+        let resp = check_lock_semaphore(c, safe_point);
         assert!(resp.get_error().is_empty(), "{:?}", resp.get_error());
         assert!(!resp.get_is_clean());
         // MAX_COLLECT_SIZE is 1024.
@@ -202,24 +202,24 @@ fn test_applied_lock_collector() {
 
     // Reregister and check. It shouldn't clean up state.
     clients.iter().for_each(|(_, c)| {
-        must_register_lock_observer(c, safe_point);
-        let resp = check_lock_observer(c, safe_point);
+        must_register_lock_semaphore(c, safe_point);
+        let resp = check_lock_semaphore(c, safe_point);
         assert!(resp.get_error().is_empty(), "{:?}", resp.get_error());
         assert!(!resp.get_is_clean());
         // MAX_COLLECT_SIZE is 1024.
         assert_eq!(resp.get_daggers().len(), 1024);
     });
 
-    // Register dagger observer at a later safe point. Dagger observer should reset its state.
+    // Register dagger semaphore at a later safe point. Dagger semaphore should reset its state.
     safe_point += 1;
     clients.iter().for_each(|(_, c)| {
-        must_register_lock_observer(c, safe_point);
-        assert!(must_check_lock_observer(c, safe_point, true).is_empty());
-        // Can't register observer with smaller max_ts.
-        assert!(!register_lock_observer(&c, safe_point - 1)
+        must_register_lock_semaphore(c, safe_point);
+        assert!(must_check_lock_semaphore(c, safe_point, true).is_empty());
+        // Can't register semaphore with smaller max_ts.
+        assert!(!register_lock_semaphore(&c, safe_point - 1)
             .get_error()
             .is_empty());
-        assert!(must_check_lock_observer(c, safe_point, true).is_empty());
+        assert!(must_check_lock_semaphore(c, safe_point, true).is_empty());
     });
     let leader_client = clients.get(&leader_store_id).unwrap();
     must_kv_prewrite(
@@ -232,16 +232,16 @@ fn test_applied_lock_collector() {
     wait_for_apply(&mut cluster, &brane);
     clients.iter().for_each(|(_, c)| {
         // Should collect locks according to the new max ts.
-        let locks = must_check_lock_observer(c, safe_point, true);
+        let locks = must_check_lock_semaphore(c, safe_point, true);
         assert_eq!(locks.len(), 1, "{:?}", locks);
         // Shouldn't remove it with a wrong max ts.
-        assert!(!remove_lock_observer(c, safe_point - 1)
+        assert!(!remove_lock_semaphore(c, safe_point - 1)
             .get_error()
             .is_empty());
-        let locks = must_check_lock_observer(c, safe_point, true);
+        let locks = must_check_lock_semaphore(c, safe_point, true);
         assert_eq!(locks.len(), 1, "{:?}", locks);
-        // Remove dagger observers.
-        must_remove_lock_observer(c, safe_point);
-        assert!(!check_lock_observer(c, safe_point).get_error().is_empty());
+        // Remove dagger semaphores.
+        must_remove_lock_semaphore(c, safe_point);
+        assert!(!check_lock_semaphore(c, safe_point).get_error().is_empty());
     });
 }

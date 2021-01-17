@@ -192,19 +192,19 @@ trait MockKvService {
         UnsafeDestroyConeResponse
     );
     unary_call!(
-        register_lock_observer,
-        RegisterLockObserverRequest,
-        RegisterLockObserverResponse
+        register_lock_semaphore,
+        RegisterLockSemaphoreRequest,
+        RegisterLockSemaphoreResponse
     );
     unary_call!(
-        check_lock_observer,
-        CheckLockObserverRequest,
-        CheckLockObserverResponse
+        check_lock_semaphore,
+        CheckLockSemaphoreRequest,
+        CheckLockSemaphoreResponse
     );
     unary_call!(
-        remove_lock_observer,
-        RemoveLockObserverRequest,
-        RemoveLockObserverResponse
+        remove_lock_semaphore,
+        RemoveLockSemaphoreRequest,
+        RemoveLockSemaphoreResponse
     );
     unary_call!(
         physical_scan_lock,
@@ -299,19 +299,19 @@ impl<T: MockKvService + Clone + Slightlike + 'static> EINSTEINDB for MockKv<T> {
         UnsafeDestroyConeResponse
     );
     unary_call_dispatch!(
-        register_lock_observer,
-        RegisterLockObserverRequest,
-        RegisterLockObserverResponse
+        register_lock_semaphore,
+        RegisterLockSemaphoreRequest,
+        RegisterLockSemaphoreResponse
     );
     unary_call_dispatch!(
-        check_lock_observer,
-        CheckLockObserverRequest,
-        CheckLockObserverResponse
+        check_lock_semaphore,
+        CheckLockSemaphoreRequest,
+        CheckLockSemaphoreResponse
     );
     unary_call_dispatch!(
-        remove_lock_observer,
-        RemoveLockObserverRequest,
-        RemoveLockObserverResponse
+        remove_lock_semaphore,
+        RemoveLockSemaphoreRequest,
+        RemoveLockSemaphoreResponse
     );
     unary_call_dispatch!(
         physical_scan_lock,

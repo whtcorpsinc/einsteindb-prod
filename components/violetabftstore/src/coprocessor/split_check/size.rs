@@ -13,7 +13,7 @@ use crate::store::{CasualMessage, CasualRouter};
 
 use super::super::error::Result;
 use super::super::metrics::*;
-use super::super::{Interlock, KeyEntry, ObserverContext, SplitCheckObserver, SplitChecker};
+use super::super::{Interlock, KeyEntry, SemaphoreContext, SplitCheckSemaphore, SplitChecker};
 use super::Host;
 
 pub struct Checker {
@@ -47,7 +47,7 @@ impl<E> SplitChecker<E> for Checker
 where
     E: KvEngine,
 {
-    fn on_kv(&mut self, _: &mut ObserverContext<'_>, entry: &KeyEntry) -> bool {
+    fn on_kv(&mut self, _: &mut SemaphoreContext<'_>, entry: &KeyEntry) -> bool {
         let size = entry.entry_size() as u64;
         self.current_size += size;
 
@@ -98,32 +98,32 @@ where
 }
 
 #[derive(Clone)]
-pub struct SizeCheckObserver<C, E> {
+pub struct SizeCheckSemaphore<C, E> {
     router: Arc<Mutex<C>>,
     _phantom: PhantomData<E>,
 }
 
-impl<C: CasualRouter<E>, E> SizeCheckObserver<C, E>
+impl<C: CasualRouter<E>, E> SizeCheckSemaphore<C, E>
 where
     E: KvEngine,
 {
-    pub fn new(router: C) -> SizeCheckObserver<C, E> {
-        SizeCheckObserver {
+    pub fn new(router: C) -> SizeCheckSemaphore<C, E> {
+        SizeCheckSemaphore {
             router: Arc::new(Mutex::new(router)),
             _phantom: PhantomData,
         }
     }
 }
 
-impl<C: Slightlike, E: Slightlike> Interlock for SizeCheckObserver<C, E> {}
+impl<C: Slightlike, E: Slightlike> Interlock for SizeCheckSemaphore<C, E> {}
 
-impl<C: CasualRouter<E> + Slightlike, E> SplitCheckObserver<E> for SizeCheckObserver<C, E>
+impl<C: CasualRouter<E> + Slightlike, E> SplitCheckSemaphore<E> for SizeCheckSemaphore<C, E>
 where
     E: KvEngine,
 {
     fn add_checker(
         &self,
-        ctx: &mut ObserverContext<'_>,
+        ctx: &mut SemaphoreContext<'_>,
         host: &mut Host<'_, E>,
         engine: &E,
         mut policy: CheckPolicy,
@@ -252,7 +252,7 @@ fn get_approximate_split_tuplespaceInstanton(
 #[causet(test)]
 pub mod tests {
     use super::Checker;
-    use crate::interlock::{Config, InterlockHost, ObserverContext, SplitChecker};
+    use crate::interlock::{Config, InterlockHost, SemaphoreContext, SplitChecker};
     use crate::store::{CasualMessage, KeyEntry, SplitCheckRunner, SplitCheckTask};
     use engine_lmdb::properties::ConePropertiesCollectorFactory;
     use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions, WriBlock};
@@ -539,7 +539,7 @@ pub mod tests {
     fn test_checker_with_same_max_and_split_size() {
         let mut checker = Checker::new(24, 24, 1, CheckPolicy::Scan);
         let brane = Brane::default();
-        let mut ctx = ObserverContext::new(&brane);
+        let mut ctx = SemaphoreContext::new(&brane);
         loop {
             let data = KeyEntry::new(b"zxxxx".to_vec(), 0, 4, CAUSET_WRITE);
             if SplitChecker::<LmdbEngine>::on_kv(&mut checker, &mut ctx, &data) {
@@ -554,7 +554,7 @@ pub mod tests {
     fn test_checker_with_max_twice_bigger_than_split_size() {
         let mut checker = Checker::new(20, 10, 1, CheckPolicy::Scan);
         let brane = Brane::default();
-        let mut ctx = ObserverContext::new(&brane);
+        let mut ctx = SemaphoreContext::new(&brane);
         for _ in 0..2 {
             let data = KeyEntry::new(b"zxxxx".to_vec(), 0, 5, CAUSET_WRITE);
             if SplitChecker::<LmdbEngine>::on_kv(&mut checker, &mut ctx, &data) {

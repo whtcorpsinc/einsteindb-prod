@@ -3,7 +3,7 @@
 use ekvproto::metapb::Brane;
 use violetabft::StateRole;
 use violetabftstore::interlock::{
-    BoxBraneChangeObserver, Interlock, ObserverContext, BraneChangeEvent, BraneChangeObserver,
+    BoxBraneChangeSemaphore, Interlock, SemaphoreContext, BraneChangeEvent, BraneChangeSemaphore,
 };
 use violetabftstore::store::util::{find_peer, new_peer};
 use std::mem;
@@ -14,16 +14,16 @@ use test_violetabftstore::{new_node_cluster, Cluster, NodeCluster};
 use einsteindb_util::HandyRwLock;
 
 #[derive(Clone)]
-struct TestObserver {
+struct TestSemaphore {
     slightlikeer: SyncSlightlikeer<(Brane, BraneChangeEvent)>,
 }
 
-impl Interlock for TestObserver {}
+impl Interlock for TestSemaphore {}
 
-impl BraneChangeObserver for TestObserver {
+impl BraneChangeSemaphore for TestSemaphore {
     fn on_brane_changed(
         &self,
-        ctx: &mut ObserverContext<'_>,
+        ctx: &mut SemaphoreContext<'_>,
         event: BraneChangeEvent,
         _: StateRole,
     ) {
@@ -31,7 +31,7 @@ impl BraneChangeObserver for TestObserver {
     }
 }
 
-fn test_brane_change_observer_impl(mut cluster: Cluster<NodeCluster>) {
+fn test_brane_change_semaphore_impl(mut cluster: Cluster<NodeCluster>) {
     let fidel_client = Arc::clone(&cluster.fidel_client);
     fidel_client.disable_default_operator();
 
@@ -46,9 +46,9 @@ fn test_brane_change_observer_impl(mut cluster: Cluster<NodeCluster>) {
             .post_create_interlock_host(Box::new(move |id, host| {
                 if id == 1 {
                     let (slightlikeer, receiver) = sync_channel(10);
-                    host.registry.register_brane_change_observer(
+                    host.registry.register_brane_change_semaphore(
                         1,
-                        BoxBraneChangeObserver::new(TestObserver { slightlikeer }),
+                        BoxBraneChangeSemaphore::new(TestSemaphore { slightlikeer }),
                     );
                     tx.slightlike(receiver).unwrap();
                 }
@@ -172,7 +172,7 @@ fn test_brane_change_observer_impl(mut cluster: Cluster<NodeCluster>) {
 }
 
 #[test]
-fn test_brane_change_observer() {
+fn test_brane_change_semaphore() {
     let cluster = new_node_cluster(1, 3);
-    test_brane_change_observer_impl(cluster);
+    test_brane_change_semaphore_impl(cluster);
 }

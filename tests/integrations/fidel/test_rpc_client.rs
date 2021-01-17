@@ -100,7 +100,7 @@ fn test_rpc_client() {
     }
 
     let poller = Builder::new()
-        .threaded_scheduler()
+        .threaded_interlock_semaphore()
         .thread_name(thd_name!("poller"))
         .core_threads(1)
         .build()
@@ -381,7 +381,7 @@ fn test_brane_heartbeat_on_leader_change() {
 
     let client = new_client(eps, None);
     let poller = Builder::new()
-        .threaded_scheduler()
+        .threaded_interlock_semaphore()
         .thread_name(thd_name!("poller"))
         .core_threads(1)
         .build()

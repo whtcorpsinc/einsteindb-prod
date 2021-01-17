@@ -31,8 +31,8 @@ fn setup(
     causet: EINSTEINDBConfig,
 ) -> (
     ConfigController,
-    WaiterMgrScheduler,
-    DetectorScheduler,
+    WaiterMgrInterlock_Semaphore,
+    DetectorInterlock_Semaphore,
     LockManager,
 ) {
     let mut lock_mgr = LockManager::new();
@@ -50,8 +50,8 @@ fn setup(
 
     let mgr = lock_mgr.config_manager();
     let (w, d) = (
-        mgr.waiter_mgr_scheduler.clone(),
-        mgr.detector_scheduler.clone(),
+        mgr.waiter_mgr_interlock_semaphore.clone(),
+        mgr.detector_interlock_semaphore.clone(),
     );
     let causet_controller = ConfigController::new(causet);
     causet_controller.register(Module::PessimisticTxn, Box::new(mgr));
@@ -59,7 +59,7 @@ fn setup(
     (causet_controller, w, d, lock_mgr)
 }
 
-fn validate_waiter<F>(router: &WaiterMgrScheduler, f: F)
+fn validate_waiter<F>(router: &WaiterMgrInterlock_Semaphore, f: F)
 where
     F: FnOnce(ReadableDuration, ReadableDuration) + Slightlike + 'static,
 {
@@ -71,7 +71,7 @@ where
     rx.recv_timeout(Duration::from_secs(3)).unwrap();
 }
 
-fn validate_dead_lock<F>(router: &DetectorScheduler, f: F)
+fn validate_dead_lock<F>(router: &DetectorInterlock_Semaphore, f: F)
 where
     F: FnOnce(u64) + Slightlike + 'static,
 {

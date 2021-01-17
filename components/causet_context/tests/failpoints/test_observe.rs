@@ -4,9 +4,9 @@ use futures::executor::block_on;
 use futures::sink::SinkExt;
 use grpcio::WriteFlags;
 #[causet(feature = "prost-codec")]
-use ekvproto::cdcpb::event::{Event as Event_oneof_event, LogType as EventLogType};
+use ekvproto::causet_contextpb::event::{Event as Event_oneof_event, LogType as EventLogType};
 #[causet(not(feature = "prost-codec"))]
-use ekvproto::cdcpb::*;
+use ekvproto::causet_contextpb::*;
 use ekvproto::kvrpcpb::*;
 use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use fidel_client::FidelClient;
@@ -26,7 +26,7 @@ fn test_observe_duplicate_cmd() {
     let brane = suite.cluster.get_brane(&[]);
     let req = suite.new_changedata_request(brane.get_id());
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(brane.get_id()));
+        new_event_feed(suite.get_brane_causet_context_client(brane.get_id()));
     block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     let mut events = receive_event(false).events.to_vec();
     assert_eq!(events.len(), 1);
@@ -62,7 +62,7 @@ fn test_observe_duplicate_cmd() {
         }
         other => panic!("unknown event {:?}", other),
     }
-    let fp = "before_cdc_flush_apply";
+    let fp = "before_causet_context_flush_apply";
     fail::causet(fp, "pause").unwrap();
 
     // Async commit
@@ -72,13 +72,13 @@ fn test_observe_duplicate_cmd() {
     sleep_ms(200);
     // Close previous connection and open a new one twice time
     let (mut req_tx, resp_rx) = suite
-        .get_brane_cdc_client(brane.get_id())
+        .get_brane_causet_context_client(brane.get_id())
         .event_feed()
         .unwrap();
     event_feed_wrap.as_ref().replace(Some(resp_rx));
     block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     let (mut req_tx, resp_rx) = suite
-        .get_brane_cdc_client(brane.get_id())
+        .get_brane_causet_context_client(brane.get_id())
         .event_feed()
         .unwrap();
     event_feed_wrap.as_ref().replace(Some(resp_rx));
@@ -151,13 +151,13 @@ fn test_delayed_change_cmd() {
 
     let req = suite.new_changedata_request(brane.get_id());
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(brane.get_id()));
+        new_event_feed(suite.get_brane_causet_context_client(brane.get_id()));
     block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
 
     suite.cluster.must_put(b"k2", b"v2");
 
     let (mut req_tx, resp_rx) = suite
-        .get_brane_cdc_client(brane.get_id())
+        .get_brane_causet_context_client(brane.get_id())
         .event_feed()
         .unwrap();
     event_feed_wrap.as_ref().replace(Some(resp_rx));

@@ -1315,7 +1315,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "It contains some kinds of events such as write stall, channel full, scheduler busy, and interlock full, which will make the EinsteinDB instance unavailable temporarily.",
+          "description": "It contains some kinds of events such as write stall, channel full, interlock_semaphore busy, and interlock full, which will make the EinsteinDB instance unavailable temporarily.",
           "ediBlock": true,
           "error": false,
           "fill": 0,
@@ -1355,10 +1355,10 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_scheduler_too_busy_total{instance=~\"$instance\"}[1m])) by (instance)",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_too_busy_total{instance=~\"$instance\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
-              "leglightlikeFormat": "scheduler-{{instance}}",
+              "leglightlikeFormat": "interlock_semaphore-{{instance}}",
               "metric": "",
               "refId": "A",
               "step": 4
@@ -1680,7 +1680,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The number of different scheduler errors on each EinsteinDB instance",
+          "description": "The number of different interlock_semaphore errors on each EinsteinDB instance",
           "ediBlock": true,
           "error": false,
           "fill": 0,
@@ -1722,7 +1722,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_scheduler_stage_total{instance=~\"$instance\", stage=~\"snapshot_err|prepare_write_err\"}[1m])) by (instance, stage)",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_stage_total{instance=~\"$instance\", stage=~\"snapshot_err|prepare_write_err\"}[1m])) by (instance, stage)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}-{{stage}}",
@@ -1735,7 +1735,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler error",
+          "title": "Interlock_Semaphore error",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -3416,8 +3416,8 @@
             "for": "0m",
             "frequency": "1m",
             "handler": 1,
-            "message": "EinsteinDB scheduler worker thread CPU usage is high",
-            "name": "EinsteinDB scheduler worker CPU alert",
+            "message": "EinsteinDB interlock_semaphore worker thread CPU usage is high",
+            "name": "EinsteinDB interlock_semaphore worker CPU alert",
             "noDataState": "ok",
             "notifications": []
           },
@@ -3427,7 +3427,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The CPU utilization of scheduler worker",
+          "description": "The CPU utilization of interlock_semaphore worker",
           "ediBlock": true,
           "error": false,
           "fill": 0,
@@ -3490,7 +3490,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler worker CPU",
+          "title": "Interlock_Semaphore worker CPU",
           "tooltip": {
             "msResolution": false,
             "shared": true,

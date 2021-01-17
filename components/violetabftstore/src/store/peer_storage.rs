@@ -25,7 +25,7 @@ use crate::store::ProposalContext;
 use crate::{Error, Result};
 use engine_promises::{VioletaBftEngine, VioletaBftLogBatch};
 use into_other::into_other;
-use einsteindb_util::worker::Scheduler;
+use einsteindb_util::worker::Interlock_Semaphore;
 
 use super::metrics::*;
 use super::worker::BraneTask;
@@ -596,7 +596,7 @@ where
 
     snap_state: RefCell<SnapState>,
     gen_snap_task: RefCell<Option<GenSnapTask>>,
-    brane_sched: Scheduler<BraneTask<EK::Snapshot>>,
+    brane_sched: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
     snap_tried_cnt: RefCell<usize>,
 
     // Entry cache if `ER doesn't have an internal entry cache.
@@ -648,7 +648,7 @@ where
     pub fn new(
         engines: Engines<EK, ER>,
         brane: &metapb::Brane,
-        brane_sched: Scheduler<BraneTask<EK::Snapshot>>,
+        brane_sched: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
         peer_id: u64,
         tag: String,
     ) -> Result<PeerStorage<EK, ER>> {
@@ -1655,12 +1655,12 @@ mod tests {
     use std::sync::*;
     use std::time::Duration;
     use tempfile::{Builder, TempDir};
-    use einsteindb_util::worker::{Scheduler, Worker};
+    use einsteindb_util::worker::{Interlock_Semaphore, Worker};
 
     use super::*;
 
     fn new_causetStorage(
-        sched: Scheduler<BraneTask<LmdbSnapshot>>,
+        sched: Interlock_Semaphore<BraneTask<LmdbSnapshot>>,
         path: &TempDir,
     ) -> PeerStorage<LmdbEngine, LmdbEngine> {
         let kv_db = new_engine(path.path().to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();
@@ -1709,7 +1709,7 @@ mod tests {
     }
 
     fn new_causetStorage_from_ents(
-        sched: Scheduler<BraneTask<LmdbSnapshot>>,
+        sched: Interlock_Semaphore<BraneTask<LmdbSnapshot>>,
         path: &TempDir,
         ents: &[Entry],
     ) -> PeerStorage<LmdbEngine, LmdbEngine> {
@@ -1778,7 +1778,7 @@ mod tests {
         for (i, (idx, wterm)) in tests.drain(..).enumerate() {
             let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
-            let sched = worker.scheduler();
+            let sched = worker.interlock_semaphore();
             let store = new_causetStorage_from_ents(sched, &td, &ents);
             let t = store.term(idx);
             if wterm != t {
@@ -1832,7 +1832,7 @@ mod tests {
     fn test_causetStorage_clear_meta() {
         let td = Builder::new().prefix("einsteindb-store").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
-        let sched = worker.scheduler();
+        let sched = worker.interlock_semaphore();
         let mut store = new_causetStorage_from_ents(sched, &td, &[new_entry(3, 3), new_entry(4, 4)]);
         applightlike_ents(&mut store, &[new_entry(5, 5), new_entry(6, 6)]);
 
@@ -1910,7 +1910,7 @@ mod tests {
         for (i, (lo, hi, maxsize, wentries)) in tests.drain(..).enumerate() {
             let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
-            let sched = worker.scheduler();
+            let sched = worker.interlock_semaphore();
             let store = new_causetStorage_from_ents(sched, &td, &ents);
             let e = store.entries(lo, hi, maxsize);
             if e != wentries {
@@ -1934,7 +1934,7 @@ mod tests {
         for (i, (idx, werr)) in tests.drain(..).enumerate() {
             let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
-            let sched = worker.scheduler();
+            let sched = worker.interlock_semaphore();
             let store = new_causetStorage_from_ents(sched, &td, &ents);
             let mut ctx = InvokeContext::new(&store);
             let res = store
@@ -1956,7 +1956,7 @@ mod tests {
     fn generate_and_schedule_snapshot(
         gen_task: GenSnapTask,
         engines: &Engines<LmdbEngine, LmdbEngine>,
-        sched: &Scheduler<BraneTask<LmdbSnapshot>>,
+        sched: &Interlock_Semaphore<BraneTask<LmdbSnapshot>>,
     ) -> Result<()> {
         let apply_state: VioletaBftApplyState = engines
             .kv
@@ -1987,7 +1987,7 @@ mod tests {
         let snap_dir = Builder::new().prefix("snap_dir").temfidelir().unwrap();
         let mgr = SnapManager::new(snap_dir.path().to_str().unwrap());
         let mut worker = Worker::new("brane-worker");
-        let sched = worker.scheduler();
+        let sched = worker.interlock_semaphore();
         let mut s = new_causetStorage_from_ents(sched.clone(), &td, &ents);
         let (router, _) = mpsc::sync_channel(100);
         let runner = BraneRunner::new(
@@ -2148,7 +2148,7 @@ mod tests {
         for (i, (entries, wentries)) in tests.drain(..).enumerate() {
             let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
-            let sched = worker.scheduler();
+            let sched = worker.interlock_semaphore();
             let mut store = new_causetStorage_from_ents(sched, &td, &ents);
             applightlike_ents(&mut store, &entries);
             let li = store.last_index();
@@ -2164,7 +2164,7 @@ mod tests {
         let ents = vec![new_entry(3, 3), new_entry(4, 4), new_entry(5, 5)];
         let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
-        let sched = worker.scheduler();
+        let sched = worker.interlock_semaphore();
         let mut store = new_causetStorage_from_ents(sched, &td, &ents);
         store.cache.as_mut().unwrap().cache.clear();
         // empty cache should fetch data from lmdb directly.
@@ -2207,7 +2207,7 @@ mod tests {
         let ents = vec![new_entry(3, 3), new_entry(4, 4), new_entry(5, 5)];
         let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
-        let sched = worker.scheduler();
+        let sched = worker.interlock_semaphore();
         let mut store = new_causetStorage_from_ents(sched, &td, &ents);
         store.cache.as_mut().unwrap().cache.clear();
 
@@ -2303,7 +2303,7 @@ mod tests {
         let snap_dir = Builder::new().prefix("snap").temfidelir().unwrap();
         let mgr = SnapManager::new(snap_dir.path().to_str().unwrap());
         let mut worker = Worker::new("snap-manager");
-        let sched = worker.scheduler();
+        let sched = worker.interlock_semaphore();
         let s1 = new_causetStorage_from_ents(sched.clone(), &td1, &ents);
         let (router, _) = mpsc::sync_channel(100);
         let runner = BraneRunner::new(
@@ -2366,7 +2366,7 @@ mod tests {
     fn test_canceling_snapshot() {
         let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
-        let sched = worker.scheduler();
+        let sched = worker.interlock_semaphore();
         let mut s = new_causetStorage(sched, &td);
 
         // PENDING can be canceled directly.
@@ -2412,7 +2412,7 @@ mod tests {
     fn test_try_finish_snapshot() {
         let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
-        let sched = worker.scheduler();
+        let sched = worker.interlock_semaphore();
         let mut s = new_causetStorage(sched, &td);
 
         // PENDING can be finished.
@@ -2488,7 +2488,7 @@ mod tests {
     fn test_validate_states() {
         let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
-        let sched = worker.scheduler();
+        let sched = worker.interlock_semaphore();
         let kv_db = new_engine(td.path().to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();
         let violetabft_path = td.path().join(Path::new("violetabft"));
         let violetabft_db = new_engine(violetabft_path.to_str().unwrap(), None, &[CAUSET_DEFAULT], None).unwrap();

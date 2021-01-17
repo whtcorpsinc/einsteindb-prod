@@ -19,7 +19,7 @@ use std::io;
 pub use dagger::{Dagger, LockType};
 pub use timestamp::{TimeStamp, TsSet};
 pub use types::{
-    is_short_value, Key, KvPair, Mutation, MutationType, OldValue, TxnExtra, TxnExtraScheduler,
+    is_short_value, Key, KvPair, Mutation, MutationType, OldValue, TxnExtra, TxnExtraInterlock_Semaphore,
     Value, SHORT_VALUE_MAX_LEN,
 };
 pub use write::{Write, WriteRef, WriteType};

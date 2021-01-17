@@ -1,6 +1,6 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use crate::fsm::{Fsm, FsmScheduler, FsmState};
+use crate::fsm::{Fsm, FsmInterlock_Semaphore, FsmState};
 use crossbeam::channel::{SlightlikeError, TrySlightlikeError};
 use std::borrow::Cow;
 use std::sync::Arc;
@@ -12,7 +12,7 @@ use einsteindb_util::mpsc;
 /// messages sent to this mailbox.
 ///
 /// When a message is sent to a mailbox, its owner will be checked whether it's
-/// idle. An idle owner will be scheduled via `FsmScheduler` immediately, which
+/// idle. An idle owner will be scheduled via `FsmInterlock_Semaphore` immediately, which
 /// will drive the fsm to poll for messages.
 pub struct BasicMailbox<Owner: Fsm> {
     slightlikeer: mpsc::LooseBoundedSlightlikeer<Owner::Message>,
@@ -55,13 +55,13 @@ impl<Owner: Fsm> BasicMailbox<Owner> {
 
     /// Force slightlikeing a message despite the capacity limit on channel.
     #[inline]
-    pub fn force_slightlike<S: FsmScheduler<Fsm = Owner>>(
+    pub fn force_slightlike<S: FsmInterlock_Semaphore<Fsm = Owner>>(
         &self,
         msg: Owner::Message,
-        scheduler: &S,
+        interlock_semaphore: &S,
     ) -> Result<(), SlightlikeError<Owner::Message>> {
         self.slightlikeer.force_slightlike(msg)?;
-        self.state.notify(scheduler, Cow::Borrowed(self));
+        self.state.notify(interlock_semaphore, Cow::Borrowed(self));
         Ok(())
     }
 
@@ -69,13 +69,13 @@ impl<Owner: Fsm> BasicMailbox<Owner> {
     ///
     /// If there are too many plightlikeing messages, function may fail.
     #[inline]
-    pub fn try_slightlike<S: FsmScheduler<Fsm = Owner>>(
+    pub fn try_slightlike<S: FsmInterlock_Semaphore<Fsm = Owner>>(
         &self,
         msg: Owner::Message,
-        scheduler: &S,
+        interlock_semaphore: &S,
     ) -> Result<(), TrySlightlikeError<Owner::Message>> {
         self.slightlikeer.try_slightlike(msg)?;
-        self.state.notify(scheduler, Cow::Borrowed(self));
+        self.state.notify(interlock_semaphore, Cow::Borrowed(self));
         Ok(())
     }
 
@@ -98,33 +98,33 @@ impl<Owner: Fsm> Clone for BasicMailbox<Owner> {
 }
 
 /// A more high level mailbox.
-pub struct Mailbox<Owner, Scheduler>
+pub struct Mailbox<Owner, Interlock_Semaphore>
 where
     Owner: Fsm,
-    Scheduler: FsmScheduler<Fsm = Owner>,
+    Interlock_Semaphore: FsmInterlock_Semaphore<Fsm = Owner>,
 {
     mailbox: BasicMailbox<Owner>,
-    scheduler: Scheduler,
+    interlock_semaphore: Interlock_Semaphore,
 }
 
-impl<Owner, Scheduler> Mailbox<Owner, Scheduler>
+impl<Owner, Interlock_Semaphore> Mailbox<Owner, Interlock_Semaphore>
 where
     Owner: Fsm,
-    Scheduler: FsmScheduler<Fsm = Owner>,
+    Interlock_Semaphore: FsmInterlock_Semaphore<Fsm = Owner>,
 {
-    pub fn new(mailbox: BasicMailbox<Owner>, scheduler: Scheduler) -> Mailbox<Owner, Scheduler> {
-        Mailbox { mailbox, scheduler }
+    pub fn new(mailbox: BasicMailbox<Owner>, interlock_semaphore: Interlock_Semaphore) -> Mailbox<Owner, Interlock_Semaphore> {
+        Mailbox { mailbox, interlock_semaphore }
     }
 
     /// Force slightlikeing a message despite channel capacity limit.
     #[inline]
     pub fn force_slightlike(&self, msg: Owner::Message) -> Result<(), SlightlikeError<Owner::Message>> {
-        self.mailbox.force_slightlike(msg, &self.scheduler)
+        self.mailbox.force_slightlike(msg, &self.interlock_semaphore)
     }
 
     /// Try to slightlike a message.
     #[inline]
     pub fn try_slightlike(&self, msg: Owner::Message) -> Result<(), TrySlightlikeError<Owner::Message>> {
-        self.mailbox.try_slightlike(msg, &self.scheduler)
+        self.mailbox.try_slightlike(msg, &self.interlock_semaphore)
     }
 }

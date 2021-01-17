@@ -4,9 +4,9 @@ use futures::executor::block_on;
 use futures::sink::SinkExt;
 use grpcio::WriteFlags;
 #[causet(feature = "prost-codec")]
-use ekvproto::cdcpb::event::{Event as Event_oneof_event, LogType as EventLogType};
+use ekvproto::causet_contextpb::event::{Event as Event_oneof_event, LogType as EventLogType};
 #[causet(not(feature = "prost-codec"))]
-use ekvproto::cdcpb::*;
+use ekvproto::causet_contextpb::*;
 use ekvproto::kvrpcpb::*;
 use fidel_client::FidelClient;
 use test_violetabftstore::sleep_ms;
@@ -22,7 +22,7 @@ fn test_stale_resolver() {
     let brane = suite.cluster.get_brane(&[]);
     let req = suite.new_changedata_request(brane.get_id());
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(brane.get_id()));
+        new_event_feed(suite.get_brane_causet_context_client(brane.get_id()));
     block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     // Sleep for a while to wait the scan is done
     sleep_ms(200);
@@ -42,17 +42,17 @@ fn test_stale_resolver() {
     );
 
     // Block next scan
-    let fp1 = "cdc_incremental_scan_spacelike";
+    let fp1 = "causet_context_incremental_scan_spacelike";
     fail::causet(fp1, "pause").unwrap();
     // Close previous connection and open two new connections
     let (mut req_tx, resp_rx) = suite
-        .get_brane_cdc_client(brane.get_id())
+        .get_brane_causet_context_client(brane.get_id())
         .event_feed()
         .unwrap();
     event_feed_wrap.as_ref().replace(Some(resp_rx));
     block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     let (mut req_tx1, resp_rx1) = suite
-        .get_brane_cdc_client(brane.get_id())
+        .get_brane_causet_context_client(brane.get_id())
         .event_feed()
         .unwrap();
     block_on(req_tx1.slightlike((req, WriteFlags::default()))).unwrap();

@@ -1430,7 +1430,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "Indicates occurrences of events that make the EinsteinDB instance unavailable temporarily, such as Write Stall, Channel Full, Scheduler Busy, and Interlock Full",
+          "description": "Indicates occurrences of events that make the EinsteinDB instance unavailable temporarily, such as Write Stall, Channel Full, Interlock_Semaphore Busy, and Interlock Full",
           "ediBlock": true,
           "error": false,
           "fill": 0,
@@ -1472,10 +1472,10 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_scheduler_too_busy_total{instance=~\"$instance\"}[1m])) by (instance)",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_too_busy_total{instance=~\"$instance\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
-              "leglightlikeFormat": "scheduler-{{instance}}",
+              "leglightlikeFormat": "interlock_semaphore-{{instance}}",
               "metric": "",
               "refId": "A",
               "step": 4
@@ -1797,7 +1797,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The number of scheduler errors per type on each EinsteinDB instance",
+          "description": "The number of interlock_semaphore errors per type on each EinsteinDB instance",
           "ediBlock": true,
           "error": false,
           "fill": 0,
@@ -1839,7 +1839,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_scheduler_stage_total{instance=~\"$instance\", stage=~\"snapshot_err|prepare_write_err\"}[1m])) by (instance, stage)",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_stage_total{instance=~\"$instance\", stage=~\"snapshot_err|prepare_write_err\"}[1m])) by (instance, stage)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}-{{stage}}",
@@ -1852,7 +1852,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler error",
+          "title": "Interlock_Semaphore error",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -4485,8 +4485,8 @@
             "for": "0m",
             "frequency": "1m",
             "handler": 1,
-            "message": "EinsteinDB scheduler worker thread CPU usage is high",
-            "name": "EinsteinDB scheduler worker CPU alert",
+            "message": "EinsteinDB interlock_semaphore worker thread CPU usage is high",
+            "name": "EinsteinDB interlock_semaphore worker CPU alert",
             "noDataState": "ok",
             "notifications": []
           },
@@ -4496,7 +4496,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The CPU utilization of scheduler worker",
+          "description": "The CPU utilization of interlock_semaphore worker",
           "ediBlock": true,
           "error": false,
           "fill": 0,
@@ -4559,7 +4559,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler worker CPU",
+          "title": "Interlock_Semaphore worker CPU",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -9602,7 +9602,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_scheduler_too_busy_total{instance=~\"$instance\"}[1m])) by (stage)",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_too_busy_total{instance=~\"$instance\"}[1m])) by (stage)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "busy",
@@ -9610,7 +9610,7 @@
               "step": 20
             },
             {
-              "expr": "sum(rate(einsteindb_scheduler_stage_total{instance=~\"$instance\"}[1m])) by (stage)",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_stage_total{instance=~\"$instance\"}[1m])) by (stage)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{stage}}",
@@ -9622,7 +9622,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler stage total",
+          "title": "Interlock_Semaphore stage total",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -9705,7 +9705,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(einsteindb_scheduler_writing_bytes{instance=~\"$instance\"}) by (instance)",
+              "expr": "sum(einsteindb_interlock_semaphore_writing_bytes{instance=~\"$instance\"}) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -9717,7 +9717,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler writing bytes",
+          "title": "Interlock_Semaphore writing bytes",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -9803,7 +9803,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_scheduler_commands_pri_total{instance=~\"$instance\"}[1m])) by (priority)",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_commands_pri_total{instance=~\"$instance\"}[1m])) by (priority)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{priority}}",
@@ -9816,7 +9816,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler priority commands",
+          "title": "Interlock_Semaphore priority commands",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -9884,8 +9884,8 @@
             "executionErrorState": "alerting",
             "frequency": "120s",
             "handler": 1,
-            "message": "EinsteinDB scheduler context total",
-            "name": "scheduler plightlikeing commands alert",
+            "message": "EinsteinDB interlock_semaphore context total",
+            "name": "interlock_semaphore plightlikeing commands alert",
             "noDataState": "ok",
             "notifications": []
           },
@@ -9937,7 +9937,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(einsteindb_scheduler_contex_total{instance=~\"$instance\"}) by (instance)",
+              "expr": "sum(einsteindb_interlock_semaphore_contex_total{instance=~\"$instance\"}) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -9958,7 +9958,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler plightlikeing commands",
+          "title": "Interlock_Semaphore plightlikeing commands",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -9998,7 +9998,7 @@
         }
       ],
       "repeat": null,
-      "title": "Scheduler",
+      "title": "Interlock_Semaphore",
       "type": "EventIdx"
     },
     {
@@ -10064,7 +10064,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_scheduler_too_busy_total{instance=~\"$instance\", type=\"$command\"}[1m]))",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_too_busy_total{instance=~\"$instance\", type=\"$command\"}[1m]))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "busy",
@@ -10072,7 +10072,7 @@
               "step": 4
             },
             {
-              "expr": "sum(rate(einsteindb_scheduler_stage_total{instance=~\"$instance\", type=\"$command\"}[1m])) by (stage)",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_stage_total{instance=~\"$instance\", type=\"$command\"}[1m])) by (stage)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{stage}}",
@@ -10084,7 +10084,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler stage total",
+          "title": "Interlock_Semaphore stage total",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -10177,7 +10177,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_scheduler_command_duration_seconds_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "99%",
@@ -10186,7 +10186,7 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_scheduler_command_duration_seconds_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "95%",
@@ -10195,7 +10195,7 @@
               "step": 10
             },
             {
-              "expr": "sum(rate(einsteindb_scheduler_command_duration_seconds_sum{instance=~\"$instance\", type=\"$command\"}[1m])) / sum(rate(einsteindb_scheduler_command_duration_seconds_count{instance=~\"$instance\", type=\"$command\"}[1m])) ",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_sum{instance=~\"$instance\", type=\"$command\"}[1m])) / sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_count{instance=~\"$instance\", type=\"$command\"}[1m])) ",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "avg",
@@ -10208,7 +10208,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler command duration",
+          "title": "Interlock_Semaphore command duration",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -10302,7 +10302,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_scheduler_latch_wait_duration_seconds_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "99%",
@@ -10311,7 +10311,7 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_scheduler_latch_wait_duration_seconds_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "95%",
@@ -10320,7 +10320,7 @@
               "step": 10
             },
             {
-              "expr": "sum(rate(einsteindb_scheduler_latch_wait_duration_seconds_sum{instance=~\"$instance\", type=\"$command\"}[1m])) / sum(rate(einsteindb_scheduler_latch_wait_duration_seconds_count{instance=~\"$instance\", type=\"$command\"}[1m])) ",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_sum{instance=~\"$instance\", type=\"$command\"}[1m])) / sum(rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_count{instance=~\"$instance\", type=\"$command\"}[1m])) ",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "avg",
@@ -10333,7 +10333,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler latch wait duration",
+          "title": "Interlock_Semaphore latch wait duration",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -10427,7 +10427,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_scheduler_kv_command_key_read_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_kv_command_key_read_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "99%",
@@ -10436,7 +10436,7 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_scheduler_kv_command_key_read_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_interlock_semaphore_kv_command_key_read_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "95%",
@@ -10445,7 +10445,7 @@
               "step": 10
             },
             {
-              "expr": "sum(rate(einsteindb_scheduler_kv_command_key_read_sum{instance=~\"$instance\", type=\"$command\"}[1m])) / sum(rate(einsteindb_scheduler_kv_command_key_read_count{instance=~\"$instance\", type=\"$command\"}[1m])) ",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_kv_command_key_read_sum{instance=~\"$instance\", type=\"$command\"}[1m])) / sum(rate(einsteindb_interlock_semaphore_kv_command_key_read_count{instance=~\"$instance\", type=\"$command\"}[1m])) ",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "avg",
@@ -10458,7 +10458,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler tuplespaceInstanton read",
+          "title": "Interlock_Semaphore tuplespaceInstanton read",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -10552,7 +10552,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_scheduler_kv_command_key_write_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_kv_command_key_write_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "99%",
@@ -10561,7 +10561,7 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_scheduler_kv_command_key_write_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_interlock_semaphore_kv_command_key_write_bucket{instance=~\"$instance\", type=\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "95%",
@@ -10570,7 +10570,7 @@
               "step": 10
             },
             {
-              "expr": "sum(rate(einsteindb_scheduler_kv_command_key_write_sum{instance=~\"$instance\", type=\"$command\"}[1m])) / sum(rate(einsteindb_scheduler_kv_command_key_write_count{instance=~\"$instance\", type=\"$command\"}[1m])) ",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_kv_command_key_write_sum{instance=~\"$instance\", type=\"$command\"}[1m])) / sum(rate(einsteindb_interlock_semaphore_kv_command_key_write_count{instance=~\"$instance\", type=\"$command\"}[1m])) ",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "avg",
@@ -10583,7 +10583,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler tuplespaceInstanton written",
+          "title": "Interlock_Semaphore tuplespaceInstanton written",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -10677,7 +10677,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_scheduler_kv_scan_details{instance=~\"$instance\", req=\"$command\"}[1m])) by (tag)",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_kv_scan_details{instance=~\"$instance\", req=\"$command\"}[1m])) by (tag)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{tag}}",
@@ -10690,7 +10690,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler scan details",
+          "title": "Interlock_Semaphore scan details",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -10784,7 +10784,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_scheduler_kv_scan_details{instance=~\"$instance\", req=\"$command\", causet=\"dagger\"}[1m])) by (tag)",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_kv_scan_details{instance=~\"$instance\", req=\"$command\", causet=\"dagger\"}[1m])) by (tag)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{tag}}",
@@ -10797,7 +10797,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler scan details [dagger]",
+          "title": "Interlock_Semaphore scan details [dagger]",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -10891,7 +10891,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_scheduler_kv_scan_details{instance=~\"$instance\", req=\"$command\", causet=\"write\"}[1m])) by (tag)",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_kv_scan_details{instance=~\"$instance\", req=\"$command\", causet=\"write\"}[1m])) by (tag)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{tag}}",
@@ -10904,7 +10904,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler scan details [write]",
+          "title": "Interlock_Semaphore scan details [write]",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -10998,7 +10998,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_scheduler_kv_scan_details{instance=~\"$instance\", req=\"$command\", causet=\"default\"}[1m])) by (tag)",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_kv_scan_details{instance=~\"$instance\", req=\"$command\", causet=\"default\"}[1m])) by (tag)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{tag}}",
@@ -11011,7 +11011,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler scan details [default]",
+          "title": "Interlock_Semaphore scan details [default]",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -11051,7 +11051,7 @@
         }
       ],
       "repeat": "command",
-      "title": "Scheduler - $command",
+      "title": "Interlock_Semaphore - $command",
       "type": "EventIdx"
     },
     {

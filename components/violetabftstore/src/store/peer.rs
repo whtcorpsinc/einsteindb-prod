@@ -39,14 +39,14 @@ use crate::store::fsm::apply::CatchUpLogs;
 use crate::store::fsm::store::PollContext;
 use crate::store::fsm::{apply, Apply, ApplyMetrics, ApplyTask, GroupState, Proposal};
 use crate::store::util::is_learner;
-use crate::store::worker::{ReadDelegate, ReadFreeDaemon, ReadProgress, BraneTask};
+use crate::store::worker::{Readpushdown_causet, ReadFreeDaemon, ReadProgress, BraneTask};
 use crate::store::{Callback, Config, GlobalReplicationState, FidelTask, ReadResponse};
 use crate::{Error, Result};
 use fidel_client::INVALID_ID;
 use einsteindb_util::collections::{HashMap, HashSet};
 use einsteindb_util::time::{duration_to_sec, monotonic_raw_now};
 use einsteindb_util::time::{Instant as UtilInstant, ThreadReadId};
-use einsteindb_util::worker::{FutureScheduler, Scheduler};
+use einsteindb_util::worker::{FutureInterlock_Semaphore, Interlock_Semaphore};
 use einsteindb_util::Either;
 
 use super::cmd_resp;
@@ -461,7 +461,7 @@ where
     pub fn new(
         store_id: u64,
         causet: &Config,
-        sched: Scheduler<BraneTask<EK::Snapshot>>,
+        sched: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
         engines: Engines<EK, ER>,
         brane: &metapb::Brane,
         peer: metapb::Peer,
@@ -607,7 +607,7 @@ where
         info!("switch replication mode"; "version" => self.replication_mode_version, "brane_id" => self.brane_id, "peer_id" => self.peer.id);
     }
 
-    /// Register self to apply_scheduler so that the peer is then usable.
+    /// Register self to apply_interlock_semaphore so that the peer is then usable.
     /// Also trigger `BraneChangeEvent::Create` here.
     pub fn activate<T, C>(&self, ctx: &PollContext<EK, ER, T, C>) {
         ctx.apply_router
@@ -870,7 +870,7 @@ where
     pub fn set_brane(
         &mut self,
         host: &InterlockHost<impl KvEngine>,
-        reader: &mut ReadDelegate,
+        reader: &mut Readpushdown_causet,
         brane: metapb::Brane,
     ) {
         if self.brane().get_brane_epoch().get_version() < brane.get_brane_epoch().get_version()
@@ -880,7 +880,7 @@ where
         }
         self.mut_store().set_brane(brane.clone());
         let progress = ReadProgress::brane(brane);
-        // Always ufidelate read delegate's brane to avoid stale brane info after a follower
+        // Always ufidelate read pushdown_causet's brane to avoid stale brane info after a follower
         // becoming a leader.
         self.maybe_ufidelate_read_progress(reader, progress);
 
@@ -1264,7 +1264,7 @@ where
 
                     // A more recent read may happen on the old leader. So max ts should
                     // be ufidelated after a peer becomes leader.
-                    self.require_ufidelating_max_ts(&ctx.fidel_scheduler);
+                    self.require_ufidelating_max_ts(&ctx.fidel_interlock_semaphore);
                 }
                 StateRole::Follower => {
                     self.leader_lease.expire();
@@ -1645,7 +1645,7 @@ where
             self.activate(ctx);
             let mut meta = ctx.store_meta.dagger().unwrap();
             meta.readers
-                .insert(self.brane_id, ReadDelegate::from_peer(self));
+                .insert(self.brane_id, Readpushdown_causet::from_peer(self));
         }
 
         apply_snap_result
@@ -1983,7 +1983,7 @@ where
         }
     }
 
-    fn maybe_ufidelate_read_progress(&self, reader: &mut ReadDelegate, progress: ReadProgress) {
+    fn maybe_ufidelate_read_progress(&self, reader: &mut Readpushdown_causet, progress: ReadProgress) {
         if self.plightlikeing_remove {
             return;
         }
@@ -3010,7 +3010,7 @@ where
             approximate_tuplespaceInstanton: self.approximate_tuplespaceInstanton,
             replication_status: self.brane_replication_status(),
         };
-        if let Err(e) = ctx.fidel_scheduler.schedule(task) {
+        if let Err(e) = ctx.fidel_interlock_semaphore.schedule(task) {
             error!(
                 "failed to notify fidel";
                 "brane_id" => self.brane_id,
@@ -3201,7 +3201,7 @@ where
         }
     }
 
-    pub fn require_ufidelating_max_ts(&self, fidel_scheduler: &FutureScheduler<FidelTask<EK>>) {
+    pub fn require_ufidelating_max_ts(&self, fidel_interlock_semaphore: &FutureInterlock_Semaphore<FidelTask<EK>>) {
         let epoch = self.brane().get_brane_epoch();
         let term_low_bits = self.term() & ((1 << 32) - 1); // 32 bits
         let version_lot_bits = epoch.get_version() & ((1 << 31) - 1); // 31 bits
@@ -3213,7 +3213,7 @@ where
             "brane_id" => self.brane_id,
             "initial_status" => initial_status,
         );
-        if let Err(e) = fidel_scheduler.schedule(FidelTask::UfidelateMaxTimestamp {
+        if let Err(e) = fidel_interlock_semaphore.schedule(FidelTask::UfidelateMaxTimestamp {
             brane_id: self.brane_id,
             initial_status,
             max_ts_sync_status: self.max_ts_sync_status.clone(),

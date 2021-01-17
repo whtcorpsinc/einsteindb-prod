@@ -76,7 +76,7 @@ fn test_node_ufidelate_localreader_after_removed() {
     thread::sleep(cluster.causet.violetabft_store.max_leader_missing_duration.0 * 2);
 
     // Continue peer 2 apply worker, so that peer 2 tries to
-    // ufidelate brane to its read delegate.
+    // ufidelate brane to its read pushdown_causet.
     fail::remove(add_node_fp);
 
     // Make sure peer 2 is removed in node 2.

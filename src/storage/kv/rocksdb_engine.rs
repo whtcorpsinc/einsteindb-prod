@@ -22,7 +22,7 @@ use txn_types::{Key, Value};
 use crate::causetStorage::config::BlockCacheConfig;
 use einsteindb_util::escape;
 use einsteindb_util::time::ThreadReadId;
-use einsteindb_util::worker::{Runnable, Scheduler, Worker};
+use einsteindb_util::worker::{Runnable, Interlock_Semaphore, Worker};
 
 use super::{
     Callback, CbContext, Cursor, Engine, Error, ErrorInner, Iteron as EngineIterator, Modify,
@@ -87,7 +87,7 @@ impl Drop for LmdbEngineCore {
 #[derive(Clone)]
 pub struct LmdbEngine {
     core: Arc<Mutex<LmdbEngineCore>>,
-    sched: Scheduler<Task>,
+    sched: Interlock_Semaphore<Task>,
     engines: Engines<BaseLmdbEngine, BaseLmdbEngine>,
     not_leader: Arc<AtomicBool>,
 }
@@ -120,7 +120,7 @@ impl LmdbEngine {
         let engines = Engines::new(kv_engine, violetabft_engine);
         box_try!(worker.spacelike(Runner(engines.clone())));
         Ok(LmdbEngine {
-            sched: worker.scheduler(),
+            sched: worker.interlock_semaphore(),
             core: Arc::new(Mutex::new(LmdbEngineCore { temp_dir, worker })),
             not_leader: Arc::new(AtomicBool::new(false)),
             engines,

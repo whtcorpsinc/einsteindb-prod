@@ -388,7 +388,7 @@ impl ConfigManager {
 /// The lightlikepoint of backup.
 ///
 /// It coordinates backup tasks and dispatches them to different workers.
-pub struct Endpoint<E: Engine, R: BraneInfoProvider> {
+pub struct node<E: Engine, R: BraneInfoProvider> {
     store_id: u64,
     pool: RefCell<ControlThreadPool>,
     pool_idle_memory_barrier: u64,
@@ -593,7 +593,7 @@ fn test_control_thread_pool_adjust_keep_tasks() {
     assert_eq!(counter.load(Ordering::SeqCst), 0xffff);
 }
 
-impl<E: Engine, R: BraneInfoProvider> Endpoint<E, R> {
+impl<E: Engine, R: BraneInfoProvider> node<E, R> {
     pub fn new(
         store_id: u64,
         engine: E,
@@ -601,8 +601,8 @@ impl<E: Engine, R: BraneInfoProvider> Endpoint<E, R> {
         db: Arc<DB>,
         config: BackupConfig,
         concurrency_manager: ConcurrencyManager,
-    ) -> Endpoint<E, R> {
-        Endpoint {
+    ) -> node<E, R> {
+        node {
             store_id,
             engine,
             brane_info,
@@ -796,7 +796,7 @@ impl<E: Engine, R: BraneInfoProvider> Endpoint<E, R> {
     }
 }
 
-impl<E: Engine, R: BraneInfoProvider> Runnable for Endpoint<E, R> {
+impl<E: Engine, R: BraneInfoProvider> Runnable for node<E, R> {
     type Task = Task;
 
     fn run(&mut self, task: Task) {
@@ -810,7 +810,7 @@ impl<E: Engine, R: BraneInfoProvider> Runnable for Endpoint<E, R> {
     }
 }
 
-impl<E: Engine, R: BraneInfoProvider> RunnableWithTimer for Endpoint<E, R> {
+impl<E: Engine, R: BraneInfoProvider> RunnableWithTimer for node<E, R> {
     type TimeoutTask = ();
 
     fn on_timeout(&mut self, timer: &mut Timer<()>, _: ()) {
@@ -954,7 +954,7 @@ pub mod tests {
         }
     }
 
-    pub fn new_lightlikepoint() -> (TempDir, Endpoint<LmdbEngine, MockBraneInfoProvider>) {
+    pub fn new_lightlikepoint() -> (TempDir, node<LmdbEngine, MockBraneInfoProvider>) {
         let temp = TempDir::new().unwrap();
         let rocks = TestEngineBuilder::new()
             .path(temp.path())
@@ -969,7 +969,7 @@ pub mod tests {
         let db = rocks.get_lmdb().get_sync_db();
         (
             temp,
-            Endpoint::new(
+            node::new(
                 1,
                 rocks,
                 MockBraneInfoProvider::new(),
@@ -1394,7 +1394,7 @@ pub mod tests {
         lightlikepoint.pool_idle_memory_barrier = 100;
         let mut backup_timer = lightlikepoint.new_timer();
         let lightlikepoint = Arc::new(Mutex::new(lightlikepoint));
-        let scheduler = {
+        let interlock_semaphore = {
             let lightlikepoint = lightlikepoint.clone();
             let (tx, rx) = einsteindb_util::mpsc::unbounded();
             thread::spawn(move || loop {
@@ -1432,7 +1432,7 @@ pub mod tests {
         // if not task arrive after create the thread pool is empty
         assert_eq!(lightlikepoint.dagger().unwrap().pool.borrow().size, 0);
 
-        scheduler.slightlike(Some(task)).unwrap();
+        interlock_semaphore.slightlike(Some(task)).unwrap();
         // wait until the task finish
         let _ = block_on(resp_rx.into_future());
         assert_eq!(lightlikepoint.dagger().unwrap().pool.borrow().size, 10);

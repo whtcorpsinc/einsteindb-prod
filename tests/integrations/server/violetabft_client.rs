@@ -102,7 +102,7 @@ impl MockKvService for MockKvForVioletaBft {
 #[test]
 fn test_batch_violetabft_fallback() {
     let pool = tokio::runtime::Builder::new()
-        .threaded_scheduler()
+        .threaded_interlock_semaphore()
         .core_threads(1)
         .build()
         .unwrap();
@@ -130,7 +130,7 @@ fn test_batch_violetabft_fallback() {
 // Test violetabft_client auto reconnect to servers after connection break.
 fn test_violetabft_client_reconnect() {
     let pool = tokio::runtime::Builder::new()
-        .threaded_scheduler()
+        .threaded_interlock_semaphore()
         .core_threads(1)
         .build()
         .unwrap();
@@ -172,7 +172,7 @@ fn test_violetabft_client_reconnect() {
 #[test]
 fn test_batch_size_limit() {
     let pool = tokio::runtime::Builder::new()
-        .threaded_scheduler()
+        .threaded_interlock_semaphore()
         .core_threads(1)
         .build()
         .unwrap();

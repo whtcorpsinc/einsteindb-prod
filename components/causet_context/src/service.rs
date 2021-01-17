@@ -11,7 +11,7 @@ use grpcio::{
     DuplexSink, Error as GrpcError, RequestStream, Result as GrpcResult, RpcContext, RpcStatus,
     RpcStatusCode, WriteFlags,
 };
-use ekvproto::cdcpb::{
+use ekvproto::causet_contextpb::{
     ChangeData, ChangeDataEvent, ChangeDataRequest, Compatibility, Event, ResolvedTs,
 };
 use protobuf::Message;
@@ -20,14 +20,14 @@ use einsteindb_util::collections::HashMap;
 use einsteindb_util::mpsc::batch::{self, BatchReceiver, Slightlikeer as BatchSlightlikeer, VecCollector};
 use einsteindb_util::worker::*;
 
-use crate::delegate::{Downstream, DownstreamID};
+use crate::pushdown_causet::{Downstream, DownstreamID};
 use crate::lightlikepoint::{Deregister, Task};
 
 static CONNECTION_ID_ALLOC: AtomicUsize = AtomicUsize::new(0);
 
-const CDC_MSG_NOTIFY_COUNT: usize = 8;
-const CDC_MAX_RESP_SIZE: u32 = 6 * 1024 * 1024; // 6MB
-const CDC_MSG_MAX_BATCH_SIZE: usize = 128;
+const causet_context_MSG_NOTIFY_COUNT: usize = 8;
+const causet_context_MAX_RESP_SIZE: u32 = 6 * 1024 * 1024; // 6MB
+const causet_context_MSG_MAX_BATCH_SIZE: usize = 128;
 
 /// A unique identifier of a Connection.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -40,30 +40,30 @@ impl ConnID {
 }
 
 #[derive(Clone, Debug)]
-pub enum CdcEvent {
+pub enum causet_contextEvent {
     ResolvedTs(ResolvedTs),
     Event(Event),
 }
 
-impl CdcEvent {
+impl causet_contextEvent {
     pub fn size(&self) -> u32 {
         match self {
-            CdcEvent::ResolvedTs(_) => 0,
-            CdcEvent::Event(ref e) => e.compute_size(),
+            causet_contextEvent::ResolvedTs(_) => 0,
+            causet_contextEvent::Event(ref e) => e.compute_size(),
         }
     }
 
     pub fn event(&self) -> &Event {
         match self {
-            CdcEvent::ResolvedTs(_) => unreachable!(),
-            CdcEvent::Event(ref e) => e,
+            causet_contextEvent::ResolvedTs(_) => unreachable!(),
+            causet_contextEvent::Event(ref e) => e,
         }
     }
 
     pub fn resolved_ts(&self) -> &ResolvedTs {
         match self {
-            CdcEvent::ResolvedTs(ref r) => r,
-            CdcEvent::Event(_) => unreachable!(),
+            causet_contextEvent::ResolvedTs(ref r) => r,
+            causet_contextEvent::Event(_) => unreachable!(),
         }
     }
 }
@@ -81,26 +81,26 @@ impl EventBatcher {
         }
     }
 
-    // The size of the response should not exceed CDC_MAX_RESP_SIZE.
-    // Split the events into multiple responses by CDC_MAX_RESP_SIZE here.
-    pub fn push(&mut self, event: CdcEvent) {
+    // The size of the response should not exceed causet_context_MAX_RESP_SIZE.
+    // Split the events into multiple responses by causet_context_MAX_RESP_SIZE here.
+    pub fn push(&mut self, event: causet_contextEvent) {
         let size = event.size();
-        if self.events.is_empty() || self.last_size + size >= CDC_MAX_RESP_SIZE {
+        if self.events.is_empty() || self.last_size + size >= causet_context_MAX_RESP_SIZE {
             self.last_size = 0;
             self.events.push(ChangeDataEvent::default());
         }
         match event {
-            CdcEvent::Event(e) => {
+            causet_contextEvent::Event(e) => {
                 self.last_size += size;
                 self.events.last_mut().unwrap().mut_events().push(e);
             }
-            CdcEvent::ResolvedTs(r) => {
+            causet_contextEvent::ResolvedTs(r) => {
                 let mut change_data_event = ChangeDataEvent::default();
                 change_data_event.set_resolved_ts(r);
                 self.events.push(change_data_event);
                 // Set last_size to MAX-1 for slightlikeing resolved ts as an individual event.
                 // '-1' is to avoid empty event when the next event is still resolved ts.
-                self.last_size = CDC_MAX_RESP_SIZE - 1;
+                self.last_size = causet_context_MAX_RESP_SIZE - 1;
             }
         }
     }
@@ -123,14 +123,14 @@ bitflags::bitflags! {
 
 pub struct Conn {
     id: ConnID,
-    sink: BatchSlightlikeer<CdcEvent>,
+    sink: BatchSlightlikeer<causet_contextEvent>,
     downstreams: HashMap<u64, DownstreamID>,
     peer: String,
     version: Option<(semver::Version, FeatureGate)>,
 }
 
 impl Conn {
-    pub fn new(sink: BatchSlightlikeer<CdcEvent>, peer: String) -> Conn {
+    pub fn new(sink: BatchSlightlikeer<causet_contextEvent>, peer: String) -> Conn {
         Conn {
             id: ConnID::new(),
             sink,
@@ -165,7 +165,7 @@ impl Conn {
                 if v407_bacth_resoled_ts <= ver {
                     features.toggle(FeatureGate::BATCH_RESOLVED_TS);
                 }
-                info!("cdc connection version"; "version" => ver.to_string(), "features" => ?features);
+                info!("causet_context connection version"; "version" => ver.to_string(), "features" => ?features);
                 self.version = Some((ver, features));
                 None
             }
@@ -190,7 +190,7 @@ impl Conn {
         self.downstreams
     }
 
-    pub fn get_sink(&self) -> BatchSlightlikeer<CdcEvent> {
+    pub fn get_sink(&self) -> BatchSlightlikeer<causet_contextEvent> {
         self.sink.clone()
     }
 
@@ -223,20 +223,20 @@ impl Conn {
 
 /// Service implements the `ChangeData` service.
 ///
-/// It's a front-lightlike of the CDC service, schedules requests to the `Endpoint`.
+/// It's a front-lightlike of the causet_context service, schedules requests to the `node`.
 #[derive(Clone)]
 pub struct Service {
-    scheduler: Scheduler<Task>,
+    interlock_semaphore: Interlock_Semaphore<Task>,
     security_mgr: Arc<SecurityManager>,
 }
 
 impl Service {
     /// Create a ChangeData service.
     ///
-    /// It requires a scheduler of an `Endpoint` in order to schedule tasks.
-    pub fn new(scheduler: Scheduler<Task>, security_mgr: Arc<SecurityManager>) -> Service {
+    /// It requires a interlock_semaphore of an `node` in order to schedule tasks.
+    pub fn new(interlock_semaphore: Interlock_Semaphore<Task>, security_mgr: Arc<SecurityManager>) -> Service {
         Service {
-            scheduler,
+            interlock_semaphore,
             security_mgr,
         }
     }
@@ -253,40 +253,40 @@ impl ChangeData for Service {
             return;
         }
         // TODO: make it a bounded channel.
-        let (tx, rx) = batch::unbounded(CDC_MSG_NOTIFY_COUNT);
+        let (tx, rx) = batch::unbounded(causet_context_MSG_NOTIFY_COUNT);
         let peer = ctx.peer();
         let conn = Conn::new(tx, peer);
         let conn_id = conn.get_id();
 
         if let Err(status) = self
-            .scheduler
+            .interlock_semaphore
             .schedule(Task::OpenConn { conn })
             .map_err(|e| RpcStatus::new(RpcStatusCode::INVALID_ARGUMENT, Some(format!("{:?}", e))))
         {
-            error!("cdc connection initiate failed"; "error" => ?status);
+            error!("causet_context connection initiate failed"; "error" => ?status);
             ctx.spawn(
                 sink.fail(status)
-                    .unwrap_or_else(|e| error!("cdc failed to slightlike error"; "error" => ?e)),
+                    .unwrap_or_else(|e| error!("causet_context failed to slightlike error"; "error" => ?e)),
             );
             return;
         }
 
         let peer = ctx.peer();
-        let scheduler = self.scheduler.clone();
+        let interlock_semaphore = self.interlock_semaphore.clone();
         let recv_req = stream.try_for_each(move |request| {
             let brane_epoch = request.get_brane_epoch().clone();
             let req_id = request.get_request_id();
-            let version = match semver::Version::parse(request.get_header().get_ticdc_version()) {
+            let version = match semver::Version::parse(request.get_header().get_ticauset_context_version()) {
                 Ok(v) => v,
                 Err(e) => {
-                    warn!("empty or invalid TiCDC version, please upgrading TiCDC";
-                        "version" => request.get_header().get_ticdc_version(),
+                    warn!("empty or invalid Ticauset_context version, please upgrading Ticauset_context";
+                        "version" => request.get_header().get_ticauset_context_version(),
                         "error" => ?e);
                     semver::Version::new(0, 0, 0)
                 }
             };
             let downstream = Downstream::new(peer.clone(), brane_epoch, req_id, conn_id);
-            let ret = scheduler
+            let ret = interlock_semaphore
                 .schedule(Task::Register {
                     request,
                     downstream,
@@ -302,7 +302,7 @@ impl ChangeData for Service {
             future::ready(ret)
         });
 
-        let rx = BatchReceiver::new(rx, CDC_MSG_MAX_BATCH_SIZE, Vec::new, VecCollector);
+        let rx = BatchReceiver::new(rx, causet_context_MSG_MAX_BATCH_SIZE, Vec::new, VecCollector);
         let mut rx = rx
             .map(|events| {
                 let mut batcher = EventBatcher::with_capacity(events.len());
@@ -317,41 +317,41 @@ impl ChangeData for Service {
             .map(|item| GrpcResult::Ok(item));
 
         let peer = ctx.peer();
-        let scheduler = self.scheduler.clone();
+        let interlock_semaphore = self.interlock_semaphore.clone();
         ctx.spawn(async move {
             let res = recv_req.await;
             // Unregister this downstream only.
             let deregister = Deregister::Conn(conn_id);
-            if let Err(e) = scheduler.schedule(Task::Deregister(deregister)) {
-                error!("cdc deregister failed"; "error" => ?e, "conn_id" => ?conn_id);
+            if let Err(e) = interlock_semaphore.schedule(Task::Deregister(deregister)) {
+                error!("causet_context deregister failed"; "error" => ?e, "conn_id" => ?conn_id);
             }
             match res {
                 Ok(()) => {
-                    info!("cdc slightlike half closed"; "downstream" => peer, "conn_id" => ?conn_id);
+                    info!("causet_context slightlike half closed"; "downstream" => peer, "conn_id" => ?conn_id);
                 }
                 Err(e) => {
-                    warn!("cdc slightlike failed"; "error" => ?e, "downstream" => peer, "conn_id" => ?conn_id);
+                    warn!("causet_context slightlike failed"; "error" => ?e, "downstream" => peer, "conn_id" => ?conn_id);
                 }
             }
         });
 
         let peer = ctx.peer();
-        let scheduler = self.scheduler.clone();
+        let interlock_semaphore = self.interlock_semaphore.clone();
 
         ctx.spawn(async move {
             let res = sink.slightlike_all(&mut rx).await;
             // Unregister this downstream only.
             let deregister = Deregister::Conn(conn_id);
-            if let Err(e) = scheduler.schedule(Task::Deregister(deregister)) {
-                error!("cdc deregister failed"; "error" => ?e);
+            if let Err(e) = interlock_semaphore.schedule(Task::Deregister(deregister)) {
+                error!("causet_context deregister failed"; "error" => ?e);
             }
             match res {
                 Ok(_s) => {
-                    info!("cdc slightlike half closed"; "downstream" => peer, "conn_id" => ?conn_id);
+                    info!("causet_context slightlike half closed"; "downstream" => peer, "conn_id" => ?conn_id);
                     let _ = sink.close().await;
                 }
                 Err(e) => {
-                    warn!("cdc slightlike failed"; "error" => ?e, "downstream" => peer, "conn_id" => ?conn_id);
+                    warn!("causet_context slightlike failed"; "error" => ?e, "downstream" => peer, "conn_id" => ?conn_id);
                 }
             }
         });
@@ -361,20 +361,20 @@ impl ChangeData for Service {
 #[causet(test)]
 mod tests {
     #[causet(feature = "prost-codec")]
-    use ekvproto::cdcpb::event::{
+    use ekvproto::causet_contextpb::event::{
         Entries as EventEntries, Event as Event_oneof_event, Event as EventEvent,
     };
-    use ekvproto::cdcpb::{ChangeDataEvent, Event, ResolvedTs};
+    use ekvproto::causet_contextpb::{ChangeDataEvent, Event, ResolvedTs};
     #[causet(not(feature = "prost-codec"))]
-    use ekvproto::cdcpb::{EventEntries, EventEvent, Event_oneof_event};
+    use ekvproto::causet_contextpb::{EventEntries, EventEvent, Event_oneof_event};
 
-    use crate::service::{CdcEvent, EventBatcher, CDC_MAX_RESP_SIZE};
+    use crate::service::{causet_contextEvent, EventBatcher, causet_context_MAX_RESP_SIZE};
 
     #[test]
     fn test_event_batcher() {
         let mut batcher = EventBatcher::with_capacity(1024);
 
-        let check_events = |result: Vec<ChangeDataEvent>, expected: Vec<Vec<CdcEvent>>| {
+        let check_events = |result: Vec<ChangeDataEvent>, expected: Vec<Vec<causet_contextEvent>>| {
             assert_eq!(result.len(), expected.len());
 
             for i in 0..expected.len() {
@@ -398,28 +398,28 @@ mod tests {
 
         let mut event_big = Event::default();
         let mut row_big = EventEvent::default();
-        row_big.set_key(vec![0 as u8; CDC_MAX_RESP_SIZE as usize]);
+        row_big.set_key(vec![0 as u8; causet_context_MAX_RESP_SIZE as usize]);
         let mut event_entries = EventEntries::default();
         event_entries.entries = vec![row_big].into();
         event_big.event = Some(Event_oneof_event::Entries(event_entries));
 
-        batcher.push(CdcEvent::Event(event_small.clone()));
-        batcher.push(CdcEvent::ResolvedTs(ResolvedTs::default()));
-        batcher.push(CdcEvent::ResolvedTs(ResolvedTs::default()));
-        batcher.push(CdcEvent::Event(event_big.clone()));
-        batcher.push(CdcEvent::Event(event_small.clone()));
-        batcher.push(CdcEvent::Event(event_small.clone()));
-        batcher.push(CdcEvent::Event(event_big.clone()));
+        batcher.push(causet_contextEvent::Event(event_small.clone()));
+        batcher.push(causet_contextEvent::ResolvedTs(ResolvedTs::default()));
+        batcher.push(causet_contextEvent::ResolvedTs(ResolvedTs::default()));
+        batcher.push(causet_contextEvent::Event(event_big.clone()));
+        batcher.push(causet_contextEvent::Event(event_small.clone()));
+        batcher.push(causet_contextEvent::Event(event_small.clone()));
+        batcher.push(causet_contextEvent::Event(event_big.clone()));
 
         check_events(
             batcher.build(),
             vec![
-                vec![CdcEvent::Event(event_small.clone())],
-                vec![CdcEvent::ResolvedTs(ResolvedTs::default())],
-                vec![CdcEvent::ResolvedTs(ResolvedTs::default())],
-                vec![CdcEvent::Event(event_big.clone())],
-                vec![CdcEvent::Event(event_small); 2],
-                vec![CdcEvent::Event(event_big)],
+                vec![causet_contextEvent::Event(event_small.clone())],
+                vec![causet_contextEvent::ResolvedTs(ResolvedTs::default())],
+                vec![causet_contextEvent::ResolvedTs(ResolvedTs::default())],
+                vec![causet_contextEvent::Event(event_big.clone())],
+                vec![causet_contextEvent::Event(event_small); 2],
+                vec![causet_contextEvent::Event(event_big)],
             ],
         );
     }

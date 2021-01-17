@@ -1555,8 +1555,8 @@
             "for": "",
             "frequency": "1m",
             "handler": 1,
-            "message": "EinsteinDB Scheduler Worker thread CPU is high",
-            "name": "EinsteinDB Scheduler Worker CPU alert",
+            "message": "EinsteinDB Interlock_Semaphore Worker thread CPU is high",
+            "name": "EinsteinDB Interlock_Semaphore Worker CPU alert",
             "noDataState": "ok",
             "notifications": []
           },
@@ -1565,7 +1565,7 @@
           "dashLength": 10,
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
-          "description": "Scheduler worker 线程池的 CPU 使用率。事务会在 Scheduler 中排队，这个线程池接近打满意味着 MVCC 的旧版本太多，事务处理过慢。",
+          "description": "Interlock_Semaphore worker 线程池的 CPU 使用率。事务会在 Interlock_Semaphore 中排队，这个线程池接近打满意味着 MVCC 的旧版本太多，事务处理过慢。",
           "ediBlock": true,
           "error": false,
           "fill": 0,
@@ -1623,7 +1623,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler Worker CPU",
+          "title": "Interlock_Semaphore Worker CPU",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -2885,10 +2885,10 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_scheduler_too_busy_total{instance=~\"$instance\"}[1m])) by (instance)",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_too_busy_total{instance=~\"$instance\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
-              "leglightlikeFormat": "scheduler-{{instance}}",
+              "leglightlikeFormat": "interlock_semaphore-{{instance}}",
               "metric": "",
               "refId": "A",
               "step": 4
@@ -3007,7 +3007,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(einsteindb_scheduler_contex_total{instance=~\"$instance\"}) by (instance)",
+              "expr": "sum(einsteindb_interlock_semaphore_contex_total{instance=~\"$instance\"}) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -3020,7 +3020,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "Scheduler plightlikeing commands",
+          "title": "Interlock_Semaphore plightlikeing commands",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -5062,7 +5062,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_scheduler_latch_wait_duration_seconds_bucket{instance=~\"$instance\", type=\"prewrite\"}[1m])) by (le, instance))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_bucket{instance=~\"$instance\", type=\"prewrite\"}[1m])) by (le, instance))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} 99%",
@@ -5071,7 +5071,7 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_scheduler_latch_wait_duration_seconds_bucket{instance=~\"$instance\", type=\"prewrite\"}[1m])) by (le, instance))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_bucket{instance=~\"$instance\", type=\"prewrite\"}[1m])) by (le, instance))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} 95%",
@@ -5080,7 +5080,7 @@
               "step": 10
             },
             {
-              "expr": "rate(einsteindb_scheduler_latch_wait_duration_seconds_sum{instance=~\"$instance\", type=\"prewrite\"}[1m]) / rate(einsteindb_scheduler_latch_wait_duration_seconds_count{instance=~\"$instance\", type=\"prewrite\"}[1m])",
+              "expr": "rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_sum{instance=~\"$instance\", type=\"prewrite\"}[1m]) / rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_count{instance=~\"$instance\", type=\"prewrite\"}[1m])",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} avg",
@@ -5177,7 +5177,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_scheduler_latch_wait_duration_seconds_bucket{instance=~\"$instance\", type=\"commit\"}[1m])) by (le, instance))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_bucket{instance=~\"$instance\", type=\"commit\"}[1m])) by (le, instance))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} 99%",
@@ -5186,7 +5186,7 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_scheduler_latch_wait_duration_seconds_bucket{instance=~\"$instance\", type=\"commit\"}[1m])) by (le, instance))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_bucket{instance=~\"$instance\", type=\"commit\"}[1m])) by (le, instance))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} 95%",
@@ -5195,7 +5195,7 @@
               "step": 10
             },
             {
-              "expr": "rate(einsteindb_scheduler_latch_wait_duration_seconds_sum{instance=~\"$instance\", type=\"commit\"}[1m]) / rate(einsteindb_scheduler_latch_wait_duration_seconds_count{instance=~\"$instance\", type=\"commit\"}[1m])",
+              "expr": "rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_sum{instance=~\"$instance\", type=\"commit\"}[1m]) / rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_count{instance=~\"$instance\", type=\"commit\"}[1m])",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} avg",

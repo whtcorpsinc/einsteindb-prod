@@ -9,9 +9,9 @@ use futures::executor::block_on;
 use futures::SinkExt;
 use grpcio::WriteFlags;
 #[causet(not(feature = "prost-codec"))]
-use ekvproto::cdcpb::*;
+use ekvproto::causet_contextpb::*;
 #[causet(feature = "prost-codec")]
-use ekvproto::cdcpb::{
+use ekvproto::causet_contextpb::{
     event::{EventIdx::OpType as EventEventOpType, Event as Event_oneof_event, LogType as EventLogType},
     ChangeDataEvent,
 };
@@ -21,15 +21,15 @@ use test_violetabftstore::sleep_ms;
 use test_violetabftstore::*;
 use txn_types::{Key, Dagger, LockType};
 
-use cdc::Task;
+use causet_context::Task;
 
 #[test]
-fn test_cdc_basic() {
+fn test_causet_context_basic() {
     let mut suite = TestSuite::new(1);
 
     let req = suite.new_changedata_request(1);
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
     let event = receive_event(false);
     event.events.into_iter().for_each(|e| {
@@ -47,13 +47,13 @@ fn test_cdc_basic() {
 
     // Sleep a while to make sure the stream is registered.
     sleep_ms(1000);
-    // There must be a delegate.
-    let scheduler = suite.lightlikepoints.values().next().unwrap().scheduler();
-    scheduler
+    // There must be a pushdown_causet.
+    let interlock_semaphore = suite.lightlikepoints.values().next().unwrap().interlock_semaphore();
+    interlock_semaphore
         .schedule(Task::Validate(
             1,
-            Box::new(|delegate| {
-                let d = delegate.unwrap();
+            Box::new(|pushdown_causet| {
+                let d = pushdown_causet.unwrap();
                 assert_eq!(d.downstreams.len(), 1);
             }),
         ))
@@ -115,19 +115,19 @@ fn test_cdc_basic() {
         }
         other => panic!("unknown event {:?}", other),
     }
-    // The delegate must be removed.
-    scheduler
+    // The pushdown_causet must be removed.
+    interlock_semaphore
         .schedule(Task::Validate(
             1,
-            Box::new(|delegate| {
-                assert!(delegate.is_none());
+            Box::new(|pushdown_causet| {
+                assert!(pushdown_causet.is_none());
             }),
         ))
         .unwrap();
 
     // request again.
     let req = suite.new_changedata_request(1);
-    let (mut req_tx, resp_rx) = suite.get_brane_cdc_client(1).event_feed().unwrap();
+    let (mut req_tx, resp_rx) = suite.get_brane_causet_context_client(1).event_feed().unwrap();
     event_feed_wrap.as_ref().replace(Some(resp_rx));
     block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
     let mut events = receive_event(false).events.to_vec();
@@ -142,11 +142,11 @@ fn test_cdc_basic() {
     }
     // Sleep a while to make sure the stream is registered.
     sleep_ms(200);
-    scheduler
+    interlock_semaphore
         .schedule(Task::Validate(
             1,
-            Box::new(|delegate| {
-                let d = delegate.unwrap();
+            Box::new(|pushdown_causet| {
+                let d = pushdown_causet.unwrap();
                 assert_eq!(d.downstreams.len(), 1);
             }),
         ))
@@ -156,11 +156,11 @@ fn test_cdc_basic() {
     event_feed_wrap.as_ref().replace(None);
     // Sleep a while to make sure the stream is deregistered.
     sleep_ms(200);
-    scheduler
+    interlock_semaphore
         .schedule(Task::Validate(
             1,
-            Box::new(|delegate| {
-                assert!(delegate.is_none());
+            Box::new(|pushdown_causet| {
+                assert!(pushdown_causet.is_none());
             }),
         ))
         .unwrap();
@@ -168,7 +168,7 @@ fn test_cdc_basic() {
     // Stale brane epoch.
     let mut req = suite.new_changedata_request(1);
     req.set_brane_epoch(Default::default()); // Zero brane epoch.
-    let (mut req_tx, resp_rx) = suite.get_brane_cdc_client(1).event_feed().unwrap();
+    let (mut req_tx, resp_rx) = suite.get_brane_causet_context_client(1).event_feed().unwrap();
     let _req_tx = block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
     event_feed_wrap.as_ref().replace(Some(resp_rx));
     let mut events = receive_event(false).events.to_vec();
@@ -184,13 +184,13 @@ fn test_cdc_basic() {
 }
 
 #[test]
-fn test_cdc_not_leader() {
+fn test_causet_context_not_leader() {
     let mut suite = TestSuite::new(3);
 
     let leader = suite.cluster.leader_of_brane(1).unwrap();
     let req = suite.new_changedata_request(1);
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     // Make sure brane 1 is registered.
     let mut events = receive_event(false).events.to_vec();
@@ -207,19 +207,19 @@ fn test_cdc_not_leader() {
     }
     // Sleep a while to make sure the stream is registered.
     sleep_ms(1000);
-    // There must be a delegate.
-    let scheduler = suite
+    // There must be a pushdown_causet.
+    let interlock_semaphore = suite
         .lightlikepoints
         .get(&leader.get_store_id())
         .unwrap()
-        .scheduler();
+        .interlock_semaphore();
     let (tx, rx) = mpsc::channel();
     let tx_ = tx.clone();
-    scheduler
+    interlock_semaphore
         .schedule(Task::Validate(
             1,
-            Box::new(move |delegate| {
-                let d = delegate.unwrap();
+            Box::new(move |pushdown_causet| {
+                let d = pushdown_causet.unwrap();
                 assert_eq!(d.downstreams.len(), 1);
                 tx_.slightlike(()).unwrap();
             }),
@@ -259,11 +259,11 @@ fn test_cdc_not_leader() {
 
     // Sleep a while to make sure the stream is deregistered.
     sleep_ms(200);
-    scheduler
+    interlock_semaphore
         .schedule(Task::Validate(
             1,
-            Box::new(move |delegate| {
-                assert!(delegate.is_none());
+            Box::new(move |pushdown_causet| {
+                assert!(pushdown_causet.is_none());
                 tx.slightlike(()).unwrap();
             }),
         ))
@@ -293,12 +293,12 @@ fn test_cdc_not_leader() {
 }
 
 #[test]
-fn test_cdc_stale_epoch_after_brane_ready() {
+fn test_causet_context_stale_epoch_after_brane_ready() {
     let mut suite = TestSuite::new(3);
 
     let req = suite.new_changedata_request(1);
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
     // Make sure brane 1 is registered.
     let mut events = receive_event(false).events.to_vec();
@@ -316,7 +316,7 @@ fn test_cdc_stale_epoch_after_brane_ready() {
 
     let mut req = suite.new_changedata_request(1);
     req.set_brane_epoch(Default::default()); // zero epoch is always stale.
-    let (mut req_tx, resp_rx) = suite.get_brane_cdc_client(1).event_feed().unwrap();
+    let (mut req_tx, resp_rx) = suite.get_brane_causet_context_client(1).event_feed().unwrap();
     let _resp_rx = event_feed_wrap.as_ref().replace(Some(resp_rx));
     block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     // Must receive epoch not match error.
@@ -354,7 +354,7 @@ fn test_cdc_stale_epoch_after_brane_ready() {
 }
 
 #[test]
-fn test_cdc_scan() {
+fn test_causet_context_scan() {
     let mut suite = TestSuite::new(1);
 
     let (k, v) = (b"key1".to_vec(), b"value".to_vec());
@@ -379,7 +379,7 @@ fn test_cdc_scan() {
 
     let req = suite.new_changedata_request(1);
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
     let mut events = receive_event(false).events.to_vec();
     if events.len() == 1 {
@@ -430,7 +430,7 @@ fn test_cdc_scan() {
 
     let mut req = suite.new_changedata_request(1);
     req.checkpoint_ts = checkpoint_ts.into_inner();
-    let (mut req_tx, resp_rx) = suite.get_brane_cdc_client(1).event_feed().unwrap();
+    let (mut req_tx, resp_rx) = suite.get_brane_causet_context_client(1).event_feed().unwrap();
     event_feed_wrap.as_ref().replace(Some(resp_rx));
     let _req_tx = block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
     let mut events = receive_event(false).events.to_vec();
@@ -475,12 +475,12 @@ fn test_cdc_scan() {
 }
 
 #[test]
-fn test_cdc_tso_failure() {
+fn test_causet_context_tso_failure() {
     let mut suite = TestSuite::new(3);
 
     let req = suite.new_changedata_request(1);
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
     // Make sure brane 1 is registered.
     let mut events = receive_event(false).events.to_vec();
@@ -529,7 +529,7 @@ fn test_brane_split() {
     let brane = suite.cluster.get_brane(&[]);
     let mut req = suite.new_changedata_request(brane.get_id());
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     // Make sure brane 1 is registered.
     let mut events = receive_event(false).events.to_vec();
@@ -618,7 +618,7 @@ fn test_duplicate_subscribe() {
 
     let req = suite.new_changedata_request(1);
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     // Make sure brane 1 is registered.
     let mut events = receive_event(false).events.to_vec();
@@ -650,7 +650,7 @@ fn test_duplicate_subscribe() {
 }
 
 #[test]
-fn test_cdc_batch_size_limit() {
+fn test_causet_context_batch_size_limit() {
     let mut suite = TestSuite::new(1);
 
     // Prewrite
@@ -672,7 +672,7 @@ fn test_cdc_batch_size_limit() {
 
     let req = suite.new_changedata_request(1);
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
     let mut events = receive_event(false).events.to_vec();
     assert_eq!(events.len(), 1, "{:?}", events.len());
@@ -752,7 +752,7 @@ fn test_old_value_basic() {
     let mut req = suite.new_changedata_request(1);
     req.set_extra_op(ExtraOp::ReadOldValue);
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     let _req_tx = block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     sleep_ms(1000);
 
@@ -826,7 +826,7 @@ fn test_old_value_basic() {
         }
     }
 
-    let (mut req_tx, resp_rx) = suite.get_brane_cdc_client(1).event_feed().unwrap();
+    let (mut req_tx, resp_rx) = suite.get_brane_causet_context_client(1).event_feed().unwrap();
     event_feed_wrap.as_ref().replace(Some(resp_rx));
     let _req_tx = block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
     let mut event_count = 0;
@@ -867,7 +867,7 @@ fn test_old_value_basic() {
 }
 
 #[test]
-fn test_cdc_resolve_ts_checking_concurrency_manager() {
+fn test_causet_context_resolve_ts_checking_concurrency_manager() {
     let mut suite: crate::TestSuite = TestSuite::new(1);
     let cm: ConcurrencyManager = suite.get_txn_concurrency_manager(1).unwrap();
     let lock_key = |key: &[u8], ts: u64| {
@@ -895,7 +895,7 @@ fn test_cdc_resolve_ts_checking_concurrency_manager() {
     let mut req = suite.new_changedata_request(1);
     req.set_checkpoint_ts(100);
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     let _req_tx = block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
     // Make sure brane 1 is registered.
     let mut events = receive_event(false).events;

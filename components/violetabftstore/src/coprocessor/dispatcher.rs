@@ -14,31 +14,31 @@ use crate::store::CasualRouter;
 
 struct Entry<T> {
     priority: u32,
-    observer: T,
+    semaphore: T,
 }
 
 impl<T: Clone> Clone for Entry<T> {
     fn clone(&self) -> Self {
         Self {
             priority: self.priority,
-            observer: self.observer.clone(),
+            semaphore: self.semaphore.clone(),
         }
     }
 }
 
-pub trait ClonableObserver: 'static + Slightlike {
+pub trait ClonableSemaphore: 'static + Slightlike {
     type Ob: ?Sized + Slightlike;
     fn inner(&self) -> &Self::Ob;
     fn causet_set_mut(&mut self) -> &mut Self::Ob;
-    fn box_clone(&self) -> Box<dyn ClonableObserver<Ob = Self::Ob> + Slightlike>;
+    fn box_clone(&self) -> Box<dyn ClonableSemaphore<Ob = Self::Ob> + Slightlike>;
 }
 
-macro_rules! impl_box_observer {
+macro_rules! impl_box_semaphore {
     ($name:ident, $ob: ident, $wrapper: ident) => {
-        pub struct $name(Box<dyn ClonableObserver<Ob = dyn $ob> + Slightlike>);
+        pub struct $name(Box<dyn ClonableSemaphore<Ob = dyn $ob> + Slightlike>);
         impl $name {
-            pub fn new<T: 'static + $ob + Clone>(observer: T) -> $name {
-                $name(Box::new($wrapper { inner: observer }))
+            pub fn new<T: 'static + $ob + Clone>(semaphore: T) -> $name {
+                $name(Box::new($wrapper { inner: semaphore }))
             }
         }
         impl Clone for $name {
@@ -47,9 +47,9 @@ macro_rules! impl_box_observer {
             }
         }
         impl Deref for $name {
-            type Target = Box<dyn ClonableObserver<Ob = dyn $ob> + Slightlike>;
+            type Target = Box<dyn ClonableSemaphore<Ob = dyn $ob> + Slightlike>;
 
-            fn deref(&self) -> &Box<dyn ClonableObserver<Ob = dyn $ob> + Slightlike> {
+            fn deref(&self) -> &Box<dyn ClonableSemaphore<Ob = dyn $ob> + Slightlike> {
                 &self.0
             }
         }
@@ -57,7 +57,7 @@ macro_rules! impl_box_observer {
         struct $wrapper<T: $ob + Clone> {
             inner: T,
         }
-        impl<T: 'static + $ob + Clone> ClonableObserver for $wrapper<T> {
+        impl<T: 'static + $ob + Clone> ClonableSemaphore for $wrapper<T> {
             type Ob = dyn $ob;
             fn inner(&self) -> &Self::Ob {
                 &self.inner as _
@@ -67,7 +67,7 @@ macro_rules! impl_box_observer {
                 &mut self.inner as _
             }
 
-            fn box_clone(&self) -> Box<dyn ClonableObserver<Ob = Self::Ob> + Slightlike> {
+            fn box_clone(&self) -> Box<dyn ClonableSemaphore<Ob = Self::Ob> + Slightlike> {
                 Box::new($wrapper {
                     inner: self.inner.clone(),
                 })
@@ -76,14 +76,14 @@ macro_rules! impl_box_observer {
     };
 }
 
-// This is the same as impl_box_observer_g except $ob has a typaram
-macro_rules! impl_box_observer_g {
+// This is the same as impl_box_semaphore_g except $ob has a typaram
+macro_rules! impl_box_semaphore_g {
     ($name:ident, $ob: ident, $wrapper: ident) => {
-        pub struct $name<E: KvEngine>(Box<dyn ClonableObserver<Ob = dyn $ob<E>> + Slightlike>);
+        pub struct $name<E: KvEngine>(Box<dyn ClonableSemaphore<Ob = dyn $ob<E>> + Slightlike>);
         impl<E: KvEngine + 'static + Slightlike> $name<E> {
-            pub fn new<T: 'static + $ob<E> + Clone>(observer: T) -> $name<E> {
+            pub fn new<T: 'static + $ob<E> + Clone>(semaphore: T) -> $name<E> {
                 $name(Box::new($wrapper {
-                    inner: observer,
+                    inner: semaphore,
                     _phantom: PhantomData,
                 }))
             }
@@ -94,9 +94,9 @@ macro_rules! impl_box_observer_g {
             }
         }
         impl<E: KvEngine> Deref for $name<E> {
-            type Target = Box<dyn ClonableObserver<Ob = dyn $ob<E>> + Slightlike>;
+            type Target = Box<dyn ClonableSemaphore<Ob = dyn $ob<E>> + Slightlike>;
 
-            fn deref(&self) -> &Box<dyn ClonableObserver<Ob = dyn $ob<E>> + Slightlike> {
+            fn deref(&self) -> &Box<dyn ClonableSemaphore<Ob = dyn $ob<E>> + Slightlike> {
                 &self.0
             }
         }
@@ -105,7 +105,7 @@ macro_rules! impl_box_observer_g {
             inner: T,
             _phantom: PhantomData<E>,
         }
-        impl<E: KvEngine + 'static + Slightlike, T: 'static + $ob<E> + Clone> ClonableObserver
+        impl<E: KvEngine + 'static + Slightlike, T: 'static + $ob<E> + Clone> ClonableSemaphore
             for $wrapper<E, T>
         {
             type Ob = dyn $ob<E>;
@@ -117,7 +117,7 @@ macro_rules! impl_box_observer_g {
                 &mut self.inner as _
             }
 
-            fn box_clone(&self) -> Box<dyn ClonableObserver<Ob = Self::Ob> + Slightlike> {
+            fn box_clone(&self) -> Box<dyn ClonableSemaphore<Ob = Self::Ob> + Slightlike> {
                 Box::new($wrapper {
                     inner: self.inner.clone(),
                     _phantom: PhantomData,
@@ -127,29 +127,29 @@ macro_rules! impl_box_observer_g {
     };
 }
 
-impl_box_observer!(BoxAdminObserver, AdminObserver, WrappedAdminObserver);
-impl_box_observer!(BoxQueryObserver, QueryObserver, WrappedQueryObserver);
-impl_box_observer!(
-    BoxApplySnapshotObserver,
-    ApplySnapshotObserver,
-    WrappedApplySnapshotObserver
+impl_box_semaphore!(BoxAdminSemaphore, AdminSemaphore, WrappedAdminSemaphore);
+impl_box_semaphore!(BoxQuerySemaphore, QuerySemaphore, WrappedQuerySemaphore);
+impl_box_semaphore!(
+    BoxApplySnapshotSemaphore,
+    ApplySnapshotSemaphore,
+    WrappedApplySnapshotSemaphore
 );
-impl_box_observer_g!(
-    BoxSplitCheckObserver,
-    SplitCheckObserver,
-    WrappedSplitCheckObserver
+impl_box_semaphore_g!(
+    BoxSplitCheckSemaphore,
+    SplitCheckSemaphore,
+    WrappedSplitCheckSemaphore
 );
-impl_box_observer!(BoxRoleObserver, RoleObserver, WrappedRoleObserver);
-impl_box_observer!(
-    BoxBraneChangeObserver,
-    BraneChangeObserver,
-    WrappedBraneChangeObserver
+impl_box_semaphore!(BoxRoleSemaphore, RoleSemaphore, WrappedRoleSemaphore);
+impl_box_semaphore!(
+    BoxBraneChangeSemaphore,
+    BraneChangeSemaphore,
+    WrappedBraneChangeSemaphore
 );
-impl_box_observer_g!(BoxCmdObserver, CmdObserver, WrappedCmdObserver);
-impl_box_observer_g!(
-    BoxConsistencyCheckObserver,
-    ConsistencyCheckObserver,
-    WrappedConsistencyCheckObserver
+impl_box_semaphore_g!(BoxCmdSemaphore, CmdSemaphore, WrappedCmdSemaphore);
+impl_box_semaphore_g!(
+    BoxConsistencyCheckSemaphore,
+    ConsistencyCheckSemaphore,
+    WrappedConsistencyCheckSemaphore
 );
 
 /// Registry contains all registered interlocks.
@@ -158,28 +158,28 @@ pub struct Registry<E>
 where
     E: KvEngine + 'static,
 {
-    admin_observers: Vec<Entry<BoxAdminObserver>>,
-    query_observers: Vec<Entry<BoxQueryObserver>>,
-    apply_snapshot_observers: Vec<Entry<BoxApplySnapshotObserver>>,
-    split_check_observers: Vec<Entry<BoxSplitCheckObserver<E>>>,
-    consistency_check_observers: Vec<Entry<BoxConsistencyCheckObserver<E>>>,
-    role_observers: Vec<Entry<BoxRoleObserver>>,
-    brane_change_observers: Vec<Entry<BoxBraneChangeObserver>>,
-    cmd_observers: Vec<Entry<BoxCmdObserver<E>>>,
+    admin_semaphores: Vec<Entry<BoxAdminSemaphore>>,
+    query_semaphores: Vec<Entry<BoxQuerySemaphore>>,
+    apply_snapshot_semaphores: Vec<Entry<BoxApplySnapshotSemaphore>>,
+    split_check_semaphores: Vec<Entry<BoxSplitCheckSemaphore<E>>>,
+    consistency_check_semaphores: Vec<Entry<BoxConsistencyCheckSemaphore<E>>>,
+    role_semaphores: Vec<Entry<BoxRoleSemaphore>>,
+    brane_change_semaphores: Vec<Entry<BoxBraneChangeSemaphore>>,
+    cmd_semaphores: Vec<Entry<BoxCmdSemaphore<E>>>,
     // TODO: add lightlikepoint
 }
 
 impl<E: KvEngine> Default for Registry<E> {
     fn default() -> Registry<E> {
         Registry {
-            admin_observers: Default::default(),
-            query_observers: Default::default(),
-            apply_snapshot_observers: Default::default(),
-            split_check_observers: Default::default(),
-            consistency_check_observers: Default::default(),
-            role_observers: Default::default(),
-            brane_change_observers: Default::default(),
-            cmd_observers: Default::default(),
+            admin_semaphores: Default::default(),
+            query_semaphores: Default::default(),
+            apply_snapshot_semaphores: Default::default(),
+            split_check_semaphores: Default::default(),
+            consistency_check_semaphores: Default::default(),
+            role_semaphores: Default::default(),
+            brane_change_semaphores: Default::default(),
+            cmd_semaphores: Default::default(),
         }
     }
 }
@@ -189,7 +189,7 @@ macro_rules! push {
         $t.inner().spacelike();
         let e = Entry {
             priority: $p,
-            observer: $t,
+            semaphore: $t,
         };
         let vec = &mut $vec;
         vec.push(e);
@@ -198,48 +198,48 @@ macro_rules! push {
 }
 
 impl<E: KvEngine> Registry<E> {
-    pub fn register_admin_observer(&mut self, priority: u32, ao: BoxAdminObserver) {
-        push!(priority, ao, self.admin_observers);
+    pub fn register_admin_semaphore(&mut self, priority: u32, ao: BoxAdminSemaphore) {
+        push!(priority, ao, self.admin_semaphores);
     }
 
-    pub fn register_query_observer(&mut self, priority: u32, qo: BoxQueryObserver) {
-        push!(priority, qo, self.query_observers);
+    pub fn register_query_semaphore(&mut self, priority: u32, qo: BoxQuerySemaphore) {
+        push!(priority, qo, self.query_semaphores);
     }
 
-    pub fn register_apply_snapshot_observer(
+    pub fn register_apply_snapshot_semaphore(
         &mut self,
         priority: u32,
-        aso: BoxApplySnapshotObserver,
+        aso: BoxApplySnapshotSemaphore,
     ) {
-        push!(priority, aso, self.apply_snapshot_observers);
+        push!(priority, aso, self.apply_snapshot_semaphores);
     }
 
-    pub fn register_split_check_observer(&mut self, priority: u32, sco: BoxSplitCheckObserver<E>) {
-        push!(priority, sco, self.split_check_observers);
+    pub fn register_split_check_semaphore(&mut self, priority: u32, sco: BoxSplitCheckSemaphore<E>) {
+        push!(priority, sco, self.split_check_semaphores);
     }
 
-    pub fn register_consistency_check_observer(
+    pub fn register_consistency_check_semaphore(
         &mut self,
         priority: u32,
-        cco: BoxConsistencyCheckObserver<E>,
+        cco: BoxConsistencyCheckSemaphore<E>,
     ) {
-        push!(priority, cco, self.consistency_check_observers);
+        push!(priority, cco, self.consistency_check_semaphores);
     }
 
-    pub fn register_role_observer(&mut self, priority: u32, ro: BoxRoleObserver) {
-        push!(priority, ro, self.role_observers);
+    pub fn register_role_semaphore(&mut self, priority: u32, ro: BoxRoleSemaphore) {
+        push!(priority, ro, self.role_semaphores);
     }
 
-    pub fn register_brane_change_observer(&mut self, priority: u32, rlo: BoxBraneChangeObserver) {
-        push!(priority, rlo, self.brane_change_observers);
+    pub fn register_brane_change_semaphore(&mut self, priority: u32, rlo: BoxBraneChangeSemaphore) {
+        push!(priority, rlo, self.brane_change_semaphores);
     }
 
-    pub fn register_cmd_observer(&mut self, priority: u32, rlo: BoxCmdObserver<E>) {
-        push!(priority, rlo, self.cmd_observers);
+    pub fn register_cmd_semaphore(&mut self, priority: u32, rlo: BoxCmdSemaphore<E>) {
+        push!(priority, rlo, self.cmd_semaphores);
     }
 }
 
-/// A macro that loops over all observers and returns early when error is found or
+/// A macro that loops over all semaphores and returns early when error is found or
 /// bypass is set. `try_loop_ob` is expected to be used for hook that returns a `Result`.
 macro_rules! try_loop_ob {
     ($r:expr, $obs:expr, $hook:ident, $($args:tt)*) => {
@@ -247,9 +247,9 @@ macro_rules! try_loop_ob {
     };
 }
 
-/// A macro that loops over all observers and returns early when bypass is set.
+/// A macro that loops over all semaphores and returns early when bypass is set.
 ///
-/// Using a macro so we don't need to write tests for every observers.
+/// Using a macro so we don't need to write tests for every semaphores.
 macro_rules! loop_ob {
     // Execute a hook, return early if error is found.
     (_exec _res, $o:expr, $hook:ident, $ctx:expr, $($args:tt)*) => {
@@ -267,16 +267,16 @@ macro_rules! loop_ob {
     (_done _tup) => {{}};
     // Actual implementation of the for loop.
     (_imp $res_type:tt, $r:expr, $obs:expr, $hook:ident, $($args:tt)*) => {{
-        let mut ctx = ObserverContext::new($r);
+        let mut ctx = SemaphoreContext::new($r);
         for o in $obs {
-            loop_ob!(_exec $res_type, o.observer, $hook, &mut ctx, $($args)*);
+            loop_ob!(_exec $res_type, o.semaphore, $hook, &mut ctx, $($args)*);
             if ctx.bypass {
                 break;
             }
         }
         loop_ob!(_done $res_type)
     }};
-    // Loop over all observers and return early when bypass is set.
+    // Loop over all semaphores and return early when bypass is set.
     // This macro is expected to be used for hook that returns `()`.
     ($r:expr, $obs:expr, $hook:ident, $($args:tt)*) => {
         loop_ob!(_imp _tup, $r, $obs, $hook, $($args)*)
@@ -306,19 +306,19 @@ where
 impl<E: KvEngine> InterlockHost<E> {
     pub fn new<C: CasualRouter<E> + Clone + Slightlike + 'static>(ch: C) -> InterlockHost<E> {
         let mut registry = Registry::default();
-        registry.register_split_check_observer(
+        registry.register_split_check_semaphore(
             200,
-            BoxSplitCheckObserver::new(SizeCheckObserver::new(ch.clone())),
+            BoxSplitCheckSemaphore::new(SizeCheckSemaphore::new(ch.clone())),
         );
-        registry.register_split_check_observer(
+        registry.register_split_check_semaphore(
             200,
-            BoxSplitCheckObserver::new(TuplespaceInstantonCheckObserver::new(ch)),
+            BoxSplitCheckSemaphore::new(TuplespaceInstantonCheckSemaphore::new(ch)),
         );
-        // BlockCheckObserver has higher priority than SizeCheckObserver.
-        registry.register_split_check_observer(100, BoxSplitCheckObserver::new(HalfCheckObserver));
-        registry.register_split_check_observer(
+        // BlockCheckSemaphore has higher priority than SizeCheckSemaphore.
+        registry.register_split_check_semaphore(100, BoxSplitCheckSemaphore::new(HalfCheckSemaphore));
+        registry.register_split_check_semaphore(
             400,
-            BoxSplitCheckObserver::new(BlockCheckObserver::default()),
+            BoxSplitCheckSemaphore::new(BlockCheckSemaphore::default()),
         );
         InterlockHost { registry }
     }
@@ -330,7 +330,7 @@ impl<E: KvEngine> InterlockHost<E> {
             let mut vec_query = mem::take(query).into();
             let result = try_loop_ob!(
                 brane,
-                &self.registry.query_observers,
+                &self.registry.query_semaphores,
                 pre_propose_query,
                 &mut vec_query,
             );
@@ -340,7 +340,7 @@ impl<E: KvEngine> InterlockHost<E> {
             let admin = req.mut_admin_request();
             try_loop_ob!(
                 brane,
-                &self.registry.admin_observers,
+                &self.registry.admin_semaphores,
                 pre_propose_admin,
                 admin
             )
@@ -353,7 +353,7 @@ impl<E: KvEngine> InterlockHost<E> {
             let query = req.get_requests();
             loop_ob!(
                 brane,
-                &self.registry.query_observers,
+                &self.registry.query_semaphores,
                 pre_apply_query,
                 query,
             );
@@ -361,7 +361,7 @@ impl<E: KvEngine> InterlockHost<E> {
             let admin = req.get_admin_request();
             loop_ob!(
                 brane,
-                &self.registry.admin_observers,
+                &self.registry.admin_semaphores,
                 pre_apply_admin,
                 admin
             );
@@ -372,7 +372,7 @@ impl<E: KvEngine> InterlockHost<E> {
         if !cmd.response.has_admin_response() {
             loop_ob!(
                 brane,
-                &self.registry.query_observers,
+                &self.registry.query_semaphores,
                 post_apply_query,
                 cmd,
             );
@@ -380,7 +380,7 @@ impl<E: KvEngine> InterlockHost<E> {
             let admin = cmd.response.mut_admin_response();
             loop_ob!(
                 brane,
-                &self.registry.admin_observers,
+                &self.registry.admin_semaphores,
                 post_apply_admin,
                 admin
             );
@@ -395,7 +395,7 @@ impl<E: KvEngine> InterlockHost<E> {
     ) {
         loop_ob!(
             brane,
-            &self.registry.apply_snapshot_observers,
+            &self.registry.apply_snapshot_semaphores,
             apply_plain_kvs,
             causet,
             kv_pairs
@@ -405,7 +405,7 @@ impl<E: KvEngine> InterlockHost<E> {
     pub fn post_apply_sst_from_snapshot(&self, brane: &Brane, causet: CfName, path: &str) {
         loop_ob!(
             brane,
-            &self.registry.apply_snapshot_observers,
+            &self.registry.apply_snapshot_semaphores,
             apply_sst,
             causet,
             path
@@ -423,7 +423,7 @@ impl<E: KvEngine> InterlockHost<E> {
         let mut host = SplitCheckerHost::new(auto_split, causet);
         loop_ob!(
             brane,
-            &self.registry.split_check_observers,
+            &self.registry.split_check_semaphores,
             add_checker,
             &mut host,
             engine,
@@ -433,9 +433,9 @@ impl<E: KvEngine> InterlockHost<E> {
     }
 
     pub fn on_prepropose_compute_hash(&self, req: &mut ComputeHashRequest) {
-        for observer in &self.registry.consistency_check_observers {
-            let observer = observer.observer.inner();
-            if observer.ufidelate_context(req.mut_context()) {
+        for semaphore in &self.registry.consistency_check_semaphores {
+            let semaphore = semaphore.semaphore.inner();
+            if semaphore.ufidelate_context(req.mut_context()) {
                 break;
             }
         }
@@ -449,10 +449,10 @@ impl<E: KvEngine> InterlockHost<E> {
     ) -> Result<Vec<(Vec<u8>, u32)>> {
         let mut hashes = Vec::new();
         let (mut reader, context_len) = (context, context.len());
-        for observer in &self.registry.consistency_check_observers {
-            let observer = observer.observer.inner();
+        for semaphore in &self.registry.consistency_check_semaphores {
+            let semaphore = semaphore.semaphore.inner();
             let old_len = reader.len();
-            let hash = match box_try!(observer.compute_hash(brane, &mut reader, &snap)) {
+            let hash = match box_try!(semaphore.compute_hash(brane, &mut reader, &snap)) {
                 Some(hash) => hash,
                 None => break,
             };
@@ -464,13 +464,13 @@ impl<E: KvEngine> InterlockHost<E> {
     }
 
     pub fn on_role_change(&self, brane: &Brane, role: StateRole) {
-        loop_ob!(brane, &self.registry.role_observers, on_role_change, role);
+        loop_ob!(brane, &self.registry.role_semaphores, on_role_change, role);
     }
 
     pub fn on_brane_changed(&self, brane: &Brane, event: BraneChangeEvent, role: StateRole) {
         loop_ob!(
             brane,
-            &self.registry.brane_change_observers,
+            &self.registry.brane_change_semaphores,
             on_brane_changed,
             event,
             role
@@ -478,9 +478,9 @@ impl<E: KvEngine> InterlockHost<E> {
     }
 
     pub fn prepare_for_apply(&self, observe_id: ObserveID, brane_id: u64) {
-        for cmd_ob in &self.registry.cmd_observers {
+        for cmd_ob in &self.registry.cmd_semaphores {
             cmd_ob
-                .observer
+                .semaphore
                 .inner()
                 .on_prepare_for_apply(observe_id, brane_id);
         }
@@ -488,62 +488,62 @@ impl<E: KvEngine> InterlockHost<E> {
 
     pub fn on_apply_cmd(&self, observe_id: ObserveID, brane_id: u64, cmd: Cmd) {
         assert!(
-            !self.registry.cmd_observers.is_empty(),
-            "CmdObserver is not registered"
+            !self.registry.cmd_semaphores.is_empty(),
+            "CmdSemaphore is not registered"
         );
-        for i in 0..self.registry.cmd_observers.len() - 1 {
+        for i in 0..self.registry.cmd_semaphores.len() - 1 {
             self.registry
-                .cmd_observers
+                .cmd_semaphores
                 .get(i)
                 .unwrap()
-                .observer
+                .semaphore
                 .inner()
                 .on_apply_cmd(observe_id, brane_id, cmd.clone())
         }
         self.registry
-            .cmd_observers
+            .cmd_semaphores
             .last()
             .unwrap()
-            .observer
+            .semaphore
             .inner()
             .on_apply_cmd(observe_id, brane_id, cmd)
     }
 
     pub fn on_flush_apply(&self, engine: E) {
-        if self.registry.cmd_observers.is_empty() {
+        if self.registry.cmd_semaphores.is_empty() {
             return;
         }
 
-        for i in 0..self.registry.cmd_observers.len() - 1 {
+        for i in 0..self.registry.cmd_semaphores.len() - 1 {
             self.registry
-                .cmd_observers
+                .cmd_semaphores
                 .get(i)
                 .unwrap()
-                .observer
+                .semaphore
                 .inner()
                 .on_flush_apply(engine.clone())
         }
         self.registry
-            .cmd_observers
+            .cmd_semaphores
             .last()
             .unwrap()
-            .observer
+            .semaphore
             .inner()
             .on_flush_apply(engine)
     }
 
     pub fn shutdown(&self) {
-        for entry in &self.registry.admin_observers {
-            entry.observer.inner().stop();
+        for entry in &self.registry.admin_semaphores {
+            entry.semaphore.inner().stop();
         }
-        for entry in &self.registry.query_observers {
-            entry.observer.inner().stop();
+        for entry in &self.registry.query_semaphores {
+            entry.semaphore.inner().stop();
         }
-        for entry in &self.registry.split_check_observers {
-            entry.observer.inner().stop();
+        for entry in &self.registry.split_check_semaphores {
+            entry.semaphore.inner().stop();
         }
-        for entry in &self.registry.cmd_observers {
-            entry.observer.inner().stop();
+        for entry in &self.registry.cmd_semaphores {
+            entry.semaphore.inner().stop();
         }
     }
 }
@@ -569,10 +569,10 @@ mod tests {
 
     impl Interlock for TestInterlock {}
 
-    impl AdminObserver for TestInterlock {
+    impl AdminSemaphore for TestInterlock {
         fn pre_propose_admin(
             &self,
-            ctx: &mut ObserverContext<'_>,
+            ctx: &mut SemaphoreContext<'_>,
             _: &mut AdminRequest,
         ) -> Result<()> {
             self.called.fetch_add(1, Ordering::SeqCst);
@@ -583,21 +583,21 @@ mod tests {
             Ok(())
         }
 
-        fn pre_apply_admin(&self, ctx: &mut ObserverContext<'_>, _: &AdminRequest) {
+        fn pre_apply_admin(&self, ctx: &mut SemaphoreContext<'_>, _: &AdminRequest) {
             self.called.fetch_add(2, Ordering::SeqCst);
             ctx.bypass = self.bypass.load(Ordering::SeqCst);
         }
 
-        fn post_apply_admin(&self, ctx: &mut ObserverContext<'_>, _: &mut AdminResponse) {
+        fn post_apply_admin(&self, ctx: &mut SemaphoreContext<'_>, _: &mut AdminResponse) {
             self.called.fetch_add(3, Ordering::SeqCst);
             ctx.bypass = self.bypass.load(Ordering::SeqCst);
         }
     }
 
-    impl QueryObserver for TestInterlock {
+    impl QuerySemaphore for TestInterlock {
         fn pre_propose_query(
             &self,
-            ctx: &mut ObserverContext<'_>,
+            ctx: &mut SemaphoreContext<'_>,
             _: &mut Vec<Request>,
         ) -> Result<()> {
             self.called.fetch_add(4, Ordering::SeqCst);
@@ -608,28 +608,28 @@ mod tests {
             Ok(())
         }
 
-        fn pre_apply_query(&self, ctx: &mut ObserverContext<'_>, _: &[Request]) {
+        fn pre_apply_query(&self, ctx: &mut SemaphoreContext<'_>, _: &[Request]) {
             self.called.fetch_add(5, Ordering::SeqCst);
             ctx.bypass = self.bypass.load(Ordering::SeqCst);
         }
 
-        fn post_apply_query(&self, ctx: &mut ObserverContext<'_>, _: &mut Cmd) {
+        fn post_apply_query(&self, ctx: &mut SemaphoreContext<'_>, _: &mut Cmd) {
             self.called.fetch_add(6, Ordering::SeqCst);
             ctx.bypass = self.bypass.load(Ordering::SeqCst);
         }
     }
 
-    impl RoleObserver for TestInterlock {
-        fn on_role_change(&self, ctx: &mut ObserverContext<'_>, _: StateRole) {
+    impl RoleSemaphore for TestInterlock {
+        fn on_role_change(&self, ctx: &mut SemaphoreContext<'_>, _: StateRole) {
             self.called.fetch_add(7, Ordering::SeqCst);
             ctx.bypass = self.bypass.load(Ordering::SeqCst);
         }
     }
 
-    impl BraneChangeObserver for TestInterlock {
+    impl BraneChangeSemaphore for TestInterlock {
         fn on_brane_changed(
             &self,
-            ctx: &mut ObserverContext<'_>,
+            ctx: &mut SemaphoreContext<'_>,
             _: BraneChangeEvent,
             _: StateRole,
         ) {
@@ -638,10 +638,10 @@ mod tests {
         }
     }
 
-    impl ApplySnapshotObserver for TestInterlock {
+    impl ApplySnapshotSemaphore for TestInterlock {
         fn apply_plain_kvs(
             &self,
-            ctx: &mut ObserverContext<'_>,
+            ctx: &mut SemaphoreContext<'_>,
             _: CfName,
             _: &[(Vec<u8>, Vec<u8>)],
         ) {
@@ -649,13 +649,13 @@ mod tests {
             ctx.bypass = self.bypass.load(Ordering::SeqCst);
         }
 
-        fn apply_sst(&self, ctx: &mut ObserverContext<'_>, _: CfName, _: &str) {
+        fn apply_sst(&self, ctx: &mut SemaphoreContext<'_>, _: CfName, _: &str) {
             self.called.fetch_add(10, Ordering::SeqCst);
             ctx.bypass = self.bypass.load(Ordering::SeqCst);
         }
     }
 
-    impl CmdObserver<PanicEngine> for TestInterlock {
+    impl CmdSemaphore<PanicEngine> for TestInterlock {
         fn on_prepare_for_apply(&self, _: ObserveID, _: u64) {
             self.called.fetch_add(11, Ordering::SeqCst);
         }
@@ -688,17 +688,17 @@ mod tests {
         let mut host = InterlockHost::<PanicEngine>::default();
         let ob = TestInterlock::default();
         host.registry
-            .register_admin_observer(1, BoxAdminObserver::new(ob.clone()));
+            .register_admin_semaphore(1, BoxAdminSemaphore::new(ob.clone()));
         host.registry
-            .register_query_observer(1, BoxQueryObserver::new(ob.clone()));
+            .register_query_semaphore(1, BoxQuerySemaphore::new(ob.clone()));
         host.registry
-            .register_apply_snapshot_observer(1, BoxApplySnapshotObserver::new(ob.clone()));
+            .register_apply_snapshot_semaphore(1, BoxApplySnapshotSemaphore::new(ob.clone()));
         host.registry
-            .register_role_observer(1, BoxRoleObserver::new(ob.clone()));
+            .register_role_semaphore(1, BoxRoleSemaphore::new(ob.clone()));
         host.registry
-            .register_brane_change_observer(1, BoxBraneChangeObserver::new(ob.clone()));
+            .register_brane_change_semaphore(1, BoxBraneChangeSemaphore::new(ob.clone()));
         host.registry
-            .register_cmd_observer(1, BoxCmdObserver::new(ob.clone()));
+            .register_cmd_semaphore(1, BoxCmdSemaphore::new(ob.clone()));
         let brane = Brane::default();
         let mut admin_req = VioletaBftCmdRequest::default();
         admin_req.set_admin_request(AdminRequest::default());
@@ -750,14 +750,14 @@ mod tests {
 
         let ob1 = TestInterlock::default();
         host.registry
-            .register_admin_observer(3, BoxAdminObserver::new(ob1.clone()));
+            .register_admin_semaphore(3, BoxAdminSemaphore::new(ob1.clone()));
         host.registry
-            .register_query_observer(3, BoxQueryObserver::new(ob1.clone()));
+            .register_query_semaphore(3, BoxQuerySemaphore::new(ob1.clone()));
         let ob2 = TestInterlock::default();
         host.registry
-            .register_admin_observer(2, BoxAdminObserver::new(ob2.clone()));
+            .register_admin_semaphore(2, BoxAdminSemaphore::new(ob2.clone()));
         host.registry
-            .register_query_observer(2, BoxQueryObserver::new(ob2.clone()));
+            .register_query_semaphore(2, BoxQuerySemaphore::new(ob2.clone()));
 
         let brane = Brane::default();
         let mut admin_req = VioletaBftCmdRequest::default();

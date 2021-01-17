@@ -1,6 +1,6 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use crate::fsm::{Fsm, FsmScheduler};
+use crate::fsm::{Fsm, FsmInterlock_Semaphore};
 use crate::mailbox::{BasicMailbox, Mailbox};
 use crossbeam::channel::{SlightlikeError, TrySlightlikeError};
 use std::cell::Cell;
@@ -23,19 +23,19 @@ enum CheckDoResult<T> {
 ///
 /// In our abstract model, every batch system has two different kind of
 /// fsms. First is normal fsm, which does the common work like peers in a
-/// violetabftstore model or apply delegate in apply model. Second is control fsm,
+/// violetabftstore model or apply pushdown_causet in apply model. Second is control fsm,
 /// which does some work that requires a global view of resources or creates
 /// missing fsm for specified address. Normal fsm and control fsm can have
-/// different scheduler, but this is not required.
+/// different interlock_semaphore, but this is not required.
 pub struct Router<N: Fsm, C: Fsm, Ns, Cs> {
     normals: Arc<Mutex<HashMap<u64, BasicMailbox<N>>>>,
     caches: Cell<LruCache<u64, BasicMailbox<N>>>,
     pub(super) control_box: BasicMailbox<C>,
-    // TODO: These two schedulers should be unified as single one. However
-    // it's not possible to write FsmScheduler<Fsm=C> + FsmScheduler<Fsm=N>
+    // TODO: These two interlock_semaphores should be unified as single one. However
+    // it's not possible to write FsmInterlock_Semaphore<Fsm=C> + FsmInterlock_Semaphore<Fsm=N>
     // for now.
-    pub(crate) normal_scheduler: Ns,
-    control_scheduler: Cs,
+    pub(crate) normal_interlock_semaphore: Ns,
+    control_interlock_semaphore: Cs,
 
     // Indicates the router is shutdown down or not.
     shutdown: Arc<AtomicBool>,
@@ -45,20 +45,20 @@ impl<N, C, Ns, Cs> Router<N, C, Ns, Cs>
 where
     N: Fsm,
     C: Fsm,
-    Ns: FsmScheduler<Fsm = N> + Clone,
-    Cs: FsmScheduler<Fsm = C> + Clone,
+    Ns: FsmInterlock_Semaphore<Fsm = N> + Clone,
+    Cs: FsmInterlock_Semaphore<Fsm = C> + Clone,
 {
     pub(super) fn new(
         control_box: BasicMailbox<C>,
-        normal_scheduler: Ns,
-        control_scheduler: Cs,
+        normal_interlock_semaphore: Ns,
+        control_interlock_semaphore: Cs,
     ) -> Router<N, C, Ns, Cs> {
         Router {
             normals: Arc::default(),
             caches: Cell::new(LruCache::with_capacity_and_sample(1024, 7)),
             control_box,
-            normal_scheduler,
-            control_scheduler,
+            normal_interlock_semaphore,
+            control_interlock_semaphore,
             shutdown: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -150,7 +150,7 @@ where
     pub fn mailbox(&self, addr: u64) -> Option<Mailbox<N, Ns>> {
         let res = self.check_do(addr, |mailbox| {
             if mailbox.is_connected() {
-                Some(Mailbox::new(mailbox.clone(), self.normal_scheduler.clone()))
+                Some(Mailbox::new(mailbox.clone(), self.normal_interlock_semaphore.clone()))
             } else {
                 None
             }
@@ -163,7 +163,7 @@ where
 
     /// Get the mailbox of control fsm.
     pub fn control_mailbox(&self) -> Mailbox<C, Cs> {
-        Mailbox::new(self.control_box.clone(), self.control_scheduler.clone())
+        Mailbox::new(self.control_box.clone(), self.control_interlock_semaphore.clone())
     }
 
     /// Try to slightlike a message to specified address.
@@ -179,7 +179,7 @@ where
         let mut msg = Some(msg);
         let res = self.check_do(addr, |mailbox| {
             let m = msg.take().unwrap();
-            match mailbox.try_slightlike(m, &self.normal_scheduler) {
+            match mailbox.try_slightlike(m, &self.normal_interlock_semaphore) {
                 Ok(()) => Some(Ok(())),
                 r @ Err(TrySlightlikeError::Full(_)) => {
                     // TODO: report channel full
@@ -218,7 +218,7 @@ where
                 caches
                     .get(&addr)
                     .unwrap()
-                    .force_slightlike(m, &self.normal_scheduler)
+                    .force_slightlike(m, &self.normal_interlock_semaphore)
             }
             Err(TrySlightlikeError::Disconnected(m)) => Err(SlightlikeError(m)),
         }
@@ -227,7 +227,7 @@ where
     /// Force slightlikeing message to control fsm.
     #[inline]
     pub fn slightlike_control(&self, msg: C::Message) -> Result<(), TrySlightlikeError<C::Message>> {
-        match self.control_box.try_slightlike(msg, &self.control_scheduler) {
+        match self.control_box.try_slightlike(msg, &self.control_interlock_semaphore) {
             Ok(()) => Ok(()),
             r @ Err(TrySlightlikeError::Full(_)) => {
                 // TODO: record metrics.
@@ -241,7 +241,7 @@ where
     pub fn broadcast_normal(&self, mut msg_gen: impl FnMut() -> N::Message) {
         let mailboxes = self.normals.dagger().unwrap();
         for mailbox in mailboxes.values() {
-            let _ = mailbox.force_slightlike(msg_gen(), &self.normal_scheduler);
+            let _ = mailbox.force_slightlike(msg_gen(), &self.normal_interlock_semaphore);
         }
     }
 
@@ -256,8 +256,8 @@ where
             mailbox.close();
         }
         self.control_box.close();
-        self.normal_scheduler.shutdown();
-        self.control_scheduler.shutdown();
+        self.normal_interlock_semaphore.shutdown();
+        self.control_interlock_semaphore.shutdown();
     }
 
     /// Close the mailbox of address.
@@ -277,11 +277,11 @@ impl<N: Fsm, C: Fsm, Ns: Clone, Cs: Clone> Clone for Router<N, C, Ns, Cs> {
             normals: self.normals.clone(),
             caches: Cell::new(LruCache::with_capacity_and_sample(1024, 7)),
             control_box: self.control_box.clone(),
-            // These two schedulers should be unified as single one. However
-            // it's not possible to write FsmScheduler<Fsm=C> + FsmScheduler<Fsm=N>
+            // These two interlock_semaphores should be unified as single one. However
+            // it's not possible to write FsmInterlock_Semaphore<Fsm=C> + FsmInterlock_Semaphore<Fsm=N>
             // for now.
-            normal_scheduler: self.normal_scheduler.clone(),
-            control_scheduler: self.control_scheduler.clone(),
+            normal_interlock_semaphore: self.normal_interlock_semaphore.clone(),
+            control_interlock_semaphore: self.control_interlock_semaphore.clone(),
             shutdown: self.shutdown.clone(),
         }
     }

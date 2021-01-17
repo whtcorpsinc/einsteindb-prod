@@ -130,7 +130,7 @@ where
 #[causet(test)]
 mod tests {
     use super::*;
-    use crate::interlock::{BoxConsistencyCheckObserver, RawConsistencyCheckObserver};
+    use crate::interlock::{BoxConsistencyCheckSemaphore, RawConsistencyCheckSemaphore};
     use byteorder::{BigEndian, WriteBytesExt};
     use engine_lmdb::util::new_engine;
     use engine_lmdb::{LmdbEngine, LmdbSnapshot};
@@ -157,9 +157,9 @@ mod tests {
 
         let (tx, rx) = mpsc::sync_channel(100);
         let mut host = InterlockHost::<LmdbEngine>::new(tx.clone());
-        host.registry.register_consistency_check_observer(
+        host.registry.register_consistency_check_semaphore(
             100,
-            BoxConsistencyCheckObserver::new(RawConsistencyCheckObserver::default()),
+            BoxConsistencyCheckSemaphore::new(RawConsistencyCheckSemaphore::default()),
         );
         let mut runner = Runner::new(tx, host);
         let mut digest = crc32fast::Hasher::new();

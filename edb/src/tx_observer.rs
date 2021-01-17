@@ -49,14 +49,14 @@ use types::{
 
 use watcher::TransactWatcher;
 
-pub struct TxObserver {
+pub struct TxSemaphore {
     notify_fn: Arc<Box<Fn(&str, IndexMap<&SolitonId, &AttributeSet>) + Send + Sync>>,
     attributes: AttributeSet,
 }
 
-impl TxObserver {
-    pub fn new<F>(attributes: AttributeSet, notify_fn: F) -> TxObserver where F: Fn(&str, IndexMap<&SolitonId, &AttributeSet>) + 'static + Send + Sync {
-        TxObserver {
+impl TxSemaphore {
+    pub fn new<F>(attributes: AttributeSet, notify_fn: F) -> TxSemaphore where F: Fn(&str, IndexMap<&SolitonId, &AttributeSet>) + 'static + Send + Sync {
+        TxSemaphore {
             notify_fn: Arc::new(Box::new(notify_fn)),
             attributes,
         }
@@ -79,25 +79,25 @@ pub trait Command {
 
 pub struct TxCommand {
     reports: IndexMap<SolitonId, AttributeSet>,
-    observers: Weak<IndexMap<String, Arc<TxObserver>>>,
+    semaphores: Weak<IndexMap<String, Arc<TxSemaphore>>>,
 }
 
 impl TxCommand {
-    fn new(observers: &Arc<IndexMap<String, Arc<TxObserver>>>, reports: IndexMap<SolitonId, AttributeSet>) -> Self {
+    fn new(semaphores: &Arc<IndexMap<String, Arc<TxSemaphore>>>, reports: IndexMap<SolitonId, AttributeSet>) -> Self {
         TxCommand {
             reports,
-            observers: Arc::downgrade(observers),
+            semaphores: Arc::downgrade(semaphores),
         }
     }
 }
 
 impl Command for TxCommand {
     fn execute(&mut self) {
-        self.observers.upgrade().map(|observers| {
-            for (key, observer) in observers.iter() {
-                let applicable_reports = observer.applicable_reports(&self.reports);
+        self.semaphores.upgrade().map(|semaphores| {
+            for (key, semaphore) in semaphores.iter() {
+                let applicable_reports = semaphore.applicable_reports(&self.reports);
                 if !applicable_reports.is_empty() {
-                    observer.notify(&key, applicable_reports);
+                    semaphore.notify(&key, applicable_reports);
                 }
             }
         });
@@ -105,38 +105,38 @@ impl Command for TxCommand {
 }
 
 pub struct TxObservationService {
-    observers: Arc<IndexMap<String, Arc<TxObserver>>>,
+    semaphores: Arc<IndexMap<String, Arc<TxSemaphore>>>,
     executor: Option<Sender<Box<Command + Send>>>,
 }
 
 impl TxObservationService {
     pub fn new() -> Self {
         TxObservationService {
-            observers: Arc::new(IndexMap::new()),
+            semaphores: Arc::new(IndexMap::new()),
             executor: None,
         }
     }
 
     // For testing purposes
     pub fn is_registered(&self, key: &String) -> bool {
-        self.observers.contains_key(key)
+        self.semaphores.contains_key(key)
     }
 
-    pub fn register(&mut self, key: String, observer: Arc<TxObserver>) {
-        Arc::make_mut(&mut self.observers).insert(key, observer);
+    pub fn register(&mut self, key: String, semaphore: Arc<TxSemaphore>) {
+        Arc::make_mut(&mut self.semaphores).insert(key, semaphore);
     }
 
     pub fn deregister(&mut self, key: &String) {
-        Arc::make_mut(&mut self.observers).remove(key);
+        Arc::make_mut(&mut self.semaphores).remove(key);
     }
 
-    pub fn has_observers(&self) -> bool {
-        !self.observers.is_empty()
+    pub fn has_semaphores(&self) -> bool {
+        !self.semaphores.is_empty()
     }
 
     pub fn in_progress_did_commit(&mut self, causecausetxes: IndexMap<SolitonId, AttributeSet>) {
         // Don't spawn a thread only to say nothing.
-        if !self.has_observers() {
+        if !self.has_semaphores() {
             return;
         }
 
@@ -151,7 +151,7 @@ impl TxObservationService {
             causetx
         });
 
-        let cmd = Box::new(TxCommand::new(&self.observers, causecausetxes));
+        let cmd = Box::new(TxCommand::new(&self.semaphores, causecausetxes));
         executor.send(cmd).unwrap();
     }
 }
@@ -162,21 +162,21 @@ impl Drop for TxObservationService {
     }
 }
 
-pub struct InProgressObserverTransactWatcher {
+pub struct InProgressSemaphoreTransactWatcher {
     collected_attributes: AttributeSet,
     pub causecausetxes: IndexMap<SolitonId, AttributeSet>,
 }
 
-impl InProgressObserverTransactWatcher {
-    pub fn new() -> InProgressObserverTransactWatcher {
-        InProgressObserverTransactWatcher {
+impl InProgressSemaphoreTransactWatcher {
+    pub fn new() -> InProgressSemaphoreTransactWatcher {
+        InProgressSemaphoreTransactWatcher {
             collected_attributes: Default::default(),
             causecausetxes: Default::default(),
         }
     }
 }
 
-impl TransactWatcher for InProgressObserverTransactWatcher {
+impl TransactWatcher for InProgressSemaphoreTransactWatcher {
     fn Causet(&mut self, _op: OpType, _e: SolitonId, a: SolitonId, _v: &MinkowskiType) {
         self.collected_attributes.insert(a);
     }

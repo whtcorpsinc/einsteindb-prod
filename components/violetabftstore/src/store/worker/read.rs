@@ -132,9 +132,9 @@ pub trait ReadFreeDaemon<E: KvEngine> {
     }
 }
 
-/// A read only delegate of `Peer`.
+/// A read only pushdown_causet of `Peer`.
 #[derive(Clone, Debug)]
-pub struct ReadDelegate {
+pub struct Readpushdown_causet {
     brane: Arc<metapb::Brane>,
     peer_id: u64,
     term: u64,
@@ -148,12 +148,12 @@ pub struct ReadDelegate {
     max_ts_sync_status: Arc<AtomicU64>,
 }
 
-impl ReadDelegate {
-    pub fn from_peer<EK: KvEngine, ER: VioletaBftEngine>(peer: &Peer<EK, ER>) -> ReadDelegate {
+impl Readpushdown_causet {
+    pub fn from_peer<EK: KvEngine, ER: VioletaBftEngine>(peer: &Peer<EK, ER>) -> Readpushdown_causet {
         let brane = peer.brane().clone();
         let brane_id = brane.get_id();
         let peer_id = peer.peer.get_id();
-        ReadDelegate {
+        Readpushdown_causet {
             brane: Arc::new(brane),
             peer_id,
             term: peer.term(),
@@ -213,11 +213,11 @@ impl ReadDelegate {
     }
 }
 
-impl Display for ReadDelegate {
+impl Display for Readpushdown_causet {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "ReadDelegate for brane {}, \
+            "Readpushdown_causet for brane {}, \
              leader {} at term {}, applied_index_term {}, has lease {}",
             self.brane.get_id(),
             self.peer_id,
@@ -263,8 +263,8 @@ where
     store_meta: Arc<Mutex<StoreMeta>>,
     kv_engine: E,
     metrics: ReadMetrics,
-    // brane id -> ReadDelegate
-    delegates: HashMap<u64, Option<ReadDelegate>>,
+    // brane id -> Readpushdown_causet
+    pushdown_causets: HashMap<u64, Option<Readpushdown_causet>>,
     snap_cache: Option<Arc<E::Snapshot>>,
     cache_read_id: ThreadReadId,
     // A channel to violetabftstore.
@@ -313,7 +313,7 @@ where
             cache_read_id,
             store_id: Cell::new(None),
             metrics: Default::default(),
-            delegates: HashMap::default(),
+            pushdown_causets: HashMap::default(),
         }
     }
 
@@ -349,7 +349,7 @@ where
         cmd.callback.invoke_read(read_resp);
     }
 
-    fn pre_propose_violetabft_command(&mut self, req: &VioletaBftCmdRequest) -> Result<Option<ReadDelegate>> {
+    fn pre_propose_violetabft_command(&mut self, req: &VioletaBftCmdRequest) -> Result<Option<Readpushdown_causet>> {
         // Check store id.
         if self.store_id.get().is_none() {
             let store_id = self.store_meta.dagger().unwrap().store_id;
@@ -365,8 +365,8 @@ where
 
         // Check brane id.
         let brane_id = req.get_header().get_brane_id();
-        let delegate = match self.delegates.get_mut(&brane_id) {
-            Some(delegate) => match delegate.take() {
+        let pushdown_causet = match self.pushdown_causets.get_mut(&brane_id) {
+            Some(pushdown_causet) => match pushdown_causet.take() {
                 Some(d) => d,
                 None => return Ok(None),
             },
@@ -377,24 +377,24 @@ where
             }
         };
 
-        if delegate.invalid.load(Ordering::Acquire) {
-            self.delegates.remove(&brane_id);
+        if pushdown_causet.invalid.load(Ordering::Acquire) {
+            self.pushdown_causets.remove(&brane_id);
             return Ok(None);
         }
 
-        fail_point!("localreader_on_find_delegate");
+        fail_point!("localreader_on_find_pushdown_causet");
 
         // Check peer id.
-        if let Err(e) = util::check_peer_id(req, delegate.peer_id) {
+        if let Err(e) = util::check_peer_id(req, pushdown_causet.peer_id) {
             self.metrics.rejected_by_peer_id_mismatch += 1;
             return Err(e);
         }
 
         // Check term.
-        if let Err(e) = util::check_term(req, delegate.term) {
+        if let Err(e) = util::check_term(req, pushdown_causet.term) {
             debug!(
                 "check term";
-                "delegate_term" => delegate.term,
+                "pushdown_causet_term" => pushdown_causet.term,
                 "header_term" => req.get_header().get_term(),
             );
             self.metrics.rejected_by_term_mismatch += 1;
@@ -402,19 +402,19 @@ where
         }
 
         // Check brane epoch.
-        if util::check_brane_epoch(req, &delegate.brane, false).is_err() {
+        if util::check_brane_epoch(req, &pushdown_causet.brane, false).is_err() {
             self.metrics.rejected_by_epoch += 1;
             // Stale epoch, redirect it to violetabftstore to get the latest brane.
-            debug!("rejected by epoch not match"; "tag" => &delegate.tag);
+            debug!("rejected by epoch not match"; "tag" => &pushdown_causet.tag);
             return Ok(None);
         }
 
         let mut inspector = Inspector {
-            delegate: &delegate,
+            pushdown_causet: &pushdown_causet,
             metrics: &mut self.metrics,
         };
         match inspector.inspect(req) {
-            Ok(RequestPolicy::ReadLocal) => Ok(Some(delegate)),
+            Ok(RequestPolicy::ReadLocal) => Ok(Some(pushdown_causet)),
             // It can not handle other policies.
             Ok(_) => Ok(None),
             Err(e) => Err(e),
@@ -430,42 +430,42 @@ where
         let brane_id = req.get_header().get_brane_id();
         loop {
             match self.pre_propose_violetabft_command(&req) {
-                Ok(Some(delegate)) => {
+                Ok(Some(pushdown_causet)) => {
                     let snapshot_ts = match read_id.as_mut() {
                         // If this peer became Leader not long ago and just after the cached
                         // snapshot was created, this snapshot can not see all data of the peer.
                         Some(id) => {
-                            if id.create_time <= delegate.last_valid_ts {
+                            if id.create_time <= pushdown_causet.last_valid_ts {
                                 id.create_time = monotonic_raw_now();
                             }
                             id.create_time
                         }
                         None => monotonic_raw_now(),
                     };
-                    if delegate.is_in_leader_lease(snapshot_ts, &mut self.metrics) {
+                    if pushdown_causet.is_in_leader_lease(snapshot_ts, &mut self.metrics) {
                         // Cache snapshot_time for remaining requests in the same batch.
-                        let mut response = self.execute(&req, &delegate.brane, None, read_id);
+                        let mut response = self.execute(&req, &pushdown_causet.brane, None, read_id);
                         // Leader can read local if and only if it is in lease.
-                        cmd_resp::bind_term(&mut response.response, delegate.term);
+                        cmd_resp::bind_term(&mut response.response, pushdown_causet.term);
                         if let Some(snap) = response.snapshot.as_mut() {
-                            snap.max_ts_sync_status = Some(delegate.max_ts_sync_status.clone());
+                            snap.max_ts_sync_status = Some(pushdown_causet.max_ts_sync_status.clone());
                         }
-                        response.txn_extra_op = delegate.txn_extra_op.load();
+                        response.txn_extra_op = pushdown_causet.txn_extra_op.load();
                         cb.invoke_read(response);
-                        self.delegates.insert(brane_id, Some(delegate));
+                        self.pushdown_causets.insert(brane_id, Some(pushdown_causet));
                         return;
                     }
                     break;
                 }
                 // It can not handle the request, forwards to violetabftstore.
                 Ok(None) => {
-                    if self.delegates.get(&brane_id).is_some() {
+                    if self.pushdown_causets.get(&brane_id).is_some() {
                         break;
                     }
                     let meta = self.store_meta.dagger().unwrap();
                     match meta.readers.get(&brane_id).cloned() {
                         Some(reader) => {
-                            self.delegates.insert(brane_id, Some(reader));
+                            self.pushdown_causets.insert(brane_id, Some(reader));
                         }
                         None => {
                             self.metrics.rejected_by_no_brane += 1;
@@ -476,21 +476,21 @@ where
                 }
                 Err(e) => {
                     let mut response = cmd_resp::new_error(e);
-                    if let Some(Some(ref delegate)) = self.delegates.get(&brane_id) {
-                        cmd_resp::bind_term(&mut response, delegate.term);
+                    if let Some(Some(ref pushdown_causet)) = self.pushdown_causets.get(&brane_id) {
+                        cmd_resp::bind_term(&mut response, pushdown_causet.term);
                     }
                     cb.invoke_read(ReadResponse {
                         response,
                         snapshot: None,
                         txn_extra_op: TxnExtraOp::Noop,
                     });
-                    self.delegates.remove(&brane_id);
+                    self.pushdown_causets.remove(&brane_id);
                     return;
                 }
             }
         }
-        // Remove delegate for ufidelating it by next cmd execution.
-        self.delegates.remove(&brane_id);
+        // Remove pushdown_causet for ufidelating it by next cmd execution.
+        self.pushdown_causets.remove(&brane_id);
         // Forward to violetabftstore.
         let cmd = VioletaBftCommand::new(req, cb);
         self.redirect(cmd);
@@ -529,7 +529,7 @@ where
             router: self.router.clone(),
             store_id: self.store_id.clone(),
             metrics: Default::default(),
-            delegates: HashMap::default(),
+            pushdown_causets: HashMap::default(),
             snap_cache: self.snap_cache.clone(),
             cache_read_id: self.cache_read_id.clone(),
         }
@@ -537,20 +537,20 @@ where
 }
 
 struct Inspector<'r, 'm> {
-    delegate: &'r ReadDelegate,
+    pushdown_causet: &'r Readpushdown_causet,
     metrics: &'m mut ReadMetrics,
 }
 
 impl<'r, 'm> RequestInspector for Inspector<'r, 'm> {
     fn has_applied_to_current_term(&mut self) -> bool {
-        if self.delegate.applied_index_term == self.delegate.term {
+        if self.pushdown_causet.applied_index_term == self.pushdown_causet.term {
             true
         } else {
             debug!(
                 "rejected by term check";
-                "tag" => &self.delegate.tag,
-                "applied_index_term" => self.delegate.applied_index_term,
-                "delegate_term" => ?self.delegate.term,
+                "tag" => &self.pushdown_causet.tag,
+                "applied_index_term" => self.pushdown_causet.applied_index_term,
+                "pushdown_causet_term" => ?self.pushdown_causet.term,
             );
 
             // only for metric.
@@ -561,11 +561,11 @@ impl<'r, 'm> RequestInspector for Inspector<'r, 'm> {
 
     fn inspect_lease(&mut self) -> LeaseState {
         // TODO: disable localreader if we did not enable violetabft's check_quorum.
-        if self.delegate.leader_lease.is_some() {
+        if self.pushdown_causet.leader_lease.is_some() {
             // We skip lease check, because it is postponed until `handle_read`.
             LeaseState::Valid
         } else {
-            debug!("rejected by leader lease"; "tag" => &self.delegate.tag);
+            debug!("rejected by leader lease"; "tag" => &self.pushdown_causet.tag);
             self.metrics.rejected_by_no_lease += 1;
             LeaseState::Expired
         }
@@ -809,7 +809,7 @@ mod tests {
         // But the applied_index_term is stale.
         {
             let mut meta = store_meta.dagger().unwrap();
-            let read_delegate = ReadDelegate {
+            let read_pushdown_causet = Readpushdown_causet {
                 tag: String::new(),
                 brane: Arc::new(brane1.clone()),
                 peer_id: leader2.get_id(),
@@ -821,14 +821,14 @@ mod tests {
                 txn_extra_op: Arc::new(AtomicCell::new(TxnExtraOp::default())),
                 max_ts_sync_status: Arc::new(AtomicU64::new(0)),
             };
-            meta.readers.insert(1, read_delegate);
+            meta.readers.insert(1, read_pushdown_causet);
         }
 
         // The applied_index_term is stale
         must_redirect(&mut reader, &rx, cmd.clone());
         assert_eq!(reader.metrics.rejected_by_cache_miss, 2);
         assert_eq!(reader.metrics.rejected_by_appiled_term, 1);
-        assert!(reader.delegates.get(&1).is_none());
+        assert!(reader.pushdown_causets.get(&1).is_none());
 
         // Make the applied_index_term matches current term.
         let pg = Progress::applied_index_term(term6);

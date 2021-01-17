@@ -841,7 +841,7 @@ mod tests {
         let snap_dir = Builder::new().prefix("snap_dir").temfidelir().unwrap();
         let mgr = SnapManager::new(snap_dir.path().to_str().unwrap());
         let mut worker = Worker::new("brane-worker");
-        let sched = worker.scheduler();
+        let sched = worker.interlock_semaphore();
         let engines = Engines::new(engine.kv.clone(), engine.violetabft.clone());
         let (router, _) = mpsc::sync_channel(1);
         let runner = BraneRunner::new(
@@ -923,7 +923,7 @@ mod tests {
         let snap_dir = Builder::new().prefix("snap_dir").temfidelir().unwrap();
         let mgr = SnapManager::new(snap_dir.path().to_str().unwrap());
         let mut worker = Worker::new("snap-manager");
-        let sched = worker.scheduler();
+        let sched = worker.interlock_semaphore();
         let (router, receiver) = mpsc::sync_channel(1);
         let runner = BraneRunner::new(
             engines.clone(),

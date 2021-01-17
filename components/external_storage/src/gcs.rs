@@ -22,7 +22,7 @@ use tame_gcs::{
 };
 use tame_oauth::gcp::{ServiceAccountAccess, ServiceAccountInfo, TokenOrRequest};
 
-const HARDCODED_ENDPOINTS: &[&str] = &[
+const HARDCODED_nodeS: &[&str] = &[
     "https://www.googleapis.com/upload/causetStorage/v1",
     "https://www.googleapis.com/causetStorage/v1",
 ];
@@ -61,7 +61,7 @@ enum RequestError {
     Hyper(hyper::Error),
     OAuth(tame_oauth::Error),
     Gcs(tame_gcs::Error),
-    InvalidEndpoint(http::uri::InvalidUri),
+    Invalidnode(http::uri::InvalidUri),
 }
 
 impl From<hyper::Error> for RequestError {
@@ -78,7 +78,7 @@ impl From<tame_oauth::Error> for RequestError {
 
 impl From<http::uri::InvalidUri> for RequestError {
     fn from(err: http::uri::InvalidUri) -> Self {
-        Self::InvalidEndpoint(err)
+        Self::Invalidnode(err)
     }
 }
 
@@ -110,7 +110,7 @@ impl From<RequestError> for io::Error {
                 io::ErrorKind::InvalidInput,
                 format!("invalid GCS request: {}", e),
             ),
-            RequestError::InvalidEndpoint(e) => Self::new(
+            RequestError::Invalidnode(e) => Self::new(
                 io::ErrorKind::InvalidInput,
                 format!("invalid GCS lightlikepoint: {}", e),
             ),
@@ -214,7 +214,7 @@ impl GCSStorage {
         let lightlikepoint = self.config.get_lightlikepoint();
         if !lightlikepoint.is_empty() {
             let url = req.uri().to_string();
-            for hardcoded in HARDCODED_ENDPOINTS {
+            for hardcoded in HARDCODED_nodeS {
                 if url.spacelikes_with(hardcoded) {
                     *req.uri_mut() = [lightlikepoint.trim_lightlike_matches('/'), &url[hardcoded.len()..]]
                         .concat()

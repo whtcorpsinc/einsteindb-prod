@@ -28,8 +28,8 @@ stats-concurrency = 0
 [server.labels]
 
 [causetStorage]
-scheduler-concurrency = 10
-scheduler-worker-pool-size = 1
+interlock_semaphore-concurrency = 10
+interlock_semaphore-worker-pool-size = 1
 
 [causetStorage.block-cache]
 shared = true

@@ -1,6 +1,6 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
-use super::{AdminObserver, Interlock, ObserverContext, Result as CopResult};
+use super::{AdminSemaphore, Interlock, SemaphoreContext, Result as CopResult};
 use einsteindb_util::codec::bytes::{self, encode_bytes};
 
 use crate::store::util;
@@ -8,15 +8,15 @@ use ekvproto::metapb::Brane;
 use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, SplitRequest};
 use std::result::Result as StdResult;
 
-/// `SplitObserver` adjusts the split key so that it won't separate
+/// `SplitSemaphore` adjusts the split key so that it won't separate
 /// the data of a EventIdx into two brane. It adjusts the key according
 /// to the key format of `MilevaDB`.
 #[derive(Clone)]
-pub struct SplitObserver;
+pub struct SplitSemaphore;
 
 type Result<T> = StdResult<T, String>;
 
-impl SplitObserver {
+impl SplitSemaphore {
     fn adjust_key(&self, brane: &Brane, key: Vec<u8>) -> Result<Vec<u8>> {
         if key.is_empty() {
             return Err("key is empty".to_owned());
@@ -42,7 +42,7 @@ impl SplitObserver {
 
     fn on_split(
         &self,
-        ctx: &mut ObserverContext<'_>,
+        ctx: &mut SemaphoreContext<'_>,
         splits: &mut Vec<SplitRequest>,
     ) -> Result<()> {
         let (mut i, mut j) = (0, 0);
@@ -93,12 +93,12 @@ impl SplitObserver {
     }
 }
 
-impl Interlock for SplitObserver {}
+impl Interlock for SplitSemaphore {}
 
-impl AdminObserver for SplitObserver {
+impl AdminSemaphore for SplitSemaphore {
     fn pre_propose_admin(
         &self,
-        ctx: &mut ObserverContext<'_>,
+        ctx: &mut SemaphoreContext<'_>,
         req: &mut AdminRequest,
     ) -> CopResult<()> {
         match req.get_cmd_type() {
@@ -151,8 +151,8 @@ impl AdminObserver for SplitObserver {
 #[causet(test)]
 mod tests {
     use super::*;
-    use crate::interlock::AdminObserver;
-    use crate::interlock::ObserverContext;
+    use crate::interlock::AdminSemaphore;
+    use crate::interlock::SemaphoreContext;
     use byteorder::{BigEndian, WriteBytesExt};
     use ekvproto::metapb::Brane;
     use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, SplitRequest};
@@ -206,11 +206,11 @@ mod tests {
         r.set_id(10);
         r.set_spacelike_key(brane_spacelike_key);
 
-        let mut ctx = ObserverContext::new(&r);
-        let observer = SplitObserver;
+        let mut ctx = SemaphoreContext::new(&r);
+        let semaphore = SplitSemaphore;
 
         let mut req = new_batch_split_request(vec![key]);
-        observer.pre_propose_admin(&mut ctx, &mut req).unwrap();
+        semaphore.pre_propose_admin(&mut ctx, &mut req).unwrap();
         let expect_key = new_row_key(256, 2, 0);
         let len = expect_key.len();
         assert_eq!(req.get_splits().get_requests().len(), 1);
@@ -225,19 +225,19 @@ mod tests {
         let mut brane = Brane::default();
         let spacelike_key = new_row_key(1, 1, 1);
         brane.set_spacelike_key(spacelike_key.clone());
-        let mut ctx = ObserverContext::new(&brane);
+        let mut ctx = SemaphoreContext::new(&brane);
         let mut req = AdminRequest::default();
 
-        let observer = SplitObserver;
+        let semaphore = SplitSemaphore;
 
-        let resp = observer.pre_propose_admin(&mut ctx, &mut req);
+        let resp = semaphore.pre_propose_admin(&mut ctx, &mut req);
         // since no split is defined, actual interlock won't be invoke.
         assert!(resp.is_ok());
         assert!(!req.has_split(), "only split req should be handle.");
 
         req = new_split_request(b"test");
         // For compatible reason, split should supported too.
-        assert!(observer.pre_propose_admin(&mut ctx, &mut req).is_ok());
+        assert!(semaphore.pre_propose_admin(&mut ctx, &mut req).is_ok());
 
         // Empty key should be skipped.
         let mut split_tuplespaceInstanton = vec![vec![]];
@@ -247,7 +247,7 @@ mod tests {
         req = new_batch_split_request(split_tuplespaceInstanton.clone());
         // Although invalid tuplespaceInstanton should be skipped, but if all tuplespaceInstanton are
         // invalid, errors should be reported.
-        assert!(observer.pre_propose_admin(&mut ctx, &mut req).is_err());
+        assert!(semaphore.pre_propose_admin(&mut ctx, &mut req).is_err());
 
         let mut key = new_row_key(1, 2, 0);
         let mut expected_key = key[..key.len() - 8].to_vec();
@@ -291,7 +291,7 @@ mod tests {
 
         req = new_batch_split_request(split_tuplespaceInstanton);
         req.mut_splits().set_right_derive(true);
-        observer.pre_propose_admin(&mut ctx, &mut req).unwrap();
+        semaphore.pre_propose_admin(&mut ctx, &mut req).unwrap();
         assert!(req.get_splits().get_right_derive());
         assert_eq!(req.get_splits().get_requests().len(), expected_tuplespaceInstanton.len());
         for (i, (req, expected_key)) in req

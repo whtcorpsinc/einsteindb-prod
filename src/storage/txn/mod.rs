@@ -4,7 +4,7 @@
 
 pub mod commands;
 pub mod sched_pool;
-pub mod scheduler;
+pub mod interlock_semaphore;
 
 mod actions;
 
@@ -25,7 +25,7 @@ use std::io::Error as IoError;
 use txn_types::{Key, TimeStamp};
 
 pub use self::commands::{Command, RESOLVE_LOCK_BATCH_SIZE};
-pub use self::scheduler::Scheduler;
+pub use self::interlock_semaphore::Interlock_Semaphore;
 pub use self::store::{
     EntryBatch, FixtureStore, FixtureStoreScanner, Scanner, SnapshotStore, CausetStore, TxnEntry,
     TxnEntryScanner, TxnEntryStore,

@@ -243,7 +243,7 @@ impl Simulator for NodeCluster {
         split_check_worker.spacelike(split_check_runner).unwrap();
         causet_controller.register(
             Module::Interlock,
-            Box::new(SplitCheckConfigManager(split_check_worker.scheduler())),
+            Box::new(SplitCheckConfigManager(split_check_worker.interlock_semaphore())),
         );
 
         let mut violetabftstore_causet = causet.violetabft_store;

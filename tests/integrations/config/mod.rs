@@ -594,9 +594,9 @@ fn test_serde_custom_einsteindb_config() {
         data_dir: "/var".to_owned(),
         gc_ratio_memory_barrier: 1.2,
         max_key_size: 8192,
-        scheduler_concurrency: 123,
-        scheduler_worker_pool_size: 1,
-        scheduler_plightlikeing_write_memory_barrier: ReadableSize::kb(123),
+        interlock_semaphore_concurrency: 123,
+        interlock_semaphore_worker_pool_size: 1,
+        interlock_semaphore_plightlikeing_write_memory_barrier: ReadableSize::kb(123),
         reserve_space: ReadableSize::gb(2),
         enable_async_commit: false,
         block_cache: BlockCacheConfig {
@@ -655,7 +655,7 @@ fn test_serde_custom_einsteindb_config() {
         wake_up_delay_duration: ReadableDuration::millis(100),
         pipelined: true,
     };
-    value.cdc = CdcConfig {
+    value.causet_context = causet_contextConfig {
         min_ts_interval: ReadableDuration::secs(4),
         old_value_cache_size: 512,
     };

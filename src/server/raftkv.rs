@@ -15,7 +15,7 @@ use ekvproto::violetabft_cmdpb::{
     VioletaBftRequestHeader, Request, Response,
 };
 use ekvproto::{errorpb, metapb};
-use txn_types::{Key, TxnExtraScheduler, Value};
+use txn_types::{Key, TxnExtraInterlock_Semaphore, Value};
 
 use super::metrics::*;
 use crate::causetStorage::kv::{
@@ -112,7 +112,7 @@ where
 {
     router: S,
     engine: LmdbEngine,
-    txn_extra_scheduler: Option<Arc<dyn TxnExtraScheduler>>,
+    txn_extra_interlock_semaphore: Option<Arc<dyn TxnExtraInterlock_Semaphore>>,
 }
 
 pub enum CmdRes {
@@ -176,12 +176,12 @@ where
         VioletaBftKv {
             router,
             engine,
-            txn_extra_scheduler: None,
+            txn_extra_interlock_semaphore: None,
         }
     }
 
-    pub fn set_txn_extra_scheduler(&mut self, txn_extra_scheduler: Arc<dyn TxnExtraScheduler>) {
-        self.txn_extra_scheduler = Some(txn_extra_scheduler);
+    pub fn set_txn_extra_interlock_semaphore(&mut self, txn_extra_interlock_semaphore: Arc<dyn TxnExtraInterlock_Semaphore>) {
+        self.txn_extra_interlock_semaphore = Some(txn_extra_interlock_semaphore);
     }
 
     fn new_request_header(&self, ctx: &Context) -> VioletaBftRequestHeader {
@@ -381,7 +381,7 @@ where
         ASYNC_REQUESTS_COUNTER_VEC.write.all.inc();
         let begin_instant = Instant::now_coarse();
 
-        if let Some(tx) = self.txn_extra_scheduler.as_ref() {
+        if let Some(tx) = self.txn_extra_interlock_semaphore.as_ref() {
             if !batch.extra.is_empty() {
                 tx.schedule(batch.extra);
             }

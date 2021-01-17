@@ -19,7 +19,7 @@ pub use self::compact::{Runner as CompactRunner, Task as CompactTask};
 pub use self::consistency_check::{Runner as ConsistencyCheckRunner, Task as ConsistencyCheckTask};
 pub use self::fidel::{FlowStatistics, FlowStatsReporter, Runner as FidelRunner, Task as FidelTask};
 pub use self::violetabftlog_gc::{Runner as VioletaBftlogGcRunner, Task as VioletaBftlogGcTask};
-pub use self::read::{LocalReader, Progress as ReadProgress, ReadDelegate, ReadFreeDaemon};
+pub use self::read::{LocalReader, Progress as ReadProgress, Readpushdown_causet, ReadFreeDaemon};
 pub use self::brane::{Runner as BraneRunner, Task as BraneTask};
 pub use self::split_check::{KeyEntry, Runner as SplitCheckRunner, Task as SplitCheckTask};
 pub use self::split_config::{SplitConfig, SplitConfigManager};

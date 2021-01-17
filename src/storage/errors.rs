@@ -46,7 +46,7 @@ quick_error! {
             display("{}", err)
         }
         SchedTooBusy {
-            display("scheduler is too busy")
+            display("interlock_semaphore is too busy")
         }
         GcWorkerTooBusy {
             display("gc worker is too busy")
@@ -148,7 +148,7 @@ impl Display for ErrorHeaderKind {
     }
 }
 
-const SCHEDULER_IS_BUSY: &str = "scheduler is busy";
+const SCHEDULER_IS_BUSY: &str = "interlock_semaphore is busy";
 const GC_WORKER_IS_BUSY: &str = "gc worker is busy";
 
 pub fn get_error_kind_from_header(header: &errorpb::Error) -> ErrorHeaderKind {

@@ -856,37 +856,37 @@ pub fn must_physical_scan_lock(
     resp.take_locks().into()
 }
 
-pub fn register_lock_observer(client: &EINSTEINDBClient, max_ts: u64) -> RegisterLockObserverResponse {
-    let mut req = RegisterLockObserverRequest::default();
+pub fn register_lock_semaphore(client: &EINSTEINDBClient, max_ts: u64) -> RegisterLockSemaphoreResponse {
+    let mut req = RegisterLockSemaphoreRequest::default();
     req.set_max_ts(max_ts);
-    client.register_lock_observer(&req).unwrap()
+    client.register_lock_semaphore(&req).unwrap()
 }
 
-pub fn must_register_lock_observer(client: &EINSTEINDBClient, max_ts: u64) {
-    let resp = register_lock_observer(client, max_ts);
+pub fn must_register_lock_semaphore(client: &EINSTEINDBClient, max_ts: u64) {
+    let resp = register_lock_semaphore(client, max_ts);
     assert!(resp.get_error().is_empty(), "{:?}", resp.get_error());
 }
 
-pub fn check_lock_observer(client: &EINSTEINDBClient, max_ts: u64) -> CheckLockObserverResponse {
-    let mut req = CheckLockObserverRequest::default();
+pub fn check_lock_semaphore(client: &EINSTEINDBClient, max_ts: u64) -> CheckLockSemaphoreResponse {
+    let mut req = CheckLockSemaphoreRequest::default();
     req.set_max_ts(max_ts);
-    client.check_lock_observer(&req).unwrap()
+    client.check_lock_semaphore(&req).unwrap()
 }
 
-pub fn must_check_lock_observer(client: &EINSTEINDBClient, max_ts: u64, clean: bool) -> Vec<LockInfo> {
-    let mut resp = check_lock_observer(client, max_ts);
+pub fn must_check_lock_semaphore(client: &EINSTEINDBClient, max_ts: u64, clean: bool) -> Vec<LockInfo> {
+    let mut resp = check_lock_semaphore(client, max_ts);
     assert!(resp.get_error().is_empty(), "{:?}", resp.get_error());
     assert_eq!(resp.get_is_clean(), clean);
     resp.take_locks().into()
 }
 
-pub fn remove_lock_observer(client: &EINSTEINDBClient, max_ts: u64) -> RemoveLockObserverResponse {
-    let mut req = RemoveLockObserverRequest::default();
+pub fn remove_lock_semaphore(client: &EINSTEINDBClient, max_ts: u64) -> RemoveLockSemaphoreResponse {
+    let mut req = RemoveLockSemaphoreRequest::default();
     req.set_max_ts(max_ts);
-    client.remove_lock_observer(&req).unwrap()
+    client.remove_lock_semaphore(&req).unwrap()
 }
 
-pub fn must_remove_lock_observer(client: &EINSTEINDBClient, max_ts: u64) {
-    let resp = remove_lock_observer(client, max_ts);
+pub fn must_remove_lock_semaphore(client: &EINSTEINDBClient, max_ts: u64) {
+    let resp = remove_lock_semaphore(client, max_ts);
     assert!(resp.get_error().is_empty(), "{:?}", resp.get_error());
 }

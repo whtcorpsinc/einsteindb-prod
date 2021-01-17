@@ -253,7 +253,7 @@ impl Simulator for ServerCluster {
             &einsteindb::config::CoprReadPoolConfig::default_for_test(),
             store.get_engine(),
         ));
-        let causet = interlock::Endpoint::new(
+        let causet = interlock::node::new(
             &server_causet,
             cop_read_pool.handle(),
             concurrency_manager.clone(),
@@ -262,7 +262,7 @@ impl Simulator for ServerCluster {
         // Create Debug service.
         let debug_thread_pool = Arc::new(
             TokioBuilder::new()
-                .threaded_scheduler()
+                .threaded_interlock_semaphore()
                 .thread_name(thd_name!("debugger"))
                 .core_threads(1)
                 .build()
@@ -332,8 +332,8 @@ impl Simulator for ServerCluster {
             state,
         );
 
-        // Register the role change observer of the dagger manager.
-        lock_mgr.register_detector_role_change_observer(&mut interlock_host);
+        // Register the role change semaphore of the dagger manager.
+        lock_mgr.register_detector_role_change_semaphore(&mut interlock_host);
 
         let pessimistic_txn_causet = causet.pessimistic_txn.clone();
 

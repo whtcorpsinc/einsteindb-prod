@@ -19,8 +19,8 @@ use txn_types::Key;
 use txn_types::{Mutation, TimeStamp};
 
 #[test]
-fn test_scheduler_leader_change_twice() {
-    let snapshot_fp = "scheduler_async_snapshot_finish";
+fn test_interlock_semaphore_leader_change_twice() {
+    let snapshot_fp = "interlock_semaphore_async_snapshot_finish";
     let mut cluster = new_server_cluster(0, 2);
     cluster.run();
     let brane0 = cluster.get_brane(b"");
@@ -205,8 +205,8 @@ fn test_violetabftkv_early_error_report() {
 fn test_pipelined_pessimistic_lock() {
     let rockskv_async_write_fp = "rockskv_async_write";
     let rockskv_write_modifies_fp = "rockskv_write_modifies";
-    let scheduler_async_write_finish_fp = "scheduler_async_write_finish";
-    let scheduler_pipelined_write_finish_fp = "scheduler_pipelined_write_finish";
+    let interlock_semaphore_async_write_finish_fp = "interlock_semaphore_async_write_finish";
+    let interlock_semaphore_pipelined_write_finish_fp = "interlock_semaphore_pipelined_write_finish";
 
     let causetStorage = TestStorageBuilder::new(DummyLockManager {})
         .set_pipelined_pessimistic_lock(true)
@@ -219,7 +219,7 @@ fn test_pipelined_pessimistic_lock() {
     // Even if causetStorage fails to write the dagger to engine, client should
     // receive the successful response.
     fail::causet(rockskv_write_modifies_fp, "return()").unwrap();
-    fail::causet(scheduler_async_write_finish_fp, "pause").unwrap();
+    fail::causet(interlock_semaphore_async_write_finish_fp, "pause").unwrap();
     causetStorage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(vec![(key.clone(), false)], 10, 10, true),
@@ -231,7 +231,7 @@ fn test_pipelined_pessimistic_lock() {
         .unwrap();
     rx.recv().unwrap();
     fail::remove(rockskv_write_modifies_fp);
-    fail::remove(scheduler_async_write_finish_fp);
+    fail::remove(interlock_semaphore_async_write_finish_fp);
     causetStorage
         .sched_txn_command(
             commands::PrewritePessimistic::new(
@@ -269,7 +269,7 @@ fn test_pipelined_pessimistic_lock() {
     fail::remove(rockskv_async_write_fp);
 
     // Shouldn't release latches until async write finished.
-    fail::causet(scheduler_async_write_finish_fp, "pause").unwrap();
+    fail::causet(interlock_semaphore_async_write_finish_fp, "pause").unwrap();
     for blocked in &[false, true] {
         causetStorage
             .sched_txn_command(
@@ -288,12 +288,12 @@ fn test_pipelined_pessimistic_lock() {
             rx.recv_timeout(Duration::from_millis(500)).unwrap_err();
         }
     }
-    fail::remove(scheduler_async_write_finish_fp);
+    fail::remove(interlock_semaphore_async_write_finish_fp);
     rx.recv().unwrap();
     delete_pessimistic_lock(&causetStorage, key.clone(), 40, 40);
 
     // Pipelined write is finished before async write.
-    fail::causet(scheduler_async_write_finish_fp, "pause").unwrap();
+    fail::causet(interlock_semaphore_async_write_finish_fp, "pause").unwrap();
     causetStorage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(vec![(key.clone(), false)], 50, 50, true),
@@ -304,12 +304,12 @@ fn test_pipelined_pessimistic_lock() {
         )
         .unwrap();
     rx.recv().unwrap();
-    fail::remove(scheduler_async_write_finish_fp);
+    fail::remove(interlock_semaphore_async_write_finish_fp);
     delete_pessimistic_lock(&causetStorage, key.clone(), 50, 50);
 
     // Async write is finished before pipelined write due to thread scheduling.
     // CausetStorage should handle it properly.
-    fail::causet(scheduler_pipelined_write_finish_fp, "pause").unwrap();
+    fail::causet(interlock_semaphore_pipelined_write_finish_fp, "pause").unwrap();
     causetStorage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(
@@ -325,7 +325,7 @@ fn test_pipelined_pessimistic_lock() {
         )
         .unwrap();
     rx.recv().unwrap();
-    fail::remove(scheduler_pipelined_write_finish_fp);
+    fail::remove(interlock_semaphore_pipelined_write_finish_fp);
     delete_pessimistic_lock(&causetStorage, key, 60, 60);
 }
 

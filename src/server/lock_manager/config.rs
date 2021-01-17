@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use super::deadlock::Scheduler as DeadlockScheduler;
-use super::waiter_manager::Scheduler as WaiterMgrScheduler;
+use super::deadlock::Interlock_Semaphore as DeadlockInterlock_Semaphore;
+use super::waiter_manager::Interlock_Semaphore as WaiterMgrInterlock_Semaphore;
 use configuration::{ConfigChange, ConfigManager, Configuration};
 use serde::de::{Deserialize, Deserializer, IntoDeserializer};
 
@@ -61,18 +61,18 @@ impl Config {
 }
 
 pub struct LockManagerConfigManager {
-    pub waiter_mgr_scheduler: WaiterMgrScheduler,
-    pub detector_scheduler: DeadlockScheduler,
+    pub waiter_mgr_interlock_semaphore: WaiterMgrInterlock_Semaphore,
+    pub detector_interlock_semaphore: DeadlockInterlock_Semaphore,
 }
 
 impl LockManagerConfigManager {
     pub fn new(
-        waiter_mgr_scheduler: WaiterMgrScheduler,
-        detector_scheduler: DeadlockScheduler,
+        waiter_mgr_interlock_semaphore: WaiterMgrInterlock_Semaphore,
+        detector_interlock_semaphore: DeadlockInterlock_Semaphore,
     ) -> Self {
         LockManagerConfigManager {
-            waiter_mgr_scheduler,
-            detector_scheduler,
+            waiter_mgr_interlock_semaphore,
+            detector_interlock_semaphore,
         }
     }
 }
@@ -84,10 +84,10 @@ impl ConfigManager for LockManagerConfigManager {
             change.remove("wake_up_delay_duration").map(Into::into),
         ) {
             (timeout @ Some(_), delay) => {
-                self.waiter_mgr_scheduler.change_config(timeout, delay);
-                self.detector_scheduler.change_ttl(timeout.unwrap().into());
+                self.waiter_mgr_interlock_semaphore.change_config(timeout, delay);
+                self.detector_interlock_semaphore.change_ttl(timeout.unwrap().into());
             }
-            (None, delay @ Some(_)) => self.waiter_mgr_scheduler.change_config(None, delay),
+            (None, delay @ Some(_)) => self.waiter_mgr_interlock_semaphore.change_config(None, delay),
             (None, None) => {}
         };
         Ok(())

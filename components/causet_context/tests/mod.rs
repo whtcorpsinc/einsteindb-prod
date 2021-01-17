@@ -11,19 +11,19 @@ use futures::executor::block_on;
 use futures::StreamExt;
 use grpcio::{ChannelBuilder, Environment};
 use grpcio::{ClientDuplexReceiver, ClientDuplexSlightlikeer, ClientUnaryReceiver};
-use ekvproto::cdcpb::{create_change_data, ChangeDataClient, ChangeDataEvent, ChangeDataRequest};
+use ekvproto::causet_contextpb::{create_change_data, ChangeDataClient, ChangeDataEvent, ChangeDataRequest};
 use ekvproto::kvrpcpb::*;
 use ekvproto::einsteindbpb::EINSTEINDBClient;
 use violetabftstore::interlock::InterlockHost;
 use security::*;
 use test_violetabftstore::*;
-use einsteindb::config::CdcConfig;
+use einsteindb::config::causet_contextConfig;
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::worker::Worker;
 use einsteindb_util::HandyRwLock;
 use txn_types::TimeStamp;
 
-use cdc::{CdcObserver, Task};
+use causet_context::{causet_contextSemaphore, Task};
 static INIT: Once = Once::new();
 
 pub fn init() {
@@ -60,9 +60,9 @@ pub fn new_event_feed(
 pub struct TestSuite {
     pub cluster: Cluster<ServerCluster>,
     pub lightlikepoints: HashMap<u64, Worker<Task>>,
-    pub obs: HashMap<u64, CdcObserver>,
+    pub obs: HashMap<u64, causet_contextSemaphore>,
     einsteindb_cli: HashMap<u64, EINSTEINDBClient>,
-    cdc_cli: HashMap<u64, ChangeDataClient>,
+    causet_context_cli: HashMap<u64, ChangeDataClient>,
     concurrency_managers: HashMap<u64, ConcurrencyManager>,
 
     env: Arc<Environment>,
@@ -84,25 +84,25 @@ impl TestSuite {
         let mut concurrency_managers = HashMap::default();
         // Hack! node id are generated from 1..count+1.
         for id in 1..=count as u64 {
-            // Create and run cdc lightlikepoints.
-            let worker = Worker::new(format!("cdc-{}", id));
+            // Create and run causet_context lightlikepoints.
+            let worker = Worker::new(format!("causet_context-{}", id));
             let mut sim = cluster.sim.wl();
 
-            // Register cdc service to gRPC server.
+            // Register causet_context service to gRPC server.
             let security_mgr = Arc::new(SecurityManager::new(&SecurityConfig::default()).unwrap());
-            let scheduler = worker.scheduler();
+            let interlock_semaphore = worker.interlock_semaphore();
             sim.plightlikeing_services
                 .entry(id)
                 .or_default()
                 .push(Box::new(move || {
-                    create_change_data(cdc::Service::new(scheduler.clone(), security_mgr.clone()))
+                    create_change_data(causet_context::Service::new(interlock_semaphore.clone(), security_mgr.clone()))
                 }));
-            let scheduler = worker.scheduler();
-            let cdc_ob = cdc::CdcObserver::new(scheduler.clone());
-            obs.insert(id, cdc_ob.clone());
+            let interlock_semaphore = worker.interlock_semaphore();
+            let causet_context_ob = causet_context::causet_contextSemaphore::new(interlock_semaphore.clone());
+            obs.insert(id, causet_context_ob.clone());
             sim.interlock_hooks.entry(id).or_default().push(Box::new(
                 move |host: &mut InterlockHost<LmdbEngine>| {
-                    cdc_ob.register_to(host);
+                    causet_context_ob.register_to(host);
                 },
             ));
             lightlikepoints.insert(id, worker);
@@ -112,21 +112,21 @@ impl TestSuite {
         for (id, worker) in &mut lightlikepoints {
             let sim = cluster.sim.wl();
             let violetabft_router = sim.get_server_router(*id);
-            let cdc_ob = obs.get(&id).unwrap().clone();
+            let causet_context_ob = obs.get(&id).unwrap().clone();
             let cm = ConcurrencyManager::new(1.into());
-            let mut cdc_lightlikepoint = cdc::Endpoint::new(
-                &CdcConfig::default(),
+            let mut causet_context_lightlikepoint = causet_context::node::new(
+                &causet_contextConfig::default(),
                 fidel_cli.clone(),
-                worker.scheduler(),
+                worker.interlock_semaphore(),
                 violetabft_router,
-                cdc_ob,
+                causet_context_ob,
                 cluster.store_metas[id].clone(),
                 cm.clone(),
             );
-            cdc_lightlikepoint.set_min_ts_interval(Duration::from_millis(100));
-            cdc_lightlikepoint.set_scan_batch_size(2);
+            causet_context_lightlikepoint.set_min_ts_interval(Duration::from_millis(100));
+            causet_context_lightlikepoint.set_scan_batch_size(2);
             concurrency_managers.insert(*id, cm);
-            worker.spacelike(cdc_lightlikepoint).unwrap();
+            worker.spacelike(causet_context_lightlikepoint).unwrap();
         }
 
         TestSuite {
@@ -136,7 +136,7 @@ impl TestSuite {
             concurrency_managers,
             env: Arc::new(Environment::new(1)),
             einsteindb_cli: HashMap::default(),
-            cdc_cli: HashMap::default(),
+            causet_context_cli: HashMap::default(),
         }
     }
 
@@ -154,7 +154,7 @@ impl TestSuite {
         // Assume batch resolved ts will be release in v4.0.7
         // For easy of testing (nightly CI), we lower the gate to v4.0.6
         // TODO bump the version when cherry pick to release branch.
-        req.mut_header().set_ticdc_version("4.0.6".into());
+        req.mut_header().set_ticauset_context_version("4.0.6".into());
         req
     }
 
@@ -272,12 +272,12 @@ impl TestSuite {
             })
     }
 
-    pub fn get_brane_cdc_client(&mut self, brane_id: u64) -> &ChangeDataClient {
+    pub fn get_brane_causet_context_client(&mut self, brane_id: u64) -> &ChangeDataClient {
         let leader = self.cluster.leader_of_brane(brane_id).unwrap();
         let store_id = leader.get_store_id();
         let addr = self.cluster.sim.rl().get_addr(store_id).to_owned();
         let env = self.env.clone();
-        self.cdc_cli.entry(store_id).or_insert_with(|| {
+        self.causet_context_cli.entry(store_id).or_insert_with(|| {
             let channel = ChannelBuilder::new(env)
                 .max_receive_message_len(std::i32::MAX)
                 .connect(&addr);
@@ -285,10 +285,10 @@ impl TestSuite {
         })
     }
 
-    pub fn get_store_cdc_client(&mut self, store_id: u64) -> &ChangeDataClient {
+    pub fn get_store_causet_context_client(&mut self, store_id: u64) -> &ChangeDataClient {
         let addr = self.cluster.sim.rl().get_addr(store_id).to_owned();
         let env = self.env.clone();
-        self.cdc_cli.entry(store_id).or_insert_with(|| {
+        self.causet_context_cli.entry(store_id).or_insert_with(|| {
             let channel = ChannelBuilder::new(env).connect(&addr);
             ChangeDataClient::new(channel)
         })

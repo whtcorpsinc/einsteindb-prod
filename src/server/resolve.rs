@@ -11,7 +11,7 @@ use fidel_client::{take_peer_address, FidelClient};
 use violetabftstore::router::VioletaBftStoreRouter;
 use violetabftstore::store::GlobalReplicationState;
 use einsteindb_util::collections::HashMap;
-use einsteindb_util::worker::{Runnable, Scheduler, Worker};
+use einsteindb_util::worker::{Runnable, Interlock_Semaphore, Worker};
 
 use super::metrics::*;
 use super::Result;
@@ -128,11 +128,11 @@ where
 /// A store address resolver which is backed by a `FIDelClient`.
 #[derive(Clone)]
 pub struct FidelStoreAddrResolver {
-    sched: Scheduler<Task>,
+    sched: Interlock_Semaphore<Task>,
 }
 
 impl FidelStoreAddrResolver {
-    pub fn new(sched: Scheduler<Task>) -> FidelStoreAddrResolver {
+    pub fn new(sched: Interlock_Semaphore<Task>) -> FidelStoreAddrResolver {
         FidelStoreAddrResolver { sched }
     }
 }
@@ -159,7 +159,7 @@ where
         router,
     };
     box_try!(worker.spacelike(runner));
-    let resolver = FidelStoreAddrResolver::new(worker.scheduler());
+    let resolver = FidelStoreAddrResolver::new(worker.interlock_semaphore());
     Ok((worker, resolver, state))
 }
 

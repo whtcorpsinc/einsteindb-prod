@@ -9,7 +9,7 @@
 //! Notice that Interlock handles more than simple SQL query executors (DAG request). It also
 //! handles analyzing requests and checksum requests.
 //!
-//! The entry point of handling all interlock requests is `Endpoint`. Common steps are:
+//! The entry point of handling all interlock requests is `node`. Common steps are:
 //! 1. Parse the request into a DAG request, Checksum request or Analyze request.
 //! 2. Retrieve a snapshot from the underlying engine according to the given timestamp.
 //! 3. Build corresponding request handlers from the snapshot and request detail.
@@ -17,7 +17,7 @@
 //!    on a future thread pool.
 //! 5. Return handling result as a response.
 //!
-//! Please refer to `Endpoint` for more details.
+//! Please refer to `node` for more details.
 
 mod cache;
 mod checksum;
@@ -30,7 +30,7 @@ pub mod readpool_impl;
 mod statistics;
 mod tracker;
 
-pub use self::lightlikepoint::Endpoint;
+pub use self::lightlikepoint::node;
 pub use self::error::{Error, Result};
 pub use checksum::checksum_crc64_xor;
 

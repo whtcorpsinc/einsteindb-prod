@@ -13,7 +13,7 @@ use violetabftstore::interlock::{
 };
 use violetabftstore::store::{SplitCheckRunner as Runner, SplitCheckTask as Task};
 use einsteindb::config::{ConfigController, Module, EINSTEINDBConfig};
-use einsteindb_util::worker::{Scheduler, Worker};
+use einsteindb_util::worker::{Interlock_Semaphore, Worker};
 
 fn tmp_engine<P: AsRef<Path>>(path: P) -> Arc<DB> {
     Arc::new(
@@ -41,18 +41,18 @@ fn setup(causet: EINSTEINDBConfig, engine: Arc<DB>) -> (ConfigController, Worker
     let causet_controller = ConfigController::new(causet);
     causet_controller.register(
         Module::Interlock,
-        Box::new(SplitCheckConfigManager(worker.scheduler())),
+        Box::new(SplitCheckConfigManager(worker.interlock_semaphore())),
     );
 
     (causet_controller, worker)
 }
 
-fn validate<F>(scheduler: &Scheduler<Task>, f: F)
+fn validate<F>(interlock_semaphore: &Interlock_Semaphore<Task>, f: F)
 where
     F: FnOnce(&Config) + Slightlike + 'static,
 {
     let (tx, rx) = mpsc::channel();
-    scheduler
+    interlock_semaphore
         .schedule(Task::Validate(Box::new(move |causet: &Config| {
             f(causet);
             tx.slightlike(()).unwrap();
@@ -67,14 +67,14 @@ fn test_ufidelate_split_check_config() {
     causet.validate().unwrap();
     let engine = tmp_engine(&causet.causetStorage.data_dir);
     let (causet_controller, mut worker) = setup(causet.clone(), engine);
-    let scheduler = worker.scheduler();
+    let interlock_semaphore = worker.interlock_semaphore();
 
     let cop_config = causet.interlock.clone();
     // ufidelate of other module's config should not effect split check config
     causet_controller
         .ufidelate_config("violetabftstore.violetabft-log-gc-memory_barrier", "2000")
         .unwrap();
-    validate(&scheduler, move |causet: &Config| {
+    validate(&interlock_semaphore, move |causet: &Config| {
         assert_eq!(causet, &cop_config);
     });
 
@@ -101,7 +101,7 @@ fn test_ufidelate_split_check_config() {
         cop_config.brane_split_tuplespaceInstanton = 12345;
         cop_config
     };
-    validate(&scheduler, move |causet: &Config| {
+    validate(&interlock_semaphore, move |causet: &Config| {
         assert_eq!(causet, &cop_config);
     });
 

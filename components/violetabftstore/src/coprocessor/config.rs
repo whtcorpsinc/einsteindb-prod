@@ -5,7 +5,7 @@ use crate::store::SplitCheckTask;
 
 use configuration::{ConfigChange, ConfigManager, Configuration};
 use einsteindb_util::config::ReadableSize;
-use einsteindb_util::worker::Scheduler;
+use einsteindb_util::worker::Interlock_Semaphore;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Configuration)]
 #[serde(default)]
@@ -89,7 +89,7 @@ impl Config {
     }
 }
 
-pub struct SplitCheckConfigManager(pub Scheduler<SplitCheckTask>);
+pub struct SplitCheckConfigManager(pub Interlock_Semaphore<SplitCheckTask>);
 
 impl ConfigManager for SplitCheckConfigManager {
     fn dispatch(
@@ -102,7 +102,7 @@ impl ConfigManager for SplitCheckConfigManager {
 }
 
 impl std::ops::Deref for SplitCheckConfigManager {
-    type Target = Scheduler<SplitCheckTask>;
+    type Target = Interlock_Semaphore<SplitCheckTask>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

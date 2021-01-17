@@ -381,7 +381,7 @@ fn test_batch_id_in_lease<T: Simulator>(cluster: &mut Cluster<T>) {
 }
 
 /// test whether the read index callback will be handled when a brane is destroyed.
-/// If it's not handled properly, it will cause dead dagger in transaction scheduler.
+/// If it's not handled properly, it will cause dead dagger in transaction interlock_semaphore.
 #[test]
 fn test_node_callback_when_destroyed() {
     let count = 3;

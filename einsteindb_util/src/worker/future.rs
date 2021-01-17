@@ -39,22 +39,22 @@ pub trait Runnable<T: Display> {
     fn shutdown(&mut self) {}
 }
 
-/// Scheduler provides interface to schedule task to underlying workers.
-pub struct Scheduler<T> {
+/// Interlock_Semaphore provides interface to schedule task to underlying workers.
+pub struct Interlock_Semaphore<T> {
     name: Arc<String>,
     slightlikeer: UnboundedSlightlikeer<Option<T>>,
     metrics_plightlikeing_task_count: IntGauge,
 }
 
-pub fn dummy_scheduler<T: Display>() -> Scheduler<T> {
+pub fn dummy_interlock_semaphore<T: Display>() -> Interlock_Semaphore<T> {
     let (tx, _) = unbounded();
-    Scheduler::new("dummy future scheduler".to_owned(), tx)
+    Interlock_Semaphore::new("dummy future interlock_semaphore".to_owned(), tx)
 }
 
-impl<T: Display> Scheduler<T> {
-    fn new<S: Into<String>>(name: S, slightlikeer: UnboundedSlightlikeer<Option<T>>) -> Scheduler<T> {
+impl<T: Display> Interlock_Semaphore<T> {
+    fn new<S: Into<String>>(name: S, slightlikeer: UnboundedSlightlikeer<Option<T>>) -> Interlock_Semaphore<T> {
         let name = name.into();
-        Scheduler {
+        Interlock_Semaphore {
             metrics_plightlikeing_task_count: WORKER_PENDING_TASK_VEC.with_label_values(&[&name]),
             name: Arc::new(name),
             slightlikeer,
@@ -74,9 +74,9 @@ impl<T: Display> Scheduler<T> {
     }
 }
 
-impl<T: Display> Clone for Scheduler<T> {
-    fn clone(&self) -> Scheduler<T> {
-        Scheduler {
+impl<T: Display> Clone for Interlock_Semaphore<T> {
+    fn clone(&self) -> Interlock_Semaphore<T> {
+        Interlock_Semaphore {
             name: Arc::clone(&self.name),
             slightlikeer: self.slightlikeer.clone(),
             metrics_plightlikeing_task_count: self.metrics_plightlikeing_task_count.clone(),
@@ -86,7 +86,7 @@ impl<T: Display> Clone for Scheduler<T> {
 
 /// A worker that can schedule time consuming tasks.
 pub struct Worker<T: Display> {
-    scheduler: Scheduler<T>,
+    interlock_semaphore: Interlock_Semaphore<T>,
     receiver: Mutex<Option<UnboundedReceiver<Option<T>>>>,
     handle: Option<JoinHandle<()>>,
 }
@@ -128,7 +128,7 @@ impl<T: Display + Slightlike + 'static> Worker<T> {
     pub fn new<S: Into<String>>(name: S) -> Worker<T> {
         let (tx, rx) = unbounded();
         Worker {
-            scheduler: Scheduler::new(name, tx),
+            interlock_semaphore: Interlock_Semaphore::new(name, tx),
             receiver: Mutex::new(Some(rx)),
             handle: None,
         }
@@ -140,31 +140,31 @@ impl<T: Display + Slightlike + 'static> Worker<T> {
         R: Runnable<T> + Slightlike + 'static,
     {
         let mut receiver = self.receiver.dagger().unwrap();
-        info!("spacelikeing working thread"; "worker" => &self.scheduler.name);
+        info!("spacelikeing working thread"; "worker" => &self.interlock_semaphore.name);
         if receiver.is_none() {
-            warn!("worker has been spacelikeed"; "worker" => &self.scheduler.name);
+            warn!("worker has been spacelikeed"; "worker" => &self.interlock_semaphore.name);
             return Ok(());
         }
 
         let rx = receiver.take().unwrap();
         let h = Builder::new()
-            .name(thd_name!(self.scheduler.name.as_ref()))
+            .name(thd_name!(self.interlock_semaphore.name.as_ref()))
             .spawn(move || poll(runner, rx))?;
 
         self.handle = Some(h);
         Ok(())
     }
 
-    /// Gets a scheduler to schedule the task.
-    pub fn scheduler(&self) -> Scheduler<T> {
-        self.scheduler.clone()
+    /// Gets a interlock_semaphore to schedule the task.
+    pub fn interlock_semaphore(&self) -> Interlock_Semaphore<T> {
+        self.interlock_semaphore.clone()
     }
 
     /// Schedules a task to run.
     ///
     /// If the worker is stopped, an error will return.
     pub fn schedule(&self, task: T) -> Result<(), Stopped<T>> {
-        self.scheduler.schedule(task)
+        self.interlock_semaphore.schedule(task)
     }
 
     /// Checks if underlying worker can't handle task immediately.
@@ -173,15 +173,15 @@ impl<T: Display + Slightlike + 'static> Worker<T> {
     }
 
     pub fn name(&self) -> &str {
-        self.scheduler.name.as_str()
+        self.interlock_semaphore.name.as_str()
     }
 
     /// Stops the worker thread.
     pub fn stop(&mut self) -> Option<thread::JoinHandle<()>> {
         // close slightlikeer explicitly so the background thread will exit.
-        info!("stoping worker"; "worker" => &self.scheduler.name);
+        info!("stoping worker"; "worker" => &self.interlock_semaphore.name);
         let handle = self.handle.take()?;
-        if let Err(e) = self.scheduler.slightlikeer.unbounded_slightlike(None) {
+        if let Err(e) = self.interlock_semaphore.slightlikeer.unbounded_slightlike(None) {
             warn!("failed to stop worker thread"; "err" => ?e);
         }
 

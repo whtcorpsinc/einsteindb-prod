@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 
 use super::super::error::Result;
 use super::super::metrics::*;
-use super::super::{Interlock, KeyEntry, ObserverContext, SplitCheckObserver, SplitChecker};
+use super::super::{Interlock, KeyEntry, SemaphoreContext, SplitCheckSemaphore, SplitChecker};
 use super::Host;
 
 pub struct Checker {
@@ -44,7 +44,7 @@ impl<E> SplitChecker<E> for Checker
 where
     E: KvEngine,
 {
-    fn on_kv(&mut self, _: &mut ObserverContext<'_>, key: &KeyEntry) -> bool {
+    fn on_kv(&mut self, _: &mut SemaphoreContext<'_>, key: &KeyEntry) -> bool {
         if !key.is_commit_version() {
             return false;
         }
@@ -83,32 +83,32 @@ where
 }
 
 #[derive(Clone)]
-pub struct TuplespaceInstantonCheckObserver<C, E> {
+pub struct TuplespaceInstantonCheckSemaphore<C, E> {
     router: Arc<Mutex<C>>,
     _phantom: PhantomData<E>,
 }
 
-impl<C: CasualRouter<E>, E> TuplespaceInstantonCheckObserver<C, E>
+impl<C: CasualRouter<E>, E> TuplespaceInstantonCheckSemaphore<C, E>
 where
     E: KvEngine,
 {
-    pub fn new(router: C) -> TuplespaceInstantonCheckObserver<C, E> {
-        TuplespaceInstantonCheckObserver {
+    pub fn new(router: C) -> TuplespaceInstantonCheckSemaphore<C, E> {
+        TuplespaceInstantonCheckSemaphore {
             router: Arc::new(Mutex::new(router)),
             _phantom: PhantomData,
         }
     }
 }
 
-impl<C: Slightlike, E: Slightlike> Interlock for TuplespaceInstantonCheckObserver<C, E> {}
+impl<C: Slightlike, E: Slightlike> Interlock for TuplespaceInstantonCheckSemaphore<C, E> {}
 
-impl<C: CasualRouter<E> + Slightlike, E> SplitCheckObserver<E> for TuplespaceInstantonCheckObserver<C, E>
+impl<C: CasualRouter<E> + Slightlike, E> SplitCheckSemaphore<E> for TuplespaceInstantonCheckSemaphore<C, E>
 where
     E: KvEngine,
 {
     fn add_checker(
         &self,
-        ctx: &mut ObserverContext<'_>,
+        ctx: &mut SemaphoreContext<'_>,
         host: &mut Host<'_, E>,
         engine: &E,
         policy: CheckPolicy,

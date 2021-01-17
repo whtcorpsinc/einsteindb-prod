@@ -10,7 +10,7 @@ use einsteindb::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as 
 use einsteindb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
 use txn_types::Error as TxnTypesError;
 
-/// The error type for cdc.
+/// The error type for causet_context.
 #[derive(Debug, Fail)]
 pub enum Error {
     #[fail(display = "Other error {}", _0)]

@@ -64,7 +64,7 @@ use crate::causetStorage::{metrics, Result as StorageResult, Snapshot, Statistic
 use concurrency_manager::{ConcurrencyManager, KeyHandleGuard};
 use einsteindb_util::collections::HashMap;
 
-/// CausetStore Transaction scheduler commands.
+/// CausetStore Transaction interlock_semaphore commands.
 ///
 /// Learn more about our transaction system at
 /// [Deep Dive EinsteinDB: Distributed bundles](https://einsteindb.org/docs/deep-dive/distributed-transaction/introduction/)

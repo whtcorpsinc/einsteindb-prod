@@ -7,7 +7,7 @@ use ekvproto::kvrpcpb::Context;
 
 use milevadb_query_datatype::codec::Datum;
 use einsteindb::config::CoprReadPoolConfig;
-use einsteindb::interlock::{readpool_impl, Endpoint};
+use einsteindb::interlock::{readpool_impl, node};
 use einsteindb::read_pool::ReadPool;
 use einsteindb::server::Config;
 use einsteindb::causetStorage::kv::LmdbEngine;
@@ -54,7 +54,7 @@ pub fn init_data_with_engine_and_commit<E: Engine>(
     tbl: &ProductBlock,
     vals: &[(i64, Option<&str>, i64)],
     commit: bool,
-) -> (CausetStore<E>, Endpoint<E>) {
+) -> (CausetStore<E>, node<E>) {
     init_data_with_details(ctx, engine, tbl, vals, commit, &Config::default())
 }
 
@@ -65,7 +65,7 @@ pub fn init_data_with_details<E: Engine>(
     vals: &[(i64, Option<&str>, i64)],
     commit: bool,
     causet: &Config,
-) -> (CausetStore<E>, Endpoint<E>) {
+) -> (CausetStore<E>, node<E>) {
     let mut store = CausetStore::from_engine(engine);
 
     store.begin();
@@ -86,7 +86,7 @@ pub fn init_data_with_details<E: Engine>(
         store.get_engine(),
     ));
     let cm = ConcurrencyManager::new(1.into());
-    let causet = Endpoint::new(causet, pool.handle(), cm);
+    let causet = node::new(causet, pool.handle(), cm);
     (store, causet)
 }
 
@@ -94,7 +94,7 @@ pub fn init_data_with_commit(
     tbl: &ProductBlock,
     vals: &[(i64, Option<&str>, i64)],
     commit: bool,
-) -> (CausetStore<LmdbEngine>, Endpoint<LmdbEngine>) {
+) -> (CausetStore<LmdbEngine>, node<LmdbEngine>) {
     let engine = TestEngineBuilder::new().build().unwrap();
     init_data_with_engine_and_commit(Context::default(), engine, tbl, vals, commit)
 }
@@ -103,6 +103,6 @@ pub fn init_data_with_commit(
 pub fn init_with_data(
     tbl: &ProductBlock,
     vals: &[(i64, Option<&str>, i64)],
-) -> (CausetStore<LmdbEngine>, Endpoint<LmdbEngine>) {
+) -> (CausetStore<LmdbEngine>, node<LmdbEngine>) {
     init_data_with_commit(tbl, vals, true)
 }

@@ -26,7 +26,7 @@ use einsteindb_util::collections::{HashMap, HashSet};
 use einsteindb_util::future_pool::ThreadPool;
 use einsteindb_util::lru::LruCache;
 use einsteindb_util::timer::GLOBAL_TIMER_HANDLE;
-use einsteindb_util::worker::Scheduler;
+use einsteindb_util::worker::Interlock_Semaphore;
 
 // When merge violetabft messages into a batch message, leave a buffer.
 const GRPC_SEND_MSG_BUF: usize = 64 * 1024;
@@ -335,7 +335,7 @@ struct VioletaBftCall<R, M, B> {
     queue: Arc<Queue>,
     buffer: B,
     router: R,
-    snap_scheduler: Scheduler<SnapTask>,
+    snap_interlock_semaphore: Interlock_Semaphore<SnapTask>,
     lifetime: Option<futures03::channel::oneshot::Slightlikeer<()>>,
     store_id: u64,
     addr: String,
@@ -368,7 +368,7 @@ where
                 rep.report(SnapshotStatus::Finish);
             }
         });
-        if let Err(e) = self.snap_scheduler.schedule(SnapTask::Slightlike {
+        if let Err(e) = self.snap_interlock_semaphore.schedule(SnapTask::Slightlike {
             addr: self.addr.clone(),
             msg,
             cb,
@@ -468,7 +468,7 @@ pub struct ConnectionBuilder<S, R> {
     security_mgr: Arc<SecurityManager>,
     resolver: S,
     router: R,
-    snap_scheduler: Scheduler<SnapTask>,
+    snap_interlock_semaphore: Interlock_Semaphore<SnapTask>,
 }
 
 impl<S, R> ConnectionBuilder<S, R> {
@@ -479,7 +479,7 @@ impl<S, R> ConnectionBuilder<S, R> {
         security_mgr: Arc<SecurityManager>,
         resolver: S,
         router: R,
-        snap_scheduler: Scheduler<SnapTask>,
+        snap_interlock_semaphore: Interlock_Semaphore<SnapTask>,
     ) -> ConnectionBuilder<S, R> {
         ConnectionBuilder {
             env,
@@ -487,7 +487,7 @@ impl<S, R> ConnectionBuilder<S, R> {
             security_mgr,
             resolver,
             router,
-            snap_scheduler,
+            snap_interlock_semaphore,
         }
     }
 }
@@ -579,7 +579,7 @@ where
             queue: self.queue.clone(),
             buffer: BatchMessageBuffer::new(self.builder.causet.clone()),
             router: self.builder.router.clone(),
-            snap_scheduler: self.builder.snap_scheduler.clone(),
+            snap_interlock_semaphore: self.builder.snap_interlock_semaphore.clone(),
             lifetime: Some(tx),
             store_id: self.store_id,
             addr,
@@ -597,7 +597,7 @@ where
             queue: self.queue.clone(),
             buffer: MessageBuffer::new(),
             router: self.builder.router.clone(),
-            snap_scheduler: self.builder.snap_scheduler.clone(),
+            snap_interlock_semaphore: self.builder.snap_interlock_semaphore.clone(),
             lifetime: Some(tx),
             store_id: self.store_id,
             addr,

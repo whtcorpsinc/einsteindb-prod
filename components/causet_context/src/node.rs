@@ -11,8 +11,8 @@ use crossbeam::atomic::AtomicCell;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
 use futures::compat::Future01CompatExt;
 #[causet(feature = "prost-codec")]
-use ekvproto::cdcpb::event::Event as Event_oneof_event;
-use ekvproto::cdcpb::*;
+use ekvproto::causet_contextpb::event::Event as Event_oneof_event;
+use ekvproto::causet_contextpb::*;
 use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
 use ekvproto::metapb::Brane;
 use fidel_client::FidelClient;
@@ -21,7 +21,7 @@ use violetabftstore::router::VioletaBftStoreRouter;
 use violetabftstore::store::fsm::{ChangeCmd, ObserveID, StoreMeta};
 use violetabftstore::store::msg::{Callback, ReadResponse, SignificantMsg};
 use resolved_ts::Resolver;
-use einsteindb::config::CdcConfig;
+use einsteindb::config::causet_contextConfig;
 use einsteindb::causetStorage::kv::Snapshot;
 use einsteindb::causetStorage::tail_pointer::{DeltaScanner, ScannerBuilder};
 use einsteindb::causetStorage::txn::TxnEntry;
@@ -30,16 +30,16 @@ use einsteindb_util::collections::HashMap;
 use einsteindb_util::lru::LruCache;
 use einsteindb_util::time::Instant;
 use einsteindb_util::timer::{SteadyTimer, Timer};
-use einsteindb_util::worker::{Runnable, RunnableWithTimer, ScheduleError, Scheduler};
+use einsteindb_util::worker::{Runnable, RunnableWithTimer, ScheduleError, Interlock_Semaphore};
 use tokio::runtime::{Builder, Runtime};
 use txn_types::{
-    Key, Dagger, LockType, MutationType, OldValue, TimeStamp, TxnExtra, TxnExtraScheduler,
+    Key, Dagger, LockType, MutationType, OldValue, TimeStamp, TxnExtra, TxnExtraInterlock_Semaphore,
 };
 
-use crate::delegate::{Delegate, Downstream, DownstreamID, DownstreamState};
+use crate::pushdown_causet::{pushdown_causet, Downstream, DownstreamID, DownstreamState};
 use crate::metrics::*;
-use crate::service::{CdcEvent, Conn, ConnID, FeatureGate};
-use crate::{CdcObserver, Error, Result};
+use crate::service::{causet_contextEvent, Conn, ConnID, FeatureGate};
+use crate::{causet_contextSemaphore, Error, Result};
 
 pub enum Deregister {
     Downstream {
@@ -146,7 +146,7 @@ pub enum Task {
         entries: Vec<Option<TxnEntry>>,
     },
     RegisterMinTsEvent,
-    // The result of ChangeCmd should be returned from CDC Endpoint to ensure
+    // The result of ChangeCmd should be returned from causet_context node to ensure
     // the downstream switches to Normal after the previous commands was sunk.
     InitDownstream {
         downstream_id: DownstreamID,
@@ -154,7 +154,7 @@ pub enum Task {
         cb: InitCallback,
     },
     TxnExtra(TxnExtra),
-    Validate(u64, Box<dyn FnOnce(Option<&Delegate>) + Slightlike>),
+    Validate(u64, Box<dyn FnOnce(Option<&pushdown_causet>) + Slightlike>),
 }
 
 impl fmt::Display for Task {
@@ -165,7 +165,7 @@ impl fmt::Display for Task {
 
 impl fmt::Debug for Task {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut de = f.debug_struct("CdcTask");
+        let mut de = f.debug_struct("causet_contextTask");
         match self {
             Task::Register {
                 ref request,
@@ -230,12 +230,12 @@ impl fmt::Debug for Task {
 
 const METRICS_FLUSH_INTERVAL: u64 = 10_000; // 10s
 
-pub struct Endpoint<T> {
-    capture_branes: HashMap<u64, Delegate>,
+pub struct node<T> {
+    capture_branes: HashMap<u64, pushdown_causet>,
     connections: HashMap<ConnID, Conn>,
-    scheduler: Scheduler<Task>,
+    interlock_semaphore: Interlock_Semaphore<Task>,
     violetabft_router: T,
-    observer: CdcObserver,
+    semaphore: causet_contextSemaphore,
 
     fidel_client: Arc<dyn FidelClient>,
     timer: SteadyTimer,
@@ -243,7 +243,7 @@ pub struct Endpoint<T> {
     scan_batch_size: usize,
     tso_worker: Runtime,
     store_meta: Arc<Mutex<StoreMeta>>,
-    /// The concurrency manager for bundles. It's needed for CDC to check locks when
+    /// The concurrency manager for bundles. It's needed for causet_context to check locks when
     /// calculating resolved_ts.
     concurrency_manager: ConcurrencyManager,
 
@@ -254,38 +254,38 @@ pub struct Endpoint<T> {
     old_value_cache: OldValueCache,
 }
 
-impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
+impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
     pub fn new(
-        causet: &CdcConfig,
+        causet: &causet_contextConfig,
         fidel_client: Arc<dyn FidelClient>,
-        scheduler: Scheduler<Task>,
+        interlock_semaphore: Interlock_Semaphore<Task>,
         violetabft_router: T,
-        observer: CdcObserver,
+        semaphore: causet_contextSemaphore,
         store_meta: Arc<Mutex<StoreMeta>>,
         concurrency_manager: ConcurrencyManager,
-    ) -> Endpoint<T> {
+    ) -> node<T> {
         let workers = Builder::new()
-            .threaded_scheduler()
-            .thread_name("cdcwkr")
+            .threaded_interlock_semaphore()
+            .thread_name("causet_contextwkr")
             .core_threads(4)
             .build()
             .unwrap();
         let tso_worker = Builder::new()
-            .threaded_scheduler()
+            .threaded_interlock_semaphore()
             .thread_name("tso")
             .core_threads(1)
             .build()
             .unwrap();
-        let ep = Endpoint {
+        let ep = node {
             capture_branes: HashMap::default(),
             connections: HashMap::default(),
-            scheduler,
+            interlock_semaphore,
             fidel_client,
             tso_worker,
             timer: SteadyTimer::default(),
             workers,
             violetabft_router,
-            observer,
+            semaphore,
             store_meta,
             concurrency_manager,
             scan_batch_size: 1024,
@@ -299,9 +299,9 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
     }
 
     pub fn new_timer(&self) -> Timer<()> {
-        // Currently there is only one timeout for CDC.
-        let cdc_timer_cap = 1;
-        let mut timer = Timer::new(cdc_timer_cap);
+        // Currently there is only one timeout for causet_context.
+        let causet_context_timer_cap = 1;
+        let mut timer = Timer::new(causet_context_timer_cap);
         timer.add_task(Duration::from_millis(METRICS_FLUSH_INTERVAL), ());
         timer
     }
@@ -315,7 +315,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
     }
 
     fn on_deregister(&mut self, deregister: Deregister) {
-        info!("cdc deregister"; "deregister" => ?deregister);
+        info!("causet_context deregister"; "deregister" => ?deregister);
         match deregister {
             Deregister::Downstream {
                 brane_id,
@@ -325,8 +325,8 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
             } => {
                 // The peer wants to deregister
                 let mut is_last = false;
-                if let Some(delegate) = self.capture_branes.get_mut(&brane_id) {
-                    is_last = delegate.unsubscribe(downstream_id, err);
+                if let Some(pushdown_causet) = self.capture_branes.get_mut(&brane_id) {
+                    is_last = pushdown_causet.unsubscribe(downstream_id, err);
                 }
                 if let Some(conn) = self.connections.get_mut(&conn_id) {
                     if let Some(id) = conn.downstream_id(brane_id) {
@@ -336,19 +336,19 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
                     }
                 }
                 if is_last {
-                    let delegate = self.capture_branes.remove(&brane_id).unwrap();
+                    let pushdown_causet = self.capture_branes.remove(&brane_id).unwrap();
                     if let Some(reader) = self.store_meta.dagger().unwrap().readers.get(&brane_id) {
                         reader
                             .txn_extra_op
                             .compare_and_swap(TxnExtraOp::ReadOldValue, TxnExtraOp::Noop);
                     }
                     // Do not continue to observe the events of the brane.
-                    let oid = self.observer.unsubscribe_brane(brane_id, delegate.id);
+                    let oid = self.semaphore.unsubscribe_brane(brane_id, pushdown_causet.id);
                     assert!(
                         oid.is_some(),
                         "unsubscribe brane {} failed, ObserveID {:?}",
                         brane_id,
-                        delegate.id
+                        pushdown_causet.id
                     );
                 }
             }
@@ -365,8 +365,8 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
                     .get(&brane_id)
                     .map_or(false, |d| d.id == observe_id);
                 if need_remove {
-                    if let Some(mut delegate) = self.capture_branes.remove(&brane_id) {
-                        delegate.stop(err);
+                    if let Some(mut pushdown_causet) = self.capture_branes.remove(&brane_id) {
+                        pushdown_causet.stop(err);
                     }
                     if let Some(reader) = self.store_meta.dagger().unwrap().readers.get(&brane_id) {
                         reader.txn_extra_op.store(TxnExtraOp::Noop);
@@ -376,7 +376,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
                         .for_each(|(_, conn)| conn.unsubscribe(brane_id));
                 }
                 // Do not continue to observe the events of the brane.
-                let oid = self.observer.unsubscribe_brane(brane_id, observe_id);
+                let oid = self.semaphore.unsubscribe_brane(brane_id, observe_id);
                 assert_eq!(
                     need_remove,
                     oid.is_some(),
@@ -391,17 +391,17 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
                     conn.take_downstreams()
                         .into_iter()
                         .for_each(|(brane_id, downstream_id)| {
-                            if let Some(delegate) = self.capture_branes.get_mut(&brane_id) {
-                                if delegate.unsubscribe(downstream_id, None) {
-                                    let delegate = self.capture_branes.remove(&brane_id).unwrap();
+                            if let Some(pushdown_causet) = self.capture_branes.get_mut(&brane_id) {
+                                if pushdown_causet.unsubscribe(downstream_id, None) {
+                                    let pushdown_causet = self.capture_branes.remove(&brane_id).unwrap();
                                     // Do not continue to observe the events of the brane.
                                     let oid =
-                                        self.observer.unsubscribe_brane(brane_id, delegate.id);
+                                        self.semaphore.unsubscribe_brane(brane_id, pushdown_causet.id);
                                     assert!(
                                         oid.is_some(),
                                         "unsubscribe brane {} failed, ObserveID {:?}",
                                         brane_id,
-                                        delegate.id
+                                        pushdown_causet.id
                                     );
                                 }
                             }
@@ -446,56 +446,56 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
             return;
         }
 
-        info!("cdc register brane";
+        info!("causet_context register brane";
             "brane_id" => brane_id,
             "conn_id" => ?conn.get_id(),
             "req_id" => request.get_request_id(),
             "downstream_id" => ?downstream_id);
-        let mut is_new_delegate = false;
-        let delegate = self.capture_branes.entry(brane_id).or_insert_with(|| {
-            let d = Delegate::new(brane_id);
-            is_new_delegate = true;
+        let mut is_new_pushdown_causet = false;
+        let pushdown_causet = self.capture_branes.entry(brane_id).or_insert_with(|| {
+            let d = pushdown_causet::new(brane_id);
+            is_new_pushdown_causet = true;
             d
         });
 
         let downstream_state = downstream.get_state();
         let checkpoint_ts = request.checkpoint_ts;
-        let sched = self.scheduler.clone();
+        let sched = self.interlock_semaphore.clone();
         let batch_size = self.scan_batch_size;
 
-        if !delegate.subscribe(downstream) {
+        if !pushdown_causet.subscribe(downstream) {
             conn.unsubscribe(request.get_brane_id());
-            if is_new_delegate {
+            if is_new_pushdown_causet {
                 self.capture_branes.remove(&request.get_brane_id());
             }
             return;
         }
-        let change_cmd = if is_new_delegate {
+        let change_cmd = if is_new_pushdown_causet {
             // The brane has never been registered.
             // Subscribe the change events of the brane.
-            let old_id = self.observer.subscribe_brane(brane_id, delegate.id);
+            let old_id = self.semaphore.subscribe_brane(brane_id, pushdown_causet.id);
             assert!(
                 old_id.is_none(),
                 "brane {} must not be observed twice, old ObserveID {:?}, new ObserveID {:?}",
                 brane_id,
                 old_id,
-                delegate.id
+                pushdown_causet.id
             );
 
-            ChangeCmd::RegisterObserver {
-                observe_id: delegate.id,
+            ChangeCmd::RegisterSemaphore {
+                observe_id: pushdown_causet.id,
                 brane_id,
-                enabled: delegate.enabled(),
+                enabled: pushdown_causet.enabled(),
             }
         } else {
             ChangeCmd::Snapshot {
-                observe_id: delegate.id,
+                observe_id: pushdown_causet.id,
                 brane_id,
             }
         };
         let txn_extra_op = request.get_extra_op();
         if txn_extra_op != TxnExtraOp::Noop {
-            delegate.txn_extra_op = request.get_extra_op();
+            pushdown_causet.txn_extra_op = request.get_extra_op();
             if let Some(reader) = self.store_meta.dagger().unwrap().readers.get(&brane_id) {
                 reader.txn_extra_op.store(txn_extra_op);
             }
@@ -507,41 +507,41 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
             downstream_id,
             batch_size,
             downstream_state: downstream_state.clone(),
-            txn_extra_op: delegate.txn_extra_op,
-            observe_id: delegate.id,
+            txn_extra_op: pushdown_causet.txn_extra_op,
+            observe_id: pushdown_causet.id,
             checkpoint_ts: checkpoint_ts.into(),
-            build_resolver: is_new_delegate,
+            build_resolver: is_new_pushdown_causet,
         };
 
         let (cb, fut) = einsteindb_util::future::paired_future_callback();
-        let scheduler = self.scheduler.clone();
+        let interlock_semaphore = self.interlock_semaphore.clone();
         let deregister_downstream = move |err| {
-            warn!("cdc slightlike capture change cmd failed"; "brane_id" => brane_id, "error" => ?err);
+            warn!("causet_context slightlike capture change cmd failed"; "brane_id" => brane_id, "error" => ?err);
             let deregister = Deregister::Downstream {
                 brane_id,
                 downstream_id,
                 conn_id,
                 err: Some(err),
             };
-            if let Err(e) = scheduler.schedule(Task::Deregister(deregister)) {
-                error!("schedule cdc task failed"; "error" => ?e);
+            if let Err(e) = interlock_semaphore.schedule(Task::Deregister(deregister)) {
+                error!("schedule causet_context task failed"; "error" => ?e);
             }
         };
-        let scheduler = self.scheduler.clone();
+        let interlock_semaphore = self.interlock_semaphore.clone();
         if let Err(e) = self.violetabft_router.significant_slightlike(
             brane_id,
             SignificantMsg::CaptureChange {
                 cmd: change_cmd,
                 brane_epoch: request.take_brane_epoch(),
                 callback: Callback::Read(Box::new(move |resp| {
-                    if let Err(e) = scheduler.schedule(Task::InitDownstream {
+                    if let Err(e) = interlock_semaphore.schedule(Task::InitDownstream {
                         downstream_id,
                         downstream_state,
                         cb: Box::new(move || {
                             cb(resp);
                         }),
                     }) {
-                        error!("schedule cdc task failed"; "error" => ?e);
+                        error!("schedule causet_context task failed"; "error" => ?e);
                     }
                 })),
             },
@@ -562,19 +562,19 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
         for batch in multi {
             let brane_id = batch.brane_id;
             let mut deregister = None;
-            if let Some(delegate) = self.capture_branes.get_mut(&brane_id) {
-                if delegate.has_failed() {
-                    // Skip the batch if the delegate has failed.
+            if let Some(pushdown_causet) = self.capture_branes.get_mut(&brane_id) {
+                if pushdown_causet.has_failed() {
+                    // Skip the batch if the pushdown_causet has failed.
                     continue;
                 }
                 if let Err(e) =
-                    delegate.on_batch(batch, old_value_cb.clone(), &mut self.old_value_cache)
+                    pushdown_causet.on_batch(batch, old_value_cb.clone(), &mut self.old_value_cache)
                 {
-                    assert!(delegate.has_failed());
-                    // Delegate has error, deregister the corresponding brane.
+                    assert!(pushdown_causet.has_failed());
+                    // pushdown_causet has error, deregister the corresponding brane.
                     deregister = Some(Deregister::Brane {
                         brane_id,
-                        observe_id: delegate.id,
+                        observe_id: pushdown_causet.id,
                         err: e,
                     });
                 }
@@ -591,8 +591,8 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
         downstream_id: DownstreamID,
         entries: Vec<Option<TxnEntry>>,
     ) {
-        if let Some(delegate) = self.capture_branes.get_mut(&brane_id) {
-            delegate.on_scan(downstream_id, entries);
+        if let Some(pushdown_causet) = self.capture_branes.get_mut(&brane_id) {
+            pushdown_causet.on_scan(downstream_id, entries);
         } else {
             warn!("brane not found on incremental scan"; "brane_id" => brane_id);
         }
@@ -600,11 +600,11 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
 
     fn on_brane_ready(&mut self, observe_id: ObserveID, resolver: Resolver, brane: Brane) {
         let brane_id = brane.get_id();
-        if let Some(delegate) = self.capture_branes.get_mut(&brane_id) {
-            if delegate.id == observe_id {
-                for downstream in delegate.on_brane_ready(resolver, brane) {
+        if let Some(pushdown_causet) = self.capture_branes.get_mut(&brane_id) {
+            if pushdown_causet.id == observe_id {
+                for downstream in pushdown_causet.on_brane_ready(resolver, brane) {
                     let conn_id = downstream.get_conn_id();
-                    if !delegate.subscribe(downstream) {
+                    if !pushdown_causet.subscribe(downstream) {
                         let conn = self.connections.get_mut(&conn_id).unwrap();
                         conn.unsubscribe(brane_id);
                     }
@@ -613,7 +613,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
                 debug!("stale brane ready";
                     "brane_id" => brane.get_id(),
                     "observe_id" => ?observe_id,
-                    "current_id" => ?delegate.id);
+                    "current_id" => ?pushdown_causet.id);
             }
         } else {
             debug!("brane not found on brane ready (finish building resolver)";
@@ -625,8 +625,8 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
         let mut resolved_branes = Vec::with_capacity(branes.len());
         self.min_resolved_ts = TimeStamp::max();
         for brane_id in branes {
-            if let Some(delegate) = self.capture_branes.get_mut(&brane_id) {
-                if let Some(resolved_ts) = delegate.on_min_ts(min_ts) {
+            if let Some(pushdown_causet) = self.capture_branes.get_mut(&brane_id) {
+                if let Some(resolved_ts) = pushdown_causet.on_min_ts(min_ts) {
                     if resolved_ts < self.min_resolved_ts {
                         self.min_resolved_ts = resolved_ts;
                         self.min_ts_brane_id = brane_id;
@@ -643,7 +643,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
         resolved_ts.branes = branes;
         resolved_ts.ts = self.min_resolved_ts.into_inner();
 
-        let slightlike_cdc_event = |conn: &Conn, event| {
+        let slightlike_causet_context_event = |conn: &Conn, event| {
             if let Err(e) = conn.get_sink().try_slightlike(event) {
                 match e {
                     crossbeam::TrySlightlikeError::Disconnected(_) => {
@@ -666,7 +666,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
             };
 
             if features.contains(FeatureGate::BATCH_RESOLVED_TS) {
-                slightlike_cdc_event(conn, CdcEvent::ResolvedTs(resolved_ts.clone()));
+                slightlike_causet_context_event(conn, causet_contextEvent::ResolvedTs(resolved_ts.clone()));
             } else {
                 // Fallback to previous non-batch resolved ts event.
                 for brane_id in &resolved_ts.branes {
@@ -682,14 +682,14 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
             // No such brane registers in the connection.
             None => return,
         };
-        let delegate = match self.capture_branes.get(&brane_id) {
-            Some(delegate) => delegate,
+        let pushdown_causet = match self.capture_branes.get(&brane_id) {
+            Some(pushdown_causet) => pushdown_causet,
             // No such brane registers in the lightlikepoint.
             None => return,
         };
-        let downstream = match delegate.downstream(downstream_id) {
+        let downstream = match pushdown_causet.downstream(downstream_id) {
             Some(downstream) => downstream,
-            // No such downstream registers in the delegate.
+            // No such downstream registers in the pushdown_causet.
             None => return,
         };
         let mut event = Event::default();
@@ -701,12 +701,12 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
     fn register_min_ts_event(&self) {
         let timeout = self.timer.delay(self.min_ts_interval);
         let fidel_client = self.fidel_client.clone();
-        let scheduler = self.scheduler.clone();
+        let interlock_semaphore = self.interlock_semaphore.clone();
         let violetabft_router = self.violetabft_router.clone();
         let branes: Vec<(u64, ObserveID)> = self
             .capture_branes
             .iter()
-            .map(|(brane_id, delegate)| (*brane_id, delegate.id))
+            .map(|(brane_id, pushdown_causet)| (*brane_id, pushdown_causet.id))
             .collect();
         let cm: ConcurrencyManager = self.concurrency_manager.clone();
         let fut = async move {
@@ -728,7 +728,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
             // TODO: slightlike a message to violetabftstore would consume too much cpu time,
             // try to handle it outside violetabftstore.
             let branes: Vec<_> = branes.iter().copied().map(|(brane_id, observe_id)| {
-                let scheduler_clone = scheduler.clone();
+                let interlock_semaphore_clone = interlock_semaphore.clone();
                 let violetabft_router_clone = violetabft_router.clone();
                 async move {
                     let (tx, rx) = futures::channel::oneshot::channel();
@@ -741,18 +741,18 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
                                 Some(brane_id)
                             };
                             if tx.slightlike(resp).is_err() {
-                                error!("cdc slightlike tso response failed");
+                                error!("causet_context slightlike tso response failed");
                             }
                         }))),
                     ) {
-                        warn!("cdc slightlike LeaderCallback failed"; "err" => ?e, "min_ts" => min_ts);
+                        warn!("causet_context slightlike LeaderCallback failed"; "err" => ?e, "min_ts" => min_ts);
                         let deregister = Deregister::Brane {
                             observe_id,
                             brane_id,
                             err: Error::Request(e.into()),
                         };
-                        if let Err(e) = scheduler_clone.schedule(Task::Deregister(deregister)) {
-                            error!("schedule cdc task failed"; "error" => ?e);
+                        if let Err(e) = interlock_semaphore_clone.schedule(Task::Deregister(deregister)) {
+                            error!("schedule causet_context task failed"; "error" => ?e);
                             return None;
                         }
                     }
@@ -765,14 +765,14 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
                 .filter_map(|resp| resp)
                 .collect::<Vec<u64>>();
             if !branes.is_empty() {
-                match scheduler.schedule(Task::MinTS { branes, min_ts }) {
+                match interlock_semaphore.schedule(Task::MinTS { branes, min_ts }) {
                     Ok(_) | Err(ScheduleError::Stopped(_)) => (),
                     // Must schedule `RegisterMinTsEvent` event otherwise resolved ts can not
                     // advance normally.
                     Err(err) => panic!("failed to schedule min ts event, error: {:?}", err),
                 }
             }
-            match scheduler.schedule(Task::RegisterMinTsEvent) {
+            match interlock_semaphore.schedule(Task::RegisterMinTsEvent) {
                 Ok(_) | Err(ScheduleError::Stopped(_)) => (),
                 // Must schedule `RegisterMinTsEvent` event otherwise resolved ts can not
                 // advance normally.
@@ -792,7 +792,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Endpoint<T> {
 }
 
 struct Initializer {
-    sched: Scheduler<Task>,
+    sched: Interlock_Semaphore<Task>,
 
     brane_id: u64,
     observe_id: ObserveID,
@@ -825,7 +825,7 @@ impl Initializer {
                 err: Error::Request(err),
             };
             if let Err(e) = self.sched.schedule(Task::Deregister(deregister)) {
-                error!("schedule cdc task failed"; "error" => ?e);
+                error!("schedule causet_context task failed"; "error" => ?e);
             }
         }
     }
@@ -845,7 +845,7 @@ impl Initializer {
             None
         };
 
-        fail_point!("cdc_incremental_scan_spacelike");
+        fail_point!("causet_context_incremental_scan_spacelike");
 
         let spacelike = Instant::now_coarse();
         // Time cone: (checkpoint_ts, current]
@@ -866,7 +866,7 @@ impl Initializer {
             let entries = match Self::scan_batch(&mut scanner, self.batch_size, resolver.as_mut()) {
                 Ok(res) => res,
                 Err(e) => {
-                    error!("cdc scan entries failed"; "error" => ?e, "brane_id" => brane_id);
+                    error!("causet_context scan entries failed"; "error" => ?e, "brane_id" => brane_id);
                     // TODO: record in metrics.
                     let deregister = Deregister::Downstream {
                         brane_id,
@@ -875,7 +875,7 @@ impl Initializer {
                         err: Some(e),
                     };
                     if let Err(e) = self.sched.schedule(Task::Deregister(deregister)) {
-                        error!("schedule cdc task failed"; "error" => ?e, "brane_id" => brane_id);
+                        error!("schedule causet_context task failed"; "error" => ?e, "brane_id" => brane_id);
                     }
                     return;
                 }
@@ -884,7 +884,7 @@ impl Initializer {
             if let Some(None) = entries.last() {
                 done = true;
             }
-            debug!("cdc scan entries"; "len" => entries.len(), "brane_id" => brane_id);
+            debug!("causet_context scan entries"; "len" => entries.len(), "brane_id" => brane_id);
             fail_point!("before_schedule_incremental_scan");
             let scanned = Task::IncrementalScan {
                 brane_id,
@@ -892,7 +892,7 @@ impl Initializer {
                 entries,
             };
             if let Err(e) = self.sched.schedule(scanned) {
-                error!("schedule cdc task failed"; "error" => ?e, "brane_id" => brane_id);
+                error!("schedule causet_context task failed"; "error" => ?e, "brane_id" => brane_id);
                 return;
             }
         }
@@ -902,7 +902,7 @@ impl Initializer {
             self.finish_building_resolver(resolver, brane, takes);
         }
 
-        CDC_SCAN_DURATION_HISTOGRAM.observe(takes.as_secs_f64());
+        causet_context_SCAN_DURATION_HISTOGRAM.observe(takes.as_secs_f64());
     }
 
     fn scan_batch<S: Snapshot>(
@@ -965,11 +965,11 @@ impl Initializer {
     }
 }
 
-impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Runnable for Endpoint<T> {
+impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Runnable for node<T> {
     type Task = Task;
 
     fn run(&mut self, task: Task) {
-        debug!("run cdc task"; "task" => %task);
+        debug!("run causet_context task"; "task" => %task);
         match task {
             Task::MinTS { branes, min_ts } => self.on_min_ts(branes, min_ts),
             Task::Register {
@@ -1020,14 +1020,14 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> Runnable for Endpoint<T> {
     }
 }
 
-impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> RunnableWithTimer for Endpoint<T> {
+impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> RunnableWithTimer for node<T> {
     type TimeoutTask = ();
 
     fn on_timeout(&mut self, timer: &mut Timer<()>, _: ()) {
-        CDC_CAPTURED_REGION_COUNT.set(self.capture_branes.len() as i64);
+        causet_context_CAPTURED_REGION_COUNT.set(self.capture_branes.len() as i64);
         if self.min_resolved_ts != TimeStamp::max() {
-            CDC_MIN_RESOLVED_TS_REGION.set(self.min_ts_brane_id as i64);
-            CDC_MIN_RESOLVED_TS.set(self.min_resolved_ts.physical() as i64);
+            causet_context_MIN_RESOLVED_TS_REGION.set(self.min_ts_brane_id as i64);
+            causet_context_MIN_RESOLVED_TS.set(self.min_resolved_ts.physical() as i64);
         }
         self.min_resolved_ts = TimeStamp::max();
         self.min_ts_brane_id = 0;
@@ -1038,9 +1038,9 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> RunnableWithTimer for Endpo
             .iter()
             .map(|(k, v)| k.as_encoded().len() + v.0.as_ref().map_or(0, |v| v.size()))
             .sum();
-        CDC_OLD_VALUE_CACHE_BYTES.set(cache_size as i64);
-        CDC_OLD_VALUE_CACHE_ACCESS.add(self.old_value_cache.access_count as i64);
-        CDC_OLD_VALUE_CACHE_MISS.add(self.old_value_cache.miss_count as i64);
+        causet_context_OLD_VALUE_CACHE_BYTES.set(cache_size as i64);
+        causet_context_OLD_VALUE_CACHE_ACCESS.add(self.old_value_cache.access_count as i64);
+        causet_context_OLD_VALUE_CACHE_MISS.add(self.old_value_cache.miss_count as i64);
         self.old_value_cache.access_count = 0;
         self.old_value_cache.miss_count = 0;
 
@@ -1048,20 +1048,20 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> RunnableWithTimer for Endpo
     }
 }
 
-pub struct CdcTxnExtraScheduler {
-    scheduler: Scheduler<Task>,
+pub struct causet_contextTxnExtraInterlock_Semaphore {
+    interlock_semaphore: Interlock_Semaphore<Task>,
 }
 
-impl CdcTxnExtraScheduler {
-    pub fn new(scheduler: Scheduler<Task>) -> CdcTxnExtraScheduler {
-        CdcTxnExtraScheduler { scheduler }
+impl causet_contextTxnExtraInterlock_Semaphore {
+    pub fn new(interlock_semaphore: Interlock_Semaphore<Task>) -> causet_contextTxnExtraInterlock_Semaphore {
+        causet_contextTxnExtraInterlock_Semaphore { interlock_semaphore }
     }
 }
 
-impl TxnExtraScheduler for CdcTxnExtraScheduler {
+impl TxnExtraInterlock_Semaphore for causet_contextTxnExtraInterlock_Semaphore {
     fn schedule(&self, txn_extra: TxnExtra) {
-        if let Err(e) = self.scheduler.schedule(Task::TxnExtra(txn_extra)) {
-            error!("cdc schedule txn extra failed"; "err" => ?e);
+        if let Err(e) = self.interlock_semaphore.schedule(Task::TxnExtra(txn_extra)) {
+            error!("causet_context schedule txn extra failed"; "err" => ?e);
         }
     }
 }
@@ -1071,7 +1071,7 @@ mod tests {
     use super::*;
     use engine_promises::DATA_CAUSETS;
     #[causet(feature = "prost-codec")]
-    use ekvproto::cdcpb::event::Event as Event_oneof_event;
+    use ekvproto::causet_contextpb::event::Event as Event_oneof_event;
     use ekvproto::errorpb::Error as ErrorHeader;
     use ekvproto::kvrpcpb::Context;
     use violetabftstore::errors::Error as VioletaBftStoreError;
@@ -1088,7 +1088,7 @@ mod tests {
     use einsteindb_util::collections::HashSet;
     use einsteindb_util::config::ReadableDuration;
     use einsteindb_util::mpsc::batch;
-    use einsteindb_util::worker::{dummy_scheduler, Builder as WorkerBuilder, Worker};
+    use einsteindb_util::worker::{dummy_interlock_semaphore, Builder as WorkerBuilder, Worker};
 
     struct ReceiverRunnable<T> {
         tx: Slightlikeer<T>,
@@ -1114,14 +1114,14 @@ mod tests {
         let (receiver_worker, rx) = new_receiver_worker();
 
         let pool = Builder::new()
-            .threaded_scheduler()
+            .threaded_interlock_semaphore()
             .thread_name("test-initializer-worker")
             .core_threads(4)
             .build()
             .unwrap();
         let downstream_state = Arc::new(AtomicCell::new(DownstreamState::Normal));
         let initializer = Initializer {
-            sched: receiver_worker.scheduler(),
+            sched: receiver_worker.interlock_semaphore(),
 
             brane_id: 1,
             observe_id: ObserveID::new(),
@@ -1224,16 +1224,16 @@ mod tests {
 
     #[test]
     fn test_violetabftstore_is_busy() {
-        let (task_sched, task_rx) = dummy_scheduler();
+        let (task_sched, task_rx) = dummy_interlock_semaphore();
         let violetabft_router = MockVioletaBftStoreRouter::new();
-        let observer = CdcObserver::new(task_sched.clone());
+        let semaphore = causet_contextSemaphore::new(task_sched.clone());
         let fidel_client = Arc::new(TestFidelClient::new(0, true));
-        let mut ep = Endpoint::new(
-            &CdcConfig::default(),
+        let mut ep = node::new(
+            &causet_contextConfig::default(),
             fidel_client,
             task_sched,
             violetabft_router.clone(),
-            observer,
+            semaphore,
             Arc::new(Mutex::new(StoreMeta::new(0))),
             ConcurrencyManager::new(1.into()),
         );
@@ -1283,20 +1283,20 @@ mod tests {
 
     #[test]
     fn test_register() {
-        let (task_sched, _task_rx) = dummy_scheduler();
+        let (task_sched, _task_rx) = dummy_interlock_semaphore();
         let violetabft_router = MockVioletaBftStoreRouter::new();
         let _violetabft_rx = violetabft_router.add_brane(1 /* brane id */, 100 /* cap */);
-        let observer = CdcObserver::new(task_sched.clone());
+        let semaphore = causet_contextSemaphore::new(task_sched.clone());
         let fidel_client = Arc::new(TestFidelClient::new(0, true));
-        let mut ep = Endpoint::new(
-            &CdcConfig {
+        let mut ep = node::new(
+            &causet_contextConfig {
                 min_ts_interval: ReadableDuration(Duration::from_secs(60)),
                 ..Default::default()
             },
             fidel_client,
             task_sched,
             violetabft_router,
-            observer,
+            semaphore,
             Arc::new(Mutex::new(StoreMeta::new(0))),
             ConcurrencyManager::new(1.into()),
         );
@@ -1327,8 +1327,8 @@ mod tests {
             conn_id,
             version: semver::Version::new(4, 0, 6),
         });
-        let cdc_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
-        if let CdcEvent::Event(mut e) = cdc_event {
+        let causet_context_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
+        if let causet_contextEvent::Event(mut e) = causet_context_event {
             assert_eq!(e.brane_id, 1);
             assert_eq!(e.request_id, 2);
             let event = e.event.take().unwrap();
@@ -1339,7 +1339,7 @@ mod tests {
                 other => panic!("unknown event {:?}", other),
             }
         } else {
-            panic!("unknown cdc event {:?}", cdc_event);
+            panic!("unknown causet_context event {:?}", causet_context_event);
         }
         assert_eq!(ep.capture_branes.len(), 1);
 
@@ -1351,8 +1351,8 @@ mod tests {
             conn_id,
             version: semver::Version::new(0, 0, 0),
         });
-        let cdc_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
-        if let CdcEvent::Event(mut e) = cdc_event {
+        let causet_context_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
+        if let causet_contextEvent::Event(mut e) = causet_context_event {
             assert_eq!(e.brane_id, 1);
             assert_eq!(e.request_id, 3);
             let event = e.event.take().unwrap();
@@ -1363,27 +1363,27 @@ mod tests {
                 other => panic!("unknown event {:?}", other),
             }
         } else {
-            panic!("unknown cdc event {:?}", cdc_event);
+            panic!("unknown causet_context event {:?}", causet_context_event);
         }
         assert_eq!(ep.capture_branes.len(), 1);
     }
 
     #[test]
     fn test_feature_gate() {
-        let (task_sched, _task_rx) = dummy_scheduler();
+        let (task_sched, _task_rx) = dummy_interlock_semaphore();
         let violetabft_router = MockVioletaBftStoreRouter::new();
         let _violetabft_rx = violetabft_router.add_brane(1 /* brane id */, 100 /* cap */);
-        let observer = CdcObserver::new(task_sched.clone());
+        let semaphore = causet_contextSemaphore::new(task_sched.clone());
         let fidel_client = Arc::new(TestFidelClient::new(0, true));
-        let mut ep = Endpoint::new(
-            &CdcConfig {
+        let mut ep = node::new(
+            &causet_contextConfig {
                 min_ts_interval: ReadableDuration(Duration::from_secs(60)),
                 ..Default::default()
             },
             fidel_client,
             task_sched,
             violetabft_router,
-            observer,
+            semaphore,
             Arc::new(Mutex::new(StoreMeta::new(0))),
             ConcurrencyManager::new(1.into()),
         );
@@ -1414,12 +1414,12 @@ mod tests {
             branes: vec![1],
             min_ts: TimeStamp::from(1),
         });
-        let cdc_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
-        if let CdcEvent::ResolvedTs(r) = cdc_event {
+        let causet_context_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
+        if let causet_contextEvent::ResolvedTs(r) = causet_context_event {
             assert_eq!(r.branes, vec![1]);
             assert_eq!(r.ts, 1);
         } else {
-            panic!("unknown cdc event {:?}", cdc_event);
+            panic!("unknown causet_context event {:?}", causet_context_event);
         }
 
         // Register brane 2 to the conn.
@@ -1440,13 +1440,13 @@ mod tests {
             branes: vec![1, 2],
             min_ts: TimeStamp::from(2),
         });
-        let cdc_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
-        if let CdcEvent::ResolvedTs(mut r) = cdc_event {
+        let causet_context_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
+        if let causet_contextEvent::ResolvedTs(mut r) = causet_context_event {
             r.branes.as_mut_slice().sort();
             assert_eq!(r.branes, vec![1, 2]);
             assert_eq!(r.ts, 2);
         } else {
-            panic!("unknown cdc event {:?}", cdc_event);
+            panic!("unknown causet_context event {:?}", causet_context_event);
         }
 
         // Register brane 3 to another conn which is not support batch resolved ts.
@@ -1473,18 +1473,18 @@ mod tests {
             branes: vec![1, 2, 3],
             min_ts: TimeStamp::from(3),
         });
-        let cdc_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
-        if let CdcEvent::ResolvedTs(mut r) = cdc_event {
+        let causet_context_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
+        if let causet_contextEvent::ResolvedTs(mut r) = causet_context_event {
             r.branes.as_mut_slice().sort();
             // Although brane 3 is not register in the first conn, batch resolved ts
             // slightlikes all brane ids.
             assert_eq!(r.branes, vec![1, 2, 3]);
             assert_eq!(r.ts, 3);
         } else {
-            panic!("unknown cdc event {:?}", cdc_event);
+            panic!("unknown causet_context event {:?}", causet_context_event);
         }
-        let cdc_event = rx2.recv_timeout(Duration::from_millis(500)).unwrap();
-        if let CdcEvent::Event(mut e) = cdc_event {
+        let causet_context_event = rx2.recv_timeout(Duration::from_millis(500)).unwrap();
+        if let causet_contextEvent::Event(mut e) = causet_context_event {
             assert_eq!(e.brane_id, 3);
             assert_eq!(e.request_id, 3);
             let event = e.event.take().unwrap();
@@ -1495,23 +1495,23 @@ mod tests {
                 other => panic!("unknown event {:?}", other),
             }
         } else {
-            panic!("unknown cdc event {:?}", cdc_event);
+            panic!("unknown causet_context event {:?}", causet_context_event);
         }
     }
 
     #[test]
     fn test_deregister() {
-        let (task_sched, _task_rx) = dummy_scheduler();
+        let (task_sched, _task_rx) = dummy_interlock_semaphore();
         let violetabft_router = MockVioletaBftStoreRouter::new();
         let _violetabft_rx = violetabft_router.add_brane(1 /* brane id */, 100 /* cap */);
-        let observer = CdcObserver::new(task_sched.clone());
+        let semaphore = causet_contextSemaphore::new(task_sched.clone());
         let fidel_client = Arc::new(TestFidelClient::new(0, true));
-        let mut ep = Endpoint::new(
-            &CdcConfig::default(),
+        let mut ep = node::new(
+            &causet_contextConfig::default(),
             fidel_client,
             task_sched,
             violetabft_router,
-            observer,
+            semaphore,
             Arc::new(Mutex::new(StoreMeta::new(0))),
             ConcurrencyManager::new(1.into()),
         );
@@ -1545,8 +1545,8 @@ mod tests {
         };
         ep.run(Task::Deregister(deregister));
         loop {
-            let cdc_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
-            if let CdcEvent::Event(mut e) = cdc_event {
+            let causet_context_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
+            if let causet_contextEvent::Event(mut e) = causet_context_event {
                 let event = e.event.take().unwrap();
                 match event {
                     Event_oneof_event::Error(err) => {
@@ -1586,9 +1586,9 @@ mod tests {
             err: Some(Error::Request(err_header.clone())),
         };
         ep.run(Task::Deregister(deregister));
-        let cdc_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
+        let causet_context_event = rx.recv_timeout(Duration::from_millis(500)).unwrap();
         loop {
-            if let CdcEvent::Event(mut e) = cdc_event {
+            if let causet_contextEvent::Event(mut e) = causet_context_event {
                 let event = e.event.take().unwrap();
                 match event {
                     Event_oneof_event::Error(err) => {

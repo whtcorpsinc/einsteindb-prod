@@ -55,9 +55,9 @@ fn test_destroy_local_reader() {
 
     let brane = block_on(fidel_client.get_brane_by_id(r1)).unwrap().unwrap();
 
-    // Local reader panics if it finds a delegate.
-    let reader_has_delegate = "localreader_on_find_delegate";
-    fail::causet(reader_has_delegate, "panic").unwrap();
+    // Local reader panics if it finds a pushdown_causet.
+    let reader_has_pushdown_causet = "localreader_on_find_pushdown_causet";
+    fail::causet(reader_has_pushdown_causet, "panic").unwrap();
 
     let resp = read_on_peer(
         &mut cluster,
@@ -70,7 +70,7 @@ fn test_destroy_local_reader() {
     debug!("resp: {:?}", resp);
     assert!(resp.unwrap().get_header().has_error());
 
-    fail::remove(reader_has_delegate);
+    fail::remove(reader_has_pushdown_causet);
 }
 
 #[test]

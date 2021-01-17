@@ -31,7 +31,7 @@ use violetabft::{Ready, StateRole};
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::mpsc::{self, LooseBoundedSlightlikeer, Receiver};
 use einsteindb_util::time::duration_to_sec;
-use einsteindb_util::worker::{Scheduler, Stopped};
+use einsteindb_util::worker::{Interlock_Semaphore, Stopped};
 use einsteindb_util::{escape, is_zero_duration, Either};
 
 use crate::interlock::BraneChangeEvent;
@@ -48,7 +48,7 @@ use crate::store::peer_causetStorage::{ApplySnapResult, InvokeContext};
 use crate::store::transport::Transport;
 use crate::store::util::{is_learner, TuplespaceInstantonInfoFormatter};
 use crate::store::worker::{
-    CleanupSSTTask, CleanupTask, ConsistencyCheckTask, VioletaBftlogGcTask, ReadDelegate, BraneTask,
+    CleanupSSTTask, CleanupTask, ConsistencyCheckTask, VioletaBftlogGcTask, Readpushdown_causet, BraneTask,
     SplitCheckTask,
 };
 use crate::store::FidelTask;
@@ -162,7 +162,7 @@ where
     pub fn create(
         store_id: u64,
         causet: &Config,
-        sched: Scheduler<BraneTask<EK::Snapshot>>,
+        sched: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
         engines: Engines<EK, ER>,
         brane: &metapb::Brane,
     ) -> Result<SlightlikeerFsmPair<EK, ER>> {
@@ -210,7 +210,7 @@ where
     pub fn replicate(
         store_id: u64,
         causet: &Config,
-        sched: Scheduler<BraneTask<EK::Snapshot>>,
+        sched: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
         engines: Engines<EK, ER>,
         brane_id: u64,
         peer: metapb::Peer,
@@ -409,7 +409,7 @@ where
     }
 }
 
-pub struct PeerFsmDelegate<'a, EK, ER, T: 'static, C: 'static>
+pub struct PeerFsmpushdown_causet<'a, EK, ER, T: 'static, C: 'static>
 where
     EK: KvEngine,
     ER: VioletaBftEngine,
@@ -418,7 +418,7 @@ where
     ctx: &'a mut PollContext<EK, ER, T, C>,
 }
 
-impl<'a, EK, ER, T: Transport, C: FidelClient> PeerFsmDelegate<'a, EK, ER, T, C>
+impl<'a, EK, ER, T: Transport, C: FidelClient> PeerFsmpushdown_causet<'a, EK, ER, T, C>
 where
     EK: KvEngine,
     ER: VioletaBftEngine,
@@ -426,8 +426,8 @@ where
     pub fn new(
         fsm: &'a mut PeerFsm<EK, ER>,
         ctx: &'a mut PollContext<EK, ER, T, C>,
-    ) -> PeerFsmDelegate<'a, EK, ER, T, C> {
-        PeerFsmDelegate { fsm, ctx }
+    ) -> PeerFsmpushdown_causet<'a, EK, ER, T, C> {
+        PeerFsmpushdown_causet { fsm, ctx }
     }
 
     pub fn handle_msgs(&mut self, msgs: &mut Vec<PeerMsg<EK>>) {
@@ -1511,7 +1511,7 @@ where
         if meta.branes[&self.brane_id()] != *self.brane() {
             if !self.fsm.peer.is_initialized() {
                 info!(
-                    "stale delegate detected, skip";
+                    "stale pushdown_causet detected, skip";
                     "brane_id" => self.fsm.brane_id(),
                     "peer_id" => self.fsm.peer_id(),
                 );
@@ -1753,19 +1753,19 @@ where
         meta.plightlikeing_snapshot_branes
             .retain(|r| self.fsm.brane_id() != r.get_id());
 
-        // Destroy read delegates.
+        // Destroy read pushdown_causets.
         if let Some(reader) = meta.readers.remove(&brane_id) {
             reader.mark_invalid();
         }
 
-        // Trigger brane change observer
+        // Trigger brane change semaphore
         self.ctx.interlock_host.on_brane_changed(
             self.fsm.peer.brane(),
             BraneChangeEvent::Destroy,
             self.fsm.peer.get_role(),
         );
         let task = FidelTask::DestroyPeer { brane_id };
-        if let Err(e) = self.ctx.fidel_scheduler.schedule(task) {
+        if let Err(e) = self.ctx.fidel_interlock_semaphore.schedule(task) {
             error!(
                 "failed to notify fidel";
                 "brane_id" => self.fsm.brane_id(),
@@ -1968,7 +1968,7 @@ where
         );
         self.fsm.peer.last_compacted_idx = compact_to;
         self.fsm.peer.mut_store().compact_to(compact_to);
-        if let Err(e) = self.ctx.violetabftlog_gc_scheduler.schedule(task) {
+        if let Err(e) = self.ctx.violetabftlog_gc_interlock_semaphore.schedule(task) {
             error!(
                 "failed to schedule compact task";
                 "brane_id" => self.fsm.brane_id(),
@@ -2004,7 +2004,7 @@ where
             let task = FidelTask::ReportBatchSplit {
                 branes: branes.to_vec(),
             };
-            if let Err(e) = self.ctx.fidel_scheduler.schedule(task) {
+            if let Err(e) = self.ctx.fidel_interlock_semaphore.schedule(task) {
                 error!(
                     "failed to notify fidel";
                     "brane_id" => self.fsm.brane_id(),
@@ -2084,7 +2084,7 @@ where
             let (slightlikeer, mut new_peer) = match PeerFsm::create(
                 self.ctx.store_id(),
                 &self.ctx.causet,
-                self.ctx.brane_scheduler.clone(),
+                self.ctx.brane_interlock_semaphore.clone(),
                 self.ctx.engines.clone(),
                 &new_brane,
             ) {
@@ -2121,7 +2121,7 @@ where
             new_peer.peer.activate(self.ctx);
             meta.branes.insert(new_brane_id, new_brane);
             meta.readers
-                .insert(new_brane_id, ReadDelegate::from_peer(new_peer.get_peer()));
+                .insert(new_brane_id, Readpushdown_causet::from_peer(new_peer.get_peer()));
             if last_brane_id == new_brane_id {
                 // To prevent from big brane, the right brane needs run split
                 // check again after split.
@@ -2551,7 +2551,7 @@ where
         // a brane merge.
         self.fsm
             .peer
-            .require_ufidelating_max_ts(&self.ctx.fidel_scheduler);
+            .require_ufidelating_max_ts(&self.ctx.fidel_interlock_semaphore);
 
         drop(meta);
 
@@ -3247,7 +3247,7 @@ where
         // To avoid frequent scan, we only add new scan tasks if all previous tasks
         // have finished.
         // TODO: check whether a gc progress has been spacelikeed.
-        if self.ctx.split_check_scheduler.is_busy() {
+        if self.ctx.split_check_interlock_semaphore.is_busy() {
             self.register_split_brane_check_tick();
             return;
         }
@@ -3280,7 +3280,7 @@ where
 
         let task =
             SplitCheckTask::split_check(self.fsm.peer.brane().clone(), true, CheckPolicy::Scan);
-        if let Err(e) = self.ctx.split_check_scheduler.schedule(task) {
+        if let Err(e) = self.ctx.split_check_interlock_semaphore.schedule(task) {
             error!(
                 "failed to schedule split check";
                 "brane_id" => self.fsm.brane_id(),
@@ -3311,7 +3311,7 @@ where
             right_derive: self.ctx.causet.right_derive_when_split,
             callback: cb,
         };
-        if let Err(Stopped(t)) = self.ctx.fidel_scheduler.schedule(task) {
+        if let Err(Stopped(t)) = self.ctx.fidel_interlock_semaphore.schedule(task) {
             error!(
                 "failed to notify fidel to split: Stopped";
                 "brane_id" => self.fsm.brane_id(),
@@ -3439,7 +3439,7 @@ where
         }
 
         let task = SplitCheckTask::split_check(brane.clone(), false, policy);
-        if let Err(e) = self.ctx.split_check_scheduler.schedule(task) {
+        if let Err(e) = self.ctx.split_check_interlock_semaphore.schedule(task) {
             error!(
                 "failed to schedule split check";
                 "brane_id" => self.fsm.brane_id(),
@@ -3550,7 +3550,7 @@ where
                     peer: self.fsm.peer.peer.clone(),
                     brane: self.fsm.peer.brane().clone(),
                 };
-                if let Err(e) = self.ctx.fidel_scheduler.schedule(task) {
+                if let Err(e) = self.ctx.fidel_interlock_semaphore.schedule(task) {
                     error!(
                         "failed to notify fidel";
                         "brane_id" => self.fsm.brane_id(),
@@ -3567,7 +3567,7 @@ where
     }
 }
 
-impl<'a, EK, ER, T: Transport, C: FidelClient> PeerFsmDelegate<'a, EK, ER, T, C>
+impl<'a, EK, ER, T: Transport, C: FidelClient> PeerFsmpushdown_causet<'a, EK, ER, T, C>
 where
     EK: KvEngine,
     ER: VioletaBftEngine,
@@ -3587,7 +3587,7 @@ where
             "peer_id" => self.fsm.peer_id(),
             "task" => %task,
         );
-        if let Err(e) = self.ctx.consistency_check_scheduler.schedule(task) {
+        if let Err(e) = self.ctx.consistency_check_interlock_semaphore.schedule(task) {
             error!(
                 "schedule failed";
                 "brane_id" => self.fsm.brane_id(),
@@ -3628,7 +3628,7 @@ where
         let task = CleanupSSTTask::DeleteSST { ssts };
         if let Err(e) = self
             .ctx
-            .cleanup_scheduler
+            .cleanup_interlock_semaphore
             .schedule(CleanupTask::CleanupSST(task))
         {
             error!(
@@ -3810,7 +3810,7 @@ fn new_compact_log_request(
     request
 }
 
-impl<'a, EK, ER, T: Transport, C: FidelClient> PeerFsmDelegate<'a, EK, ER, T, C>
+impl<'a, EK, ER, T: Transport, C: FidelClient> PeerFsmpushdown_causet<'a, EK, ER, T, C>
 where
     EK: KvEngine,
     ER: VioletaBftEngine,

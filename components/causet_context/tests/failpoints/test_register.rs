@@ -7,14 +7,14 @@ use futures::executor::block_on;
 use futures::sink::SinkExt;
 use grpcio::WriteFlags;
 #[causet(feature = "prost-codec")]
-use ekvproto::cdcpb::event::{Event as Event_oneof_event, LogType as EventLogType};
+use ekvproto::causet_contextpb::event::{Event as Event_oneof_event, LogType as EventLogType};
 #[causet(not(feature = "prost-codec"))]
-use ekvproto::cdcpb::*;
+use ekvproto::causet_contextpb::*;
 use ekvproto::kvrpcpb::*;
 use ekvproto::metapb::BraneEpoch;
 use fidel_client::FidelClient;
 use violetabft::StateRole;
-use violetabftstore::interlock::{ObserverContext, RoleObserver};
+use violetabftstore::interlock::{SemaphoreContext, RoleSemaphore};
 use test_violetabftstore::sleep_ms;
 
 #[test]
@@ -22,13 +22,13 @@ fn test_failed_plightlikeing_batch() {
     // For test that a plightlikeing cmd batch contains a error like epoch not match.
     let mut suite = TestSuite::new(3);
 
-    let fp = "cdc_incremental_scan_spacelike";
+    let fp = "causet_context_incremental_scan_spacelike";
     fail::causet(fp, "pause").unwrap();
 
     let brane = suite.cluster.get_brane(&[]);
     let mut req = suite.new_changedata_request(brane.get_id());
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     // Split brane.
     suite.cluster.must_split(&brane, b"k0");
@@ -76,12 +76,12 @@ fn test_failed_plightlikeing_batch() {
 fn test_brane_ready_after_deregister() {
     let mut suite = TestSuite::new(1);
 
-    let fp = "cdc_incremental_scan_spacelike";
+    let fp = "causet_context_incremental_scan_spacelike";
     fail::causet(fp, "pause").unwrap();
 
     let req = suite.new_changedata_request(1);
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
     // Sleep for a while to make sure the brane has been subscribed
     sleep_ms(200);
@@ -89,14 +89,14 @@ fn test_brane_ready_after_deregister() {
     // Simulate a role change event
     let brane = suite.cluster.get_brane(&[]);
     let leader = suite.cluster.leader_of_brane(brane.get_id()).unwrap();
-    let mut context = ObserverContext::new(&brane);
+    let mut context = SemaphoreContext::new(&brane);
     suite
         .obs
         .get(&leader.get_store_id())
         .unwrap()
         .on_role_change(&mut context, StateRole::Follower);
 
-    // Then CDC should not panic
+    // Then causet_context should not panic
     fail::remove(fp);
     receive_event(false);
 
@@ -108,7 +108,7 @@ fn test_brane_ready_after_deregister() {
 fn test_connections_register() {
     let mut suite = TestSuite::new(1);
 
-    let fp = "cdc_incremental_scan_spacelike";
+    let fp = "causet_context_incremental_scan_spacelike";
     fail::causet(fp, "pause").unwrap();
 
     let (k, v) = ("key1".to_owned(), "value".to_owned());
@@ -126,7 +126,7 @@ fn test_connections_register() {
     req.set_brane_epoch(BraneEpoch::default());
 
     let (mut req_tx, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     let mut events = receive_event(false).events.to_vec();
     match events.pop().unwrap().event.unwrap() {
@@ -144,7 +144,7 @@ fn test_connections_register() {
     event_feed_wrap.as_ref().replace(None);
     // Conn 2
     let (mut req_tx, resp_rx) = suite
-        .get_brane_cdc_client(brane.get_id())
+        .get_brane_causet_context_client(brane.get_id())
         .event_feed()
         .unwrap();
     block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
@@ -179,14 +179,14 @@ fn test_merge() {
     req.brane_id = source.get_id();
     req.set_brane_epoch(source.get_brane_epoch().clone());
     let (mut source_tx, source_wrap, source_event) =
-        new_event_feed(suite.get_brane_cdc_client(source.get_id()));
+        new_event_feed(suite.get_brane_causet_context_client(source.get_id()));
     block_on(source_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     // Subscribe target brane
     let target = suite.cluster.get_brane(b"k2");
     req.brane_id = target.get_id();
     req.set_brane_epoch(target.get_brane_epoch().clone());
     let (mut target_tx, target_wrap, target_event) =
-        new_event_feed(suite.get_brane_cdc_client(target.get_id()));
+        new_event_feed(suite.get_brane_causet_context_client(target.get_id()));
     block_on(target_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     sleep_ms(200);
     // Pause before completing commit merge
@@ -278,7 +278,7 @@ fn test_deregister_plightlikeing_downstream() {
     fail::causet(build_resolver_fp, "pause").unwrap();
     let mut req = suite.new_changedata_request(1);
     let (mut req_tx1, event_feed_wrap, receive_event) =
-        new_event_feed(suite.get_brane_cdc_client(1));
+        new_event_feed(suite.get_brane_causet_context_client(1));
     block_on(req_tx1.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     // Sleep for a while to make sure the brane has been subscribed
     sleep_ms(200);
@@ -287,7 +287,7 @@ fn test_deregister_plightlikeing_downstream() {
     fail::causet(violetabft_capture_fp, "pause").unwrap();
 
     // Conn 2
-    let (mut req_tx2, resp_rx2) = suite.get_brane_cdc_client(1).event_feed().unwrap();
+    let (mut req_tx2, resp_rx2) = suite.get_brane_causet_context_client(1).event_feed().unwrap();
     req.set_brane_epoch(BraneEpoch::default());
     block_on(req_tx2.slightlike((req.clone(), WriteFlags::default()))).unwrap();
     let _resp_rx1 = event_feed_wrap.as_ref().replace(Some(resp_rx2));

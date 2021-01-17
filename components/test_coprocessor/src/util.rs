@@ -10,7 +10,7 @@ use ekvproto::interlock::{Request, Response};
 use fidelpb::PrimaryCausetInfo;
 use fidelpb::{SelectResponse, StreamResponse};
 
-use einsteindb::interlock::Endpoint;
+use einsteindb::interlock::node;
 use einsteindb::causetStorage::Engine;
 
 static ID_GENERATOR: AtomicUsize = AtomicUsize::new(1);
@@ -19,14 +19,14 @@ pub fn next_id() -> i64 {
     ID_GENERATOR.fetch_add(1, Ordering::Relaxed) as i64
 }
 
-pub fn handle_request<E>(causet: &Endpoint<E>, req: Request) -> Response
+pub fn handle_request<E>(causet: &node<E>, req: Request) -> Response
 where
     E: Engine,
 {
     block_on(causet.parse_and_handle_unary_request(req, None))
 }
 
-pub fn handle_select<E>(causet: &Endpoint<E>, req: Request) -> SelectResponse
+pub fn handle_select<E>(causet: &node<E>, req: Request) -> SelectResponse
 where
     E: Engine,
 {
@@ -38,7 +38,7 @@ where
 }
 
 pub fn handle_streaming_select<E, F>(
-    causet: &Endpoint<E>,
+    causet: &node<E>,
     req: Request,
     mut check_cone: F,
 ) -> Vec<StreamResponse>

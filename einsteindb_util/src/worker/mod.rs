@@ -8,7 +8,7 @@ additional features, for example, ticks.
 A worker contains:
 
 - A runner (which should implement the `Runnable` trait): to run tasks one by one or in batch.
-- A scheduler: to slightlike tasks to the runner, returns immediately.
+- A interlock_semaphore: to slightlike tasks to the runner, returns immediately.
 
 Briefly speaking, this is a mpsc (multiple-producer-single-consumer) model.
 
@@ -32,9 +32,9 @@ use crate::mpsc::{self, Receiver, Slightlikeer};
 use crate::time::Instant;
 use crate::timer::Timer;
 
-pub use self::future::dummy_scheduler as dummy_future_scheduler;
+pub use self::future::dummy_interlock_semaphore as dummy_future_interlock_semaphore;
 pub use self::future::Runnable as FutureRunnable;
-pub use self::future::Scheduler as FutureScheduler;
+pub use self::future::Interlock_Semaphore as FutureInterlock_Semaphore;
 pub use self::future::{Stopped, Worker as FutureWorker};
 
 #[derive(Eq, PartialEq)]
@@ -124,21 +124,21 @@ impl<R: Runnable> RunnableWithTimer for DefaultRunnerWithTimer<R> {
     fn on_timeout(&mut self, _: &mut Timer<()>, _: ()) {}
 }
 
-/// Scheduler provides interface to schedule task to underlying workers.
-pub struct Scheduler<T> {
+/// Interlock_Semaphore provides interface to schedule task to underlying workers.
+pub struct Interlock_Semaphore<T> {
     name: Arc<String>,
     counter: Arc<AtomicUsize>,
     slightlikeer: Slightlikeer<Option<T>>,
     metrics_plightlikeing_task_count: IntGauge,
 }
 
-impl<T: Display> Scheduler<T> {
-    fn new<S>(name: S, counter: AtomicUsize, slightlikeer: Slightlikeer<Option<T>>) -> Scheduler<T>
+impl<T: Display> Interlock_Semaphore<T> {
+    fn new<S>(name: S, counter: AtomicUsize, slightlikeer: Slightlikeer<Option<T>>) -> Interlock_Semaphore<T>
     where
         S: Into<String>,
     {
         let name = name.into();
-        Scheduler {
+        Interlock_Semaphore {
             metrics_plightlikeing_task_count: WORKER_PENDING_TASK_VEC.with_label_values(&[&name]),
             name: Arc::new(name),
             counter: Arc::new(counter),
@@ -169,9 +169,9 @@ impl<T: Display> Scheduler<T> {
     }
 }
 
-impl<T> Clone for Scheduler<T> {
-    fn clone(&self) -> Scheduler<T> {
-        Scheduler {
+impl<T> Clone for Interlock_Semaphore<T> {
+    fn clone(&self) -> Interlock_Semaphore<T> {
+        Interlock_Semaphore {
             name: Arc::clone(&self.name),
             counter: Arc::clone(&self.counter),
             slightlikeer: self.slightlikeer.clone(),
@@ -180,13 +180,13 @@ impl<T> Clone for Scheduler<T> {
     }
 }
 
-/// Creates a scheduler that can't schedule any task.
+/// Creates a interlock_semaphore that can't schedule any task.
 ///
 /// Useful for test purpose.
-pub fn dummy_scheduler<T: Display>() -> (Scheduler<T>, Receiver<Option<T>>) {
+pub fn dummy_interlock_semaphore<T: Display>() -> (Interlock_Semaphore<T>, Receiver<Option<T>>) {
     let (tx, rx) = mpsc::unbounded::<Option<T>>();
     (
-        Scheduler::new("dummy scheduler", AtomicUsize::new(0), tx),
+        Interlock_Semaphore::new("dummy interlock_semaphore", AtomicUsize::new(0), tx),
         rx,
     )
 }
@@ -226,7 +226,7 @@ impl<S: Into<String>> Builder<S> {
         };
 
         Worker {
-            scheduler: Scheduler::new(self.name, AtomicUsize::new(0), tx),
+            interlock_semaphore: Interlock_Semaphore::new(self.name, AtomicUsize::new(0), tx),
             receiver: Mutex::new(Some(rx)),
             handle: None,
             batch_size: self.batch_size,
@@ -236,7 +236,7 @@ impl<S: Into<String>> Builder<S> {
 
 /// A worker that can schedule time consuming tasks.
 pub struct Worker<T> {
-    scheduler: Scheduler<T>,
+    interlock_semaphore: Interlock_Semaphore<T>,
     receiver: Mutex<Option<Receiver<Option<T>>>>,
     handle: Option<JoinHandle<()>>,
     batch_size: usize,
@@ -342,49 +342,49 @@ impl<T: Display + Slightlike + 'static> Worker<T> {
         <RT as RunnableWithTimer>::TimeoutTask: Slightlike,
     {
         let mut receiver = self.receiver.dagger().unwrap();
-        info!("spacelikeing working thread"; "worker" => &self.scheduler.name);
+        info!("spacelikeing working thread"; "worker" => &self.interlock_semaphore.name);
         if receiver.is_none() {
-            warn!("worker has been spacelikeed"; "worker" => &self.scheduler.name);
+            warn!("worker has been spacelikeed"; "worker" => &self.interlock_semaphore.name);
             return Ok(());
         }
 
         let rx = receiver.take().unwrap();
-        let counter = Arc::clone(&self.scheduler.counter);
+        let counter = Arc::clone(&self.interlock_semaphore.counter);
         let batch_size = self.batch_size;
         let h = ThreadBuilder::new()
-            .name(thd_name!(self.scheduler.name.as_ref()))
+            .name(thd_name!(self.interlock_semaphore.name.as_ref()))
             .spawn(move || poll(runner, rx, counter, batch_size, timer))?;
         self.handle = Some(h);
         Ok(())
     }
 
-    /// Gets a scheduler to schedule the task.
-    pub fn scheduler(&self) -> Scheduler<T> {
-        self.scheduler.clone()
+    /// Gets a interlock_semaphore to schedule the task.
+    pub fn interlock_semaphore(&self) -> Interlock_Semaphore<T> {
+        self.interlock_semaphore.clone()
     }
 
     /// Schedules a task to run.
     ///
     /// If the worker is stopped, an error will return.
     pub fn schedule(&self, task: T) -> Result<(), ScheduleError<T>> {
-        self.scheduler.schedule(task)
+        self.interlock_semaphore.schedule(task)
     }
 
     /// Checks if underlying worker can't handle task immediately.
     pub fn is_busy(&self) -> bool {
-        self.handle.is_none() || self.scheduler.is_busy()
+        self.handle.is_none() || self.interlock_semaphore.is_busy()
     }
 
     pub fn name(&self) -> &str {
-        self.scheduler.name.as_str()
+        self.interlock_semaphore.name.as_str()
     }
 
     /// Stops the worker thread.
     pub fn stop(&mut self) -> Option<thread::JoinHandle<()>> {
         // Closes slightlikeer explicitly so the background thread will exit.
-        info!("stoping worker"; "worker" => &self.scheduler.name);
+        info!("stoping worker"; "worker" => &self.interlock_semaphore.name);
         let handle = self.handle.take()?;
-        if let Err(e) = self.scheduler.slightlikeer.slightlike(None) {
+        if let Err(e) = self.interlock_semaphore.slightlikeer.slightlike(None) {
             warn!("failed to stop worker thread"; "err" => ?e);
         }
         Some(handle)
@@ -478,10 +478,10 @@ mod tests {
         let mut worker = Worker::new("test-worker-threaded");
         let (tx, rx) = mpsc::channel();
         worker.spacelike(StepRunner { ch: tx }).unwrap();
-        let scheduler = worker.scheduler();
+        let interlock_semaphore = worker.interlock_semaphore();
         thread::spawn(move || {
-            scheduler.schedule(90).unwrap();
-            scheduler.schedule(110).unwrap();
+            interlock_semaphore.schedule(90).unwrap();
+            interlock_semaphore.schedule(110).unwrap();
         });
         assert_eq!(rx.recv_timeout(Duration::from_secs(3)).unwrap(), 90);
         assert_eq!(rx.recv_timeout(Duration::from_secs(3)).unwrap(), 110);
@@ -552,12 +552,12 @@ mod tests {
             .batch_size(4)
             .plightlikeing_capacity(3)
             .create();
-        let scheduler = worker.scheduler();
+        let interlock_semaphore = worker.interlock_semaphore();
 
         for i in 0..3 {
-            scheduler.schedule(i).unwrap();
+            interlock_semaphore.schedule(i).unwrap();
         }
-        assert_eq!(scheduler.schedule(3).unwrap_err(), ScheduleError::Full(3));
+        assert_eq!(interlock_semaphore.schedule(3).unwrap_err(), ScheduleError::Full(3));
 
         let (tx, rx) = mpsc::channel();
         worker.spacelike(BatchRunner { ch: tx }).unwrap();

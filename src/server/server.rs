@@ -15,7 +15,7 @@ use ekvproto::einsteindbpb::*;
 use tokio::runtime::{Builder as RuntimeBuilder, Handle as RuntimeHandle, Runtime};
 use tokio_timer::timer::Handle;
 
-use crate::interlock::Endpoint;
+use crate::interlock::node;
 use crate::server::gc_worker::GcWorker;
 use crate::causetStorage::lock_manager::LockManager;
 use crate::causetStorage::{Engine, CausetStorage};
@@ -75,7 +75,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
         causet: &Arc<Config>,
         security_mgr: &Arc<SecurityManager>,
         causetStorage: CausetStorage<E, L>,
-        causet: Endpoint<E>,
+        causet: node<E>,
         violetabft_router: T,
         resolver: S,
         snap_mgr: SnapManager,
@@ -87,7 +87,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
         let stats_pool = if causet.stats_concurrency > 0 {
             Some(
                 RuntimeBuilder::new()
-                    .threaded_scheduler()
+                    .threaded_interlock_semaphore()
                     .thread_name(STATS_THREAD_PREFIX)
                     .core_threads(causet.stats_concurrency)
                     .build()
@@ -113,7 +113,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
             gc_worker,
             causet,
             violetabft_router.clone(),
-            snap_worker.scheduler(),
+            snap_worker.interlock_semaphore(),
             Arc::clone(&grpc_thread_load),
             Arc::clone(&readpool_normal_thread_load),
             causet.enable_request_batch,
@@ -153,7 +153,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine>, S: StoreAddrResolver + 'static> Serve
 
         let trans = ServerTransport::new(
             violetabft_client,
-            snap_worker.scheduler(),
+            snap_worker.interlock_semaphore(),
             violetabft_router.clone(),
             resolver,
         );
@@ -437,14 +437,14 @@ mod tests {
             &CoprReadPoolConfig::default_for_test(),
             causetStorage.get_engine(),
         ));
-        let causet = interlock::Endpoint::new(
+        let causet = interlock::node::new(
             &causet,
             cop_read_pool.handle(),
             causetStorage.get_concurrency_manager(),
         );
         let debug_thread_pool = Arc::new(
             TokioBuilder::new()
-                .threaded_scheduler()
+                .threaded_interlock_semaphore()
                 .thread_name(thd_name!("debugger"))
                 .core_threads(1)
                 .build()

@@ -2034,12 +2034,12 @@ impl Default for BackupConfig {
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug, Configuration)]
 #[serde(default)]
 #[serde(rename_all = "kebab-case")]
-pub struct CdcConfig {
+pub struct causet_contextConfig {
     pub min_ts_interval: ReadableDuration,
     pub old_value_cache_size: usize,
 }
 
-impl Default for CdcConfig {
+impl Default for causet_contextConfig {
     fn default() -> Self {
         Self {
             min_ts_interval: ReadableDuration::secs(1),
@@ -2132,7 +2132,7 @@ pub struct EINSTEINDBConfig {
     pub split: SplitConfig,
 
     #[config(submodule)]
-    pub cdc: CdcConfig,
+    pub causet_context: causet_contextConfig,
 }
 
 impl Default for EINSTEINDBConfig {
@@ -2163,7 +2163,7 @@ impl Default for EINSTEINDBConfig {
             pessimistic_txn: PessimisticTxnConfig::default(),
             gc: GcConfig::default(),
             split: SplitConfig::default(),
-            cdc: CdcConfig::default(),
+            causet_context: causet_contextConfig::default(),
         }
     }
 }

@@ -100,9 +100,9 @@ pub use causetx::{
 };
 
 pub use causetx_blueshift::{
-    InProgressObserverTransactWatcher,
+    InProgressSemaphoreTransactWatcher,
     TxObservationService,
-    TxObserver,
+    TxSemaphore,
 };
 
 pub use types::{

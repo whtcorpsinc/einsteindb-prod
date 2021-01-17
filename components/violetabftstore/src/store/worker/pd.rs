@@ -39,7 +39,7 @@ use fidel_client::{Error, FidelClient, BraneStat};
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::metrics::ThreadInfoStatistics;
 use einsteindb_util::time::UnixSecs;
-use einsteindb_util::worker::{FutureRunnable as Runnable, FutureScheduler as Scheduler, Stopped};
+use einsteindb_util::worker::{FutureRunnable as Runnable, FutureInterlock_Semaphore as Interlock_Semaphore, Stopped};
 
 type RecordPairVec = Vec<fidelpb::RecordPair>;
 
@@ -62,7 +62,7 @@ pub trait FlowStatsReporter: Slightlike + Clone + Sync + 'static {
     fn report_read_stats(&self, read_stats: ReadStats);
 }
 
-impl<E> FlowStatsReporter for Scheduler<Task<E>>
+impl<E> FlowStatsReporter for Interlock_Semaphore<Task<E>>
 where
     E: KvEngine,
 {
@@ -287,7 +287,7 @@ struct StatsMonitor<E>
 where
     E: KvEngine,
 {
-    scheduler: Scheduler<Task<E>>,
+    interlock_semaphore: Interlock_Semaphore<Task<E>>,
     handle: Option<JoinHandle<()>>,
     timer: Option<Slightlikeer<bool>>,
     slightlikeer: Option<Slightlikeer<ReadStats>>,
@@ -300,9 +300,9 @@ impl<E> StatsMonitor<E>
 where
     E: KvEngine,
 {
-    pub fn new(interval: Duration, scheduler: Scheduler<Task<E>>) -> Self {
+    pub fn new(interval: Duration, interlock_semaphore: Interlock_Semaphore<Task<E>>) -> Self {
         StatsMonitor {
-            scheduler,
+            interlock_semaphore,
             handle: None,
             timer: None,
             slightlikeer: None,
@@ -340,7 +340,7 @@ where
         let (slightlikeer, receiver) = mpsc::channel();
         self.slightlikeer = Some(slightlikeer);
 
-        let scheduler = self.scheduler.clone();
+        let interlock_semaphore = self.interlock_semaphore.clone();
 
         let h = Builder::new()
             .name(thd_name!("stats-monitor"))
@@ -360,7 +360,7 @@ where
                             read_io_rates,
                             write_io_rates,
                         };
-                        if let Err(e) = scheduler.schedule(task) {
+                        if let Err(e) = interlock_semaphore.schedule(task) {
                             error!(
                                 "failed to slightlike store infos to fidel worker";
                                 "err" => ?e,
@@ -375,7 +375,7 @@ where
                         let (top, split_infos) = auto_split_controller.flush(others);
                         auto_split_controller.clear();
                         let task = Task::AutoSplit { split_infos };
-                        if let Err(e) = scheduler.schedule(task) {
+                        if let Err(e) = interlock_semaphore.schedule(task) {
                             error!(
                                 "failed to slightlike split infos to fidel worker";
                                 "err" => ?e,
@@ -437,7 +437,7 @@ where
     // use for Runner inner handle function to slightlike Task to itself
     // actually it is the slightlikeer connected to Runner's Worker which
     // calls Runner's run() on Task received.
-    scheduler: Scheduler<Task<EK>>,
+    interlock_semaphore: Interlock_Semaphore<Task<EK>>,
     stats_monitor: StatsMonitor<EK>,
 
     concurrency_manager: ConcurrencyManager,
@@ -456,13 +456,13 @@ where
         fidel_client: Arc<T>,
         router: VioletaBftRouter<EK, ER>,
         db: EK,
-        scheduler: Scheduler<Task<EK>>,
+        interlock_semaphore: Interlock_Semaphore<Task<EK>>,
         store_heartbeat_interval: Duration,
         auto_split_controller: AutoSplitController,
         concurrency_manager: ConcurrencyManager,
     ) -> Runner<EK, ER, T> {
         let interval = store_heartbeat_interval / Self::INTERVAL_DIVISOR;
-        let mut stats_monitor = StatsMonitor::new(interval, scheduler.clone());
+        let mut stats_monitor = StatsMonitor::new(interval, interlock_semaphore.clone());
         if let Err(e) = stats_monitor.spacelike(auto_split_controller) {
             error!("failed to spacelike stats collector, error = {:?}", e);
         }
@@ -476,7 +476,7 @@ where
             brane_peers: HashMap::default(),
             store_stat: StoreStat::default(),
             spacelike_ts: UnixSecs::now(),
-            scheduler,
+            interlock_semaphore,
             stats_monitor,
             concurrency_manager,
         }
@@ -530,7 +530,7 @@ where
     // be called in an asynchronous context.
     fn handle_ask_batch_split(
         router: VioletaBftRouter<EK, ER>,
-        scheduler: Scheduler<Task<EK>>,
+        interlock_semaphore: Interlock_Semaphore<Task<EK>>,
         fidel_client: Arc<T>,
         mut brane: metapb::Brane,
         mut split_tuplespaceInstanton: Vec<Vec<u8>>,
@@ -581,7 +581,7 @@ where
                         right_derive,
                         callback,
                     };
-                    if let Err(Stopped(t)) = scheduler.schedule(task) {
+                    if let Err(Stopped(t)) = interlock_semaphore.schedule(task) {
                         error!(
                             "failed to notify fidel to split: Stopped";
                             "brane_id" => brane_id,
@@ -1014,7 +1014,7 @@ where
                 callback,
             } => Self::handle_ask_batch_split(
                 self.router.clone(),
-                self.scheduler.clone(),
+                self.interlock_semaphore.clone(),
                 self.fidel_client.clone(),
                 brane,
                 split_tuplespaceInstanton,
@@ -1026,7 +1026,7 @@ where
             Task::AutoSplit { split_infos } => {
                 let fidel_client = self.fidel_client.clone();
                 let router = self.router.clone();
-                let scheduler = self.scheduler.clone();
+                let interlock_semaphore = self.interlock_semaphore.clone();
 
                 let f = async move {
                     for split_info in split_infos {
@@ -1035,7 +1035,7 @@ where
                         {
                             Self::handle_ask_batch_split(
                                 router.clone(),
-                                scheduler.clone(),
+                                interlock_semaphore.clone(),
                                 fidel_client.clone(),
                                 brane,
                                 vec![split_info.split_key],
@@ -1272,10 +1272,10 @@ mod tests {
     impl RunnerTest {
         fn new(
             interval: u64,
-            scheduler: Scheduler<Task<LmdbEngine>>,
+            interlock_semaphore: Interlock_Semaphore<Task<LmdbEngine>>,
             store_stat: Arc<Mutex<StoreStat>>,
         ) -> RunnerTest {
-            let mut stats_monitor = StatsMonitor::new(Duration::from_secs(interval), scheduler);
+            let mut stats_monitor = StatsMonitor::new(Duration::from_secs(interval), interlock_semaphore);
 
             if let Err(e) = stats_monitor.spacelike(AutoSplitController::default()) {
                 error!("failed to spacelike stats collector, error = {:?}", e);
@@ -1329,7 +1329,7 @@ mod tests {
     fn test_collect_stats() {
         let mut fidel_worker = FutureWorker::new("test-fidel-worker");
         let store_stat = Arc::new(Mutex::new(StoreStat::default()));
-        let runner = RunnerTest::new(1, fidel_worker.scheduler(), Arc::clone(&store_stat));
+        let runner = RunnerTest::new(1, fidel_worker.interlock_semaphore(), Arc::clone(&store_stat));
         fidel_worker.spacelike(runner).unwrap();
 
         let spacelike = Instant::now();

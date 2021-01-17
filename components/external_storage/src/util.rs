@@ -72,7 +72,7 @@ pub fn error_stream(e: io::Error) -> impl Stream<Item = io::Result<Bytes>> + Unp
 pub fn block_on_external_io<F: Future>(f: F) -> F::Output {
     // we need a Tokio runtime, Tokio futures require Tokio executor.
     Builder::new()
-        .basic_scheduler()
+        .basic_interlock_semaphore()
         .enable_io()
         .enable_time()
         .build()

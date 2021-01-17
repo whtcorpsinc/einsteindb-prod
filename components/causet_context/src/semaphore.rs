@@ -14,33 +14,33 @@ use violetabftstore::store::BraneSnapshot;
 use violetabftstore::Error as VioletaBftStoreError;
 use einsteindb::causetStorage::{Cursor, ScanMode, Snapshot as EngineSnapshot, Statistics};
 use einsteindb_util::collections::HashMap;
-use einsteindb_util::worker::Scheduler;
+use einsteindb_util::worker::Interlock_Semaphore;
 use txn_types::{Key, Dagger, MutationType, Value, WriteRef, WriteType};
 
 use crate::lightlikepoint::{Deregister, OldValueCache, Task};
-use crate::{Error as CdcError, Result};
+use crate::{Error as causet_contextError, Result};
 
-/// An Observer for CDC.
+/// An Semaphore for causet_context.
 ///
 /// It observes violetabftstore internal events, such as:
 ///   1. VioletaBft role change events,
 ///   2. Apply command events.
 #[derive(Clone)]
-pub struct CdcObserver {
-    sched: Scheduler<Task>,
+pub struct causet_contextSemaphore {
+    sched: Interlock_Semaphore<Task>,
     // A shared registry for managing observed branes.
     // TODO: it may become a bottleneck, find a better way to manage the registry.
     observe_branes: Arc<RwLock<HashMap<u64, ObserveID>>>,
     cmd_batches: RefCell<Vec<CmdBatch>>,
 }
 
-impl CdcObserver {
-    /// Create a new `CdcObserver`.
+impl causet_contextSemaphore {
+    /// Create a new `causet_contextSemaphore`.
     ///
     /// Events are strong ordered, so `sched` must be implemented as
     /// a FIFO queue.
-    pub fn new(sched: Scheduler<Task>) -> CdcObserver {
-        CdcObserver {
+    pub fn new(sched: Interlock_Semaphore<Task>) -> causet_contextSemaphore {
+        causet_contextSemaphore {
             sched,
             observe_branes: Arc::default(),
             cmd_batches: RefCell::default(),
@@ -48,20 +48,20 @@ impl CdcObserver {
     }
 
     pub fn register_to(&self, interlock_host: &mut InterlockHost<LmdbEngine>) {
-        // 100 is the priority of the observer. CDC should have a high priority.
+        // 100 is the priority of the semaphore. causet_context should have a high priority.
         interlock_host
             .registry
-            .register_cmd_observer(100, BoxCmdObserver::new(self.clone()));
+            .register_cmd_semaphore(100, BoxCmdSemaphore::new(self.clone()));
         interlock_host
             .registry
-            .register_role_observer(100, BoxRoleObserver::new(self.clone()));
+            .register_role_semaphore(100, BoxRoleSemaphore::new(self.clone()));
         interlock_host
             .registry
-            .register_brane_change_observer(100, BoxBraneChangeObserver::new(self.clone()));
+            .register_brane_change_semaphore(100, BoxBraneChangeSemaphore::new(self.clone()));
     }
 
-    /// Subscribe an brane, the observer will sink events of the brane into
-    /// its scheduler.
+    /// Subscribe an brane, the semaphore will sink events of the brane into
+    /// its interlock_semaphore.
     ///
     /// Return pervious ObserveID if there is one.
     pub fn subscribe_brane(&self, brane_id: u64, observe_id: ObserveID) -> Option<ObserveID> {
@@ -73,7 +73,7 @@ impl CdcObserver {
 
     /// Stops observe the brane.
     ///
-    /// Return ObserverID if unsubscribe successfully.
+    /// Return SemaphoreID if unsubscribe successfully.
     pub fn unsubscribe_brane(&self, brane_id: u64, observe_id: ObserveID) -> Option<ObserveID> {
         let mut branes = self.observe_branes.write().unwrap();
         // To avoid ABA problem, we must check the unique ObserveID.
@@ -95,9 +95,9 @@ impl CdcObserver {
     }
 }
 
-impl Interlock for CdcObserver {}
+impl Interlock for causet_contextSemaphore {}
 
-impl<E: KvEngine> CmdObserver<E> for CdcObserver {
+impl<E: KvEngine> CmdSemaphore<E> for causet_contextSemaphore {
     fn on_prepare_for_apply(&self, observe_id: ObserveID, brane_id: u64) {
         self.cmd_batches
             .borrow_mut()
@@ -113,7 +113,7 @@ impl<E: KvEngine> CmdObserver<E> for CdcObserver {
     }
 
     fn on_flush_apply(&self, engine: E) {
-        fail_point!("before_cdc_flush_apply");
+        fail_point!("before_causet_context_flush_apply");
         if !self.cmd_batches.borrow().is_empty() {
             let batches = self.cmd_batches.replace(Vec::default());
             let mut brane = Brane::default();
@@ -152,14 +152,14 @@ impl<E: KvEngine> CmdObserver<E> for CdcObserver {
                 multi: batches,
                 old_value_cb: Box::new(get_old_value),
             }) {
-                warn!("schedule cdc task failed"; "error" => ?e);
+                warn!("schedule causet_context task failed"; "error" => ?e);
             }
         }
     }
 }
 
-impl RoleObserver for CdcObserver {
-    fn on_role_change(&self, ctx: &mut ObserverContext<'_>, role: StateRole) {
+impl RoleSemaphore for causet_contextSemaphore {
+    fn on_role_change(&self, ctx: &mut SemaphoreContext<'_>, role: StateRole) {
         if role != StateRole::Leader {
             let brane_id = ctx.brane().get_id();
             if let Some(observe_id) = self.is_subscribed(brane_id) {
@@ -168,20 +168,20 @@ impl RoleObserver for CdcObserver {
                 let deregister = Deregister::Brane {
                     brane_id,
                     observe_id,
-                    err: CdcError::Request(store_err.into()),
+                    err: causet_contextError::Request(store_err.into()),
                 };
                 if let Err(e) = self.sched.schedule(Task::Deregister(deregister)) {
-                    error!("schedule cdc task failed"; "error" => ?e);
+                    error!("schedule causet_context task failed"; "error" => ?e);
                 }
             }
         }
     }
 }
 
-impl BraneChangeObserver for CdcObserver {
+impl BraneChangeSemaphore for causet_contextSemaphore {
     fn on_brane_changed(
         &self,
-        ctx: &mut ObserverContext<'_>,
+        ctx: &mut SemaphoreContext<'_>,
         event: BraneChangeEvent,
         _: StateRole,
     ) {
@@ -193,10 +193,10 @@ impl BraneChangeObserver for CdcObserver {
                 let deregister = Deregister::Brane {
                     brane_id,
                     observe_id,
-                    err: CdcError::Request(store_err.into()),
+                    err: causet_contextError::Request(store_err.into()),
                 };
                 if let Err(e) = self.sched.schedule(Task::Deregister(deregister)) {
-                    error!("schedule cdc task failed"; "error" => ?e);
+                    error!("schedule causet_context task failed"; "error" => ?e);
                 }
             }
         }
@@ -317,19 +317,19 @@ mod tests {
 
     #[test]
     fn test_register_and_deregister() {
-        let (scheduler, rx) = einsteindb_util::worker::dummy_scheduler();
-        let observer = CdcObserver::new(scheduler);
+        let (interlock_semaphore, rx) = einsteindb_util::worker::dummy_interlock_semaphore();
+        let semaphore = causet_contextSemaphore::new(interlock_semaphore);
         let observe_id = ObserveID::new();
         let engine = TestEngineBuilder::new().build().unwrap().get_lmdb();
 
-        <CdcObserver as CmdObserver<LmdbEngine>>::on_prepare_for_apply(&observer, observe_id, 0);
-        <CdcObserver as CmdObserver<LmdbEngine>>::on_apply_cmd(
-            &observer,
+        <causet_contextSemaphore as CmdSemaphore<LmdbEngine>>::on_prepare_for_apply(&semaphore, observe_id, 0);
+        <causet_contextSemaphore as CmdSemaphore<LmdbEngine>>::on_apply_cmd(
+            &semaphore,
             observe_id,
             0,
             Cmd::new(0, VioletaBftCmdRequest::default(), VioletaBftCmdResponse::default()),
         );
-        observer.on_flush_apply(engine);
+        semaphore.on_flush_apply(engine);
 
         match rx.recv_timeout(Duration::from_millis(10)).unwrap().unwrap() {
             Task::MultiBatch { multi, .. } => {
@@ -342,14 +342,14 @@ mod tests {
         // Does not slightlike unsubscribed brane events.
         let mut brane = Brane::default();
         brane.set_id(1);
-        let mut ctx = ObserverContext::new(&brane);
-        observer.on_role_change(&mut ctx, StateRole::Follower);
+        let mut ctx = SemaphoreContext::new(&brane);
+        semaphore.on_role_change(&mut ctx, StateRole::Follower);
         rx.recv_timeout(Duration::from_millis(10)).unwrap_err();
 
         let oid = ObserveID::new();
-        observer.subscribe_brane(1, oid);
-        let mut ctx = ObserverContext::new(&brane);
-        observer.on_role_change(&mut ctx, StateRole::Follower);
+        semaphore.subscribe_brane(1, oid);
+        let mut ctx = SemaphoreContext::new(&brane);
+        semaphore.on_role_change(&mut ctx, StateRole::Follower);
         match rx.recv_timeout(Duration::from_millis(10)).unwrap().unwrap() {
             Task::Deregister(Deregister::Brane {
                 brane_id,
@@ -363,22 +363,22 @@ mod tests {
         };
 
         // No event if it changes to leader.
-        observer.on_role_change(&mut ctx, StateRole::Leader);
+        semaphore.on_role_change(&mut ctx, StateRole::Leader);
         rx.recv_timeout(Duration::from_millis(10)).unwrap_err();
 
-        // unsubscribed fail if observer id is different.
-        assert_eq!(observer.unsubscribe_brane(1, ObserveID::new()), None);
+        // unsubscribed fail if semaphore id is different.
+        assert_eq!(semaphore.unsubscribe_brane(1, ObserveID::new()), None);
 
         // No event if it is unsubscribed.
-        let oid_ = observer.unsubscribe_brane(1, oid).unwrap();
+        let oid_ = semaphore.unsubscribe_brane(1, oid).unwrap();
         assert_eq!(oid_, oid);
-        observer.on_role_change(&mut ctx, StateRole::Follower);
+        semaphore.on_role_change(&mut ctx, StateRole::Follower);
         rx.recv_timeout(Duration::from_millis(10)).unwrap_err();
 
         // No event if it is unsubscribed.
         brane.set_id(999);
-        let mut ctx = ObserverContext::new(&brane);
-        observer.on_role_change(&mut ctx, StateRole::Follower);
+        let mut ctx = SemaphoreContext::new(&brane);
+        semaphore.on_role_change(&mut ctx, StateRole::Follower);
         rx.recv_timeout(Duration::from_millis(10)).unwrap_err();
     }
 

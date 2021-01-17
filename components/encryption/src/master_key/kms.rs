@@ -42,9 +42,9 @@ impl AwsKms {
 
         // Create and run the client in the same thread.
         let client = new_client!(KmsClient, config, dispatcher);
-        // Basic scheduler executes futures in the current thread.
+        // Basic interlock_semaphore executes futures in the current thread.
         let runtime = Builder::new()
-            .basic_scheduler()
+            .basic_interlock_semaphore()
             .thread_name("kms-runtime")
             .core_threads(1)
             .enable_all()

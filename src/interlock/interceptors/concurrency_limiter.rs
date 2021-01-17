@@ -122,7 +122,7 @@ mod tests {
     use tokio::task::yield_now;
     use tokio::time::{delay_for, timeout};
 
-    #[tokio::test(basic_scheduler)]
+    #[tokio::test(basic_interlock_semaphore)]
     async fn test_limit_concurrency() {
         async fn work(iter: i32) {
             for i in 0..iter {

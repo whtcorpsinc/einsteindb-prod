@@ -355,7 +355,7 @@ mod tests {
         let msg_counter = Arc::new(AtomicUsize::new(0));
         let msg_counter1 = Arc::clone(&msg_counter);
         let pool = Builder::new()
-            .threaded_scheduler()
+            .threaded_interlock_semaphore()
             .core_threads(1)
             .build()
             .unwrap();
@@ -401,7 +401,7 @@ mod tests {
         let msg_counter_spawned = Arc::clone(&msg_counter);
         let (nty, polled) = mpsc::sync_channel(1);
         let pool = Builder::new()
-            .threaded_scheduler()
+            .threaded_interlock_semaphore()
             .core_threads(1)
             .build()
             .unwrap();

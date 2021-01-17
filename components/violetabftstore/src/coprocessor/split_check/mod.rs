@@ -10,16 +10,16 @@ use ekvproto::fidelpb::CheckPolicy;
 
 use super::config::Config;
 use super::error::Result;
-use super::{KeyEntry, ObserverContext, SplitChecker};
+use super::{KeyEntry, SemaphoreContext, SplitChecker};
 
-pub use self::half::{get_brane_approximate_middle, HalfCheckObserver};
+pub use self::half::{get_brane_approximate_middle, HalfCheckSemaphore};
 pub use self::tuplespaceInstanton::{
-    get_brane_approximate_tuplespaceInstanton, get_brane_approximate_tuplespaceInstanton_causet, TuplespaceInstantonCheckObserver,
+    get_brane_approximate_tuplespaceInstanton, get_brane_approximate_tuplespaceInstanton_causet, TuplespaceInstantonCheckSemaphore,
 };
 pub use self::size::{
-    get_brane_approximate_size, get_brane_approximate_size_causet, SizeCheckObserver,
+    get_brane_approximate_size, get_brane_approximate_size_causet, SizeCheckSemaphore,
 };
-pub use self::Block::BlockCheckObserver;
+pub use self::Block::BlockCheckSemaphore;
 
 pub struct Host<'a, E> {
     checkers: Vec<Box<dyn SplitChecker<E>>>,
@@ -59,7 +59,7 @@ impl<'a, E> Host<'a, E> {
     ///
     /// Return true means abort early.
     pub fn on_kv(&mut self, brane: &Brane, entry: &KeyEntry) -> bool {
-        let mut ob_ctx = ObserverContext::new(brane);
+        let mut ob_ctx = SemaphoreContext::new(brane);
         for checker in &mut self.checkers {
             if checker.on_kv(&mut ob_ctx, entry) {
                 return true;

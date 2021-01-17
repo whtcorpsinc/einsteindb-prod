@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use einsteindb_util::time::{duration_to_sec, Instant};
 
 use super::batch::ReqBatcher;
-use crate::interlock::Endpoint;
+use crate::interlock::node;
 use crate::server::gc_worker::GcWorker;
 use crate::server::load_statistics::ThreadLoad;
 use crate::server::metrics::*;
@@ -39,7 +39,7 @@ use violetabftstore::store::{Callback, CasualMessage};
 use security::{check_common_name, SecurityManager};
 use einsteindb_util::future::{paired_future_callback, poll_future_notify};
 use einsteindb_util::mpsc::batch::{unbounded, BatchCollector, BatchReceiver, Slightlikeer};
-use einsteindb_util::worker::Scheduler;
+use einsteindb_util::worker::Interlock_Semaphore;
 use tokio_threadpool::{Builder as ThreadPoolBuilder, ThreadPool};
 use txn_types::{self, Key};
 
@@ -53,11 +53,11 @@ pub struct Service<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L:
     // For handling KV requests.
     causetStorage: CausetStorage<E, L>,
     // For handling interlock requests.
-    causet: Endpoint<E>,
+    causet: node<E>,
     // For handling violetabft messages.
     ch: T,
     // For handling snapshot.
-    snap_scheduler: Scheduler<SnapTask>,
+    snap_interlock_semaphore: Interlock_Semaphore<SnapTask>,
 
     enable_req_batch: bool,
 
@@ -82,7 +82,7 @@ impl<
             causetStorage: self.causetStorage.clone(),
             causet: self.causet.clone(),
             ch: self.ch.clone(),
-            snap_scheduler: self.snap_scheduler.clone(),
+            snap_interlock_semaphore: self.snap_interlock_semaphore.clone(),
             enable_req_batch: self.enable_req_batch,
             timer_pool: self.timer_pool.clone(),
             grpc_thread_load: self.grpc_thread_load.clone(),
@@ -97,9 +97,9 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
     pub fn new(
         causetStorage: CausetStorage<E, L>,
         gc_worker: GcWorker<E, T>,
-        causet: Endpoint<E>,
+        causet: node<E>,
         ch: T,
-        snap_scheduler: Scheduler<SnapTask>,
+        snap_interlock_semaphore: Interlock_Semaphore<SnapTask>,
         grpc_thread_load: Arc<ThreadLoad>,
         readpool_normal_thread_load: Arc<ThreadLoad>,
         enable_req_batch: bool,
@@ -116,7 +116,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
             causetStorage,
             causet,
             ch,
-            snap_scheduler,
+            snap_interlock_semaphore,
             grpc_thread_load,
             readpool_normal_thread_load,
             timer_pool,
@@ -331,11 +331,11 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
         ctx.spawn(task);
     }
 
-    fn register_lock_observer(
+    fn register_lock_semaphore(
         &mut self,
         ctx: RpcContext<'_>,
-        req: RegisterLockObserverRequest,
-        sink: UnarySink<RegisterLockObserverResponse>,
+        req: RegisterLockSemaphoreRequest,
+        sink: UnarySink<RegisterLockSemaphoreResponse>,
     ) {
         if !check_common_name(self.security_mgr.cert_allowed_cn(), &ctx) {
             return;
@@ -352,33 +352,33 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
                 Err(e) => Err(e),
                 Ok(_) => f.await?,
             };
-            let mut resp = RegisterLockObserverResponse::default();
+            let mut resp = RegisterLockSemaphoreResponse::default();
             if let Err(e) = res {
                 resp.set_error(format!("{}", e));
             }
             sink.success(resp).await?;
             GRPC_MSG_HISTOGRAM_STATIC
-                .register_lock_observer
+                .register_lock_semaphore
                 .observe(duration_to_sec(begin_instant.elapsed()));
             ServerResult::Ok(())
         }
         .map_err(|e| {
             debug!("kv rpc failed";
-                "request" => "register_lock_observer",
+                "request" => "register_lock_semaphore",
                 "err" => ?e
             );
-            GRPC_MSG_FAIL_COUNTER.register_lock_observer.inc();
+            GRPC_MSG_FAIL_COUNTER.register_lock_semaphore.inc();
         })
         .map(|_| ());
 
         ctx.spawn(task);
     }
 
-    fn check_lock_observer(
+    fn check_lock_semaphore(
         &mut self,
         ctx: RpcContext<'_>,
-        req: CheckLockObserverRequest,
-        sink: UnarySink<CheckLockObserverResponse>,
+        req: CheckLockSemaphoreRequest,
+        sink: UnarySink<CheckLockSemaphoreResponse>,
     ) {
         if !check_common_name(self.security_mgr.cert_allowed_cn(), &ctx) {
             return;
@@ -395,7 +395,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
                 Err(e) => Err(e),
                 Ok(_) => f.await?,
             };
-            let mut resp = CheckLockObserverResponse::default();
+            let mut resp = CheckLockSemaphoreResponse::default();
             match res {
                 Ok((locks, is_clean)) => {
                     resp.set_is_clean(is_clean);
@@ -405,27 +405,27 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
             }
             sink.success(resp).await?;
             GRPC_MSG_HISTOGRAM_STATIC
-                .check_lock_observer
+                .check_lock_semaphore
                 .observe(duration_to_sec(begin_instant.elapsed()));
             ServerResult::Ok(())
         }
         .map_err(|e| {
             debug!("kv rpc failed";
-                "request" => "check_lock_observer",
+                "request" => "check_lock_semaphore",
                 "err" => ?e
             );
-            GRPC_MSG_FAIL_COUNTER.check_lock_observer.inc();
+            GRPC_MSG_FAIL_COUNTER.check_lock_semaphore.inc();
         })
         .map(|_| ());
 
         ctx.spawn(task);
     }
 
-    fn remove_lock_observer(
+    fn remove_lock_semaphore(
         &mut self,
         ctx: RpcContext<'_>,
-        req: RemoveLockObserverRequest,
-        sink: UnarySink<RemoveLockObserverResponse>,
+        req: RemoveLockSemaphoreRequest,
+        sink: UnarySink<RemoveLockSemaphoreResponse>,
     ) {
         if !check_common_name(self.security_mgr.cert_allowed_cn(), &ctx) {
             return;
@@ -440,22 +440,22 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
                 Err(e) => Err(e),
                 Ok(_) => f.await?,
             };
-            let mut resp = RemoveLockObserverResponse::default();
+            let mut resp = RemoveLockSemaphoreResponse::default();
             if let Err(e) = res {
                 resp.set_error(format!("{}", e));
             }
             sink.success(resp).await?;
             GRPC_MSG_HISTOGRAM_STATIC
-                .remove_lock_observer
+                .remove_lock_semaphore
                 .observe(duration_to_sec(begin_instant.elapsed()));
             ServerResult::Ok(())
         }
         .map_err(|e| {
             debug!("kv rpc failed";
-                "request" => "remove_lock_observer",
+                "request" => "remove_lock_semaphore",
                 "err" => ?e
             );
-            GRPC_MSG_FAIL_COUNTER.remove_lock_observer.inc();
+            GRPC_MSG_FAIL_COUNTER.remove_lock_semaphore.inc();
         })
         .map(|_| ());
 
@@ -682,7 +682,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, E: Engine, L: LockManager> 
             return;
         }
         let task = SnapTask::Recv { stream, sink };
-        if let Err(e) = self.snap_scheduler.schedule(task) {
+        if let Err(e) = self.snap_interlock_semaphore.schedule(task) {
             let err_msg = format!("{}", e);
             let sink = match e.into_inner() {
                 SnapTask::Recv { sink, .. } => sink,
@@ -1005,7 +1005,7 @@ fn response_batch_commands_request<F>(
 fn handle_batch_commands_request<E: Engine, L: LockManager>(
     batcher: &mut Option<ReqBatcher>,
     causetStorage: &CausetStorage<E, L>,
-    causet: &Endpoint<E>,
+    causet: &node<E>,
     peer: &str,
     id: u64,
     req: batch_commands_request::Request,
@@ -1521,7 +1521,7 @@ fn future_ver_delete_cone<E: Engine, L: LockManager>(
 }
 
 fn future_cop<E: Engine>(
-    causet: &Endpoint<E>,
+    causet: &node<E>,
     peer: Option<String>,
     req: Request,
 ) -> impl Future<Output = ServerResult<Response>> {

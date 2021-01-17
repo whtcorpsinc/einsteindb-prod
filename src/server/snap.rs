@@ -308,7 +308,7 @@ impl<R: VioletaBftStoreRouter<LmdbEngine> + 'static> Runner<R> {
             env,
             snap_mgr,
             pool: RuntimeBuilder::new()
-                .threaded_scheduler()
+                .threaded_interlock_semaphore()
                 .thread_name(thd_name!("snap-slightlikeer"))
                 .core_threads(DEFAULT_POOL_SIZE)
                 .on_thread_spacelike(|| einsteindb_alloc::add_thread_memory_accessor())

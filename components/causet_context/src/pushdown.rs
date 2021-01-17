@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use crossbeam::atomic::AtomicCell;
 #[causet(feature = "prost-codec")]
-use ekvproto::cdcpb::{
+use ekvproto::causet_contextpb::{
     event::{
         EventIdx::OpType as EventEventOpType, Entries as EventEntries, Event as Event_oneof_event,
         LogType as EventLogType, Event as EventEvent,
@@ -16,7 +16,7 @@ use ekvproto::cdcpb::{
     Compatibility, DuplicateRequest as ErrorDuplicateRequest, Error as EventError, Event,
 };
 #[causet(not(feature = "prost-codec"))]
-use ekvproto::cdcpb::{
+use ekvproto::causet_contextpb::{
     Compatibility, DuplicateRequest as ErrorDuplicateRequest, Error as EventError, Event,
     EventEntries, EventLogType, EventEvent, EventEventOpType, Event_oneof_event,
 };
@@ -36,7 +36,7 @@ use txn_types::{Key, Dagger, LockType, TimeStamp, WriteRef, WriteType};
 
 use crate::lightlikepoint::{OldValueCache, OldValueCallback};
 use crate::metrics::*;
-use crate::service::{CdcEvent, ConnID};
+use crate::service::{causet_contextEvent, ConnID};
 use crate::{Error, Result};
 
 const EVENT_MAX_SIZE: usize = 6 * 1024 * 1024; // 6MB
@@ -67,16 +67,16 @@ impl Default for DownstreamState {
 
 #[derive(Clone)]
 pub struct Downstream {
-    // TODO: include cdc request.
+    // TODO: include causet_context request.
     /// A unique identifier of the Downstream.
     id: DownstreamID,
-    // The reqeust ID set by CDC to identify events corresponding different requests.
+    // The reqeust ID set by causet_context to identify events corresponding different requests.
     req_id: u64,
     conn_id: ConnID,
     // The IP address of downstream.
     peer: String,
     brane_epoch: BraneEpoch,
-    sink: Option<BatchSlightlikeer<CdcEvent>>,
+    sink: Option<BatchSlightlikeer<causet_contextEvent>>,
     state: Arc<AtomicCell<DownstreamState>>,
 }
 
@@ -112,7 +112,7 @@ impl Downstream {
             return;
         }
         let sink = self.sink.as_ref().unwrap();
-        if let Err(e) = sink.try_slightlike(CdcEvent::Event(event)) {
+        if let Err(e) = sink.try_slightlike(causet_contextEvent::Event(event)) {
             match e {
                 crossbeam::TrySlightlikeError::Disconnected(_) => {
                     debug!("slightlike event failed, disconnected";
@@ -126,7 +126,7 @@ impl Downstream {
         }
     }
 
-    pub fn set_sink(&mut self, sink: BatchSlightlikeer<CdcEvent>) {
+    pub fn set_sink(&mut self, sink: BatchSlightlikeer<causet_contextEvent>) {
         self.sink = Some(sink);
     }
 
@@ -144,21 +144,21 @@ impl Downstream {
 
     pub fn sink_duplicate_error(&self, brane_id: u64) {
         let mut change_data_event = Event::default();
-        let mut cdc_err = EventError::default();
+        let mut causet_context_err = EventError::default();
         let mut err = ErrorDuplicateRequest::default();
         err.set_brane_id(brane_id);
-        cdc_err.set_duplicate_request(err);
-        change_data_event.event = Some(Event_oneof_event::Error(cdc_err));
+        causet_context_err.set_duplicate_request(err);
+        change_data_event.event = Some(Event_oneof_event::Error(causet_context_err));
         change_data_event.brane_id = brane_id;
         self.sink_event(change_data_event);
     }
 
-    // TODO: merge it into Delegate::error_event.
+    // TODO: merge it into pushdown_causet::error_event.
     pub fn sink_compatibility_error(&self, brane_id: u64, compat: Compatibility) {
         let mut change_data_event = Event::default();
-        let mut cdc_err = EventError::default();
-        cdc_err.set_compatibility(compat);
-        change_data_event.event = Some(Event_oneof_event::Error(cdc_err));
+        let mut causet_context_err = EventError::default();
+        causet_context_err.set_compatibility(compat);
+        change_data_event.event = Some(Event_oneof_event::Error(causet_context_err));
         change_data_event.brane_id = brane_id;
         self.sink_event(change_data_event);
     }
@@ -173,7 +173,7 @@ struct Plightlikeing {
 
 impl Drop for Plightlikeing {
     fn drop(&mut self) {
-        CDC_PENDING_BYTES_GAUGE.sub(self.plightlikeing_bytes as i64);
+        causet_context_PENDING_BYTES_GAUGE.sub(self.plightlikeing_bytes as i64);
     }
 }
 
@@ -199,11 +199,11 @@ enum PlightlikeingLock {
     },
 }
 
-/// A CDC delegate of a violetabftstore brane peer.
+/// A causet_context pushdown_causet of a violetabftstore brane peer.
 ///
-/// It converts violetabft commands into CDC events and broadcast to downstreams.
+/// It converts violetabft commands into causet_context events and broadcast to downstreams.
 /// It also track trancation on the fly in order to compute resolved ts.
-pub struct Delegate {
+pub struct pushdown_causet {
     pub id: ObserveID,
     pub brane_id: u64,
     brane: Option<Brane>,
@@ -215,10 +215,10 @@ pub struct Delegate {
     pub txn_extra_op: TxnExtraOp,
 }
 
-impl Delegate {
-    /// Create a Delegate the given brane.
-    pub fn new(brane_id: u64) -> Delegate {
-        Delegate {
+impl pushdown_causet {
+    /// Create a pushdown_causet the given brane.
+    pub fn new(brane_id: u64) -> pushdown_causet {
+        pushdown_causet {
             brane_id,
             id: ObserveID::new(),
             downstreams: Vec::new(),
@@ -307,21 +307,21 @@ impl Delegate {
 
     fn error_event(&self, err: Error) -> Event {
         let mut change_data_event = Event::default();
-        let mut cdc_err = EventError::default();
+        let mut causet_context_err = EventError::default();
         let mut err = err.extract_error_header();
         if err.has_not_leader() {
             let not_leader = err.take_not_leader();
-            cdc_err.set_not_leader(not_leader);
+            causet_context_err.set_not_leader(not_leader);
         } else if err.has_epoch_not_match() {
             let epoch_not_match = err.take_epoch_not_match();
-            cdc_err.set_epoch_not_match(epoch_not_match);
+            causet_context_err.set_epoch_not_match(epoch_not_match);
         } else {
-            // TODO: Add more errors to the cdc protocol
+            // TODO: Add more errors to the causet_context protocol
             let mut brane_not_found = errorpb::BraneNotFound::default();
             brane_not_found.set_brane_id(self.brane_id);
-            cdc_err.set_brane_not_found(brane_not_found);
+            causet_context_err.set_brane_not_found(brane_not_found);
         }
-        change_data_event.event = Some(Event_oneof_event::Error(cdc_err));
+        change_data_event.event = Some(Event_oneof_event::Error(causet_context_err));
         change_data_event.brane_id = self.brane_id;
         change_data_event
     }
@@ -334,9 +334,9 @@ impl Delegate {
         self.failed
     }
 
-    /// Stop the delegate
+    /// Stop the pushdown_causet
     ///
-    /// This means the brane has met an unrecoverable error for CDC.
+    /// This means the brane has met an unrecoverable error for causet_context.
     /// It broadcasts errors to all downstream and stops.
     pub fn stop(&mut self, err: Error) {
         self.mark_failed();
@@ -376,7 +376,7 @@ impl Delegate {
             "brane {} resolver should not be ready",
             self.brane_id,
         );
-        // Mark the delegate as initialized.
+        // Mark the pushdown_causet as initialized.
         self.brane = Some(brane);
         let mut plightlikeing = self.plightlikeing.take().unwrap();
         for dagger in plightlikeing.take_locks() {
@@ -409,7 +409,7 @@ impl Delegate {
         };
         debug!("resolved ts ufidelated";
             "brane_id" => self.brane_id, "resolved_ts" => resolved_ts);
-        CDC_RESOLVED_TS_GAP_HISTOGRAM
+        causet_context_RESOLVED_TS_GAP_HISTOGRAM
             .observe((min_ts.physical() - resolved_ts.physical()) as f64 / 1000f64);
         Some(resolved_ts)
     }
@@ -552,7 +552,7 @@ impl Delegate {
     ) -> Result<()> {
         let mut events = HashMap::default();
         for mut req in requests {
-            // CDC cares about put requests only.
+            // causet_context cares about put requests only.
             if req.get_cmd_type() != CmdType::Put {
                 // Do not log delete requests because they are issued by GC
                 // frequently.
@@ -596,7 +596,7 @@ impl Delegate {
                                 commit_ts: commit_ts.map(Into::into),
                             });
                             plightlikeing.plightlikeing_bytes += EventIdx.key.len();
-                            CDC_PENDING_BYTES_GAUGE.add(EventIdx.key.len() as i64);
+                            causet_context_PENDING_BYTES_GAUGE.add(EventIdx.key.len() as i64);
                         }
                     }
 
@@ -638,7 +638,7 @@ impl Delegate {
                                 spacelike_ts: EventIdx.spacelike_ts.into(),
                             });
                             plightlikeing.plightlikeing_bytes += EventIdx.key.len();
-                            CDC_PENDING_BYTES_GAUGE.add(EventIdx.key.len() as i64);
+                            causet_context_PENDING_BYTES_GAUGE.add(EventIdx.key.len() as i64);
                         }
                     }
 
@@ -792,14 +792,14 @@ mod tests {
         let mut downstream =
             Downstream::new(String::new(), brane_epoch, request_id, ConnID::new());
         downstream.set_sink(sink);
-        let mut delegate = Delegate::new(brane_id);
-        delegate.subscribe(downstream);
-        let enabled = delegate.enabled();
+        let mut pushdown_causet = pushdown_causet::new(brane_id);
+        pushdown_causet.subscribe(downstream);
+        let enabled = pushdown_causet.enabled();
         assert!(enabled.load(Ordering::SeqCst));
         let mut resolver = Resolver::new(brane_id);
         resolver.init();
-        for downstream in delegate.on_brane_ready(resolver, brane) {
-            delegate.subscribe(downstream);
+        for downstream in pushdown_causet.on_brane_ready(resolver, brane) {
+            pushdown_causet.subscribe(downstream);
         }
 
         let rx_wrap = Cell::new(Some(rx));
@@ -809,12 +809,12 @@ mod tests {
             let mut resps = resps.unwrap();
             assert_eq!(resps.len(), 1);
             for r in &resps {
-                if let CdcEvent::Event(e) = r {
+                if let causet_contextEvent::Event(e) = r {
                     assert_eq!(e.get_request_id(), request_id);
                 }
             }
-            let cdc_event = &mut resps[0];
-            if let CdcEvent::Event(e) = cdc_event {
+            let causet_context_event = &mut resps[0];
+            if let causet_contextEvent::Event(e) = causet_context_event {
                 let event = e.event.take().unwrap();
                 match event {
                     Event_oneof_event::Error(err) => err,
@@ -827,7 +827,7 @@ mod tests {
 
         let mut err_header = ErrorHeader::default();
         err_header.set_not_leader(Default::default());
-        delegate.stop(Error::Request(err_header));
+        pushdown_causet.stop(Error::Request(err_header));
         let err = receive_error();
         assert!(err.has_not_leader());
         // Enable is disabled by any error.
@@ -835,13 +835,13 @@ mod tests {
 
         let mut err_header = ErrorHeader::default();
         err_header.set_brane_not_found(Default::default());
-        delegate.stop(Error::Request(err_header));
+        pushdown_causet.stop(Error::Request(err_header));
         let err = receive_error();
         assert!(err.has_brane_not_found());
 
         let mut err_header = ErrorHeader::default();
         err_header.set_epoch_not_match(Default::default());
-        delegate.stop(Error::Request(err_header));
+        pushdown_causet.stop(Error::Request(err_header));
         let err = receive_error();
         assert!(err.has_epoch_not_match());
 
@@ -852,8 +852,8 @@ mod tests {
         request.set_cmd_type(AdminCmdType::Split);
         let mut response = AdminResponse::default();
         response.mut_split().set_left(brane.clone());
-        let err = delegate.sink_admin(request, response).err().unwrap();
-        delegate.stop(err);
+        let err = pushdown_causet.sink_admin(request, response).err().unwrap();
+        pushdown_causet.stop(err);
         let mut err = receive_error();
         assert!(err.has_epoch_not_match());
         err.take_epoch_not_match()
@@ -866,8 +866,8 @@ mod tests {
         request.set_cmd_type(AdminCmdType::BatchSplit);
         let mut response = AdminResponse::default();
         response.mut_splits().set_branes(vec![brane].into());
-        let err = delegate.sink_admin(request, response).err().unwrap();
-        delegate.stop(err);
+        let err = pushdown_causet.sink_admin(request, response).err().unwrap();
+        pushdown_causet.stop(err);
         let mut err = receive_error();
         assert!(err.has_epoch_not_match());
         err.take_epoch_not_match()
@@ -880,8 +880,8 @@ mod tests {
         let mut request = AdminRequest::default();
         request.set_cmd_type(AdminCmdType::PrepareMerge);
         let response = AdminResponse::default();
-        let err = delegate.sink_admin(request, response).err().unwrap();
-        delegate.stop(err);
+        let err = pushdown_causet.sink_admin(request, response).err().unwrap();
+        pushdown_causet.stop(err);
         let mut err = receive_error();
         assert!(err.has_epoch_not_match());
         assert!(err.take_epoch_not_match().current_branes.is_empty());
@@ -889,8 +889,8 @@ mod tests {
         let mut request = AdminRequest::default();
         request.set_cmd_type(AdminCmdType::CommitMerge);
         let response = AdminResponse::default();
-        let err = delegate.sink_admin(request, response).err().unwrap();
-        delegate.stop(err);
+        let err = pushdown_causet.sink_admin(request, response).err().unwrap();
+        pushdown_causet.stop(err);
         let mut err = receive_error();
         assert!(err.has_epoch_not_match());
         assert!(err.take_epoch_not_match().current_branes.is_empty());
@@ -898,8 +898,8 @@ mod tests {
         let mut request = AdminRequest::default();
         request.set_cmd_type(AdminCmdType::RollbackMerge);
         let response = AdminResponse::default();
-        let err = delegate.sink_admin(request, response).err().unwrap();
-        delegate.stop(err);
+        let err = pushdown_causet.sink_admin(request, response).err().unwrap();
+        pushdown_causet.stop(err);
         let mut err = receive_error();
         assert!(err.has_epoch_not_match());
         assert!(err.take_epoch_not_match().current_branes.is_empty());
@@ -922,9 +922,9 @@ mod tests {
             Downstream::new(String::new(), brane_epoch, request_id, ConnID::new());
         let downstream_id = downstream.get_id();
         downstream.set_sink(sink);
-        let mut delegate = Delegate::new(brane_id);
-        delegate.subscribe(downstream);
-        let enabled = delegate.enabled();
+        let mut pushdown_causet = pushdown_causet::new(brane_id);
+        pushdown_causet.subscribe(downstream);
+        let enabled = pushdown_causet.enabled();
         assert!(enabled.load(Ordering::SeqCst));
 
         let rx_wrap = Cell::new(Some(rx));
@@ -934,12 +934,12 @@ mod tests {
             let mut resps = resps.unwrap();
             assert_eq!(resps.len(), 1);
             for r in &resps {
-                if let CdcEvent::Event(e) = r {
+                if let causet_contextEvent::Event(e) = r {
                     assert_eq!(e.get_request_id(), request_id);
                 }
             }
-            let cdc_event = resps.remove(0);
-            if let CdcEvent::Event(mut e) = cdc_event {
+            let causet_context_event = resps.remove(0);
+            if let causet_contextEvent::Event(mut e) = causet_context_event {
                 assert_eq!(e.brane_id, brane_id);
                 assert_eq!(e.index, 0);
                 let event = e.event.take().unwrap();
@@ -986,7 +986,7 @@ mod tests {
             ),
             None,
         ];
-        delegate.on_scan(downstream_id, entries);
+        pushdown_causet.on_scan(downstream_id, entries);
         // Flush all plightlikeing entries.
         let mut row1 = EventEvent::default();
         row1.spacelike_ts = 1;
@@ -1008,6 +1008,6 @@ mod tests {
 
         let mut resolver = Resolver::new(brane_id);
         resolver.init();
-        delegate.on_brane_ready(resolver, brane);
+        pushdown_causet.on_brane_ready(resolver, brane);
     }
 }

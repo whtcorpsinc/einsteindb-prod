@@ -12,13 +12,13 @@ const NOTIFYSTATE_IDLE: usize = 1;
 // The FSM is expected to be dropped.
 const NOTIFYSTATE_DROP: usize = 2;
 
-/// `FsmScheduler` schedules `Fsm` for later handles.
-pub trait FsmScheduler {
+/// `FsmInterlock_Semaphore` schedules `Fsm` for later handles.
+pub trait FsmInterlock_Semaphore {
     type Fsm: Fsm;
 
     /// Schedule a Fsm for later handles.
     fn schedule(&self, fsm: Box<Self::Fsm>);
-    /// Shutdown the scheduler, which indicates that resources like
+    /// Shutdown the interlock_semaphore, which indicates that resources like
     /// background thread pool should be released.
     fn shutdown(&self);
 }
@@ -76,18 +76,18 @@ impl<N: Fsm> FsmState<N> {
         }
     }
 
-    /// Notify fsm via a `FsmScheduler`.
+    /// Notify fsm via a `FsmInterlock_Semaphore`.
     #[inline]
-    pub fn notify<S: FsmScheduler<Fsm = N>>(
+    pub fn notify<S: FsmInterlock_Semaphore<Fsm = N>>(
         &self,
-        scheduler: &S,
+        interlock_semaphore: &S,
         mailbox: Cow<'_, BasicMailbox<N>>,
     ) {
         match self.take_fsm() {
             None => {}
             Some(mut n) => {
                 n.set_mailbox(mailbox);
-                scheduler.schedule(n);
+                interlock_semaphore.schedule(n);
             }
         }
     }

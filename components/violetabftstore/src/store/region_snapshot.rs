@@ -398,7 +398,7 @@ mod tests {
         engines: Engines<LmdbEngine, LmdbEngine>,
         r: &Brane,
     ) -> PeerStorage<LmdbEngine, LmdbEngine> {
-        let (sched, _) = worker::dummy_scheduler();
+        let (sched, _) = worker::dummy_interlock_semaphore();
         PeerStorage::new(engines, r, sched, 0, "".to_owned()).unwrap()
     }
 

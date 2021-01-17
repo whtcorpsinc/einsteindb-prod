@@ -12,7 +12,7 @@ mod test_lease_read;
 mod test_merge;
 mod test_multi;
 mod test_prevote;
-mod test_brane_change_observer;
+mod test_brane_change_semaphore;
 mod test_brane_heartbeat;
 mod test_brane_info_accessor;
 mod test_replica_read;

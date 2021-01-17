@@ -36,17 +36,17 @@ use einsteindb_util::config::{Tracker, VersionTrack};
 use einsteindb_util::mpsc::{self, LooseBoundedSlightlikeer, Receiver};
 use einsteindb_util::time::{duration_to_sec, Instant as TiInstant};
 use einsteindb_util::timer::SteadyTimer;
-use einsteindb_util::worker::{FutureScheduler, FutureWorker, Scheduler, Worker};
+use einsteindb_util::worker::{FutureInterlock_Semaphore, FutureWorker, Interlock_Semaphore, Worker};
 use einsteindb_util::{is_zero_duration, sys as sys_util, Either, RingQueue};
 
-use crate::interlock::split_observer::SplitObserver;
-use crate::interlock::{BoxAdminObserver, InterlockHost, BraneChangeEvent};
+use crate::interlock::split_semaphore::SplitSemaphore;
+use crate::interlock::{BoxAdminSemaphore, InterlockHost, BraneChangeEvent};
 use crate::observe_perf_context_type;
 use crate::report_perf_context;
 use crate::store::config::Config;
 use crate::store::fsm::metrics::*;
 use crate::store::fsm::peer::{
-    maybe_destroy_source, new_admin_request, PeerFsm, PeerFsmDelegate, SlightlikeerFsmPair,
+    maybe_destroy_source, new_admin_request, PeerFsm, PeerFsmpushdown_causet, SlightlikeerFsmPair,
 };
 use crate::store::fsm::ApplyNotifier;
 use crate::store::fsm::ApplyTaskRes;
@@ -61,7 +61,7 @@ use crate::store::util::{is_initial_msg, PerfContextStatistics};
 use crate::store::worker::{
     AutoSplitController, CleanupRunner, CleanupSSTRunner, CleanupSSTTask, CleanupTask,
     CompactRunner, CompactTask, ConsistencyCheckRunner, ConsistencyCheckTask, FidelRunner,
-    VioletaBftlogGcRunner, VioletaBftlogGcTask, ReadDelegate, BraneRunner, BraneTask, SplitCheckTask,
+    VioletaBftlogGcRunner, VioletaBftlogGcTask, Readpushdown_causet, BraneRunner, BraneTask, SplitCheckTask,
 };
 use crate::store::FidelTask;
 use crate::store::PeerTicks;
@@ -93,7 +93,7 @@ pub struct StoreMeta {
     /// brane_id -> brane
     pub branes: HashMap<u64, Brane>,
     /// brane_id -> reader
-    pub readers: HashMap<u64, ReadDelegate>,
+    pub readers: HashMap<u64, Readpushdown_causet>,
     /// `MsgRequestPreVote` or `MsgRequestVote` messages from newly split Branes shouldn't be dropped if there is no
     /// such Brane in this store now. So the messages are recorded temporarily and will be handled later.
     pub plightlikeing_votes: RingQueue<VioletaBftMessage>,
@@ -291,13 +291,13 @@ where
 {
     pub causet: Config,
     pub store: metapb::CausetStore,
-    pub fidel_scheduler: FutureScheduler<FidelTask<EK>>,
-    pub consistency_check_scheduler: Scheduler<ConsistencyCheckTask<EK::Snapshot>>,
-    pub split_check_scheduler: Scheduler<SplitCheckTask>,
+    pub fidel_interlock_semaphore: FutureInterlock_Semaphore<FidelTask<EK>>,
+    pub consistency_check_interlock_semaphore: Interlock_Semaphore<ConsistencyCheckTask<EK::Snapshot>>,
+    pub split_check_interlock_semaphore: Interlock_Semaphore<SplitCheckTask>,
     // handle Compact, CleanupSST task
-    pub cleanup_scheduler: Scheduler<CleanupTask>,
-    pub violetabftlog_gc_scheduler: Scheduler<VioletaBftlogGcTask>,
-    pub brane_scheduler: Scheduler<BraneTask<EK::Snapshot>>,
+    pub cleanup_interlock_semaphore: Interlock_Semaphore<CleanupTask>,
+    pub violetabftlog_gc_interlock_semaphore: Interlock_Semaphore<VioletaBftlogGcTask>,
+    pub brane_interlock_semaphore: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
     pub apply_router: ApplyRouter<EK>,
     pub router: VioletaBftRouter<EK, ER>,
     pub importer: Arc<SSTImporter>,
@@ -530,7 +530,7 @@ where
     }
 }
 
-struct StoreFsmDelegate<
+struct StoreFsmpushdown_causet<
     'a,
     EK: KvEngine + 'static,
     ER: VioletaBftEngine + 'static,
@@ -542,7 +542,7 @@ struct StoreFsmDelegate<
 }
 
 impl<'a, EK: KvEngine + 'static, ER: VioletaBftEngine + 'static, T: Transport, C: FidelClient>
-    StoreFsmDelegate<'a, EK, ER, T, C>
+    StoreFsmpushdown_causet<'a, EK, ER, T, C>
 {
     fn on_tick(&mut self, tick: StoreTick) {
         let t = TiInstant::now_coarse();
@@ -650,7 +650,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBf
                         batch_pos += 1;
                     }
                 }
-                PeerFsmDelegate::new(&mut peers[batch_pos], &mut self.poll_ctx)
+                PeerFsmpushdown_causet::new(&mut peers[batch_pos], &mut self.poll_ctx)
                     .handle_violetabft_ready_apply(ready, invoke_ctx);
             }
             self.poll_ctx.ready_res = ready_res;
@@ -712,7 +712,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBf
                         batch_pos += 1;
                     }
                 }
-                PeerFsmDelegate::new(&mut peers[batch_pos], &mut self.poll_ctx)
+                PeerFsmpushdown_causet::new(&mut peers[batch_pos], &mut self.poll_ctx)
                     .post_violetabft_ready_applightlike(ready, invoke_ctx);
             }
         }
@@ -816,11 +816,11 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                 }
             }
         }
-        let mut delegate = StoreFsmDelegate {
+        let mut pushdown_causet = StoreFsmpushdown_causet {
             fsm: store,
             ctx: &mut self.poll_ctx,
         };
-        delegate.handle_msgs(&mut self.store_msg_buf);
+        pushdown_causet.handle_msgs(&mut self.store_msg_buf);
         expected_msg_count
     }
 
@@ -861,9 +861,9 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                 }
             }
         }
-        let mut delegate = PeerFsmDelegate::new(peer, &mut self.poll_ctx);
-        delegate.handle_msgs(&mut self.peer_msg_buf);
-        delegate.collect_ready();
+        let mut pushdown_causet = PeerFsmpushdown_causet::new(peer, &mut self.poll_ctx);
+        pushdown_causet.handle_msgs(&mut self.peer_msg_buf);
+        pushdown_causet.collect_ready();
         expected_msg_count
     }
 
@@ -892,12 +892,12 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
 pub struct VioletaBftPollerBuilder<EK: KvEngine, ER: VioletaBftEngine, T, C> {
     pub causet: Arc<VersionTrack<Config>>,
     pub store: metapb::CausetStore,
-    fidel_scheduler: FutureScheduler<FidelTask<EK>>,
-    consistency_check_scheduler: Scheduler<ConsistencyCheckTask<EK::Snapshot>>,
-    split_check_scheduler: Scheduler<SplitCheckTask>,
-    cleanup_scheduler: Scheduler<CleanupTask>,
-    violetabftlog_gc_scheduler: Scheduler<VioletaBftlogGcTask>,
-    pub brane_scheduler: Scheduler<BraneTask<EK::Snapshot>>,
+    fidel_interlock_semaphore: FutureInterlock_Semaphore<FidelTask<EK>>,
+    consistency_check_interlock_semaphore: Interlock_Semaphore<ConsistencyCheckTask<EK::Snapshot>>,
+    split_check_interlock_semaphore: Interlock_Semaphore<SplitCheckTask>,
+    cleanup_interlock_semaphore: Interlock_Semaphore<CleanupTask>,
+    violetabftlog_gc_interlock_semaphore: Interlock_Semaphore<VioletaBftlogGcTask>,
+    pub brane_interlock_semaphore: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
     apply_router: ApplyRouter<EK>,
     pub router: VioletaBftRouter<EK, ER>,
     pub importer: Arc<SSTImporter>,
@@ -969,7 +969,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
             let (tx, mut peer) = box_try!(PeerFsm::create(
                 store_id,
                 &self.causet.value(),
-                self.brane_scheduler.clone(),
+                self.brane_interlock_semaphore.clone(),
                 self.engines.clone(),
                 brane,
             ));
@@ -1006,7 +1006,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
             let (tx, mut peer) = PeerFsm::create(
                 store_id,
                 &self.causet.value(),
-                self.brane_scheduler.clone(),
+                self.brane_interlock_semaphore.clone(),
                 self.engines.clone(),
                 &brane,
             )?;
@@ -1090,14 +1090,14 @@ where
         let mut ctx = PollContext {
             causet: self.causet.value().clone(),
             store: self.store.clone(),
-            fidel_scheduler: self.fidel_scheduler.clone(),
-            consistency_check_scheduler: self.consistency_check_scheduler.clone(),
-            split_check_scheduler: self.split_check_scheduler.clone(),
-            brane_scheduler: self.brane_scheduler.clone(),
+            fidel_interlock_semaphore: self.fidel_interlock_semaphore.clone(),
+            consistency_check_interlock_semaphore: self.consistency_check_interlock_semaphore.clone(),
+            split_check_interlock_semaphore: self.split_check_interlock_semaphore.clone(),
+            brane_interlock_semaphore: self.brane_interlock_semaphore.clone(),
             apply_router: self.apply_router.clone(),
             router: self.router.clone(),
-            cleanup_scheduler: self.cleanup_scheduler.clone(),
-            violetabftlog_gc_scheduler: self.violetabftlog_gc_scheduler.clone(),
+            cleanup_interlock_semaphore: self.cleanup_interlock_semaphore.clone(),
+            violetabftlog_gc_interlock_semaphore: self.violetabftlog_gc_interlock_semaphore.clone(),
             importer: self.importer.clone(),
             store_meta: self.store_meta.clone(),
             plightlikeing_create_peers: self.plightlikeing_create_peers.clone(),
@@ -1191,7 +1191,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
         // TODO load interlocks from configuration
         interlock_host
             .registry
-            .register_admin_observer(100, BoxAdminObserver::new(SplitObserver));
+            .register_admin_semaphore(100, BoxAdminSemaphore::new(SplitSemaphore));
 
         let workers = Workers {
             split_check_worker,
@@ -1207,12 +1207,12 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
             store: meta,
             engines,
             router: self.router.clone(),
-            split_check_scheduler: workers.split_check_worker.scheduler(),
-            brane_scheduler: workers.brane_worker.scheduler(),
-            fidel_scheduler: workers.fidel_worker.scheduler(),
-            consistency_check_scheduler: workers.consistency_check_worker.scheduler(),
-            cleanup_scheduler: workers.cleanup_worker.scheduler(),
-            violetabftlog_gc_scheduler: workers.violetabftlog_gc_worker.scheduler(),
+            split_check_interlock_semaphore: workers.split_check_worker.interlock_semaphore(),
+            brane_interlock_semaphore: workers.brane_worker.interlock_semaphore(),
+            fidel_interlock_semaphore: workers.fidel_worker.interlock_semaphore(),
+            consistency_check_interlock_semaphore: workers.consistency_check_worker.interlock_semaphore(),
+            cleanup_interlock_semaphore: workers.cleanup_worker.interlock_semaphore(),
+            violetabftlog_gc_interlock_semaphore: workers.violetabftlog_gc_worker.interlock_semaphore(),
             apply_router: self.apply_router.clone(),
             trans,
             fidel_client,
@@ -1280,7 +1280,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
             for (_, peer_fsm) in &brane_peers {
                 let peer = peer_fsm.get_peer();
                 meta.readers
-                    .insert(peer_fsm.brane_id(), ReadDelegate::from_peer(peer));
+                    .insert(peer_fsm.brane_id(), Readpushdown_causet::from_peer(peer));
             }
         }
 
@@ -1347,7 +1347,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
             Arc::clone(&fidel_client),
             self.router.clone(),
             engines.kv,
-            workers.fidel_worker.scheduler(),
+            workers.fidel_worker.interlock_semaphore(),
             causet.fidel_store_heartbeat_tick_interval.0,
             auto_split_controller,
             concurrency_manager,
@@ -1422,7 +1422,7 @@ enum CheckMsgStatus {
 }
 
 impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
-    StoreFsmDelegate<'a, EK, ER, T, C>
+    StoreFsmpushdown_causet<'a, EK, ER, T, C>
 {
     /// Checks if the message is targeting a stale peer.
     fn check_msg(&mut self, msg: &VioletaBftMessage) -> Result<CheckMsgStatus> {
@@ -1794,7 +1794,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         let (tx, mut peer) = PeerFsm::replicate(
             self.ctx.store_id(),
             &self.ctx.causet,
-            self.ctx.brane_scheduler.clone(),
+            self.ctx.brane_interlock_semaphore.clone(),
             self.ctx.engines.clone(),
             brane_id,
             target.clone(),
@@ -1865,7 +1865,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
 
     fn on_compact_check_tick(&mut self) {
         self.register_compact_check_tick();
-        if self.ctx.cleanup_scheduler.is_busy() {
+        if self.ctx.cleanup_interlock_semaphore.is_busy() {
             debug!(
                 "compact worker is busy, check space redundancy next time";
                 "store_id" => self.fsm.store.id,
@@ -1931,7 +1931,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
 
         // Schedule the task.
         let causet_names = vec![CAUSET_DEFAULT.to_owned(), CAUSET_WRITE.to_owned()];
-        if let Err(e) = self.ctx.cleanup_scheduler.schedule(CleanupTask::Compact(
+        if let Err(e) = self.ctx.cleanup_interlock_semaphore.schedule(CleanupTask::Compact(
             CompactTask::CheckAndCompact {
                 causet_names,
                 cones: cones_need_check,
@@ -2006,7 +2006,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         };
 
         let task = FidelTask::StoreHeartbeat { stats, store_info };
-        if let Err(e) = self.ctx.fidel_scheduler.schedule(task) {
+        if let Err(e) = self.ctx.fidel_interlock_semaphore.schedule(task) {
             error!("notify fidel failed";
                 "store_id" => self.fsm.store.id,
                 "err" => ?e
@@ -2117,7 +2117,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             };
             if let Err(e) = self
                 .ctx
-                .cleanup_scheduler
+                .cleanup_interlock_semaphore
                 .schedule(CleanupTask::Compact(task))
             {
                 error!(
@@ -2152,7 +2152,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
 }
 
 impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
-    StoreFsmDelegate<'a, EK, ER, T, C>
+    StoreFsmpushdown_causet<'a, EK, ER, T, C>
 {
     fn on_validate_sst_result(&mut self, ssts: Vec<SstMeta>) {
         if ssts.is_empty() {
@@ -2176,7 +2176,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         let task = CleanupSSTTask::DeleteSST { ssts: delete_ssts };
         if let Err(e) = self
             .ctx
-            .cleanup_scheduler
+            .cleanup_interlock_semaphore
             .schedule(CleanupTask::CleanupSST(task))
         {
             error!(
@@ -2215,7 +2215,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             let task = CleanupSSTTask::DeleteSST { ssts: delete_ssts };
             if let Err(e) = self
                 .ctx
-                .cleanup_scheduler
+                .cleanup_interlock_semaphore
                 .schedule(CleanupTask::CleanupSST(task))
             {
                 error!(
@@ -2232,7 +2232,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             };
             if let Err(e) = self
                 .ctx
-                .cleanup_scheduler
+                .cleanup_interlock_semaphore
                 .schedule(CleanupTask::CleanupSST(task))
             {
                 error!(
@@ -2255,7 +2255,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
 
     fn on_consistency_check_tick(&mut self) {
         self.register_consistency_check_tick();
-        if self.ctx.consistency_check_scheduler.is_busy() {
+        if self.ctx.consistency_check_interlock_semaphore.is_busy() {
             return;
         }
         let (mut target_brane_id, mut oldest) = (0, Instant::now());
@@ -2395,8 +2395,8 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     }
 
     fn on_violetabft_engine_purge_tick(&self) {
-        let scheduler = &self.ctx.violetabftlog_gc_scheduler;
-        let _ = scheduler.schedule(VioletaBftlogGcTask::Purge);
+        let interlock_semaphore = &self.ctx.violetabftlog_gc_interlock_semaphore;
+        let _ = interlock_semaphore.schedule(VioletaBftlogGcTask::Purge);
         self.register_violetabft_engine_purge_tick();
     }
 }

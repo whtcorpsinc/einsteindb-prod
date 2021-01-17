@@ -15,7 +15,7 @@ use violetabftstore::router::VioletaBftStoreRouter;
 use violetabftstore::store::Transport;
 use violetabftstore::Result as VioletaBftStoreResult;
 use einsteindb_util::collections::HashSet;
-use einsteindb_util::worker::Scheduler;
+use einsteindb_util::worker::Interlock_Semaphore;
 use einsteindb_util::HandyRwLock;
 
 pub struct ServerTransport<T, S>
@@ -24,7 +24,7 @@ where
     S: StoreAddrResolver + 'static,
 {
     violetabft_client: Arc<RwLock<VioletaBftClient<T>>>,
-    snap_scheduler: Scheduler<SnapTask>,
+    snap_interlock_semaphore: Interlock_Semaphore<SnapTask>,
     pub violetabft_router: T,
     resolving: Arc<RwLock<HashSet<u64>>>,
     resolver: S,
@@ -38,7 +38,7 @@ where
     fn clone(&self) -> Self {
         ServerTransport {
             violetabft_client: Arc::clone(&self.violetabft_client),
-            snap_scheduler: self.snap_scheduler.clone(),
+            snap_interlock_semaphore: self.snap_interlock_semaphore.clone(),
             violetabft_router: self.violetabft_router.clone(),
             resolving: Arc::clone(&self.resolving),
             resolver: self.resolver.clone(),
@@ -51,13 +51,13 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, S: StoreAddrResolver + 'sta
 {
     pub fn new(
         violetabft_client: Arc<RwLock<VioletaBftClient<T>>>,
-        snap_scheduler: Scheduler<SnapTask>,
+        snap_interlock_semaphore: Interlock_Semaphore<SnapTask>,
         violetabft_router: T,
         resolver: S,
     ) -> ServerTransport<T, S> {
         ServerTransport {
             violetabft_client,
-            snap_scheduler,
+            snap_interlock_semaphore,
             violetabft_router,
             resolving: Arc::new(RwLock::new(Default::default())),
             resolver,
@@ -174,7 +174,7 @@ impl<T: VioletaBftStoreRouter<LmdbEngine> + 'static, S: StoreAddrResolver + 'sta
                 rep.report(SnapshotStatus::Finish);
             }
         });
-        if let Err(e) = self.snap_scheduler.schedule(SnapTask::Slightlike {
+        if let Err(e) = self.snap_interlock_semaphore.schedule(SnapTask::Slightlike {
             addr: addr.to_owned(),
             msg,
             cb,

@@ -204,7 +204,7 @@ version = "1.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95e28fa049fda1c330bcauset9d723be7663a899c4679724b34c81e9f5a326aab8cd"
 deplightlikeencies = [
- "jobserver",
+ "jsemaphore",
 ]
 
 [[package]]
@@ -700,7 +700,7 @@ checksum = "3466821b4bc114d95b087b850a724c6f83115e929bc88f1fa98a3304a944c8a6"
 name = "futures-task"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b0a34e53causet6cdcd0178aa573aed466b646eb3db769570841fda0c7ede375a27"
+checksum = "7b0a34e53causet6causet_contextd0178aa573aed466b646eb3db769570841fda0c7ede375a27"
 
 [[package]]
 name = "futures-timer"
@@ -950,7 +950,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8b7a7c0c47db5545ed3fef7468ee7bb5b74691498139e4b3f6a20685dc6dd8e"
 
 [[package]]
-name = "jobserver"
+name = "jsemaphore"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c71313ebb9439f74b00d9d2dcec36440beaf57a6aa0623068441dd7cd81a7f2"
@@ -1574,7 +1574,7 @@ deplightlikeencies = [
 name = "rand"
 version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d71dacdc3c88c1fde3885a3be3fbab9f35724e6ce99467f7d9c5026132184ca"
+checksum = "6d71dacauset_context3c88c1fde3885a3be3fbab9f35724e6ce99467f7d9c5026132184ca"
 deplightlikeencies = [
  "autocauset 0.1.7",
  "libc",

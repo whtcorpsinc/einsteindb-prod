@@ -501,7 +501,7 @@ impl<ER: VioletaBftEngine> Debugger<ER> {
             let peer_causetStorage = box_try!(PeerStorage::<LmdbEngine, ER>::new(
                 self.engines.clone(),
                 brane,
-                fake_snap_worker.scheduler(),
+                fake_snap_worker.interlock_semaphore(),
                 peer_id,
                 tag,
             ));

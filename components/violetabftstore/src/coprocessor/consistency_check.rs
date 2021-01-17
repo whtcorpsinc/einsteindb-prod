@@ -8,8 +8,8 @@ use ekvproto::metapb::Brane;
 use crate::interlock::{ConsistencyCheckMethod, Interlock};
 use crate::Result;
 
-pub trait ConsistencyCheckObserver<E: KvEngine>: Interlock {
-    /// Ufidelate context. Return `true` if later observers should be skiped.
+pub trait ConsistencyCheckSemaphore<E: KvEngine>: Interlock {
+    /// Ufidelate context. Return `true` if later semaphores should be skiped.
     fn ufidelate_context(&self, context: &mut Vec<u8>) -> bool;
 
     /// Compute hash for `brane`. The policy is extracted from `context`.
@@ -32,7 +32,7 @@ impl<E: KvEngine> Default for Raw<E> {
     }
 }
 
-impl<E: KvEngine> ConsistencyCheckObserver<E> for Raw<E> {
+impl<E: KvEngine> ConsistencyCheckSemaphore<E> for Raw<E> {
     fn ufidelate_context(&self, context: &mut Vec<u8>) -> bool {
         context.push(ConsistencyCheckMethod::Raw as u8);
         // Raw consistency check is the most heavy and strong one.
@@ -90,8 +90,8 @@ mod tests {
     #[test]
     fn test_ufidelate_context() {
         let mut context = Vec::new();
-        let observer = Raw::<LmdbEngine>::default();
-        assert!(observer.ufidelate_context(&mut context));
+        let semaphore = Raw::<LmdbEngine>::default();
+        assert!(semaphore.ufidelate_context(&mut context));
         assert_eq!(context.len(), 1);
         assert_eq!(context[0], ConsistencyCheckMethod::Raw as u8);
     }

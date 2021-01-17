@@ -8,8 +8,8 @@ use std::time::Duration;
 
 use super::metrics::*;
 use super::{
-    BoxBraneChangeObserver, BoxRoleObserver, Interlock, InterlockHost, ObserverContext,
-    BraneChangeEvent, BraneChangeObserver, Result, RoleObserver,
+    BoxBraneChangeSemaphore, BoxRoleSemaphore, Interlock, InterlockHost, SemaphoreContext,
+    BraneChangeEvent, BraneChangeSemaphore, Result, RoleSemaphore,
 };
 use engine_promises::KvEngine;
 use tuplespaceInstanton::{data_lightlike_key, data_key};
@@ -17,10 +17,10 @@ use ekvproto::metapb::Brane;
 use violetabft::StateRole;
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::timer::Timer;
-use einsteindb_util::worker::{Builder as WorkerBuilder, Runnable, RunnableWithTimer, Scheduler, Worker};
+use einsteindb_util::worker::{Builder as WorkerBuilder, Runnable, RunnableWithTimer, Interlock_Semaphore, Worker};
 
 /// `BraneInfoAccessor` is used to collect all branes' information on this EinsteinDB into a collection
-/// so that other parts of EinsteinDB can get brane information from it. It registers a observer to
+/// so that other parts of EinsteinDB can get brane information from it. It registers a semaphore to
 /// violetabftstore, which is named `BraneEventListener`. When the events that we are interested in
 /// happen (such as creating and deleting branes), `BraneEventListener` simply slightlikes the events
 /// through a channel.
@@ -103,19 +103,19 @@ impl Display for BraneInfoQuery {
     }
 }
 
-/// `BraneEventListener` implements observer promises. It simply slightlike the events that we are interested in
-/// through the `scheduler`.
+/// `BraneEventListener` implements semaphore promises. It simply slightlike the events that we are interested in
+/// through the `interlock_semaphore`.
 #[derive(Clone)]
 struct BraneEventListener {
-    scheduler: Scheduler<BraneInfoQuery>,
+    interlock_semaphore: Interlock_Semaphore<BraneInfoQuery>,
 }
 
 impl Interlock for BraneEventListener {}
 
-impl BraneChangeObserver for BraneEventListener {
+impl BraneChangeSemaphore for BraneEventListener {
     fn on_brane_changed(
         &self,
-        context: &mut ObserverContext<'_>,
+        context: &mut SemaphoreContext<'_>,
         event: BraneChangeEvent,
         role: StateRole,
     ) {
@@ -125,17 +125,17 @@ impl BraneChangeObserver for BraneEventListener {
             BraneChangeEvent::Ufidelate => VioletaBftStoreEvent::UfidelateBrane { brane, role },
             BraneChangeEvent::Destroy => VioletaBftStoreEvent::DestroyBrane { brane },
         };
-        self.scheduler
+        self.interlock_semaphore
             .schedule(BraneInfoQuery::VioletaBftStoreEvent(event))
             .unwrap();
     }
 }
 
-impl RoleObserver for BraneEventListener {
-    fn on_role_change(&self, context: &mut ObserverContext<'_>, role: StateRole) {
+impl RoleSemaphore for BraneEventListener {
+    fn on_role_change(&self, context: &mut SemaphoreContext<'_>, role: StateRole) {
         let brane = context.brane().clone();
         let event = VioletaBftStoreEvent::RoleChange { brane, role };
-        self.scheduler
+        self.interlock_semaphore
             .schedule(BraneInfoQuery::VioletaBftStoreEvent(event))
             .unwrap();
     }
@@ -144,14 +144,14 @@ impl RoleObserver for BraneEventListener {
 /// Creates an `BraneEventListener` and register it to given interlock host.
 fn register_brane_event_listener(
     host: &mut InterlockHost<impl KvEngine>,
-    scheduler: Scheduler<BraneInfoQuery>,
+    interlock_semaphore: Interlock_Semaphore<BraneInfoQuery>,
 ) {
-    let listener = BraneEventListener { scheduler };
+    let listener = BraneEventListener { interlock_semaphore };
 
     host.registry
-        .register_role_observer(1, BoxRoleObserver::new(listener.clone()));
+        .register_role_semaphore(1, BoxRoleSemaphore::new(listener.clone()));
     host.registry
-        .register_brane_change_observer(1, BoxBraneChangeObserver::new(listener));
+        .register_brane_change_semaphore(1, BoxBraneChangeSemaphore::new(listener));
 }
 
 /// `BraneCollector` is the place where we hold all brane information we collected, and the
@@ -455,7 +455,7 @@ impl RunnableWithTimer for BraneCollector {
 #[derive(Clone)]
 pub struct BraneInfoAccessor {
     worker: Arc<Mutex<Worker<BraneInfoQuery>>>,
-    scheduler: Scheduler<BraneInfoQuery>,
+    interlock_semaphore: Interlock_Semaphore<BraneInfoQuery>,
 }
 
 impl BraneInfoAccessor {
@@ -464,13 +464,13 @@ impl BraneInfoAccessor {
     /// in different places, just clone it, and their contents are shared.
     pub fn new(host: &mut InterlockHost<impl KvEngine>) -> Self {
         let worker = WorkerBuilder::new("brane-collector-worker").create();
-        let scheduler = worker.scheduler();
+        let interlock_semaphore = worker.interlock_semaphore();
 
-        register_brane_event_listener(host, scheduler.clone());
+        register_brane_event_listener(host, interlock_semaphore.clone());
 
         Self {
             worker: Arc::new(Mutex::new(worker)),
-            scheduler,
+            interlock_semaphore,
         }
     }
 
@@ -493,7 +493,7 @@ impl BraneInfoAccessor {
     /// Gets all content from the collection. Only used for testing.
     pub fn debug_dump(&self) -> (BranesMap, BraneConesMap) {
         let (tx, rx) = mpsc::channel();
-        self.scheduler
+        self.interlock_semaphore
             .schedule(BraneInfoQuery::DebugDump(tx))
             .unwrap();
         rx.recv().unwrap()
@@ -522,7 +522,7 @@ impl BraneInfoProvider for BraneInfoAccessor {
             from: from.to_vec(),
             callback,
         };
-        self.scheduler
+        self.interlock_semaphore
             .schedule(msg)
             .map_err(|e| box_err!("failed to slightlike request to brane collector: {:?}", e))
     }
@@ -536,7 +536,7 @@ impl BraneInfoProvider for BraneInfoAccessor {
             brane_id,
             callback,
         };
-        self.scheduler
+        self.interlock_semaphore
             .schedule(msg)
             .map_err(|e| box_err!("failed to slightlike request to brane collector: {:?}", e))
     }

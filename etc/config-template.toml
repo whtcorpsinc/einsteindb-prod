@@ -182,19 +182,19 @@
 ## The path to Lmdb directory.
 # data-dir = "/tmp/einsteindb/store"
 
-## The number of slots in Scheduler latches, which controls write concurrency.
+## The number of slots in Interlock_Semaphore latches, which controls write concurrency.
 ## In most cases you can use the default value. When importing data, you can set it to a larger
 ## value.
-# scheduler-concurrency = 2048000
+# interlock_semaphore-concurrency = 2048000
 
-## Scheduler's worker pool size, i.e. the number of write threads.
+## Interlock_Semaphore's worker pool size, i.e. the number of write threads.
 ## It should be less than total CPU cores. When there are frequent write operations, set it to a
 ## higher value. More specifically, you can run `top -H -p einsteindb-pid` to check whether the threads
 ## named `sched-worker-pool` are busy.
-# scheduler-worker-pool-size = 4
+# interlock_semaphore-worker-pool-size = 4
 
-## When the plightlikeing write bytes exceeds this memory_barrier, the "scheduler too busy" error is displayed.
-# scheduler-plightlikeing-write-memory_barrier = "100MB"
+## When the plightlikeing write bytes exceeds this memory_barrier, the "interlock_semaphore too busy" error is displayed.
+# interlock_semaphore-plightlikeing-write-memory_barrier = "100MB"
 
 ## Whether to enable the async commit feature.
 ## DO NOT use it in production. This option may be removed in the future.

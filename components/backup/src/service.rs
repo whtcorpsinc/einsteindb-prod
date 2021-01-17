@@ -13,15 +13,15 @@ use super::Task;
 /// Service handles the RPC messages for the `Backup` service.
 #[derive(Clone)]
 pub struct Service {
-    scheduler: Scheduler<Task>,
+    interlock_semaphore: Interlock_Semaphore<Task>,
     security_mgr: Arc<SecurityManager>,
 }
 
 impl Service {
     /// Create a new backup service.
-    pub fn new(scheduler: Scheduler<Task>, security_mgr: Arc<SecurityManager>) -> Service {
+    pub fn new(interlock_semaphore: Interlock_Semaphore<Task>, security_mgr: Arc<SecurityManager>) -> Service {
         Service {
-            scheduler,
+            interlock_semaphore,
             security_mgr,
         }
     }
@@ -43,7 +43,7 @@ impl Backup for Service {
         if let Err(status) = match Task::new(req, tx) {
             Ok((task, c)) => {
                 cancel = Some(c);
-                self.scheduler.schedule(task).map_err(|e| {
+                self.interlock_semaphore.schedule(task).map_err(|e| {
                     RpcStatus::new(RpcStatusCode::INVALID_ARGUMENT, Some(format!("{:?}", e)))
                 })
             }
@@ -102,8 +102,8 @@ mod tests {
     fn new_rpc_suite() -> (Server, BackupClient, Receiver<Option<Task>>) {
         let security_mgr = Arc::new(SecurityManager::new(&SecurityConfig::default()).unwrap());
         let env = Arc::new(EnvBuilder::new().build());
-        let (scheduler, rx) = dummy_scheduler();
-        let backup_service = super::Service::new(scheduler, security_mgr);
+        let (interlock_semaphore, rx) = dummy_interlock_semaphore();
+        let backup_service = super::Service::new(interlock_semaphore, security_mgr);
         let builder =
             ServerBuilder::new(env.clone()).register_service(create_backup(backup_service));
         let mut server = builder.bind("127.0.0.1", 0).build().unwrap();

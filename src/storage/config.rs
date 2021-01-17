@@ -37,11 +37,11 @@ pub struct Config {
     #[config(skip)]
     pub max_key_size: usize,
     #[config(skip)]
-    pub scheduler_concurrency: usize,
+    pub interlock_semaphore_concurrency: usize,
     #[config(skip)]
-    pub scheduler_worker_pool_size: usize,
+    pub interlock_semaphore_worker_pool_size: usize,
     #[config(skip)]
-    pub scheduler_plightlikeing_write_memory_barrier: ReadableSize,
+    pub interlock_semaphore_plightlikeing_write_memory_barrier: ReadableSize,
     #[config(skip)]
     // Reserve disk space to make einsteindb would have enough space to compact when disk is full.
     pub reserve_space: ReadableSize,
@@ -62,9 +62,9 @@ impl Default for Config {
             data_dir: DEFAULT_DATA_DIR.to_owned(),
             gc_ratio_memory_barrier: DEFAULT_GC_RATIO_THRESHOLD,
             max_key_size: DEFAULT_MAX_KEY_SIZE,
-            scheduler_concurrency: DEFAULT_SCHED_CONCURRENCY,
-            scheduler_worker_pool_size: if cpu_num >= 16.0 { 8 } else { 4 },
-            scheduler_plightlikeing_write_memory_barrier: ReadableSize::mb(DEFAULT_SCHED_PENDING_WRITE_MB),
+            interlock_semaphore_concurrency: DEFAULT_SCHED_CONCURRENCY,
+            interlock_semaphore_worker_pool_size: if cpu_num >= 16.0 { 8 } else { 4 },
+            interlock_semaphore_plightlikeing_write_memory_barrier: ReadableSize::mb(DEFAULT_SCHED_PENDING_WRITE_MB),
             reserve_space: ReadableSize::gb(DEFAULT_RESERVER_SPACE_SIZE),
             enable_async_commit: true,
             block_cache: BlockCacheConfig::default(),
@@ -77,11 +77,11 @@ impl Config {
         if self.data_dir != DEFAULT_DATA_DIR {
             self.data_dir = config::canonicalize_path(&self.data_dir)?
         }
-        if self.scheduler_concurrency > MAX_SCHED_CONCURRENCY {
+        if self.interlock_semaphore_concurrency > MAX_SCHED_CONCURRENCY {
             warn!("EinsteinDB has optimized latch since v4.0, so it is not necessary to set large schedule \
                 concurrency. To save memory, change it from {:?} to {:?}",
-                  self.scheduler_concurrency, MAX_SCHED_CONCURRENCY);
-            self.scheduler_concurrency = MAX_SCHED_CONCURRENCY;
+                  self.interlock_semaphore_concurrency, MAX_SCHED_CONCURRENCY);
+            self.interlock_semaphore_concurrency = MAX_SCHED_CONCURRENCY;
         }
         Ok(())
     }

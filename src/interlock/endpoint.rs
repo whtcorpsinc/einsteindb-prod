@@ -38,7 +38,7 @@ use txn_types::Dagger;
 const LIGHT_TASK_THRESHOLD: Duration = Duration::from_millis(5);
 
 /// A pool to build and run Interlock request handlers.
-pub struct Endpoint<E: Engine> {
+pub struct node<E: Engine> {
     /// The thread pool to run Interlock requests.
     read_pool: ReadPoolHandle,
 
@@ -64,7 +64,7 @@ pub struct Endpoint<E: Engine> {
     _phantom: PhantomData<E>,
 }
 
-impl<E: Engine> Clone for Endpoint<E> {
+impl<E: Engine> Clone for node<E> {
     fn clone(&self) -> Self {
         Self {
             read_pool: self.read_pool.clone(),
@@ -75,9 +75,9 @@ impl<E: Engine> Clone for Endpoint<E> {
     }
 }
 
-impl<E: Engine> einsteindb_util::AssertSlightlike for Endpoint<E> {}
+impl<E: Engine> einsteindb_util::AssertSlightlike for node<E> {}
 
-impl<E: Engine> Endpoint<E> {
+impl<E: Engine> node<E> {
     pub fn new(
         causet: &Config,
         read_pool: ReadPoolHandle,
@@ -809,7 +809,7 @@ mod tests {
             engine,
         ));
         let cm = ConcurrencyManager::new(1.into());
-        let causet = Endpoint::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
+        let causet = node::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
 
         // a normal request
         let handler_builder =
@@ -843,7 +843,7 @@ mod tests {
             engine,
         ));
         let cm = ConcurrencyManager::new(1.into());
-        let mut causet = Endpoint::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
+        let mut causet = node::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
         causet.recursion_limit = 100;
 
         let req = {
@@ -877,7 +877,7 @@ mod tests {
             engine,
         ));
         let cm = ConcurrencyManager::new(1.into());
-        let causet = Endpoint::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
+        let causet = node::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
 
         let mut req = coppb::Request::default();
         req.set_tp(9999);
@@ -894,7 +894,7 @@ mod tests {
             engine,
         ));
         let cm = ConcurrencyManager::new(1.into());
-        let causet = Endpoint::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
+        let causet = node::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
 
         let mut req = coppb::Request::default();
         req.set_tp(REQ_TYPE_DAG);
@@ -934,7 +934,7 @@ mod tests {
         );
 
         let cm = ConcurrencyManager::new(1.into());
-        let causet = Endpoint::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
+        let causet = node::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
 
         let (tx, rx) = mpsc::channel();
 
@@ -976,7 +976,7 @@ mod tests {
             engine,
         ));
         let cm = ConcurrencyManager::new(1.into());
-        let causet = Endpoint::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
+        let causet = node::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
 
         let handler_builder =
             Box::new(|_, _: &_| Ok(UnaryFixture::new(Err(box_err!("foo"))).into_boxed()));
@@ -995,7 +995,7 @@ mod tests {
             engine,
         ));
         let cm = ConcurrencyManager::new(1.into());
-        let causet = Endpoint::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
+        let causet = node::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
 
         // Fail immediately
         let handler_builder =
@@ -1042,7 +1042,7 @@ mod tests {
             engine,
         ));
         let cm = ConcurrencyManager::new(1.into());
-        let causet = Endpoint::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
+        let causet = node::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
 
         let handler_builder = Box::new(|_, _: &_| Ok(StreamFixture::new(vec![]).into_boxed()));
         let resp_vec = block_on_stream(
@@ -1064,7 +1064,7 @@ mod tests {
             engine,
         ));
         let cm = ConcurrencyManager::new(1.into());
-        let causet = Endpoint::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
+        let causet = node::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
 
         // handler returns `finished == true` should not be called again.
         let counter = Arc::new(atomic::AtomicIsize::new(0));
@@ -1154,7 +1154,7 @@ mod tests {
             engine,
         ));
         let cm = ConcurrencyManager::new(1.into());
-        let causet = Endpoint::<LmdbEngine>::new(
+        let causet = node::<LmdbEngine>::new(
             &Config {
                 lightlike_point_stream_channel_size: 3,
                 ..Config::default()
@@ -1220,7 +1220,7 @@ mod tests {
             ReadableDuration::millis((PAYLOAD_SMALL + PAYLOAD_LARGE) as u64 * 2);
 
         let cm = ConcurrencyManager::new(1.into());
-        let causet = Endpoint::<LmdbEngine>::new(&config, read_pool.handle(), cm);
+        let causet = node::<LmdbEngine>::new(&config, read_pool.handle(), cm);
 
         let (tx, rx) = std::sync::mpsc::channel();
 
@@ -1504,7 +1504,7 @@ mod tests {
             lightlike_point_check_memory_locks: true,
             ..Default::default()
         };
-        let causet = Endpoint::<LmdbEngine>::new(&config, read_pool.handle(), cm);
+        let causet = node::<LmdbEngine>::new(&config, read_pool.handle(), cm);
 
         let mut req = coppb::Request::default();
         req.mut_context().set_isolation_level(IsolationLevel::Si);

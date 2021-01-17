@@ -1,6 +1,6 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-mod test_cdc;
+mod test_causet_context;
 
 #[path = "../mod.rs"]
 mod testsuite;

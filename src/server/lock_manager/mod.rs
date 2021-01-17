@@ -7,8 +7,8 @@ mod metrics;
 pub mod waiter_manager;
 
 pub use self::config::{Config, LockManagerConfigManager};
-pub use self::deadlock::{Scheduler as DetectorScheduler, Service as DeadlockService};
-pub use self::waiter_manager::Scheduler as WaiterMgrScheduler;
+pub use self::deadlock::{Interlock_Semaphore as DetectorInterlock_Semaphore, Service as DeadlockService};
+pub use self::waiter_manager::Interlock_Semaphore as WaiterMgrInterlock_Semaphore;
 
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -50,8 +50,8 @@ pub struct LockManager {
     waiter_mgr_worker: Option<FutureWorker<waiter_manager::Task>>,
     detector_worker: Option<FutureWorker<deadlock::Task>>,
 
-    waiter_mgr_scheduler: WaiterMgrScheduler,
-    detector_scheduler: DetectorScheduler,
+    waiter_mgr_interlock_semaphore: WaiterMgrInterlock_Semaphore,
+    detector_interlock_semaphore: DetectorInterlock_Semaphore,
 
     waiter_count: Arc<AtomicUsize>,
 
@@ -64,8 +64,8 @@ impl Clone for LockManager {
         Self {
             waiter_mgr_worker: None,
             detector_worker: None,
-            waiter_mgr_scheduler: self.waiter_mgr_scheduler.clone(),
-            detector_scheduler: self.detector_scheduler.clone(),
+            waiter_mgr_interlock_semaphore: self.waiter_mgr_interlock_semaphore.clone(),
+            detector_interlock_semaphore: self.detector_interlock_semaphore.clone(),
             waiter_count: self.waiter_count.clone(),
             detected: self.detected.clone(),
         }
@@ -80,9 +80,9 @@ impl LockManager {
         detected.resize_with(DETECTED_SLOTS_NUM, || Mutex::new(HashSet::default()));
 
         Self {
-            waiter_mgr_scheduler: WaiterMgrScheduler::new(waiter_mgr_worker.scheduler()),
+            waiter_mgr_interlock_semaphore: WaiterMgrInterlock_Semaphore::new(waiter_mgr_worker.interlock_semaphore()),
             waiter_mgr_worker: Some(waiter_mgr_worker),
-            detector_scheduler: DetectorScheduler::new(detector_worker.scheduler()),
+            detector_interlock_semaphore: DetectorInterlock_Semaphore::new(detector_worker.interlock_semaphore()),
             detector_worker: Some(detector_worker),
             waiter_count: Arc::new(AtomicUsize::new(0)),
             detected: Arc::new(detected),
@@ -116,7 +116,7 @@ impl LockManager {
     fn spacelike_waiter_manager(&mut self, causet: &Config) -> Result<()> {
         let waiter_mgr_runner = WaiterManager::new(
             Arc::clone(&self.waiter_count),
-            self.detector_scheduler.clone(),
+            self.detector_interlock_semaphore.clone(),
             causet,
         );
         self.waiter_mgr_worker
@@ -157,7 +157,7 @@ impl LockManager {
             fidel_client,
             resolver,
             security_mgr,
-            self.waiter_mgr_scheduler.clone(),
+            self.waiter_mgr_interlock_semaphore.clone(),
             causet,
         );
         self.detector_worker
@@ -183,24 +183,24 @@ impl LockManager {
 
     /// Creates a `RoleChangeNotifier` of the deadlock detector worker and registers it to
     /// the `InterlockHost` to observe the role change events of the leader brane.
-    pub fn register_detector_role_change_observer(&self, host: &mut InterlockHost<LmdbEngine>) {
-        let role_change_notifier = RoleChangeNotifier::new(self.detector_scheduler.clone());
+    pub fn register_detector_role_change_semaphore(&self, host: &mut InterlockHost<LmdbEngine>) {
+        let role_change_notifier = RoleChangeNotifier::new(self.detector_interlock_semaphore.clone());
         role_change_notifier.register(host);
     }
 
     /// Creates a `DeadlockService` to handle deadlock detect requests from other nodes.
     pub fn deadlock_service(&self, security_mgr: Arc<SecurityManager>) -> DeadlockService {
         DeadlockService::new(
-            self.waiter_mgr_scheduler.clone(),
-            self.detector_scheduler.clone(),
+            self.waiter_mgr_interlock_semaphore.clone(),
+            self.detector_interlock_semaphore.clone(),
             security_mgr,
         )
     }
 
     pub fn config_manager(&self) -> LockManagerConfigManager {
         LockManagerConfigManager::new(
-            self.waiter_mgr_scheduler.clone(),
-            self.detector_scheduler.clone(),
+            self.waiter_mgr_interlock_semaphore.clone(),
+            self.detector_interlock_semaphore.clone(),
         )
     }
 
@@ -236,13 +236,13 @@ impl LockManagerTrait for LockManager {
         // Increase `waiter_count` here to prevent there is an on-the-fly WaitFor msg
         // but the waiter_mgr haven't processed it, subsequent WakeUp msgs may be lost.
         self.waiter_count.fetch_add(1, Ordering::SeqCst);
-        self.waiter_mgr_scheduler
+        self.waiter_mgr_interlock_semaphore
             .wait_for(spacelike_ts, cb, pr, dagger, timeout);
 
         // If it is the first dagger the transaction tries to dagger, it won't cause deadlock.
         if !is_first_lock {
             self.add_to_detected(spacelike_ts);
-            self.detector_scheduler.detect(spacelike_ts, dagger);
+            self.detector_interlock_semaphore.detect(spacelike_ts, dagger);
         }
     }
 
@@ -256,13 +256,13 @@ impl LockManagerTrait for LockManager {
         // If `hashes` is some, there may be some waiters waiting for these locks.
         // Try to wake up them.
         if !hashes.is_empty() && self.has_waiter() {
-            self.waiter_mgr_scheduler
+            self.waiter_mgr_interlock_semaphore
                 .wake_up(lock_ts, hashes, commit_ts);
         }
         // If a pessimistic transaction is committed or rolled back and it once sent requests to
         // detect deadlock, clean up its wait-for entries in the deadlock detector.
         if is_pessimistic_txn && self.remove_from_detected(lock_ts) {
-            self.detector_scheduler.clean_up(lock_ts);
+            self.detector_interlock_semaphore.clean_up(lock_ts);
         }
     }
 
@@ -295,7 +295,7 @@ mod tests {
         let mut causet = Config::default();
         causet.wait_for_lock_timeout = ReadableDuration::millis(3000);
         causet.wake_up_delay_duration = ReadableDuration::millis(100);
-        lock_mgr.register_detector_role_change_observer(&mut interlock_host);
+        lock_mgr.register_detector_role_change_semaphore(&mut interlock_host);
         lock_mgr
             .spacelike(
                 1,

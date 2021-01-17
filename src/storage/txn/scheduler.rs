@@ -1,24 +1,24 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
-//! Scheduler which schedules the execution of `causetStorage::Command`s.
+//! Interlock_Semaphore which schedules the execution of `causetStorage::Command`s.
 //!
-//! There is one scheduler for each store. It receives commands from clients, executes them against
+//! There is one interlock_semaphore for each store. It receives commands from clients, executes them against
 //! the MVCC layer causetStorage engine.
 //!
 //! Logically, the data organization hierarchy from bottom to top is EventIdx -> brane -> store ->
 //! database. But each brane is replicated onto N stores for reliability, the replicas form a VioletaBft
 //! group, one of which acts as the leader. When the client read or write a EventIdx, the command is
-//! sent to the scheduler which is on the brane leader's store.
+//! sent to the interlock_semaphore which is on the brane leader's store.
 //!
-//! Scheduler runs in a single-thread event loop, but command executions are delegated to a pool of
+//! Interlock_Semaphore runs in a single-thread event loop, but command executions are pushdown_causetd to a pool of
 //! worker thread.
 //!
-//! Scheduler keeps track of all the running commands and uses latches to ensure serialized access
-//! to the overlapping events involved in concurrent commands. But note that scheduler only ensures
+//! Interlock_Semaphore keeps track of all the running commands and uses latches to ensure serialized access
+//! to the overlapping events involved in concurrent commands. But note that interlock_semaphore only ensures
 //! serialized access to the overlapping events at command level, but a transaction may consist of
 //! multiple commands, therefore conflicts may happen at transaction level. Transaction semantics
 //! is ensured by the transaction protocol implemented in the client library, which is transparent
-//! to the scheduler.
+//! to the interlock_semaphore.
 
 use parking_lot::Mutex;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
@@ -134,7 +134,7 @@ impl TaskContext {
     }
 }
 
-struct SchedulerInner<L: LockManager> {
+struct Interlock_SemaphoreInner<L: LockManager> {
     // slot_id -> { cid -> `TaskContext` } in the slot.
     task_contexts: Vec<Mutex<HashMap<u64, TaskContext>>>,
 
@@ -169,7 +169,7 @@ fn id_index(cid: u64) -> usize {
     cid as usize % TASKS_SLOTS_NUM
 }
 
-impl<L: LockManager> SchedulerInner<L> {
+impl<L: LockManager> Interlock_SemaphoreInner<L> {
     /// Generates the next command ID.
     #[inline]
     fn gen_id(&self) -> u64 {
@@ -223,7 +223,7 @@ impl<L: LockManager> SchedulerInner<L> {
     }
 
     fn too_busy(&self) -> bool {
-        fail_point!("txn_scheduler_busy", |_| true);
+        fail_point!("txn_interlock_semaphore_busy", |_| true);
         self.running_write_bytes.load(Ordering::Acquire) >= self.sched_plightlikeing_write_memory_barrier
     }
 
@@ -241,17 +241,17 @@ impl<L: LockManager> SchedulerInner<L> {
     }
 }
 
-/// Scheduler which schedules the execution of `causetStorage::Command`s.
-pub struct Scheduler<E: Engine, L: LockManager> {
-    // `engine` is `None` means currently the program is in scheduler worker threads.
+/// Interlock_Semaphore which schedules the execution of `causetStorage::Command`s.
+pub struct Interlock_Semaphore<E: Engine, L: LockManager> {
+    // `engine` is `None` means currently the program is in interlock_semaphore worker threads.
     engine: Option<E>,
-    inner: Arc<SchedulerInner<L>>,
+    inner: Arc<Interlock_SemaphoreInner<L>>,
 }
 
-unsafe impl<E: Engine, L: LockManager> Slightlike for Scheduler<E, L> {}
+unsafe impl<E: Engine, L: LockManager> Slightlike for Interlock_Semaphore<E, L> {}
 
-impl<E: Engine, L: LockManager> Scheduler<E, L> {
-    /// Creates a scheduler.
+impl<E: Engine, L: LockManager> Interlock_Semaphore<E, L> {
+    /// Creates a interlock_semaphore.
     pub(in crate::causetStorage) fn new(
         engine: E,
         lock_mgr: L,
@@ -271,7 +271,7 @@ impl<E: Engine, L: LockManager> Scheduler<E, L> {
             task_contexts.push(Mutex::new(Default::default()));
         }
 
-        let inner = Arc::new(SchedulerInner {
+        let inner = Arc::new(Interlock_SemaphoreInner {
             task_contexts,
             id_alloc: AtomicU64::new(0),
             latches: Latches::new(concurrency),
@@ -289,8 +289,8 @@ impl<E: Engine, L: LockManager> Scheduler<E, L> {
             enable_async_commit,
         });
 
-        slow_log!(t.elapsed(), "initialized the transaction scheduler");
-        Scheduler {
+        slow_log!(t.elapsed(), "initialized the transaction interlock_semaphore");
+        Interlock_Semaphore {
             engine: Some(engine),
             inner,
         }
@@ -412,7 +412,7 @@ impl<E: Engine, L: LockManager> Scheduler<E, L> {
         if let Some(engine) = self.engine.as_ref() {
             f(engine)
         } else {
-            // The program is currently in scheduler worker threads.
+            // The program is currently in interlock_semaphore worker threads.
             // Safety: `self.inner.worker_pool` should ensure that a TLS engine exists.
             unsafe { with_tls_engine(f) }
         }
@@ -540,7 +540,7 @@ impl<E: Engine, L: LockManager> Scheduler<E, L> {
             .clone()
             .pool
             .spawn(async move {
-                fail_point!("scheduler_async_snapshot_finish");
+                fail_point!("interlock_semaphore_async_snapshot_finish");
 
                 let read_duration = Instant::now_coarse();
 
@@ -562,7 +562,7 @@ impl<E: Engine, L: LockManager> Scheduler<E, L> {
                 tls_collect_scan_details(tag.get_str(), &statistics);
                 slow_log!(
                     timer.elapsed(),
-                    "[brane {}] scheduler handle command: {}, ts: {}",
+                    "[brane {}] interlock_semaphore handle command: {}, ts: {}",
                     brane_id,
                     tag,
                     ts
@@ -574,7 +574,7 @@ impl<E: Engine, L: LockManager> Scheduler<E, L> {
     }
 
     /// Processes a read command within a worker thread, then posts `ReadFinished` message back to the
-    /// `Scheduler`.
+    /// `Interlock_Semaphore`.
     fn process_read(self, snapshot: E::Snap, task: Task, statistics: &mut Statistics) {
         fail_point!("txn_before_process_read");
         debug!("process read cmd in worker pool"; "cid" => task.cid);
@@ -589,14 +589,14 @@ impl<E: Engine, L: LockManager> Scheduler<E, L> {
     }
 
     /// Processes a write command within a worker thread, then posts either a `WriteFinished`
-    /// message if successful or a `FinishedWithErr` message back to the `Scheduler`.
+    /// message if successful or a `FinishedWithErr` message back to the `Interlock_Semaphore`.
     fn process_write(self, engine: &E, snapshot: E::Snap, task: Task, statistics: &mut Statistics) {
         fail_point!("txn_before_process_write");
         let tag = task.cmd.tag();
         let cid = task.cid;
         let priority = task.cmd.priority();
         let ts = task.cmd.ts();
-        let scheduler = self.clone();
+        let interlock_semaphore = self.clone();
         let pipelined = self.inner.pipelined_pessimistic_lock && task.cmd.can_be_pipelined();
 
         let context = WriteContext {
@@ -622,11 +622,11 @@ impl<E: Engine, L: LockManager> Scheduler<E, L> {
                 SCHED_STAGE_COUNTER_VEC.get(tag).write.inc();
 
                 if let Some((dagger, is_first_lock, wait_timeout)) = lock_info {
-                    scheduler.on_wait_for_lock(cid, ts, pr, dagger, is_first_lock, wait_timeout);
+                    interlock_semaphore.on_wait_for_lock(cid, ts, pr, dagger, is_first_lock, wait_timeout);
                 } else if to_be_write.modifies.is_empty() {
-                    scheduler.on_write_finished(cid, pr, Ok(()), lock_guards, false, tag);
+                    interlock_semaphore.on_write_finished(cid, pr, Ok(()), lock_guards, false, tag);
                 } else {
-                    let sched = scheduler.clone();
+                    let sched = interlock_semaphore.clone();
                     // The normal write process is respond to clients and release latches
                     // after async write finished. If pipelined pessimistic dagger is enabled,
                     // the process becomes parallel and there are two msgs for one command:
@@ -646,7 +646,7 @@ impl<E: Engine, L: LockManager> Scheduler<E, L> {
                             .clone()
                             .pool
                             .spawn(async move {
-                                fail_point!("scheduler_async_write_finish");
+                                fail_point!("interlock_semaphore_async_write_finish");
 
                                 sched.on_write_finished(
                                     cid,
@@ -667,13 +667,13 @@ impl<E: Engine, L: LockManager> Scheduler<E, L> {
                         SCHED_STAGE_COUNTER_VEC.get(tag).async_write_err.inc();
 
                         info!("engine async_write failed"; "cid" => cid, "err" => ?e);
-                        scheduler.finish_with_err(cid, e.into());
+                        interlock_semaphore.finish_with_err(cid, e.into());
                     } else if pipelined {
-                        fail_point!("scheduler_pipelined_write_finish");
+                        fail_point!("interlock_semaphore_pipelined_write_finish");
 
                         // The write task is scheduled to engine successfully.
                         // Respond to client early.
-                        scheduler.on_pipelined_write(cid, pipelined_write_pr, tag);
+                        interlock_semaphore.on_pipelined_write(cid, pipelined_write_pr, tag);
                     }
                 }
             }
@@ -683,15 +683,15 @@ impl<E: Engine, L: LockManager> Scheduler<E, L> {
                 SCHED_STAGE_COUNTER_VEC.get(tag).prepare_write_err.inc();
 
                 debug!("write command failed at prewrite"; "cid" => cid);
-                scheduler.finish_with_err(cid, err);
+                interlock_semaphore.finish_with_err(cid, err);
             }
         }
     }
 }
 
-impl<E: Engine, L: LockManager> Clone for Scheduler<E, L> {
+impl<E: Engine, L: LockManager> Clone for Interlock_Semaphore<E, L> {
     fn clone(&self) -> Self {
-        Scheduler {
+        Interlock_Semaphore {
             engine: self.engine.clone(),
             inner: self.inner.clone(),
         }

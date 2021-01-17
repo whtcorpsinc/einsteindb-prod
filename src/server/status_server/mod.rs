@@ -152,7 +152,7 @@ where
         router: R,
     ) -> Result<Self> {
         let thread_pool = Builder::new()
-            .threaded_scheduler()
+            .threaded_interlock_semaphore()
             .enable_all()
             .core_threads(status_thread_pool_size)
             .thread_name("status-server")

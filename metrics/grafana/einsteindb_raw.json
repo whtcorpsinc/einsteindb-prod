@@ -105,7 +105,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_scheduler_command_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 1,
               "leglightlikeFormat": "99%",
@@ -114,14 +114,14 @@
               "type": "timeserie"
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_scheduler_command_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 1,
               "leglightlikeFormat": "95%",
               "refId": "B"
             },
             {
-              "expr": "sum(rate(einsteindb_scheduler_command_duration_seconds_sum{instance=~\"$instance\", type=~\"$command\"}[1m])) / sum(rate(einsteindb_scheduler_command_duration_seconds_count{instance=~\"$instance\", type=~\"$command\"}[1m])) ",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_sum{instance=~\"$instance\", type=~\"$command\"}[1m])) / sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_count{instance=~\"$instance\", type=~\"$command\"}[1m])) ",
               "format": "time_series",
               "intervalFactor": 1,
               "leglightlikeFormat": "avg",
@@ -215,7 +215,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_scheduler_processing_read_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_processing_read_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 1,
               "leglightlikeFormat": "99%",
@@ -224,14 +224,14 @@
               "type": "timeserie"
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_scheduler_processing_read_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_interlock_semaphore_processing_read_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 1,
               "leglightlikeFormat": "95%",
               "refId": "B"
             },
             {
-              "expr": "sum(rate(einsteindb_scheduler_processing_read_duration_seconds_sum{instance=~\"$instance\", type=~\"$command\"}[1m])) / sum(rate(einsteindb_scheduler_processing_read_duration_seconds_count{instance=~\"$instance\", type=~\"$command\"}[1m]))",
+              "expr": "sum(rate(einsteindb_interlock_semaphore_processing_read_duration_seconds_sum{instance=~\"$instance\", type=~\"$command\"}[1m])) / sum(rate(einsteindb_interlock_semaphore_processing_read_duration_seconds_count{instance=~\"$instance\", type=~\"$command\"}[1m]))",
               "format": "time_series",
               "intervalFactor": 1,
               "leglightlikeFormat": "avg",

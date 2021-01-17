@@ -27,15 +27,15 @@ use engine_promises::{
 use fs2::FileExt;
 use futures::executor::block_on;
 use ekvproto::{
-    backup::create_backup, cdcpb::create_change_data, deadlock::create_deadlock,
+    backup::create_backup, causet_contextpb::create_change_data, deadlock::create_deadlock,
     debugpb::create_debug, diagnosticspb::create_diagnostics, import_sstpb::create_import_sst,
 };
 use fidel_client::{FidelClient, RpcClient};
 use violetabft_log_engine::VioletaBftLogEngine;
 use violetabftstore::{
     interlock::{
-        config::SplitCheckConfigManager, BoxConsistencyCheckObserver, ConsistencyCheckMethod,
-        InterlockHost, RawConsistencyCheckObserver, BraneInfoAccessor,
+        config::SplitCheckConfigManager, BoxConsistencyCheckSemaphore, ConsistencyCheckMethod,
+        InterlockHost, RawConsistencyCheckSemaphore, BraneInfoAccessor,
     },
     router::ServerVioletaBftStoreRouter,
     store::{
@@ -158,7 +158,7 @@ struct Servers<ER: VioletaBftEngine> {
     server: Server<VioletaBftRouter<LmdbEngine, ER>, resolve::FidelStoreAddrResolver>,
     node: Node<RpcClient, ER>,
     importer: Arc<SSTImporter>,
-    cdc_scheduler: einsteindb_util::worker::Scheduler<cdc::Task>,
+    causet_context_interlock_semaphore: einsteindb_util::worker::Interlock_Semaphore<causet_context::Task>,
 }
 
 impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
@@ -193,9 +193,9 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
                     .as_mut()
                     .unwrap()
                     .registry
-                    .register_consistency_check_observer(
+                    .register_consistency_check_semaphore(
                         100,
-                        BoxConsistencyCheckObserver::new(RawConsistencyCheckObserver::default()),
+                        BoxConsistencyCheckSemaphore::new(RawConsistencyCheckSemaphore::default()),
                     );
             }
             ConsistencyCheckMethod::Raw => {
@@ -203,9 +203,9 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
                     .as_mut()
                     .unwrap()
                     .registry
-                    .register_consistency_check_observer(
+                    .register_consistency_check_semaphore(
                         100,
-                        BoxConsistencyCheckObserver::new(RawConsistencyCheckObserver::default()),
+                        BoxConsistencyCheckSemaphore::new(RawConsistencyCheckSemaphore::default()),
                     );
             }
         }
@@ -466,16 +466,16 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             Box::new(gc_worker.get_config_manager()),
         );
 
-        // Create cdc.
-        let mut cdc_worker = Box::new(einsteindb_util::worker::Worker::new("cdc"));
-        let cdc_scheduler = cdc_worker.scheduler();
-        let txn_extra_scheduler = cdc::CdcTxnExtraScheduler::new(cdc_scheduler.clone());
+        // Create causet_context.
+        let mut causet_context_worker = Box::new(einsteindb_util::worker::Worker::new("causet_context"));
+        let causet_context_interlock_semaphore = causet_context_worker.interlock_semaphore();
+        let txn_extra_interlock_semaphore = causet_context::causet_contextTxnExtraInterlock_Semaphore::new(causet_context_interlock_semaphore.clone());
 
         self.engines
             .as_mut()
             .unwrap()
             .engine
-            .set_txn_extra_scheduler(Arc::new(txn_extra_scheduler));
+            .set_txn_extra_interlock_semaphore(Arc::new(txn_extra_interlock_semaphore));
 
         // Create InterlockHost.
         let mut interlock_host = self.interlock_host.take().unwrap();
@@ -485,12 +485,12 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             einsteindb::config::Module::PessimisticTxn,
             Box::new(lock_mgr.config_manager()),
         );
-        lock_mgr.register_detector_role_change_observer(&mut interlock_host);
+        lock_mgr.register_detector_role_change_semaphore(&mut interlock_host);
 
         let engines = self.engines.as_ref().unwrap();
 
         let fidel_worker = FutureWorker::new("fidel-worker");
-        let fidel_slightlikeer = fidel_worker.scheduler();
+        let fidel_slightlikeer = fidel_worker.interlock_semaphore();
 
         let unified_read_pool = if self.config.readpool.is_unified_pool_enabled() {
             Some(build_yatp_read_pool(
@@ -505,7 +505,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         // The `DebugService` and `DiagnosticsService` will share the same thread pool
         let debug_thread_pool = Arc::new(
             Builder::new()
-                .threaded_scheduler()
+                .threaded_interlock_semaphore()
                 .thread_name(thd_name!("debugger"))
                 .core_threads(1)
                 .on_thread_spacelike(|| einsteindb_alloc::add_thread_memory_accessor())
@@ -564,9 +564,9 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             cop_read_pools.handle()
         };
 
-        // Register cdc
-        let cdc_ob = cdc::CdcObserver::new(cdc_scheduler.clone());
-        cdc_ob.register_to(&mut interlock_host);
+        // Register causet_context
+        let causet_context_ob = causet_context::causet_contextSemaphore::new(causet_context_interlock_semaphore.clone());
+        causet_context_ob.register_to(&mut interlock_host);
 
         let server_config = Arc::new(self.config.server.clone());
 
@@ -575,7 +575,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             &server_config,
             &self.security_mgr,
             causetStorage,
-            interlock::Endpoint::new(
+            interlock::node::new(
                 &server_config,
                 cop_read_pool_handle,
                 self.concurrency_manager.clone(),
@@ -603,7 +603,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         split_check_worker.spacelike(split_check_runner).unwrap();
         causet_controller.register(
             einsteindb::config::Module::Interlock,
-            Box::new(SplitCheckConfigManager(split_check_worker.scheduler())),
+            Box::new(SplitCheckConfigManager(split_check_worker.interlock_semaphore())),
         );
 
         self.config
@@ -659,28 +659,28 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             fatal!("failed to spacelike auto_gc on causetStorage, error: {}", e);
         }
 
-        // Start CDC.
-        let cdc_lightlikepoint = cdc::Endpoint::new(
-            &self.config.cdc,
+        // Start causet_context.
+        let causet_context_lightlikepoint = causet_context::node::new(
+            &self.config.causet_context,
             self.fidel_client.clone(),
-            cdc_worker.scheduler(),
+            causet_context_worker.interlock_semaphore(),
             self.router.clone(),
-            cdc_ob,
+            causet_context_ob,
             engines.store_meta.clone(),
             self.concurrency_manager.clone(),
         );
-        let cdc_timer = cdc_lightlikepoint.new_timer();
-        cdc_worker
-            .spacelike_with_timer(cdc_lightlikepoint, cdc_timer)
-            .unwrap_or_else(|e| fatal!("failed to spacelike cdc: {}", e));
-        self.to_stop.push(cdc_worker);
+        let causet_context_timer = causet_context_lightlikepoint.new_timer();
+        causet_context_worker
+            .spacelike_with_timer(causet_context_lightlikepoint, causet_context_timer)
+            .unwrap_or_else(|e| fatal!("failed to spacelike causet_context: {}", e));
+        self.to_stop.push(causet_context_worker);
 
         self.servers = Some(Servers {
             lock_mgr,
             server,
             node,
             importer,
-            cdc_scheduler,
+            causet_context_interlock_semaphore,
         });
 
         server_config
@@ -761,8 +761,8 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
 
         // Backup service.
         let mut backup_worker = Box::new(einsteindb_util::worker::Worker::new("backup-lightlikepoint"));
-        let backup_scheduler = backup_worker.scheduler();
-        let backup_service = backup::Service::new(backup_scheduler, self.security_mgr.clone());
+        let backup_interlock_semaphore = backup_worker.interlock_semaphore();
+        let backup_service = backup::Service::new(backup_interlock_semaphore, self.security_mgr.clone());
         if servers
             .server
             .register_service(create_backup(backup_service))
@@ -771,7 +771,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             fatal!("failed to register backup service");
         }
 
-        let backup_lightlikepoint = backup::Endpoint::new(
+        let backup_lightlikepoint = backup::node::new(
             servers.node.id(),
             engines.engine.clone(),
             self.brane_info_accessor.clone(),
@@ -788,14 +788,14 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             .spacelike_with_timer(backup_lightlikepoint, backup_timer)
             .unwrap_or_else(|e| fatal!("failed to spacelike backup lightlikepoint: {}", e));
 
-        let cdc_service =
-            cdc::Service::new(servers.cdc_scheduler.clone(), self.security_mgr.clone());
+        let causet_context_service =
+            causet_context::Service::new(servers.causet_context_interlock_semaphore.clone(), self.security_mgr.clone());
         if servers
             .server
-            .register_service(create_change_data(cdc_service))
+            .register_service(create_change_data(causet_context_service))
             .is_some()
         {
-            fatal!("failed to register cdc service");
+            fatal!("failed to register causet_context service");
         }
 
         self.to_stop.push(backup_worker);

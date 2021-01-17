@@ -257,7 +257,7 @@ mod tests {
             ("13572468", 224, "8ad67735bbf49576219f364f4640d595357a440358d15bf6815a16e4"),
             ("13572468", 256, "1c91ab1c162fd0cae60a5bb9880f3e7d5a133a65b6057a644b26973d9c55dcausete"),
             ("13572468.123", 384, "3b4ee302435dc1e15251efd9f3982b1ca6fe4ac778d3260b7bbf3bea613849677eda830239420e448e4c6dc7c2649d89"),
-            ("13572468.123", 512, "4820aa3f2760836557dc1f2d44a0ba7596333fdb60c8a1909481862f4ab0921c00abb23d57b7e67a970363cc3fcb78b25b6a0d45cdcac0e87aa0c96bc51f7f96"),
+            ("13572468.123", 512, "4820aa3f2760836557dc1f2d44a0ba7596333fdb60c8a1909481862f4ab0921c00abb23d57b7e67a970363cc3fcb78b25b6a0d45causet_contextac0e87aa0c96bc51f7f96"),
         ];
 
         let mut ctx = EvalContext::default();
@@ -300,13 +300,13 @@ mod tests {
         let cases = vec![
             (
                 "hello world",
-                "0B000000789CCB48CDC9C95728CAUSET2FCA4901001A0B045D",
+                "0B000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D",
             ),
             ("", ""),
             // compressed string lightlikes with space
             (
                 "hello wor012",
-                "0C000000789CCB48CDC9C95728CAUSET2F32303402001D8004202E",
+                "0C000000789CCB48causet_context9C95728CAUSET2F32303402001D8004202E",
             ),
         ];
         for (s, exp) in cases {
@@ -324,16 +324,16 @@ mod tests {
         let cases = vec![
             ("", Datum::Bytes(b"".to_vec())),
             (
-                "0B000000789CCB48CDC9C95728CAUSET2FCA4901001A0B045D",
+                "0B000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D",
                 Datum::Bytes(b"hello world".to_vec()),
             ),
             (
-                "0C000000789CCB48CDC9C95728CAUSET2F32303402001D8004202E",
+                "0C000000789CCB48causet_context9C95728CAUSET2F32303402001D8004202E",
                 Datum::Bytes(b"hello wor012".to_vec()),
             ),
             // length is greater than the string
             (
-                "12000000789CCB48CDC9C95728CAUSET2FCA4901001A0B045D",
+                "12000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D",
                 Datum::Bytes(b"hello world".to_vec()),
             ),
             ("010203", Datum::Null),
@@ -343,7 +343,7 @@ mod tests {
             ("0000000001", Datum::Null),
             // length is less than the string
             (
-                "02000000789CCB48CDC9C95728CAUSET2FCA4901001A0B045D",
+                "02000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D",
                 Datum::Null,
             ),
         ];
@@ -358,11 +358,11 @@ mod tests {
     fn test_uncompressed_length() {
         let cases = vec![
             ("", 0),
-            ("0B000000789CCB48CDC9C95728CAUSET2FCA4901001A0B045D", 11),
-            ("0C000000789CCB48CDC9C95728CAUSET2F32303402001D8004202E", 12),
+            ("0B000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D", 11),
+            ("0C000000789CCB48causet_context9C95728CAUSET2F32303402001D8004202E", 12),
             ("020000000000", 2),
             ("0000000001", 0),
-            ("02000000789CCB48CDC9C95728CAUSET2FCA4901001A0B045D", 2),
+            ("02000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D", 2),
             ("010203", 0),
             ("01020304", 0),
         ];

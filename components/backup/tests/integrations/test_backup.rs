@@ -81,7 +81,7 @@ impl TestSuite {
         for (id, engines) in &cluster.engines {
             // Create and run backup lightlikepoints.
             let sim = cluster.sim.rl();
-            let backup_lightlikepoint = backup::Endpoint::new(
+            let backup_lightlikepoint = backup::node::new(
                 *id,
                 sim.causetStorages[&id].clone(),
                 sim.brane_info_accessors[&id].clone(),

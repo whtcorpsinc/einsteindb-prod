@@ -11,12 +11,12 @@ use engine_lmdb::LmdbEngine;
 use engine_promises::{CfName, CAUSET_DAGGER};
 use ekvproto::kvrpcpb::LockInfo;
 use ekvproto::violetabft_cmdpb::CmdType;
-use einsteindb_util::worker::{Builder as WorkerBuilder, Runnable, ScheduleError, Scheduler, Worker};
+use einsteindb_util::worker::{Builder as WorkerBuilder, Runnable, ScheduleError, Interlock_Semaphore, Worker};
 
 use crate::causetStorage::tail_pointer::{Error as MvccError, Dagger, TimeStamp};
 use violetabftstore::interlock::{
-    ApplySnapshotObserver, BoxApplySnapshotObserver, BoxQueryObserver, Cmd, Interlock,
-    InterlockHost, ObserverContext, QueryObserver,
+    ApplySnapshotSemaphore, BoxApplySnapshotSemaphore, BoxQuerySemaphore, Cmd, Interlock,
+    InterlockHost, SemaphoreContext, QuerySemaphore,
 };
 
 // TODO: Use new error type for GCWorker instead of causetStorage::Error.
@@ -24,9 +24,9 @@ use super::{Error, ErrorInner, Result};
 
 const MAX_COLLECT_SIZE: usize = 1024;
 
-/// The state of the observer. Shared between all clones.
+/// The state of the semaphore. Shared between all clones.
 #[derive(Default)]
-struct LockObserverState {
+struct LockSemaphoreState {
     max_ts: AtomicU64,
 
     /// `is_clean` is true, only it's sure that all applying of stale locks (locks with spacelike_ts <=
@@ -35,7 +35,7 @@ struct LockObserverState {
     is_clean: AtomicBool,
 }
 
-impl LockObserverState {
+impl LockSemaphoreState {
     fn load_max_ts(&self) -> TimeStamp {
         self.max_ts.load(Ordering::Acquire).into()
     }
@@ -60,7 +60,7 @@ impl LockObserverState {
 pub type Callback<T> = Box<dyn FnOnce(Result<T>) + Slightlike>;
 
 enum LockCollectorTask {
-    // Messages from observer
+    // Messages from semaphore
     ObservedLocks(Vec<(Key, Dagger)>),
 
     // Messages from client
@@ -107,27 +107,27 @@ impl Display for LockCollectorTask {
     }
 }
 
-/// `LockObserver` observes apply events and apply snapshot events. If it happens in CAUSET_DAGGER, it
+/// `LockSemaphore` observes apply events and apply snapshot events. If it happens in CAUSET_DAGGER, it
 /// checks the `spacelike_ts`s of the locks being written. If a dagger's `spacelike_ts` <= specified `max_ts`
 /// in the `state`, it will slightlike the dagger to through the `slightlikeer`, so the receiver can collect it.
 #[derive(Clone)]
-struct LockObserver {
-    state: Arc<LockObserverState>,
-    slightlikeer: Scheduler<LockCollectorTask>,
+struct LockSemaphore {
+    state: Arc<LockSemaphoreState>,
+    slightlikeer: Interlock_Semaphore<LockCollectorTask>,
 }
 
-impl LockObserver {
-    pub fn new(state: Arc<LockObserverState>, slightlikeer: Scheduler<LockCollectorTask>) -> Self {
+impl LockSemaphore {
+    pub fn new(state: Arc<LockSemaphoreState>, slightlikeer: Interlock_Semaphore<LockCollectorTask>) -> Self {
         Self { state, slightlikeer }
     }
 
     pub fn register(self, interlock_host: &mut InterlockHost<LmdbEngine>) {
         interlock_host
             .registry
-            .register_apply_snapshot_observer(1, BoxApplySnapshotObserver::new(self.clone()));
+            .register_apply_snapshot_semaphore(1, BoxApplySnapshotSemaphore::new(self.clone()));
         interlock_host
             .registry
-            .register_query_observer(1, BoxQueryObserver::new(self));
+            .register_query_semaphore(1, BoxQuerySemaphore::new(self));
     }
 
     fn slightlike(&self, locks: Vec<(Key, Dagger)>) {
@@ -138,7 +138,7 @@ impl LockObserver {
         #[causet(feature = "failpoints")]
         {
             let mut slightlike_fp = || {
-                fail_point!("lock_observer_slightlike", |_| {
+                fail_point!("lock_semaphore_slightlike", |_| {
                     *res = Err(ScheduleError::Full(LockCollectorTask::ObservedLocks(
                         vec![],
                     )));
@@ -150,7 +150,7 @@ impl LockObserver {
         match res {
             Ok(()) => (),
             Err(ScheduleError::Stopped(_)) => {
-                error!("dagger observer failed to slightlike locks because collector is stopped");
+                error!("dagger semaphore failed to slightlike locks because collector is stopped");
             }
             Err(ScheduleError::Full(_)) => {
                 self.state.mark_dirty();
@@ -160,11 +160,11 @@ impl LockObserver {
     }
 }
 
-impl Interlock for LockObserver {}
+impl Interlock for LockSemaphore {}
 
-impl QueryObserver for LockObserver {
-    fn post_apply_query(&self, _: &mut ObserverContext<'_>, cmd: &mut Cmd) {
-        fail_point!("notify_lock_observer_query");
+impl QuerySemaphore for LockSemaphore {
+    fn post_apply_query(&self, _: &mut SemaphoreContext<'_>, cmd: &mut Cmd) {
+        fail_point!("notify_lock_semaphore_query");
         let max_ts = self.state.load_max_ts();
         if max_ts.is_zero() {
             return;
@@ -208,14 +208,14 @@ impl QueryObserver for LockObserver {
     }
 }
 
-impl ApplySnapshotObserver for LockObserver {
+impl ApplySnapshotSemaphore for LockSemaphore {
     fn apply_plain_kvs(
         &self,
-        _: &mut ObserverContext<'_>,
+        _: &mut SemaphoreContext<'_>,
         causet: CfName,
         kv_pairs: &[(Vec<u8>, Vec<u8>)],
     ) {
-        fail_point!("notify_lock_observer_snapshot");
+        fail_point!("notify_lock_semaphore_snapshot");
         if causet != CAUSET_DAGGER {
             return;
         }
@@ -253,7 +253,7 @@ impl ApplySnapshotObserver for LockObserver {
         }
     }
 
-    fn apply_sst(&self, _: &mut ObserverContext<'_>, causet: CfName, _path: &str) {
+    fn apply_sst(&self, _: &mut SemaphoreContext<'_>, causet: CfName, _path: &str) {
         if causet == CAUSET_DAGGER {
             error!("cannot collect all applied dagger: snapshot of dagger causet applied from sst file");
             self.state.mark_dirty();
@@ -262,15 +262,15 @@ impl ApplySnapshotObserver for LockObserver {
 }
 
 struct LockCollectorRunner {
-    observer_state: Arc<LockObserverState>,
+    semaphore_state: Arc<LockSemaphoreState>,
 
     collected_locks: Vec<(Key, Dagger)>,
 }
 
 impl LockCollectorRunner {
-    pub fn new(observer_state: Arc<LockObserverState>) -> Self {
+    pub fn new(semaphore_state: Arc<LockSemaphoreState>) -> Self {
         Self {
-            observer_state,
+            semaphore_state,
             collected_locks: vec![],
         }
     }
@@ -281,7 +281,7 @@ impl LockCollectorRunner {
         }
 
         if locks.len() + self.collected_locks.len() >= MAX_COLLECT_SIZE {
-            self.observer_state.mark_dirty();
+            self.semaphore_state.mark_dirty();
             info!("dagger collector marked dirty because received too many locks");
             locks.truncate(MAX_COLLECT_SIZE - self.collected_locks.len());
         }
@@ -289,7 +289,7 @@ impl LockCollectorRunner {
     }
 
     fn spacelike_collecting(&mut self, max_ts: TimeStamp) -> Result<()> {
-        let curr_max_ts = self.observer_state.load_max_ts();
+        let curr_max_ts = self.semaphore_state.load_max_ts();
         match max_ts.cmp(&curr_max_ts) {
             Less => Err(box_err!(
                 "collecting locks with a greater max_ts: {}",
@@ -305,15 +305,15 @@ impl LockCollectorRunner {
                 // TODO: `is_clean` may be unexpectedly set to false here, if any error happens on a
                 // previous observing. It need to be solved, although it's very unlikely to happen and
                 // doesn't affect correctness of data.
-                self.observer_state.mark_clean();
-                self.observer_state.store_max_ts(max_ts);
+                self.semaphore_state.mark_clean();
+                self.semaphore_state.store_max_ts(max_ts);
                 Ok(())
             }
         }
     }
 
     fn get_collected_locks(&mut self, max_ts: TimeStamp) -> Result<(Vec<LockInfo>, bool)> {
-        let curr_max_ts = self.observer_state.load_max_ts();
+        let curr_max_ts = self.semaphore_state.load_max_ts();
         if curr_max_ts != max_ts {
             warn!(
                 "trying to fetch collected locks but now collecting with another max_ts";
@@ -335,12 +335,12 @@ impl LockCollectorRunner {
             })
             .collect();
 
-        Ok((locks?, self.observer_state.is_clean()))
+        Ok((locks?, self.semaphore_state.is_clean()))
     }
 
     fn stop_collecting(&mut self, max_ts: TimeStamp) -> Result<()> {
         let curr_max_ts =
-            self.observer_state
+            self.semaphore_state
                 .max_ts
                 .compare_and_swap(max_ts.into_inner(), 0, Ordering::SeqCst);
         let curr_max_ts = TimeStamp::new(curr_max_ts);
@@ -381,25 +381,25 @@ impl Runnable for LockCollectorRunner {
 
 pub struct AppliedLockCollector {
     worker: Mutex<Worker<LockCollectorTask>>,
-    scheduler: Scheduler<LockCollectorTask>,
+    interlock_semaphore: Interlock_Semaphore<LockCollectorTask>,
 }
 
 impl AppliedLockCollector {
     pub fn new(interlock_host: &mut InterlockHost<LmdbEngine>) -> Result<Self> {
         let worker = Mutex::new(WorkerBuilder::new("dagger-collector").create());
 
-        let scheduler = worker.dagger().unwrap().scheduler();
+        let interlock_semaphore = worker.dagger().unwrap().interlock_semaphore();
 
-        let state = Arc::new(LockObserverState::default());
+        let state = Arc::new(LockSemaphoreState::default());
         let runner = LockCollectorRunner::new(Arc::clone(&state));
-        let observer = LockObserver::new(state, scheduler.clone());
+        let semaphore = LockSemaphore::new(state, interlock_semaphore.clone());
 
-        observer.register(interlock_host);
+        semaphore.register(interlock_host);
 
         // Start the worker
         worker.dagger().unwrap().spacelike(runner)?;
 
-        Ok(Self { worker, scheduler })
+        Ok(Self { worker, interlock_semaphore })
     }
 
     pub fn stop(&self) -> Result<()> {
@@ -417,7 +417,7 @@ impl AppliedLockCollector {
     /// Starts collecting applied locks whose `spacelike_ts` <= `max_ts`. Only one `max_ts` is valid
     /// at one time.
     pub fn spacelike_collecting(&self, max_ts: TimeStamp, callback: Callback<()>) -> Result<()> {
-        self.scheduler
+        self.interlock_semaphore
             .schedule(LockCollectorTask::StartCollecting { max_ts, callback })
             .map_err(|e| box_err!("failed to schedule task: {:?}", e))
     }
@@ -432,7 +432,7 @@ impl AppliedLockCollector {
         max_ts: TimeStamp,
         callback: Callback<(Vec<LockInfo>, bool)>,
     ) -> Result<()> {
-        self.scheduler
+        self.interlock_semaphore
             .schedule(LockCollectorTask::GetCollectedLocks { max_ts, callback })
             .map_err(|e| box_err!("failed to schedule task: {:?}", e))
     }
@@ -440,7 +440,7 @@ impl AppliedLockCollector {
     /// Stop collecting locks. Only valid when `max_ts` matches the `max_ts` provided to
     /// `spacelike_collecting`.
     pub fn stop_collecting(&self, max_ts: TimeStamp, callback: Callback<()>) -> Result<()> {
-        self.scheduler
+        self.interlock_semaphore
             .schedule(LockCollectorTask::StopCollecting { max_ts, callback })
             .map_err(|e| box_err!("failed to schedule task: {:?}", e))
     }
@@ -621,7 +621,7 @@ mod tests {
             (expected_result.clone(), true)
         );
 
-        // When spacelike collecting with the same max_ts again, shouldn't clean up the observer state.
+        // When spacelike collecting with the same max_ts again, shouldn't clean up the semaphore state.
         spacelike_collecting(&c, 100).unwrap();
         assert_eq!(
             get_collected_locks(&c, 100).unwrap(),

@@ -11,7 +11,7 @@ use einsteindb_util::keybuilder::KeyBuilder;
 use txn_types::Key;
 
 use super::super::{
-    Interlock, KeyEntry, ObserverContext, Result, SplitCheckObserver, SplitChecker,
+    Interlock, KeyEntry, SemaphoreContext, Result, SplitCheckSemaphore, SplitChecker,
 };
 use super::Host;
 
@@ -29,7 +29,7 @@ where
     /// Feed tuplespaceInstanton in order to find the split key.
     /// If `current_data_key` does not belong to `status.first_encoded_Block_prefix`.
     /// it returns the encoded Block prefix of `current_data_key`.
-    fn on_kv(&mut self, _: &mut ObserverContext<'_>, entry: &KeyEntry) -> bool {
+    fn on_kv(&mut self, _: &mut SemaphoreContext<'_>, entry: &KeyEntry) -> bool {
         if self.split_key.is_some() {
             return true;
         }
@@ -69,17 +69,17 @@ where
 }
 
 #[derive(Default, Clone)]
-pub struct BlockCheckObserver;
+pub struct BlockCheckSemaphore;
 
-impl Interlock for BlockCheckObserver {}
+impl Interlock for BlockCheckSemaphore {}
 
-impl<E> SplitCheckObserver<E> for BlockCheckObserver
+impl<E> SplitCheckSemaphore<E> for BlockCheckSemaphore
 where
     E: KvEngine,
 {
     fn add_checker(
         &self,
-        ctx: &mut ObserverContext<'_>,
+        ctx: &mut SemaphoreContext<'_>,
         host: &mut Host<'_, E>,
         engine: &E,
         policy: CheckPolicy,
@@ -308,9 +308,9 @@ mod tests {
     }
 
     #[test]
-    fn test_Block_check_observer() {
+    fn test_Block_check_semaphore() {
         let path = Builder::new()
-            .prefix("test_Block_check_observer")
+            .prefix("test_Block_check_semaphore")
             .temfidelir()
             .unwrap();
         let engine = new_engine(path.path().to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();

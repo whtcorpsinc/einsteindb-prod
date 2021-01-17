@@ -19,7 +19,7 @@ use violetabftstore::store::msg::StoreMsg;
 use einsteindb_util::config::{Tracker, VersionTrack};
 use einsteindb_util::time::{duration_to_sec, Limiter, SlowTimer};
 use einsteindb_util::worker::{
-    FutureRunnable, FutureScheduler, FutureWorker, Stopped as FutureWorkerStopped,
+    FutureRunnable, FutureInterlock_Semaphore, FutureWorker, Stopped as FutureWorkerStopped,
 };
 use txn_types::{Key, TimeStamp};
 
@@ -495,14 +495,14 @@ fn handle_gc_task_schedule_error(e: FutureWorkerStopped<GcTask>) -> Result<()> {
 
 /// Schedules a `GcTask` to the `GcRunner`.
 fn schedule_gc(
-    scheduler: &FutureScheduler<GcTask>,
+    interlock_semaphore: &FutureInterlock_Semaphore<GcTask>,
     brane_id: u64,
     spacelike_key: Vec<u8>,
     lightlike_key: Vec<u8>,
     safe_point: TimeStamp,
     callback: Callback<()>,
 ) -> Result<()> {
-    scheduler
+    interlock_semaphore
         .schedule(GcTask::Gc {
             brane_id,
             spacelike_key,
@@ -515,13 +515,13 @@ fn schedule_gc(
 
 /// Does GC synchronously.
 pub fn sync_gc(
-    scheduler: &FutureScheduler<GcTask>,
+    interlock_semaphore: &FutureInterlock_Semaphore<GcTask>,
     brane_id: u64,
     spacelike_key: Vec<u8>,
     lightlike_key: Vec<u8>,
     safe_point: TimeStamp,
 ) -> Result<()> {
-    wait_op!(|callback| schedule_gc(scheduler, brane_id, spacelike_key, lightlike_key, safe_point, callback))
+    wait_op!(|callback| schedule_gc(interlock_semaphore, brane_id, spacelike_key, lightlike_key, safe_point, callback))
         .unwrap_or_else(|| {
             error!("failed to receive result of gc");
             Err(box_err!("gc_worker: failed to receive result of gc"))
@@ -548,7 +548,7 @@ where
     /// once there are no more references.
     refs: Arc<AtomicUsize>,
     worker: Arc<Mutex<FutureWorker<GcTask>>>,
-    worker_scheduler: FutureScheduler<GcTask>,
+    worker_interlock_semaphore: FutureInterlock_Semaphore<GcTask>,
 
     applied_lock_collector: Option<Arc<AppliedLockCollector>>,
 
@@ -572,7 +572,7 @@ where
             scheduled_tasks: self.scheduled_tasks.clone(),
             refs: self.refs.clone(),
             worker: self.worker.clone(),
-            worker_scheduler: self.worker_scheduler.clone(),
+            worker_interlock_semaphore: self.worker_interlock_semaphore.clone(),
             applied_lock_collector: self.applied_lock_collector.clone(),
             gc_manager_handle: self.gc_manager_handle.clone(),
             cluster_version: self.cluster_version.clone(),
@@ -612,7 +612,7 @@ where
         cluster_version: ClusterVersion,
     ) -> GcWorker<E, RR> {
         let worker = Arc::new(Mutex::new(FutureWorker::new("gc-worker")));
-        let worker_scheduler = worker.dagger().unwrap().scheduler();
+        let worker_interlock_semaphore = worker.dagger().unwrap().interlock_semaphore();
         GcWorker {
             engine,
             violetabft_store_router,
@@ -620,7 +620,7 @@ where
             scheduled_tasks: Arc::new(AtomicUsize::new(0)),
             refs: Arc::new(AtomicUsize::new(1)),
             worker,
-            worker_scheduler,
+            worker_interlock_semaphore,
             applied_lock_collector: None,
             gc_manager_handle: Arc::new(Mutex::new(None)),
             cluster_version,
@@ -643,7 +643,7 @@ where
         let new_handle = GcManager::new(
             causet,
             safe_point,
-            self.worker_scheduler.clone(),
+            self.worker_interlock_semaphore.clone(),
             self.config_manager.clone(),
             self.cluster_version.clone(),
         )
@@ -690,8 +690,8 @@ where
         Ok(())
     }
 
-    pub fn scheduler(&self) -> FutureScheduler<GcTask> {
-        self.worker_scheduler.clone()
+    pub fn interlock_semaphore(&self) -> FutureInterlock_Semaphore<GcTask> {
+        self.worker_interlock_semaphore.clone()
     }
 
     /// Check whether GCWorker is busy. If busy, callback will be invoked with an error that
@@ -715,7 +715,7 @@ where
         self.check_is_busy(callback).map_or(Ok(()), |callback| {
             let spacelike_key = vec![];
             let lightlike_key = vec![];
-            self.worker_scheduler
+            self.worker_interlock_semaphore
                 .schedule(GcTask::Gc {
                     brane_id: 0,
                     spacelike_key,
@@ -741,7 +741,7 @@ where
     ) -> Result<()> {
         GC_COMMAND_COUNTER_VEC_STATIC.unsafe_destroy_cone.inc();
         self.check_is_busy(callback).map_or(Ok(()), |callback| {
-            self.worker_scheduler
+            self.worker_interlock_semaphore
                 .schedule(GcTask::UnsafeDestroyCone {
                     ctx,
                     spacelike_key,
@@ -766,7 +766,7 @@ where
     ) -> Result<()> {
         GC_COMMAND_COUNTER_VEC_STATIC.physical_scan_lock.inc();
         self.check_is_busy(callback).map_or(Ok(()), |callback| {
-            self.worker_scheduler
+            self.worker_interlock_semaphore
                 .schedule(GcTask::PhysicalScanLock {
                     ctx,
                     max_ts,

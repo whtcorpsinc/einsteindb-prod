@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
 use std::sync::{mpsc, Arc};
 use std::thread::{self, Builder as ThreadBuilder, JoinHandle};
 use std::time::{Duration, Instant};
-use einsteindb_util::worker::FutureScheduler;
+use einsteindb_util::worker::FutureInterlock_Semaphore;
 use txn_types::{Key, TimeStamp};
 
 use crate::server::metrics::*;
@@ -225,7 +225,7 @@ pub(super) struct GcManager<S: GcSafePointProvider, R: BraneInfoProvider> {
     safe_point_last_check_time: Instant,
 
     /// Used to schedule `GcTask`s.
-    worker_scheduler: FutureScheduler<GcTask>,
+    worker_interlock_semaphore: FutureInterlock_Semaphore<GcTask>,
 
     /// Holds the running status. It will tell us if `GcManager` should stop working and exit.
     gc_manager_ctx: GcManagerContext,
@@ -238,7 +238,7 @@ impl<S: GcSafePointProvider, R: BraneInfoProvider> GcManager<S, R> {
     pub fn new(
         causet: AutoGcConfig<S, R>,
         safe_point: Arc<AtomicU64>,
-        worker_scheduler: FutureScheduler<GcTask>,
+        worker_interlock_semaphore: FutureInterlock_Semaphore<GcTask>,
         causet_tracker: GcWorkerConfigManager,
         cluster_version: ClusterVersion,
     ) -> GcManager<S, R> {
@@ -246,7 +246,7 @@ impl<S: GcSafePointProvider, R: BraneInfoProvider> GcManager<S, R> {
             causet,
             safe_point,
             safe_point_last_check_time: Instant::now(),
-            worker_scheduler,
+            worker_interlock_semaphore,
             gc_manager_ctx: GcManagerContext::new(),
             causet_tracker,
             cluster_version,
@@ -538,7 +538,7 @@ impl<S: GcSafePointProvider, R: BraneInfoProvider> GcManager<S, R> {
         debug!("trying gc"; "spacelike_key" => &hex_spacelike, "lightlike_key" => &hex_lightlike);
 
         if let Err(e) = sync_gc(
-            &self.worker_scheduler,
+            &self.worker_interlock_semaphore,
             brane_id,
             spacelike,
             lightlike,
@@ -709,7 +709,7 @@ mod tests {
             let gc_manager = GcManager::new(
                 causet,
                 Arc::new(AtomicU64::new(0)),
-                worker.scheduler(),
+                worker.interlock_semaphore(),
                 GcWorkerConfigManager::default(),
                 Default::default(),
             );

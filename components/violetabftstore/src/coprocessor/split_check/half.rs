@@ -7,7 +7,7 @@ use ekvproto::fidelpb::CheckPolicy;
 use einsteindb_util::config::ReadableSize;
 
 use super::super::error::Result;
-use super::super::{Interlock, KeyEntry, ObserverContext, SplitCheckObserver, SplitChecker};
+use super::super::{Interlock, KeyEntry, SemaphoreContext, SplitCheckSemaphore, SplitChecker};
 use super::Host;
 
 const BUCKET_NUMBER_LIMIT: usize = 1024;
@@ -35,7 +35,7 @@ impl<E> SplitChecker<E> for Checker
 where
     E: KvEngine,
 {
-    fn on_kv(&mut self, _: &mut ObserverContext<'_>, entry: &KeyEntry) -> bool {
+    fn on_kv(&mut self, _: &mut SemaphoreContext<'_>, entry: &KeyEntry) -> bool {
         if self.buckets.is_empty() || self.cur_bucket_size >= self.each_bucket_size {
             self.buckets.push(entry.key().to_vec());
             self.cur_bucket_size = 0;
@@ -68,17 +68,17 @@ where
 }
 
 #[derive(Clone)]
-pub struct HalfCheckObserver;
+pub struct HalfCheckSemaphore;
 
-impl Interlock for HalfCheckObserver {}
+impl Interlock for HalfCheckSemaphore {}
 
-impl<E> SplitCheckObserver<E> for HalfCheckObserver
+impl<E> SplitCheckSemaphore<E> for HalfCheckSemaphore
 where
     E: KvEngine,
 {
     fn add_checker(
         &self,
-        _: &mut ObserverContext<'_>,
+        _: &mut SemaphoreContext<'_>,
         host: &mut Host<'_, E>,
         _: &E,
         policy: CheckPolicy,
