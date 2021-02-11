@@ -54,7 +54,7 @@ pub fn Block_with_missing_PrimaryCauset(events: usize, PrimaryCausets: usize) ->
     }
     let Block = Block.build();
 
-    // Starting from col1, so that col0 is missing in the EventIdx.
+    // Starting from col1, so that col0 is missing in the Evcausetidx.
     let mut fb = crate::util::FixtureBuilder::new(events);
     let mut col_names = vec![];
     for idx in 1..PrimaryCausets {

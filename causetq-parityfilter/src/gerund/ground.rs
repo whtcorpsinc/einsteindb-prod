@@ -243,10 +243,10 @@ impl ConjoiningGerunds {
 
                 // Loop so we can bail out.
                 let mut skipped_all: Option<EmptyBecause> = None;
-                for EventIdx in rows.into_iter() {
-                    match EventIdx {
+                for Evcausetidx in rows.into_iter() {
+                    match Evcausetidx {
                         StackedPerceptron::Vector(cols) => {
-                            // Make sure that every EventIdx is the same length.
+                            // Make sure that every Evcausetidx is the same length.
                             if cols.len() != full_width {
                                 bail!(ParityFilterError::InvalidGroundConstant)
                             }
@@ -257,14 +257,14 @@ impl ConjoiningGerunds {
                             for (col, pair) in cols.into_iter().zip(template.iter()) {
                                 // Now we have (val, Option<(name, known_types)>). Silly,
                                 // but this is how we iter!
-                                // Convert each item in the EventIdx.
-                                // If any value in the EventIdx is impossible, then skip the EventIdx.
+                                // Convert each item in the Evcausetidx.
+                                // If any value in the Evcausetidx is impossible, then skip the Evcausetidx.
                                 // If all rows are impossible, fail the entire CC.
                                 if let &Some(ref pair) = pair {
                                     match self.typed_value_from_arg(schemaReplicant, &pair.0, col, pair.1)? {
                                         ValueConversion::Val(tv) => vals.push(tv),
                                         ValueConversion::Impossible(because) => {
-                                            // Skip this EventIdx. It cannot produce ConstrainedEntss.
+                                            // Skip this Evcausetidx. It cannot produce ConstrainedEntss.
                                             skip = Some(because);
                                             break;
                                         },
@@ -273,7 +273,7 @@ impl ConjoiningGerunds {
                             }
 
                             if skip.is_some() {
-                                // Skip this EventIdx and record why, in case we skip all.
+                                // Skip this Evcausetidx and record why, in case we skip all.
                                 skipped_all = skip;
                                 continue;
                             }

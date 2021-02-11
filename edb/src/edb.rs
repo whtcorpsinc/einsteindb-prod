@@ -39,7 +39,7 @@ use edbn::{
     Value,
 };
 
-use entids;
+use causetids;
 
 use embedded_promises::{
     attribute,
@@ -84,7 +84,7 @@ use watcher::{
 // In PRAGMA foo='bar', `'bar'` must be a constant string (it cannot be a
 // bound parameter), so we need to escape manually. According to
 // https://www.sqlite.org/faq.html, the only character that must be escaped is
-// the single quote, which is escaped by placing two single quotes in a EventIdx.
+// the single quote, which is escaped by placing two single quotes in a Evcausetidx.
 fn escape_string_for_pragma(s: &str) -> String {
     s.replace("'", "''")
 }
@@ -272,8 +272,8 @@ fn set_user_version(conn: &rusqlite::Connection, version: i32) -> Result<()> {
 /// EinsteinDB manages its own SQL schemaReplicant version using the user version.  See the [SQLite
 /// docueinsteindbion](https://www.sqlite.org/pragma.html#pragma_user_version).
 fn get_user_version(conn: &rusqlite::Connection) -> Result<i32> {
-    let v = conn.causetq_row("PRAGMA user_version", &[], |EventIdx| {
-        EventIdx.get(0)
+    let v = conn.causetq_row("PRAGMA user_version", &[], |Evcausetidx| {
+        Evcausetidx.get(0)
     }).context(DbErrorKind::CouldNotGetVersionPragma)?;
     Ok(v)
 }
@@ -298,10 +298,10 @@ pub fn create_empty_current_version(conn: &mut rusqlite::Connection) -> Result<(
 /// defined in 'known_parts'.
 fn create_current_partition_view(conn: &rusqlite::Connection) -> Result<()> {
     let mut stmt = conn.prepare("SELECT part, end FROM known_parts ORDER BY end ASC")?;
-    let known_parts: Result<Vec<(String, i64)>> = stmt.causetq_and_then(&[], |EventIdx| {
+    let known_parts: Result<Vec<(String, i64)>> = stmt.causetq_and_then(&[], |Evcausetidx| {
         Ok((
-            EventIdx.get_checked(0)?,
-            EventIdx.get_checked(1)?,
+            Evcausetidx.get_checked(0)?,
+            Evcausetidx.get_checked(1)?,
         ))
     })?.collect();
 
@@ -506,8 +506,8 @@ pub fn read_partition_map(conn: &rusqlite::Connection) -> Result<PartitionMap> {
         WHERE
             part NOT IN (SELECT part FROM parts)"
     )?;
-    let m = stmt.causetq_and_then(&[], |EventIdx| -> Result<(String, Partition)> {
-        Ok((EventIdx.get_checked(0)?, Partition::new(EventIdx.get_checked(1)?, EventIdx.get_checked(2)?, EventIdx.get_checked(3)?, EventIdx.get_checked(4)?)))
+    let m = stmt.causetq_and_then(&[], |Evcausetidx| -> Result<(String, Partition)> {
+        Ok((Evcausetidx.get_checked(0)?, Partition::new(Evcausetidx.get_checked(1)?, Evcausetidx.get_checked(2)?, Evcausetidx.get_checked(3)?, Evcausetidx.get_checked(4)?)))
     })?.collect();
     m
 }
@@ -516,7 +516,7 @@ pub fn read_partition_map(conn: &rusqlite::Connection) -> Result<PartitionMap> {
 pub(crate) fn read_causetId_map(conn: &rusqlite::Connection) -> Result<CausetIdMap> {
     let v = read_materialized_view(conn, "causetIds")?;
     v.into_iter().map(|(e, a, typed_value)| {
-        if a != entids::DB_CAUSETID {
+        if a != causetids::DB_CAUSETID {
             bail!(DbErrorKind::NotYetImplemented(format!("bad causetIds materialized view: expected :edb/causetid but got {}", a)));
         }
         if let MinkowskiType::Keyword(keyword) = typed_value {
@@ -529,9 +529,9 @@ pub(crate) fn read_causetId_map(conn: &rusqlite::Connection) -> Result<CausetIdM
 
 /// Read the schemaReplicant materialized view from the given SQL store.
 pub(crate) fn read_attribute_map(conn: &rusqlite::Connection) -> Result<AttributeMap> {
-    let entid_triples = read_materialized_view(conn, "schemaReplicant")?;
+    let causetid_triples = read_materialized_view(conn, "schemaReplicant")?;
     let mut attribute_map = AttributeMap::default();
-    spacetime::update_attribute_map_from_entid_triples(&mut attribute_map, entid_triples, vec![])?;
+    spacetime::update_attribute_map_from_causetid_triples(&mut attribute_map, causetid_triples, vec![])?;
     Ok(attribute_map)
 }
 
@@ -755,8 +755,8 @@ impl EinsteinDBStoring for rusqlite::Connection {
                                     values);
             let mut stmt: rusqlite::Statement = self.prepare(s.as_str())?;
 
-            let m: Result<Vec<(i64, SolitonId)>> = stmt.causetq_and_then(&params, |EventIdx| -> Result<(i64, SolitonId)> {
-                Ok((EventIdx.get_checked(0)?, EventIdx.get_checked(1)?))
+            let m: Result<Vec<(i64, SolitonId)>> = stmt.causetq_and_then(&params, |Evcausetidx| -> Result<(i64, SolitonId)> {
+                Ok((Evcausetidx.get_checked(0)?, Evcausetidx.get_checked(1)?))
             })?.collect();
             m
         }).collect::<Result<Vec<Vec<(i64, SolitonId)>>>>();
@@ -1046,7 +1046,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
                     (added0 IS 1 AND search_type IS ':edb.cardinality/one' AND v0 IS NOT v))
 
             ) ORDER BY e, a, v, value_type_tag, added"#,
-            entids::SPACETIME_SQL_LIST.as_str(), entids::SPACETIME_SQL_LIST.as_str()
+            causetids::SPACETIME_SQL_LIST.as_str(), causetids::SPACETIME_SQL_LIST.as_str()
         );
 
         let mut stmt = self.prepare_cached(&sql_stmt)?;
@@ -1065,7 +1065,7 @@ pub fn committed_spacetime_assertions(conn: &rusqlite::Connection, causecausetx_
         FROM bundles
         WHERE causetx = ? AND a IN {}
         ORDER BY e, a, v, value_type_tag, added"#,
-        entids::SPACETIME_SQL_LIST.as_str()
+        causetids::SPACETIME_SQL_LIST.as_str()
     );
 
     let mut stmt = conn.prepare_cached(&sql_stmt)?;
@@ -1076,28 +1076,28 @@ pub fn committed_spacetime_assertions(conn: &rusqlite::Connection, causecausetx_
     m
 }
 
-/// Takes a EventIdx, produces a transaction quadruple.
-fn row_to_transaction_assertion(EventIdx: &rusqlite::Event) -> Result<(SolitonId, SolitonId, MinkowskiType, bool)> {
+/// Takes a Evcausetidx, produces a transaction quadruple.
+fn row_to_transaction_assertion(Evcausetidx: &rusqlite::Event) -> Result<(SolitonId, SolitonId, MinkowskiType, bool)> {
     Ok((
-        EventIdx.get_checked(0)?,
-        EventIdx.get_checked(1)?,
-        MinkowskiType::from_sql_value_pair(EventIdx.get_checked(2)?, EventIdx.get_checked(3)?)?,
-        EventIdx.get_checked(4)?
+        Evcausetidx.get_checked(0)?,
+        Evcausetidx.get_checked(1)?,
+        MinkowskiType::from_sql_value_pair(Evcausetidx.get_checked(2)?, Evcausetidx.get_checked(3)?)?,
+        Evcausetidx.get_checked(4)?
     ))
 }
 
-/// Takes a EventIdx, produces a Causet quadruple.
-fn row_to_Causet_assertion(EventIdx: &rusqlite::Event) -> Result<(SolitonId, SolitonId, MinkowskiType)> {
+/// Takes a Evcausetidx, produces a Causet quadruple.
+fn row_to_Causet_assertion(Evcausetidx: &rusqlite::Event) -> Result<(SolitonId, SolitonId, MinkowskiType)> {
     Ok((
-        EventIdx.get_checked(0)?,
-        EventIdx.get_checked(1)?,
-        MinkowskiType::from_sql_value_pair(EventIdx.get_checked(2)?, EventIdx.get_checked(3)?)?
+        Evcausetidx.get_checked(0)?,
+        Evcausetidx.get_checked(1)?,
+        MinkowskiType::from_sql_value_pair(Evcausetidx.get_checked(2)?, Evcausetidx.get_checked(3)?)?
     ))
 }
 
 /// Update the spacetime materialized views based on the given spacetime report.
 ///
-/// This updates the "entids", "causetIds", and "schemaReplicant" materialized views, copying directly from the
+/// This updates the "causetids", "causetIds", and "schemaReplicant" materialized views, copying directly from the
 /// "causets" and "bundles" Block as appropriate.
 pub fn update_spacetime(conn: &rusqlite::Connection, _old_schemaReplicant: &SchemaReplicant, new_schemaReplicant: &SchemaReplicant, spacetime_report: &spacetime::SpacetimeReport) -> Result<()>
 {
@@ -1111,7 +1111,7 @@ pub fn update_spacetime(conn: &rusqlite::Connection, _old_schemaReplicant: &Sche
         // CausetIds is the materialized view of the [solitonId :edb/causetid causetid] slice of causets.
         conn.execute(format!("DELETE FROM causetIds").as_str(),
                      &[])?;
-        conn.execute(format!("INSERT INTO causetIds SELECT e, a, v, value_type_tag FROM causets WHERE a IN {}", entids::CAUSETIDS_SQL_LIST.as_str()).as_str(),
+        conn.execute(format!("INSERT INTO causetIds SELECT e, a, v, value_type_tag FROM causets WHERE a IN {}", causetids::CAUSETIDS_SQL_LIST.as_str()).as_str(),
                      &[])?;
     }
 
@@ -1135,7 +1135,7 @@ pub fn update_spacetime(conn: &rusqlite::Connection, _old_schemaReplicant: &Sche
             SELECT s.e, a, v, value_type_tag
             FROM causets, s
             WHERE s.e = causets.e AND a IN {}
-        "#, entids::DB_VALUE_TYPE, entids::SCHEMA_SQL_LIST.as_str());
+        "#, causetids::DB_VALUE_TYPE, causetids::SCHEMA_SQL_LIST.as_str());
         conn.execute(&s, &[])?;
     }
 
@@ -1151,7 +1151,7 @@ SELECT EXISTS
         left.v <> right.v)"#)?;
 
     for (&solitonId, alterations) in &spacetime_report.attributes_altered {
-        let attribute = new_schemaReplicant.require_attribute_for_entid(solitonId)?;
+        let attribute = new_schemaReplicant.require_attribute_for_causetid(solitonId)?;
 
         for alteration in alterations {
             match alteration {
@@ -1195,20 +1195,20 @@ SELECT EXISTS
 
 impl PartitionMap {
     /// Allocate a single fresh solitonId in the given `partition`.
-    pub(crate) fn allocate_entid(&mut self, partition: &str) -> i64 {
-        self.allocate_entids(partition, 1).start
+    pub(crate) fn allocate_causetid(&mut self, partition: &str) -> i64 {
+        self.allocate_causetids(partition, 1).start
     }
 
-    /// Allocate `n` fresh entids in the given `partition`.
-    pub(crate) fn allocate_entids(&mut self, partition: &str, n: usize) -> Range<i64> {
+    /// Allocate `n` fresh causetids in the given `partition`.
+    pub(crate) fn allocate_causetids(&mut self, partition: &str, n: usize) -> Range<i64> {
         match self.get_mut(partition) {
-            Some(partition) => partition.allocate_entids(n),
+            Some(partition) => partition.allocate_causetids(n),
             None => panic!("Cannot allocate solitonId from unknown partition: {}", partition)
         }
     }
 
-    pub(crate) fn contains_entid(&self, solitonId: SolitonId) -> bool {
-        self.values().any(|partition| partition.contains_entid(solitonId))
+    pub(crate) fn contains_causetid(&self, solitonId: SolitonId) -> bool {
+        self.values().any(|partition| partition.contains_causetid(solitonId))
     }
 }
 
@@ -1646,9 +1646,9 @@ mod tests {
                                  [:edb/add 100 :edb/valueType :edb.type/long]
                                  [:edb/add 100 :edb/cardinality :edb.cardinality/many]]");
 
-        assert_eq!(conn.schemaReplicant.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":test/causetid").unwrap());
+        assert_eq!(conn.schemaReplicant.causetid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":test/causetid").unwrap());
         assert_eq!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":test/causetid").unwrap()).cloned().unwrap(), 100);
-        let attribute = conn.schemaReplicant.attribute_for_entid(100).unwrap().clone();
+        let attribute = conn.schemaReplicant.attribute_for_causetid(100).unwrap().clone();
         assert_eq!(attribute.value_type, MinkowskiValueType::Long);
         assert_eq!(attribute.multival, true);
         assert_eq!(attribute.fulltext, false);
@@ -1664,7 +1664,7 @@ mod tests {
                           [100 :edb/cardinality :edb.cardinality/many]]");
 
         // Let's check we actually have the schemaReplicant characteristics we expect.
-        let attribute = conn.schemaReplicant.attribute_for_entid(100).unwrap().clone();
+        let attribute = conn.schemaReplicant.attribute_for_causetid(100).unwrap().clone();
         assert_eq!(attribute.value_type, MinkowskiValueType::Long);
         assert_eq!(attribute.multival, true);
         assert_eq!(attribute.fulltext, false);
@@ -1736,7 +1736,7 @@ mod tests {
                           [100 :edb/cardinality :edb.cardinality/many]]");
 
         // Let's check we actually have the schemaReplicant characteristics we expect.
-        let attribute = conn.schemaReplicant.attribute_for_entid(100).unwrap().clone();
+        let attribute = conn.schemaReplicant.attribute_for_causetid(100).unwrap().clone();
         assert_eq!(attribute.value_type, MinkowskiValueType::Keyword);
         assert_eq!(attribute.multival, true);
         assert_eq!(attribute.fulltext, false);
@@ -1762,7 +1762,7 @@ mod tests {
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
                         "[[100 :edb/causetid :name/Ivan]]");
-        assert_eq!(conn.schemaReplicant.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Ivan").unwrap());
+        assert_eq!(conn.schemaReplicant.causetid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Ivan").unwrap());
         assert_eq!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":name/Ivan").unwrap()).cloned().unwrap(), 100);
 
         // We can re-assert an existing :edb/causetid.
@@ -1771,7 +1771,7 @@ mod tests {
                         "[[?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
         assert_matches!(conn.causets(),
                         "[[100 :edb/causetid :name/Ivan]]");
-        assert_eq!(conn.schemaReplicant.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Ivan").unwrap());
+        assert_eq!(conn.schemaReplicant.causetid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Ivan").unwrap());
         assert_eq!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":name/Ivan").unwrap()).cloned().unwrap(), 100);
 
         // We can alter an existing :edb/causetid to have a new keyword.
@@ -1783,7 +1783,7 @@ mod tests {
         assert_matches!(conn.causets(),
                         "[[100 :edb/causetid :name/Petr]]");
         // SolitonId map is updated.
-        assert_eq!(conn.schemaReplicant.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Petr").unwrap());
+        assert_eq!(conn.schemaReplicant.causetid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Petr").unwrap());
         // CausetId map contains the new causetid.
         assert_eq!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":name/Petr").unwrap()).cloned().unwrap(), 100);
         // CausetId map no longer contains the old causetid.
@@ -1797,9 +1797,9 @@ mod tests {
         assert_matches!(conn.causets(),
                         "[[100 :edb/causetid :name/Petr]
                           [101 :edb/causetid :name/Ivan]]");
-        // SolitonId map contains both entids.
-        assert_eq!(conn.schemaReplicant.entid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Petr").unwrap());
-        assert_eq!(conn.schemaReplicant.entid_map.get(&101).cloned().unwrap(), to_namespaced_keyword(":name/Ivan").unwrap());
+        // SolitonId map contains both causetids.
+        assert_eq!(conn.schemaReplicant.causetid_map.get(&100).cloned().unwrap(), to_namespaced_keyword(":name/Petr").unwrap());
+        assert_eq!(conn.schemaReplicant.causetid_map.get(&101).cloned().unwrap(), to_namespaced_keyword(":name/Ivan").unwrap());
         // CausetId map contains the new causetid.
         assert_eq!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":name/Petr").unwrap()).cloned().unwrap(), 100);
         // CausetId map contains the old causetid, but re-purposed to the new solitonId.
@@ -1808,7 +1808,7 @@ mod tests {
         // We can retract an existing :edb/causetid.
         assert_transact!(conn, "[[:edb/retract :name/Petr :edb/causetid :name/Petr]]");
         // It's really gone.
-        assert!(conn.schemaReplicant.entid_map.get(&100).is_none());
+        assert!(conn.schemaReplicant.causetid_map.get(&100).is_none());
         assert!(conn.schemaReplicant.causetId_map.get(&to_namespaced_keyword(":name/Petr").unwrap()).is_none());
     }
 
@@ -1956,13 +1956,13 @@ mod tests {
                                  [:edb/add 222 :edb/fulltext true]]");
 
         // Let's check we actually have the schemaReplicant characteristics we expect.
-        let fulltext = conn.schemaReplicant.attribute_for_entid(111).cloned().expect(":test/fulltext");
+        let fulltext = conn.schemaReplicant.attribute_for_causetid(111).cloned().expect(":test/fulltext");
         assert_eq!(fulltext.value_type, MinkowskiValueType::String);
         assert_eq!(fulltext.fulltext, true);
         assert_eq!(fulltext.multival, false);
         assert_eq!(fulltext.unique, Some(attribute::Unique::CausetIdity));
 
-        let other = conn.schemaReplicant.attribute_for_entid(222).cloned().expect(":test/other");
+        let other = conn.schemaReplicant.attribute_for_causetid(222).cloned().expect(":test/other");
         assert_eq!(other.value_type, MinkowskiValueType::String);
         assert_eq!(other.fulltext, true);
         assert_eq!(other.multival, false);
@@ -2352,7 +2352,7 @@ mod tests {
                                  [:edb/add 444 :edb/causetid :test/dangling]
                                  [:edb/add 444 :edb/valueType :edb.type/ref]]");
 
-        // Check that we can explode direct reversed notation, entids.
+        // Check that we can explode direct reversed notation, causetids.
         let report = assert_transact!(conn, "[[:edb/add 100 :test/_dangling 200]]");
         assert_matches!(conn.last_transaction(),
                         "[[200 :test/dangling 100 ?causetx true]
@@ -2675,16 +2675,16 @@ mod tests {
 
         let mut terms = vec![];
 
-        terms.push(Term::AddOrRetract(OpType::Add, Left(KnownSolitonId(200)), entids::DB_CAUSETID, Left(MinkowskiType::typed_string("test"))));
-        terms.push(Term::AddOrRetract(OpType::Retract, Left(KnownSolitonId(100)), entids::DB_TX_INSTANT, Left(MinkowskiType::Long(-1))));
+        terms.push(Term::AddOrRetract(OpType::Add, Left(KnownSolitonId(200)), causetids::DB_CAUSETID, Left(MinkowskiType::typed_string("test"))));
+        terms.push(Term::AddOrRetract(OpType::Retract, Left(KnownSolitonId(100)), causetids::DB_TX_INSTANT, Left(MinkowskiType::Long(-1))));
 
         let report = conn.transact_simple_terms(terms, InternSet::new());
 
         match report.err().map(|e| e.kind()) {
             Some(DbErrorKind::SchemaReplicantConstraintViolation(errors::SchemaReplicantConstraintViolation::TypeDisagreements { ref conflicting_Causets })) => {
                 let mut map = BTreeMap::default();
-                map.insert((100, entids::DB_TX_INSTANT, MinkowskiType::Long(-1)), MinkowskiValueType::Instant);
-                map.insert((200, entids::DB_CAUSETID, MinkowskiType::typed_string("test")), MinkowskiValueType::Keyword);
+                map.insert((100, causetids::DB_TX_INSTANT, MinkowskiType::Long(-1)), MinkowskiValueType::Instant);
+                map.insert((200, causetids::DB_CAUSETID, MinkowskiType::typed_string("test")), MinkowskiValueType::Keyword);
 
                 assert_eq!(conflicting_Causets, &map);
             },
@@ -2745,7 +2745,7 @@ mod tests {
     fn test_sqlcipher_openable() {
         let secret_key = "key";
         let sqlite = new_connection_with_key("../fixtures/v1encrypted.edb", secret_key).expect("Failed to find test EDB");
-        sqlite.causetq_row("SELECT COUNT(*) FROM sqlite_master", &[], |EventIdx| EventIdx.get::<_, i64>(0))
+        sqlite.causetq_row("SELECT COUNT(*) FROM sqlite_master", &[], |Evcausetidx| Evcausetidx.get::<_, i64>(0))
             .expect("Failed to execute allegrosql causetq on encrypted EDB");
     }
 

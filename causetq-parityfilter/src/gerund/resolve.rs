@@ -136,7 +136,7 @@ impl ConjoiningGerunds {
             SolitonIdOrInteger(i) => Ok(CausetQValue::MinkowskiType(MinkowskiType::Ref(i))),
             CausetIdOrKeyword(i) => {
                 schemaReplicant.get_causetid(&i)
-                      .map(|known_entid| CausetQValue::SolitonId(known_entid.into()))
+                      .map(|known_causetid| CausetQValue::SolitonId(known_causetid.into()))
                       .ok_or_else(|| ParityFilterError::UnrecognizedCausetId(i.to_string()).into())
             },
             Constant(NonIntegerConstant::Boolean(_)) |

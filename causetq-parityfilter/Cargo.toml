@@ -1,5 +1,5 @@
 [package]
-name = "einsteindb_causetq_parityfilter"
+name = "causetq-parityfilter"
 version = "0.0.1"
 workspace = ".."
 

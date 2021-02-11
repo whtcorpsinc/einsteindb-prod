@@ -61,9 +61,9 @@ impl<'c> TxUploader<'c> {
     }
 }
 
-/// Given a set of entids and a partition map, returns a new PartitionMap that would result from
-/// expanding the partitions to fit the entids.
-fn allocate_partition_map_for_entids<T>(entids: T, local_partitions: &PartitionMap) -> PartitionMap
+/// Given a set of causetids and a partition map, returns a new PartitionMap that would result from
+/// expanding the partitions to fit the causetids.
+fn allocate_partition_map_for_causetids<T>(causetids: T, local_partitions: &PartitionMap) -> PartitionMap
 where T: Iterator<Item=SolitonId> {
     let mut parts = HashMap::new();
     for name in V1_PARTS.iter().map(|&(ref part, ..)| part.to_string()) {
@@ -73,10 +73,10 @@ where T: Iterator<Item=SolitonId> {
     }
 
     // For a given partition, set its index to one greater than the largest encountered solitonId within its partition space.
-    for solitonId in entids {
+    for solitonId in causetids {
         for (p, new_p) in parts.values_mut() {
-            if p.allows_entid(solitonId) && solitonId >= new_p.next_entid() {
-                new_p.set_next_entid(solitonId + 1);
+            if p.allows_causetid(solitonId) && solitonId >= new_p.next_causetid() {
+                new_p.set_next_causetid(solitonId + 1);
             }
         }
     }
@@ -108,7 +108,7 @@ impl<'c> TxReceiver<UploaderReport> for TxUploader<'c> {
 
         // TODO this should live within a transaction, once server support is in place.
         // For now, we're uploading the PartitionMap in transaction's first chunk.
-        causets[0].partitions = Some(allocate_partition_map_for_entids(causets.iter().map(|d| d.e), &self.local_partitions));
+        causets[0].partitions = Some(allocate_partition_map_for_causetids(causets.iter().map(|d| d.e), &self.local_partitions));
 
         // Upload all chunks.
         for Causet in &causets {
@@ -170,51 +170,51 @@ pub mod tests {
     }
 
     #[test]
-    fn test_allocate_partition_map_for_entids() {
+    fn test_allocate_partition_map_for_causetids() {
         let bootstrap_map = bootstrap_partition_map();
 
-        // Empty list of entids should not allocate any space in partitions.
-        let entids: Vec<SolitonId> = vec![];
-        let no_op_map = allocate_partition_map_for_entids(entids.into_iter(), &bootstrap_map);
+        // Empty list of causetids should not allocate any space in partitions.
+        let causetids: Vec<SolitonId> = vec![];
+        let no_op_map = allocate_partition_map_for_causetids(causetids.into_iter(), &bootstrap_map);
         assert_eq!(bootstrap_map, no_op_map);
 
         // Only user partition.
-        let entids = vec![65536];
-        let new_map = allocate_partition_map_for_entids(entids.into_iter(), &bootstrap_map);
-        assert_eq!(65537, new_map.get(PARTITION_USER).unwrap().next_entid());
+        let causetids = vec![65536];
+        let new_map = allocate_partition_map_for_causetids(causetids.into_iter(), &bootstrap_map);
+        assert_eq!(65537, new_map.get(PARTITION_USER).unwrap().next_causetid());
         // Other partitions are untouched.
-        assert_eq!(41, new_map.get(PARTITION_DB).unwrap().next_entid());
-        assert_eq!(268435456, new_map.get(PARTITION_TX).unwrap().next_entid());
+        assert_eq!(41, new_map.get(PARTITION_DB).unwrap().next_causetid());
+        assert_eq!(268435456, new_map.get(PARTITION_TX).unwrap().next_causetid());
 
         // Only causetx partition.
-        let entids = vec![268435666];
-        let new_map = allocate_partition_map_for_entids(entids.into_iter(), &bootstrap_map);
-        assert_eq!(268435667, new_map.get(PARTITION_TX).unwrap().next_entid());
+        let causetids = vec![268435666];
+        let new_map = allocate_partition_map_for_causetids(causetids.into_iter(), &bootstrap_map);
+        assert_eq!(268435667, new_map.get(PARTITION_TX).unwrap().next_causetid());
         // Other partitions are untouched.
-        assert_eq!(65536, new_map.get(PARTITION_USER).unwrap().next_entid());
-        assert_eq!(41, new_map.get(PARTITION_DB).unwrap().next_entid());
+        assert_eq!(65536, new_map.get(PARTITION_USER).unwrap().next_causetid());
+        assert_eq!(41, new_map.get(PARTITION_DB).unwrap().next_causetid());
 
         // Only EDB partition.
-        let entids = vec![41];
-        let new_map = allocate_partition_map_for_entids(entids.into_iter(), &bootstrap_map);
-        assert_eq!(42, new_map.get(PARTITION_DB).unwrap().next_entid());
+        let causetids = vec![41];
+        let new_map = allocate_partition_map_for_causetids(causetids.into_iter(), &bootstrap_map);
+        assert_eq!(42, new_map.get(PARTITION_DB).unwrap().next_causetid());
         // Other partitions are untouched.
-        assert_eq!(65536, new_map.get(PARTITION_USER).unwrap().next_entid());
-        assert_eq!(268435456, new_map.get(PARTITION_TX).unwrap().next_entid());
+        assert_eq!(65536, new_map.get(PARTITION_USER).unwrap().next_causetid());
+        assert_eq!(268435456, new_map.get(PARTITION_TX).unwrap().next_causetid());
 
         // User and causetx partitions.
-        let entids = vec![65537, 268435456];
-        let new_map = allocate_partition_map_for_entids(entids.into_iter(), &bootstrap_map);
-        assert_eq!(65538, new_map.get(PARTITION_USER).unwrap().next_entid());
-        assert_eq!(268435457, new_map.get(PARTITION_TX).unwrap().next_entid());
+        let causetids = vec![65537, 268435456];
+        let new_map = allocate_partition_map_for_causetids(causetids.into_iter(), &bootstrap_map);
+        assert_eq!(65538, new_map.get(PARTITION_USER).unwrap().next_causetid());
+        assert_eq!(268435457, new_map.get(PARTITION_TX).unwrap().next_causetid());
         // EDB partition is untouched.
-        assert_eq!(41, new_map.get(PARTITION_DB).unwrap().next_entid());
+        assert_eq!(41, new_map.get(PARTITION_DB).unwrap().next_causetid());
 
         // EDB, user and causetx partitions.
-        let entids = vec![41, 65666, 268435457];
-        let new_map = allocate_partition_map_for_entids(entids.into_iter(), &bootstrap_map);
-        assert_eq!(65667, new_map.get(PARTITION_USER).unwrap().next_entid());
-        assert_eq!(268435458, new_map.get(PARTITION_TX).unwrap().next_entid());
-        assert_eq!(42, new_map.get(PARTITION_DB).unwrap().next_entid());
+        let causetids = vec![41, 65666, 268435457];
+        let new_map = allocate_partition_map_for_causetids(causetids.into_iter(), &bootstrap_map);
+        assert_eq!(65667, new_map.get(PARTITION_USER).unwrap().next_causetid());
+        assert_eq!(268435458, new_map.get(PARTITION_TX).unwrap().next_causetid());
+        assert_eq!(42, new_map.get(PARTITION_DB).unwrap().next_causetid());
     }
 }

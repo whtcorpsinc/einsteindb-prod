@@ -17,7 +17,7 @@ use edb_promises::errors::{
 };
 use edbn::types::Value;
 use edbn::symbols;
-use entids;
+use causetids;
 use edb::TypedSQLValue;
 use edbn::entities::Instanton;
 
@@ -46,46 +46,46 @@ pub const CORE_SCHEMA_VERSION: u32 = 1;
 
 lazy_static! {
     static ref V1_CAUSETIDS: [(symbols::Keyword, i64); 40] = {
-            [(ns_keyword!("edb", "causetid"),             entids::DB_CAUSETID),
-             (ns_keyword!("edb.part", "edb"),           entids::DB_PART_DB),
-             (ns_keyword!("edb", "causecausetxInstant"),         entids::DB_TX_INSTANT),
-             (ns_keyword!("edb.install", "partition"), entids::DB_INSTALL_PARTITION),
-             (ns_keyword!("edb.install", "valueType"), entids::DB_INSTALL_VALUE_TYPE),
-             (ns_keyword!("edb.install", "attribute"), entids::DB_INSTALL_ATTRIBUTE),
-             (ns_keyword!("edb", "valueType"),         entids::DB_VALUE_TYPE),
-             (ns_keyword!("edb", "cardinality"),       entids::DB_CARDINALITY),
-             (ns_keyword!("edb", "unique"),            entids::DB_UNIQUE),
-             (ns_keyword!("edb", "isComponent"),       entids::DB_IS_COMPONENT),
-             (ns_keyword!("edb", "index"),             entids::DB_INDEX),
-             (ns_keyword!("edb", "fulltext"),          entids::DB_FULLTEXT),
-             (ns_keyword!("edb", "noHistory"),         entids::DB_NO_HISTORY),
-             (ns_keyword!("edb", "add"),               entids::DB_ADD),
-             (ns_keyword!("edb", "retract"),           entids::DB_RETRACT),
-             (ns_keyword!("edb.part", "user"),         entids::DB_PART_USER),
-             (ns_keyword!("edb.part", "causetx"),           entids::DB_PART_TX),
-             (ns_keyword!("edb", "excise"),            entids::DB_EXCISE),
-             (ns_keyword!("edb.excise", "attrs"),      entids::DB_EXCISE_ATTRS),
-             (ns_keyword!("edb.excise", "beforeT"),    entids::DB_EXCISE_BEFORE_T),
-             (ns_keyword!("edb.excise", "before"),     entids::DB_EXCISE_BEFORE),
-             (ns_keyword!("edb.alter", "attribute"),   entids::DB_ALTER_ATTRIBUTE),
-             (ns_keyword!("edb.type", "ref"),          entids::DB_TYPE_REF),
-             (ns_keyword!("edb.type", "keyword"),      entids::DB_TYPE_KEYWORD),
-             (ns_keyword!("edb.type", "long"),         entids::DB_TYPE_LONG),
-             (ns_keyword!("edb.type", "double"),       entids::DB_TYPE_DOUBLE),
-             (ns_keyword!("edb.type", "string"),       entids::DB_TYPE_STRING),
-             (ns_keyword!("edb.type", "uuid"),         entids::DB_TYPE_UUID),
-             (ns_keyword!("edb.type", "uri"),          entids::DB_TYPE_URI),
-             (ns_keyword!("edb.type", "boolean"),      entids::DB_TYPE_BOOLEAN),
-             (ns_keyword!("edb.type", "instant"),      entids::DB_TYPE_INSTANT),
-             (ns_keyword!("edb.type", "bytes"),        entids::DB_TYPE_BYTES),
-             (ns_keyword!("edb.cardinality", "one"),   entids::DB_CARDINALITY_ONE),
-             (ns_keyword!("edb.cardinality", "many"),  entids::DB_CARDINALITY_MANY),
-             (ns_keyword!("edb.unique", "value"),      entids::DB_UNIQUE_VALUE),
-             (ns_keyword!("edb.unique", "causetIdity"),   entids::DB_UNIQUE_CAUSETIDITY),
-             (ns_keyword!("edb", "doc"),               entids::DB_DOC),
-             (ns_keyword!("edb.schemaReplicant", "version"),    entids::DB_SCHEMA_VERSION),
-             (ns_keyword!("edb.schemaReplicant", "attribute"),  entids::DB_SCHEMA_ATTRIBUTE),
-             (ns_keyword!("edb.schemaReplicant", "embedded"),       entids::DB_SCHEMA_CORE),
+            [(ns_keyword!("edb", "causetid"),             causetids::DB_CAUSETID),
+             (ns_keyword!("edb.part", "edb"),           causetids::DB_PART_DB),
+             (ns_keyword!("edb", "causecausetxInstant"),         causetids::DB_TX_INSTANT),
+             (ns_keyword!("edb.install", "partition"), causetids::DB_INSTALL_PARTITION),
+             (ns_keyword!("edb.install", "valueType"), causetids::DB_INSTALL_VALUE_TYPE),
+             (ns_keyword!("edb.install", "attribute"), causetids::DB_INSTALL_ATTRIBUTE),
+             (ns_keyword!("edb", "valueType"),         causetids::DB_VALUE_TYPE),
+             (ns_keyword!("edb", "cardinality"),       causetids::DB_CARDINALITY),
+             (ns_keyword!("edb", "unique"),            causetids::DB_UNIQUE),
+             (ns_keyword!("edb", "isComponent"),       causetids::DB_IS_COMPONENT),
+             (ns_keyword!("edb", "index"),             causetids::DB_INDEX),
+             (ns_keyword!("edb", "fulltext"),          causetids::DB_FULLTEXT),
+             (ns_keyword!("edb", "noHistory"),         causetids::DB_NO_HISTORY),
+             (ns_keyword!("edb", "add"),               causetids::DB_ADD),
+             (ns_keyword!("edb", "retract"),           causetids::DB_RETRACT),
+             (ns_keyword!("edb.part", "user"),         causetids::DB_PART_USER),
+             (ns_keyword!("edb.part", "causetx"),           causetids::DB_PART_TX),
+             (ns_keyword!("edb", "excise"),            causetids::DB_EXCISE),
+             (ns_keyword!("edb.excise", "attrs"),      causetids::DB_EXCISE_ATTRS),
+             (ns_keyword!("edb.excise", "beforeT"),    causetids::DB_EXCISE_BEFORE_T),
+             (ns_keyword!("edb.excise", "before"),     causetids::DB_EXCISE_BEFORE),
+             (ns_keyword!("edb.alter", "attribute"),   causetids::DB_ALTER_ATTRIBUTE),
+             (ns_keyword!("edb.type", "ref"),          causetids::DB_TYPE_REF),
+             (ns_keyword!("edb.type", "keyword"),      causetids::DB_TYPE_KEYWORD),
+             (ns_keyword!("edb.type", "long"),         causetids::DB_TYPE_LONG),
+             (ns_keyword!("edb.type", "double"),       causetids::DB_TYPE_DOUBLE),
+             (ns_keyword!("edb.type", "string"),       causetids::DB_TYPE_STRING),
+             (ns_keyword!("edb.type", "uuid"),         causetids::DB_TYPE_UUID),
+             (ns_keyword!("edb.type", "uri"),          causetids::DB_TYPE_URI),
+             (ns_keyword!("edb.type", "boolean"),      causetids::DB_TYPE_BOOLEAN),
+             (ns_keyword!("edb.type", "instant"),      causetids::DB_TYPE_INSTANT),
+             (ns_keyword!("edb.type", "bytes"),        causetids::DB_TYPE_BYTES),
+             (ns_keyword!("edb.cardinality", "one"),   causetids::DB_CARDINALITY_ONE),
+             (ns_keyword!("edb.cardinality", "many"),  causetids::DB_CARDINALITY_MANY),
+             (ns_keyword!("edb.unique", "value"),      causetids::DB_UNIQUE_VALUE),
+             (ns_keyword!("edb.unique", "causetIdity"),   causetids::DB_UNIQUE_CAUSETIDITY),
+             (ns_keyword!("edb", "doc"),               causetids::DB_DOC),
+             (ns_keyword!("edb.schemaReplicant", "version"),    causetids::DB_SCHEMA_VERSION),
+             (ns_keyword!("edb.schemaReplicant", "attribute"),  causetids::DB_SCHEMA_ATTRIBUTE),
+             (ns_keyword!("edb.schemaReplicant", "embedded"),       causetids::DB_SCHEMA_CORE),
         ]
     };
 
@@ -224,7 +224,7 @@ fn symbolic_schemaReplicant_to_triples(causetId_map: &CausetIdMap, symbolic_sche
                                 _ => bail!(DbErrorKind::BadBootstrapDefinition(format!("Expected namespaced keyword for attr but got '{:?}'", attr))),
                         };
 
-                            // We have symbolic causetIds but the transactor handles entids.  Ad-hoc
+                            // We have symbolic causetIds but the transactor handles causetids.  Ad-hoc
                             // convert right here.  This is a fundamental limitation on the
                             // bootstrap symbolic schemaReplicant format; we can't represent "real" keywords
                             // at this time.

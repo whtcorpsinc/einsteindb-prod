@@ -1097,9 +1097,9 @@ mod tests {
             (vec![Some(0), Some(4), Some(8), Some(8)], Some(8)),
         ];
 
-        for (EventIdx, expected) in cases {
+        for (Evcausetidx, expected) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(EventIdx)
+                .push_params(Evcausetidx)
                 .evaluate(ScalarFuncSig::GreatestInt)
                 .unwrap();
             assert_eq!(output, expected);
@@ -1120,9 +1120,9 @@ mod tests {
             (vec![Some(0), Some(4), Some(8), Some(8)], Some(0)),
         ];
 
-        for (EventIdx, expected) in cases {
+        for (Evcausetidx, expected) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(EventIdx)
+                .push_params(Evcausetidx)
                 .evaluate(ScalarFuncSig::LeastInt)
                 .unwrap();
             assert_eq!(output, expected);
@@ -1140,9 +1140,9 @@ mod tests {
             (vec![Some(1), Some(0), Some(1), Some(2), Some(5)], Some(2)),
         ];
 
-        for (EventIdx, expected) in cases {
+        for (Evcausetidx, expected) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(EventIdx)
+                .push_params(Evcausetidx)
                 .evaluate(ScalarFuncSig::IntervalInt)
                 .unwrap();
             assert_eq!(output, expected);
@@ -1166,9 +1166,9 @@ mod tests {
             ),
         ];
 
-        for (EventIdx, expected) in cases {
+        for (Evcausetidx, expected) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(EventIdx)
+                .push_params(Evcausetidx)
                 .evaluate(ScalarFuncSig::IntervalReal)
                 .unwrap();
             assert_eq!(output, expected);
@@ -1209,9 +1209,9 @@ mod tests {
             ),
         ];
 
-        for (EventIdx, expected) in cases {
+        for (Evcausetidx, expected) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(EventIdx)
+                .push_params(Evcausetidx)
                 .evaluate(ScalarFuncSig::GreatestReal)
                 .unwrap();
             assert_eq!(output, expected);
@@ -1232,9 +1232,9 @@ mod tests {
             (vec![Some(b"aaa".to_owned().to_vec()), None], None),
         ];
 
-        for (EventIdx, expected) in cases {
+        for (Evcausetidx, expected) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(EventIdx)
+                .push_params(Evcausetidx)
                 .evaluate(ScalarFuncSig::GreatestString)
                 .unwrap();
             assert_eq!(output, expected);
@@ -1255,9 +1255,9 @@ mod tests {
             (vec![Some(b"aaa".to_owned().to_vec()), None], None),
         ];
 
-        for (EventIdx, expected) in cases {
+        for (Evcausetidx, expected) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(EventIdx)
+                .push_params(Evcausetidx)
                 .evaluate(ScalarFuncSig::LeastString)
                 .unwrap();
             assert_eq!(output, expected);
@@ -1298,9 +1298,9 @@ mod tests {
             ),
         ];
 
-        for (EventIdx, expected) in cases {
+        for (Evcausetidx, expected) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(EventIdx)
+                .push_params(Evcausetidx)
                 .evaluate(ScalarFuncSig::LeastReal)
                 .unwrap();
             assert_eq!(output, expected);
@@ -1356,9 +1356,9 @@ mod tests {
             ),
         ];
 
-        for (EventIdx, expected) in cases {
+        for (Evcausetidx, expected) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(EventIdx)
+                .push_params(Evcausetidx)
                 .evaluate(ScalarFuncSig::GreatestTime)
                 .unwrap();
             assert_eq!(output, expected);
@@ -1414,9 +1414,9 @@ mod tests {
             ),
         ];
 
-        for (EventIdx, expected) in cases {
+        for (Evcausetidx, expected) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(EventIdx)
+                .push_params(Evcausetidx)
                 .evaluate(ScalarFuncSig::LeastTime)
                 .unwrap() as Option<Vec<u8>>;
 

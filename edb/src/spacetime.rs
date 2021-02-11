@@ -33,7 +33,7 @@ use add_retract_alter_set::{
     AddRetractAlterSet,
 };
 use edbn::symbols;
-use entids;
+use causetids;
 use edb_promises::errors::{
     DbErrorKind,
     Result,
@@ -125,7 +125,7 @@ fn update_attribute_map_from_schemaReplicant_retractions(attribute_map: &mut Att
     // Filter out sets of schemaReplicant altering retractions.
     let mut eas = BTreeMap::new();
     for (e, a, v) in retractions.into_iter() {
-        if entids::is_a_schemaReplicant_attribute(a) {
+        if causetids::is_a_schemaReplicant_attribute(a) {
             eas.entry(e).or_insert(vec![]).push(a);
             suspect_retractions.push((e, a, v));
         } else {
@@ -152,7 +152,7 @@ fn update_attribute_map_from_schemaReplicant_retractions(attribute_map: &mut Att
         let attributes = eas.get(&e).unwrap();
 
         // Found a set of retractions which negate a schemaReplicant.
-        if attributes.contains(&entids::DB_CARDINALITY) && attributes.contains(&entids::DB_VALUE_TYPE) {
+        if attributes.contains(&causetids::DB_CARDINALITY) && attributes.contains(&causetids::DB_VALUE_TYPE) {
             // Ensure that corresponding :edb/causetid is also being retracted at the same time.
             if causetId_retractions.contains_key(&e) {
                 // Remove attributes corresponding to retracted attribute.
@@ -174,7 +174,7 @@ fn update_attribute_map_from_schemaReplicant_retractions(attribute_map: &mut Att
 /// contain install and alter markers.
 ///
 /// Returns a report summarizing the mutations that were applied.
-pub fn update_attribute_map_from_entid_triples(attribute_map: &mut AttributeMap, assertions: Vec<EAV>, retractions: Vec<EAV>) -> Result<SpacetimeReport> {
+pub fn update_attribute_map_from_causetid_triples(attribute_map: &mut AttributeMap, assertions: Vec<EAV>, retractions: Vec<EAV>) -> Result<SpacetimeReport> {
     fn attribute_builder_to_modify(attribute_id: SolitonId, existing: &AttributeMap) -> AttributeBuilder {
         existing.get(&attribute_id)
                 .map(AttributeBuilder::to_modify_attribute)
@@ -191,7 +191,7 @@ pub fn update_attribute_map_from_entid_triples(attribute_map: &mut AttributeMap,
         match attr {
             // You can only retract :edb/unique, :edb/isComponent; all others must be altered instead
             // of retracted, or are not allowed to change.
-            entids::DB_IS_COMPONENT => {
+            causetids::DB_IS_COMPONENT => {
                 match value {
                     &MinkowskiType::Boolean(v) if builder.component == Some(v) => {
                         builder.component(false);
@@ -202,14 +202,14 @@ pub fn update_attribute_map_from_entid_triples(attribute_map: &mut AttributeMap,
                 }
             },
 
-            entids::DB_UNIQUE => {
+            causetids::DB_UNIQUE => {
                 match *value {
                     MinkowskiType::Ref(u) => {
                         match u {
-                            entids::DB_UNIQUE_VALUE if builder.unique == Some(Some(attribute::Unique::Value)) => {
+                            causetids::DB_UNIQUE_VALUE if builder.unique == Some(Some(attribute::Unique::Value)) => {
                                 builder.non_unique();
                             },
-                            entids::DB_UNIQUE_CAUSETIDITY if builder.unique == Some(Some(attribute::Unique::CausetIdity)) => {
+                            causetids::DB_UNIQUE_CAUSETIDITY if builder.unique == Some(Some(attribute::Unique::CausetIdity)) => {
                                 builder.non_unique();
                             },
                             v => {
@@ -221,11 +221,11 @@ pub fn update_attribute_map_from_entid_triples(attribute_map: &mut AttributeMap,
                 }
             },
 
-            entids::DB_VALUE_TYPE |
-            entids::DB_CARDINALITY |
-            entids::DB_INDEX |
-            entids::DB_FULLTEXT |
-            entids::DB_NO_HISTORY => {
+            causetids::DB_VALUE_TYPE |
+            causetids::DB_CARDINALITY |
+            causetids::DB_INDEX |
+            causetids::DB_FULLTEXT |
+            causetids::DB_NO_HISTORY => {
                 bail!(DbErrorKind::BadSchemaReplicantAssertion(format!("Retracting attribute {} for instanton {} not permitted.", attr, solitonId)));
             },
 
@@ -241,58 +241,58 @@ pub fn update_attribute_map_from_entid_triples(attribute_map: &mut AttributeMap,
 
         // TODO: improve error messages throughout.
         match attr {
-            entids::DB_VALUE_TYPE => {
+            causetids::DB_VALUE_TYPE => {
                 match *value {
-                    MinkowskiType::Ref(entids::DB_TYPE_BOOLEAN) => { builder.value_type(MinkowskiValueType::Boolean); },
-                    MinkowskiType::Ref(entids::DB_TYPE_DOUBLE)  => { builder.value_type(MinkowskiValueType::Double); },
-                    MinkowskiType::Ref(entids::DB_TYPE_INSTANT) => { builder.value_type(MinkowskiValueType::Instant); },
-                    MinkowskiType::Ref(entids::DB_TYPE_KEYWORD) => { builder.value_type(MinkowskiValueType::Keyword); },
-                    MinkowskiType::Ref(entids::DB_TYPE_LONG)    => { builder.value_type(MinkowskiValueType::Long); },
-                    MinkowskiType::Ref(entids::DB_TYPE_REF)     => { builder.value_type(MinkowskiValueType::Ref); },
-                    MinkowskiType::Ref(entids::DB_TYPE_STRING)  => { builder.value_type(MinkowskiValueType::String); },
-                    MinkowskiType::Ref(entids::DB_TYPE_UUID)    => { builder.value_type(MinkowskiValueType::Uuid); },
+                    MinkowskiType::Ref(causetids::DB_TYPE_BOOLEAN) => { builder.value_type(MinkowskiValueType::Boolean); },
+                    MinkowskiType::Ref(causetids::DB_TYPE_DOUBLE)  => { builder.value_type(MinkowskiValueType::Double); },
+                    MinkowskiType::Ref(causetids::DB_TYPE_INSTANT) => { builder.value_type(MinkowskiValueType::Instant); },
+                    MinkowskiType::Ref(causetids::DB_TYPE_KEYWORD) => { builder.value_type(MinkowskiValueType::Keyword); },
+                    MinkowskiType::Ref(causetids::DB_TYPE_LONG)    => { builder.value_type(MinkowskiValueType::Long); },
+                    MinkowskiType::Ref(causetids::DB_TYPE_REF)     => { builder.value_type(MinkowskiValueType::Ref); },
+                    MinkowskiType::Ref(causetids::DB_TYPE_STRING)  => { builder.value_type(MinkowskiValueType::String); },
+                    MinkowskiType::Ref(causetids::DB_TYPE_UUID)    => { builder.value_type(MinkowskiValueType::Uuid); },
                     _ => bail!(DbErrorKind::BadSchemaReplicantAssertion(format!("Expected [... :edb/valueType :edb.type/*] but got [... :edb/valueType {:?}] for solitonId {} and attribute {}", value, solitonId, attr)))
                 }
             },
 
-            entids::DB_CARDINALITY => {
+            causetids::DB_CARDINALITY => {
                 match *value {
-                    MinkowskiType::Ref(entids::DB_CARDINALITY_MANY) => { builder.multival(true); },
-                    MinkowskiType::Ref(entids::DB_CARDINALITY_ONE) => { builder.multival(false); },
+                    MinkowskiType::Ref(causetids::DB_CARDINALITY_MANY) => { builder.multival(true); },
+                    MinkowskiType::Ref(causetids::DB_CARDINALITY_ONE) => { builder.multival(false); },
                     _ => bail!(DbErrorKind::BadSchemaReplicantAssertion(format!("Expected [... :edb/cardinality :edb.cardinality/many|:edb.cardinality/one] but got [... :edb/cardinality {:?}]", value)))
                 }
             },
 
-            entids::DB_UNIQUE => {
+            causetids::DB_UNIQUE => {
                 match *value {
-                    MinkowskiType::Ref(entids::DB_UNIQUE_VALUE) => { builder.unique(attribute::Unique::Value); },
-                    MinkowskiType::Ref(entids::DB_UNIQUE_CAUSETIDITY) => { builder.unique(attribute::Unique::CausetIdity); },
+                    MinkowskiType::Ref(causetids::DB_UNIQUE_VALUE) => { builder.unique(attribute::Unique::Value); },
+                    MinkowskiType::Ref(causetids::DB_UNIQUE_CAUSETIDITY) => { builder.unique(attribute::Unique::CausetIdity); },
                     _ => bail!(DbErrorKind::BadSchemaReplicantAssertion(format!("Expected [... :edb/unique :edb.unique/value|:edb.unique/causetIdity] but got [... :edb/unique {:?}]", value)))
                 }
             },
 
-            entids::DB_INDEX => {
+            causetids::DB_INDEX => {
                 match *value {
                     MinkowskiType::Boolean(x) => { builder.index(x); },
                     _ => bail!(DbErrorKind::BadSchemaReplicantAssertion(format!("Expected [... :edb/index true|false] but got [... :edb/index {:?}]", value)))
                 }
             },
 
-            entids::DB_FULLTEXT => {
+            causetids::DB_FULLTEXT => {
                 match *value {
                     MinkowskiType::Boolean(x) => { builder.fulltext(x); },
                     _ => bail!(DbErrorKind::BadSchemaReplicantAssertion(format!("Expected [... :edb/fulltext true|false] but got [... :edb/fulltext {:?}]", value)))
                 }
             },
 
-            entids::DB_IS_COMPONENT => {
+            causetids::DB_IS_COMPONENT => {
                 match *value {
                     MinkowskiType::Boolean(x) => { builder.component(x); },
                     _ => bail!(DbErrorKind::BadSchemaReplicantAssertion(format!("Expected [... :edb/isComponent true|false] but got [... :edb/isComponent {:?}]", value)))
                 }
             },
 
-            entids::DB_NO_HISTORY => {
+            causetids::DB_NO_HISTORY => {
                 match *value {
                     MinkowskiType::Boolean(x) => { builder.no_history(x); },
                     _ => bail!(DbErrorKind::BadSchemaReplicantAssertion(format!("Expected [... :edb/noHistory true|false] but got [... :edb/noHistory {:?}]", value)))
@@ -344,7 +344,7 @@ pub fn update_attribute_map_from_entid_triples(attribute_map: &mut AttributeMap,
 /// This is suiBlock for mutating a `SchemaReplicant` from an applied transaction.
 ///
 /// Returns a report summarizing the mutations that were applied.
-pub fn update_schemaReplicant_from_entid_quadruples<U>(schemaReplicant: &mut SchemaReplicant, assertions: U) -> Result<SpacetimeReport>
+pub fn update_schemaReplicant_from_causetid_quadruples<U>(schemaReplicant: &mut SchemaReplicant, assertions: U) -> Result<SpacetimeReport>
     where U: IntoIterator<Item=(SolitonId, SolitonId, MinkowskiType, bool)> {
 
     // Group attribute assertions into asserted, retracted, and updated.  We assume all our
@@ -356,7 +356,7 @@ pub fn update_schemaReplicant_from_entid_quadruples<U>(schemaReplicant: &mut Sch
 
     for (e, a, typed_value, added) in assertions.into_iter() {
         // Here we handle :edb/causetid assertions.
-        if a == entids::DB_CAUSETID {
+        if a == causetids::DB_CAUSETID {
             if let MinkowskiType::Keyword(ref keyword) = typed_value {
                 causetId_set.witness(e, keyword.as_ref().clone(), added);
                 continue
@@ -381,28 +381,28 @@ pub fn update_schemaReplicant_from_entid_quadruples<U>(schemaReplicant: &mut Sch
                                                                               &causetId_set.retracted)?;
 
     // Now we process all other retractions.
-    let report = update_attribute_map_from_entid_triples(&mut schemaReplicant.attribute_map,
+    let report = update_attribute_map_from_causetid_triples(&mut schemaReplicant.attribute_map,
                                                          asserted_triples.chain(altered_triples).collect(),
                                                          non_schemaReplicant_retractions)?;
 
     let mut causetIds_altered: BTreeMap<SolitonId, CausetIdAlteration> = BTreeMap::new();
 
-    // Asserted, altered, or retracted :edb/causetIds update the relevant entids.
+    // Asserted, altered, or retracted :edb/causetIds update the relevant causetids.
     for (solitonId, causetid) in causetId_set.asserted {
-        schemaReplicant.entid_map.insert(solitonId, causetid.clone());
+        schemaReplicant.causetid_map.insert(solitonId, causetid.clone());
         schemaReplicant.causetId_map.insert(causetid.clone(), solitonId);
         causetIds_altered.insert(solitonId, CausetIdAlteration::CausetId(causetid.clone()));
     }
 
     for (solitonId, (old_causetId, new_causetId)) in causetId_set.altered {
-        schemaReplicant.entid_map.insert(solitonId, new_causetId.clone()); // Overwrite existing.
+        schemaReplicant.causetid_map.insert(solitonId, new_causetId.clone()); // Overwrite existing.
         schemaReplicant.causetId_map.remove(&old_causetId); // Remove old.
         schemaReplicant.causetId_map.insert(new_causetId.clone(), solitonId); // Insert new.
         causetIds_altered.insert(solitonId, CausetIdAlteration::CausetId(new_causetId.clone()));
     }
 
     for (solitonId, causetid) in &causetId_set.retracted {
-        schemaReplicant.entid_map.remove(solitonId);
+        schemaReplicant.causetid_map.remove(solitonId);
         schemaReplicant.causetId_map.remove(causetid);
         causetIds_altered.insert(*solitonId, CausetIdAlteration::CausetId(causetid.clone()));
     }

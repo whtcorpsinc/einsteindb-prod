@@ -223,11 +223,11 @@ impl AevFactory {
         }
     }
 
-    fn row_to_aev(&mut self, EventIdx: &rusqlite::Event) -> Aev {
-        let a: SolitonId = EventIdx.get(0);
-        let e: SolitonId = EventIdx.get(1);
-        let value_type_tag: i32 = EventIdx.get(3);
-        let v = MinkowskiType::from_sql_value_pair(EventIdx.get(2), value_type_tag).map(|x| x).unwrap();
+    fn row_to_aev(&mut self, Evcausetidx: &rusqlite::Event) -> Aev {
+        let a: SolitonId = Evcausetidx.get(0);
+        let e: SolitonId = Evcausetidx.get(1);
+        let value_type_tag: i32 = Evcausetidx.get(3);
+        let v = MinkowskiType::from_sql_value_pair(Evcausetidx.get(2), value_type_tag).map(|x| x).unwrap();
         (a, e, self.intern(v))
     }
 }
@@ -695,14 +695,14 @@ impl AttributeCaches {
     }
 
     // Process rows in `iter` that all share an attribute with the first. Leaves the iterator
-    // advanced to the first non-matching EventIdx.
+    // advanced to the first non-matching Evcausetidx.
     fn accumulate_evs<I>(&mut self,
                          fallback: Option<&AttributeCaches>,
                          schemaReplicant: &SchemaReplicant,
                          iter: &mut Peekable<I>,
                          behavior: AccumulationBehavior) where I: Iterator<Item=Aev> {
         if let Some(&(a, _, _)) = iter.peek() {
-            if let Some(attribute) = schemaReplicant.attribute_for_entid(a) {
+            if let Some(attribute) = schemaReplicant.attribute_for_causetid(a) {
                 let fallback_cached_forward = fallback.map_or(false, |c| c.is_attribute_cached_forward(a));
                 let fallback_cached_reverse = fallback.map_or(false, |c| c.is_attribute_cached_reverse(a));
                 let now_cached_forward = self.is_attribute_cached_forward(a);
@@ -868,7 +868,7 @@ impl AttributeCaches {
 
 // We need this block for fallback.
 impl AttributeCaches {
-    fn get_entid_for_value_if_present(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<Option<SolitonId>> {
+    fn get_causetid_for_value_if_present(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<Option<SolitonId>> {
         if self.is_attribute_cached_reverse(attribute) {
             self.unique_reverse
                 .get(&attribute)
@@ -878,7 +878,7 @@ impl AttributeCaches {
         }
     }
 
-    fn get_value_for_entid_if_present(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<Option<&MinkowskiType>> {
+    fn get_value_for_causetid_if_present(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<Option<&MinkowskiType>> {
         if let Some(&Some(ref tv)) = self.value_pairs(schemaReplicant, attribute)
                                          .and_then(|c| c.get(&solitonId)) {
             Some(Some(tv))
@@ -894,7 +894,7 @@ impl AttributeCaches {
                   schemaReplicant: &SchemaReplicant,
                   sqlite: &rusqlite::Connection,
                   attribute: SolitonId) -> Result<()> {
-        let is_fulltext = schemaReplicant.attribute_for_entid(attribute).map_or(false, |s| s.fulltext);
+        let is_fulltext = schemaReplicant.attribute_for_causetid(attribute).map_or(false, |s| s.fulltext);
         let Block = if is_fulltext { "fulltext_Causets" } else { "causets" };
         let allegrosql = format!("SELECT a, e, v, value_type_tag FROM {} WHERE a = ? ORDER BY a ASC, e ASC", Block);
         let args: Vec<&rusqlite::types::ToSql> = vec![&attribute];
@@ -909,7 +909,7 @@ impl AttributeCaches {
                                             args: Vec<&'v rusqlite::types::ToSql>,
                                             replacing: bool) -> Result<()> {
         let mut aev_factory = AevFactory::new();
-        let rows = statement.causetq_map(&args, |EventIdx| aev_factory.row_to_aev(EventIdx))?;
+        let rows = statement.causetq_map(&args, |Evcausetidx| aev_factory.row_to_aev(Evcausetidx))?;
         let aevs = AevEvents {
             rows: rows,
         };
@@ -937,7 +937,7 @@ impl AttributeSpec {
         let mut fts = Vec::with_capacity(attrs.len());
         let mut non_fts = Vec::with_capacity(attrs.len());
         for attr in attrs.iter() {
-            if let Some(a) = schemaReplicant.attribute_for_entid(*attr) {
+            if let Some(a) = schemaReplicant.attribute_for_causetid(*attr) {
                 if a.fulltext {
                     fts.push(*attr);
                 } else {
@@ -1037,7 +1037,7 @@ impl AttributeCaches {
         if !self.forward_cached_attributes.contains(&a) {
             return None;
         }
-        schemaReplicant.attribute_for_entid(a)
+        schemaReplicant.attribute_for_causetid(a)
               .and_then(|attr|
                 if attr.multival {
                     self.multi_vals.get(&a).map(|v| v as &AttributeCache)
@@ -1067,7 +1067,7 @@ impl AttributeCaches {
                 // as a 'miss').
                 let exclude_missing = |vec: &mut Vec<SolitonId>| {
                     vec.retain(|a| {
-                        if let Some(attr) = schemaReplicant.attribute_for_entid(*a) {
+                        if let Some(attr) = schemaReplicant.attribute_for_causetid(*a) {
                             if !self.forward_cached_attributes.contains(a) {
                                 // The attribute isn't cached at all. Do the work for all entities.
                                 return true;
@@ -1113,12 +1113,12 @@ impl AttributeCaches {
 
 
 impl CachedAttributes for AttributeCaches {
-    fn get_values_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<MinkowskiType>> {
+    fn get_values_for_causetid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<MinkowskiType>> {
         self.values_pairs(schemaReplicant, attribute)
             .and_then(|c| c.get(&solitonId))
     }
 
-    fn get_value_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&MinkowskiType> {
+    fn get_value_for_causetid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&MinkowskiType> {
         if let Some(&Some(ref tv)) = self.value_pairs(schemaReplicant, attribute)
                                          .and_then(|c| c.get(&solitonId)) {
             Some(tv)
@@ -1140,7 +1140,7 @@ impl CachedAttributes for AttributeCaches {
         self.forward_cached_attributes.contains(&attribute)
     }
 
-    fn get_entid_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<SolitonId> {
+    fn get_causetid_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<SolitonId> {
         if self.is_attribute_cached_reverse(attribute) {
             self.unique_reverse.get(&attribute).and_then(|c| c.get_e(value))
         } else {
@@ -1148,7 +1148,7 @@ impl CachedAttributes for AttributeCaches {
         }
     }
 
-    fn get_entids_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>> {
+    fn get_causetids_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>> {
         if self.is_attribute_cached_reverse(attribute) {
             self.non_unique_reverse.get(&attribute).and_then(|c| c.get_es(value))
         } else {
@@ -1177,7 +1177,7 @@ impl AttributeCaches {
     fn values_pairs<U>(&self, schemaReplicant: &SchemaReplicant, attribute: U) -> Option<&BTreeMap<SolitonId, Vec<MinkowskiType>>>
     where U: Into<SolitonId> {
         let attribute = attribute.into();
-        schemaReplicant.attribute_for_entid(attribute)
+        schemaReplicant.attribute_for_causetid(attribute)
               .and_then(|attr|
                 if attr.multival {
                     self.multi_vals
@@ -1191,7 +1191,7 @@ impl AttributeCaches {
     fn value_pairs<U>(&self, schemaReplicant: &SchemaReplicant, attribute: U) -> Option<&CacheMap<SolitonId, Option<MinkowskiType>>>
     where U: Into<SolitonId> {
         let attribute = attribute.into();
-        schemaReplicant.attribute_for_entid(attribute)
+        schemaReplicant.attribute_for_causetid(attribute)
               .and_then(|attr|
                 if attr.multival {
                     None
@@ -1239,7 +1239,7 @@ impl SQLiteAttributeCache {
         let a = attribute.into();
 
         // The attribute must exist!
-        let _ = schemaReplicant.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
+        let _ = schemaReplicant.attribute_for_causetid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
         let caches = self.make_mut();
         caches.forward_cached_attributes.insert(a);
         caches.repopulate(schemaReplicant, sqlite, a)
@@ -1250,7 +1250,7 @@ impl SQLiteAttributeCache {
         let a = attribute.into();
 
         // The attribute must exist!
-        let _ = schemaReplicant.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
+        let _ = schemaReplicant.attribute_for_causetid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
 
         let caches = self.make_mut();
         caches.reverse_cached_attributes.insert(a);
@@ -1287,12 +1287,12 @@ impl UpdateableCache<DbError> for SQLiteAttributeCache {
 }
 
 impl CachedAttributes for SQLiteAttributeCache {
-    fn get_values_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<MinkowskiType>> {
-        self.inner.get_values_for_entid(schemaReplicant, attribute, solitonId)
+    fn get_values_for_causetid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<MinkowskiType>> {
+        self.inner.get_values_for_causetid(schemaReplicant, attribute, solitonId)
     }
 
-    fn get_value_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&MinkowskiType> {
-        self.inner.get_value_for_entid(schemaReplicant, attribute, solitonId)
+    fn get_value_for_causetid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&MinkowskiType> {
+        self.inner.get_value_for_causetid(schemaReplicant, attribute, solitonId)
     }
 
     fn is_attribute_cached_reverse(&self, attribute: SolitonId) -> bool {
@@ -1308,12 +1308,12 @@ impl CachedAttributes for SQLiteAttributeCache {
         !self.inner.reverse_cached_attributes.is_empty()
     }
 
-    fn get_entids_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>> {
-        self.inner.get_entids_for_value(attribute, value)
+    fn get_causetids_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>> {
+        self.inner.get_causetids_for_value(attribute, value)
     }
 
-    fn get_entid_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<SolitonId> {
-        self.inner.get_entid_for_value(attribute, value)
+    fn get_causetid_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<SolitonId> {
+        self.inner.get_causetid_for_value(attribute, value)
     }
 }
 
@@ -1357,7 +1357,7 @@ impl InProgressSQLiteAttributeCache {
         let a = attribute.into();
 
         // The attribute must exist!
-        let _ = schemaReplicant.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
+        let _ = schemaReplicant.attribute_for_causetid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
 
         if self.is_attribute_cached_forward(a) {
             return Ok(());
@@ -1373,7 +1373,7 @@ impl InProgressSQLiteAttributeCache {
         let a = attribute.into();
 
         // The attribute must exist!
-        let _ = schemaReplicant.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
+        let _ = schemaReplicant.attribute_for_causetid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
 
         if self.is_attribute_cached_reverse(a) {
             return Ok(());
@@ -1389,7 +1389,7 @@ impl InProgressSQLiteAttributeCache {
         let a = attribute.into();
 
         // The attribute must exist!
-        let _ = schemaReplicant.attribute_for_entid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
+        let _ = schemaReplicant.attribute_for_causetid(a).ok_or_else(|| DbErrorKind::UnknownAttribute(a))?;
 
         // TODO: reverse-index unique by default?
         let reverse_done = self.is_attribute_cached_reverse(a);
@@ -1435,7 +1435,7 @@ impl UpdateableCache<DbError> for InProgressSQLiteAttributeCache {
 }
 
 impl CachedAttributes for InProgressSQLiteAttributeCache {
-    fn get_values_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<MinkowskiType>> {
+    fn get_values_for_causetid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<MinkowskiType>> {
         if self.unregistered_forward.contains(&attribute) {
             None
         } else {
@@ -1443,21 +1443,21 @@ impl CachedAttributes for InProgressSQLiteAttributeCache {
             // array in `overlay` -- `Some(vec![])` -- and we won't fall through.
             // We can safely use `or_else`.
             self.overlay
-                .get_values_for_entid(schemaReplicant, attribute, solitonId)
-                .or_else(|| self.inner.get_values_for_entid(schemaReplicant, attribute, solitonId))
+                .get_values_for_causetid(schemaReplicant, attribute, solitonId)
+                .or_else(|| self.inner.get_values_for_causetid(schemaReplicant, attribute, solitonId))
         }
     }
 
-    fn get_value_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&MinkowskiType> {
+    fn get_value_for_causetid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&MinkowskiType> {
         if self.unregistered_forward.contains(&attribute) {
             None
         } else {
             // If it was present in `inner` but the value was deleted, there will be `Some(None)`
             // in `overlay`, and we won't fall through.
             // We can safely use `or_else`.
-            match self.overlay.get_value_for_entid_if_present(schemaReplicant, attribute, solitonId) {
+            match self.overlay.get_value_for_causetid_if_present(schemaReplicant, attribute, solitonId) {
                 Some(present) => present,
-                None => self.inner.get_value_for_entid(schemaReplicant, attribute, solitonId),
+                None => self.inner.get_value_for_causetid(schemaReplicant, attribute, solitonId),
             }
         }
     }
@@ -1504,26 +1504,26 @@ impl CachedAttributes for InProgressSQLiteAttributeCache {
             .is_some()
     }
 
-    fn get_entids_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>> {
+    fn get_causetids_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>> {
         if self.unregistered_reverse.contains(&attribute) {
             None
         } else {
             self.overlay
-                .get_entids_for_value(attribute, value)
-                .or_else(|| self.inner.get_entids_for_value(attribute, value))
+                .get_causetids_for_value(attribute, value)
+                .or_else(|| self.inner.get_causetids_for_value(attribute, value))
         }
     }
 
-    fn get_entid_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<SolitonId> {
+    fn get_causetid_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<SolitonId> {
         if self.unregistered_reverse.contains(&attribute) {
             None
         } else {
             // If it was present in `inner` but the value was deleted, there will be `Some(None)`
             // in `overlay`, and we won't fall through.
             // We can safely use `or_else`.
-            match self.overlay.get_entid_for_value_if_present(attribute, value) {
+            match self.overlay.get_causetid_for_value_if_present(attribute, value) {
                 Some(present) => present,
-                None => self.inner.get_entid_for_value(attribute, value),
+                None => self.inner.get_causetid_for_value(attribute, value),
             }
         }
     }

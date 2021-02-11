@@ -312,15 +312,15 @@ impl IndexScanFreeDaemonImpl {
         value: &[u8],
         PrimaryCausets: &mut LazyBatchPrimaryCausetVec,
     ) -> Result<()> {
-        use milevadb_query_datatype::codec::EventIdx::v2::{EventSlice, V1CompatibleEncoder};
+        use milevadb_query_datatype::codec::Evcausetidx::v2::{EventSlice, V1CompatibleEncoder};
 
-        let EventIdx = EventSlice::from_bytes(value)?;
+        let Evcausetidx = EventSlice::from_bytes(value)?;
         for (idx, col_id) in self.PrimaryCausets_id_without_handle.iter().enumerate() {
-            if let Some((spacelike, offset)) = EventIdx.search_in_non_null_ids(*col_id)? {
+            if let Some((spacelike, offset)) = Evcausetidx.search_in_non_null_ids(*col_id)? {
                 let mut buffer_to_write = PrimaryCausets[idx].mut_raw().begin_concat_extlightlike();
                 buffer_to_write
-                    .write_v2_as_datum(&EventIdx.values()[spacelike..offset], &self.schemaReplicant[idx])?;
-            } else if EventIdx.search_in_null_ids(*col_id) {
+                    .write_v2_as_datum(&Evcausetidx.values()[spacelike..offset], &self.schemaReplicant[idx])?;
+            } else if Evcausetidx.search_in_null_ids(*col_id) {
                 PrimaryCausets[idx].mut_raw().push(datum::DATUM_DATA_NULL);
             } else {
                 return Err(other_err!("Unexpected missing PrimaryCauset {}", col_id));
@@ -506,7 +506,7 @@ mod tests {
     use milevadb_query_datatype::codec::data_type::*;
     use milevadb_query_datatype::codec::{
         datum,
-        EventIdx::v2::encoder_for_test::{PrimaryCauset, EventEncoder},
+        Evcausetidx::v2::encoder_for_test::{PrimaryCauset, EventEncoder},
         Block, Datum,
     };
     use milevadb_query_datatype::expr::EvalConfig;

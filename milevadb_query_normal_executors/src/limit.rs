@@ -32,9 +32,9 @@ impl<Src: FreeDaemon> FreeDaemon for LimitFreeDaemon<Src> {
         if self.cursor >= self.limit {
             return Ok(None);
         }
-        if let Some(EventIdx) = self.src.next()? {
+        if let Some(Evcausetidx) = self.src.next()? {
             self.cursor += 1;
-            Ok(Some(EventIdx))
+            Ok(Some(Evcausetidx))
         } else {
             Ok(None)
         }
@@ -109,13 +109,13 @@ mod tests {
         // init topn executor
         let mut limit_ect = LimitFreeDaemon::new(limit_meta, ts_ect);
         let mut limit_rows = Vec::with_capacity(limit as usize);
-        while let Some(EventIdx) = limit_ect.next().unwrap() {
-            limit_rows.push(EventIdx.take_origin().unwrap());
+        while let Some(Evcausetidx) = limit_ect.next().unwrap() {
+            limit_rows.push(Evcausetidx.take_origin().unwrap());
         }
         assert_eq!(limit_rows.len(), limit as usize);
         let expect_row_handles = vec![1, 2, 3, 5, 6];
-        for (EventIdx, handle) in limit_rows.iter().zip(expect_row_handles) {
-            assert_eq!(EventIdx.handle, handle);
+        for (Evcausetidx, handle) in limit_rows.iter().zip(expect_row_handles) {
+            assert_eq!(Evcausetidx.handle, handle);
         }
     }
 }

@@ -19,70 +19,70 @@ const IPV4_LENGTH: usize = 4;
 const PREFIX_COMPAT: [u8; 12] = [0x00; 12];
 
 impl ScalarFunc {
-    pub fn int_any_value(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+    pub fn int_any_value(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
         self.children
             .first()
-            .map_or(Ok(None), |child| child.eval_int(ctx, EventIdx))
+            .map_or(Ok(None), |child| child.eval_int(ctx, Evcausetidx))
     }
 
-    pub fn real_any_value(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
+    pub fn real_any_value(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<f64>> {
         self.children
             .first()
-            .map_or(Ok(None), |child| child.eval_real(ctx, EventIdx))
+            .map_or(Ok(None), |child| child.eval_real(ctx, Evcausetidx))
     }
 
     pub fn string_any_value<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
         self.children
             .first()
-            .map_or(Ok(None), |child| child.eval_string(ctx, EventIdx))
+            .map_or(Ok(None), |child| child.eval_string(ctx, Evcausetidx))
     }
 
     pub fn time_any_value<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
         self.children
             .first()
-            .map_or(Ok(None), |child| child.eval_time(ctx, EventIdx))
+            .map_or(Ok(None), |child| child.eval_time(ctx, Evcausetidx))
     }
 
     pub fn decimal_any_value<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
         self.children
             .first()
-            .map_or(Ok(None), |child| child.eval_decimal(ctx, EventIdx))
+            .map_or(Ok(None), |child| child.eval_decimal(ctx, Evcausetidx))
     }
 
     pub fn json_any_value<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
         self.children
             .first()
-            .map_or(Ok(None), |child| child.eval_json(ctx, EventIdx))
+            .map_or(Ok(None), |child| child.eval_json(ctx, Evcausetidx))
     }
 
     pub fn duration_any_value<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Duration>> {
         self.children
             .first()
-            .map_or(Ok(None), |child| child.eval_duration(ctx, EventIdx))
+            .map_or(Ok(None), |child| child.eval_duration(ctx, Evcausetidx))
     }
 
-    pub fn is_ipv4(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let input = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
+    pub fn is_ipv4(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let input = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
         if Ipv4Addr::from_str(&input).is_ok() {
             Ok(Some(1))
         } else {
@@ -93,9 +93,9 @@ impl ScalarFunc {
     pub fn is_ipv4_compat<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<i64>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+        let input = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         // Not an IPv6 address, return 0
         if input.len() != IPV6_LENGTH {
             return Ok(Some(0));
@@ -110,9 +110,9 @@ impl ScalarFunc {
     pub fn is_ipv4_mapped<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<i64>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+        let input = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         // Not an IPv6 address, return 0
         if input.len() != IPV6_LENGTH {
             return Ok(Some(0));
@@ -130,18 +130,18 @@ impl ScalarFunc {
     pub fn inet_aton<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<i64>> {
-        let addr = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
+        let addr = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
         Ok(miscellaneous::inet_aton(addr))
     }
 
     pub fn inet_ntoa<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let input = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let input = try_opt!(self.children[0].eval_int(ctx, Evcausetidx));
         Ok(u32::try_from(input)
             .ok()
             .map(|input| Cow::Owned(format!("{}", Ipv4Addr::from(input)).into_bytes())))
@@ -150,9 +150,9 @@ impl ScalarFunc {
     pub fn inet6_aton<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let input = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
+        let input = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
         let ipv6_addr = Ipv6Addr::from_str(&input).map(|t| Some(Cow::Owned(t.octets().to_vec())));
         let ipv4_addr_eval =
             |_t| Ipv4Addr::from_str(&input).map(|t| Some(Cow::Owned(t.octets().to_vec())));
@@ -162,9 +162,9 @@ impl ScalarFunc {
     pub fn inet6_ntoa<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         if s.len() == IPV6_LENGTH {
             let v: &[u8; 16] = s.as_ref().try_into().unwrap();
             Ok(Some(Cow::Owned(
@@ -180,8 +180,8 @@ impl ScalarFunc {
         }
     }
 
-    pub fn is_ipv6(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let input = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
+    pub fn is_ipv6(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let input = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
         if Ipv6Addr::from_str(&input).is_ok() {
             Ok(Some(1))
         } else {

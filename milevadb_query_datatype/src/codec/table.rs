@@ -135,18 +135,18 @@ pub fn flatten(ctx: &mut EvalContext, data: Datum) -> Result<Datum> {
     }
 }
 
-// `encode_row` encodes EventIdx data and PrimaryCauset ids into a slice of byte.
+// `encode_row` encodes Evcausetidx data and PrimaryCauset ids into a slice of byte.
 // Event layout: colID1, value1, colID2, value2, .....
-pub fn encode_row(ctx: &mut EvalContext, EventIdx: Vec<Datum>, col_ids: &[i64]) -> Result<Vec<u8>> {
-    if EventIdx.len() != col_ids.len() {
+pub fn encode_row(ctx: &mut EvalContext, Evcausetidx: Vec<Datum>, col_ids: &[i64]) -> Result<Vec<u8>> {
+    if Evcausetidx.len() != col_ids.len() {
         return Err(box_err!(
             "data and PrimaryCausetID count not match {} vs {}",
-            EventIdx.len(),
+            Evcausetidx.len(),
             col_ids.len()
         ));
     }
-    let mut values = Vec::with_capacity(cmp::max(EventIdx.len() * 2, 1));
-    for (&id, col) in col_ids.iter().zip(EventIdx) {
+    let mut values = Vec::with_capacity(cmp::max(Evcausetidx.len() * 2, 1));
+    for (&id, col) in col_ids.iter().zip(Evcausetidx) {
         values.push(Datum::I64(id));
         let fc = flatten(ctx, col)?;
         values.push(fc);
@@ -173,7 +173,7 @@ pub fn encode_common_handle_for_test(Block_id: i64, handle: &[u8]) -> Vec<u8> {
     key
 }
 
-/// `encode_PrimaryCauset_key` encodes the Block id, EventIdx handle and PrimaryCauset id into a byte array.
+/// `encode_PrimaryCauset_key` encodes the Block id, Evcausetidx handle and PrimaryCauset id into a byte array.
 pub fn encode_PrimaryCauset_key(Block_id: i64, handle: i64, PrimaryCauset_id: i64) -> Vec<u8> {
     let mut key = Vec::with_capacity(RECORD_ROW_KEY_LEN + ID_LEN);
     key.applightlike_Block_record_prefix(Block_id).unwrap();
@@ -304,34 +304,34 @@ pub fn decode_row(
         return Ok(HashMap::default());
     }
     if values.len() & 1 == 1 {
-        return Err(box_err!("decoded EventIdx values' length should be even!"));
+        return Err(box_err!("decoded Evcausetidx values' length should be even!"));
     }
-    let mut EventIdx = HashMap::with_capacity_and_hasher(cols.len(), Default::default());
+    let mut Evcausetidx = HashMap::with_capacity_and_hasher(cols.len(), Default::default());
     let mut drain = values.drain(..);
     loop {
         let id = match drain.next() {
-            None => return Ok(EventIdx),
+            None => return Ok(Evcausetidx),
             Some(id) => id.i64(),
         };
         let v = drain.next().unwrap();
         if let Some(ci) = cols.get(&id) {
             let v = unflatten(ctx, v, ci)?;
-            EventIdx.insert(id, v);
+            Evcausetidx.insert(id, v);
         }
     }
 }
 
-/// `EventColMeta` saves the PrimaryCauset meta of the EventIdx.
+/// `EventColMeta` saves the PrimaryCauset meta of the Evcausetidx.
 #[derive(Debug)]
 pub struct EventColMeta {
     offset: usize,
     length: usize,
 }
 
-/// `EventColsDict` stores the EventIdx data and a map mapping PrimaryCauset ID to its meta.
+/// `EventColsDict` stores the Evcausetidx data and a map mapping PrimaryCauset ID to its meta.
 #[derive(Debug)]
 pub struct EventColsDict {
-    // data of current EventIdx
+    // data of current Evcausetidx
     pub value: Vec<u8>,
     // cols contains meta of each PrimaryCauset in the format of:
     // (col_id1,(offset1,len1)),(col_id2,(offset2,len2),...)
@@ -369,7 +369,7 @@ impl EventColsDict {
         None
     }
 
-    /// Applightlikes a PrimaryCauset to the EventIdx.
+    /// Applightlikes a PrimaryCauset to the Evcausetidx.
     pub fn applightlike(&mut self, cid: i64, value: &mut Vec<u8>) {
         let offset = self.value.len();
         let length = value.len();
@@ -396,10 +396,10 @@ impl EventColsDict {
     }
 }
 
-/// `cut_row` cuts the encoded EventIdx into (col_id,offset,length)
+/// `cut_row` cuts the encoded Evcausetidx into (col_id,offset,length)
 ///  and returns interested PrimaryCausets' meta in EventColsDict
 ///
-/// Encoded EventIdx can be either in EventIdx format v1 or v2.
+/// Encoded Evcausetidx can be either in Evcausetidx format v1 or v2.
 ///
 /// `col_ids` must be consistent with `cols`. Otherwise the result is undefined.
 pub fn cut_row(
@@ -411,12 +411,12 @@ pub fn cut_row(
         return Ok(EventColsDict::new(HashMap::default(), data));
     }
     match data[0] {
-        crate::codec::EventIdx::v2::CODEC_VERSION => cut_row_v2(data, cols),
+        crate::codec::Evcausetidx::v2::CODEC_VERSION => cut_row_v2(data, cols),
         _ => cut_row_v1(data, col_ids),
     }
 }
 
-/// Cuts a non-empty EventIdx in EventIdx format v1.
+/// Cuts a non-empty Evcausetidx in Evcausetidx format v1.
 fn cut_row_v1(data: Vec<u8>, cols: &HashSet<i64>) -> Result<EventColsDict> {
     let meta_map = {
         let mut meta_map = HashMap::with_capacity_and_hasher(cols.len(), Default::default());
@@ -436,10 +436,10 @@ fn cut_row_v1(data: Vec<u8>, cols: &HashSet<i64>) -> Result<EventColsDict> {
     Ok(EventColsDict::new(meta_map, data))
 }
 
-/// Cuts a non-empty EventIdx in EventIdx format v2 and encodes into v1 format.
+/// Cuts a non-empty Evcausetidx in Evcausetidx format v2 and encodes into v1 format.
 fn cut_row_v2(data: Vec<u8>, cols: Arc<Vec<PrimaryCausetInfo>>) -> Result<EventColsDict> {
     use crate::codec::datum_codec::{PrimaryCausetIdDatumEncoder, EvaluableDatumEncoder};
-    use crate::codec::EventIdx::v2::{EventSlice, V1CompatibleEncoder};
+    use crate::codec::Evcausetidx::v2::{EventSlice, V1CompatibleEncoder};
 
     let mut meta_map = HashMap::with_capacity_and_hasher(cols.len(), Default::default());
     let mut result = Vec::with_capacity(data.len() + cols.len() * 8);
@@ -573,15 +573,15 @@ mod tests {
         assert_eq!(tests, decode_index_key(&mut ctx, &encoded, &types).unwrap());
     }
 
-    fn to_hash_map(EventIdx: &EventColsDict) -> HashMap<i64, Vec<u8>> {
-        let mut data = HashMap::with_capacity_and_hasher(EventIdx.cols.len(), Default::default());
-        if EventIdx.is_empty() {
+    fn to_hash_map(Evcausetidx: &EventColsDict) -> HashMap<i64, Vec<u8>> {
+        let mut data = HashMap::with_capacity_and_hasher(Evcausetidx.cols.len(), Default::default());
+        if Evcausetidx.is_empty() {
             return data;
         }
-        for (key, meta) in &EventIdx.cols {
+        for (key, meta) in &Evcausetidx.cols {
             data.insert(
                 *key,
-                EventIdx.value[meta.offset..(meta.offset + meta.length)].to_vec(),
+                Evcausetidx.value[meta.offset..(meta.offset + meta.length)].to_vec(),
             );
         }
         data
@@ -619,7 +619,7 @@ mod tests {
             6 => duration_col
         ];
 
-        let mut EventIdx = map![
+        let mut Evcausetidx = map![
             1 => Datum::I64(100),
             2 => Datum::Bytes(b"abc".to_vec()),
             3 => Datum::Dec(10.into()),
@@ -628,9 +628,9 @@ mod tests {
         ];
 
         let mut ctx = EvalContext::default();
-        let col_ids: Vec<_> = EventIdx.iter().map(|(&id, _)| id).collect();
-        let col_values: Vec<_> = EventIdx.iter().map(|(_, v)| v.clone()).collect();
-        let mut col_encoded: HashMap<_, _> = EventIdx
+        let col_ids: Vec<_> = Evcausetidx.iter().map(|(&id, _)| id).collect();
+        let col_values: Vec<_> = Evcausetidx.iter().map(|(_, v)| v.clone()).collect();
+        let mut col_encoded: HashMap<_, _> = Evcausetidx
             .iter()
             .map(|(k, v)| {
                 let f = super::flatten(&mut ctx, v.clone()).unwrap();
@@ -643,7 +643,7 @@ mod tests {
         assert!(!bs.is_empty());
         let mut ctx = EvalContext::default();
         let r = decode_row(&mut bs.as_slice(), &mut ctx, &cols).unwrap();
-        assert_eq!(EventIdx, r);
+        assert_eq!(Evcausetidx, r);
 
         let mut datums: HashMap<_, _>;
         datums = cut_row_as_owned(&bs, &col_id_set);
@@ -651,7 +651,7 @@ mod tests {
 
         cols.insert(4, FieldTypeTp::Float.into());
         let r = decode_row(&mut bs.as_slice(), &mut ctx, &cols).unwrap();
-        assert_eq!(EventIdx, r);
+        assert_eq!(Evcausetidx, r);
 
         col_id_set.insert(4);
         datums = cut_row_as_owned(&bs, &col_id_set);
@@ -660,8 +660,8 @@ mod tests {
         cols.remove(&4);
         cols.remove(&3);
         let r = decode_row(&mut bs.as_slice(), &mut ctx, &cols).unwrap();
-        EventIdx.remove(&3);
-        assert_eq!(EventIdx, r);
+        Evcausetidx.remove(&3);
+        assert_eq!(Evcausetidx, r);
 
         col_id_set.remove(&3);
         col_id_set.remove(&4);

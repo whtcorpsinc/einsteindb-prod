@@ -241,7 +241,7 @@ impl PrimaryCauset {
         Ok(col)
     }
 
-    /// Get the datum of one EventIdx with the specified type.
+    /// Get the datum of one Evcausetidx with the specified type.
     pub fn get_datum(&self, idx: usize, field_type: &dyn FieldTypeAccessor) -> Result<Datum> {
         if self.is_null(idx) {
             return Ok(Datum::Null);
@@ -356,7 +356,7 @@ impl PrimaryCauset {
         self.data.clear();
     }
 
-    /// Return whether the datum for the EventIdx is null or not.
+    /// Return whether the datum for the Evcausetidx is null or not.
     pub fn is_null(&self, row_idx: usize) -> bool {
         if self.null_cnt == 0 {
             return false;
@@ -450,7 +450,7 @@ impl PrimaryCauset {
         Ok(())
     }
 
-    /// Get the i64 datum of the EventIdx in the PrimaryCauset.
+    /// Get the i64 datum of the Evcausetidx in the PrimaryCauset.
     #[inline]
     pub fn get_i64(&self, idx: usize) -> Result<i64> {
         let spacelike = idx * self.fixed_len;
@@ -493,7 +493,7 @@ impl PrimaryCauset {
         Ok(())
     }
 
-    /// Get the u64 datum of the EventIdx in the PrimaryCauset.
+    /// Get the u64 datum of the Evcausetidx in the PrimaryCauset.
     #[inline]
     pub fn get_u64(&self, idx: usize) -> Result<u64> {
         let spacelike = idx * self.fixed_len;
@@ -569,7 +569,7 @@ impl PrimaryCauset {
         Ok(())
     }
 
-    /// Get the f64 datum of the EventIdx in the PrimaryCauset.
+    /// Get the f64 datum of the Evcausetidx in the PrimaryCauset.
     #[inline]
     pub fn get_f64(&self, idx: usize) -> Result<f64> {
         let spacelike = idx * self.fixed_len;
@@ -578,7 +578,7 @@ impl PrimaryCauset {
         data.read_f64_le().map_err(Error::from)
     }
 
-    /// Get the f32 datum of the EventIdx in the PrimaryCauset.
+    /// Get the f32 datum of the Evcausetidx in the PrimaryCauset.
     #[inline]
     pub fn get_f32(&self, idx: usize) -> Result<f32> {
         let spacelike = idx * self.fixed_len;
@@ -624,7 +624,7 @@ impl PrimaryCauset {
         Ok(())
     }
 
-    /// Get the bytes datum of the EventIdx in the PrimaryCauset.
+    /// Get the bytes datum of the Evcausetidx in the PrimaryCauset.
     #[inline]
     pub fn get_bytes(&self, idx: usize) -> &[u8] {
         let spacelike = self.var_offsets[idx];
@@ -678,7 +678,7 @@ impl PrimaryCauset {
         Ok(())
     }
 
-    /// Get the time datum of the EventIdx in the PrimaryCauset.
+    /// Get the time datum of the Evcausetidx in the PrimaryCauset.
     #[inline]
     pub fn get_time(&self, idx: usize) -> Result<Time> {
         let spacelike = idx * self.fixed_len;
@@ -727,7 +727,7 @@ impl PrimaryCauset {
         Ok(())
     }
 
-    /// Get the duration datum of the EventIdx in the PrimaryCauset.
+    /// Get the duration datum of the Evcausetidx in the PrimaryCauset.
     #[inline]
     pub fn get_duration(&self, idx: usize, fsp: isize) -> Result<Duration> {
         let spacelike = idx * self.fixed_len;
@@ -770,7 +770,7 @@ impl PrimaryCauset {
         Ok(())
     }
 
-    /// Get the decimal datum of the EventIdx in the PrimaryCauset.
+    /// Get the decimal datum of the Evcausetidx in the PrimaryCauset.
     #[inline]
     pub fn get_decimal(&self, idx: usize) -> Result<Decimal> {
         let spacelike = idx * self.fixed_len;
@@ -813,7 +813,7 @@ impl PrimaryCauset {
         Ok(())
     }
 
-    /// Get the json datum of the EventIdx in the PrimaryCauset.
+    /// Get the json datum of the Evcausetidx in the PrimaryCauset.
     #[inline]
     pub fn get_json(&self, idx: usize) -> Result<Json> {
         let spacelike = self.var_offsets[idx];

@@ -75,8 +75,8 @@ pub struct RpnFnCallExtra<'a> {
 pub trait RpnStackedPerceptron: std::fmt::Debug {
     type Type;
 
-    /// Gets the value in the given EventIdx.
-    fn get(&self, EventIdx: usize) -> Self::Type;
+    /// Gets the value in the given Evcausetidx.
+    fn get(&self, Evcausetidx: usize) -> Self::Type;
 
     /// Gets the bit vector of the arg.
     /// Returns `None` if scalar value, and bool indicates whether
@@ -101,7 +101,7 @@ impl<'a, T: EvaluableRef<'a>> ScalarArg<'a, T> {
 impl<'a, T: EvaluableRef<'a>> RpnStackedPerceptron for ScalarArg<'a, T> {
     type Type = Option<T>;
 
-    /// Gets the value in the given EventIdx. All events of a `ScalarArg` share the same value.
+    /// Gets the value in the given Evcausetidx. All events of a `ScalarArg` share the same value.
     #[inline]
     fn get(&self, _row: usize) -> Option<T> {
         self.0.clone()
@@ -126,8 +126,8 @@ impl<'a, T: EvaluableRef<'a>, C: 'a + SolitonRef<'a, T>> RpnStackedPerceptron fo
     type Type = Option<T>;
 
     #[inline]
-    fn get(&self, EventIdx: usize) -> Option<T> {
-        let logical_index = self.logical_rows.get_idx(EventIdx);
+    fn get(&self, Evcausetidx: usize) -> Option<T> {
+        let logical_index = self.logical_rows.get_idx(Evcausetidx);
         self.physical_col.get_option_ref(logical_index)
     }
 
@@ -144,7 +144,7 @@ impl<'a, T: EvaluableRef<'a>, C: 'a + SolitonRef<'a, T>> RpnStackedPerceptron fo
 ///
 /// `ArgDef` is constructed at the beginning of evaluating an RPN function. The types of
 /// `RpnStackedPerceptron`s are determined at this stage. So there won't be dynamic dispatch or enum matches
-/// when the function is applied to each EventIdx of the input.
+/// when the function is applied to each Evcausetidx of the input.
 pub trait ArgDef: std::fmt::Debug {}
 
 /// RPN function argument definitions in the form of a linked list.
@@ -162,11 +162,11 @@ pub struct Arg<A: RpnStackedPerceptron, Rem: ArgDef> {
 impl<A: RpnStackedPerceptron, Rem: ArgDef> ArgDef for Arg<A, Rem> {}
 
 impl<A: RpnStackedPerceptron, Rem: ArgDef> Arg<A, Rem> {
-    /// Gets the value of the head argument in the given EventIdx and returns the remaining argument
+    /// Gets the value of the head argument in the given Evcausetidx and returns the remaining argument
     /// list.
     #[inline]
-    pub fn extract(&self, EventIdx: usize) -> (A::Type, &Rem) {
-        (self.arg.get(EventIdx), &self.rem)
+    pub fn extract(&self, Evcausetidx: usize) -> (A::Type, &Rem) {
+        (self.arg.get(Evcausetidx), &self.rem)
     }
 
     /// Gets the bit vector of each arg

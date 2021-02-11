@@ -28,10 +28,10 @@ impl ScalarFunc {
     pub fn compare_int(
         &self,
         ctx: &mut EvalContext,
-        EventIdx: &[Datum],
+        Evcausetidx: &[Datum],
         op: CmpOp,
     ) -> Result<Option<i64>> {
-        let e = |i: usize| self.children[i].eval_int(ctx, EventIdx);
+        let e = |i: usize| self.children[i].eval_int(ctx, Evcausetidx);
         do_compare(e, op, |l, r| {
             let lhs_unsigned = self.children[0].is_unsigned();
             let rhs_unsigned = self.children[1].is_unsigned();
@@ -42,11 +42,11 @@ impl ScalarFunc {
     pub fn compare_real(
         &self,
         ctx: &mut EvalContext,
-        EventIdx: &[Datum],
+        Evcausetidx: &[Datum],
         op: CmpOp,
     ) -> Result<Option<i64>> {
         do_compare(
-            |i| self.children[i].eval_real(ctx, EventIdx),
+            |i| self.children[i].eval_real(ctx, Evcausetidx),
             op,
             |l, r| datum::cmp_f64(l, r).map_err(Error::from),
         )
@@ -55,20 +55,20 @@ impl ScalarFunc {
     pub fn compare_decimal(
         &self,
         ctx: &mut EvalContext,
-        EventIdx: &[Datum],
+        Evcausetidx: &[Datum],
         op: CmpOp,
     ) -> Result<Option<i64>> {
-        let e = |i: usize| self.children[i].eval_decimal(ctx, EventIdx);
+        let e = |i: usize| self.children[i].eval_decimal(ctx, Evcausetidx);
         do_compare(e, op, |l, r| Ok(l.cmp(&r)))
     }
 
     fn compare_string_with_collator<C: Collator>(
         &self,
         ctx: &mut EvalContext,
-        EventIdx: &[Datum],
+        Evcausetidx: &[Datum],
         op: CmpOp,
     ) -> Result<Option<i64>> {
-        let e = |i: usize| self.children[i].eval_string(ctx, EventIdx);
+        let e = |i: usize| self.children[i].eval_string(ctx, Evcausetidx);
         do_compare(e, op, |l, r| {
             Ok(box_try!(C::sort_compare(l.as_ref(), r.as_ref())))
         })
@@ -77,12 +77,12 @@ impl ScalarFunc {
     pub fn compare_string(
         &self,
         ctx: &mut EvalContext,
-        EventIdx: &[Datum],
+        Evcausetidx: &[Datum],
         op: CmpOp,
     ) -> Result<Option<i64>> {
         match_template_collator! {
             TT, match self.field_type.as_accessor().collation()? {
-                Collation::TT => self.compare_string_with_collator::<TT>(ctx, EventIdx, op)
+                Collation::TT => self.compare_string_with_collator::<TT>(ctx, Evcausetidx, op)
             }
         }
     }
@@ -90,107 +90,107 @@ impl ScalarFunc {
     pub fn compare_time(
         &self,
         ctx: &mut EvalContext,
-        EventIdx: &[Datum],
+        Evcausetidx: &[Datum],
         op: CmpOp,
     ) -> Result<Option<i64>> {
-        let e = |i: usize| self.children[i].eval_time(ctx, EventIdx);
+        let e = |i: usize| self.children[i].eval_time(ctx, Evcausetidx);
         do_compare(e, op, |l, r| Ok(l.cmp(&r)))
     }
 
     pub fn compare_duration(
         &self,
         ctx: &mut EvalContext,
-        EventIdx: &[Datum],
+        Evcausetidx: &[Datum],
         op: CmpOp,
     ) -> Result<Option<i64>> {
-        let e = |i: usize| self.children[i].eval_duration(ctx, EventIdx);
+        let e = |i: usize| self.children[i].eval_duration(ctx, Evcausetidx);
         do_compare(e, op, |l, r| Ok(l.cmp(&r)))
     }
 
     pub fn compare_json(
         &self,
         ctx: &mut EvalContext,
-        EventIdx: &[Datum],
+        Evcausetidx: &[Datum],
         op: CmpOp,
     ) -> Result<Option<i64>> {
-        let e = |i: usize| self.children[i].eval_json(ctx, EventIdx);
+        let e = |i: usize| self.children[i].eval_json(ctx, Evcausetidx);
         do_compare(e, op, |l, r| Ok(l.cmp(&r)))
     }
 
     /// See http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_coalesce
-    pub fn coalesce_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        do_coalesce(self, |v| v.eval_int(ctx, EventIdx))
+    pub fn coalesce_int(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        do_coalesce(self, |v| v.eval_int(ctx, Evcausetidx))
     }
 
-    pub fn coalesce_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
-        do_coalesce(self, |v| v.eval_real(ctx, EventIdx))
+    pub fn coalesce_real(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<f64>> {
+        do_coalesce(self, |v| v.eval_real(ctx, Evcausetidx))
     }
 
     pub fn coalesce_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        do_coalesce(self, |v| v.eval_decimal(ctx, EventIdx))
+        do_coalesce(self, |v| v.eval_decimal(ctx, Evcausetidx))
     }
 
     pub fn coalesce_time<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Time>>> {
-        do_coalesce(self, |v| v.eval_time(ctx, EventIdx))
+        do_coalesce(self, |v| v.eval_time(ctx, Evcausetidx))
     }
 
     pub fn coalesce_duration<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Duration>> {
-        do_coalesce(self, |v| v.eval_duration(ctx, EventIdx))
+        do_coalesce(self, |v| v.eval_duration(ctx, Evcausetidx))
     }
 
     pub fn coalesce_string<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        do_coalesce(self, |v| v.eval_string(ctx, EventIdx))
+        do_coalesce(self, |v| v.eval_string(ctx, Evcausetidx))
     }
 
     pub fn coalesce_json<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Json>>> {
-        do_coalesce(self, |v| v.eval_json(ctx, EventIdx))
+        do_coalesce(self, |v| v.eval_json(ctx, Evcausetidx))
     }
 
-    pub fn greatest_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        do_get_extremum(self, |e| e.eval_int(ctx, EventIdx), max)
+    pub fn greatest_int(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        do_get_extremum(self, |e| e.eval_int(ctx, Evcausetidx), max)
     }
 
-    pub fn greatest_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
-        do_get_extremum(self, |e| e.eval_real(ctx, EventIdx), |x, y| x.max(y))
+    pub fn greatest_real(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<f64>> {
+        do_get_extremum(self, |e| e.eval_real(ctx, Evcausetidx), |x, y| x.max(y))
     }
 
     pub fn greatest_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        do_get_extremum(self, |e| e.eval_decimal(ctx, EventIdx), max)
+        do_get_extremum(self, |e| e.eval_decimal(ctx, Evcausetidx), max)
     }
 
     pub fn greatest_time<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
         let mut greatest = None;
 
         for exp in &self.children {
-            let s = try_opt!(exp.eval_string_and_decode(ctx, EventIdx));
+            let s = try_opt!(exp.eval_string_and_decode(ctx, Evcausetidx));
             match Time::parse_datetime(ctx, &s, Time::parse_fsp(&s), true) {
                 Ok(t) => greatest = max(greatest, Some(t)),
                 Err(_) => {
@@ -209,38 +209,38 @@ impl ScalarFunc {
     pub fn greatest_string<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        do_get_extremum(self, |e| e.eval_string(ctx, EventIdx), max)
+        do_get_extremum(self, |e| e.eval_string(ctx, Evcausetidx), max)
     }
 
-    pub fn least_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        do_get_extremum(self, |e| e.eval_int(ctx, EventIdx), min)
+    pub fn least_int(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        do_get_extremum(self, |e| e.eval_int(ctx, Evcausetidx), min)
     }
 
-    pub fn least_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<f64>> {
-        do_get_extremum(self, |e| e.eval_real(ctx, EventIdx), |x, y| x.min(y))
+    pub fn least_real(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<f64>> {
+        do_get_extremum(self, |e| e.eval_real(ctx, Evcausetidx), |x, y| x.min(y))
     }
 
     pub fn least_decimal<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, Decimal>>> {
-        do_get_extremum(self, |e| e.eval_decimal(ctx, EventIdx), min)
+        do_get_extremum(self, |e| e.eval_decimal(ctx, Evcausetidx), min)
     }
 
     pub fn least_time<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
         let mut res = None;
         let mut least =
             Time::parse_datetime(ctx, "9999-12-31 23:59:59.999999", mysql::MAX_FSP, false)?;
 
         for exp in &self.children {
-            let s = try_opt!(exp.eval_string_and_decode(ctx, EventIdx));
+            let s = try_opt!(exp.eval_string_and_decode(ctx, Evcausetidx));
             match Time::parse_datetime(ctx, &s, Time::parse_fsp(&s), true) {
                 Ok(t) => least = min(least, t),
                 Err(_) => match ctx.handle_invalid_time_error(Error::invalid_time_format(&s)) {
@@ -259,15 +259,15 @@ impl ScalarFunc {
     pub fn least_string<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        do_get_extremum(self, |e| e.eval_string(ctx, EventIdx), min)
+        do_get_extremum(self, |e| e.eval_string(ctx, Evcausetidx), min)
     }
 
-    pub fn in_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+    pub fn in_int(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
         do_in(
             self,
-            |v| v.eval_int(ctx, EventIdx),
+            |v| v.eval_int(ctx, Evcausetidx),
             |l, r| {
                 let lhs_unsigned = self.children[0].is_unsigned();
                 let rhs_unsigned = self.children[1].is_unsigned();
@@ -281,36 +281,36 @@ impl ScalarFunc {
         )
     }
 
-    pub fn in_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+    pub fn in_real(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
         do_in(
             self,
-            |v| v.eval_real(ctx, EventIdx),
+            |v| v.eval_real(ctx, Evcausetidx),
             |l, r| datum::cmp_f64(*l, *r).map_err(Error::from),
         )
     }
 
-    pub fn in_decimal(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        do_in(self, |v| v.eval_decimal(ctx, EventIdx), |l, r| Ok(l.cmp(r)))
+    pub fn in_decimal(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        do_in(self, |v| v.eval_decimal(ctx, Evcausetidx), |l, r| Ok(l.cmp(r)))
     }
 
-    pub fn in_time(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        do_in(self, |v| v.eval_time(ctx, EventIdx), |l, r| Ok(l.cmp(r)))
+    pub fn in_time(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        do_in(self, |v| v.eval_time(ctx, Evcausetidx), |l, r| Ok(l.cmp(r)))
     }
 
-    pub fn in_duration(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        do_in(self, |v| v.eval_duration(ctx, EventIdx), |l, r| Ok(l.cmp(r)))
+    pub fn in_duration(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        do_in(self, |v| v.eval_duration(ctx, Evcausetidx), |l, r| Ok(l.cmp(r)))
     }
 
-    pub fn in_string(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        do_in(self, |v| v.eval_string(ctx, EventIdx), |l, r| Ok(l.cmp(r)))
+    pub fn in_string(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        do_in(self, |v| v.eval_string(ctx, Evcausetidx), |l, r| Ok(l.cmp(r)))
     }
 
-    pub fn in_json(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        do_in(self, |v| v.eval_json(ctx, EventIdx), |l, r| Ok(l.cmp(r)))
+    pub fn in_json(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        do_in(self, |v| v.eval_json(ctx, Evcausetidx), |l, r| Ok(l.cmp(r)))
     }
 
-    pub fn interval_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let target = match self.children[0].eval_int(ctx, EventIdx)? {
+    pub fn interval_int(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let target = match self.children[0].eval_int(ctx, Evcausetidx)? {
             None => return Ok(Some(-1)),
             Some(v) => v,
         };
@@ -320,7 +320,7 @@ impl ScalarFunc {
         let mut right = self.children.len();
         while left < right {
             let mid = left + (right - left) / 2;
-            let m = self.children[mid].eval_int(ctx, EventIdx)?.unwrap_or(target);
+            let m = self.children[mid].eval_int(ctx, Evcausetidx)?.unwrap_or(target);
             let mus = self.children[mid].is_unsigned();
 
             let cmp = match (tus, mus) {
@@ -339,8 +339,8 @@ impl ScalarFunc {
         Ok(Some((left - 1) as i64))
     }
 
-    pub fn interval_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let target = match self.children[0].eval_real(ctx, EventIdx)? {
+    pub fn interval_real(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let target = match self.children[0].eval_real(ctx, Evcausetidx)? {
             None => return Ok(Some(-1)),
             Some(v) => v,
         };
@@ -349,7 +349,7 @@ impl ScalarFunc {
         let mut right = self.children.len();
         while left < right {
             let mid = left + (right - left) / 2;
-            let m = self.children[mid].eval_real(ctx, EventIdx)?.unwrap_or(target);
+            let m = self.children[mid].eval_real(ctx, Evcausetidx)?.unwrap_or(target);
 
             if target >= m {
                 left = mid + 1
@@ -580,15 +580,15 @@ mod tests {
             ),
         ];
 
-        for (sig, EventIdx, exp) in cases {
-            let children: Vec<Expr> = (0..EventIdx.len()).map(|id| col_expr(id as i64)).collect();
+        for (sig, Evcausetidx, exp) in cases {
+            let children: Vec<Expr> = (0..Evcausetidx.len()).map(|id| col_expr(id as i64)).collect();
             let mut expr = Expr::default();
             expr.set_tp(ExprType::ScalarFunc);
             expr.set_sig(sig);
 
             expr.set_children(children.into());
             let e = Expression::build(&mut ctx, expr).unwrap();
-            let res = e.eval(&mut ctx, &EventIdx).unwrap();
+            let res = e.eval(&mut ctx, &Evcausetidx).unwrap();
             assert_eq!(res, exp);
         }
     }
@@ -698,15 +698,15 @@ mod tests {
             ),
         ];
 
-        for (sig, EventIdx, exp) in cases {
-            let children: Vec<Expr> = (0..EventIdx.len()).map(|id| col_expr(id as i64)).collect();
+        for (sig, Evcausetidx, exp) in cases {
+            let children: Vec<Expr> = (0..Evcausetidx.len()).map(|id| col_expr(id as i64)).collect();
             let mut expr = Expr::default();
             expr.set_tp(ExprType::ScalarFunc);
             expr.set_sig(sig);
 
             expr.set_children(children.into());
             let e = Expression::build(&mut ctx, expr).unwrap();
-            let res = e.eval(&mut ctx, &EventIdx).unwrap();
+            let res = e.eval(&mut ctx, &Evcausetidx).unwrap();
             assert_eq!(res, exp);
         }
     }
@@ -884,10 +884,10 @@ mod tests {
             cases: Vec<(Vec<Datum>, Datum, Datum)>,
         ) {
             let mut ctx = EvalContext::default();
-            for (EventIdx, greatest_exp, least_exp) in cases {
+            for (Evcausetidx, greatest_exp, least_exp) in cases {
                 // Evaluate and test greatest
                 {
-                    let children: Vec<Expr> = EventIdx.iter().map(|d| datum_expr(d.clone())).collect();
+                    let children: Vec<Expr> = Evcausetidx.iter().map(|d| datum_expr(d.clone())).collect();
                     let mut expr = Expr::default();
                     expr.set_tp(ExprType::ScalarFunc);
                     expr.set_sig(greatest_sig);
@@ -898,7 +898,7 @@ mod tests {
                 }
                 // Evaluate and test least
                 {
-                    let children: Vec<Expr> = EventIdx.iter().map(|d| datum_expr(d.clone())).collect();
+                    let children: Vec<Expr> = Evcausetidx.iter().map(|d| datum_expr(d.clone())).collect();
                     let mut expr = Expr::default();
                     expr.set_tp(ExprType::ScalarFunc);
                     expr.set_sig(least_sig);
@@ -942,13 +942,13 @@ mod tests {
                 .set_flag(Flag::IN_INSERT_STMT)
                 .set_sql_mode(SqlMode::STRICT_ALL_BlockS);
             let mut ctx = EvalContext::new(Arc::new(eval_config));
-            let EventIdx = vec![
+            let Evcausetidx = vec![
                 Datum::Bytes(t1),
                 Datum::Bytes(t2),
                 Datum::Bytes(t3),
                 Datum::Bytes(t4),
             ];
-            let children: Vec<Expr> = EventIdx.iter().map(|d| datum_expr(d.clone())).collect();
+            let children: Vec<Expr> = Evcausetidx.iter().map(|d| datum_expr(d.clone())).collect();
             let mut expr = Expr::default();
             expr.set_tp(ExprType::ScalarFunc);
             expr.set_sig(ScalarFuncSig::GreatestTime);
@@ -1109,15 +1109,15 @@ mod tests {
 
         let mut ctx = EvalContext::default();
 
-        for (sig, EventIdx, exp) in cases {
-            let children: Vec<Expr> = (0..EventIdx.len()).map(|id| col_expr(id as i64)).collect();
+        for (sig, Evcausetidx, exp) in cases {
+            let children: Vec<Expr> = (0..Evcausetidx.len()).map(|id| col_expr(id as i64)).collect();
             let mut expr = Expr::default();
             expr.set_tp(ExprType::ScalarFunc);
             expr.set_sig(sig);
 
             expr.set_children(children.into());
             let e = Expression::build(&mut ctx, expr).unwrap();
-            let res = e.eval(&mut ctx, &EventIdx).unwrap();
+            let res = e.eval(&mut ctx, &Evcausetidx).unwrap();
             assert_eq!(res, exp);
         }
     }

@@ -74,7 +74,7 @@ impl LazyBatchPrimaryCausetVec {
 
     /// Returns the number of PrimaryCausets.
     ///
-    /// It might be possible that there is no EventIdx but multiple PrimaryCausets.
+    /// It might be possible that there is no Evcausetidx but multiple PrimaryCausets.
     #[inline]
     pub fn PrimaryCausets_len(&self) -> usize {
         self.PrimaryCausets.len()

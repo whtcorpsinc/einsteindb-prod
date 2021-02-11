@@ -248,7 +248,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for SlowHashAggregatio
         mut input_physical_PrimaryCausets: LazyBatchPrimaryCausetVec,
         input_logical_rows: &[usize],
     ) -> Result<()> {
-        // 1. Calculate which group each src EventIdx belongs to.
+        // 1. Calculate which group each src Evcausetidx belongs to.
         self.states_offset_each_logical_row.clear();
 
         let context = &mut entities.context;
@@ -585,7 +585,7 @@ mod tests {
             .ensure_all_decoded_for_test(&mut EvalContext::default(), &exec.schemaReplicant()[5])
             .unwrap();
 
-        // The EventIdx order is not defined. Let's sort it by the group by PrimaryCauset before asserting.
+        // The Evcausetidx order is not defined. Let's sort it by the group by PrimaryCauset before asserting.
         let mut sort_PrimaryCauset: Vec<(usize, _)> = r.physical_PrimaryCausets[3]
             .decoded()
             .to_bytes_vec()

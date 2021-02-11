@@ -5,9 +5,9 @@
 //! There is one interlock_semaphore for each store. It receives commands from clients, executes them against
 //! the MVCC layer causetStorage engine.
 //!
-//! Logically, the data organization hierarchy from bottom to top is EventIdx -> brane -> store ->
+//! Logically, the data organization hierarchy from bottom to top is Evcausetidx -> brane -> store ->
 //! database. But each brane is replicated onto N stores for reliability, the replicas form a VioletaBft
-//! group, one of which acts as the leader. When the client read or write a EventIdx, the command is
+//! group, one of which acts as the leader. When the client read or write a Evcausetidx, the command is
 //! sent to the interlock_semaphore which is on the brane leader's store.
 //!
 //! Interlock_Semaphore runs in a single-thread event loop, but command executions are pushdown_causetd to a pool of

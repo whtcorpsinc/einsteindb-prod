@@ -9,7 +9,7 @@ use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, SplitRequest};
 use std::result::Result as StdResult;
 
 /// `SplitSemaphore` adjusts the split key so that it won't separate
-/// the data of a EventIdx into two brane. It adjusts the key according
+/// the data of a Evcausetidx into two brane. It adjusts the key according
 /// to the key format of `MilevaDB`.
 #[derive(Clone)]
 pub struct SplitSemaphore;

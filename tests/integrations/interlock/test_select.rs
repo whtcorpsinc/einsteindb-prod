@@ -56,14 +56,14 @@ fn test_select() {
     let req = DAGSelect::from(&product).build();
     let mut resp = handle_select(&lightlikepoint, req);
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (EventIdx, (id, name, cnt)) in spliter.zip(data) {
+    for (Evcausetidx, (id, name, cnt)) in spliter.zip(data) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[Datum::I64(id), name_datum, cnt.into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(result_encoded, &*expected_encoded);
     }
 }
@@ -91,14 +91,14 @@ fn test_batch_row_limit() {
     let mut resp = handle_select(&lightlikepoint, req);
     check_Soliton_datum_count(resp.get_Solitons(), Soliton_datum_limit);
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (EventIdx, (id, name, cnt)) in spliter.zip(data) {
+    for (Evcausetidx, (id, name, cnt)) in spliter.zip(data) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[Datum::I64(id), name_datum, cnt.into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(result_encoded, &*expected_encoded);
     }
 }
@@ -125,7 +125,7 @@ fn test_stream_batch_row_limit() {
     let req = DAGSelect::from(&product).build();
     assert_eq!(req.get_cones().len(), 1);
 
-    // only ignore first 7 bytes of the EventIdx id
+    // only ignore first 7 bytes of the Evcausetidx id
     let ignored_suffix_len = milevadb_query_datatype::codec::Block::RECORD_ROW_KEY_LEN - 1;
 
     // `expected_cones_last_bytes` checks those assertions:
@@ -164,14 +164,14 @@ fn test_stream_batch_row_limit() {
         let spliter = DAGSolitonSpliter::new(Solitons, 3);
         let j = cmp::min((i + 1) * stream_row_limit, data.len());
         let cur_data = &data[i * stream_row_limit..j];
-        for (EventIdx, &(id, name, cnt)) in spliter.zip(cur_data) {
+        for (Evcausetidx, &(id, name, cnt)) in spliter.zip(cur_data) {
             let name_datum = name.map(|s| s.as_bytes()).into();
             let expected_encoded = datum::encode_value(
                 &mut EvalContext::default(),
                 &[Datum::I64(id), name_datum, cnt.into()],
             )
             .unwrap();
-            let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+            let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
             assert_eq!(result_encoded, &*expected_encoded);
         }
     }
@@ -196,14 +196,14 @@ fn test_select_after_lease() {
     let req = DAGSelect::from(&product).build_with(ctx, &[0]);
     let mut resp = handle_select(&lightlikepoint, req);
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (EventIdx, (id, name, cnt)) in spliter.zip(data) {
+    for (Evcausetidx, (id, name, cnt)) in spliter.zip(data) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[Datum::I64(id), name_datum, cnt.into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(result_encoded, &*expected_encoded);
     }
 }
@@ -267,11 +267,11 @@ fn test_group_by() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 1);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 0, Bytes);
-    for (EventIdx, name) in results.iter().zip(&[b"name:0", b"name:1", b"name:2"]) {
+    for (Evcausetidx, name) in results.iter().zip(&[b"name:0", b"name:1", b"name:2"]) {
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &[Datum::Bytes(name.to_vec())])
                 .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -310,11 +310,11 @@ fn test_aggr_count() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (EventIdx, (name, cnt)) in results.iter().zip(exp) {
+    for (Evcausetidx, (name, cnt)) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::U64(cnt), name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -339,12 +339,12 @@ fn test_aggr_count() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (EventIdx, (gk_data, cnt)) in results.iter().zip(exp) {
+    for (Evcausetidx, (gk_data, cnt)) in results.iter().zip(exp) {
         let mut expected_datum = vec![Datum::U64(cnt)];
         expected_datum.extlightlike_from_slice(gk_data.as_slice());
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -388,11 +388,11 @@ fn test_aggr_first() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (EventIdx, (name, id)) in results.iter().zip(exp) {
+    for (Evcausetidx, (name, id)) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::I64(id), name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -419,11 +419,11 @@ fn test_aggr_first() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 0, Bytes);
-    for (EventIdx, (count, name)) in results.iter().zip(exp) {
+    for (Evcausetidx, (count, name)) in results.iter().zip(exp) {
         let expected_datum = vec![name, Datum::I64(count)];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -471,11 +471,11 @@ fn test_aggr_avg() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 2, Bytes);
-    for (EventIdx, (name, (sum, cnt))) in results.iter().zip(exp) {
+    for (Evcausetidx, (name, (sum, cnt))) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::U64(cnt), sum, name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -514,11 +514,11 @@ fn test_aggr_sum() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (EventIdx, (name, cnt)) in results.iter().zip(exp) {
+    for (Evcausetidx, (name, cnt)) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::Dec(cnt.into()), name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -582,11 +582,11 @@ fn test_aggr_extre() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 2, Bytes);
-    for (EventIdx, (name, max, min)) in results.iter().zip(exp) {
+    for (Evcausetidx, (name, max, min)) in results.iter().zip(exp) {
         let expected_datum = vec![max, min, name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -660,11 +660,11 @@ fn test_aggr_bit_ops() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 4);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 3, Bytes);
-    for (EventIdx, (name, bitand, bitor, bitxor)) in results.iter().zip(exp) {
+    for (Evcausetidx, (name, bitand, bitor, bitxor)) in results.iter().zip(exp) {
         let expected_datum = vec![bitand, bitor, bitxor, name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -702,14 +702,14 @@ fn test_order_by_PrimaryCauset() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (EventIdx, (id, name, cnt)) in spliter.zip(exp) {
+    for (Evcausetidx, (id, name, cnt)) in spliter.zip(exp) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[i64::from(id).into(), name_datum, i64::from(cnt).into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -739,14 +739,14 @@ fn test_order_by_pk_with_select_from_index() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (EventIdx, (id, name, cnt)) in spliter.zip(expect) {
+    for (Evcausetidx, (id, name, cnt)) in spliter.zip(expect) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[name_datum, (cnt as i64).into(), (id as i64).into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -772,14 +772,14 @@ fn test_limit() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (EventIdx, (id, name, cnt)) in spliter.zip(expect) {
+    for (Evcausetidx, (id, name, cnt)) in spliter.zip(expect) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[id.into(), name_datum, cnt.into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -809,14 +809,14 @@ fn test_reverse() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    for (EventIdx, (id, name, cnt)) in spliter.zip(expect) {
+    for (Evcausetidx, (id, name, cnt)) in spliter.zip(expect) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[id.into(), name_datum, cnt.into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -841,10 +841,10 @@ fn test_index() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 1);
-    for (EventIdx, (id, _, _)) in spliter.zip(data) {
+    for (Evcausetidx, (id, _, _)) in spliter.zip(data) {
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &[id.into()]).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -875,10 +875,10 @@ fn test_index_reverse_limit() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 1);
-    for (EventIdx, (id, _, _)) in spliter.zip(expect) {
+    for (Evcausetidx, (id, _, _)) in spliter.zip(expect) {
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &[id.into()]).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -905,10 +905,10 @@ fn test_limit_oom() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 1);
-    for (EventIdx, (id, _, _)) in spliter.zip(data) {
+    for (Evcausetidx, (id, _, _)) in spliter.zip(data) {
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &[id.into()]).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -970,11 +970,11 @@ fn test_index_group_by() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 1);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 0, Bytes);
-    for (EventIdx, name) in results.iter().zip(&[b"name:0", b"name:1", b"name:2"]) {
+    for (Evcausetidx, name) in results.iter().zip(&[b"name:0", b"name:1", b"name:2"]) {
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &[Datum::Bytes(name.to_vec())])
                 .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -1031,11 +1031,11 @@ fn test_index_aggr_count() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (EventIdx, (name, cnt)) in results.iter().zip(exp) {
+    for (Evcausetidx, (name, cnt)) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::U64(cnt), name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -1058,12 +1058,12 @@ fn test_index_aggr_count() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (EventIdx, (gk_data, cnt)) in results.iter().zip(exp) {
+    for (Evcausetidx, (gk_data, cnt)) in results.iter().zip(exp) {
         let mut expected_datum = vec![Datum::U64(cnt)];
         expected_datum.extlightlike_from_slice(gk_data.as_slice());
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -1102,16 +1102,16 @@ fn test_index_aggr_first() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (EventIdx, (name, id)) in results.iter().zip(exp) {
+    for (Evcausetidx, (name, id)) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::I64(id), name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
 
         assert_eq!(
             &*result_encoded, &*expected_encoded,
             "exp: {:?}, got: {:?}",
-            expected_datum, EventIdx
+            expected_datum, Evcausetidx
         );
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
@@ -1160,11 +1160,11 @@ fn test_index_aggr_avg() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 2, Bytes);
-    for (EventIdx, (name, (sum, cnt))) in results.iter().zip(exp) {
+    for (Evcausetidx, (name, (sum, cnt))) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::U64(cnt), sum, name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -1203,11 +1203,11 @@ fn test_index_aggr_sum() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 2);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 1, Bytes);
-    for (EventIdx, (name, cnt)) in results.iter().zip(exp) {
+    for (Evcausetidx, (name, cnt)) in results.iter().zip(exp) {
         let expected_datum = vec![Datum::Dec(cnt.into()), name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -1270,11 +1270,11 @@ fn test_index_aggr_extre() {
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
     let mut results = spliter.collect::<Vec<Vec<Datum>>>();
     sort_by!(results, 2, Bytes);
-    for (EventIdx, (name, max, min)) in results.iter().zip(exp) {
+    for (Evcausetidx, (name, max, min)) in results.iter().zip(exp) {
         let expected_datum = vec![max, min, name];
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &expected_datum).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -1335,7 +1335,7 @@ fn test_where() {
     let req = DAGSelect::from(&product).where_expr(cond).build();
     let mut resp = handle_select(&lightlikepoint, req);
     let mut spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-    let EventIdx = spliter.next().unwrap();
+    let Evcausetidx = spliter.next().unwrap();
     let (id, name, cnt) = data[2];
     let name_datum = name.map(|s| s.as_bytes()).into();
     let expected_encoded = datum::encode_value(
@@ -1343,7 +1343,7 @@ fn test_where() {
         &[Datum::I64(id), name_datum, cnt.into()],
     )
     .unwrap();
-    let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+    let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
     assert_eq!(&*result_encoded, &*expected_encoded);
     assert_eq!(spliter.next().is_none(), true);
 }
@@ -1480,7 +1480,7 @@ fn test_handle_truncate() {
         assert!(!resp.get_warnings().is_empty());
         // check data
         let mut spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 3);
-        let EventIdx = spliter.next().unwrap();
+        let Evcausetidx = spliter.next().unwrap();
         let (id, name, cnt) = data[2];
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
@@ -1488,7 +1488,7 @@ fn test_handle_truncate() {
             &[Datum::I64(id), name_datum, cnt.into()],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         assert_eq!(spliter.next().is_none(), true);
 
@@ -1530,14 +1530,14 @@ fn test_default_val() {
     let mut resp = handle_select(&lightlikepoint, req);
     let mut row_count = 0;
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 4);
-    for (EventIdx, (id, name, cnt)) in spliter.zip(expect) {
+    for (Evcausetidx, (id, name, cnt)) in spliter.zip(expect) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded = datum::encode_value(
             &mut EvalContext::default(),
             &[id.into(), name_datum, cnt.into(), Datum::I64(3)],
         )
         .unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
         row_count += 1;
     }
@@ -1561,11 +1561,11 @@ fn test_output_offsets() {
         .build();
     let mut resp = handle_select(&lightlikepoint, req);
     let spliter = DAGSolitonSpliter::new(resp.take_Solitons().into(), 1);
-    for (EventIdx, (_, name, _)) in spliter.zip(data) {
+    for (Evcausetidx, (_, name, _)) in spliter.zip(data) {
         let name_datum = name.map(|s| s.as_bytes()).into();
         let expected_encoded =
             datum::encode_value(&mut EvalContext::default(), &[name_datum]).unwrap();
-        let result_encoded = datum::encode_value(&mut EvalContext::default(), &EventIdx).unwrap();
+        let result_encoded = datum::encode_value(&mut EvalContext::default(), &Evcausetidx).unwrap();
         assert_eq!(&*result_encoded, &*expected_encoded);
     }
 }

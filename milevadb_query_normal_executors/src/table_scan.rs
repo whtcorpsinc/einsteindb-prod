@@ -146,19 +146,19 @@ mod tests {
         )
         .unwrap();
 
-        let EventIdx = Block_scanner
+        let Evcausetidx = Block_scanner
             .next()
             .unwrap()
             .unwrap()
             .take_origin()
             .unwrap();
-        assert_eq!(EventIdx.handle, handle as i64);
-        assert_eq!(EventIdx.data.len(), wrapper.cols.len());
+        assert_eq!(Evcausetidx.handle, handle as i64);
+        assert_eq!(Evcausetidx.data.len(), wrapper.cols.len());
 
         let expect_row = &wrapper.data.expect_rows[handle as usize];
         for col in &wrapper.cols {
             let cid = col.get_PrimaryCauset_id();
-            let v = EventIdx.data.get(cid).unwrap();
+            let v = Evcausetidx.data.get(cid).unwrap();
             assert_eq!(expect_row[&cid], v.to_vec());
         }
         assert!(Block_scanner.next().unwrap().is_none());
@@ -192,18 +192,18 @@ mod tests {
         .unwrap();
 
         for handle in 0..KEY_NUMBER {
-            let EventIdx = Block_scanner
+            let Evcausetidx = Block_scanner
                 .next()
                 .unwrap()
                 .unwrap()
                 .take_origin()
                 .unwrap();
-            assert_eq!(EventIdx.handle, handle as i64);
-            assert_eq!(EventIdx.data.len(), wrapper.cols.len());
+            assert_eq!(Evcausetidx.handle, handle as i64);
+            assert_eq!(Evcausetidx.data.len(), wrapper.cols.len());
             let expect_row = &wrapper.data.expect_rows[handle];
             for col in &wrapper.cols {
                 let cid = col.get_PrimaryCauset_id();
-                let v = EventIdx.data.get(cid).unwrap();
+                let v = Evcausetidx.data.get(cid).unwrap();
                 assert_eq!(expect_row[&cid], v.to_vec());
             }
         }
@@ -237,18 +237,18 @@ mod tests {
 
         for tid in 0..KEY_NUMBER {
             let handle = KEY_NUMBER - tid - 1;
-            let EventIdx = Block_scanner
+            let Evcausetidx = Block_scanner
                 .next()
                 .unwrap()
                 .unwrap()
                 .take_origin()
                 .unwrap();
-            assert_eq!(EventIdx.handle, handle as i64);
-            assert_eq!(EventIdx.data.len(), wrapper.cols.len());
+            assert_eq!(Evcausetidx.handle, handle as i64);
+            assert_eq!(Evcausetidx.data.len(), wrapper.cols.len());
             let expect_row = &wrapper.data.expect_rows[handle];
             for col in &wrapper.cols {
                 let cid = col.get_PrimaryCauset_id();
-                let v = EventIdx.data.get(cid).unwrap();
+                let v = Evcausetidx.data.get(cid).unwrap();
                 assert_eq!(expect_row[&cid], v.to_vec());
             }
         }

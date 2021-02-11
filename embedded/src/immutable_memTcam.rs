@@ -28,12 +28,12 @@ pub trait CachedAttributes {
     fn is_attribute_cached_forward(&self, solitonId: SolitonId) -> bool;
     fn has_cached_attributes(&self) -> bool;
 
-    fn get_values_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<MinkowskiType>>;
-    fn get_value_for_entid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&MinkowskiType>;
+    fn get_values_for_causetid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&Vec<MinkowskiType>>;
+    fn get_value_for_causetid(&self, schemaReplicant: &SchemaReplicant, attribute: SolitonId, solitonId: SolitonId) -> Option<&MinkowskiType>;
 
     /// Reverse lookup.
-    fn get_entid_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<SolitonId>;
-    fn get_entids_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>>;
+    fn get_causetid_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<SolitonId>;
+    fn get_causetids_for_value(&self, attribute: SolitonId, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>>;
 }
 
 pub trait UpdateableCache<E> {

@@ -60,7 +60,7 @@ impl Soliton {
         self.PrimaryCausets[col_idx].applightlike_datum(v)
     }
 
-    /// Get the Event in the Soliton with the EventIdx index.
+    /// Get the Event in the Soliton with the Evcausetidx index.
     #[inline]
     pub fn get_row(&self, idx: usize) -> Option<Event<'_>> {
         if idx < self.num_rows() {
@@ -105,7 +105,7 @@ pub trait SolitonEncoder: SolitonPrimaryCausetEncoder {
 
 impl<T: BufferWriter> SolitonEncoder for T {}
 
-/// `Event` represents one EventIdx in the Soliton.
+/// `Event` represents one Evcausetidx in the Soliton.
 pub struct Event<'a> {
     c: &'a Soliton,
     idx: usize,
@@ -116,26 +116,26 @@ impl<'a> Event<'a> {
         Event { c, idx }
     }
 
-    /// Get the EventIdx index of Soliton.
+    /// Get the Evcausetidx index of Soliton.
     #[inline]
     pub fn idx(&self) -> usize {
         self.idx
     }
 
-    /// Get the number of values in the EventIdx.
+    /// Get the number of values in the Evcausetidx.
     #[inline]
     pub fn len(&self) -> usize {
         self.c.num_cols()
     }
 
-    /// Get the datum of the PrimaryCauset with the specified type in the EventIdx.
+    /// Get the datum of the PrimaryCauset with the specified type in the Evcausetidx.
     #[inline]
     pub fn get_datum(&self, col_idx: usize, fp: &FieldType) -> Result<Datum> {
         self.c.PrimaryCausets[col_idx].get_datum(self.idx, fp)
     }
 }
 
-/// `EventIterator` is an Iteron to iterate the EventIdx.
+/// `EventIterator` is an Iteron to iterate the Evcausetidx.
 pub struct EventIterator<'a> {
     c: &'a Soliton,
     idx: usize,
@@ -152,9 +152,9 @@ impl<'a> Iteron for EventIterator<'a> {
 
     fn next(&mut self) -> Option<Event<'a>> {
         if self.idx < self.c.num_rows() {
-            let EventIdx = Event::new(self.c, self.idx);
+            let Evcausetidx = Event::new(self.c, self.idx);
             self.idx += 1;
-            Some(EventIdx)
+            Some(Evcausetidx)
         } else {
             None
         }
@@ -202,14 +202,14 @@ mod tests {
         for (col_id, val) in data.iter().enumerate() {
             Soliton.applightlike_datum(col_id, val).unwrap();
         }
-        for EventIdx in Soliton.iter() {
-            for col_id in 0..EventIdx.len() {
-                let got = EventIdx.get_datum(col_id, &fields[col_id]).unwrap();
+        for Evcausetidx in Soliton.iter() {
+            for col_id in 0..Evcausetidx.len() {
+                let got = Evcausetidx.get_datum(col_id, &fields[col_id]).unwrap();
                 assert_eq!(got, data[col_id]);
             }
 
-            assert_eq!(EventIdx.len(), data.len());
-            assert_eq!(EventIdx.idx(), 0);
+            assert_eq!(Evcausetidx.len(), data.len());
+            assert_eq!(Evcausetidx.idx(), 0);
         }
     }
 
@@ -260,14 +260,14 @@ mod tests {
             PrimaryCausets.push(PrimaryCauset);
         }
         let Soliton = Soliton::from_PrimaryCausets(PrimaryCausets);
-        for EventIdx in Soliton.iter() {
-            for col_id in 0..EventIdx.len() {
-                let got = EventIdx.get_datum(col_id, &fields[col_id]).unwrap();
+        for Evcausetidx in Soliton.iter() {
+            for col_id in 0..Evcausetidx.len() {
+                let got = Evcausetidx.get_datum(col_id, &fields[col_id]).unwrap();
                 assert_eq!(got, datum_data[col_id]);
             }
 
-            assert_eq!(EventIdx.len(), datum_data.len());
-            assert_eq!(EventIdx.idx(), 0);
+            assert_eq!(Evcausetidx.len(), datum_data.len());
+            assert_eq!(Evcausetidx.idx(), 0);
         }
     }
 

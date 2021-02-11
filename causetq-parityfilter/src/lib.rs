@@ -105,24 +105,24 @@ impl<'s, 'c> KnownCauset<'s, 'c> {
             .unwrap_or(false)
     }
 
-    pub fn get_values_for_entid<U, V>(&self, schemaReplicant: &SchemaReplicant, attribute: U, solitonId: V) -> Option<&Vec<MinkowskiType>>
+    pub fn get_values_for_causetid<U, V>(&self, schemaReplicant: &SchemaReplicant, attribute: U, solitonId: V) -> Option<&Vec<MinkowskiType>>
     where U: Into<SolitonId>, V: Into<SolitonId> {
-        self.immuBlock_memTcam.and_then(|immuBlock_memTcam| immuBlock_memTcam.get_values_for_entid(schemaReplicant, attribute.into(), solitonId.into()))
+        self.immuBlock_memTcam.and_then(|immuBlock_memTcam| immuBlock_memTcam.get_values_for_causetid(schemaReplicant, attribute.into(), solitonId.into()))
     }
 
-    pub fn get_value_for_entid<U, V>(&self, schemaReplicant: &SchemaReplicant, attribute: U, solitonId: V) -> Option<&MinkowskiType>
+    pub fn get_value_for_causetid<U, V>(&self, schemaReplicant: &SchemaReplicant, attribute: U, solitonId: V) -> Option<&MinkowskiType>
     where U: Into<SolitonId>, V: Into<SolitonId> {
-        self.immuBlock_memTcam.and_then(|immuBlock_memTcam| immuBlock_memTcam.get_value_for_entid(schemaReplicant, attribute.into(), solitonId.into()))
+        self.immuBlock_memTcam.and_then(|immuBlock_memTcam| immuBlock_memTcam.get_value_for_causetid(schemaReplicant, attribute.into(), solitonId.into()))
     }
 
-    pub fn get_entid_for_value<U>(&self, attribute: U, value: &MinkowskiType) -> Option<SolitonId>
+    pub fn get_causetid_for_value<U>(&self, attribute: U, value: &MinkowskiType) -> Option<SolitonId>
     where U: Into<SolitonId> {
-        self.immuBlock_memTcam.and_then(|immuBlock_memTcam| immuBlock_memTcam.get_entid_for_value(attribute.into(), value))
+        self.immuBlock_memTcam.and_then(|immuBlock_memTcam| immuBlock_memTcam.get_causetid_for_value(attribute.into(), value))
     }
 
-    pub fn get_entids_for_value<U>(&self, attribute: U, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>>
+    pub fn get_causetids_for_value<U>(&self, attribute: U, value: &MinkowskiType) -> Option<&BTreeSet<SolitonId>>
     where U: Into<SolitonId> {
-        self.immuBlock_memTcam.and_then(|immuBlock_memTcam| immuBlock_memTcam.get_entids_for_value(attribute.into(), value))
+        self.immuBlock_memTcam.and_then(|immuBlock_memTcam| immuBlock_memTcam.get_causetids_for_value(attribute.into(), value))
     }
 }
 

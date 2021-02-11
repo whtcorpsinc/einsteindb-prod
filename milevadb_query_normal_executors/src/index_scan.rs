@@ -286,13 +286,13 @@ pub mod tests {
         .unwrap();
 
         for handle in 0..KEY_NUMBER / 2 {
-            let EventIdx = scanner.next().unwrap().unwrap().take_origin().unwrap();
-            assert_eq!(EventIdx.handle, handle as i64);
-            assert_eq!(EventIdx.data.len(), wrapper.cols.len());
+            let Evcausetidx = scanner.next().unwrap().unwrap().take_origin().unwrap();
+            assert_eq!(Evcausetidx.handle, handle as i64);
+            assert_eq!(Evcausetidx.data.len(), wrapper.cols.len());
             let expect_row = &wrapper.data.expect_rows[handle];
             for col in &wrapper.cols {
                 let cid = col.get_PrimaryCauset_id();
-                let v = EventIdx.data.get(cid).unwrap();
+                let v = Evcausetidx.data.get(cid).unwrap();
                 assert_eq!(expect_row[&cid], v.to_vec());
             }
         }
@@ -344,13 +344,13 @@ pub mod tests {
         )
         .unwrap();
         for handle in 0..KEY_NUMBER {
-            let EventIdx = scanner.next().unwrap().unwrap().take_origin().unwrap();
-            assert_eq!(EventIdx.handle, handle as i64);
-            assert_eq!(EventIdx.data.len(), 2);
+            let Evcausetidx = scanner.next().unwrap().unwrap().take_origin().unwrap();
+            assert_eq!(Evcausetidx.handle, handle as i64);
+            assert_eq!(Evcausetidx.data.len(), 2);
             let expect_row = &wrapper.data.expect_rows[handle];
             for col in &wrapper.cols {
                 let cid = col.get_PrimaryCauset_id();
-                let v = EventIdx.data.get(cid).unwrap();
+                let v = Evcausetidx.data.get(cid).unwrap();
                 assert_eq!(expect_row[&cid], v.to_vec());
             }
         }
@@ -402,13 +402,13 @@ pub mod tests {
 
         for tid in 0..KEY_NUMBER {
             let handle = KEY_NUMBER - tid - 1;
-            let EventIdx = scanner.next().unwrap().unwrap().take_origin().unwrap();
-            assert_eq!(EventIdx.handle, handle as i64);
-            assert_eq!(EventIdx.data.len(), 2);
+            let Evcausetidx = scanner.next().unwrap().unwrap().take_origin().unwrap();
+            assert_eq!(Evcausetidx.handle, handle as i64);
+            assert_eq!(Evcausetidx.data.len(), 2);
             let expect_row = &wrapper.data.expect_rows[handle];
             for col in &wrapper.cols {
                 let cid = col.get_PrimaryCauset_id();
-                let v = EventIdx.data.get(cid).unwrap();
+                let v = Evcausetidx.data.get(cid).unwrap();
                 assert_eq!(expect_row[&cid], v.to_vec());
             }
         }
@@ -430,15 +430,15 @@ pub mod tests {
         .unwrap();
 
         for handle in 0..KEY_NUMBER {
-            let EventIdx = scanner.next().unwrap().unwrap().take_origin().unwrap();
-            assert_eq!(EventIdx.handle, handle as i64);
-            assert_eq!(EventIdx.data.len(), wrapper.cols.len());
+            let Evcausetidx = scanner.next().unwrap().unwrap().take_origin().unwrap();
+            assert_eq!(Evcausetidx.handle, handle as i64);
+            assert_eq!(Evcausetidx.data.len(), wrapper.cols.len());
             let expect_row = &wrapper.data.expect_rows[handle];
             let handle_datum = datum::Datum::I64(handle as i64);
             let pk = datum::encode_key(&mut EvalContext::default(), &[handle_datum]).unwrap();
             for col in &wrapper.cols {
                 let cid = col.get_PrimaryCauset_id();
-                let v = EventIdx.data.get(cid).unwrap();
+                let v = Evcausetidx.data.get(cid).unwrap();
                 if col.get_pk_handle() {
                     assert_eq!(pk, v.to_vec());
                     continue;

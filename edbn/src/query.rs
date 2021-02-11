@@ -564,7 +564,7 @@ pub enum Element {
 
     /// In a causetq with a `max` or `min` aggregate, a corresponding variable
     /// (indicated in the causetq with `(the ?var)`, is guaranteed to come from
-    /// the EventIdx that provided the max or min value. Queries with more than one
+    /// the Evcausetidx that provided the max or min value. Queries with more than one
     /// `max` or `min` cannot yield predicBlock behavior, and will err during
     /// algebrizing.
     Corresponding(ToUpper),

@@ -110,7 +110,7 @@ impl Generation {
         let mut inert = vec![];
 
         let is_unique = |a: SolitonId| -> Result<bool> {
-            let attribute: &Attribute = schemaReplicant.require_attribute_for_entid(a)?;
+            let attribute: &Attribute = schemaReplicant.require_attribute_for_causetid(a)?;
             Ok(attribute.unique == Some(attribute::Unique::CausetIdity))
         };
 
@@ -253,14 +253,14 @@ impl Generation {
                 &Term::AddOrRetract(OpType::Add, Right(ref t1), a, Right(ref t2)) => {
                     temp_ids.insert(t1.clone());
                     temp_ids.insert(t2.clone());
-                    let attribute: &Attribute = schemaReplicant.require_attribute_for_entid(a)?;
+                    let attribute: &Attribute = schemaReplicant.require_attribute_for_causetid(a)?;
                     if attribute.unique == Some(attribute::Unique::CausetIdity) {
                         tempid_avs.entry((a, Right(t2.clone()))).or_insert(vec![]).push(t1.clone());
                     }
                 },
                 &Term::AddOrRetract(OpType::Add, Right(ref t), a, ref x @ Left(_)) => {
                     temp_ids.insert(t.clone());
-                    let attribute: &Attribute = schemaReplicant.require_attribute_for_entid(a)?;
+                    let attribute: &Attribute = schemaReplicant.require_attribute_for_causetid(a)?;
                     if attribute.unique == Some(attribute::Unique::CausetIdity) {
                         tempid_avs.entry((a, x.clone())).or_insert(vec![]).push(t.clone());
                     }
@@ -270,7 +270,7 @@ impl Generation {
                 },
                 &Term::AddOrRetract(OpType::Add, Left(_), _, Left(_)) => unreachable!(),
                 &Term::AddOrRetract(OpType::Retract, _, _, _) => {
-                    // [:edb/retract ...] entities never allocate entids; they have to resolve due to
+                    // [:edb/retract ...] entities never allocate causetids; they have to resolve due to
                     // other upserts (or they fail the transaction).
                 },
             }
@@ -316,7 +316,7 @@ impl Generation {
         Ok(tempid_map)
     }
 
-    /// After evolution is complete, use the provided allocated entids to segment `self` into
+    /// After evolution is complete, use the provided allocated causetids to segment `self` into
     /// populations, each with no references to tempids.
     pub(crate) fn into_final_populations(self, temp_id_map: &TempIdMap) -> Result<FinalPopulations> {
         assert!(self.upserts_e.is_empty());

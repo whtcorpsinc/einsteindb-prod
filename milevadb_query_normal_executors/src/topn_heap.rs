@@ -114,7 +114,7 @@ impl TopNHeap {
         if self.limit == 0 {
             return Ok(());
         }
-        let EventIdx = SortEvent::new(
+        let Evcausetidx = SortEvent::new(
             data,
             values,
             order_cols,
@@ -123,13 +123,13 @@ impl TopNHeap {
         );
         // push into heap when heap is not full
         if self.events.len() < self.limit {
-            self.events.push(EventIdx);
+            self.events.push(Evcausetidx);
         } else {
-            // swap top value with EventIdx when heap is full and current EventIdx is less than top data
+            // swap top value with Evcausetidx when heap is full and current Evcausetidx is less than top data
             let mut top_data = self.events.peek_mut().unwrap();
-            let order = EventIdx.cmp_and_check(&top_data)?;
+            let order = Evcausetidx.cmp_and_check(&top_data)?;
             if Ordering::Less == order {
-                *top_data = EventIdx;
+                *top_data = Evcausetidx;
             }
         }
         self.check_err()
@@ -300,10 +300,10 @@ mod tests {
         }
         let result = topn_heap.into_sorted_vec().unwrap();
         assert_eq!(result.len(), exp.len());
-        for (EventIdx, (handle, _, name, count)) in result.iter().zip(exp) {
+        for (Evcausetidx, (handle, _, name, count)) in result.iter().zip(exp) {
             let exp_tuplespaceInstanton: Vec<Datum> = vec![name, count];
-            assert_eq!(EventIdx.data.handle, handle);
-            assert_eq!(EventIdx.key, exp_tuplespaceInstanton);
+            assert_eq!(Evcausetidx.data.handle, handle);
+            assert_eq!(Evcausetidx.key, exp_tuplespaceInstanton);
         }
     }
 
@@ -438,10 +438,10 @@ mod tests {
 
         let result = topn_heap.into_sorted_vec().unwrap();
         assert_eq!(result.len(), exp.len());
-        for (EventIdx, (handle, _, name, count)) in result.iter().zip(exp) {
+        for (Evcausetidx, (handle, _, name, count)) in result.iter().zip(exp) {
             let exp_tuplespaceInstanton: Vec<Datum> = vec![name, count];
-            assert_eq!(EventIdx.data.handle, handle);
-            assert_eq!(EventIdx.key, exp_tuplespaceInstanton);
+            assert_eq!(Evcausetidx.data.handle, handle);
+            assert_eq!(Evcausetidx.key, exp_tuplespaceInstanton);
         }
     }
 

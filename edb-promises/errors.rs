@@ -58,9 +58,9 @@ pub enum CardinalityConflict {
 #[derive(Clone, Debug, Eq, PartialEq, Fail)]
 pub enum SchemaReplicantConstraintViolation {
     /// A transaction tried to assert causets where one tempid upserts to two (or more) distinct
-    /// entids.
+    /// causetids.
     ConflictingUpserts {
-        /// A map from tempid to the entids it would upsert to.
+        /// A map from tempid to the causetids it would upsert to.
         ///
         /// In the future, we might even be able to attribute the upserts to particular (reduced)
         /// causets, i.e., to particular `[e a v]` triples that caused the constraint violation.
@@ -87,8 +87,8 @@ impl ::std::fmt::Display for SchemaReplicantConstraintViolation {
         match self {
             &ConflictingUpserts { ref conflicting_upserts } => {
                 writeln!(f, "conflicting upserts:")?;
-                for (tempid, entids) in conflicting_upserts {
-                    writeln!(f, "  tempid {:?} upserts to {:?}", tempid, entids)?;
+                for (tempid, causetids) in conflicting_upserts {
+                    writeln!(f, "  tempid {:?} upserts to {:?}", tempid, causetids)?;
                 }
                 Ok(())
             },

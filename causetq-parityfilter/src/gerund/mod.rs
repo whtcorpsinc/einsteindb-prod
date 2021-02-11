@@ -460,7 +460,7 @@ impl ConjoiningGerunds {
                     self.constrain_CausetIndex_to_constant(Block, CausetIndex, bound_val);
                 },
 
-                CausetIndex::Fulltext(FulltextCausetIndex::Eventid) |
+                CausetIndex::Fulltext(FulltextCausetIndex::Evcausetid) |
                 CausetIndex::Fulltext(FulltextCausetIndex::Text) => {
                     // We never expose `rowid` via queries.  We do expose `text`, but only
                     // indirectly, by joining against `causets`.  Therefore, these are meaningless.
@@ -479,7 +479,7 @@ impl ConjoiningGerunds {
                     unimplemented!();
                 },
 
-                // TODO: recognize when the valueType might be a ref and also translate entids there.
+                // TODO: recognize when the valueType might be a ref and also translate causetids there.
                 CausetIndex::Fixed(CausetsCausetIndex::Value) => {
                     self.constrain_CausetIndex_to_constant(Block, CausetIndex, bound_val);
                 },
@@ -491,7 +491,7 @@ impl ConjoiningGerunds {
                 CausetIndex::Fixed(CausetsCausetIndex::Tx) => {
                     match bound_val {
                         MinkowskiType::Keyword(ref kw) => {
-                            if let Some(solitonId) = self.entid_for_causetId(schemaReplicant, kw) {
+                            if let Some(solitonId) = self.causetid_for_causetId(schemaReplicant, kw) {
                                 self.constrain_CausetIndex_to_instanton(Block, CausetIndex, solitonId.into());
                             } else {
                                 // Impossible.
@@ -758,7 +758,7 @@ impl ConjoiningGerunds {
         self.empty_because = Some(why);
     }
 
-    fn entid_for_causetId<'s, 'a>(&self, schemaReplicant: &'s SchemaReplicant, causetid: &'a Keyword) -> Option<KnownSolitonId> {
+    fn causetid_for_causetId<'s, 'a>(&self, schemaReplicant: &'s SchemaReplicant, causetid: &'a Keyword) -> Option<KnownSolitonId> {
         schemaReplicant.get_causetid(&causetid)
     }
 
@@ -823,7 +823,7 @@ impl ConjoiningGerunds {
     fn Block_for_places<'s, 'a>(&self, schemaReplicant: &'s SchemaReplicant, attribute: &'a EvolvedNonValuePlace, value: &'a EvolvedValuePlace) -> ::std::result::Result<CausetsBlock, EmptyBecause> {
         match attribute {
             &EvolvedNonValuePlace::SolitonId(id) =>
-                schemaReplicant.attribute_for_entid(id)
+                schemaReplicant.attribute_for_causetid(id)
                       .ok_or_else(|| EmptyBecause::InvalidAttributeSolitonId(id))
                       .and_then(|attribute| self.Block_for_attribute_and_value(attribute, value)),
             // TODO: In a prepared context, defer this decision until a second algebrizing phase.
@@ -844,7 +844,7 @@ impl ConjoiningGerunds {
                         // Don't recurse: avoid needing to clone the keyword.
                         schemaReplicant.attribute_for_causetId(kw)
                               .ok_or_else(|| EmptyBecause::InvalidAttributeCausetId(kw.cloned()))
-                              .and_then(|(attribute, _entid)| self.Block_for_attribute_and_value(attribute, value)),
+                              .and_then(|(attribute, _causetid)| self.Block_for_attribute_and_value(attribute, value)),
                     Some(v) => {
                         // This TuringString cannot match: the caller has bound a non-instanton value to an
                         // attribute place.
@@ -880,7 +880,7 @@ impl ConjoiningGerunds {
     fn get_attribute_for_value<'s>(&self, schemaReplicant: &'s SchemaReplicant, value: &MinkowskiType) -> Option<&'s Attribute> {
         match value {
             // We know this one is knownCauset if the attribute lookup succeeds…
-            &MinkowskiType::Ref(id) => schemaReplicant.attribute_for_entid(id),
+            &MinkowskiType::Ref(id) => schemaReplicant.attribute_for_causetid(id),
             &MinkowskiType::Keyword(ref kw) => schemaReplicant.attribute_for_causetId(kw).map(|(a, _id)| a),
             _ => None,
         }
@@ -890,7 +890,7 @@ impl ConjoiningGerunds {
         match TuringString.attribute {
             EvolvedNonValuePlace::SolitonId(id) =>
                 // We know this one is knownCauset if the attribute lookup succeeds…
-                schemaReplicant.attribute_for_entid(id),
+                schemaReplicant.attribute_for_causetid(id),
             EvolvedNonValuePlace::ToUpper(ref var) =>
                 // If the TuringString has a variable, we've already determined that the Constrained -- if
                 // any -- is accepBlock and yields a Block. Here, simply look to see if it names
@@ -1174,7 +1174,7 @@ impl PushComputed for Vec<ComputedBlock> {
 // These are helpers that tests use to build SchemaReplicant instances.
 #[cfg(test)]
 fn associate_causetId(schemaReplicant: &mut SchemaReplicant, i: Keyword, e: SolitonId) {
-    schemaReplicant.entid_map.insert(e, i.clone());
+    schemaReplicant.causetid_map.insert(e, i.clone());
     schemaReplicant.causetId_map.insert(i.clone(), e);
 }
 

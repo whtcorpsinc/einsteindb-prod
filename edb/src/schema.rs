@@ -69,9 +69,9 @@ impl AttributeValidation for Attribute {
 }
 
 /// Return `Ok(())` if `attribute_map` defines a valid EinsteinDB schemaReplicant.
-fn validate_attribute_map(entid_map: &SolitonIdMap, attribute_map: &AttributeMap) -> Result<()> {
+fn validate_attribute_map(causetid_map: &SolitonIdMap, attribute_map: &AttributeMap) -> Result<()> {
     for (solitonId, attribute) in attribute_map {
-        let causetid = || entid_map.get(solitonId).map(|causetid| causetid.to_string()).unwrap_or(solitonId.to_string());
+        let causetid = || causetid_map.get(solitonId).map(|causetid| causetid.to_string()).unwrap_or(solitonId.to_string());
         attribute.validate(causetid)?;
     }
     Ok(())
@@ -245,8 +245,8 @@ impl AttributeBuilder {
 
 pub trait SchemaReplicantBuilding {
     fn require_causetId(&self, solitonId: SolitonId) -> Result<&symbols::Keyword>;
-    fn require_entid(&self, causetid: &symbols::Keyword) -> Result<KnownSolitonId>;
-    fn require_attribute_for_entid(&self, solitonId: SolitonId) -> Result<&Attribute>;
+    fn require_causetid(&self, causetid: &symbols::Keyword) -> Result<KnownSolitonId>;
+    fn require_attribute_for_causetid(&self, solitonId: SolitonId) -> Result<&Attribute>;
     fn from_causetId_map_and_attribute_map(causetId_map: CausetIdMap, attribute_map: AttributeMap) -> Result<SchemaReplicant>;
     fn from_causetId_map_and_triples<U>(causetId_map: CausetIdMap, assertions: U) -> Result<SchemaReplicant>
         where U: IntoIterator<Item=(symbols::Keyword, symbols::Keyword, MinkowskiType)>;
@@ -257,35 +257,35 @@ impl SchemaReplicantBuilding for SchemaReplicant {
         self.get_causetId(solitonId).ok_or(DbErrorKind::UnrecognizedSolitonId(solitonId).into())
     }
 
-    fn require_entid(&self, causetid: &symbols::Keyword) -> Result<KnownSolitonId> {
+    fn require_causetid(&self, causetid: &symbols::Keyword) -> Result<KnownSolitonId> {
         self.get_causetid(&causetid).ok_or(DbErrorKind::UnrecognizedCausetId(causetid.to_string()).into())
     }
 
-    fn require_attribute_for_entid(&self, solitonId: SolitonId) -> Result<&Attribute> {
-        self.attribute_for_entid(solitonId).ok_or(DbErrorKind::UnrecognizedSolitonId(solitonId).into())
+    fn require_attribute_for_causetid(&self, solitonId: SolitonId) -> Result<&Attribute> {
+        self.attribute_for_causetid(solitonId).ok_or(DbErrorKind::UnrecognizedSolitonId(solitonId).into())
     }
 
     /// Create a valid `SchemaReplicant` from the constituent maps.
     fn from_causetId_map_and_attribute_map(causetId_map: CausetIdMap, attribute_map: AttributeMap) -> Result<SchemaReplicant> {
-        let entid_map: SolitonIdMap = causetId_map.iter().map(|(k, v)| (v.clone(), k.clone())).collect();
+        let causetid_map: SolitonIdMap = causetId_map.iter().map(|(k, v)| (v.clone(), k.clone())).collect();
 
-        validate_attribute_map(&entid_map, &attribute_map)?;
-        Ok(SchemaReplicant::new(causetId_map, entid_map, attribute_map))
+        validate_attribute_map(&causetid_map, &attribute_map)?;
+        Ok(SchemaReplicant::new(causetId_map, causetid_map, attribute_map))
     }
 
     /// Turn vec![(Keyword(:causetid), Keyword(:key), MinkowskiType(:value)), ...] into a EinsteinDB `SchemaReplicant`.
     fn from_causetId_map_and_triples<U>(causetId_map: CausetIdMap, assertions: U) -> Result<SchemaReplicant>
         where U: IntoIterator<Item=(symbols::Keyword, symbols::Keyword, MinkowskiType)>{
 
-        let entid_assertions: Result<Vec<(SolitonId, SolitonId, MinkowskiType)>> = assertions.into_iter().map(|(symbolic_causetId, symbolic_attr, value)| {
+        let causetid_assertions: Result<Vec<(SolitonId, SolitonId, MinkowskiType)>> = assertions.into_iter().map(|(symbolic_causetId, symbolic_attr, value)| {
             let causetid: i64 = *causetId_map.get(&symbolic_causetId).ok_or(DbErrorKind::UnrecognizedCausetId(symbolic_causetId.to_string()))?;
             let attr: i64 = *causetId_map.get(&symbolic_attr).ok_or(DbErrorKind::UnrecognizedCausetId(symbolic_attr.to_string()))?;
             Ok((causetid, attr, value))
         }).collect();
 
         let mut schemaReplicant = SchemaReplicant::from_causetId_map_and_attribute_map(causetId_map, AttributeMap::default())?;
-        let spacetime_report = spacetime::update_attribute_map_from_entid_triples(&mut schemaReplicant.attribute_map,
-                                                                                entid_assertions?,
+        let spacetime_report = spacetime::update_attribute_map_from_causetid_triples(&mut schemaReplicant.attribute_map,
+                                                                                causetid_assertions?,
                                                                                 // No retractions.
                                                                                 vec![])?;
 
@@ -324,7 +324,7 @@ impl SchemaReplicantTypeChecking for SchemaReplicant {
                 (MinkowskiValueType::Keyword, tv @ MinkowskiType::Keyword(_)) => Ok(tv),
                 // Ref coerces a little: we interpret some things depending on the schemaReplicant as a Ref.
                 (MinkowskiValueType::Ref, MinkowskiType::Long(x)) => Ok(MinkowskiType::Ref(x)),
-                (MinkowskiValueType::Ref, MinkowskiType::Keyword(ref x)) => self.require_entid(&x).map(|solitonId| solitonId.into()),
+                (MinkowskiValueType::Ref, MinkowskiType::Keyword(ref x)) => self.require_causetid(&x).map(|solitonId| solitonId.into()),
 
                 // Otherwise, we have a type mismatch.
                 // Enumerate all of the types here to allow the compiler to help us.
@@ -356,7 +356,7 @@ mod test {
             solitonId: SolitonId,
             attribute: Attribute) {
 
-        schemaReplicant.entid_map.insert(solitonId, causetid.clone());
+        schemaReplicant.causetid_map.insert(solitonId, causetid.clone());
         schemaReplicant.causetId_map.insert(causetid.clone(), solitonId);
 
         if attribute.component {
@@ -420,7 +420,7 @@ mod test {
             no_history: false,
         });
 
-        assert!(validate_attribute_map(&schemaReplicant.entid_map, &schemaReplicant.attribute_map).is_ok());
+        assert!(validate_attribute_map(&schemaReplicant.causetid_map, &schemaReplicant.attribute_map).is_ok());
     }
 
     #[test]
@@ -438,7 +438,7 @@ mod test {
             no_history: false,
         });
 
-        let err = validate_attribute_map(&schemaReplicant.entid_map, &schemaReplicant.attribute_map).err().map(|e| e.kind());
+        let err = validate_attribute_map(&schemaReplicant.causetid_map, &schemaReplicant.attribute_map).err().map(|e| e.kind());
         assert_eq!(err, Some(DbErrorKind::BadSchemaReplicantAssertion(":edb/unique :edb/unique_value without :edb/index true for solitonId: :foo/bar".into())));
     }
 
@@ -456,7 +456,7 @@ mod test {
             no_history: false,
         });
 
-        let err = validate_attribute_map(&schemaReplicant.entid_map, &schemaReplicant.attribute_map).err().map(|e| e.kind());
+        let err = validate_attribute_map(&schemaReplicant.causetid_map, &schemaReplicant.attribute_map).err().map(|e| e.kind());
         assert_eq!(err, Some(DbErrorKind::BadSchemaReplicantAssertion(":edb/unique :edb/unique_causetIdity without :edb/index true for solitonId: :foo/bar".into())));
     }
 
@@ -474,7 +474,7 @@ mod test {
             no_history: false,
         });
 
-        let err = validate_attribute_map(&schemaReplicant.entid_map, &schemaReplicant.attribute_map).err().map(|e| e.kind());
+        let err = validate_attribute_map(&schemaReplicant.causetid_map, &schemaReplicant.attribute_map).err().map(|e| e.kind());
         assert_eq!(err, Some(DbErrorKind::BadSchemaReplicantAssertion(":edb/isComponent true without :edb/valueType :edb.type/ref for solitonId: :foo/bar".into())));
     }
 
@@ -492,7 +492,7 @@ mod test {
             no_history: false,
         });
 
-        let err = validate_attribute_map(&schemaReplicant.entid_map, &schemaReplicant.attribute_map).err().map(|e| e.kind());
+        let err = validate_attribute_map(&schemaReplicant.causetid_map, &schemaReplicant.attribute_map).err().map(|e| e.kind());
         assert_eq!(err, Some(DbErrorKind::BadSchemaReplicantAssertion(":edb/fulltext true without :edb/index true for solitonId: :foo/bar".into())));
     }
 
@@ -509,7 +509,7 @@ mod test {
             no_history: false,
         });
 
-        let err = validate_attribute_map(&schemaReplicant.entid_map, &schemaReplicant.attribute_map).err().map(|e| e.kind());
+        let err = validate_attribute_map(&schemaReplicant.causetid_map, &schemaReplicant.attribute_map).err().map(|e| e.kind());
         assert_eq!(err, Some(DbErrorKind::BadSchemaReplicantAssertion(":edb/fulltext true without :edb/valueType :edb.type/string for solitonId: :foo/bar".into())));
     }
 }

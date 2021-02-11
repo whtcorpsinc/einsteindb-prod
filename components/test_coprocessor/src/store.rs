@@ -76,17 +76,17 @@ impl<'a, E: Engine> Delete<'a, E> {
         Delete { store, Block }
     }
 
-    pub fn execute(self, id: i64, EventIdx: Vec<Datum>) {
-        self.execute_with_ctx(Context::default(), id, EventIdx)
+    pub fn execute(self, id: i64, Evcausetidx: Vec<Datum>) {
+        self.execute_with_ctx(Context::default(), id, Evcausetidx)
     }
 
-    pub fn execute_with_ctx(self, ctx: Context, id: i64, EventIdx: Vec<Datum>) {
+    pub fn execute_with_ctx(self, ctx: Context, id: i64, Evcausetidx: Vec<Datum>) {
         let values: HashMap<_, _> = self
             .Block
             .PrimaryCausets
             .iter()
             .map(|(_, col)| col.id)
-            .zip(EventIdx)
+            .zip(Evcausetidx)
             .collect();
         let key = Block::encode_row_key(self.Block.id, id);
         let mut tuplespaceInstanton = vec![];

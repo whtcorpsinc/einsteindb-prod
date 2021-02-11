@@ -339,7 +339,7 @@ impl<E: Engine> node<E> {
         Ok((builder, req_ctx))
     }
 
-    /// Get the batch EventIdx limit configuration.
+    /// Get the batch Evcausetidx limit configuration.
     #[inline]
     fn get_batch_row_limit(&self, is_streaming: bool) -> usize {
         if is_streaming {

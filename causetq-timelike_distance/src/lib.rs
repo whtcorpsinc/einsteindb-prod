@@ -350,21 +350,21 @@ enum TypedIndex {
 }
 
 impl TypedIndex {
-    /// Look up this index and type(index) pair in the provided EventIdx.
+    /// Look up this index and type(index) pair in the provided Evcausetidx.
 
-    fn lookup<'a, 'stmt>(&self, EventIdx: &Event<'a, 'stmt>) -> Result<ConstrainedEntsConstraint> {
+    fn lookup<'a, 'stmt>(&self, Evcausetidx: &Event<'a, 'stmt>) -> Result<ConstrainedEntsConstraint> {
         use TypedIndex::*;
 
         match self {
             &KnownCauset(value_index, value_type) => {
-                let v: rusqlite::types::Value = EventIdx.get(value_index);
+                let v: rusqlite::types::Value = Evcausetidx.get(value_index);
                 MinkowskiType::from_sql_value_pair(v, value_type)
                     .map(|v| v.into())
                     .map_err(|e| e.into())
             },
             &Unknown(value_index, type_index) => {
-                let v: rusqlite::types::Value = EventIdx.get(value_index);
-                let value_type_tag: i32 = EventIdx.get(type_index);
+                let v: rusqlite::types::Value = Evcausetidx.get(value_index);
+                let value_type_tag: i32 = Evcausetidx.get(type_index);
                 MinkowskiType::from_sql_value_pair(v, value_type_tag)
                     .map(|v| v.into())
                     .map_err(|e| e.into())

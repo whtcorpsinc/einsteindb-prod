@@ -243,12 +243,12 @@ solitonId -> SolitonIdOrCausetId
     / v:raw_namespaced_keyword { SolitonIdOrCausetId::CausetId(v) }
     / #expected("solitonId")
 
-forward_entid -> SolitonIdOrCausetId
+forward_causetid -> SolitonIdOrCausetId
     = v:( raw_basedinteger / raw_hexinteger / raw_octalinteger / raw_integer ) { SolitonIdOrCausetId::SolitonId(v) }
     / v:raw_forward_namespaced_keyword { SolitonIdOrCausetId::CausetId(v) }
     / #expected("forward solitonId")
 
-backward_entid -> SolitonIdOrCausetId
+backward_causetid -> SolitonIdOrCausetId
     = v:raw_backward_namespaced_keyword { SolitonIdOrCausetId::CausetId(v.to_reversed()) }
     / #expected("backward solitonId")
 
@@ -279,8 +279,8 @@ value_place -> ValuePlace<ValueAndSpan>
     / __ v:atom __ { ValuePlace::Atom(v) }
 
 pub instanton -> Instanton<ValueAndSpan>
-    = __ "[" __ op:(op) __ e:(instanton_place) __ a:(forward_entid)  __ v:(value_place) __  "]" __ { Instanton::AddOrRetract { op, e: e, a: AttributePlace::SolitonId(a), v: v } }
-    / __ "[" __ op:(op) __ e:(value_place)  __ a:(backward_entid) __ v:(instanton_place) __ "]" __ { Instanton::AddOrRetract { op, e: v, a: AttributePlace::SolitonId(a), v: e } }
+    = __ "[" __ op:(op) __ e:(instanton_place) __ a:(forward_causetid)  __ v:(value_place) __  "]" __ { Instanton::AddOrRetract { op, e: e, a: AttributePlace::SolitonId(a), v: v } }
+    / __ "[" __ op:(op) __ e:(value_place)  __ a:(backward_causetid) __ v:(instanton_place) __ "]" __ { Instanton::AddOrRetract { op, e: v, a: AttributePlace::SolitonId(a), v: e } }
     / __ map:map_notation __ { Instanton::MapNotation(map) }
     / #expected("instanton")
 

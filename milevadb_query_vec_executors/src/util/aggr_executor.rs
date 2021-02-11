@@ -15,7 +15,7 @@
 //!
 //! ```ignore
 //!     COUNT(1)     COUNT(COL)         COL+1      COL2
-//!     1            1                  1          1            <--- Each EventIdx is the result
+//!     1            1                  1          1            <--- Each Evcausetidx is the result
 //!     1            2                  1          1            <--- of a group
 //!
 //!     ^^^^^^^^^    ^^^^^^^^^^^                                : Aggregate Result PrimaryCauset

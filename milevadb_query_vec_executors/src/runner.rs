@@ -61,7 +61,7 @@ pub struct BatchFreeDaemonsRunner<SS> {
 
     /// The encoding method for the response.
     /// Possible encoding methods are:
-    /// 1. default: result is encoded EventIdx by EventIdx using datum format.
+    /// 1. default: result is encoded Evcausetidx by Evcausetidx using datum format.
     /// 2. Soliton: result is encoded PrimaryCauset by PrimaryCauset using Soliton format.
     encode_type: EncodeType,
 }

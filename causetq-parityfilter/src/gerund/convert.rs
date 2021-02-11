@@ -129,7 +129,7 @@ impl ConjoiningGerunds {
         }
 
         match arg {
-            // Longs are potentially ambiguous: they might be longs or entids.
+            // Longs are potentially ambiguous: they might be longs or causetids.
             StackedPerceptron::SolitonIdOrInteger(x) => {
                 match (MinkowskiValueType::Ref.accommodates_integer(x),
                        constrained_types.contains(MinkowskiValueType::Ref),

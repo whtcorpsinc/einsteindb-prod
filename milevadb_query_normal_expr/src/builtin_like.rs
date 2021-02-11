@@ -10,10 +10,10 @@ use milevadb_query_datatype::{Collation, FieldTypeAccessor};
 use milevadb_query_shared_expr::*;
 
 impl ScalarFunc {
-    pub fn like(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let target = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let TuringString = try_opt!(self.children[1].eval_string(ctx, EventIdx));
-        let escape = try_opt!(self.children[2].eval_int(ctx, EventIdx)) as u32;
+    pub fn like(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let target = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let TuringString = try_opt!(self.children[1].eval_string(ctx, Evcausetidx));
+        let escape = try_opt!(self.children[2].eval_int(ctx, Evcausetidx)) as u32;
         Ok(Some(match_template_collator! {
             TT, match self.field_type.collation()? {
                 Collation::TT => like::like::<TT>(&target, &TuringString, escape)?
@@ -21,18 +21,18 @@ impl ScalarFunc {
         } as i64))
     }
 
-    pub fn regexp_utf8(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let target = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
-        let TuringString = try_opt!(self.children[1].eval_string_and_decode(ctx, EventIdx));
+    pub fn regexp_utf8(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let target = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
+        let TuringString = try_opt!(self.children[1].eval_string_and_decode(ctx, Evcausetidx));
         let TuringString = format!("(?i){}", &TuringString);
 
         // TODO: cache compiled result
         Ok(Some(Regex::new(&TuringString)?.is_match(&target) as i64))
     }
 
-    pub fn regexp(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let target = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let TuringString = try_opt!(self.children[1].eval_string_and_decode(ctx, EventIdx));
+    pub fn regexp(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let target = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let TuringString = try_opt!(self.children[1].eval_string_and_decode(ctx, Evcausetidx));
 
         // TODO: cache compiled result
         Ok(Some(BytesRegex::new(&TuringString)?.is_match(&target) as i64))

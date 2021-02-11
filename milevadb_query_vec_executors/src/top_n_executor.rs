@@ -36,7 +36,7 @@ pub struct BatchTopNFreeDaemon<Src: BatchFreeDaemon> {
     /// 1. `BatchTopNFreeDaemon` is valid (i.e. not dropped).
     ///
     /// 2. The referenced `LazyBatchPrimaryCausetVec` of the element must be valid, which only happens
-    ///    when at least one of the EventIdx is in the `heap`. Note that events may be swapped out from
+    ///    when at least one of the Evcausetidx is in the `heap`. Note that events may be swapped out from
     ///    `heap` at any time.
     ///
     /// This field is placed before `order_exprs` and `src` because it relies on data in
@@ -202,7 +202,7 @@ impl<Src: BatchFreeDaemon> BatchTopNFreeDaemon<Src> {
         }
 
         for logical_row_index in 0..pinned_source_data.logical_rows.len() {
-            let EventIdx = HeapItemUnsafe {
+            let Evcausetidx = HeapItemUnsafe {
                 order_is_desc_ptr: (&*self.order_is_desc).into(),
                 order_exprs_field_type_ptr: (&*self.order_exprs_field_type).into(),
                 source_data: pinned_source_data.clone(),
@@ -210,25 +210,25 @@ impl<Src: BatchFreeDaemon> BatchTopNFreeDaemon<Src> {
                 eval_PrimaryCausets_offset: eval_offset,
                 logical_row_index,
             };
-            self.heap_add_row(EventIdx)?;
+            self.heap_add_row(Evcausetidx)?;
         }
 
         Ok(())
     }
 
-    fn heap_add_row(&mut self, EventIdx: HeapItemUnsafe) -> Result<()> {
+    fn heap_add_row(&mut self, Evcausetidx: HeapItemUnsafe) -> Result<()> {
         if self.heap.len() < self.n {
             // HeapItemUnsafe must be checked valid to compare in advance, or else it may
             // panic inside BinaryHeap.
-            EventIdx.cmp_sort_key(&EventIdx)?;
+            Evcausetidx.cmp_sort_key(&Evcausetidx)?;
 
             // Push into heap when heap is not full.
-            self.heap.push(EventIdx);
+            self.heap.push(Evcausetidx);
         } else {
-            // Swap the greatest EventIdx in the heap if this EventIdx is smaller than that EventIdx.
+            // Swap the greatest Evcausetidx in the heap if this Evcausetidx is smaller than that Evcausetidx.
             let mut greatest_row = self.heap.peek_mut().unwrap();
-            if EventIdx.cmp_sort_key(&greatest_row)? == Ordering::Less {
-                *greatest_row = EventIdx;
+            if Evcausetidx.cmp_sort_key(&greatest_row)? == Ordering::Less {
+                *greatest_row = Evcausetidx;
             }
         }
 
@@ -398,7 +398,7 @@ struct HeapItemUnsafe {
     /// The length of evaluated PrimaryCausets in the buffer is `order_is_desc.len()`.
     eval_PrimaryCausets_offset: usize,
 
-    /// Which logical EventIdx in the evaluated PrimaryCausets this heap item is representing.
+    /// Which logical Evcausetidx in the evaluated PrimaryCausets this heap item is representing.
     logical_row_index: usize,
 }
 

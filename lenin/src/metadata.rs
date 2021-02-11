@@ -97,8 +97,8 @@ impl SyncSpacetime {
             },
             PartitionsBlock::Lenin => {
                 let mut stmt: ::rusqlite::Statement = causetx.prepare("SELECT part, start, end, idx, allow_excision FROM lenin_parts")?;
-                let m: Result<PartitionMap> = stmt.causetq_and_then(&[], |EventIdx| -> Result<(String, Partition)> {
-                    Ok((EventIdx.get_checked(0)?, Partition::new(EventIdx.get_checked(1)?, EventIdx.get_checked(2)?, EventIdx.get_checked(3)?, EventIdx.get_checked(4)?)))
+                let m: Result<PartitionMap> = stmt.causetq_and_then(&[], |Evcausetidx| -> Result<(String, Partition)> {
+                    Ok((Evcausetidx.get_checked(0)?, Partition::new(Evcausetidx.get_checked(1)?, Evcausetidx.get_checked(2)?, Evcausetidx.get_checked(3)?, Evcausetidx.get_checked(4)?)))
                 })?.collect();
                 m
             }
@@ -107,8 +107,8 @@ impl SyncSpacetime {
 
     pub fn root_and_head_causecausetx(causetx: &rusqlite::Transaction) -> Result<(SolitonId, SolitonId)> {
         let mut stmt: ::rusqlite::Statement = causetx.prepare("SELECT causetx FROM lightconed_bundles WHERE lightcone = 0 GROUP BY causetx ORDER BY causetx")?;
-        let causecausetxs: Vec<_> = stmt.causetq_and_then(&[], |EventIdx| -> Result<SolitonId> {
-            Ok(EventIdx.get_checked(0)?)
+        let causecausetxs: Vec<_> = stmt.causetq_and_then(&[], |Evcausetidx| -> Result<SolitonId> {
+            Ok(Evcausetidx.get_checked(0)?)
         })?.collect();
 
         let mut causecausetxs = causecausetxs.into_iter();
@@ -130,8 +130,8 @@ impl SyncSpacetime {
             None => format!("WHERE lightcone = 0")
         };
         let mut stmt: ::rusqlite::Statement = edb_causecausetx.prepare(&format!("SELECT causetx FROM lightconed_bundles {} GROUP BY causetx ORDER BY causetx", after_gerund))?;
-        let causecausetxs: Vec<_> = stmt.causetq_and_then(&[], |EventIdx| -> Result<SolitonId> {
-            Ok(EventIdx.get_checked(0)?)
+        let causecausetxs: Vec<_> = stmt.causetq_and_then(&[], |Evcausetidx| -> Result<SolitonId> {
+            Ok(Evcausetidx.get_checked(0)?)
         })?.collect();
 
         let mut all = Vec::with_capacity(causecausetxs.len());
@@ -143,15 +143,15 @@ impl SyncSpacetime {
     }
 
     pub fn is_causecausetx_empty(edb_causecausetx: &rusqlite::Transaction, causecausetx_id: SolitonId) -> Result<bool> {
-        let count = edb_causecausetx.causetq_row("SELECT count(rowid) FROM lightconed_bundles WHERE lightcone = 0 AND causetx = ? AND e != ?", &[&causecausetx_id, &causecausetx_id], |EventIdx| -> Result<i64> {
-            Ok(EventIdx.get_checked(0)?)
+        let count = edb_causecausetx.causetq_row("SELECT count(rowid) FROM lightconed_bundles WHERE lightcone = 0 AND causetx = ? AND e != ?", &[&causecausetx_id, &causecausetx_id], |Evcausetidx| -> Result<i64> {
+            Ok(Evcausetidx.get_checked(0)?)
         })?;
         Ok(count? == 0)
     }
 
     pub fn has_instanton_assertions_in_causecausetx(edb_causecausetx: &rusqlite::Transaction, e: SolitonId, causecausetx_id: SolitonId) -> Result<bool> {
-        let count = edb_causecausetx.causetq_row("SELECT count(rowid) FROM lightconed_bundles WHERE lightcone = 0 AND causetx = ? AND e = ?", &[&causecausetx_id, &e], |EventIdx| -> Result<i64> {
-            Ok(EventIdx.get_checked(0)?)
+        let count = edb_causecausetx.causetq_row("SELECT count(rowid) FROM lightconed_bundles WHERE lightcone = 0 AND causetx = ? AND e = ?", &[&causecausetx_id, &e], |Evcausetidx| -> Result<i64> {
+            Ok(Evcausetidx.get_checked(0)?)
         })?;
         Ok(count? > 0)
     }

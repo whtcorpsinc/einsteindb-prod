@@ -1281,7 +1281,7 @@
       ],
       "repeat": null,
       "title": "Cluster",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -2301,7 +2301,7 @@
       ],
       "repeat": null,
       "title": "Errors",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -3538,7 +3538,7 @@
       ],
       "repeat": null,
       "title": "Server",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -4150,7 +4150,7 @@
       ],
       "repeat": null,
       "title": "gRPC",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -5602,7 +5602,7 @@
       ],
       "repeat": null,
       "title": "Thread CPU",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -5990,7 +5990,7 @@
       ],
       "repeat": null,
       "title": "FIDel",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -6482,7 +6482,7 @@
       ],
       "repeat": null,
       "title": "VioletaBft IO",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -6880,7 +6880,7 @@
       ],
       "repeat": null,
       "title": "VioletaBft process",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -7474,7 +7474,7 @@
       ],
       "repeat": null,
       "title": "VioletaBft message",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -8393,7 +8393,7 @@
       ],
       "repeat": null,
       "title": "VioletaBft propose",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -8801,7 +8801,7 @@
       ],
       "repeat": null,
       "title": "VioletaBft admin",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -8918,7 +8918,7 @@
       ],
       "repeat": null,
       "title": "Local reader",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -9198,7 +9198,7 @@
         }
       ],
       "title": "Unified Read Pool",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -9544,7 +9544,7 @@
       ],
       "repeat": null,
       "title": "CausetStorage",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -9999,7 +9999,7 @@
       ],
       "repeat": null,
       "title": "Interlock_Semaphore",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -11052,7 +11052,7 @@
       ],
       "repeat": "command",
       "title": "Interlock_Semaphore - $command",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -12408,7 +12408,7 @@
       ],
       "repeat": null,
       "title": "GC",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -12922,7 +12922,7 @@
       ],
       "repeat": null,
       "title": "Snapshot",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -13333,7 +13333,7 @@
       ],
       "repeat": null,
       "title": "Task",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -14132,7 +14132,7 @@
       ],
       "repeat": null,
       "title": "Interlock Overview",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -15149,7 +15149,7 @@
         }
       ],
       "title": "Interlock Detail",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -15545,7 +15545,7 @@
       ],
       "repeat": null,
       "title": "Threads",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -19733,7 +19733,7 @@
       ],
       "repeat": "db",
       "title": "Lmdb - $db",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -22741,7 +22741,7 @@
       ],
       "repeat": "titan_db",
       "title": "Noether - $titan_db",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -23469,7 +23469,7 @@
         }
       ],
       "title": "Dagger manager",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -23569,7 +23569,7 @@
       ],
       "repeat": null,
       "title": "Memory",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -24316,7 +24316,7 @@
         }
       ],
       "title": "Backup",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -24329,7 +24329,7 @@
       "id": 4466,
       "panels": [],
       "title": "Encryption",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "aliasColors": {},

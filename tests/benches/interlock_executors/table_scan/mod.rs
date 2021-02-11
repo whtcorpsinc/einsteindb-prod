@@ -28,7 +28,7 @@ where
     );
 }
 
-/// 1 interested PrimaryCauset, at the front of each EventIdx. Each EventIdx contains 100 PrimaryCausets.
+/// 1 interested PrimaryCauset, at the front of each Evcausetidx. Each Evcausetidx contains 100 PrimaryCausets.
 ///
 /// This kind of scanner is used in SQLs like `SELECT COUNT(PrimaryCauset)`.
 fn bench_Block_scan_datum_front<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
@@ -45,7 +45,7 @@ where
     );
 }
 
-/// 2 interested PrimaryCausets, at the front of each EventIdx. Each EventIdx contains 100 PrimaryCausets.
+/// 2 interested PrimaryCausets, at the front of each Evcausetidx. Each Evcausetidx contains 100 PrimaryCausets.
 fn bench_Block_scan_datum_multi_front<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -63,7 +63,7 @@ where
     );
 }
 
-/// 1 interested PrimaryCauset, at the lightlike of each EventIdx. Each EventIdx contains 100 PrimaryCausets.
+/// 1 interested PrimaryCauset, at the lightlike of each Evcausetidx. Each Evcausetidx contains 100 PrimaryCausets.
 fn bench_Block_scan_datum_lightlike<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -78,8 +78,8 @@ where
     );
 }
 
-/// 100 interested PrimaryCausets, all PrimaryCausets in the EventIdx are interested (i.e. there are totally 100
-/// PrimaryCausets in the EventIdx).
+/// 100 interested PrimaryCausets, all PrimaryCausets in the Evcausetidx are interested (i.e. there are totally 100
+/// PrimaryCausets in the Evcausetidx).
 fn bench_Block_scan_datum_all<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -94,7 +94,7 @@ where
     );
 }
 
-/// 3 PrimaryCausets in the EventIdx and the last PrimaryCauset is very long but only PK is interested.
+/// 3 PrimaryCausets in the Evcausetidx and the last PrimaryCauset is very long but only PK is interested.
 fn bench_Block_scan_long_datum_primary_key<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -109,7 +109,7 @@ where
     );
 }
 
-/// 3 PrimaryCausets in the EventIdx and the last PrimaryCauset is very long but a short PrimaryCauset is interested.
+/// 3 PrimaryCausets in the Evcausetidx and the last PrimaryCauset is very long but a short PrimaryCauset is interested.
 fn bench_Block_scan_long_datum_normal<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -124,7 +124,7 @@ where
     );
 }
 
-/// 3 PrimaryCausets in the EventIdx and the last PrimaryCauset is very long and the long PrimaryCauset is interested.
+/// 3 PrimaryCausets in the Evcausetidx and the last PrimaryCauset is very long and the long PrimaryCauset is interested.
 fn bench_Block_scan_long_datum_long<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -139,7 +139,7 @@ where
     );
 }
 
-/// 3 PrimaryCausets in the EventIdx and the last PrimaryCauset is very long and the all PrimaryCausets are interested.
+/// 3 PrimaryCausets in the Evcausetidx and the last PrimaryCauset is very long and the all PrimaryCausets are interested.
 fn bench_Block_scan_long_datum_all<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -158,8 +158,8 @@ where
     );
 }
 
-/// 1 interested PrimaryCauset, but the PrimaryCauset is missing from each EventIdx (i.e. it's default value is
-/// used instead). Each EventIdx contains totally 10 PrimaryCausets.
+/// 1 interested PrimaryCauset, but the PrimaryCauset is missing from each Evcausetidx (i.e. it's default value is
+/// used instead). Each Evcausetidx contains totally 10 PrimaryCausets.
 fn bench_Block_scan_datum_absent<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,
@@ -174,8 +174,8 @@ where
     );
 }
 
-/// 1 interested PrimaryCauset, but the PrimaryCauset is missing from each EventIdx (i.e. it's default value is
-/// used instead). Each EventIdx contains totally 100 PrimaryCausets.
+/// 1 interested PrimaryCauset, but the PrimaryCauset is missing from each Evcausetidx (i.e. it's default value is
+/// used instead). Each Evcausetidx contains totally 100 PrimaryCausets.
 fn bench_Block_scan_datum_absent_large_row<M>(b: &mut criterion::Bencher<M>, input: &Input<M>)
 where
     M: Measurement,

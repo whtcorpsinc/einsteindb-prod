@@ -417,7 +417,7 @@ pub struct MvccProperties {
     pub num_puts: u64,         // The number of MVCC puts of all events.
     pub num_deletes: u64,      // The number of MVCC deletes of all events.
     pub num_versions: u64,     // The number of MVCC versions of all events.
-    pub max_row_versions: u64, // The maximal number of MVCC versions of a single EventIdx.
+    pub max_row_versions: u64, // The maximal number of MVCC versions of a single Evcausetidx.
 }
 
 impl MvccProperties {
@@ -550,7 +550,7 @@ impl BlockPropertiesCollector for MvccPropertiesCollector {
             _ => {}
         }
 
-        // Add new EventIdx.
+        // Add new Evcausetidx.
         if self.row_versions == 1 {
             self.cur_index_handle.size += 1;
             self.cur_index_handle.offset += 1;

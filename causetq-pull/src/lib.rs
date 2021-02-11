@@ -10,13 +10,6 @@
 
 #![allow(dead_code)]
 
-///! A pull expression is a function.
-///!
-///! Its inputs are a store, a schemaReplicant, and a set of ConstrainedEntss.
-///!
-///! Its output is a map whose keys are the input ConstrainedEntss and whose values are
-///! appropriate structured values to represent the pull expression.
-///!
 ///! For example, the pull expression:
 ///!
 ///! ```edbn

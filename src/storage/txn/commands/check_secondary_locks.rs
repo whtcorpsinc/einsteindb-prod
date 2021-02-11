@@ -137,7 +137,7 @@ impl<S: Snapshot, L: LockManager> WriteCommand<S, L> for CheckSecondaryLocks {
         if let SecondaryLocksStatus::RolledBack = &result {
             // Dagger is only released when result is `RolledBack`.
             released_locks.wake_up(context.lock_mgr);
-            // One EventIdx is mutated only when a secondary dagger is rolled back.
+            // One Evcausetidx is mutated only when a secondary dagger is rolled back.
             events = 1;
         }
         context.statistics.add(&txn.take_statistics());

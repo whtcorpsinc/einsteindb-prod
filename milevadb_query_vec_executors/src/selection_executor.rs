@@ -518,7 +518,7 @@ mod tests {
         assert!(r.is_drained.unwrap());
     }
 
-    /// Tests the scenario that there are multiple predicates. Only the EventIdx that all predicates
+    /// Tests the scenario that there are multiple predicates. Only the Evcausetidx that all predicates
     /// return true should be remained.
     #[test]
     fn test_multiple_predicate_1() {
@@ -652,7 +652,7 @@ mod tests {
         let mut exec = BatchSelectionFreeDaemon::new_for_test(src_exec, predicates);
 
         // TODO: A more precise result is that the first two events are returned and error spacelikes from
-        // the third EventIdx.
+        // the third Evcausetidx.
 
         let r = exec.next_batch(1);
         assert!(r.logical_rows.is_empty());

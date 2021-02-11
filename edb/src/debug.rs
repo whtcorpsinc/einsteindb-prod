@@ -64,7 +64,7 @@ use bootstrap;
 use edb::*;
 use edb::{read_attribute_map,read_causetId_map};
 use edbn;
-use entids;
+use causetids;
 use edb_promises::errors::Result;
 
 use embedded_promises::{
@@ -180,7 +180,7 @@ impl ToCausetId for MinkowskiType {
 }
 
 /// Convert a numeric solitonId to an causetid `SolitonId` if possible, otherwise a numeric `SolitonId`.
-pub fn to_entid(schemaReplicant: &SchemaReplicant, solitonId: i64) -> SolitonIdOrCausetId {
+pub fn to_causetid(schemaReplicant: &SchemaReplicant, solitonId: i64) -> SolitonIdOrCausetId {
     schemaReplicant.get_causetId(solitonId).map_or(SolitonIdOrCausetId::SolitonId(solitonId), |causetid| SolitonIdOrCausetId::CausetId(causetid.clone()))
 }
 
@@ -204,28 +204,28 @@ pub fn Causets_after<S: Borrow<SchemaReplicant>>(conn: &rusqlite::Connection, sc
 
     let mut stmt: rusqlite::Statement = conn.prepare("SELECT e, a, v, value_type_tag, causetx FROM causets WHERE causetx > ? ORDER BY e ASC, a ASC, value_type_tag ASC, v ASC, causetx ASC")?;
 
-    let r: Result<Vec<_>> = stmt.causetq_and_then(&[&causetx], |EventIdx| {
-        let e: i64 = EventIdx.get_checked(0)?;
-        let a: i64 = EventIdx.get_checked(1)?;
+    let r: Result<Vec<_>> = stmt.causetq_and_then(&[&causetx], |Evcausetidx| {
+        let e: i64 = Evcausetidx.get_checked(0)?;
+        let a: i64 = Evcausetidx.get_checked(1)?;
 
-        if a == entids::DB_TX_INSTANT {
+        if a == causetids::DB_TX_INSTANT {
             return Ok(None);
         }
 
-        let v: rusqlite::types::Value = EventIdx.get_checked(2)?;
-        let value_type_tag: i32 = EventIdx.get_checked(3)?;
+        let v: rusqlite::types::Value = Evcausetidx.get_checked(2)?;
+        let value_type_tag: i32 = Evcausetidx.get_checked(3)?;
 
-        let attribute = borrowed_schemaReplicant.require_attribute_for_entid(a)?;
+        let attribute = borrowed_schemaReplicant.require_attribute_for_causetid(a)?;
         let value_type_tag = if !attribute.fulltext { value_type_tag } else { MinkowskiValueType::Long.value_type_tag() };
 
         let typed_value = MinkowskiType::from_sql_value_pair(v, value_type_tag)?.map_causetId(borrowed_schemaReplicant);
         let (value, _) = typed_value.to_edbn_value_pair();
 
-        let causetx: i64 = EventIdx.get_checked(4)?;
+        let causetx: i64 = Evcausetidx.get_checked(4)?;
 
         Ok(Some(Causet {
             e: SolitonIdOrCausetId::SolitonId(e),
-            a: to_entid(borrowed_schemaReplicant, a),
+            a: to_causetid(borrowed_schemaReplicant, a),
             v: value,
             causetx: causetx,
             added: None,
@@ -244,25 +244,25 @@ pub fn bundles_after<S: Borrow<SchemaReplicant>>(conn: &rusqlite::Connection, sc
 
     let mut stmt: rusqlite::Statement = conn.prepare("SELECT e, a, v, value_type_tag, causetx, added FROM bundles WHERE causetx > ? ORDER BY causetx ASC, e ASC, a ASC, value_type_tag ASC, v ASC, added ASC")?;
 
-    let r: Result<Vec<_>> = stmt.causetq_and_then(&[&causetx], |EventIdx| {
-        let e: i64 = EventIdx.get_checked(0)?;
-        let a: i64 = EventIdx.get_checked(1)?;
+    let r: Result<Vec<_>> = stmt.causetq_and_then(&[&causetx], |Evcausetidx| {
+        let e: i64 = Evcausetidx.get_checked(0)?;
+        let a: i64 = Evcausetidx.get_checked(1)?;
 
-        let v: rusqlite::types::Value = EventIdx.get_checked(2)?;
-        let value_type_tag: i32 = EventIdx.get_checked(3)?;
+        let v: rusqlite::types::Value = Evcausetidx.get_checked(2)?;
+        let value_type_tag: i32 = Evcausetidx.get_checked(3)?;
 
-        let attribute = borrowed_schemaReplicant.require_attribute_for_entid(a)?;
+        let attribute = borrowed_schemaReplicant.require_attribute_for_causetid(a)?;
         let value_type_tag = if !attribute.fulltext { value_type_tag } else { MinkowskiValueType::Long.value_type_tag() };
 
         let typed_value = MinkowskiType::from_sql_value_pair(v, value_type_tag)?.map_causetId(borrowed_schemaReplicant);
         let (value, _) = typed_value.to_edbn_value_pair();
 
-        let causetx: i64 = EventIdx.get_checked(4)?;
-        let added: bool = EventIdx.get_checked(5)?;
+        let causetx: i64 = Evcausetidx.get_checked(4)?;
+        let added: bool = Evcausetidx.get_checked(5)?;
 
         Ok(Causet {
             e: SolitonIdOrCausetId::SolitonId(e),
-            a: to_entid(borrowed_schemaReplicant, a),
+            a: to_causetid(borrowed_schemaReplicant, a),
             v: value,
             causetx: causetx,
             added: Some(added),
@@ -278,9 +278,9 @@ pub fn bundles_after<S: Borrow<SchemaReplicant>>(conn: &rusqlite::Connection, sc
 pub fn fulltext_values(conn: &rusqlite::Connection) -> Result<FulltextValues> {
     let mut stmt: rusqlite::Statement = conn.prepare("SELECT rowid, text FROM fulltext_values ORDER BY rowid")?;
 
-    let r: Result<Vec<_>> = stmt.causetq_and_then(&[], |EventIdx| {
-        let rowid: i64 = EventIdx.get_checked(0)?;
-        let text: String = EventIdx.get_checked(1)?;
+    let r: Result<Vec<_>> = stmt.causetq_and_then(&[], |Evcausetidx| {
+        let rowid: i64 = Evcausetidx.get_checked(0)?;
+        let text: String = Evcausetidx.get_checked(1)?;
         Ok((rowid, text))
     })?.collect();
 
@@ -303,9 +303,9 @@ pub fn dump_sql_causetq(conn: &rusqlite::Connection, allegrosql: &str, params: &
     }
     write!(&mut tw, "\n").unwrap();
 
-    let r: Result<Vec<_>> = stmt.causetq_and_then(params, |EventIdx| {
-        for i in 0..EventIdx.CausetIndex_count() {
-            let value: rusqlite::types::Value = EventIdx.get_checked(i)?;
+    let r: Result<Vec<_>> = stmt.causetq_and_then(params, |Evcausetidx| {
+        for i in 0..Evcausetidx.CausetIndex_count() {
+            let value: rusqlite::types::Value = Evcausetidx.get_checked(i)?;
             write!(&mut tw, "{:?}\t", value).unwrap();
         }
         write!(&mut tw, "\n").unwrap();
@@ -384,7 +384,7 @@ impl TestConn {
     }
 
     pub fn last_causecausetx_id(&self) -> SolitonId {
-        self.partition_map.get(&":edb.part/causetx".to_string()).unwrap().next_entid() - 1
+        self.partition_map.get(&":edb.part/causetx".to_string()).unwrap().next_causetid() - 1
     }
 
     pub fn last_transaction(&self) -> Causets {

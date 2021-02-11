@@ -87,13 +87,13 @@ fn bench_Soliton_iter_milevadb(b: &mut Bencher) {
     b.iter(|| {
         let mut col1 = 0;
         let mut col2 = 0.0;
-        for EventIdx in Soliton.iter() {
-            col1 += match EventIdx.get_datum(0, &fields[0]).unwrap() {
+        for Evcausetidx in Soliton.iter() {
+            col1 += match Evcausetidx.get_datum(0, &fields[0]).unwrap() {
                 Datum::I64(v) => v,
                 Datum::Null => 0,
                 _ => unreachable!(),
             };
-            col2 += match EventIdx.get_datum(1, &fields[1]).unwrap() {
+            col2 += match Evcausetidx.get_datum(1, &fields[1]).unwrap() {
                 Datum::F64(v) => v,
                 _ => unreachable!(),
             };

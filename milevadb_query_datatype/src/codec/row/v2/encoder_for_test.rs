@@ -2,9 +2,9 @@
 
 //! This `encoder` module is only used for test, so the implementation is very straightforward.
 //!
-//! According to https://github.com/whtcorpsinc/milevadb/blob/master/docs/design/2018-07-19-EventIdx-format.md
+//! According to https://github.com/whtcorpsinc/milevadb/blob/master/docs/design/2018-07-19-Evcausetidx-format.md
 //!
-//! The EventIdx format is:
+//! The Evcausetidx format is:
 //!
 //! | version | flag | number_of_non_null_PrimaryCausets | number_of_null_PrimaryCausets | non_null_PrimaryCauset_ids | null_PrimaryCauset_ids | value_offsets | values |
 //! |---------| ---- | -------------------------- | ---------------------- | ------------------- | --------------- | ------------- | ------ |

@@ -966,9 +966,9 @@ mod tests {
             ),
             (vec![None], None),
         ];
-        for (EventIdx, exp) in cases {
+        for (Evcausetidx, exp) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(EventIdx)
+                .push_params(Evcausetidx)
                 .evaluate(ScalarFuncSig::Concat)
                 .unwrap();
             assert_eq!(output, exp);
@@ -1091,9 +1091,9 @@ mod tests {
                 Some(b"abc,defg".to_vec()),
             ),
         ];
-        for (EventIdx, exp) in cases {
+        for (Evcausetidx, exp) in cases {
             let output = RpnFnScalarEvaluator::new()
-                .push_params(EventIdx)
+                .push_params(Evcausetidx)
                 .evaluate(ScalarFuncSig::ConcatWs)
                 .unwrap();
             assert_eq!(output, exp);

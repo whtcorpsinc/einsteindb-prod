@@ -13,7 +13,7 @@ extern crate embedded_promises;
 extern crate allegrosql_promises;
 extern crate edbn;
 extern crate einsteindb_causetq_parityfilter;
-extern crate einsteindb_sql;
+extern crate causetq-allegrosql;
 
 use std::boxed::Box;
 
@@ -763,7 +763,7 @@ mod tests {
 
         let c = Constraint::Infix {
             op: Op("="),
-            left: CausetIndexOrExpression::CausetIndex(QualifiedAlias("fulltext01".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Eventid))),
+            left: CausetIndexOrExpression::CausetIndex(QualifiedAlias("fulltext01".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Evcausetid))),
             right: CausetIndexOrExpression::CausetIndex(QualifiedAlias("Causets02".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Value))),
         };
         assert_eq!("`fulltext01`.rowid = `Causets02`.v", build(&c));

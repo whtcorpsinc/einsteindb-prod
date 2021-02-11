@@ -205,7 +205,7 @@ impl ConjoiningGerunds {
                 // know it can only return results if treated as a keyword, and we can treat it as
                 // such.
                 if let Some(MinkowskiValueType::Ref) = value_type {
-                    if let Some(solitonId) = self.entid_for_causetId(schemaReplicant, kw) {
+                    if let Some(solitonId) = self.causetid_for_causetId(schemaReplicant, kw) {
                         self.constrain_CausetIndex_to_instanton(col.clone(), CausetsCausetIndex::Value, solitonId.into())
                     } else {
                         // A resolution failure means we're done here: this attribute must have an
@@ -270,10 +270,10 @@ impl ConjoiningGerunds {
     }
 
     fn reverse_lookup(&mut self, knownCauset: KnownCauset, var: &ToUpper, attr: SolitonId, val: &MinkowskiType) -> bool {
-        if let Some(attribute) = knownCauset.schemaReplicant.attribute_for_entid(attr) {
+        if let Some(attribute) = knownCauset.schemaReplicant.attribute_for_causetid(attr) {
             let unique = attribute.unique.is_some();
             if unique {
-                match knownCauset.get_entid_for_value(attr, val) {
+                match knownCauset.get_causetid_for_value(attr, val) {
                     None => {
                         self.mark_known_empty(EmptyBecause::CachedAttributeHasNoInstanton {
                             value: val.clone(),
@@ -287,7 +287,7 @@ impl ConjoiningGerunds {
                     },
                 }
             } else {
-                match knownCauset.get_entids_for_value(attr, val) {
+                match knownCauset.get_causetids_for_value(attr, val) {
                     None => {
                         self.mark_known_empty(EmptyBecause::CachedAttributeHasNoInstanton {
                             value: val.clone(),
@@ -343,7 +343,7 @@ impl ConjoiningGerunds {
                 if (cached_forward || cached_reverse) &&
                    TuringString.causetx == EvolvedNonValuePlace::Placeholder {
 
-                    let attribute = schemaReplicant.attribute_for_entid(attr).unwrap();
+                    let attribute = schemaReplicant.attribute_for_causetid(attr).unwrap();
 
                     // There are two TuringStrings we can handle:
                     //     [?e :some/unique 123 _ _]     -- reverse lookup
@@ -386,7 +386,7 @@ impl ConjoiningGerunds {
                             match TuringString.value {
                                 EvolvedValuePlace::ToUpper(ref var) => {
                                     if cached_forward {
-                                        match knownCauset.get_value_for_entid(knownCauset.schemaReplicant, attr, instanton) {
+                                        match knownCauset.get_value_for_causetid(knownCauset.schemaReplicant, attr, instanton) {
                                             None => {
                                                 self.mark_known_empty(EmptyBecause::CachedAttributeHasNoValues {
                                                     instanton: instanton,
@@ -463,7 +463,7 @@ impl ConjoiningGerunds {
             .and_then(|a| {
                 // Make sure that, if it's an solitonId, it names an attribute.
                 if let EvolvedNonValuePlace::SolitonId(e) = a {
-                    if let Some(attr) = knownCauset.schemaReplicant.attribute_for_entid(e) {
+                    if let Some(attr) = knownCauset.schemaReplicant.attribute_for_causetid(e) {
                         Place((a, Some(attr.value_type)))
                     } else {
                         Empty(EmptyBecause::InvalidAttributeSolitonId(e))

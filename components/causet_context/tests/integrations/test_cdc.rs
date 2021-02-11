@@ -12,7 +12,7 @@ use grpcio::WriteFlags;
 use ekvproto::causet_contextpb::*;
 #[causet(feature = "prost-codec")]
 use ekvproto::causet_contextpb::{
-    event::{EventIdx::OpType as EventEventOpType, Event as Event_oneof_event, LogType as EventLogType},
+    event::{Evcausetidx::OpType as EventEventOpType, Event as Event_oneof_event, LogType as EventLogType},
     ChangeDataEvent,
 };
 use ekvproto::kvrpcpb::*;
@@ -804,15 +804,15 @@ fn test_old_value_basic() {
         for event in events.into_iter() {
             match event.event.unwrap() {
                 Event_oneof_event::Entries(mut es) => {
-                    for EventIdx in es.take_entries().to_vec() {
-                        if EventIdx.get_type() == EventLogType::Prewrite {
-                            if EventIdx.get_spacelike_ts() == m2_spacelike_ts.into_inner()
-                                || EventIdx.get_spacelike_ts() == m3_spacelike_ts.into_inner()
+                    for Evcausetidx in es.take_entries().to_vec() {
+                        if Evcausetidx.get_type() == EventLogType::Prewrite {
+                            if Evcausetidx.get_spacelike_ts() == m2_spacelike_ts.into_inner()
+                                || Evcausetidx.get_spacelike_ts() == m3_spacelike_ts.into_inner()
                             {
-                                assert_eq!(EventIdx.get_old_value(), b"v1");
+                                assert_eq!(Evcausetidx.get_old_value(), b"v1");
                                 event_count += 1;
-                            } else if EventIdx.get_spacelike_ts() == m5_spacelike_ts.into_inner() {
-                                assert_eq!(EventIdx.get_old_value(), vec![b'3'; 5120].as_slice());
+                            } else if Evcausetidx.get_spacelike_ts() == m5_spacelike_ts.into_inner() {
+                                assert_eq!(Evcausetidx.get_old_value(), vec![b'3'; 5120].as_slice());
                                 event_count += 1;
                             }
                         }
@@ -835,21 +835,21 @@ fn test_old_value_basic() {
         for e in event.events.into_iter() {
             match e.event.unwrap() {
                 Event_oneof_event::Entries(mut es) => {
-                    for EventIdx in es.take_entries().to_vec() {
-                        if EventIdx.get_type() == EventLogType::Committed
-                            && EventIdx.get_spacelike_ts() == m1_spacelike_ts.into_inner()
+                    for Evcausetidx in es.take_entries().to_vec() {
+                        if Evcausetidx.get_type() == EventLogType::Committed
+                            && Evcausetidx.get_spacelike_ts() == m1_spacelike_ts.into_inner()
                         {
-                            assert_eq!(EventIdx.get_old_value(), b"");
+                            assert_eq!(Evcausetidx.get_old_value(), b"");
                             event_count += 1;
-                        } else if EventIdx.get_type() == EventLogType::Committed
-                            && EventIdx.get_spacelike_ts() == m3_spacelike_ts.into_inner()
+                        } else if Evcausetidx.get_type() == EventLogType::Committed
+                            && Evcausetidx.get_spacelike_ts() == m3_spacelike_ts.into_inner()
                         {
-                            assert_eq!(EventIdx.get_old_value(), b"v1");
+                            assert_eq!(Evcausetidx.get_old_value(), b"v1");
                             event_count += 1;
-                        } else if EventIdx.get_type() == EventLogType::Prewrite
-                            && EventIdx.get_spacelike_ts() == m5_spacelike_ts.into_inner()
+                        } else if Evcausetidx.get_type() == EventLogType::Prewrite
+                            && Evcausetidx.get_spacelike_ts() == m5_spacelike_ts.into_inner()
                         {
-                            assert_eq!(EventIdx.get_old_value(), vec![b'3'; 5120]);
+                            assert_eq!(Evcausetidx.get_old_value(), vec![b'3'; 5120]);
                             event_count += 1;
                         }
                     }

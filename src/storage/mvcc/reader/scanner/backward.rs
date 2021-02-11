@@ -1182,8 +1182,8 @@ mod tests {
         }
 
         let snapshot = engine.snapshot(&Context::default()).unwrap();
-        let EventIdx = &[15 as u8];
-        let k = Key::from_raw(EventIdx);
+        let Evcausetidx = &[15 as u8];
+        let k = Key::from_raw(Evcausetidx);
 
         // Call reverse scan
         let ts = 2.into();

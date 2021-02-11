@@ -65,7 +65,7 @@ use edbn::{
     InternSet,
     Keyword,
 };
-use entids;
+use causetids;
 use edb_promises::errors as errors;
 use edb_promises::errors::{
     DbErrorKind,
@@ -154,7 +154,7 @@ pub struct Tx<'conn, 'a, W> where W: TransactWatcher {
     /// The storage to apply against.  In the future, this will be a EinsteinDB connection.
     store: &'conn rusqlite::Connection, // TODO: edb::EinsteinDBStoring,
 
-    /// The partition map to allocate entids from.
+    /// The partition map to allocate causetids from.
     ///
     /// The partition map is volatile in the sense that every succesful transaction updates
     /// allocates at least one causetx ID, so we own and modify our own partition map.
@@ -221,7 +221,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
     }
 
     /// Given a collection of tempids and the [a v] pairs that they might upsert to, resolve exactly
-    /// which [a v] pairs do upsert to entids, and map each tempid that upserts to the upserted
+    /// which [a v] pairs do upsert to causetids, and map each tempid that upserts to the upserted
     /// solitonId.  The keys of the resulting map are exactly those tempids that upserted.
     pub(crate) fn resolve_temp_id_avs<'b>(&self, temp_id_avs: &'b [(TempIdHandle, AVPair)]) -> Result<TempIdMap> {
         if temp_id_avs.is_empty() {
@@ -290,8 +290,8 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                 }
             }
 
-            fn ensure_entid_exists(&self, e: SolitonId) -> Result<KnownSolitonId> {
-                if self.partition_map.contains_entid(e) {
+            fn ensure_causetid_exists(&self, e: SolitonId) -> Result<KnownSolitonId> {
+                if self.partition_map.contains_causetid(e) {
                     Ok(KnownSolitonId(e))
                 } else {
                     bail!(DbErrorKind::UnallocatedSolitonId(e))
@@ -299,15 +299,15 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
             }
 
             fn ensure_causetId_exists(&self, e: &Keyword) -> Result<KnownSolitonId> {
-                self.schemaReplicant.require_entid(e)
+                self.schemaReplicant.require_causetid(e)
             }
 
             fn intern_lookup_ref<W: TransacBlockValue>(&mut self, lookup_ref: &entmod::LookupRef<W>) -> Result<LookupRef> {
                 let lr_a: i64 = match lookup_ref.a {
                     AttributePlace::SolitonId(entmod::SolitonIdOrCausetId::SolitonId(ref a)) => *a,
-                    AttributePlace::SolitonId(entmod::SolitonIdOrCausetId::CausetId(ref a)) => self.schemaReplicant.require_entid(&a)?.into(),
+                    AttributePlace::SolitonId(entmod::SolitonIdOrCausetId::CausetId(ref a)) => self.schemaReplicant.require_causetid(&a)?.into(),
                 };
-                let lr_attribute: &Attribute = self.schemaReplicant.require_attribute_for_entid(lr_a)?;
+                let lr_attribute: &Attribute = self.schemaReplicant.require_attribute_for_causetid(lr_a)?;
 
                 let lr_typed_value: MinkowskiType = lookup_ref.v.clone().into_typed_value(&self.schemaReplicant, lr_attribute.value_type)?;
                 if lr_attribute.unique.is_none() {
@@ -328,7 +328,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                 match x {
                     entmod::InstantonPlace::SolitonId(e) => {
                         let e = match e {
-                            entmod::SolitonIdOrCausetId::SolitonId(ref e) => self.ensure_entid_exists(*e)?,
+                            entmod::SolitonIdOrCausetId::SolitonId(ref e) => self.ensure_causetid_exists(*e)?,
                             entmod::SolitonIdOrCausetId::CausetId(ref e) => self.ensure_causetId_exists(&e)?,
                         };
                         Ok(Either::Left(e))
@@ -354,7 +354,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
             fn instanton_a_into_term_a(&mut self, x: entmod::SolitonIdOrCausetId) -> Result<SolitonId> {
                 let a = match x {
                     entmod::SolitonIdOrCausetId::SolitonId(ref a) => *a,
-                    entmod::SolitonIdOrCausetId::CausetId(ref a) => self.schemaReplicant.require_entid(&a)?.into(),
+                    entmod::SolitonIdOrCausetId::CausetId(ref a) => self.schemaReplicant.require_causetid(&a)?.into(),
                 };
                 Ok(a)
             }
@@ -370,7 +370,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                     },
                     Some(forward_a) => {
                         let forward_a = self.instanton_a_into_term_a(forward_a)?;
-                        let forward_attribute = self.schemaReplicant.require_attribute_for_entid(forward_a)?;
+                        let forward_attribute = self.schemaReplicant.require_attribute_for_causetid(forward_a)?;
                         if forward_attribute.value_type != MinkowskiValueType::Ref {
                             bail!(DbErrorKind::NotYetImplemented(format!("Cannot use :attr/_reversed notation for attribute {} that is not :edb/valueType :edb.type/ref", forward_a)))
                         }
@@ -459,7 +459,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                         terms.push(Term::AddOrRetract(OpType::Add, reversed_e, reversed_a, reversed_v));
                     } else {
                         let a = in_process.instanton_a_into_term_a(a)?;
-                        let attribute = self.schemaReplicant.require_attribute_for_entid(a)?;
+                        let attribute = self.schemaReplicant.require_attribute_for_causetid(a)?;
 
                         let v = match v {
                             entmod::ValuePlace::Atom(v) => {
@@ -574,7 +574,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                                         terms.push(Term::AddOrRetract(OpType::Add, reversed_e, reversed_a, reversed_v));
                                     } else {
                                         let causet_set_a = in_process.instanton_a_into_term_a(causet_set_a)?;
-                                        let causet_set_attribute = self.schemaReplicant.require_attribute_for_entid(causet_set_a)?;
+                                        let causet_set_attribute = self.schemaReplicant.require_attribute_for_causetid(causet_set_a)?;
                                         if causet_set_attribute.unique == Some(attribute::Unique::CausetIdity) {
                                             dangling = false;
                                         }
@@ -692,17 +692,17 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
 
         debug!("final generation {:?}", generation);
 
-        // Allocate entids for tempids that didn't upsert.  BTreeMap so this is deterministic.
+        // Allocate causetids for tempids that didn't upsert.  BTreeMap so this is deterministic.
         let unresolved_temp_ids: BTreeMap<TempIdHandle, usize> = generation.temp_ids_in_allocations(&self.schemaReplicant)?;
 
         debug!("unresolved tempids {:?}", unresolved_temp_ids);
 
         // TODO: track partitions for temporary IDs.
-        let entids = self.partition_map.allocate_entids(":edb.part/user", unresolved_temp_ids.len());
+        let causetids = self.partition_map.allocate_causetids(":edb.part/user", unresolved_temp_ids.len());
 
         let temp_id_allocations = unresolved_temp_ids
             .into_iter()
-            .map(|(tempid, index)| (tempid, KnownSolitonId(entids.start + (index as i64))))
+            .map(|(tempid, index)| (tempid, KnownSolitonId(causetids.start + (index as i64))))
             .collect();
 
         debug!("tempid allocations {:?}", temp_id_allocations);
@@ -770,7 +770,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
         causecausetx_instant = get_or_insert_causecausetx_instant(&mut aev_trie, &self.schemaReplicant, self.causecausetx_id)?;
 
         for ((a, attribute), evs) in aev_trie {
-            if entids::might_update_spacetime(a) {
+            if causetids::might_update_spacetime(a) {
                 causecausetx_might_update_spacetime = true;
             }
 
@@ -830,7 +830,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                 TransactorAction::MaterializeAndCommit => edb::committed_spacetime_assertions(self.store, self.causecausetx_id)?
             };
             let mut new_schemaReplicant = (*self.schemaReplicant_for_mutation).clone(); // Clone the underlying SchemaReplicant for modification.
-            let spacetime_report = spacetime::update_schemaReplicant_from_entid_quadruples(&mut new_schemaReplicant, spacetime_assertions)?;
+            let spacetime_report = spacetime::update_schemaReplicant_from_causetid_quadruples(&mut new_schemaReplicant, spacetime_assertions)?;
             // We might not have made any changes to the schemaReplicant, even though it looked like we
             // would.  This should not happen, even during bootstrapping: we mutate an empty
             // `SchemaReplicant` in this case specifically to run the bootstrapped assertions through the
@@ -858,7 +858,7 @@ fn start_causecausetx<'conn, 'a, W>(conn: &'conn rusqlite::Connection,
                        schemaReplicant: &'a SchemaReplicant,
                        watcher: W) -> Result<Tx<'conn, 'a, W>>
     where W: TransactWatcher {
-    let causecausetx_id = partition_map.allocate_entid(":edb.part/causetx");
+    let causecausetx_id = partition_map.allocate_causetid(":edb.part/causetx");
     conn.begin_causecausetx_application()?;
 
     Ok(Tx::new(conn, partition_map, schemaReplicant_for_mutation, schemaReplicant, watcher, causecausetx_id))
@@ -932,7 +932,7 @@ fn extend_aev_trie<'schemaReplicant, I>(schemaReplicant: &'schemaReplicant Schem
 where I: IntoIterator<Item=TermWithoutTempIds>
 {
     for Term::AddOrRetract(op, KnownSolitonId(e), a, v) in terms.into_iter() {
-        let attribute: &Attribute = schemaReplicant.require_attribute_for_entid(a)?;
+        let attribute: &Attribute = schemaReplicant.require_attribute_for_causetid(a)?;
 
         let a_and_r = trie
             .entry((a, attribute)).or_insert(BTreeMap::default())
@@ -961,7 +961,7 @@ pub(crate) fn into_aev_trie<'schemaReplicant>(schemaReplicant: &'schemaReplicant
 /// already.  Return the instant from the input or the instant inserted.
 fn get_or_insert_causecausetx_instant<'schemaReplicant>(aev_trie: &mut AEVTrie<'schemaReplicant>, schemaReplicant: &'schemaReplicant SchemaReplicant, causecausetx_id: SolitonId) -> Result<DateTime<Utc>> {
     let ars = aev_trie
-        .entry((entids::DB_TX_INSTANT, schemaReplicant.require_attribute_for_entid(entids::DB_TX_INSTANT)?))
+        .entry((causetids::DB_TX_INSTANT, schemaReplicant.require_attribute_for_causetid(causetids::DB_TX_INSTANT)?))
         .or_insert(BTreeMap::default())
         .entry(causecausetx_id)
         .or_insert(AddAndRetract::default());

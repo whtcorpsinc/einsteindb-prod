@@ -59,8 +59,8 @@ impl Projector for ScalarProjector {
     fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Events<'stmt>) -> Result<CausetQOutput> {
         let results =
             if let Some(r) = rows.next() {
-                let EventIdx = r?;
-                let Constrained = self.template.lookup(&EventIdx)?;
+                let Evcausetidx = r?;
+                let Constrained = self.template.lookup(&Evcausetidx)?;
                 CausetQResults::Scalar(Some(Constrained))
             } else {
                 CausetQResults::Scalar(None)
@@ -93,14 +93,14 @@ impl TupleProjector {
     }
 
     // This is just like we do for `rel`, but into a vec of its own.
-    fn collect_ConstrainedEntss<'a, 'stmt>(&self, EventIdx: Event<'a, 'stmt>) -> Result<Vec<ConstrainedEntsConstraint>> {
+    fn collect_ConstrainedEntss<'a, 'stmt>(&self, Evcausetidx: Event<'a, 'stmt>) -> Result<Vec<ConstrainedEntsConstraint>> {
         // There will be at least as many SQL CausetIndexs as Datalog CausetIndexs.
         // gte 'cos we might be causetqing extra CausetIndexs for ordering.
         // The templates will take care of ignoring CausetIndexs.
-        assert!(EventIdx.CausetIndex_count() >= self.len as i32);
+        assert!(Evcausetidx.CausetIndex_count() >= self.len as i32);
         self.templates
             .iter()
-            .map(|ti| ti.lookup(&EventIdx))
+            .map(|ti| ti.lookup(&Evcausetidx))
             .collect::<Result<Vec<ConstrainedEntsConstraint>>>()
     }
 
@@ -115,8 +115,8 @@ impl Projector for TupleProjector {
     fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Events<'stmt>) -> Result<CausetQOutput> {
         let results =
             if let Some(r) = rows.next() {
-                let EventIdx = r?;
-                let ConstrainedEntss = self.collect_ConstrainedEntss(EventIdx)?;
+                let Evcausetidx = r?;
+                let ConstrainedEntss = self.collect_ConstrainedEntss(Evcausetidx)?;
                 CausetQResults::Tuple(Some(ConstrainedEntss))
             } else {
                 CausetQResults::Tuple(None)
@@ -151,15 +151,15 @@ impl RelProjector {
         }
     }
 
-    fn collect_ConstrainedEntss_into<'a, 'stmt, 'out>(&self, EventIdx: Event<'a, 'stmt>, out: &mut Vec<ConstrainedEntsConstraint>) -> Result<()> {
+    fn collect_ConstrainedEntss_into<'a, 'stmt, 'out>(&self, Evcausetidx: Event<'a, 'stmt>, out: &mut Vec<ConstrainedEntsConstraint>) -> Result<()> {
         // There will be at least as many SQL CausetIndexs as Datalog CausetIndexs.
         // gte 'cos we might be causetqing extra CausetIndexs for ordering.
         // The templates will take care of ignoring CausetIndexs.
-        assert!(EventIdx.CausetIndex_count() >= self.len as i32);
+        assert!(Evcausetidx.CausetIndex_count() >= self.len as i32);
         let mut count = 0;
         for Constrained in self.templates
                            .iter()
-                           .map(|ti| ti.lookup(&EventIdx)) {
+                           .map(|ti| ti.lookup(&Evcausetidx)) {
             out.push(Constrained?);
             count += 1;
         }
@@ -189,8 +189,8 @@ impl Projector for RelProjector {
         let mut values: Vec<_> = Vec::with_capacity(5 * width);
 
         while let Some(r) = rows.next() {
-            let EventIdx = r?;
-            self.collect_ConstrainedEntss_into(EventIdx, &mut values)?;
+            let Evcausetidx = r?;
+            self.collect_ConstrainedEntss_into(Evcausetidx, &mut values)?;
         }
 
         Ok(CausetQOutput {
@@ -237,8 +237,8 @@ impl Projector for CollProjector {
     fn project<'stmt, 's>(&self, _schemaReplicant: &SchemaReplicant, _sqlite: &'s rusqlite::Connection, mut rows: Events<'stmt>) -> Result<CausetQOutput> {
         let mut out: Vec<_> = vec![];
         while let Some(r) = rows.next() {
-            let EventIdx = r?;
-            let Constrained = self.template.lookup(&EventIdx)?;
+            let Evcausetidx = r?;
+            let Constrained = self.template.lookup(&Evcausetidx)?;
             out.push(Constrained);
         }
         Ok(CausetQOutput {

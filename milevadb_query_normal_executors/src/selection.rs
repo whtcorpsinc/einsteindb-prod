@@ -38,16 +38,16 @@ impl<Src: FreeDaemon> FreeDaemon for SelectionFreeDaemon<Src> {
     type StorageStats = Src::StorageStats;
 
     fn next(&mut self) -> Result<Option<Event>> {
-        'next: while let Some(EventIdx) = self.src.next()? {
-            let EventIdx = EventIdx.take_origin()?;
-            let cols = EventIdx.inflate_cols_with_offsets(&mut self.ctx, &self.related_cols_offset)?;
+        'next: while let Some(Evcausetidx) = self.src.next()? {
+            let Evcausetidx = Evcausetidx.take_origin()?;
+            let cols = Evcausetidx.inflate_cols_with_offsets(&mut self.ctx, &self.related_cols_offset)?;
             for filter in &self.conditions {
                 let val = filter.eval(&mut self.ctx, &cols)?;
                 if !val.into_bool(&mut self.ctx)?.unwrap_or(false) {
                     continue 'next;
                 }
             }
-            return Ok(Some(Event::Origin(EventIdx)));
+            return Ok(Some(Event::Origin(Evcausetidx)));
         }
         Ok(None)
     }
@@ -193,8 +193,8 @@ mod tests {
                 .unwrap();
 
         let mut selection_rows = Vec::with_capacity(raw_data.len());
-        while let Some(EventIdx) = selection_executor.next().unwrap() {
-            selection_rows.push(EventIdx.take_origin().unwrap());
+        while let Some(Evcausetidx) = selection_executor.next().unwrap() {
+            selection_rows.push(Evcausetidx.take_origin().unwrap());
         }
 
         assert_eq!(selection_rows.len(), raw_data.len());
@@ -232,8 +232,8 @@ mod tests {
                 .unwrap();
 
         let mut selection_rows = Vec::with_capacity(raw_data.len());
-        while let Some(EventIdx) = selection_executor.next().unwrap() {
-            selection_rows.push(EventIdx.take_origin().unwrap());
+        while let Some(Evcausetidx) = selection_executor.next().unwrap() {
+            selection_rows.push(Evcausetidx.take_origin().unwrap());
         }
 
         let expect_row_handles = raw_data

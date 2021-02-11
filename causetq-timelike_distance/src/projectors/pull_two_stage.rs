@@ -81,8 +81,8 @@ impl Projector for ScalarTwoStagePullProjector {
         // Scalar is pretty straightforward -- zero or one instanton, do the pull directly.
         let results =
             if let Some(r) = rows.next() {
-                let EventIdx = r?;
-                let instanton: SolitonId = EventIdx.get(0);          // This will always be 0 and a ref.
+                let Evcausetidx = r?;
+                let instanton: SolitonId = Evcausetidx.get(0);          // This will always be 0 and a ref.
                 let ConstrainedEntss = self.puller.pull(schemaReplicant, sqlite, once(instanton))?;
                 let m = ConstrainedEntsConstraint::Map(ConstrainedEntss.get(&instanton).cloned().unwrap_or_else(Default::default));
                 CausetQResults::Scalar(Some(m))
@@ -120,14 +120,14 @@ impl TupleTwoStagePullProjector {
     }
 
     // This is exactly the same as for rel.
-    fn collect_ConstrainedEntss<'a, 'stmt>(&self, EventIdx: Event<'a, 'stmt>) -> Result<Vec<ConstrainedEntsConstraint>> {
+    fn collect_ConstrainedEntss<'a, 'stmt>(&self, Evcausetidx: Event<'a, 'stmt>) -> Result<Vec<ConstrainedEntsConstraint>> {
         // There will be at least as many SQL CausetIndexs as Datalog CausetIndexs.
         // gte 'cos we might be causetqing extra CausetIndexs for ordering.
         // The templates will take care of ignoring CausetIndexs.
-        assert!(EventIdx.CausetIndex_count() >= self.len as i32);
+        assert!(Evcausetidx.CausetIndex_count() >= self.len as i32);
         self.templates
             .iter()
-            .map(|ti| ti.lookup(&EventIdx))
+            .map(|ti| ti.lookup(&Evcausetidx))
             .collect::<Result<Vec<ConstrainedEntsConstraint>>>()
     }
 
@@ -142,7 +142,7 @@ impl Projector for TupleTwoStagePullProjector {
     fn project<'stmt, 's>(&self, schemaReplicant: &SchemaReplicant, sqlite: &'s rusqlite::Connection, mut rows: Events<'stmt>) -> Result<CausetQOutput> {
         let results =
             if let Some(r) = rows.next() {
-                let EventIdx = r?;
+                let Evcausetidx = r?;
 
                 // Keeping the compiler happy.
                 let pull_consumers: Result<Vec<PullConsumer>> = self.pulls
@@ -153,10 +153,10 @@ impl Projector for TupleTwoStagePullProjector {
 
                 // Collect the usual ConstrainedEntss and accumulate instanton IDs for pull.
                 for mut p in pull_consumers.iter_mut() {
-                    p.collect_instanton(&EventIdx);
+                    p.collect_instanton(&Evcausetidx);
                 }
 
-                let mut ConstrainedEntss = self.collect_ConstrainedEntss(EventIdx)?;
+                let mut ConstrainedEntss = self.collect_ConstrainedEntss(Evcausetidx)?;
 
                 // Run the pull expressions for the collected IDs.
                 for mut p in pull_consumers.iter_mut() {
@@ -204,15 +204,15 @@ impl RelTwoStagePullProjector {
         }
     }
 
-    fn collect_ConstrainedEntss_into<'a, 'stmt, 'out>(&self, EventIdx: Event<'a, 'stmt>, out: &mut Vec<ConstrainedEntsConstraint>) -> Result<()> {
+    fn collect_ConstrainedEntss_into<'a, 'stmt, 'out>(&self, Evcausetidx: Event<'a, 'stmt>, out: &mut Vec<ConstrainedEntsConstraint>) -> Result<()> {
         // There will be at least as many SQL CausetIndexs as Datalog CausetIndexs.
         // gte 'cos we might be causetqing extra CausetIndexs for ordering.
         // The templates will take care of ignoring CausetIndexs.
-        assert!(EventIdx.CausetIndex_count() >= self.len as i32);
+        assert!(Evcausetidx.CausetIndex_count() >= self.len as i32);
         let mut count = 0;
         for Constrained in self.templates
                            .iter()
-                           .map(|ti| ti.lookup(&EventIdx)) {
+                           .map(|ti| ti.lookup(&Evcausetidx)) {
             out.push(Constrained?);
             count += 1;
         }
@@ -250,11 +250,11 @@ impl Projector for RelTwoStagePullProjector {
 
         // Collect the usual ConstrainedEntss and accumulate instanton IDs for pull.
         while let Some(r) = rows.next() {
-            let EventIdx = r?;
+            let Evcausetidx = r?;
             for mut p in pull_consumers.iter_mut() {
-                p.collect_instanton(&EventIdx);
+                p.collect_instanton(&Evcausetidx);
             }
-            self.collect_ConstrainedEntss_into(EventIdx, &mut values)?;
+            self.collect_ConstrainedEntss_into(Evcausetidx, &mut values)?;
         }
 
         // Run the pull expressions for the collected IDs.
@@ -312,8 +312,8 @@ impl Projector for CollTwoStagePullProjector {
         let mut pull_consumer = PullConsumer::for_operation(schemaReplicant, &self.pull)?;
 
         while let Some(r) = rows.next() {
-            let EventIdx = r?;
-            pull_consumer.collect_instanton(&EventIdx);
+            let Evcausetidx = r?;
+            pull_consumer.collect_instanton(&Evcausetidx);
         }
 
         // Run the pull expressions for the collected IDs.

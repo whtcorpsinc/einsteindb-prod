@@ -45,7 +45,7 @@ quick_error! {
 
 enum MountInfoFieldPart1 {
     MountID = 0,
-    ParentID,
+    Parcausetid,
     DeviceID,
     Root,
     MountPoint,
@@ -117,7 +117,7 @@ pub fn parse_mount_point_from_line(line: &str) -> Result<MountPoint, String> {
     let mount_id = fields[MountInfoFieldPart1::MountID as usize]
         .parse::<i32>()
         .unwrap();
-    let parent_id = fields[MountInfoFieldPart1::ParentID as usize]
+    let parent_id = fields[MountInfoFieldPart1::Parcausetid as usize]
         .parse::<i32>()
         .unwrap();
     let mount_point = MountPoint {

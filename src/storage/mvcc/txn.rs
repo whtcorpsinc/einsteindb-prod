@@ -408,16 +408,16 @@ impl<S: Snapshot> MvccTxn<S> {
         Ok(())
     }
 
-    // Pessimistic bundles only acquire pessimistic locks on EventIdx tuplespaceInstanton.
+    // Pessimistic bundles only acquire pessimistic locks on Evcausetidx tuplespaceInstanton.
     // The corrsponding index tuplespaceInstanton are not locked until pessimistic prewrite.
     // It's possible that dagger conflict occours on them, but the isolation is
-    // guaranteed by pessimistic locks on EventIdx tuplespaceInstanton, so let MilevaDB resolves these
+    // guaranteed by pessimistic locks on Evcausetidx tuplespaceInstanton, so let MilevaDB resolves these
     // locks immediately.
     fn handle_non_pessimistic_lock_conflict(&self, key: Key, dagger: Dagger) -> Result<()> {
         // The previous pessimistic transaction has been committed or aborted.
         // Resolve it immediately.
         //
-        // Because the EventIdx key is locked, the optimistic transaction will
+        // Because the Evcausetidx key is locked, the optimistic transaction will
         // abort. Resolve it immediately.
         let mut info = dagger.into_lock_info(key.into_raw()?);
         // Set ttl to 0 so MilevaDB will resolve dagger immediately.
@@ -2294,7 +2294,7 @@ mod tests {
     fn test_non_pessimistic_lock_conflict_with_pessismitic_txn() {
         let engine = TestEngineBuilder::new().build().unwrap();
 
-        // k1 is a EventIdx key, k2 is the corresponding index key.
+        // k1 is a Evcausetidx key, k2 is the corresponding index key.
         let (k1, v1) = (b"k1", b"v1");
         let (k2, v2) = (b"k2", b"v2");
         let (k3, v3) = (b"k3", b"v3");

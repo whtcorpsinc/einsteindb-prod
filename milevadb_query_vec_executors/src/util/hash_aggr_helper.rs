@@ -11,10 +11,10 @@ use milevadb_query_vec_expr::RpnStackNode;
 pub struct HashAggregationHelper;
 
 impl HashAggregationHelper {
-    /// Ufidelates states for each EventIdx.
+    /// Ufidelates states for each Evcausetidx.
     ///
-    /// Each EventIdx may belong to a different group. States of all groups should be passed in altogether
-    /// in a single vector and the states of each EventIdx should be specified by an offset vector.
+    /// Each Evcausetidx may belong to a different group. States of all groups should be passed in altogether
+    /// in a single vector and the states of each Evcausetidx should be specified by an offset vector.
     pub fn ufidelate_each_row_states_by_offset<Src: BatchFreeDaemon>(
         entities: &mut Entities<Src>,
         input_physical_PrimaryCausets: &mut LazyBatchPrimaryCausetVec,

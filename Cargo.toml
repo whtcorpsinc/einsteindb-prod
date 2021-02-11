@@ -67,7 +67,6 @@ test_sst_importer = { path = "components/test_sst_importer" }
 test_util = { path = "components/test_util" }
 tokio = { version = "1.0.1", features = ["macros", "rt-threaded", "time"] }
 zipf = "7.0.0"
-
 async-stream = "0.3.0"
 async-trait = "0.1"
 backtrace = "0.3"
@@ -94,7 +93,7 @@ fs2 = "0.4"
 futures = { version = "0.3", features = ["thread-pool", "compat"] }
 futures-executor = "0.3.1"
 futures-util = { version = "0.3.1", default-features = false, features = ["io", "async-await"] }
-grpcio = { version = "0.6", default-features = false, features = ["openssl-vlightlikeored"] }
+grpcio = { version = "0.7.1", default-features = false, features = ["openssl-vlightlikeored"] }
 hex = "0.4"
 hyper-tls = "0.5.0"
 itertools = "0.10.0"
@@ -151,7 +150,7 @@ milevadb_query_vec_executors = { path = "components/milevadb_query_vec_executors
 einsteindb_util = { path = "components/einsteindb_util" }
 time = "0.2.23"
 fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
-tokio = { version = "1.0.1", features = ["full"] }
+tokio = { version = "1.1.1", features = ["full"] }
 tokio-threadpool = "0.1.13"
 tokio-timer = "0.2"
 tokio-openssl = "0.6.0"

@@ -1,10 +1,10 @@
 [package]
-name = "allegrosql_promises"
+name = "allegrosql-promises"
 version = "0.0.1"
 workspace = ".."
 
 [lib]
-name = "allegrosql_promises"
+name = "allegrosql-promises"
 path = "lib.rs"
 
 [dependencies]

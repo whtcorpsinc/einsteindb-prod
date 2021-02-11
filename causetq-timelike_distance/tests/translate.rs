@@ -65,7 +65,7 @@ macro_rules! var {
 }
 
 fn associate_causetId(schemaReplicant: &mut SchemaReplicant, i: Keyword, e: SolitonId) {
-    schemaReplicant.entid_map.insert(e, i.clone());
+    schemaReplicant.causetid_map.insert(e, i.clone());
     schemaReplicant.causetId_map.insert(i.clone(), e);
 }
 

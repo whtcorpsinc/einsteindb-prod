@@ -33,7 +33,7 @@ use einstein_db::{
     CORE_SCHEMA_VERSION,
     lightcones,
     debug,
-    entids,
+    causetids,
     PartitionMap,
 };
 use einsteindb_transaction::{
@@ -333,7 +333,7 @@ impl Syncer {
             // into a (transaction-causetx) style assertion.
             // Transactor knows how to pick out a causecausetxInstant value out of these
             // assertions and use that value for the generated transaction's causecausetxInstant.
-            if part.a == entids::DB_TX_INSTANT {
+            if part.a == causetids::DB_TX_INSTANT {
                 e = InstantonPlace::TxFunction(TxFunction { op: PlainSymbol("transaction-causetx".to_string()) } ).into();
             } else {
                 e = KnownSolitonId(part.e).into();
@@ -351,7 +351,7 @@ impl Syncer {
 
     /// In context of a "transaction to be applied", a PartitionMap supplied here
     /// represents what a PartitionMap will be once this transaction is applied.
-    /// This works well for regular assertions: entids are supplied, and we need
+    /// This works well for regular assertions: causetids are supplied, and we need
     /// them to be allocated in the user partition space.
     /// However, we need to decrement 'causetx' partition's index, so that the transactor's
     /// allocated causetx will match what came off the wire.
@@ -360,8 +360,8 @@ impl Syncer {
         if let Some(causecausetx_part) = partition_map.get_mut(":edb.part/causetx") {
             assert_eq!(false, causecausetx_part.allow_excision); // Sanity check.
 
-            let next_entid = causecausetx_part.next_entid() - 1;
-            causecausetx_part.set_next_entid(next_entid);
+            let next_causetid = causecausetx_part.next_causetid() - 1;
+            causecausetx_part.set_next_causetid(next_causetid);
             Ok(())
         } else {
             bail!(LeninError::BadRemoteState("Missing causetx partition in an incoming transaction".to_string()));
@@ -388,7 +388,7 @@ impl Syncer {
             Syncer::rewind_causecausetx_partition_by_one(&mut partition_map)?;
             Syncer::remote_parts_to_builder(&mut builder, causetx.parts)?;
 
-            // Allocate space for the incoming entids.
+            // Allocate space for the incoming causetids.
             in_progress.partition_map = partition_map;
             let report = in_progress.transact_builder(builder)?;
             last_causecausetx = Some((report.causecausetx_id, causetx.causetx.clone()));
@@ -448,7 +448,7 @@ impl Syncer {
             // See function's notes for details.
             Syncer::rewind_causecausetx_partition_by_one(&mut partition_map)?;
 
-            // This allocates our incoming entids in each builder,
+            // This allocates our incoming causetids in each builder,
             // letting us just use KnownSolitonId in the builders.
             ip.partition_map = partition_map;
             remote_report = Some((ip.transact_builder(builder)?.causecausetx_id, remote_causecausetx));
@@ -466,7 +466,7 @@ impl Syncer {
             // might be allocated in this transaction.
             // In the former case, refer to it verbatim.
             // In the latter case, rewrite it as a tempid, and let the transactor allocate it.
-            let mut entids_that_will_allocate = HashSet::new();
+            let mut causetids_that_will_allocate = HashSet::new();
 
             // We currently support "strict schemaReplicant merging": we'll smush attribute definitions,
             // but only if they're the same.
@@ -475,7 +475,7 @@ impl Syncer {
             // - attribute is defined either on local or remote,
             // - attribute is defined on both local and remote in the same way.
             // Modifying an attribute is currently not supported (requires higher order schemaReplicant migrations).
-            // Note that "same" local and remote attributes might have different entids in the
+            // Note that "same" local and remote attributes might have different causetids in the
             // two sets of bundles.
 
             // Set of entities that may alter "installed" attribute.
@@ -491,13 +491,13 @@ impl Syncer {
             // Note that at this point, remote and local have flipped - we're transacting
             // local on top of incoming (which are already in the schemaReplicant).
 
-            // Go through local causets, and classify any schemaReplicant-altering entids into
+            // Go through local causets, and classify any schemaReplicant-altering causetids into
             // one of the two sets above.
             for part in &local_causecausetx.parts {
                 // If we have an causetid definition locally, check if remote
                 // already defined this causetid. If it did, we'll need to ensure
                 // both local and remote are defining it in the same way.
-                if part.a == entids::DB_CAUSETID {
+                if part.a == causetids::DB_CAUSETID {
                     match part.v {
                         MinkowskiType::Keyword(ref local_kw) => {
                             // Remote did not define this causetid. Make a note of it,
@@ -513,7 +513,7 @@ impl Syncer {
                         },
                         _ => panic!("programming error: wrong value type for a local causetid")
                     }
-                } else if entids::is_a_schemaReplicant_attribute(part.a) && !will_not_alter_installed_attribute.contains(&part.e) {
+                } else if causetids::is_a_schemaReplicant_attribute(part.a) && !will_not_alter_installed_attribute.contains(&part.e) {
                     might_alter_installed_attributes.insert(part.e);
                 }
             }
@@ -524,14 +524,14 @@ impl Syncer {
                     // During a merge we're concerned with entities in the "user" partition,
                     // while this falls into the "causetx" partition.
                     // We have preserved the original causecausetxInstant value on the alternate lightcone.
-                    entids::DB_TX_INSTANT => continue,
+                    causetids::DB_TX_INSTANT => continue,
 
                     // 'e's will be replaced with tempids, letting transactor handle everything.
                     // Non-unique entities are "duplicated". Unique entities are upserted.
                     _ => {
                         // Retractions never allocated tempids in the transactor.
                         if part.added {
-                            entids_that_will_allocate.insert(part.e);
+                            causetids_that_will_allocate.insert(part.e);
                         }
                     },
                 }
@@ -540,7 +540,7 @@ impl Syncer {
             // :edb/causetid is a edb.unique/causetIdity attribute, which means transactor will upsert
             // attribute assertions. E.g. if a new attribute was defined on local and not on remote,
             // it will be inserted. If both local and remote defined the same attribute
-            // with different entids, we'll converge and use remote's solitonId.
+            // with different causetids, we'll converge and use remote's solitonId.
 
             // Same follows for other types of edb.unique/causetIdity attributes.
             // If user-defined attribute is edb.unique/causetIdity, we'll "smush" local and remote
@@ -555,7 +555,7 @@ impl Syncer {
                 // Skip the "causetx instant" Causet: it will be generated by our transactor.
                 // We don't care about preserving exact state of these causets: they're already
                 // stashed away on the lightcone we've created above.
-                if part.a == entids::DB_TX_INSTANT {
+                if part.a == causetids::DB_TX_INSTANT {
                     continue;
                 }
 
@@ -563,8 +563,8 @@ impl Syncer {
                 let a = KnownSolitonId(part.a);
                 let v = part.v;
 
-                // Rewrite entids if they will allocate (see instanton merging notes above).
-                if entids_that_will_allocate.contains(&part.e) {
+                // Rewrite causetids if they will allocate (see instanton merging notes above).
+                if causetids_that_will_allocate.contains(&part.e) {
                     e = builder.named_tempid(format!("{}", part.e)).into();
                 // Otherwise, refer to existing entities.
                 } else {
@@ -585,7 +585,7 @@ impl Syncer {
                 match part.added {
                     true => builder.add(e, a, v)?,
                     false => {
-                        if entids_that_will_allocate.contains(&part.e) {
+                        if causetids_that_will_allocate.contains(&part.e) {
                             builder.retract(e, a, v)?;
                             continue;
                         }

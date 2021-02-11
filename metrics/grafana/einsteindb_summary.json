@@ -1170,7 +1170,7 @@
       ],
       "repeat": null,
       "title": "Cluster",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -2184,7 +2184,7 @@
       ],
       "repeat": null,
       "title": "Errors",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -2689,7 +2689,7 @@
       ],
       "repeat": null,
       "title": "Server",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -3081,7 +3081,7 @@
       ],
       "repeat": null,
       "title": "gRPC",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -4391,7 +4391,7 @@
       ],
       "repeat": null,
       "title": "Thread CPU",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -4771,7 +4771,7 @@
       ],
       "repeat": null,
       "title": "FIDel",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     }
   ],
   "refresh": "1m",

@@ -461,7 +461,7 @@ pub fn check_need_gc(
     }
 
     // Note: Since the properties are file-based, it can be false positive.
-    // For example, multiple files can have a different version of the same EventIdx.
+    // For example, multiple files can have a different version of the same Evcausetidx.
 
     // A lot of MVCC versions to GC.
     if props.num_versions as f64 > props.num_rows as f64 * ratio_memory_barrier {
@@ -472,7 +472,7 @@ pub fn check_need_gc(
         return true;
     }
 
-    // A lot of MVCC versions of a single EventIdx to GC.
+    // A lot of MVCC versions of a single Evcausetidx to GC.
     props.max_row_versions > GC_MAX_ROW_VERSIONS_THRESHOLD
 }
 

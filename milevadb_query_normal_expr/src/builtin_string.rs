@@ -24,8 +24,8 @@ const SPACE: u8 = 0o40u8;
 
 impl ScalarFunc {
     #[inline]
-    pub fn length(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+    pub fn length(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let input = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         Ok(Some(input.len() as i64))
     }
 
@@ -35,19 +35,19 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn locate_2_args_utf8(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let substr = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
-        let s = try_opt!(self.children[1].eval_string_and_decode(ctx, EventIdx));
+    pub fn locate_2_args_utf8(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let substr = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
+        let s = try_opt!(self.children[1].eval_string_and_decode(ctx, Evcausetidx));
         Ok(Self::find_str(&s.to_lowercase(), &substr.to_lowercase())
             .map(|i| 1 + i as i64)
             .or(Some(0)))
     }
 
     #[inline]
-    pub fn locate_3_args_utf8(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let substr = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
-        let s = try_opt!(self.children[1].eval_string_and_decode(ctx, EventIdx));
-        let pos = try_opt!(self.children[2].eval_int(ctx, EventIdx));
+    pub fn locate_3_args_utf8(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let substr = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
+        let s = try_opt!(self.children[1].eval_string_and_decode(ctx, Evcausetidx));
+        let pos = try_opt!(self.children[2].eval_int(ctx, Evcausetidx));
         if pos < 1 {
             return Ok(Some(0));
         }
@@ -64,19 +64,19 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn locate_2_args(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let substr = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let s = try_opt!(self.children[1].eval_string(ctx, EventIdx));
+    pub fn locate_2_args(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let substr = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let s = try_opt!(self.children[1].eval_string(ctx, Evcausetidx));
         Ok(twoway::find_bytes(&s, &substr)
             .map(|i| 1 + i as i64)
             .or(Some(0)))
     }
 
     #[inline]
-    pub fn locate_3_args(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let substr = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let s = try_opt!(self.children[1].eval_string(ctx, EventIdx));
-        let pos = try_opt!(self.children[2].eval_int(ctx, EventIdx));
+    pub fn locate_3_args(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let substr = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let s = try_opt!(self.children[1].eval_string(ctx, Evcausetidx));
+        let pos = try_opt!(self.children[2].eval_int(ctx, Evcausetidx));
 
         if pos < 1 || pos as usize > s.len() + 1 {
             return Ok(Some(0));
@@ -87,14 +87,14 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn bit_length(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+    pub fn bit_length(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let input = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         Ok(Some(input.len() as i64 * 8))
     }
 
     #[inline]
-    pub fn ascii(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+    pub fn ascii(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let input = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         if input.len() == 0 {
             Ok(Some(0))
         } else {
@@ -103,14 +103,14 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn char_length_utf8(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let input = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
+    pub fn char_length_utf8(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let input = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
         Ok(Some(input.chars().count() as i64))
     }
 
     #[inline]
-    pub fn char_length(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+    pub fn char_length(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let input = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         Ok(Some(input.len() as i64))
     }
 
@@ -118,9 +118,9 @@ impl ScalarFunc {
     pub fn bin<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let i = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let i = try_opt!(self.children[0].eval_int(ctx, Evcausetidx));
         Ok(Some(Cow::Owned(format!("{:b}", i).into_bytes())))
     }
 
@@ -128,9 +128,9 @@ impl ScalarFunc {
     pub fn oct_int<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let i = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let i = try_opt!(self.children[0].eval_int(ctx, Evcausetidx));
         Ok(Some(Cow::Owned(format!("{:o}", i).into_bytes())))
     }
 
@@ -138,11 +138,11 @@ impl ScalarFunc {
     pub fn concat<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
         let mut output: Vec<u8> = Vec::new();
         for expr in &self.children {
-            let input = try_opt!(expr.eval_string(ctx, EventIdx));
+            let input = try_opt!(expr.eval_string(ctx, Evcausetidx));
             output.extlightlike_from_slice(&input);
         }
         Ok(Some(Cow::Owned(output)))
@@ -152,17 +152,17 @@ impl ScalarFunc {
     pub fn concat_ws<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
         use crate::Expression;
         fn collect_valid_strs<'a, 'b: 'a>(
             exps: &'b [Expression],
             ctx: &mut EvalContext,
-            EventIdx: &'a [Datum],
+            Evcausetidx: &'a [Datum],
         ) -> Result<Vec<Cow<'a, [u8]>>> {
             let mut result = Vec::new();
             for exp in exps {
-                let x = exp.eval_string(ctx, EventIdx)?;
+                let x = exp.eval_string(ctx, Evcausetidx)?;
                 if let Some(s) = x {
                     result.push(s);
                 }
@@ -170,8 +170,8 @@ impl ScalarFunc {
             Ok(result)
         }
 
-        let sep = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let strs = collect_valid_strs(&self.children[1..], ctx, EventIdx)?;
+        let sep = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let strs = collect_valid_strs(&self.children[1..], ctx, Evcausetidx)?;
         let output = strs.as_slice().join(sep.as_ref());
         Ok(Some(Cow::Owned(output)))
     }
@@ -180,9 +180,9 @@ impl ScalarFunc {
     pub fn ltrim<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let val = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+        let val = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         let pos = val.iter().position(|&x| x != SPACE);
         if let Some(i) = pos {
             match val {
@@ -198,9 +198,9 @@ impl ScalarFunc {
     pub fn rtrim<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let val = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+        let val = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         let pos = val.iter().rev().position(|&x| x != SPACE);
         if let Some(i) = pos {
             match val {
@@ -217,10 +217,10 @@ impl ScalarFunc {
     pub fn repeat<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let val = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let num = try_opt!(self.children[1].eval_int(ctx, EventIdx));
+        let val = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let num = try_opt!(self.children[1].eval_int(ctx, Evcausetidx));
         let count = if num > std::i32::MAX.into() {
             std::i32::MAX.into()
         } else {
@@ -260,10 +260,10 @@ impl ScalarFunc {
     pub fn left_utf8<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
-        let i = try_opt!(self.children[1].eval_int(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
+        let i = try_opt!(self.children[1].eval_int(ctx, Evcausetidx));
         let (i, length_positive) = i64_to_usize(i, self.children[1].is_unsigned());
         if !length_positive || i == 0 {
             return Ok(Some(Cow::Borrowed(b"")));
@@ -279,9 +279,9 @@ impl ScalarFunc {
     pub fn reverse_utf8<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
         Ok(Some(Cow::Owned(
             s.chars().rev().collect::<String>().into_bytes(),
         )))
@@ -291,9 +291,9 @@ impl ScalarFunc {
     pub fn reverse<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let mut s = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+        let mut s = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         s.to_mut().reverse();
         Ok(Some(s))
     }
@@ -301,10 +301,10 @@ impl ScalarFunc {
     pub fn right_utf8<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
-        let i = try_opt!(self.children[1].eval_int(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
+        let i = try_opt!(self.children[1].eval_int(ctx, Evcausetidx));
         let (i, length_positive) = i64_to_usize(i, self.children[1].is_unsigned());
         if !length_positive || i == 0 {
             return Ok(Some(Cow::Borrowed(b"")));
@@ -325,9 +325,9 @@ impl ScalarFunc {
     pub fn upper_utf8<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
         Ok(Some(Cow::Owned(s.to_uppercase().into_bytes())))
     }
 
@@ -335,9 +335,9 @@ impl ScalarFunc {
     pub fn upper<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         Ok(Some(s))
     }
 
@@ -345,13 +345,13 @@ impl ScalarFunc {
     pub fn lower<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
         if self.children[0].field_type().is_binary_string_like() {
-            let s = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+            let s = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
             return Ok(Some(s));
         }
-        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
         Ok(Some(Cow::Owned(s.to_lowercase().into_bytes())))
     }
 
@@ -359,9 +359,9 @@ impl ScalarFunc {
     pub fn hex_int_arg<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let i = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let i = try_opt!(self.children[0].eval_int(ctx, Evcausetidx));
         Ok(Some(Cow::Owned(format!("{:X}", i).into_bytes())))
     }
 
@@ -369,9 +369,9 @@ impl ScalarFunc {
     pub fn hex_str_arg<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         Ok(Some(Cow::Owned(hex::encode_upper(s.to_vec()).into_bytes())))
     }
 
@@ -379,9 +379,9 @@ impl ScalarFunc {
     pub fn un_hex<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         let hex_string = if s.len() % 2 == 1 {
             // Add a '0' to the front, if the length is not the multiple of 2
             let mut vec = vec![b'0'];
@@ -398,22 +398,22 @@ impl ScalarFunc {
     pub fn elt<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let i = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let i = try_opt!(self.children[0].eval_int(ctx, Evcausetidx));
         if i <= 0 || i + 1 > self.children.len() as i64 {
             return Ok(None);
         }
-        self.children[i as usize].eval_string(ctx, EventIdx)
+        self.children[i as usize].eval_string(ctx, Evcausetidx)
     }
 
     #[inline]
-    pub fn field_int(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+    pub fn field_int(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
         // As per the MySQL doc, if the first argument is NULL, this function always returns 0.
-        let val = try_opt_or!(self.children[0].eval_int(ctx, EventIdx), Some(0));
+        let val = try_opt_or!(self.children[0].eval_int(ctx, Evcausetidx), Some(0));
 
         for (i, exp) in self.children.iter().skip(1).enumerate() {
-            match exp.eval_int(ctx, EventIdx) {
+            match exp.eval_int(ctx, Evcausetidx) {
                 Err(e) => return Err(e),
                 Ok(Some(v)) if v == val => return Ok(Some(i as i64 + 1)),
                 _ => (),
@@ -423,11 +423,11 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn field_real(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let val = try_opt_or!(self.children[0].eval_real(ctx, EventIdx), Some(0));
+    pub fn field_real(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let val = try_opt_or!(self.children[0].eval_real(ctx, Evcausetidx), Some(0));
 
         for (i, exp) in self.children.iter().skip(1).enumerate() {
-            match exp.eval_real(ctx, EventIdx) {
+            match exp.eval_real(ctx, Evcausetidx) {
                 Err(e) => return Err(e),
                 Ok(Some(v)) => match datum::cmp_f64(v, val) {
                     Ok(Ordering::Equal) => return Ok(Some(i as i64 + 1)),
@@ -441,11 +441,11 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn field_string(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
-        let val = try_opt_or!(self.children[0].eval_string(ctx, EventIdx), Some(0));
+    pub fn field_string(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
+        let val = try_opt_or!(self.children[0].eval_string(ctx, Evcausetidx), Some(0));
 
         for (i, exp) in self.children.iter().skip(1).enumerate() {
-            match exp.eval_string(ctx, EventIdx) {
+            match exp.eval_string(ctx, Evcausetidx) {
                 Err(e) => return Err(e),
                 Ok(Some(ref v)) if *v == val => return Ok(Some(i as i64 + 1)),
                 _ => (),
@@ -458,9 +458,9 @@ impl ScalarFunc {
     pub fn trim_1_arg<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
         Ok(Some(Cow::Owned(trim(&s, " ", TrimDirection::Both))))
     }
 
@@ -468,10 +468,10 @@ impl ScalarFunc {
     pub fn trim_2_args<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
-        let pat = try_opt!(self.children[1].eval_string_and_decode(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
+        let pat = try_opt!(self.children[1].eval_string_and_decode(ctx, Evcausetidx));
         Ok(Some(Cow::Owned(trim(&s, &pat, TrimDirection::Both))))
     }
 
@@ -479,11 +479,11 @@ impl ScalarFunc {
     pub fn trim_3_args<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
-        let pat = try_opt!(self.children[1].eval_string_and_decode(ctx, EventIdx));
-        let direction = try_opt!(self.children[2].eval_int(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
+        let pat = try_opt!(self.children[1].eval_string_and_decode(ctx, Evcausetidx));
+        let direction = try_opt!(self.children[2].eval_int(ctx, Evcausetidx));
         match TrimDirection::from_i64(direction) {
             Some(d) => Ok(Some(Cow::Owned(trim(&s, &pat, d)))),
             _ => Err(box_err!("invalid direction value: {}", direction)),
@@ -494,9 +494,9 @@ impl ScalarFunc {
     pub fn to_base64<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
 
         if self.field_type.get_flen() == -1
             || self.field_type.get_flen() > milevadb_query_datatype::MAX_BLOB_WIDTH
@@ -520,9 +520,9 @@ impl ScalarFunc {
     pub fn from_base64<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+        let input = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
 
         let input_copy = strip_whitespace(&input);
         let will_overflow = input_copy
@@ -545,11 +545,11 @@ impl ScalarFunc {
     pub fn substring_index<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
-        let delim = try_opt!(self.children[1].eval_string_and_decode(ctx, EventIdx));
-        let count = try_opt!(self.children[2].eval_int(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
+        let delim = try_opt!(self.children[1].eval_string_and_decode(ctx, Evcausetidx));
+        let count = try_opt!(self.children[2].eval_int(ctx, Evcausetidx));
         if delim.is_empty() || count == 0 {
             return Ok(Some(Cow::Borrowed(b"")));
         }
@@ -568,10 +568,10 @@ impl ScalarFunc {
     pub fn substring_2_args_utf8<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
-        let pos = try_opt!(self.children[1].eval_int(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
+        let pos = try_opt!(self.children[1].eval_int(ctx, Evcausetidx));
         if pos == 0 {
             return Ok(Some(Cow::Borrowed(b"")));
         }
@@ -604,11 +604,11 @@ impl ScalarFunc {
     pub fn substring_3_args_utf8<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
-        let pos = try_opt!(self.children[1].eval_int(ctx, EventIdx));
-        let len = try_opt!(self.children[2].eval_int(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
+        let pos = try_opt!(self.children[1].eval_int(ctx, Evcausetidx));
+        let len = try_opt!(self.children[2].eval_int(ctx, Evcausetidx));
 
         let (pos, positive_search) = i64_to_usize(pos, self.children[1].is_unsigned());
         let (len, len_positive) = i64_to_usize(len, self.children[2].is_unsigned());
@@ -661,31 +661,31 @@ impl ScalarFunc {
     pub fn substring_2_args<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        self.substring(ctx, EventIdx, false)
+        self.substring(ctx, Evcausetidx, false)
     }
 
     #[inline]
     pub fn substring_3_args<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        self.substring(ctx, EventIdx, true)
+        self.substring(ctx, Evcausetidx, true)
     }
 
     #[inline]
     fn substring<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
         with_len: bool,
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let pos = try_opt!(self.children[1].eval_int(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let pos = try_opt!(self.children[1].eval_int(ctx, Evcausetidx));
         let (len, len_positive) = if with_len {
-            let len = try_opt!(self.children[2].eval_int(ctx, EventIdx));
+            let len = try_opt!(self.children[2].eval_int(ctx, Evcausetidx));
             i64_to_usize(len, self.children[2].is_unsigned())
         } else {
             (s.len(), true)
@@ -711,9 +711,9 @@ impl ScalarFunc {
     pub fn space<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let len = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let len = try_opt!(self.children[0].eval_int(ctx, Evcausetidx));
         let unsigned = self.children[0].is_unsigned();
         let len = if unsigned {
             len as u64 as usize
@@ -731,10 +731,10 @@ impl ScalarFunc {
     }
 
     #[inline]
-    pub fn strcmp(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Option<i64>> {
+    pub fn strcmp(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Option<i64>> {
         use std::cmp::Ordering::*;
-        let left = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let right = try_opt!(self.children[1].eval_string(ctx, EventIdx));
+        let left = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let right = try_opt!(self.children[1].eval_string(ctx, Evcausetidx));
         match left.cmp(&right) {
             Less => Ok(Some(-1)),
             Equal => Ok(Some(0)),
@@ -746,11 +746,11 @@ impl ScalarFunc {
     pub fn rpad_utf8<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let input = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
-        let target_len = try_opt!(self.children[1].eval_int(ctx, EventIdx));
-        let pad = try_opt!(self.children[2].eval_string_and_decode(ctx, EventIdx));
+        let input = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
+        let target_len = try_opt!(self.children[1].eval_int(ctx, Evcausetidx));
+        let pad = try_opt!(self.children[2].eval_string_and_decode(ctx, Evcausetidx));
         let input_len = input.chars().count();
 
         match validate_target_len_for_pad(
@@ -777,11 +777,11 @@ impl ScalarFunc {
     pub fn rpad<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let target_len = try_opt!(self.children[1].eval_int(ctx, EventIdx));
-        let pad = try_opt!(self.children[2].eval_string(ctx, EventIdx));
+        let input = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let target_len = try_opt!(self.children[1].eval_int(ctx, Evcausetidx));
+        let pad = try_opt!(self.children[2].eval_string(ctx, Evcausetidx));
 
         match validate_target_len_for_pad(
             self.children[1].is_unsigned(),
@@ -808,11 +808,11 @@ impl ScalarFunc {
     pub fn lpad_utf8<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let input = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
-        let target_len = try_opt!(self.children[1].eval_int(ctx, EventIdx));
-        let pad = try_opt!(self.children[2].eval_string_and_decode(ctx, EventIdx));
+        let input = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
+        let target_len = try_opt!(self.children[1].eval_int(ctx, Evcausetidx));
+        let pad = try_opt!(self.children[2].eval_string_and_decode(ctx, Evcausetidx));
         let input_len = input.chars().count();
 
         match validate_target_len_for_pad(
@@ -843,11 +843,11 @@ impl ScalarFunc {
     pub fn lpad<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let target_len = try_opt!(self.children[1].eval_int(ctx, EventIdx));
-        let pad = try_opt!(self.children[2].eval_string(ctx, EventIdx));
+        let input = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let target_len = try_opt!(self.children[1].eval_int(ctx, Evcausetidx));
+        let pad = try_opt!(self.children[2].eval_string(ctx, Evcausetidx));
 
         match validate_target_len_for_pad(
             self.children[1].is_unsigned(),
@@ -878,10 +878,10 @@ impl ScalarFunc {
     pub fn left<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let length = try_opt!(self.children[1].eval_int(ctx, EventIdx));
+        let input = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let length = try_opt!(self.children[1].eval_int(ctx, Evcausetidx));
         let (length, length_positive) = i64_to_usize(length, self.children[1].is_unsigned());
         if length_positive {
             let lightlike = length.min(input.len());
@@ -895,10 +895,10 @@ impl ScalarFunc {
     pub fn right<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let input = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let length = try_opt!(self.children[1].eval_int(ctx, EventIdx));
+        let input = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let length = try_opt!(self.children[1].eval_int(ctx, Evcausetidx));
         let (length, length_positive) = i64_to_usize(length, self.children[1].is_unsigned());
         if length_positive {
             let spacelike = input.len().saturating_sub(length);
@@ -912,10 +912,10 @@ impl ScalarFunc {
     pub fn instr_utf8<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<i64>> {
-        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
-        let substr = try_opt!(self.children[1].eval_string_and_decode(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
+        let substr = try_opt!(self.children[1].eval_string_and_decode(ctx, Evcausetidx));
         Ok(Self::find_str(&s.to_lowercase(), &substr.to_lowercase())
             .map(|i| 1 + i as i64)
             .or(Some(0)))
@@ -925,10 +925,10 @@ impl ScalarFunc {
     pub fn instr<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<i64>> {
-        let s = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let substr = try_opt!(self.children[1].eval_string(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let substr = try_opt!(self.children[1].eval_string(ctx, Evcausetidx));
         Ok(twoway::find_bytes(&s, &substr)
             .map(|i| 1 + i as i64)
             .or(Some(0)))
@@ -938,10 +938,10 @@ impl ScalarFunc {
     pub fn quote<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
         let s = try_opt_or!(
-            self.children[0].eval_string(ctx, EventIdx),
+            self.children[0].eval_string(ctx, Evcausetidx),
             Some(Cow::Borrowed(b"NULL"))
         );
         let mut result = Vec::<u8>::with_capacity(s.len() * 2 + 2);
@@ -969,9 +969,9 @@ impl ScalarFunc {
     pub fn ord<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<i64>> {
-        let s = try_opt!(self.children[0].eval_string(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
         let size = bstr::decode_utf8(&s).1;
         let bytes = &s[..size];
 
@@ -988,13 +988,13 @@ impl ScalarFunc {
     pub fn find_in_set<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<i64>> {
-        let str_list = try_opt!(self.children[1].eval_string_and_decode(ctx, EventIdx));
+        let str_list = try_opt!(self.children[1].eval_string_and_decode(ctx, Evcausetidx));
         if str_list.is_empty() {
             return Ok(Some(0));
         }
-        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string_and_decode(ctx, Evcausetidx));
         Ok(str_list
             .split(',')
             .position(|str_in_set| str_in_set == s)
@@ -1006,14 +1006,14 @@ impl ScalarFunc {
     pub fn insert<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let s = try_opt!(self.children[0].eval_string(ctx, EventIdx));
-        let pos = try_opt!(self.children[1].eval_int(ctx, EventIdx));
+        let s = try_opt!(self.children[0].eval_string(ctx, Evcausetidx));
+        let pos = try_opt!(self.children[1].eval_int(ctx, Evcausetidx));
         let upos: usize = pos as usize;
-        let len = try_opt!(self.children[2].eval_int(ctx, EventIdx));
+        let len = try_opt!(self.children[2].eval_int(ctx, Evcausetidx));
         let mut ulen: usize = len as usize;
-        let newstr = try_opt!(self.children[3].eval_string(ctx, EventIdx));
+        let newstr = try_opt!(self.children[3].eval_string(ctx, Evcausetidx));
         if pos < 1 || upos > s.len() {
             return Ok(Some(s));
         }
@@ -1031,16 +1031,16 @@ impl ScalarFunc {
     pub fn make_set<'a, 'b: 'a>(
         &'b self,
         ctx: &mut EvalContext,
-        EventIdx: &'a [Datum],
+        Evcausetidx: &'a [Datum],
     ) -> Result<Option<Cow<'a, [u8]>>> {
-        let mask = try_opt!(self.children[0].eval_int(ctx, EventIdx));
+        let mask = try_opt!(self.children[0].eval_int(ctx, Evcausetidx));
         let mut output: Vec<u8> = Vec::new();
         let mut pow2 = 1;
         let s = b",";
         let mut q = false;
         for expr in self.children.iter().skip(1) {
             if pow2 & mask != 0 {
-                let input = try_opt!(expr.eval_string(ctx, EventIdx));
+                let input = try_opt!(expr.eval_string(ctx, Evcausetidx));
                 if q {
                     output.extlightlike_from_slice(s);
                 }
@@ -1993,8 +1993,8 @@ mod tests {
             (vec![Datum::Null], Datum::Null),
         ];
         let mut ctx = EvalContext::default();
-        for (EventIdx, exp) in cases {
-            let children: Vec<Expr> = EventIdx.iter().map(|d| datum_expr(d.clone())).collect();
+        for (Evcausetidx, exp) in cases {
+            let children: Vec<Expr> = Evcausetidx.iter().map(|d| datum_expr(d.clone())).collect();
             let expr = scalar_func_expr(ScalarFuncSig::Concat, &children);
             let e = Expression::build(&mut ctx, expr).unwrap();
             let res = e.eval(&mut ctx, &[]).unwrap();
@@ -2101,8 +2101,8 @@ mod tests {
             ),
         ];
         let mut ctx = EvalContext::default();
-        for (EventIdx, exp) in cases {
-            let children: Vec<Expr> = EventIdx.iter().map(|d| datum_expr(d.clone())).collect();
+        for (Evcausetidx, exp) in cases {
+            let children: Vec<Expr> = Evcausetidx.iter().map(|d| datum_expr(d.clone())).collect();
             let expr = scalar_func_expr(ScalarFuncSig::ConcatWs, &children);
             let e = Expression::build(&mut ctx, expr).unwrap();
             let res = e.eval(&mut ctx, &[]).unwrap();
@@ -2187,8 +2187,8 @@ mod tests {
             ),
         ];
         let mut ctx = EvalContext::default();
-        for (EventIdx, exp) in cases {
-            let children: Vec<Expr> = EventIdx.iter().map(|d| datum_expr(d.clone())).collect();
+        for (Evcausetidx, exp) in cases {
+            let children: Vec<Expr> = Evcausetidx.iter().map(|d| datum_expr(d.clone())).collect();
             let expr = scalar_func_expr(ScalarFuncSig::Replace, &children);
             let e = Expression::build(&mut ctx, expr).unwrap();
             let res = e.eval(&mut ctx, &[]).unwrap();

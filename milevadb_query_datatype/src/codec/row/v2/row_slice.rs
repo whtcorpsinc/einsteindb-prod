@@ -32,7 +32,7 @@ impl EventSlice<'_> {
         // read ids count
         let non_null_cnt = data.read_u16_le()? as usize;
         let null_cnt = data.read_u16_le()? as usize;
-        let EventIdx = if is_big {
+        let Evcausetidx = if is_big {
             EventSlice::Big {
                 non_null_ids: read_le_bytes(&mut data, non_null_cnt)?,
                 null_ids: read_le_bytes(&mut data, null_cnt)?,
@@ -47,7 +47,7 @@ impl EventSlice<'_> {
                 values: LEBytes::new(data),
             }
         };
-        Ok(EventIdx)
+        Ok(Evcausetidx)
     }
 
     /// Search `id` in non-null ids
@@ -56,7 +56,7 @@ impl EventSlice<'_> {
     ///
     /// # Errors
     ///
-    /// If the id is found with no offset(It will only happen when the EventIdx data is broken),
+    /// If the id is found with no offset(It will only happen when the Evcausetidx data is broken),
     /// `Error::PrimaryCausetOffset` will be returned.
     pub fn search_in_non_null_ids(&self, id: i64) -> Result<Option<(usize, usize)>> {
         if !self.id_valid(id) {
@@ -282,26 +282,26 @@ mod tests {
         assert_eq!(Some((3, 4)), big_row.search_in_non_null_ids(356).unwrap());
 
         let data = encoded_data();
-        let EventIdx = EventSlice::from_bytes(&data).unwrap();
-        assert!(!EventIdx.is_big());
-        assert_eq!(EventIdx.search_in_non_null_ids(33).unwrap(), None);
-        assert_eq!(EventIdx.search_in_non_null_ids(35).unwrap(), None);
+        let Evcausetidx = EventSlice::from_bytes(&data).unwrap();
+        assert!(!Evcausetidx.is_big());
+        assert_eq!(Evcausetidx.search_in_non_null_ids(33).unwrap(), None);
+        assert_eq!(Evcausetidx.search_in_non_null_ids(35).unwrap(), None);
         assert_eq!(
-            EventIdx.search_in_non_null_ids(i64::from(u8::max_value()) + 2)
+            Evcausetidx.search_in_non_null_ids(i64::from(u8::max_value()) + 2)
                 .unwrap(),
             None
         );
-        assert_eq!(Some((0, 2)), EventIdx.search_in_non_null_ids(1).unwrap());
-        assert_eq!(Some((2, 3)), EventIdx.search_in_non_null_ids(3).unwrap());
+        assert_eq!(Some((0, 2)), Evcausetidx.search_in_non_null_ids(1).unwrap());
+        assert_eq!(Some((2, 3)), Evcausetidx.search_in_non_null_ids(3).unwrap());
     }
 
     #[test]
     fn test_search_in_null_ids() {
         let data = encoded_data_big();
-        let EventIdx = EventSlice::from_bytes(&data).unwrap();
-        assert!(EventIdx.search_in_null_ids(33));
-        assert!(!EventIdx.search_in_null_ids(3));
-        assert!(!EventIdx.search_in_null_ids(333));
+        let Evcausetidx = EventSlice::from_bytes(&data).unwrap();
+        assert!(Evcausetidx.search_in_null_ids(33));
+        assert!(!Evcausetidx.search_in_null_ids(3));
+        assert!(!Evcausetidx.search_in_null_ids(333));
     }
 }
 
@@ -332,8 +332,8 @@ mod benches {
         let data = encoded_data(10);
 
         b.iter(|| {
-            let EventIdx = EventSlice::from_bytes(black_box(&data)).unwrap();
-            black_box(EventIdx.search_in_non_null_ids(3))
+            let Evcausetidx = EventSlice::from_bytes(black_box(&data)).unwrap();
+            black_box(Evcausetidx.search_in_non_null_ids(3))
         });
     }
 
@@ -342,8 +342,8 @@ mod benches {
         let data = encoded_data(100);
 
         b.iter(|| {
-            let EventIdx = EventSlice::from_bytes(black_box(&data)).unwrap();
-            black_box(EventIdx.search_in_non_null_ids(89))
+            let Evcausetidx = EventSlice::from_bytes(black_box(&data)).unwrap();
+            black_box(Evcausetidx.search_in_non_null_ids(89))
         });
     }
 
@@ -352,8 +352,8 @@ mod benches {
         let data = encoded_data(100);
 
         b.iter(|| {
-            let EventIdx = EventSlice::from_bytes(black_box(&data)).unwrap();
-            black_box(EventIdx.search_in_non_null_ids(20))
+            let Evcausetidx = EventSlice::from_bytes(black_box(&data)).unwrap();
+            black_box(Evcausetidx.search_in_non_null_ids(20))
         });
     }
 
@@ -362,8 +362,8 @@ mod benches {
         let data = encoded_data(350);
 
         b.iter(|| {
-            let EventIdx = EventSlice::from_bytes(black_box(&data)).unwrap();
-            black_box(EventIdx.search_in_non_null_ids(257))
+            let Evcausetidx = EventSlice::from_bytes(black_box(&data)).unwrap();
+            black_box(Evcausetidx.search_in_non_null_ids(257))
         });
     }
 
@@ -372,8 +372,8 @@ mod benches {
         let data = encoded_data(350);
 
         b.iter(|| {
-            let EventIdx = EventSlice::from_bytes(black_box(&data)).unwrap();
-            black_box(&EventIdx);
+            let Evcausetidx = EventSlice::from_bytes(black_box(&data)).unwrap();
+            black_box(&Evcausetidx);
         });
     }
 }

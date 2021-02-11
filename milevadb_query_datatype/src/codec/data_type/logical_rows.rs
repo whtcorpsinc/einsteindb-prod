@@ -3,14 +3,14 @@
 // TODO: This value is chosen based on MonetDB/X100's research without our own benchmarks.
 pub const BATCH_MAX_SIZE: usize = 1024;
 
-/// Identical logical EventIdx is a special case in expression evaluation that
+/// Identical logical Evcausetidx is a special case in expression evaluation that
 /// the events in physical_value are continuous and in order.
 pub static IDENTICAL_LOGICAL_ROWS: [usize; BATCH_MAX_SIZE] = {
     let mut logical_rows = [0; BATCH_MAX_SIZE];
-    let mut EventIdx = 0;
-    while EventIdx < logical_rows.len() {
-        logical_rows[EventIdx] = EventIdx;
-        EventIdx += 1;
+    let mut Evcausetidx = 0;
+    while Evcausetidx < logical_rows.len() {
+        logical_rows[Evcausetidx] = Evcausetidx;
+        Evcausetidx += 1;
     }
     logical_rows
 };

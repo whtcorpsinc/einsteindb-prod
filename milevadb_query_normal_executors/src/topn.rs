@@ -34,10 +34,10 @@ impl OrderBy {
         })
     }
 
-    fn eval(&self, ctx: &mut EvalContext, EventIdx: &[Datum]) -> Result<Vec<Datum>> {
+    fn eval(&self, ctx: &mut EvalContext, Evcausetidx: &[Datum]) -> Result<Vec<Datum>> {
         let mut res = Vec::with_capacity(self.exprs.len());
         for expr in &self.exprs {
-            res.push(expr.eval(ctx, EventIdx)?);
+            res.push(expr.eval(ctx, Evcausetidx)?);
         }
         Ok(res)
     }
@@ -88,12 +88,12 @@ impl<Src: FreeDaemon> TopNFreeDaemon<Src> {
 
         let ctx = Arc::new(RefCell::new(self.eval_ctx.take().unwrap()));
         let mut heap = TopNHeap::new(self.limit, Arc::clone(&ctx))?;
-        while let Some(EventIdx) = self.src.next()? {
-            let EventIdx = EventIdx.take_origin()?;
+        while let Some(Evcausetidx) = self.src.next()? {
+            let Evcausetidx = Evcausetidx.take_origin()?;
             let cols =
-                EventIdx.inflate_cols_with_offsets(&mut ctx.borrow_mut(), &self.related_cols_offset)?;
+                Evcausetidx.inflate_cols_with_offsets(&mut ctx.borrow_mut(), &self.related_cols_offset)?;
             let ob_values = self.order_by.eval(&mut ctx.borrow_mut(), &cols)?;
-            heap.try_add_row(EventIdx, ob_values, Arc::clone(&self.order_by.items))?;
+            heap.try_add_row(Evcausetidx, ob_values, Arc::clone(&self.order_by.items))?;
         }
         let sort_rows = heap.into_sorted_vec()?;
         let data: Vec<Event> = sort_rows
@@ -289,10 +289,10 @@ pub mod tests {
         }
         let result = topn_heap.into_sorted_vec().unwrap();
         assert_eq!(result.len(), exp.len());
-        for (EventIdx, (handle, _, name, count)) in result.iter().zip(exp) {
+        for (Evcausetidx, (handle, _, name, count)) in result.iter().zip(exp) {
             let exp_key: Vec<Datum> = vec![name, count];
-            assert_eq!(EventIdx.data.handle, handle);
-            assert_eq!(EventIdx.key, exp_key);
+            assert_eq!(Evcausetidx.data.handle, handle);
+            assert_eq!(Evcausetidx.key, exp_key);
         }
     }
 
@@ -402,13 +402,13 @@ pub mod tests {
         let mut topn_ect =
             TopNFreeDaemon::new(topn, Arc::new(EvalConfig::default()), ts_ect).unwrap();
         let mut topn_rows = Vec::with_capacity(limit as usize);
-        while let Some(EventIdx) = topn_ect.next().unwrap() {
-            topn_rows.push(EventIdx.take_origin().unwrap());
+        while let Some(Evcausetidx) = topn_ect.next().unwrap() {
+            topn_rows.push(Evcausetidx.take_origin().unwrap());
         }
         assert_eq!(topn_rows.len(), limit as usize);
         let expect_row_handles = vec![1, 3, 2, 6];
-        for (EventIdx, handle) in topn_rows.iter().zip(expect_row_handles) {
-            assert_eq!(EventIdx.handle, handle);
+        for (Evcausetidx, handle) in topn_rows.iter().zip(expect_row_handles) {
+            assert_eq!(Evcausetidx.handle, handle);
         }
         let expected_counts = vec![3, 3];
         let mut exec_stats = ExecuteStats::new(0);

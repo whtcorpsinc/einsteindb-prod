@@ -227,7 +227,7 @@ impl<SS: 'static> FreeDaemonsRunner<SS> {
         let mut Solitons = Vec::new();
         loop {
             match self.executor.next()? {
-                Some(EventIdx) => {
+                Some(Evcausetidx) => {
                     self.deadline.check()?;
                     if Solitons.is_empty() || record_cnt >= self.batch_row_limit {
                         let Soliton = Soliton::default();
@@ -237,7 +237,7 @@ impl<SS: 'static> FreeDaemonsRunner<SS> {
                     let Soliton = Solitons.last_mut().unwrap();
                     record_cnt += 1;
                     // for default encode type
-                    let value = EventIdx.get_binary(&mut self.context, &self.output_offsets)?;
+                    let value = Evcausetidx.get_binary(&mut self.context, &self.output_offsets)?;
                     Soliton.mut_rows_data().extlightlike_from_slice(&value);
                 }
                 None => {
@@ -291,10 +291,10 @@ impl<SS: 'static> FreeDaemonsRunner<SS> {
         let mut Soliton = Soliton::default();
         while record_cnt < self.batch_row_limit {
             match self.executor.next()? {
-                Some(EventIdx) => {
+                Some(Evcausetidx) => {
                     self.deadline.check()?;
                     record_cnt += 1;
-                    let value = EventIdx.get_binary(&mut self.context, &self.output_offsets)?;
+                    let value = Evcausetidx.get_binary(&mut self.context, &self.output_offsets)?;
                     Soliton.mut_rows_data().extlightlike_from_slice(&value);
                 }
                 None => {

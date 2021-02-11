@@ -399,7 +399,7 @@ mod tests {
         assert_eq!(val.field_type().as_accessor().tp(), FieldTypeTp::Double);
     }
 
-    /// Single PrimaryCauset node but EventIdx numbers in `eval()` does not match PrimaryCauset length, should panic.
+    /// Single PrimaryCauset node but Evcausetidx numbers in `eval()` does not match PrimaryCauset length, should panic.
     #[test]
     fn test_eval_single_PrimaryCauset_node_mismatch_rows() {
         let (PrimaryCausets, logical_rows, schemaReplicant) = new_single_PrimaryCauset_node_fixture();
@@ -410,7 +410,7 @@ mod tests {
             .build_for_test();
         let mut ctx = EvalContext::default();
         let hooked_eval = panic_hook::recover_safe(|| {
-            // smaller EventIdx number
+            // smaller Evcausetidx number
             let _ = exp.eval(&mut ctx, &schemaReplicant, &mut c, &logical_rows, 4);
         });
         assert!(hooked_eval.is_err());
@@ -421,7 +421,7 @@ mod tests {
             .build_for_test();
         let mut ctx = EvalContext::default();
         let hooked_eval = panic_hook::recover_safe(|| {
-            // larger EventIdx number
+            // larger Evcausetidx number
             let _ = exp.eval(&mut ctx, &schemaReplicant, &mut c, &logical_rows, 6);
         });
         assert!(hooked_eval.is_err());
@@ -627,8 +627,8 @@ mod tests {
         assert_eq!(
             val.vector_value().unwrap().as_ref().to_real_vec(),
             [
-                Real::new(-5.8).ok(), // original EventIdx 2
-                Real::new(-0.5).ok(), // original EventIdx 0
+                Real::new(-5.8).ok(), // original Evcausetidx 2
+                Real::new(-0.5).ok(), // original Evcausetidx 0
             ]
         );
         assert_eq!(val.vector_value().unwrap().logical_rows(), &[0, 1]);
@@ -665,8 +665,8 @@ mod tests {
         assert_eq!(
             val.vector_value().unwrap().as_ref().to_real_vec(),
             [
-                Real::new(-3.5).ok(), // original EventIdx 1
-                Real::new(5.5).ok(),  // original EventIdx 2
+                Real::new(-3.5).ok(), // original Evcausetidx 1
+                Real::new(5.5).ok(),  // original Evcausetidx 2
             ]
         );
         assert_eq!(val.vector_value().unwrap().logical_rows(), &[0, 1]);
@@ -715,9 +715,9 @@ mod tests {
         assert_eq!(
             val.vector_value().unwrap().as_ref().to_int_vec(),
             [
-                Some(-2),  // original EventIdx 0
-                Some(22),  // original EventIdx 2
-                Some(-17), // original EventIdx 1
+                Some(-2),  // original Evcausetidx 0
+                Some(22),  // original Evcausetidx 2
+                Some(-17), // original Evcausetidx 1
             ]
         );
         assert_eq!(val.vector_value().unwrap().logical_rows(), &[0, 1, 2]);
@@ -1046,9 +1046,9 @@ mod tests {
         let mut PrimaryCausets = LazyBatchPrimaryCausetVec::from(vec![
             {
                 let mut col = LazyBatchPrimaryCauset::decoded_with_capacity_and_tp(3, EvalType::Int);
-                col.mut_decoded().push_int(Some(1)); // EventIdx 1
+                col.mut_decoded().push_int(Some(1)); // Evcausetidx 1
                 col.mut_decoded().push_int(Some(5));
-                col.mut_decoded().push_int(Some(-4)); // EventIdx 0
+                col.mut_decoded().push_int(Some(-4)); // Evcausetidx 0
                 col
             },
             {
@@ -1149,8 +1149,8 @@ mod tests {
 
         let mut PrimaryCausets = LazyBatchPrimaryCausetVec::from(vec![{
             let mut col = LazyBatchPrimaryCauset::decoded_with_capacity_and_tp(2, EvalType::Int);
-            col.mut_decoded().push_int(Some(1)); // EventIdx 1
-            col.mut_decoded().push_int(None); // EventIdx 0
+            col.mut_decoded().push_int(Some(1)); // Evcausetidx 1
+            col.mut_decoded().push_int(None); // Evcausetidx 0
             col
         }]);
         let schemaReplicant = &[FieldTypeTp::LongLong.into(), FieldTypeTp::Double.into()];

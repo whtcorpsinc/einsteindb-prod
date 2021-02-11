@@ -478,14 +478,14 @@ impl MinkowskiType {
         DateTime::<Utc>::from_micros(micros).into()
     }
 
-    pub fn into_known_entid(self) -> Option<KnownSolitonId> {
+    pub fn into_known_causetid(self) -> Option<KnownSolitonId> {
         match self {
             MinkowskiType::Ref(v) => Some(KnownSolitonId(v)),
             _ => None,
         }
     }
 
-    pub fn into_entid(self) -> Option<SolitonId> {
+    pub fn into_causetid(self) -> Option<SolitonId> {
         match self {
             MinkowskiType::Ref(v) => Some(v),
             _ => None,
@@ -864,14 +864,14 @@ pub fn now() -> DateTime<Utc> {
 }
 
 impl ConstrainedEntsConstraint {
-    pub fn into_known_entid(self) -> Option<KnownSolitonId> {
+    pub fn into_known_causetid(self) -> Option<KnownSolitonId> {
         match self {
             ConstrainedEntsConstraint::Scalar(MinkowskiType::Ref(v)) => Some(KnownSolitonId(v)),
             _ => None,
         }
     }
 
-    pub fn into_entid(self) -> Option<SolitonId> {
+    pub fn into_causetid(self) -> Option<SolitonId> {
         match self {
             ConstrainedEntsConstraint::Scalar(MinkowskiType::Ref(v)) => Some(v),
             _ => None,
@@ -962,7 +962,7 @@ impl ConstrainedEntsConstraint {
         }
     }
 
-    pub fn as_entid(&self) -> Option<&SolitonId> {
+    pub fn as_causetid(&self) -> Option<&SolitonId> {
         match self {
             &ConstrainedEntsConstraint::Scalar(MinkowskiType::Ref(ref v)) => Some(v),
             _ => None,

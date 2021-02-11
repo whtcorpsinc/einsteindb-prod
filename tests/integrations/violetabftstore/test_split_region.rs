@@ -757,7 +757,7 @@ fn test_server_split_brane() {
 fn test_split_brane<T: Simulator>(cluster: &mut Cluster<T>) {
     // length of each key+value
     let item_len = 74;
-    // make bucket's size to item_len, which means one EventIdx one bucket
+    // make bucket's size to item_len, which means one Evcausetidx one bucket
     cluster.causet.interlock.brane_max_size = ReadableSize(item_len) * 1024;
     let mut cone = 1..;
     cluster.run();

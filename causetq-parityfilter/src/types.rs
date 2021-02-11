@@ -93,7 +93,7 @@ pub enum CausetsCausetIndex {
 /// One of the named CausetIndexs of our fulltext values Block.
 #[derive(PartialEq, Eq, Clone)]
 pub enum FulltextCausetIndex {
-    Eventid,
+    Evcausetid,
     Text,
 }
 
@@ -209,7 +209,7 @@ impl FulltextCausetIndex {
     pub fn as_str(&self) -> &'static str {
         use self::FulltextCausetIndex::*;
         match *self {
-            Eventid => "rowid",
+            Evcausetid => "rowid",
             Text => "text",
         }
     }

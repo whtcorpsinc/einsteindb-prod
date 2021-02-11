@@ -168,7 +168,7 @@ impl Key {
     ///
     /// There is an optimization in this function, which is to compare the last 8 encoded bytes
     /// first before comparing the rest. It is because in MilevaDB many records are lightlikeed with an 8
-    /// byte EventIdx id and in many situations only this part is different when calling this function.
+    /// byte Evcausetidx id and in many situations only this part is different when calling this function.
     //
     // TODO: If the last 8 byte is memory aligned, it would be better.
     #[inline]
@@ -234,7 +234,7 @@ pub enum MutationType {
     Other,
 }
 
-/// A EventIdx mutation.
+/// A Evcausetidx mutation.
 #[derive(Debug, Clone)]
 pub enum Mutation {
     /// Put `Value` into `Key`, overwriting any existing value.

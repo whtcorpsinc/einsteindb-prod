@@ -103,7 +103,7 @@ impl<S: CausetStorage, I: ScanFreeDaemonImpl> ScanFreeDaemon<S, I> {
         for _ in 0..scan_rows {
             let some_row = self.scanner.next()?;
             if let Some((key, value)) = some_row {
-                // Retrieved one EventIdx from point cone or non-point cone.
+                // Retrieved one Evcausetidx from point cone or non-point cone.
 
                 if let Err(e) = self.imp.process_kv_pair(&key, &value, PrimaryCausets) {
                     // When there are errors in `process_kv_pair`, PrimaryCausets' length may not be

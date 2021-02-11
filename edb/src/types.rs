@@ -53,43 +53,43 @@ pub struct Partition {
     pub start: SolitonId,
     /// Maximum allowed solitonId in the partition.
     pub end: SolitonId,
-    /// `true` if entids in the partition can be excised with `:edb/excise`.
+    /// `true` if causetids in the partition can be excised with `:edb/excise`.
     pub allow_excision: bool,
     /// The next solitonId to be allocated in the partition.
     /// Unless you must use this directly, prefer using provided setter and getter helpers.
-    pub(crate) next_entid_to_allocate: SolitonId,
+    pub(crate) next_causetid_to_allocate: SolitonId,
 }
 
 impl Partition {
-    pub fn new(start: SolitonId, end: SolitonId, next_entid_to_allocate: SolitonId, allow_excision: bool) -> Partition {
+    pub fn new(start: SolitonId, end: SolitonId, next_causetid_to_allocate: SolitonId, allow_excision: bool) -> Partition {
         assert!(
-            start <= next_entid_to_allocate && next_entid_to_allocate <= end,
-            "A partition represents a monotonic increasing sequence of entids."
+            start <= next_causetid_to_allocate && next_causetid_to_allocate <= end,
+            "A partition represents a monotonic increasing sequence of causetids."
         );
-        Partition { start, end, next_entid_to_allocate, allow_excision }
+        Partition { start, end, next_causetid_to_allocate, allow_excision }
     }
 
-    pub fn contains_entid(&self, e: SolitonId) -> bool {
-        (e >= self.start) && (e < self.next_entid_to_allocate)
+    pub fn contains_causetid(&self, e: SolitonId) -> bool {
+        (e >= self.start) && (e < self.next_causetid_to_allocate)
     }
 
-    pub fn allows_entid(&self, e: SolitonId) -> bool {
+    pub fn allows_causetid(&self, e: SolitonId) -> bool {
         (e >= self.start) && (e <= self.end)
     }
 
-    pub fn next_entid(&self) -> SolitonId {
-        self.next_entid_to_allocate
+    pub fn next_causetid(&self) -> SolitonId {
+        self.next_causetid_to_allocate
     }
 
-    pub fn set_next_entid(&mut self, e: SolitonId) {
-        assert!(self.allows_entid(e), "Partition index must be within its allocated space.");
-        self.next_entid_to_allocate = e;
+    pub fn set_next_causetid(&mut self, e: SolitonId) {
+        assert!(self.allows_causetid(e), "Partition index must be within its allocated space.");
+        self.next_causetid_to_allocate = e;
     }
 
-    pub fn allocate_entids(&mut self, n: usize) -> Range<i64> {
-        let idx = self.next_entid();
-        self.set_next_entid(idx + n as i64);
-        idx..self.next_entid()
+    pub fn allocate_causetids(&mut self, n: usize) -> Range<i64> {
+        let idx = self.next_causetid();
+        self.set_next_causetid(idx + n as i64);
+        idx..self.next_causetid()
     }
 }
 
@@ -125,7 +125,7 @@ impl FromIterator<(String, Partition)> for PartitionMap {
 pub struct EDB {
     /// Map partition name->`Partition`.
     ///
-    /// TODO: represent partitions as entids.
+    /// TODO: represent partitions as causetids.
     pub partition_map: PartitionMap,
 
     /// The schemaReplicant of the store.
@@ -149,12 +149,12 @@ pub type AVPair = (SolitonId, MinkowskiType);
 /// Used to represent assertions and retractions.
 pub(crate) type EAV = (SolitonId, SolitonId, MinkowskiType);
 
-/// Map [a v] pairs to existing entids.
+/// Map [a v] pairs to existing causetids.
 ///
 /// Used to resolve lookup-refs and upserts.
 pub type AVMap<'a> = HashMap<&'a AVPair, SolitonId>;
 
-// represents a set of entids that are correspond to attributes
+// represents a set of causetids that are correspond to attributes
 pub type AttributeSet = BTreeSet<SolitonId>;
 
 /// The transactor is tied to `edbn::ValueAndSpan` right now, but in the future we'd like to support
@@ -177,13 +177,13 @@ mod tests {
     use super::Partition;
 
     #[test]
-    #[should_panic(expected = "A partition represents a monotonic increasing sequence of entids.")]
+    #[should_panic(expected = "A partition represents a monotonic increasing sequence of causetids.")]
     fn test_partition_limits_sanity1() {
         Partition::new(100, 1000, 1001, true);
     }
 
     #[test]
-    #[should_panic(expected = "A partition represents a monotonic increasing sequence of entids.")]
+    #[should_panic(expected = "A partition represents a monotonic increasing sequence of causetids.")]
     fn test_partition_limits_sanity2() {
         Partition::new(100, 1000, 99, true);
     }
@@ -192,46 +192,46 @@ mod tests {
     #[should_panic(expected = "Partition index must be within its allocated space.")]
     fn test_partition_limits_boundary1() {
         let mut part = Partition::new(100, 1000, 100, true);
-        part.set_next_entid(2000);
+        part.set_next_causetid(2000);
     }
 
     #[test]
     #[should_panic(expected = "Partition index must be within its allocated space.")]
     fn test_partition_limits_boundary2() {
         let mut part = Partition::new(100, 1000, 100, true);
-        part.set_next_entid(1001);
+        part.set_next_causetid(1001);
     }
 
     #[test]
     #[should_panic(expected = "Partition index must be within its allocated space.")]
     fn test_partition_limits_boundary3() {
         let mut part = Partition::new(100, 1000, 100, true);
-        part.set_next_entid(99);
+        part.set_next_causetid(99);
     }
 
     #[test]
     #[should_panic(expected = "Partition index must be within its allocated space.")]
     fn test_partition_limits_boundary4() {
         let mut part = Partition::new(100, 1000, 100, true);
-        part.set_next_entid(-100);
+        part.set_next_causetid(-100);
     }
 
     #[test]
     #[should_panic(expected = "Partition index must be within its allocated space.")]
     fn test_partition_limits_boundary5() {
         let mut part = Partition::new(100, 1000, 100, true);
-        part.allocate_entids(901); // One more than allowed.
+        part.allocate_causetids(901); // One more than allowed.
     }
 
     #[test]
     fn test_partition_limits_boundary6() {
         let mut part = Partition::new(100, 1000, 100, true);
-        part.set_next_entid(100); // First solitonId that's allowed.
-        part.set_next_entid(101); // Just after first.
+        part.set_next_causetid(100); // First solitonId that's allowed.
+        part.set_next_causetid(101); // Just after first.
 
-        assert_eq!(101..111, part.allocate_entids(10));
+        assert_eq!(101..111, part.allocate_causetids(10));
 
-        part.set_next_entid(1000); // Last solitonId that's allowed.
-        part.set_next_entid(999); // Just before last.
+        part.set_next_causetid(1000); // Last solitonId that's allowed.
+        part.set_next_causetid(999); // Just before last.
     }
 }

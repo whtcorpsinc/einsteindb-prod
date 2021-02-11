@@ -89,7 +89,7 @@ impl Block {
         cone
     }
 
-    /// Create a `KeyCone` which select one EventIdx in current Block.
+    /// Create a `KeyCone` which select one Evcausetidx in current Block.
     pub fn get_record_cone_one(&self, handle_id: i64) -> KeyCone {
         let spacelike_key = Block::encode_row_key(self.id, handle_id);
         let mut lightlike_key = spacelike_key.clone();

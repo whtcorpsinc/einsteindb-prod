@@ -60,8 +60,8 @@ use watcher::{
 /// ensuring they all belong to the same lightcone.
 fn collect_ordered_causecausetxs_to_move(conn: &rusqlite::Connection, causecausetxs_from: RangeFrom<SolitonId>, lightcone: SolitonId) -> Result<Vec<SolitonId>> {
     let mut stmt = conn.prepare("SELECT causetx, lightcone FROM lightconed_bundles WHERE causetx >= ? AND lightcone = ? GROUP BY causetx ORDER BY causetx DESC")?;
-    let mut rows = stmt.causetq_and_then(&[&causecausetxs_from.start, &lightcone], |EventIdx: &rusqlite::Event| -> Result<(SolitonId, SolitonId)>{
-        Ok((EventIdx.get_checked(0)?, EventIdx.get_checked(1)?))
+    let mut rows = stmt.causetq_and_then(&[&causecausetxs_from.start, &lightcone], |Evcausetidx: &rusqlite::Event| -> Result<(SolitonId, SolitonId)>{
+        Ok((Evcausetidx.get_checked(0)?, Evcausetidx.get_checked(1)?))
     })?;
 
     let mut causecausetxs = vec![];
@@ -105,8 +105,8 @@ fn remove_causecausetx_from_Causets(conn: &rusqlite::Connection, causecausetx_id
 
 fn is_lightcone_empty(conn: &rusqlite::Connection, lightcone: SolitonId) -> Result<bool> {
     let mut stmt = conn.prepare("SELECT lightcone FROM lightconed_bundles WHERE lightcone = ? GROUP BY lightcone")?;
-    let rows = stmt.causetq_and_then(&[&lightcone], |EventIdx| -> Result<i64> {
-        Ok(EventIdx.get_checked(0)?)
+    let rows = stmt.causetq_and_then(&[&lightcone], |Evcausetidx| -> Result<i64> {
+        Ok(Evcausetidx.get_checked(0)?)
     })?;
     Ok(rows.count() == 0)
 }
@@ -114,23 +114,23 @@ fn is_lightcone_empty(conn: &rusqlite::Connection, lightcone: SolitonId) -> Resu
 /// Get terms for causecausetx_id, reversing them in meaning (swap add & retract).
 fn reversed_terms_for(conn: &rusqlite::Connection, causecausetx_id: SolitonId) -> Result<Vec<TermWithoutTempIds>> {
     let mut stmt = conn.prepare("SELECT e, a, v, value_type_tag, causetx, added FROM lightconed_bundles WHERE causetx = ? AND lightcone = ? ORDER BY causetx DESC")?;
-    let mut rows = stmt.causetq_and_then(&[&causecausetx_id, &::Lightcone_MAIN], |EventIdx| -> Result<TermWithoutTempIds> {
-        let op = match EventIdx.get_checked(5)? {
+    let mut rows = stmt.causetq_and_then(&[&causecausetx_id, &::Lightcone_MAIN], |Evcausetidx| -> Result<TermWithoutTempIds> {
+        let op = match Evcausetidx.get_checked(5)? {
             true => OpType::Retract,
             false => OpType::Add
         };
         Ok(Term::AddOrRetract(
             op,
-            KnownSolitonId(EventIdx.get_checked(0)?),
-            EventIdx.get_checked(1)?,
-            MinkowskiType::from_sql_value_pair(EventIdx.get_checked(2)?, EventIdx.get_checked(3)?)?,
+            KnownSolitonId(Evcausetidx.get_checked(0)?),
+            Evcausetidx.get_checked(1)?,
+            MinkowskiType::from_sql_value_pair(Evcausetidx.get_checked(2)?, Evcausetidx.get_checked(3)?)?,
         ))
     })?;
 
     let mut terms = vec![];
 
-    while let Some(EventIdx) = rows.next() {
-        terms.push(EventIdx?);
+    while let Some(Evcausetidx) = rows.next() {
+        terms.push(Evcausetidx?);
     }
     Ok(terms)
 }
@@ -528,7 +528,7 @@ mod tests {
         assert_eq!(conn.partition_map, partition_map0);
 
         // Assert all of schemaReplicant's components individually, for some guidance in case of failures:
-        assert_eq!(conn.schemaReplicant.entid_map, schemaReplicant0.entid_map);
+        assert_eq!(conn.schemaReplicant.causetid_map, schemaReplicant0.causetid_map);
         assert_eq!(conn.schemaReplicant.causetId_map, schemaReplicant0.causetId_map);
         assert_eq!(conn.schemaReplicant.attribute_map, schemaReplicant0.attribute_map);
         assert_eq!(conn.schemaReplicant.component_attributes, schemaReplicant0.component_attributes);
@@ -570,7 +570,7 @@ mod tests {
         let partition_map_after_bootstrap = conn.partition_map.clone();
 
         assert_eq!((65536..65538),
-                   conn.partition_map.allocate_entids(":edb.part/user", 2));
+                   conn.partition_map.allocate_causetids(":edb.part/user", 2));
         let causecausetx_report0 = assert_transact!(conn, r#"[
             {:edb/id 65536 :edb/causetid :test/one :edb/valueType :edb.type/long :edb/cardinality :edb.cardinality/one :edb/unique :edb.unique/causetIdity :edb/index true}
             {:edb/id 65537 :edb/causetid :test/many :edb/valueType :edb.type/long :edb/cardinality :edb.cardinality/many}
@@ -591,7 +591,7 @@ mod tests {
         let partition_map0 = conn.partition_map.clone();
 
         assert_eq!((65538..65539),
-                   conn.partition_map.allocate_entids(":edb.part/user", 1));
+                   conn.partition_map.allocate_causetids(":edb.part/user", 1));
         let causecausetx_report1 = assert_transact!(conn, r#"[
             [:edb/add 65538 :test/one 1]
             [:edb/add 65538 :test/many 2]
@@ -691,7 +691,7 @@ mod tests {
         let partition_map_after_bootstrap = conn.partition_map.clone();
 
         assert_eq!((65536..65539),
-                   conn.partition_map.allocate_entids(":edb.part/user", 3));
+                   conn.partition_map.allocate_causetids(":edb.part/user", 3));
         let causecausetx_report0 = assert_transact!(conn, r#"[
             {:edb/id 65536 :edb/causetid :test/one :edb/valueType :edb.type/long :edb/cardinality :edb.cardinality/one}
             {:edb/id 65537 :edb/causetid :test/many :edb/valueType :edb.type/long :edb/cardinality :edb.cardinality/many}

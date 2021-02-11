@@ -1,5 +1,5 @@
 [package]
-name = "einsteindb_causetq_sql"
+name = "causetq_allegrosql"
 version = "0.0.1"
 workspace = ".."
 

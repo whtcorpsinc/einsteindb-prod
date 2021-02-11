@@ -282,7 +282,7 @@
       ],
       "repeat": "command",
       "title": "Read - $command",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     }
   ],
   "refresh": false,

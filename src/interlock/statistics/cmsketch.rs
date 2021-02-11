@@ -32,23 +32,23 @@ impl CmSketch {
         (out as u64, (out >> 64) as u64)
     }
 
-    // `insert` inserts the data into cm sketch. For each EventIdx i, the position at
+    // `insert` inserts the data into cm sketch. For each Evcausetidx i, the position at
     // (h1 + h2*i) % width will be incremented by one, where the (h1, h2) is the hash value
     // of data.
     pub fn insert(&mut self, bytes: &[u8]) {
         self.count = self.count.wrapping_add(1);
         let (h1, h2) = CmSketch::hash(bytes);
-        for (i, EventIdx) in self.Block.iter_mut().enumerate() {
+        for (i, Evcausetidx) in self.Block.iter_mut().enumerate() {
             let j = (h1.wrapping_add(h2.wrapping_mul(i as u64)) % self.width as u64) as usize;
-            EventIdx[j] = EventIdx[j].saturating_add(1);
+            Evcausetidx[j] = Evcausetidx[j].saturating_add(1);
         }
     }
 
     pub fn into_proto(self) -> fidelpb::CmSketch {
         let mut proto = fidelpb::CmSketch::default();
         let mut events = vec![fidelpb::CmSketchEvent::default(); self.depth];
-        for (i, EventIdx) in self.Block.iter().enumerate() {
-            events[i].set_counters(EventIdx.to_vec());
+        for (i, Evcausetidx) in self.Block.iter().enumerate() {
+            events[i].set_counters(Evcausetidx.to_vec());
         }
         proto.set_rows(events.into());
         proto
@@ -77,11 +77,11 @@ mod tests {
             let (h1, h2) = CmSketch::hash(bytes);
             let mut vals = vec![0u32; self.depth];
             let mut min_counter = u32::max_value();
-            for (i, EventIdx) in self.Block.iter().enumerate() {
+            for (i, Evcausetidx) in self.Block.iter().enumerate() {
                 let j = (h1.wrapping_add(h2.wrapping_mul(i as u64)) % self.width as u64) as usize;
-                let noise = (self.count - EventIdx[j]) / (self.width as u32 - 1);
-                vals[i] = EventIdx[j].saturating_sub(noise);
-                min_counter = min(min_counter, EventIdx[j])
+                let noise = (self.count - Evcausetidx[j]) / (self.width as u32 - 1);
+                vals[i] = Evcausetidx[j].saturating_sub(noise);
+                min_counter = min(min_counter, Evcausetidx[j])
             }
             vals.sort();
             min(

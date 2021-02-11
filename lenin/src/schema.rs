@@ -112,7 +112,7 @@ pub mod tests {
             let p = partitions.get(&name.to_string()).unwrap();
             assert_eq!(p.start, *start);
             assert_eq!(p.end, *end);
-            assert_eq!(p.next_entid(), *index);
+            assert_eq!(p.next_causetid(), *index);
             assert_eq!(p.allow_excision, *allow_excision);
         }
     }
@@ -163,6 +163,6 @@ pub mod tests {
 
         let user_partition = partitions.get(PARTITION_USER).unwrap();
         assert_eq!(user_partition.start, USER0);
-        assert_eq!(user_partition.next_entid(), new_idx);
+        assert_eq!(user_partition.next_causetid(), new_idx);
     }
 }

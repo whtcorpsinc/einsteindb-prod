@@ -77,18 +77,18 @@ pub use sql_types::{
     SQLMinkowskiSet,
 };
 
-/// Map `Keyword` causetIds (`:edb/causetid`) to positive integer entids (`1`).
+/// Map `Keyword` causetIds (`:edb/causetid`) to positive integer causetids (`1`).
 pub type CausetIdMap = BTreeMap<Keyword, SolitonId>;
 
-/// Map positive integer entids (`1`) to `Keyword` causetIds (`:edb/causetid`).
+/// Map positive integer causetids (`1`) to `Keyword` causetIds (`:edb/causetid`).
 pub type SolitonIdMap = BTreeMap<SolitonId, Keyword>;
 
-/// Map attribute entids to `Attribute` instances.
+/// Map attribute causetids to `Attribute` instances.
 pub type AttributeMap = BTreeMap<SolitonId, Attribute>;
 
 /// Represents a EinsteinDB schemaReplicant.
 ///
-/// Maintains the mapping between string causetIds and positive integer entids; and exposes the schemaReplicant
+/// Maintains the mapping between string causetIds and positive integer causetids; and exposes the schemaReplicant
 /// flags associated to a given solitonId (equivalently, causetid).
 ///
 /// TODO: consider a single bi-directional map instead of separate causetid->solitonId and solitonId->causetid
@@ -98,16 +98,16 @@ pub struct SchemaReplicant {
     /// Map solitonId->causetid.
     ///
     /// Invariant: is the inverse map of `causetId_map`.
-    pub entid_map: SolitonIdMap,
+    pub causetid_map: SolitonIdMap,
 
     /// Map causetid->solitonId.
     ///
-    /// Invariant: is the inverse map of `entid_map`.
+    /// Invariant: is the inverse map of `causetid_map`.
     pub causetId_map: CausetIdMap,
 
     /// Map solitonId->attribute flags.
     ///
-    /// Invariant: key-set is the same as the key-set of `entid_map` (equivalently, the value-set of
+    /// Invariant: key-set is the same as the key-set of `causetid_map` (equivalently, the value-set of
     /// `causetId_map`).
     pub attribute_map: AttributeMap,
 
@@ -117,11 +117,11 @@ pub struct SchemaReplicant {
 }
 
 pub trait HasSchemaReplicant {
-    fn entid_for_type(&self, t: MinkowskiValueType) -> Option<KnownSolitonId>;
+    fn causetid_for_type(&self, t: MinkowskiValueType) -> Option<KnownSolitonId>;
 
     fn get_causetId<T>(&self, x: T) -> Option<&Keyword> where T: Into<SolitonId>;
     fn get_causetid(&self, x: &Keyword) -> Option<KnownSolitonId>;
-    fn attribute_for_entid<T>(&self, x: T) -> Option<&Attribute> where T: Into<SolitonId>;
+    fn attribute_for_causetid<T>(&self, x: T) -> Option<&Attribute> where T: Into<SolitonId>;
 
     // Returns the attribute and the solitonId named by the provided causetid.
     fn attribute_for_causetId(&self, causetid: &Keyword) -> Option<(&Attribute, KnownSolitonId)>;
@@ -136,8 +136,8 @@ pub trait HasSchemaReplicant {
 }
 
 impl SchemaReplicant {
-    pub fn new(causetId_map: CausetIdMap, entid_map: SolitonIdMap, attribute_map: AttributeMap) -> SchemaReplicant {
-        let mut s = SchemaReplicant { causetId_map, entid_map, attribute_map, component_attributes: Vec::new() };
+    pub fn new(causetId_map: CausetIdMap, causetid_map: SolitonIdMap, attribute_map: AttributeMap) -> SchemaReplicant {
+        let mut s = SchemaReplicant { causetId_map, causetid_map, attribute_map, component_attributes: Vec::new() };
         s.update_component_attributes();
         s
     }
@@ -150,7 +150,7 @@ impl SchemaReplicant {
             .collect())
     }
 
-    fn get_raw_entid(&self, x: &Keyword) -> Option<SolitonId> {
+    fn get_raw_causetid(&self, x: &Keyword) -> Option<SolitonId> {
         self.causetId_map.get(x).map(|x| *x)
     }
 
@@ -166,27 +166,27 @@ impl SchemaReplicant {
 }
 
 impl HasSchemaReplicant for SchemaReplicant {
-    fn entid_for_type(&self, t: MinkowskiValueType) -> Option<KnownSolitonId> {
+    fn causetid_for_type(&self, t: MinkowskiValueType) -> Option<KnownSolitonId> {
         // TODO: this can be made more efficient.
         self.get_causetid(&t.into_keyword())
     }
 
     fn get_causetId<T>(&self, x: T) -> Option<&Keyword> where T: Into<SolitonId> {
-        self.entid_map.get(&x.into())
+        self.causetid_map.get(&x.into())
     }
 
     fn get_causetid(&self, x: &Keyword) -> Option<KnownSolitonId> {
-        self.get_raw_entid(x).map(KnownSolitonId)
+        self.get_raw_causetid(x).map(KnownSolitonId)
     }
 
-    fn attribute_for_entid<T>(&self, x: T) -> Option<&Attribute> where T: Into<SolitonId> {
+    fn attribute_for_causetid<T>(&self, x: T) -> Option<&Attribute> where T: Into<SolitonId> {
         self.attribute_map.get(&x.into())
     }
 
     fn attribute_for_causetId(&self, causetid: &Keyword) -> Option<(&Attribute, KnownSolitonId)> {
-        self.get_raw_entid(&causetid)
+        self.get_raw_causetid(&causetid)
             .and_then(|solitonId| {
-                self.attribute_for_entid(solitonId).map(|a| (a, KnownSolitonId(solitonId)))
+                self.attribute_for_causetid(solitonId).map(|a| (a, KnownSolitonId(solitonId)))
             })
     }
 
@@ -197,7 +197,7 @@ impl HasSchemaReplicant for SchemaReplicant {
 
     /// Return true if the provided causetid causetIdifies an attribute in this schemaReplicant.
     fn causetIdifies_attribute(&self, x: &Keyword) -> bool {
-        self.get_raw_entid(x).map(|e| self.is_attribute(e)).unwrap_or(false)
+        self.get_raw_causetid(x).map(|e| self.is_attribute(e)).unwrap_or(false)
     }
 
     fn component_attributes(&self) -> &[SolitonId] {
@@ -259,7 +259,7 @@ mod test {
     };
 
     fn associate_causetId(schemaReplicant: &mut SchemaReplicant, i: Keyword, e: SolitonId) {
-        schemaReplicant.entid_map.insert(e, i.clone());
+        schemaReplicant.causetid_map.insert(e, i.clone());
         schemaReplicant.causetId_map.insert(i, e);
     }
 

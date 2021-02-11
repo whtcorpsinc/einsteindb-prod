@@ -807,7 +807,7 @@
       ],
       "repeat": null,
       "title": "Hot Read",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -1664,7 +1664,7 @@
       ],
       "repeat": null,
       "title": "Hot Write",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -2209,7 +2209,7 @@
       ],
       "repeat": null,
       "title": "Leader Drop",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -2827,7 +2827,7 @@
       ],
       "repeat": null,
       "title": "Channel Full",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -3277,7 +3277,7 @@
       ],
       "repeat": null,
       "title": "Server Is Busy",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -4796,7 +4796,7 @@
       ],
       "repeat": null,
       "title": "Read Too Slow",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -6970,7 +6970,7 @@
       ],
       "repeat": null,
       "title": "Write Too Slow",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -7400,7 +7400,7 @@
       ],
       "repeat": "db",
       "title": "Write Stall - $db",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -7601,7 +7601,7 @@
       ],
       "repeat": null,
       "title": "OOM",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     },
     {
       "collapsed": true,
@@ -7830,7 +7830,7 @@
       ],
       "repeat": null,
       "title": "Huge Brane",
-      "type": "EventIdx"
+      "type": "Evcausetidx"
     }
   ],
   "refresh": "1m",

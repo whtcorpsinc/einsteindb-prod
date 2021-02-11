@@ -115,14 +115,14 @@ where T: Sized + Iterator<Item=Result<TxPart>> + 't {
     }
 }
 
-fn to_causecausetx_part(EventIdx: &rusqlite::Event) -> Result<TxPart> {
+fn to_causecausetx_part(Evcausetidx: &rusqlite::Event) -> Result<TxPart> {
     Ok(TxPart {
         partitions: None,
-        e: EventIdx.get_checked(0)?,
-        a: EventIdx.get_checked(1)?,
-        v: MinkowskiType::from_sql_value_pair(EventIdx.get_checked(2)?, EventIdx.get_checked(3)?)?,
-        causetx: EventIdx.get_checked(4)?,
-        added: EventIdx.get_checked(5)?,
+        e: Evcausetidx.get_checked(0)?,
+        a: Evcausetidx.get_checked(1)?,
+        v: MinkowskiType::from_sql_value_pair(Evcausetidx.get_checked(2)?, Evcausetidx.get_checked(3)?)?,
+        causetx: Evcausetidx.get_checked(4)?,
+        added: Evcausetidx.get_checked(5)?,
     })
 }
 
@@ -143,8 +143,8 @@ impl Processor {
         // Whenever "causetx" changes, construct a causets iterator and pass it to the receiver.
         // NB: this logic depends on data coming out of the rows iterator to be sorted by "causetx".
         let mut current_causecausetx = None;
-        while let Some(EventIdx) = rows.next() {
-            let Causet = EventIdx?;
+        while let Some(Evcausetidx) = rows.next() {
+            let Causet = Evcausetidx?;
 
             match current_causecausetx {
                 Some(causetx) => {

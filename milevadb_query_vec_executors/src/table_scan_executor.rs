@@ -16,7 +16,7 @@ use crate::interface::*;
 use milevadb_query_common::causetStorage::{IntervalCone, CausetStorage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
-use milevadb_query_datatype::codec::EventIdx;
+use milevadb_query_datatype::codec::Evcausetidx;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
 
 pub struct BatchBlockScanFreeDaemon<S: CausetStorage>(ScanFreeDaemon<S, BlockScanFreeDaemonImpl>);
@@ -147,7 +147,7 @@ struct BlockScanFreeDaemonImpl {
     /// The output position in the schemaReplicant giving the PrimaryCauset id.
     PrimaryCauset_id_index: HashMap<i64, usize>,
 
-    /// Vec of indices in output EventIdx to put the handle. The indices must be sorted in the vec.
+    /// Vec of indices in output Evcausetidx to put the handle. The indices must be sorted in the vec.
     handle_indices: HandleIndicesVec,
 
     /// Vec of Primary key PrimaryCauset's IDs.
@@ -177,7 +177,7 @@ impl BlockScanFreeDaemonImpl {
         while !remaining.is_empty() && *decoded_PrimaryCausets < PrimaryCausets_len {
             if remaining[0] != datum::VAR_INT_FLAG {
                 return Err(other_err!(
-                    "Unable to decode EventIdx: PrimaryCauset id must be VAR_INT"
+                    "Unable to decode Evcausetidx: PrimaryCauset id must be VAR_INT"
                 ));
             }
             remaining = &remaining[1..];
@@ -193,11 +193,11 @@ impl BlockScanFreeDaemonImpl {
                     *decoded_PrimaryCausets += 1;
                     self.is_PrimaryCauset_filled[index] = true;
                 } else {
-                    // This indicates that there are duplicated elements in the EventIdx, which is
+                    // This indicates that there are duplicated elements in the Evcausetidx, which is
                     // unexpected. We won't abort the request or overwrite the previous element,
                     // but will output a log anyway.
                     warn!(
-                        "Ignored duplicated EventIdx datum in Block scan";
+                        "Ignored duplicated Evcausetidx datum in Block scan";
                         "key" => hex::encode_upper(&key),
                         "value" => hex::encode_upper(&value),
                         "dup_PrimaryCauset_id" => PrimaryCauset_id,
@@ -216,17 +216,17 @@ impl BlockScanFreeDaemonImpl {
         decoded_PrimaryCausets: &mut usize,
     ) -> Result<()> {
         use milevadb_query_datatype::codec::datum;
-        use milevadb_query_datatype::codec::EventIdx::v2::{EventSlice, V1CompatibleEncoder};
+        use milevadb_query_datatype::codec::Evcausetidx::v2::{EventSlice, V1CompatibleEncoder};
 
-        let EventIdx = EventSlice::from_bytes(value)?;
+        let Evcausetidx = EventSlice::from_bytes(value)?;
         for (col_id, idx) in &self.PrimaryCauset_id_index {
-            if let Some((spacelike, offset)) = EventIdx.search_in_non_null_ids(*col_id)? {
+            if let Some((spacelike, offset)) = Evcausetidx.search_in_non_null_ids(*col_id)? {
                 let mut buffer_to_write = PrimaryCausets[*idx].mut_raw().begin_concat_extlightlike();
                 buffer_to_write
-                    .write_v2_as_datum(&EventIdx.values()[spacelike..offset], &self.schemaReplicant[*idx])?;
+                    .write_v2_as_datum(&Evcausetidx.values()[spacelike..offset], &self.schemaReplicant[*idx])?;
                 *decoded_PrimaryCausets += 1;
                 self.is_PrimaryCauset_filled[*idx] = true;
-            } else if EventIdx.search_in_null_ids(*col_id) {
+            } else if Evcausetidx.search_in_null_ids(*col_id) {
                 PrimaryCausets[*idx].mut_raw().push(datum::DATUM_DATA_NULL);
                 *decoded_PrimaryCausets += 1;
                 self.is_PrimaryCauset_filled[*idx] = true;
@@ -309,7 +309,7 @@ impl ScanFreeDaemonImpl for BlockScanFreeDaemonImpl {
             // Do nothing
         } else {
             match value[0] {
-                EventIdx::v2::CODEC_VERSION => self.process_v2(value, PrimaryCausets, &mut decoded_PrimaryCausets)?,
+                Evcausetidx::v2::CODEC_VERSION => self.process_v2(value, PrimaryCausets, &mut decoded_PrimaryCausets)?,
                 _ => self.process_v1(key, value, PrimaryCausets, &mut decoded_PrimaryCausets)?,
             }
         }
@@ -348,7 +348,7 @@ impl ScanFreeDaemonImpl for BlockScanFreeDaemonImpl {
             Block::check_record_key(key)?;
         }
 
-        // Some fields may be missing in the EventIdx, we push corresponding default value to make all
+        // Some fields may be missing in the Evcausetidx, we push corresponding default value to make all
         // PrimaryCausets in same length.
         for i in 0..PrimaryCausets_len {
             if !self.is_PrimaryCauset_filled[i] {
@@ -430,7 +430,7 @@ mod tests {
                 (
                     1,
                     vec![
-                        // A full EventIdx.
+                        // A full Evcausetidx.
                         (2, Datum::I64(10)),
                         (4, Datum::F64(5.2)),
                     ],
@@ -462,7 +462,7 @@ mod tests {
                 (
                     6,
                     vec![
-                        // Empty EventIdx
+                        // Empty Evcausetidx
                     ],
                 ),
             ];
@@ -513,9 +513,9 @@ mod tests {
                     .map(|(row_id, PrimaryCausets)| {
                         let key = Block::encode_row_key(Block_ID, *row_id);
                         let value = {
-                            let EventIdx = PrimaryCausets.iter().map(|(_, datum)| datum.clone()).collect();
+                            let Evcausetidx = PrimaryCausets.iter().map(|(_, datum)| datum.clone()).collect();
                             let col_ids: Vec<_> = PrimaryCausets.iter().map(|(id, _)| *id).collect();
-                            Block::encode_row(&mut ctx, EventIdx, &col_ids).unwrap()
+                            Block::encode_row(&mut ctx, Evcausetidx, &col_ids).unwrap()
                         };
                         (key, value)
                     })
@@ -532,7 +532,7 @@ mod tests {
             }
         }
 
-        /// The point cone representation for each EventIdx in `data`.
+        /// The point cone representation for each Evcausetidx in `data`.
         fn point_cones(&self) -> Vec<KeyCone> {
             self.data
                 .iter()
@@ -713,7 +713,7 @@ mod tests {
         // expect_rows used in next_batch for each test case.
         let test_batch_rows = vec![
             // Fetched multiple times but totally it fetched exactly the same number of events
-            // (so that it will be drained next time and at that time no EventIdx will be get).
+            // (so that it will be drained next time and at that time no Evcausetidx will be get).
             vec![1, 1, 1, 1, 1, 1],
             vec![1, 2, 2, 2],
             // Fetch a lot of events once.
@@ -817,20 +817,20 @@ mod tests {
         let mut ctx = EvalContext::default();
         let mut kv = vec![];
         {
-            // EventIdx 0, which is not corrupted
+            // Evcausetidx 0, which is not corrupted
             let key = Block::encode_row_key(Block_ID, 0);
             let value =
                 Block::encode_row(&mut ctx, vec![Datum::I64(5), Datum::I64(7)], &[2, 3]).unwrap();
             kv.push((key, value));
         }
         {
-            // EventIdx 1, which is not corrupted
+            // Evcausetidx 1, which is not corrupted
             let key = Block::encode_row_key(Block_ID, 1);
             let value = vec![];
             kv.push((key, value));
         }
         {
-            // EventIdx 2, which is partially corrupted
+            // Evcausetidx 2, which is partially corrupted
             let key = Block::encode_row_key(Block_ID, 2);
             let mut value =
                 Block::encode_row(&mut ctx, vec![Datum::I64(5), Datum::I64(7)], &[2, 3]).unwrap();
@@ -839,14 +839,14 @@ mod tests {
             kv.push((key, value));
         }
         {
-            // EventIdx 3, which is totally corrupted due to invalid datum flag for PrimaryCauset id
+            // Evcausetidx 3, which is totally corrupted due to invalid datum flag for PrimaryCauset id
             let key = Block::encode_row_key(Block_ID, 3);
             // this datum flag does not exist
             let value = vec![255];
             kv.push((key, value));
         }
         {
-            // EventIdx 4, which is totally corrupted due to missing datum for PrimaryCauset value
+            // Evcausetidx 4, which is totally corrupted due to missing datum for PrimaryCauset value
             let key = Block::encode_row_key(Block_ID, 4);
             let value = datum::encode_value(&mut ctx, &[Datum::I64(2)]).unwrap(); // col_id = 2
             kv.push((key, value));
@@ -866,7 +866,7 @@ mod tests {
 
         let store = FixtureStorage::from(kv);
 
-        // For EventIdx 0 + EventIdx 1 + (EventIdx 2 ~ EventIdx 4), we should only get EventIdx 0, EventIdx 1 and an error.
+        // For Evcausetidx 0 + Evcausetidx 1 + (Evcausetidx 2 ~ Evcausetidx 4), we should only get Evcausetidx 0, Evcausetidx 1 and an error.
         for corrupted_row_index in 2..=4 {
             let mut executor = BatchBlockScanFreeDaemon::new(
                 store.clone(),
@@ -935,13 +935,13 @@ mod tests {
         let mut ctx = EvalContext::default();
         let mut kv = vec![];
         {
-            // EventIdx 0: ok
+            // Evcausetidx 0: ok
             let key = Block::encode_row_key(Block_ID, 0);
             let value = Block::encode_row(&mut ctx, vec![Datum::I64(7)], &[2]).unwrap();
             kv.push((key, Ok(value)));
         }
         {
-            // EventIdx 1: causetStorage error
+            // Evcausetidx 1: causetStorage error
             let key = Block::encode_row_key(Block_ID, 1);
             let value: std::result::Result<
                 _,
@@ -950,7 +950,7 @@ mod tests {
             kv.push((key, value));
         }
         {
-            // EventIdx 2: not locked
+            // Evcausetidx 2: not locked
             let key = Block::encode_row_key(Block_ID, 2);
             let value = Block::encode_row(&mut ctx, vec![Datum::I64(5)], &[2]).unwrap();
             kv.push((key, Ok(value)));
@@ -970,8 +970,8 @@ mod tests {
 
         let store = FixtureStorage::new(kv.into_iter().collect());
 
-        // Case 1: EventIdx 0 + EventIdx 1 + EventIdx 2
-        // We should get EventIdx 0 and error because no further events should be scanned when there is
+        // Case 1: Evcausetidx 0 + Evcausetidx 1 + Evcausetidx 2
+        // We should get Evcausetidx 0 and error because no further events should be scanned when there is
         // an error.
         {
             let mut executor = BatchBlockScanFreeDaemon::new(
@@ -1049,8 +1049,8 @@ mod tests {
             assert_eq!(result.physical_PrimaryCausets.rows_len(), 0);
         }
 
-        // Case 2: EventIdx 1 + EventIdx 2
-        // We should get error and no EventIdx, for the same reason as above.
+        // Case 2: Evcausetidx 1 + Evcausetidx 2
+        // We should get error and no Evcausetidx, for the same reason as above.
         {
             let mut executor = BatchBlockScanFreeDaemon::new(
                 store.clone(),
@@ -1069,8 +1069,8 @@ mod tests {
             assert_eq!(result.physical_PrimaryCausets.rows_len(), 0);
         }
 
-        // Case 3: EventIdx 2 + EventIdx 0
-        // We should get EventIdx 2 and EventIdx 0. There is no error.
+        // Case 3: Evcausetidx 2 + Evcausetidx 0
+        // We should get Evcausetidx 2 and Evcausetidx 0. There is no error.
         {
             let mut executor = BatchBlockScanFreeDaemon::new(
                 store.clone(),
@@ -1102,7 +1102,7 @@ mod tests {
             );
         }
 
-        // Case 4: EventIdx 1
+        // Case 4: Evcausetidx 1
         // We should get error.
         {
             let mut executor = BatchBlockScanFreeDaemon::new(
@@ -1145,8 +1145,8 @@ mod tests {
 
         let key = Block::encode_row_key(Block_ID, 1);
         let col_ids = (10..10 + schemaReplicant.len() as i64).collect::<Vec<_>>();
-        let EventIdx = col_ids.iter().map(|i| Datum::I64(*i)).collect();
-        let value = Block::encode_row(&mut EvalContext::default(), EventIdx, &col_ids).unwrap();
+        let Evcausetidx = col_ids.iter().map(|i| Datum::I64(*i)).collect();
+        let value = Block::encode_row(&mut EvalContext::default(), Evcausetidx, &col_ids).unwrap();
 
         let mut key_cone = KeyCone::default();
         key_cone.set_spacelike(Block::encode_row_key(Block_ID, std::i64::MIN));
@@ -1216,7 +1216,7 @@ mod tests {
         let mut primary_PrimaryCauset_ids = vec![];
         let mut missed_PrimaryCausets_info = vec![];
         let PrimaryCauset_ids = (0..PrimaryCausets.len() as i64).collect::<Vec<_>>();
-        let mut EventIdx = vec![];
+        let mut Evcausetidx = vec![];
 
         for (i, &PrimaryCauset) in PrimaryCausets.iter().enumerate() {
             let PrimaryCauset {
@@ -1241,13 +1241,13 @@ mod tests {
                 primary_PrimaryCauset_ids.push(i as i64);
             }
 
-            EventIdx.push(Datum::I64(i as i64));
+            Evcausetidx.push(Datum::I64(i as i64));
         }
 
         let handle = datum::encode_key(&mut EvalContext::default(), &handle).unwrap();
 
         let key = Block::encode_common_handle_for_test(Block_ID, &handle);
-        let value = Block::encode_row(&mut EvalContext::default(), EventIdx, &PrimaryCauset_ids).unwrap();
+        let value = Block::encode_row(&mut EvalContext::default(), Evcausetidx, &PrimaryCauset_ids).unwrap();
 
         // Constructs a cone that includes the constructed key.
         let mut key_cone = KeyCone::default();

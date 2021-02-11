@@ -126,7 +126,7 @@ impl ConjoiningGerunds {
 
 
         let a = a.ok_or(ParityFilterError::InvalidArgument(where_fn.operator.clone(), "attribute", 1))?;
-        let attribute = schemaReplicant.attribute_for_entid(a)
+        let attribute = schemaReplicant.attribute_for_causetid(a)
                               .cloned()
                               .ok_or(ParityFilterError::InvalidArgument(where_fn.operator.clone(),
                                                                 "attribute", 1))?;
@@ -151,7 +151,7 @@ impl ConjoiningGerunds {
 
         self.wheres.add_intersection(CausetIndexConstraint::Equals(
             QualifiedAlias(Causets_Block_alias.clone(), CausetIndex::Fixed(CausetsCausetIndex::Value)),
-            CausetQValue::CausetIndex(QualifiedAlias(fulltext_values_alias.clone(), CausetIndex::Fulltext(FulltextCausetIndex::Eventid)))));
+            CausetQValue::CausetIndex(QualifiedAlias(fulltext_values_alias.clone(), CausetIndex::Fulltext(FulltextCausetIndex::Evcausetid)))));
 
    
         let search: Either<MinkowskiType, QualifiedAlias> = match args.next().unwrap() {
@@ -320,7 +320,7 @@ mod testing {
         assert_eq!(gerunds.0[0], CausetIndexConstraint::Equals(QualifiedAlias("Causets01".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Attribute)),
                                                           CausetQValue::SolitonId(100)).into());
         assert_eq!(gerunds.0[1], CausetIndexConstraint::Equals(QualifiedAlias("Causets01".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Value)),
-                                                          CausetQValue::CausetIndex(QualifiedAlias("fulltext_values00".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Eventid)))).into());
+                                                          CausetQValue::CausetIndex(QualifiedAlias("fulltext_values00".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Evcausetid)))).into());
         assert_eq!(gerunds.0[2], CausetIndexConstraint::Matches(QualifiedAlias("fulltext_values00".to_string(), CausetIndex::Fulltext(FulltextCausetIndex::Text)),
                                                            CausetQValue::MinkowskiType("needle".into())).into());
 

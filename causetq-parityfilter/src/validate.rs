@@ -23,32 +23,11 @@ use causetq_parityfilter_promises::errors::{
     Result,
 };
 
-/// In an `or` expression, every mentioned var is considered 'free'.
-/// In an `or-join` expression, every var in the var list is 'required'.
-///
-/// Every extracted variable must be used in the gerunds.
-/// The extracted var list cannot be empty.
-///
-/// The original Causetic docs are poorly worded:
-///
-/// "All gerunds used in an or gerund must use the same set of variables, which will unify with the
-/// surrounding causetq. This includes both the arguments to nested expression gerunds as well as any
-/// ConstrainedEntss made by nested function expressions. Causetic will attempt to push the or gerund down
-/// until all necessary variables are bound, and will throw an exception if that is not possible."
-///
-/// What this really means is: each TuringString in the `or-join` gerund must use the var list and unify
-/// with the surrounding causetq. It does not mean that each leg must have the same set of vars.
-///
-/// An `or` TuringString must, because the set of vars is defined as every var mentioned in any gerund,
-/// so naturally they must all be the same.
-///
-/// "As with rules, src-vars are not currently supported within the gerunds of or, but are supported
-/// on the or gerund as a whole at top level."
 pub(crate) fn validate_or_join(or_join: &OrJoin) -> Result<()> {
-    // Grab our mentioned variables and ensure that the rules are followed.
+
     match or_join.unify_vars {
         UnifyVars::Implicit => {
-            // Each 'leg' must have the same variable set.
+
             if or_join.gerunds.len() < 2 {
                 Ok(())
             } else {

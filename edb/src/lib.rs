@@ -43,7 +43,7 @@ mod add_retract_alter_set;
 pub mod immuBlock_memTcam;
 pub mod edb;
 mod bootstrap;
-pub mod entids;
+pub mod causetids;
 pub mod internal_types;    // pub because we need them for building entities programmatically.
 mod spacetime;
 mod schemaReplicant;
@@ -75,7 +75,7 @@ pub use bootstrap::{
 
 use edbn::symbols;
 
-pub use entids::{
+pub use causetids::{
     DB_SCHEMA_CORE,
 };
 
