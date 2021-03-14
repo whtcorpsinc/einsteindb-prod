@@ -17,9 +17,6 @@ fn lightlike_hook(tx: &std::sync::mpsc::Slightlikeer<()>) -> Message {
     }))
 }
 
-/// Benches how it performs when many messages are sent to the bench system.
-///
-/// A better router and lightweight batch scheduling can lead to better result.
 fn bench_spawn_many(c: &mut Criterion) {
     let (control_tx, control_fsm) = Runner::new(100000);
     let (router, mut system) =

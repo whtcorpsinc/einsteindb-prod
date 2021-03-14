@@ -56,7 +56,7 @@ extern crate rusqlite;
 extern crate edbn;
 extern crate einsteindb_embedded;
 extern crate embedded_promises;
-extern crate einstein_db;
+extern crate edb;
 extern crate causetq_pull_promises;
 
 use std::collections::{

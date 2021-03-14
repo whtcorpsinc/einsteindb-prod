@@ -1,0 +1,12 @@
+[package]
+name = "causetq"
+version = "0.0.1"
+workspace = ".."
+
+[lib]
+name = "causetq"
+path = "lib.rs"
+
+[dependencies]
+failure = "0.0.1"
+failure_derive = "0.0.1"

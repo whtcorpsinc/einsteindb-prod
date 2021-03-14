@@ -6,7 +6,7 @@ workspace = ".."
 [dependencies]
 
 [dependencies.edbn]
-path = "../edbn"
+path = "..edb/edbn"
 
 [dependencies.embedded_promises]
 path = "../embedded-promises"
