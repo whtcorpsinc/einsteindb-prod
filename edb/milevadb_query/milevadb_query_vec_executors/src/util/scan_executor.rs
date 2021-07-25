@@ -12,7 +12,7 @@ use milevadb_query_datatype::codec::batch::LazyBatchPrimaryCausetVec;
 use milevadb_query_datatype::expr::EvalContext;
 
 /// Common interfaces for Block scan and index scan implementations.
-pub trait ScanFreeDaemonImpl: Slightlike {
+pub trait ScanFreeDaemonImpl: lightlike {
     /// Gets the schemaReplicant.
     fn schemaReplicant(&self) -> &[FieldType];
 

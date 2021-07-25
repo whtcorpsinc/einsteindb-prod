@@ -69,7 +69,7 @@ pub enum ReadPoolHandle {
 impl ReadPoolHandle {
     pub fn spawn<F>(&self, f: F, priority: CommandPri, task_id: u64) -> Result<(), ReadPoolError>
     where
-        F: Future<Output = ()> + Slightlike + 'static,
+        F: Future<Output = ()> + lightlike + 'static,
     {
         match self {
             ReadPoolHandle::FuturePools {
@@ -126,14 +126,14 @@ impl ReadPoolHandle {
         task_id: u64,
     ) -> impl Future<Output = Result<T, ReadPoolError>>
     where
-        F: Future<Output = T> + Slightlike + 'static,
-        T: Slightlike + 'static,
+        F: Future<Output = T> + lightlike + 'static,
+        T: lightlike + 'static,
     {
         let (tx, rx) = oneshot::channel::<T>();
         let res = self.spawn(
             async move {
                 let res = f.await;
-                let _ = tx.slightlike(res);
+                let _ = tx.lightlike(res);
             },
             priority,
             task_id,
@@ -306,7 +306,7 @@ mod tests {
             Err(ReadPoolError::UnifiedReadPoolFull) => {}
             _ => panic!("should return full error"),
         }
-        tx1.slightlike(()).unwrap();
+        tx1.lightlike(()).unwrap();
 
         thread::sleep(Duration::from_millis(300));
         assert!(handle.spawn(task4, CommandPri::Normal, 4).is_ok());

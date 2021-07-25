@@ -103,13 +103,13 @@ fn test_duplicate_read_index_ctx() {
             .reserve_dropped(Arc::clone(&dropped_msgs))
             .set_msg_callback(Arc::new(move |msg: &VioletaBftMessage| {
                 if msg.get_message().get_msg_type() == MessageType::MsgReadIndex {
-                    sx.slightlike(()).unwrap();
+                    sx.lightlike(()).unwrap();
                 }
             })),
     );
     cluster.sim.wl().add_recv_filter(1, recv_filter);
 
-    // slightlike two read index requests to leader
+    // lightlike two read index requests to leader
     let mut request = new_request(
         brane.get_id(),
         brane.get_brane_epoch().clone(),
@@ -118,7 +118,7 @@ fn test_duplicate_read_index_ctx() {
     );
     request.mut_header().set_peer(p2);
     let (cb2, rx2) = make_cb(&request);
-    // slightlike to peer 2
+    // lightlike to peer 2
     cluster
         .sim
         .rl()
@@ -129,7 +129,7 @@ fn test_duplicate_read_index_ctx() {
     must_get_equal(&cluster.get_engine(3), b"k0", b"v0");
     request.mut_header().set_peer(p3);
     let (cb3, rx3) = make_cb(&request);
-    // slightlike to peer 3
+    // lightlike to peer 3
     cluster
         .sim
         .rl()
@@ -141,7 +141,7 @@ fn test_duplicate_read_index_ctx() {
     fail::causet("pause_on_peer_collect_message", "pause").unwrap();
     cluster.sim.wl().clear_recv_filters(1);
     for violetabft_msg in mem::replace(dropped_msgs.dagger().unwrap().as_mut(), vec![]) {
-        router.slightlike_violetabft_message(violetabft_msg).unwrap();
+        router.lightlike_violetabft_message(violetabft_msg).unwrap();
     }
     fail::remove("pause_on_peer_collect_message");
 
@@ -291,10 +291,10 @@ fn test_read_after_cleanup_cone_for_snap() {
     cluster.stop_node(3);
     let last_index = cluster.violetabft_local_state(r1, 1).last_index;
     (0..10).for_each(|_| cluster.must_put(b"k1", b"v1"));
-    // Ensure logs are compacted, then node 1 will slightlike a snapshot to node 3 later
+    // Ensure logs are compacted, then node 1 will lightlike a snapshot to node 3 later
     must_truncated_to(cluster.get_engine(1), r1, last_index + 1);
 
-    fail::causet("slightlike_snapshot", "pause").unwrap();
+    fail::causet("lightlike_snapshot", "pause").unwrap();
     cluster.run_node(3).unwrap();
     // Sleep for a while to ensure peer 3 receives a HeartBeat
     thread::sleep(Duration::from_millis(500));
@@ -307,18 +307,18 @@ fn test_read_after_cleanup_cone_for_snap() {
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgSnapshot)
             .set_msg_callback(Arc::new(move |msg: &VioletaBftMessage| {
-                snap_sx.slightlike(msg.clone()).unwrap();
+                snap_sx.lightlike(msg.clone()).unwrap();
             })),
     );
-    let slightlike_read_index_filter = BranePacketFilter::new(brane.get_id(), 3)
+    let lightlike_read_index_filter = BranePacketFilter::new(brane.get_id(), 3)
         .direction(Direction::Recv)
         .msg_type(MessageType::MsgReadIndexResp)
         .set_msg_callback(Arc::new(move |msg: &VioletaBftMessage| {
-            read_index_sx.slightlike(msg.clone()).unwrap();
+            read_index_sx.lightlike(msg.clone()).unwrap();
         }));
     cluster.sim.wl().add_recv_filter(3, recv_filter);
-    cluster.add_slightlike_filter(CloneFilterFactory(slightlike_read_index_filter));
-    fail::remove("slightlike_snapshot");
+    cluster.add_lightlike_filter(CloneFilterFactory(lightlike_read_index_filter));
+    fail::remove("lightlike_snapshot");
     let mut request = new_request(
         brane.get_id(),
         brane.get_brane_epoch().clone(),
@@ -327,7 +327,7 @@ fn test_read_after_cleanup_cone_for_snap() {
     );
     request.mut_header().set_peer(p3);
     request.mut_header().set_replica_read(true);
-    // Slightlike follower read request to peer 3
+    // lightlike follower read request to peer 3
     let (cb1, rx1) = make_cb(&request);
     cluster
         .sim
@@ -342,10 +342,10 @@ fn test_read_after_cleanup_cone_for_snap() {
     let router = cluster.sim.wl().get_router(3).unwrap();
     fail::causet("pause_on_peer_collect_message", "pause").unwrap();
     cluster.sim.wl().clear_recv_filters(3);
-    cluster.clear_slightlike_filters();
-    router.slightlike_violetabft_message(snap_msg).unwrap();
-    router.slightlike_violetabft_message(read_index_msg).unwrap();
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.clear_lightlike_filters();
+    router.lightlike_violetabft_message(snap_msg).unwrap();
+    router.lightlike_violetabft_message(read_index_msg).unwrap();
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     fail::remove("pause_on_peer_collect_message");
     must_get_none(&cluster.get_engine(3), b"k0");
     // Should not receive resp

@@ -191,13 +191,13 @@ impl CompactedEvent for LmdbCompactedEvent {
 pub type Filter = fn(&LmdbCompactionJobInfo) -> bool;
 
 pub struct CompactionListener {
-    ch: Box<dyn Fn(LmdbCompactedEvent) + Slightlike + Sync>,
+    ch: Box<dyn Fn(LmdbCompactedEvent) + lightlike + Sync>,
     filter: Option<Filter>,
 }
 
 impl CompactionListener {
     pub fn new(
-        ch: Box<dyn Fn(LmdbCompactedEvent) + Slightlike + Sync>,
+        ch: Box<dyn Fn(LmdbCompactedEvent) + lightlike + Sync>,
         filter: Option<Filter>,
     ) -> CompactionListener {
         CompactionListener { ch, filter }

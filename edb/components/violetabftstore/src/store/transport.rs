@@ -2,14 +2,14 @@
 
 use crate::store::{CasualMessage, PeerMsg, VioletaBftCommand, VioletaBftRouter, StoreMsg};
 use crate::{DiscardReason, Error, Result};
-use crossbeam::TrySlightlikeError;
+use crossbeam::TrylightlikeError;
 use engine_promises::{KvEngine, VioletaBftEngine, Snapshot};
 use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use std::sync::mpsc;
 
 /// Transports messages between different VioletaBft peers.
-pub trait Transport: Slightlike + Clone {
-    fn slightlike(&mut self, msg: VioletaBftMessage) -> Result<()>;
+pub trait Transport: lightlike + Clone {
+    fn lightlike(&mut self, msg: VioletaBftMessage) -> Result<()>;
 
     fn flush(&mut self);
 }
@@ -21,7 +21,7 @@ pub trait CasualRouter<EK>
 where
     EK: KvEngine,
 {
-    fn slightlike(&self, brane_id: u64, msg: CasualMessage<EK>) -> Result<()>;
+    fn lightlike(&self, brane_id: u64, msg: CasualMessage<EK>) -> Result<()>;
 }
 
 /// Routes proposal to target brane.
@@ -29,7 +29,7 @@ pub trait ProposalRouter<S>
 where
     S: Snapshot,
 {
-    fn slightlike(&self, cmd: VioletaBftCommand<S>) -> std::result::Result<(), TrySlightlikeError<VioletaBftCommand<S>>>;
+    fn lightlike(&self, cmd: VioletaBftCommand<S>) -> std::result::Result<(), TrylightlikeError<VioletaBftCommand<S>>>;
 }
 
 /// Routes message to store FSM.
@@ -39,7 +39,7 @@ pub trait StoreRouter<EK>
 where
     EK: KvEngine,
 {
-    fn slightlike(&self, msg: StoreMsg<EK>) -> Result<()>;
+    fn lightlike(&self, msg: StoreMsg<EK>) -> Result<()>;
 }
 
 impl<EK, ER> CasualRouter<EK> for VioletaBftRouter<EK, ER>
@@ -48,11 +48,11 @@ where
     ER: VioletaBftEngine,
 {
     #[inline]
-    fn slightlike(&self, brane_id: u64, msg: CasualMessage<EK>) -> Result<()> {
-        match self.router.slightlike(brane_id, PeerMsg::CasualMessage(msg)) {
+    fn lightlike(&self, brane_id: u64, msg: CasualMessage<EK>) -> Result<()> {
+        match self.router.lightlike(brane_id, PeerMsg::CasualMessage(msg)) {
             Ok(()) => Ok(()),
-            Err(TrySlightlikeError::Full(_)) => Err(Error::Transport(DiscardReason::Full)),
-            Err(TrySlightlikeError::Disconnected(_)) => Err(Error::BraneNotFound(brane_id)),
+            Err(TrylightlikeError::Full(_)) => Err(Error::Transport(DiscardReason::Full)),
+            Err(TrylightlikeError::Disconnected(_)) => Err(Error::BraneNotFound(brane_id)),
         }
     }
 }
@@ -63,11 +63,11 @@ where
     ER: VioletaBftEngine,
 {
     #[inline]
-    fn slightlike(
+    fn lightlike(
         &self,
         cmd: VioletaBftCommand<EK::Snapshot>,
-    ) -> std::result::Result<(), TrySlightlikeError<VioletaBftCommand<EK::Snapshot>>> {
-        self.slightlike_violetabft_command(cmd)
+    ) -> std::result::Result<(), TrylightlikeError<VioletaBftCommand<EK::Snapshot>>> {
+        self.lightlike_violetabft_command(cmd)
     }
 }
 
@@ -77,50 +77,50 @@ where
     ER: VioletaBftEngine,
 {
     #[inline]
-    fn slightlike(&self, msg: StoreMsg<EK>) -> Result<()> {
-        match self.slightlike_control(msg) {
+    fn lightlike(&self, msg: StoreMsg<EK>) -> Result<()> {
+        match self.lightlike_control(msg) {
             Ok(()) => Ok(()),
-            Err(TrySlightlikeError::Full(_)) => Err(Error::Transport(DiscardReason::Full)),
-            Err(TrySlightlikeError::Disconnected(_)) => {
+            Err(TrylightlikeError::Full(_)) => Err(Error::Transport(DiscardReason::Full)),
+            Err(TrylightlikeError::Disconnected(_)) => {
                 Err(Error::Transport(DiscardReason::Disconnected))
             }
         }
     }
 }
 
-impl<EK> CasualRouter<EK> for mpsc::SyncSlightlikeer<(u64, CasualMessage<EK>)>
+impl<EK> CasualRouter<EK> for mpsc::Synclightlikeer<(u64, CasualMessage<EK>)>
 where
     EK: KvEngine,
 {
-    fn slightlike(&self, brane_id: u64, msg: CasualMessage<EK>) -> Result<()> {
-        match self.try_slightlike((brane_id, msg)) {
+    fn lightlike(&self, brane_id: u64, msg: CasualMessage<EK>) -> Result<()> {
+        match self.try_lightlike((brane_id, msg)) {
             Ok(()) => Ok(()),
-            Err(mpsc::TrySlightlikeError::Disconnected(_)) => {
+            Err(mpsc::TrylightlikeError::Disconnected(_)) => {
                 Err(Error::Transport(DiscardReason::Disconnected))
             }
-            Err(mpsc::TrySlightlikeError::Full(_)) => Err(Error::Transport(DiscardReason::Full)),
+            Err(mpsc::TrylightlikeError::Full(_)) => Err(Error::Transport(DiscardReason::Full)),
         }
     }
 }
 
-impl<S: Snapshot> ProposalRouter<S> for mpsc::SyncSlightlikeer<VioletaBftCommand<S>> {
-    fn slightlike(&self, cmd: VioletaBftCommand<S>) -> std::result::Result<(), TrySlightlikeError<VioletaBftCommand<S>>> {
-        match self.try_slightlike(cmd) {
+impl<S: Snapshot> ProposalRouter<S> for mpsc::Synclightlikeer<VioletaBftCommand<S>> {
+    fn lightlike(&self, cmd: VioletaBftCommand<S>) -> std::result::Result<(), TrylightlikeError<VioletaBftCommand<S>>> {
+        match self.try_lightlike(cmd) {
             Ok(()) => Ok(()),
-            Err(mpsc::TrySlightlikeError::Disconnected(cmd)) => Err(TrySlightlikeError::Disconnected(cmd)),
-            Err(mpsc::TrySlightlikeError::Full(cmd)) => Err(TrySlightlikeError::Full(cmd)),
+            Err(mpsc::TrylightlikeError::Disconnected(cmd)) => Err(TrylightlikeError::Disconnected(cmd)),
+            Err(mpsc::TrylightlikeError::Full(cmd)) => Err(TrylightlikeError::Full(cmd)),
         }
     }
 }
 
-impl<EK> StoreRouter<EK> for mpsc::Slightlikeer<StoreMsg<EK>>
+impl<EK> StoreRouter<EK> for mpsc::lightlikeer<StoreMsg<EK>>
 where
     EK: KvEngine,
 {
-    fn slightlike(&self, msg: StoreMsg<EK>) -> Result<()> {
-        match self.slightlike(msg) {
+    fn lightlike(&self, msg: StoreMsg<EK>) -> Result<()> {
+        match self.lightlike(msg) {
             Ok(()) => Ok(()),
-            Err(mpsc::SlightlikeError(_)) => Err(Error::Transport(DiscardReason::Disconnected)),
+            Err(mpsc::lightlikeError(_)) => Err(Error::Transport(DiscardReason::Disconnected)),
         }
     }
 }

@@ -140,7 +140,7 @@ fn test_node_merge_with_slow_learner() {
     must_get_equal(&cluster.get_engine(2), b"k1", b"v1");
     must_get_equal(&cluster.get_engine(2), b"k3", b"v3");
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
     (0..20).for_each(|i| cluster.must_put(b"k1", format!("v{}", i).as_bytes()));
 
     // Merge 2 branes under isolation should fail.
@@ -155,7 +155,7 @@ fn test_node_merge_with_slow_learner() {
         .get_message()
         .contains("log gap"));
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     cluster.must_put(b"k11", b"v100");
     must_get_equal(&cluster.get_engine(1), b"k11", b"v100");
     must_get_equal(&cluster.get_engine(2), b"k11", b"v100");
@@ -171,7 +171,7 @@ fn test_node_merge_with_slow_learner() {
     must_get_equal(&cluster.get_engine(2), b"k5", b"v5");
     let left = fidel_client.get_brane(b"k1").unwrap();
     let right = fidel_client.get_brane(b"k5").unwrap();
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
     fidel_client.must_merge(left.get_id(), right.get_id());
     let state1 = cluster.truncated_state(right.get_id(), 1);
     (0..50).for_each(|i| cluster.must_put(b"k2", format!("v{}", i).as_bytes()));
@@ -188,7 +188,7 @@ fn test_node_merge_with_slow_learner() {
         }
         sleep_ms(10);
     }
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     cluster.must_put(b"k6", b"v6");
     must_get_equal(&cluster.get_engine(2), b"k6", b"v6");
 }
@@ -218,14 +218,14 @@ fn test_node_merge_prerequisites_check() {
 
     // first MsgApplightlike will applightlike log, second MsgApplightlike will set commit index,
     // So only allowing first MsgApplightlike to make source peer have uncommitted entries.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(left.get_id(), 3)
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgApplightlike)
             .allow(1),
     ));
     // make the source peer's commit index can't be ufidelated by MsgHeartbeat.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(left.get_id(), 3)
             .msg_type(MessageType::MsgHeartbeat)
             .direction(Direction::Recv),
@@ -234,11 +234,11 @@ fn test_node_merge_prerequisites_check() {
     let res = cluster.try_merge(left.get_id(), right.get_id());
     // log gap (min_committed, last_index] contains admin entries.
     assert!(res.get_header().has_error(), "{:?}", res);
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     cluster.must_put(b"k22", b"v22");
     must_get_equal(&cluster.get_engine(3), b"k22", b"v22");
 
-    cluster.add_slightlike_filter(CloneFilterFactory(BranePacketFilter::new(
+    cluster.add_lightlike_filter(CloneFilterFactory(BranePacketFilter::new(
         right.get_id(),
         3,
     )));
@@ -253,11 +253,11 @@ fn test_node_merge_prerequisites_check() {
     let res = cluster.try_merge(right.get_id(), left.get_id());
     // log gap (min_matched, last_index] contains admin entries.
     assert!(res.get_header().has_error(), "{:?}", res);
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     cluster.must_put(b"k23", b"v23");
     must_get_equal(&cluster.get_engine(3), b"k23", b"v23");
 
-    cluster.add_slightlike_filter(CloneFilterFactory(BranePacketFilter::new(
+    cluster.add_lightlike_filter(CloneFilterFactory(BranePacketFilter::new(
         right.get_id(),
         3,
     )));
@@ -270,7 +270,7 @@ fn test_node_merge_prerequisites_check() {
     let res = cluster.try_merge(right.get_id(), left.get_id());
     // log gap contains admin entries.
     assert!(res.get_header().has_error(), "{:?}", res);
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     cluster.must_put(b"k24", b"v24");
     must_get_equal(&cluster.get_engine(3), b"k24", b"v24");
 }
@@ -299,10 +299,10 @@ fn test_node_check_merged_message() {
     let mut right = fidel_client.get_brane(b"k2").unwrap();
     fidel_client.must_add_peer(left.get_id(), new_peer(4, 4));
     must_get_equal(&cluster.get_engine(4), b"k1", b"v1");
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(4));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(4));
     fidel_client.must_remove_peer(left.get_id(), new_peer(4, 4));
     fidel_client.must_merge(left.get_id(), right.get_id());
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_none(&cluster.get_engine(4), b"k1");
 
     // test gc work under complicated situation.
@@ -319,7 +319,7 @@ fn test_node_check_merged_message() {
     let left_on_store3 = find_peer(&left, 3).unwrap().to_owned();
     fidel_client.must_remove_peer(left.get_id(), left_on_store3);
     must_get_none(&cluster.get_engine(3), b"k1");
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     left = fidel_client.get_brane(b"k1").unwrap();
     fidel_client.must_add_peer(left.get_id(), new_peer(3, 5));
     left = fidel_client.get_brane(b"k1").unwrap();
@@ -328,7 +328,7 @@ fn test_node_check_merged_message() {
     cluster.must_delete(b"k3");
     cluster.must_delete(b"k5");
     cluster.must_put(b"k4", b"v4");
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     let engine3 = cluster.get_engine(3);
     must_get_equal(&engine3, b"k1", b"v1");
     must_get_equal(&engine3, b"k4", b"v4");
@@ -385,12 +385,12 @@ fn test_node_merge_slow_split(is_right_derive: bool) {
     //  left brane: 1         2(leader) I 3
     // right brane: 1(leader) 2         I 3
     // I means isolation.(here just means 3 can not receive applightlike log)
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(left.get_id(), 3)
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgApplightlike),
     ));
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(right.get_id(), 3)
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgApplightlike),
@@ -406,7 +406,7 @@ fn test_node_merge_slow_split(is_right_derive: bool) {
     // after merge, the left brane still exists on store 3
 
     cluster.must_put(b"k0", b"v0");
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_equal(&cluster.get_engine(3), b"k0", b"v0");
 }
 
@@ -443,10 +443,10 @@ fn test_node_merge_dist_isolation() {
     //  left brane: 1         I 2 3(leader)
     // right brane: 1(leader) I 2 3
     // I means isolation.
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(1));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(1));
     fidel_client.must_merge(left.get_id(), right.get_id());
     cluster.must_put(b"k4", b"v4");
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_equal(&cluster.get_engine(1), b"k4", b"v4");
 
     let brane = fidel_client.get_brane(b"k1").unwrap();
@@ -458,7 +458,7 @@ fn test_node_merge_dist_isolation() {
     fidel_client.must_remove_peer(right.get_id(), new_peer(3, 3));
     cluster.must_put(b"k33", b"v33");
 
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(right.get_id(), 3).direction(Direction::Recv),
     ));
     fidel_client.must_add_peer(right.get_id(), new_peer(3, 4));
@@ -481,12 +481,12 @@ fn test_node_merge_dist_isolation() {
     fidel_client.must_merge(left.get_id(), right.get_id());
     cluster.must_put(b"k4", b"v4");
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_equal(&cluster.get_engine(3), b"k4", b"v4");
 }
 
 /// Similar to `test_node_merge_dist_isolation`, but make the isolated store
-/// way behind others so others have to slightlike it a snapshot.
+/// way behind others so others have to lightlike it a snapshot.
 #[test]
 fn test_node_merge_brain_split() {
     let mut cluster = new_node_cluster(0, 3);
@@ -519,7 +519,7 @@ fn test_node_merge_brain_split() {
     must_get_equal(&cluster.get_engine(3), b"k11", b"v11");
     must_get_equal(&cluster.get_engine(3), b"k21", b"v21");
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     // So cluster becomes:
     //  left brane: 1(leader) 2 I 3
     // right brane: 1(leader) 2 I 3
@@ -532,7 +532,7 @@ fn test_node_merge_brain_split() {
     must_get_equal(&cluster.get_engine(2), b"k40", b"v4");
     must_get_equal(&cluster.get_engine(1), b"k40", b"v4");
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     // Wait until store 3 get data after merging
     must_get_equal(&cluster.get_engine(3), b"k40", b"v4");
@@ -574,7 +574,7 @@ fn test_node_merge_brain_split() {
     must_get_none(&cluster.get_engine(3), b"k11");
     must_get_equal(&cluster.get_engine(3), b"k22", b"v22");
     must_get_none(&cluster.get_engine(3), b"k33");
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     fidel_client.must_add_peer(left.get_id(), new_peer(3, 11));
     fidel_client.must_merge(middle.get_id(), left.get_id());
     fidel_client.must_remove_peer(left.get_id(), new_peer(3, 11));
@@ -586,7 +586,7 @@ fn test_node_merge_brain_split() {
     // store 1/2: [  new_left ] k4 [left]
     cluster.must_split(&brane, b"k4");
     cluster.must_put(b"k12", b"v12");
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_equal(&cluster.get_engine(3), b"k12", b"v12");
 }
 
@@ -768,20 +768,20 @@ fn test_node_merge_catch_up_logs_empty_entries() {
 
     // first MsgApplightlike will applightlike log, second MsgApplightlike will set commit index,
     // So only allowing first MsgApplightlike to make source peer have uncommitted entries.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(left.get_id(), 3)
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgApplightlike)
             .allow(1),
     ));
     // make the source peer have no way to know the uncommitted entries can be applied from heartbeat.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(left.get_id(), 3)
             .msg_type(MessageType::MsgHeartbeat)
             .direction(Direction::Recv),
     ));
     // make the source peer have no way to know the uncommitted entries can be applied from target brane.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(right.get_id(), 3)
             .msg_type(MessageType::MsgApplightlike)
             .direction(Direction::Recv),
@@ -789,7 +789,7 @@ fn test_node_merge_catch_up_logs_empty_entries() {
     fidel_client.must_merge(left.get_id(), right.get_id());
     cluster.must_brane_not_exist(left.get_id(), 2);
     cluster.shutdown();
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     // as expected, merge process will forward the commit index
     // and the source peer will be destroyed.
@@ -823,11 +823,11 @@ fn test_merge_with_slow_promote() {
 
     let delay_filter =
         Box::new(BranePacketFilter::new(right.get_id(), 3).direction(Direction::Recv));
-    cluster.sim.wl().add_slightlike_filter(3, delay_filter);
+    cluster.sim.wl().add_lightlike_filter(3, delay_filter);
 
     fidel_client.must_add_peer(right.get_id(), new_peer(3, right.get_id() + 3));
     fidel_client.must_merge(right.get_id(), left.get_id());
-    cluster.sim.wl().clear_slightlike_filters(3);
+    cluster.sim.wl().clear_lightlike_filters(3);
     cluster.must_transfer_leader(left.get_id(), new_peer(3, left.get_id() + 3));
 }
 
@@ -853,7 +853,7 @@ fn test_request_snapshot_after_propose_merge() {
     cluster.must_transfer_leader(brane.get_id(), new_peer(1, 1));
 
     // Drop applightlike messages, so prepare merge can not be committed.
-    cluster.add_slightlike_filter(CloneFilterFactory(DropMessageFilter::new(
+    cluster.add_lightlike_filter(CloneFilterFactory(DropMessageFilter::new(
         MessageType::MsgApplightlike,
     )));
     let prepare_merge = new_prepare_merge(target_brane);
@@ -924,7 +924,7 @@ fn test_merge_isolated_store_with_no_target_peer() {
     cluster.must_put(b"k22", b"v22");
     must_get_equal(&cluster.get_engine(4), b"k22", b"v22");
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(4));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(4));
 
     fidel_client.must_add_peer(left.get_id(), new_peer(4, 5));
     let left_on_store3 = find_peer(&left, 3).unwrap().to_owned();
@@ -937,7 +937,7 @@ fn test_merge_isolated_store_with_no_target_peer() {
     cluster.must_split(&new_left, b"k3");
     // Now new_left brane cone is [k3, +∞)
     cluster.must_put(b"k345", b"v345");
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     must_get_equal(&cluster.get_engine(4), b"k345", b"v345");
 }
@@ -976,7 +976,7 @@ fn test_merge_cascade_merge_isolated() {
     let r3_on_store1 = find_peer(&r3, 1).unwrap().to_owned();
     cluster.must_transfer_leader(r3.get_id(), r3_on_store1);
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
 
     // r1, r3 both merge to r2
     fidel_client.must_merge(r1.get_id(), r2.get_id());
@@ -984,7 +984,7 @@ fn test_merge_cascade_merge_isolated() {
 
     cluster.must_put(b"k4", b"v4");
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     must_get_equal(&cluster.get_engine(3), b"k4", b"v4");
 }
@@ -1024,7 +1024,7 @@ fn test_merge_isloated_not_in_merge_learner() {
     fidel_client.must_remove_peer(right.get_id(), right_on_store1);
 
     fidel_client.must_merge(left.get_id(), right.get_id());
-    // Add a new learner on store 2 to trigger peer 2 slightlike check-stale-peer msg to other peers
+    // Add a new learner on store 2 to trigger peer 2 lightlike check-stale-peer msg to other peers
     fidel_client.must_add_peer(right.get_id(), new_learner_peer(2, 5));
 
     cluster.must_put(b"k123", b"v123");
@@ -1072,7 +1072,7 @@ fn test_merge_isloated_stale_learner() {
 
     let new_left = fidel_client.get_brane(b"k1").unwrap();
     assert_ne!(left.get_id(), new_left.get_id());
-    // Add a new learner on store 2 to trigger peer 2 slightlike check-stale-peer msg to other peers
+    // Add a new learner on store 2 to trigger peer 2 lightlike check-stale-peer msg to other peers
     fidel_client.must_add_peer(new_left.get_id(), new_learner_peer(2, 5));
     cluster.must_put(b"k123", b"v123");
 
@@ -1123,7 +1123,7 @@ fn test_merge_isloated_not_in_merge_learner_2() {
     cluster.run_node(2).unwrap();
     // When the abnormal leader missing duration has passed, the check-stale-peer msg will be sent to peer 1001.
     // After that, a new peer list will be returned (2, 2) (3, 3).
-    // Then peer 2 slightlikes the check-stale-peer msg to peer 3 and it will get a tombstone response.
+    // Then peer 2 lightlikes the check-stale-peer msg to peer 3 and it will get a tombstone response.
     // Finally peer 2 will be destroyed.
     must_get_none(&cluster.get_engine(2), b"k1");
 }
@@ -1164,7 +1164,7 @@ fn test_merge_remove_target_peer_isolated() {
         must_get_equal(&cluster.get_engine(3), format!("k{}", i).as_bytes(), b"v1");
     }
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     // Make brane r2's epoch > r2 peer on store 3.
     // r2 peer on store 3 will be removed whose epoch is staler than the epoch when r1 merge to r2.
     fidel_client.must_add_peer(r2.get_id(), new_peer(4, 4));
@@ -1180,7 +1180,7 @@ fn test_merge_remove_target_peer_isolated() {
 
     fidel_client.must_merge(r2.get_id(), r3.get_id());
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     for i in 1..4 {
         must_get_none(&cluster.get_engine(3), format!("k{}", i).as_bytes());

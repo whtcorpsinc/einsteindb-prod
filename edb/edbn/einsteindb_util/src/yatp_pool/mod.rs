@@ -13,7 +13,7 @@ use yatp::ThreadPool;
 
 pub(crate) const TICK_INTERVAL: Duration = Duration::from_secs(1);
 
-pub trait PoolTicker: Slightlike + Clone + 'static {
+pub trait PoolTicker: lightlike + Clone + 'static {
     fn on_tick(&mut self);
 }
 
@@ -73,9 +73,9 @@ impl Config {
 pub struct YatpPoolRunner<T: PoolTicker> {
     inner: FutureRunner,
     ticker: TickerWrapper<T>,
-    after_spacelike: Option<Arc<dyn Fn() + Slightlike + Sync>>,
-    before_stop: Option<Arc<dyn Fn() + Slightlike + Sync>>,
-    before_pause: Option<Arc<dyn Fn() + Slightlike + Sync>>,
+    after_spacelike: Option<Arc<dyn Fn() + lightlike + Sync>>,
+    before_stop: Option<Arc<dyn Fn() + lightlike + Sync>>,
+    before_pause: Option<Arc<dyn Fn() + lightlike + Sync>>,
 }
 
 impl<T: PoolTicker> Runner for YatpPoolRunner<T> {
@@ -120,9 +120,9 @@ impl<T: PoolTicker> YatpPoolRunner<T> {
     pub fn new(
         inner: FutureRunner,
         ticker: TickerWrapper<T>,
-        after_spacelike: Option<Arc<dyn Fn() + Slightlike + Sync>>,
-        before_stop: Option<Arc<dyn Fn() + Slightlike + Sync>>,
-        before_pause: Option<Arc<dyn Fn() + Slightlike + Sync>>,
+        after_spacelike: Option<Arc<dyn Fn() + lightlike + Sync>>,
+        before_stop: Option<Arc<dyn Fn() + lightlike + Sync>>,
+        before_pause: Option<Arc<dyn Fn() + lightlike + Sync>>,
     ) -> Self {
         YatpPoolRunner {
             inner,
@@ -137,9 +137,9 @@ impl<T: PoolTicker> YatpPoolRunner<T> {
 pub struct YatpPoolBuilder<T: PoolTicker> {
     name_prefix: Option<String>,
     ticker: TickerWrapper<T>,
-    after_spacelike: Option<Arc<dyn Fn() + Slightlike + Sync>>,
-    before_stop: Option<Arc<dyn Fn() + Slightlike + Sync>>,
-    before_pause: Option<Arc<dyn Fn() + Slightlike + Sync>>,
+    after_spacelike: Option<Arc<dyn Fn() + lightlike + Sync>>,
+    before_stop: Option<Arc<dyn Fn() + lightlike + Sync>>,
+    before_pause: Option<Arc<dyn Fn() + lightlike + Sync>>,
     min_thread_count: usize,
     max_thread_count: usize,
     stack_size: usize,
@@ -191,7 +191,7 @@ impl<T: PoolTicker> YatpPoolBuilder<T> {
 
     pub fn before_stop<F>(&mut self, f: F) -> &mut Self
     where
-        F: Fn() + Slightlike + Sync + 'static,
+        F: Fn() + lightlike + Sync + 'static,
     {
         self.before_stop = Some(Arc::new(f));
         self
@@ -199,7 +199,7 @@ impl<T: PoolTicker> YatpPoolBuilder<T> {
 
     pub fn after_spacelike<F>(&mut self, f: F) -> &mut Self
     where
-        F: Fn() + Slightlike + Sync + 'static,
+        F: Fn() + lightlike + Sync + 'static,
     {
         self.after_spacelike = Some(Arc::new(f));
         self
@@ -207,7 +207,7 @@ impl<T: PoolTicker> YatpPoolBuilder<T> {
 
     pub fn before_pause<F>(&mut self, f: F) -> &mut Self
     where
-        F: Fn() + Slightlike + Sync + 'static,
+        F: Fn() + lightlike + Sync + 'static,
     {
         self.before_pause = Some(Arc::new(f));
         self

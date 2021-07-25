@@ -6,7 +6,7 @@ use std::sync::Arc;
 use super::cone::*;
 use super::Result;
 
-type ErrorBuilder = Box<dyn Slightlike + Sync + Fn() -> crate::error::StorageError>;
+type ErrorBuilder = Box<dyn lightlike + Sync + Fn() -> crate::error::StorageError>;
 
 type FixtureValue = std::result::Result<Vec<u8>, ErrorBuilder>;
 

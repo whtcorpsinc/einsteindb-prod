@@ -6,7 +6,7 @@ use std::sync::RwLock;
 use std::time::Duration;
 use std::time::Instant;
 
-use futures::channel::mpsc::UnboundedSlightlikeer;
+use futures::channel::mpsc::Unboundedlightlikeer;
 use futures::compat::Future01CompatExt;
 use futures::executor::block_on;
 use futures::future;
@@ -18,7 +18,7 @@ use futures::task::Poll;
 use futures::task::Waker;
 
 use grpcio::{
-    CallOption, ChannelBuilder, ClientDuplexReceiver, ClientDuplexSlightlikeer, Environment,
+    CallOption, ChannelBuilder, ClientDuplexReceiver, ClientDuplexlightlikeer, Environment,
     Result as GrpcResult,
 };
 use ekvproto::fidelpb::{
@@ -35,15 +35,15 @@ use super::{ClusterVersion, Config, Error, FidelFuture, Result, REQUEST_TIMEOUT}
 
 pub struct Inner {
     env: Arc<Environment>,
-    pub hb_slightlikeer: Either<
-        Option<ClientDuplexSlightlikeer<BraneHeartbeatRequest>>,
-        UnboundedSlightlikeer<BraneHeartbeatRequest>,
+    pub hb_lightlikeer: Either<
+        Option<ClientDuplexlightlikeer<BraneHeartbeatRequest>>,
+        Unboundedlightlikeer<BraneHeartbeatRequest>,
     >,
     pub hb_receiver: Either<Option<ClientDuplexReceiver<BraneHeartbeatResponse>>, Waker>,
     pub client_stub: FidelClientStub,
     members: GetMembersResponse,
     security_mgr: Arc<SecurityManager>,
-    on_reconnect: Option<Box<dyn Fn() + Sync + Slightlike + 'static>>,
+    on_reconnect: Option<Box<dyn Fn() + Sync + lightlike + 'static>>,
 
     last_ufidelate: Instant,
 
@@ -109,7 +109,7 @@ impl LeaderClient {
             timer: GLOBAL_TIMER_HANDLE.clone(),
             inner: Arc::new(RwLock::new(Inner {
                 env,
-                hb_slightlikeer: Either::Left(Some(tx)),
+                hb_lightlikeer: Either::Left(Some(tx)),
                 hb_receiver: Either::Left(Some(rx)),
                 client_stub,
                 members,
@@ -124,7 +124,7 @@ impl LeaderClient {
 
     pub fn handle_brane_heartbeat_response<F>(&self, f: F) -> FidelFuture<()>
     where
-        F: Fn(BraneHeartbeatResponse) + Slightlike + 'static,
+        F: Fn(BraneHeartbeatResponse) + lightlike + 'static,
     {
         let recv = HeartbeatReceiver {
             receiver: None,
@@ -139,7 +139,7 @@ impl LeaderClient {
         )
     }
 
-    pub fn on_reconnect(&self, f: Box<dyn Fn() + Sync + Slightlike + 'static>) {
+    pub fn on_reconnect(&self, f: Box<dyn Fn() + Sync + lightlike + 'static>) {
         let mut inner = self.inner.wl();
         inner.on_reconnect = Some(f);
     }
@@ -147,7 +147,7 @@ impl LeaderClient {
     pub fn request<Req, Resp, F>(&self, req: Req, func: F, retry: usize) -> Request<Req, F>
     where
         Req: Clone + 'static,
-        F: FnMut(&RwLock<Inner>, Req) -> FidelFuture<Resp> + Slightlike + 'static,
+        F: FnMut(&RwLock<Inner>, Req) -> FidelFuture<Resp> + lightlike + 'static,
     {
         Request {
             reconnect_count: retry,
@@ -194,14 +194,14 @@ impl LeaderClient {
             let (tx, rx) = client.brane_heartbeat().unwrap_or_else(|e| {
                 panic!("fail to request FIDel {} err {:?}", "brane_heartbeat", e)
             });
-            info!("heartbeat slightlikeer and receiver are stale, refreshing ...");
+            info!("heartbeat lightlikeer and receiver are stale, refreshing ...");
 
-            // Try to cancel an unused heartbeat slightlikeer.
-            if let Either::Left(Some(ref mut r)) = inner.hb_slightlikeer {
-                debug!("cancel brane heartbeat slightlikeer");
+            // Try to cancel an unused heartbeat lightlikeer.
+            if let Either::Left(Some(ref mut r)) = inner.hb_lightlikeer {
+                debug!("cancel brane heartbeat lightlikeer");
                 r.cancel();
             }
-            inner.hb_slightlikeer = Either::Left(Some(tx));
+            inner.hb_lightlikeer = Either::Left(Some(tx));
             let prev_receiver = std::mem::replace(&mut inner.hb_receiver, Either::Left(Some(rx)));
             let _ = prev_receiver.right().map(|t| t.wake());
             inner.client_stub = client;
@@ -218,7 +218,7 @@ impl LeaderClient {
 
 pub const RECONNECT_INTERVAL_SEC: u64 = 1; // 1s
 
-/// The context of slightlikeing requets.
+/// The context of lightlikeing requets.
 pub struct Request<Req, F> {
     reconnect_count: usize,
     request_sent: usize,
@@ -231,8 +231,8 @@ const MAX_REQUEST_COUNT: usize = 3;
 
 impl<Req, Resp, F> Request<Req, F>
 where
-    Req: Clone + Slightlike + 'static,
-    F: FnMut(&RwLock<Inner>, Req) -> FidelFuture<Resp> + Slightlike + 'static,
+    Req: Clone + lightlike + 'static,
+    F: FnMut(&RwLock<Inner>, Req) -> FidelFuture<Resp> + lightlike + 'static,
 {
     async fn reconnect_if_needed(&mut self) -> bool {
         debug!("reconnecting ..."; "remain" => self.reconnect_count);
@@ -263,7 +263,7 @@ where
         }
     }
 
-    async fn slightlike_and_receive(&mut self) -> Result<Resp> {
+    async fn lightlike_and_receive(&mut self) -> Result<Resp> {
         self.request_sent += 1;
         debug!("request sent: {}", self.request_sent);
         let r = self.req.clone();
@@ -289,7 +289,7 @@ where
         Box::pin(async move {
             while self.reconnect_count != 0 {
                 if self.reconnect_if_needed().await {
-                    let resp = self.slightlike_and_receive().await;
+                    let resp = self.lightlike_and_receive().await;
                     if Self::should_not_retry(&resp) {
                         return resp;
                     }

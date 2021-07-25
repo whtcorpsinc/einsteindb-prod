@@ -95,9 +95,9 @@ impl<EK: KvEngine, C: CasualRouter<EK>> Runner<EK, C> {
                 context: ctx,
                 hash: checksum,
             };
-            if let Err(e) = self.router.slightlike(brane.get_id(), msg) {
+            if let Err(e) = self.router.lightlike(brane.get_id(), msg) {
                 warn!(
-                    "failed to slightlike hash compute result";
+                    "failed to lightlike hash compute result";
                     "brane_id" => brane.get_id(),
                     "err" => %e,
                 );

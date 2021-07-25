@@ -46,7 +46,7 @@ fn test_stale_peer_out_of_brane<T: Simulator>(cluster: &mut Cluster<T>) {
     must_get_equal(&engine_2, key, value);
 
     // Isolate peer 2 from rest of the cluster.
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
 
     // In case 2 is leader, it will fail to pass the healthy nodes check,
     // so remove isolated node first. Because 2 is isolated, so it can't remove itself.
@@ -142,7 +142,7 @@ fn test_stale_peer_without_data<T: Simulator>(cluster: &mut Cluster<T>, right_de
     };
     let new_brane_id = new_brane.get_id();
     // Block peer (3, 4) at receiving snapshot, but not the heartbeat
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(new_brane_id, 3).msg_type(MessageType::MsgSnapshot),
     ));
 
@@ -152,7 +152,7 @@ fn test_stale_peer_without_data<T: Simulator>(cluster: &mut Cluster<T>, right_de
     cluster.must_brane_exist(new_brane_id, 3);
 
     // And then isolate peer (3, 4) from peer (1, 1000).
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
 
     fidel_client.must_remove_peer(new_brane_id, new_peer(3, 4));
 
@@ -229,7 +229,7 @@ fn test_stale_learner() {
     must_get_equal(&engine3, b"k1", b"v1");
 
     // And then isolate peer on store 3 from leader.
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
 
     // Add a new peer to increase the conf version.
     fidel_client.must_add_peer(r1, new_peer(4, 4));

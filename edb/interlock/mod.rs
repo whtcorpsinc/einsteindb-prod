@@ -52,7 +52,7 @@ type HandlerStreamStepResult = Result<(Option<coppb::Response>, bool)>;
 
 /// An interface for all kind of Interlock request handlers.
 #[async_trait]
-pub trait RequestHandler: Slightlike {
+pub trait RequestHandler: lightlike {
     /// Processes current request and produces a response.
     async fn handle_request(&mut self) -> Result<coppb::Response> {
         panic!("unary request is not supported for this handler");
@@ -77,7 +77,7 @@ pub trait RequestHandler: Slightlike {
 }
 
 type RequestHandlerBuilder<Snap> =
-    Box<dyn for<'a> FnOnce(Snap, &'a ReqContext) -> Result<Box<dyn RequestHandler>> + Slightlike>;
+    Box<dyn for<'a> FnOnce(Snap, &'a ReqContext) -> Result<Box<dyn RequestHandler>> + lightlike>;
 
 /// Encapsulate the `kvrpcpb::Context` to provide some extra properties.
 #[derive(Debug, Clone)]

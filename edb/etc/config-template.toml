@@ -129,13 +129,13 @@
 ## is observed. Note that limit the usage can lead to potential stall.
 # grpc-memory-pool-quota = "32G"
 
-## The number of connections with each EinsteinDB server to slightlike VioletaBft messages.
+## The number of connections with each EinsteinDB server to lightlike VioletaBft messages.
 # grpc-violetabft-conn-num = 1
 
 ## Amount to read ahead on individual gRPC streams.
 # grpc-stream-initial-window-size = "2MB"
 
-## Time to wait before slightlikeing out a ping to check if server is still alive.
+## Time to wait before lightlikeing out a ping to check if server is still alive.
 ## This is only for communications between EinsteinDB instances.
 # grpc-keepalive-time = "10s"
 
@@ -143,7 +143,7 @@
 # grpc-keepalive-timeout = "3s"
 
 ## How many snapshots can be sent concurrently.
-# concurrent-slightlike-snap-limit = 32
+# concurrent-lightlike-snap-limit = 32
 
 ## How many snapshots can be received concurrently.
 # concurrent-recv-snap-limit = 32
@@ -892,7 +892,7 @@
 # wake-up-delay-duration = "20ms"
 
 ## Enable pipelined pessimistic dagger, only effect when processing perssimistic bundles
-## Enabled this will improve performance, but slightly increase the transcation failure rate
+## Enabled this will improve performance, but lightly increase the transcation failure rate
 # pipelined = false
 
 [gc]

@@ -35,7 +35,7 @@ where
             .msg_type(MessageType::MsgApplightlikeResponse)
             .direction(Direction::Recv),
     };
-    cluster.add_slightlike_filter(CloneFilterFactory(filter));
+    cluster.add_lightlike_filter(CloneFilterFactory(filter));
     let last_index = cluster.violetabft_local_state(1, 1).get_last_index();
     action(cluster);
     cluster.wait_last_index(1, 1, last_index + 1, Duration::from_secs(3));
@@ -47,7 +47,7 @@ where
         cluster.wait_last_index(1, 3, last_index + 1, Duration::from_secs(3));
         snaps.push((3, LmdbSnapshot::new(cluster.get_violetabft_engine(3))));
     }
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     check(cluster);
     for (id, _) in &snaps {
         cluster.stop_node(*id);
@@ -149,7 +149,7 @@ fn test_ufidelate_internal_apply_index() {
     let filter = BranePacketFilter::new(1, 3)
         .msg_type(MessageType::MsgApplightlikeResponse)
         .direction(Direction::Recv);
-    cluster.add_slightlike_filter(CloneFilterFactory(filter));
+    cluster.add_lightlike_filter(CloneFilterFactory(filter));
     let last_index = cluster.violetabft_local_state(1, 1).get_last_index();
     cluster.async_remove_peer(1, new_peer(4, 4)).unwrap();
     cluster.async_put(b"k2", b"v2").unwrap();
@@ -158,7 +158,7 @@ fn test_ufidelate_internal_apply_index() {
         cluster.wait_last_index(1, i, last_index + 2, Duration::from_secs(3));
         snaps.push((i, LmdbSnapshot::new(cluster.get_violetabft_engine(1))));
     }
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_equal(&cluster.get_engine(1), b"k2", b"v2");
     must_get_equal(&cluster.get_engine(2), b"k2", b"v2");
 

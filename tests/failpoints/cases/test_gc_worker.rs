@@ -77,7 +77,7 @@ fn test_collect_lock_from_stale_leader() {
 }
 
 #[test]
-fn test_semaphore_slightlike_error() {
+fn test_semaphore_lightlike_error() {
     let (_cluster, client, ctx) = must_new_cluster_and_kv_client();
 
     let max_ts = 100;
@@ -91,8 +91,8 @@ fn test_semaphore_slightlike_error() {
     );
     assert_eq!(must_check_lock_semaphore(&client, max_ts, true).len(), 1);
 
-    let semaphore_slightlike_fp = "lock_semaphore_slightlike";
-    fail::causet(semaphore_slightlike_fp, "return").unwrap();
+    let semaphore_lightlike_fp = "lock_semaphore_lightlike";
+    fail::causet(semaphore_lightlike_fp, "return").unwrap();
     must_kv_prewrite(
         &client,
         ctx,
@@ -102,7 +102,7 @@ fn test_semaphore_slightlike_error() {
     );
     let resp = check_lock_semaphore(&client, max_ts);
     assert!(resp.get_error().is_empty(), "{:?}", resp.get_error());
-    // Should mark dirty if fails to slightlike locks.
+    // Should mark dirty if fails to lightlike locks.
     assert!(!resp.get_is_clean());
 }
 

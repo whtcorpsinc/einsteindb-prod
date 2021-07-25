@@ -83,7 +83,7 @@ pub const INVALID_ID: u64 = 0;
 /// cluster id in trait interface every time, so passing the cluster id when
 /// creating the FidelClient is enough and the FidelClient will use this cluster id
 /// all the time.
-pub trait FidelClient: Slightlike + Sync {
+pub trait FidelClient: lightlike + Sync {
     /// Returns the cluster ID.
     fn get_cluster_id(&self) -> Result<u64> {
         unimplemented!();
@@ -184,7 +184,7 @@ pub trait FidelClient: Slightlike + Sync {
     fn handle_brane_heartbeat_response<F>(&self, _store_id: u64, _f: F) -> FidelFuture<()>
     where
         Self: Sized,
-        F: Fn(fidelpb::BraneHeartbeatResponse) + Slightlike + 'static,
+        F: Fn(fidelpb::BraneHeartbeatResponse) + lightlike + 'static,
     {
         unimplemented!();
     }
@@ -203,7 +203,7 @@ pub trait FidelClient: Slightlike + Sync {
         unimplemented!();
     }
 
-    /// Slightlikes store statistics regularly.
+    /// lightlikes store statistics regularly.
     fn store_heartbeat(&self, _stats: fidelpb::StoreStats) -> FidelFuture<fidelpb::StoreHeartbeatResponse> {
         unimplemented!();
     }
@@ -221,7 +221,7 @@ pub trait FidelClient: Slightlike + Sync {
     /// Registers a handler to the client, which will be invoked after reconnecting to FIDel.
     ///
     /// Please note that this method should only be called once.
-    fn handle_reconnect<F: Fn() + Sync + Slightlike + 'static>(&self, _: F)
+    fn handle_reconnect<F: Fn() + Sync + lightlike + 'static>(&self, _: F)
     where
         Self: Sized,
     {
@@ -249,7 +249,7 @@ pub trait FidelClient: Slightlike + Sync {
 
 const REQUEST_TIMEOUT: u64 = 2; // 2s
 
-/// Takes the peer address (for slightlikeing violetabft messages) from a store.
+/// Takes the peer address (for lightlikeing violetabft messages) from a store.
 pub fn take_peer_address(store: &mut metapb::CausetStore) -> String {
     if !store.get_peer_address().is_empty() {
         store.take_peer_address()

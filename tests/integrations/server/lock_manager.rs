@@ -30,7 +30,7 @@ fn must_deadlock(client: &EINSTEINDBClient, ctx: Context, key1: &[u8], ts: u64) 
             ts + 1,
             false,
         );
-        tx.slightlike(1).unwrap();
+        tx.lightlike(1).unwrap();
     });
     // Sleep to make sure txn(ts+1) is waiting for txn(ts)
     thread::sleep(Duration::from_millis(500));
@@ -195,7 +195,7 @@ fn test_detect_deadlock_when_transfer_brane() {
     must_detect_deadlock(&mut cluster, b"k", 10);
     must_detect_deadlock(&mut cluster, b"k1", 10);
 
-    // Transfer the new brane back to store(4) which will slightlike a role change message with empty
+    // Transfer the new brane back to store(4) which will lightlike a role change message with empty
     // key cone. It shouldn't affect deadlock detector.
     must_transfer_brane(&mut cluster, b"k1", 1, 4, 6);
     deadlock_detector_leader_must_be(&mut cluster, 4);

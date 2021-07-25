@@ -283,7 +283,7 @@ fn test_auto_gc() {
             brane_info_accessors.remove(id).unwrap(),
             *id,
         );
-        causet.post_a_round_of_gc = Some(Box::new(move || tx.slightlike(()).unwrap()));
+        causet.post_a_round_of_gc = Some(Box::new(move || tx.lightlike(()).unwrap()));
         causetStorage.spacelike_auto_gc(causet);
     }
 

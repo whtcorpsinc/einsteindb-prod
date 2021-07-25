@@ -47,7 +47,7 @@ quick_error! {
         Eval(s: String, code:i32) {
             display("evaluation failed: {}", s)
         }
-        Other(err: Box<dyn error::Error + Slightlike + Sync>) {
+        Other(err: Box<dyn error::Error + lightlike + Sync>) {
             from()
             cause(err.as_ref())
             display("{}", err)

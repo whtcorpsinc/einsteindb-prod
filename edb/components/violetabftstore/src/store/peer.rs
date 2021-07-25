@@ -353,7 +353,7 @@ where
     leader_lease: Lease,
     plightlikeing_reads: ReadIndexQueue<EK::Snapshot>,
 
-    /// If it fails to slightlike messages to leader.
+    /// If it fails to lightlike messages to leader.
     pub leader_unreachable: bool,
     /// Indicates whether the peer should be woken up.
     pub should_wake_up: bool,
@@ -430,7 +430,7 @@ where
     pub replication_sync: bool,
 
     /// The knownCauset newest conf version and its corresponding peer list
-    /// Slightlike to these peers to check whether itself is stale.
+    /// lightlike to these peers to check whether itself is stale.
     pub check_stale_conf_ver: u64,
     pub check_stale_peers: Vec<metapb::Peer>,
     /// Whether this peer is created by replication and is the first
@@ -949,7 +949,7 @@ where
     }
 
     #[inline]
-    fn slightlike<T, I>(&mut self, trans: &mut T, msgs: I, metrics: &mut VioletaBftMessageMetrics)
+    fn lightlike<T, I>(&mut self, trans: &mut T, msgs: I, metrics: &mut VioletaBftMessageMetrics)
     where
         T: Transport,
         I: IntoIterator<Item = evioletabftpb::Message>,
@@ -995,7 +995,7 @@ where
                 | MessageType::MsgSnapStatus
                 | MessageType::MsgCheckQuorum => {}
             }
-            self.slightlike_violetabft_message(msg, trans);
+            self.lightlike_violetabft_message(msg, trans);
         }
     }
 
@@ -1019,7 +1019,7 @@ where
             self.leader_missing_time.take();
         }
         // Here we hold up MsgReadIndex. If current peer has valid lease, then we could handle the
-        // request directly, rather than slightlike a heartbeat to check quorum.
+        // request directly, rather than lightlike a heartbeat to check quorum.
         let msg_type = m.get_msg_type();
         let committed = self.violetabft_group.violetabft.violetabft_log.committed;
         let expected_term = self.violetabft_group.violetabft.violetabft_log.term(committed).unwrap_or(0);
@@ -1195,7 +1195,7 @@ where
             // Leaders always have valid state.
             //
             // We ufidelate the leader_missing_time in the `fn step`. However one peer brane
-            // does not slightlike any violetabft messages, so we have to check and ufidelate it before
+            // does not lightlike any violetabft messages, so we have to check and ufidelate it before
             // reporting stale states.
             self.leader_missing_time = None;
             return StaleState::Valid;
@@ -1212,7 +1212,7 @@ where
                 StaleState::Valid
             }
             Some(instant) if instant.elapsed() >= ctx.causet.max_leader_missing_duration.0 => {
-                // Resets the `leader_missing_time` to avoid slightlikeing the same tasks to
+                // Resets the `leader_missing_time` to avoid lightlikeing the same tasks to
                 // FIDel worker continuously during the leader missing timeout.
                 self.leader_missing_time = Instant::now().into();
                 StaleState::ToValidate
@@ -1238,7 +1238,7 @@ where
                     // The local read can only be performed after a new leader has applied
                     // the first empty entry on its term. After that the lease expiring time
                     // should be ufidelated to
-                    //   slightlike_to_quorum_ts + max_lease
+                    //   lightlike_to_quorum_ts + max_lease
                     // as the comments in `Lease` explain.
                     // It is recommlightlikeed to ufidelate the lease expiring time right after
                     // this peer becomes leader because it's more convenient to do it here and
@@ -1283,7 +1283,7 @@ where
         // by apply worker. So we have to wait here.
         // Please note that committed_index can't be used here. When applying a snapshot,
         // a stale heartbeat can make the leader think follower has already applied
-        // the snapshot, and slightlike remaining log entries, which may increase committed_index.
+        // the snapshot, and lightlike remaining log entries, which may increase committed_index.
         // TODO: add more test
         self.last_applying_idx == self.get_store().applied_index()
             // Requesting snapshots also triggers apply workers to write
@@ -1391,7 +1391,7 @@ where
         self.get_store().last_index() >= index && self.get_store().last_term() >= term
     }
 
-    /// Checks if leader needs to keep slightlikeing logs for follower.
+    /// Checks if leader needs to keep lightlikeing logs for follower.
     ///
     /// In DrAutoSync mode, if leader goes to sleep before the brane is sync,
     /// FIDel may wait longer time to reach sync state.
@@ -1411,7 +1411,7 @@ where
         match self.mut_store().check_applying_snap() {
             CheckApplyingSnapStatus::Applying => {
                 // If we continue to handle all the messages, it may cause too many messages because
-                // leader will slightlike all the remaining messages to this follower, which can lead
+                // leader will lightlike all the remaining messages to this follower, which can lead
                 // to full message queue under high load.
                 debug!(
                     "still applying snapshot, skip further handling";
@@ -1427,10 +1427,10 @@ where
         }
 
         if !self.plightlikeing_messages.is_empty() {
-            fail_point!("violetabft_before_follower_slightlike");
+            fail_point!("violetabft_before_follower_lightlike");
             let messages = mem::replace(&mut self.plightlikeing_messages, vec![]);
             ctx.need_flush_trans = true;
-            self.slightlike(&mut ctx.trans, messages, &mut ctx.violetabft_metrics.message);
+            self.lightlike(&mut ctx.trans, messages, &mut ctx.violetabft_metrics.message);
         }
         let mut destroy_branes = vec![];
         if self.has_plightlikeing_snapshot() {
@@ -1521,7 +1521,7 @@ where
         if self.is_leader() {
             if let Some(hs) = ready.hs() {
                 // Correctness deplightlikes on the fact that the leader lease must be suspected before
-                // other followers know the `PrepareMerge` log is committed, i.e. slightlikes msg to others.
+                // other followers know the `PrepareMerge` log is committed, i.e. lightlikes msg to others.
                 // Because other followers may complete the merge process, if so, the source brane's
                 // leader may get a stale data.
                 //
@@ -1573,10 +1573,10 @@ where
             }
             // The leader can write to disk and replicate to the followers concurrently
             // For more details, check violetabft thesis 10.2.1.
-            fail_point!("violetabft_before_leader_slightlike");
+            fail_point!("violetabft_before_leader_lightlike");
             let msgs = ready.messages.drain(..);
             ctx.need_flush_trans = true;
-            self.slightlike(&mut ctx.trans, msgs, &mut ctx.violetabft_metrics.message);
+            self.lightlike(&mut ctx.trans, msgs, &mut ctx.violetabft_metrics.message);
         }
 
         let invoke_ctx = match self
@@ -1628,11 +1628,11 @@ where
         }
 
         if !self.is_leader() {
-            fail_point!("violetabft_before_follower_slightlike");
+            fail_point!("violetabft_before_follower_lightlike");
             if self.is_applying_snapshot() {
                 self.plightlikeing_messages = mem::replace(&mut ready.messages, vec![]);
             } else {
-                self.slightlike(
+                self.lightlike(
                     &mut ctx.trans,
                     ready.messages.drain(..),
                     &mut ctx.violetabft_metrics.message,
@@ -1697,7 +1697,7 @@ where
                 );
 
                 fail_point!(
-                    "before_slightlike_rollback_merge_1003",
+                    "before_lightlike_rollback_merge_1003",
                     if self.peer_id() != 1003 {
                         false
                     } else {
@@ -1738,10 +1738,10 @@ where
                 ctx.apply_router
                     .schedule_task(self.brane_id, ApplyTask::apply(apply));
             }
-            fail_point!("after_slightlike_to_apply_1003", self.peer_id() == 1003, |_| {});
+            fail_point!("after_lightlike_to_apply_1003", self.peer_id() == 1003, |_| {});
             // Check whether there is a plightlikeing generate snapshot task, the task
             // needs to be sent to the apply system.
-            // Always slightlikeing snapshot task behind apply task, so it gets latest
+            // Always lightlikeing snapshot task behind apply task, so it gets latest
             // snapshot.
             if let Some(gen_task) = self.mut_store().take_gen_snap_task() {
                 self.plightlikeing_request_snapshot_count
@@ -2324,7 +2324,7 @@ where
     }
 
     /// `ReadIndex` requests could be lost in network, so on followers commands could queue in
-    /// `plightlikeing_reads` forever. Slightlikeing a new `ReadIndex` periodically can resolve this.
+    /// `plightlikeing_reads` forever. lightlikeing a new `ReadIndex` periodically can resolve this.
     pub fn retry_plightlikeing_reads(&mut self, causet: &Config) {
         if self.is_leader()
             || !self.plightlikeing_reads.check_needs_retry(causet)
@@ -2404,7 +2404,7 @@ where
                 box_err!("{} can not read index due to no leader", self.tag),
             );
             poll_ctx.violetabft_metrics.invalid_proposal.read_index_no_leader += 1;
-            // The leader may be hibernated, slightlike a message for trying to awaken the leader.
+            // The leader may be hibernated, lightlike a message for trying to awaken the leader.
             if poll_ctx.causet.hibernate_branes
                 && (self.bcast_wake_up_time.is_none()
                     || self.bcast_wake_up_time.as_ref().unwrap().elapsed()
@@ -2745,12 +2745,12 @@ where
 
     /// Return true to if the transfer leader request is accepted.
     ///
-    /// When transferring leadership begins, leader slightlikes a pre-transfer
+    /// When transferring leadership begins, leader lightlikes a pre-transfer
     /// to target follower first to ensures it's ready to become leader.
     /// After that the real transfer leader process begin.
     ///
     /// 1. pre_transfer_leader on leader:
-    ///     Leader will slightlike a MsgTransferLeader to follower.
+    ///     Leader will lightlike a MsgTransferLeader to follower.
     /// 2. execute_transfer_leader on follower
     ///     If follower passes all necessary checks, it will reply an
     ///     ACK with type MsgTransferLeader and its promised persistent index.
@@ -3020,11 +3020,11 @@ where
         }
     }
 
-    fn slightlike_violetabft_message<T: Transport>(&mut self, msg: evioletabftpb::Message, trans: &mut T) {
-        let mut slightlike_msg = VioletaBftMessage::default();
-        slightlike_msg.set_brane_id(self.brane_id);
+    fn lightlike_violetabft_message<T: Transport>(&mut self, msg: evioletabftpb::Message, trans: &mut T) {
+        let mut lightlike_msg = VioletaBftMessage::default();
+        lightlike_msg.set_brane_id(self.brane_id);
         // set current epoch
-        slightlike_msg.set_brane_epoch(self.brane().get_brane_epoch().clone());
+        lightlike_msg.set_brane_epoch(self.brane().get_brane_epoch().clone());
 
         let from_peer = self.peer.clone();
         let to_peer = match self.get_peer_from_cache(msg.get_to()) {
@@ -3044,7 +3044,7 @@ where
         let to_store_id = to_peer.get_store_id();
         let msg_type = msg.get_msg_type();
         debug!(
-            "slightlike violetabft msg";
+            "lightlike violetabft msg";
             "brane_id" => self.brane_id,
             "peer_id" => self.peer.get_id(),
             "msg_type" => ?msg_type,
@@ -3053,8 +3053,8 @@ where
             "to" => to_peer_id,
         );
 
-        slightlike_msg.set_from_peer(from_peer);
-        slightlike_msg.set_to_peer(to_peer);
+        lightlike_msg.set_from_peer(from_peer);
+        lightlike_msg.set_to_peer(to_peer);
 
         // There could be two cases:
         // 1. Target peer already exists but has not established communication with leader yet
@@ -3066,14 +3066,14 @@ where
         // later.
         if self.get_store().is_initialized() && is_initial_msg(&msg) {
             let brane = self.brane();
-            slightlike_msg.set_spacelike_key(brane.get_spacelike_key().to_vec());
-            slightlike_msg.set_lightlike_key(brane.get_lightlike_key().to_vec());
+            lightlike_msg.set_spacelike_key(brane.get_spacelike_key().to_vec());
+            lightlike_msg.set_lightlike_key(brane.get_lightlike_key().to_vec());
         }
-        slightlike_msg.set_message(msg);
+        lightlike_msg.set_message(msg);
 
-        if let Err(e) = trans.slightlike(slightlike_msg) {
+        if let Err(e) = trans.lightlike(lightlike_msg) {
             warn!(
-                "failed to slightlike msg to other peer";
+                "failed to lightlike msg to other peer";
                 "brane_id" => self.brane_id,
                 "peer_id" => self.peer.get_id(),
                 "target_peer_id" => to_peer_id,
@@ -3098,16 +3098,16 @@ where
             if peer.get_id() == self.peer_id() {
                 continue;
             }
-            let mut slightlike_msg = VioletaBftMessage::default();
-            slightlike_msg.set_brane_id(self.brane_id);
-            slightlike_msg.set_from_peer(self.peer.clone());
-            slightlike_msg.set_brane_epoch(self.brane().get_brane_epoch().clone());
-            slightlike_msg.set_to_peer(peer.clone());
-            let extra_msg = slightlike_msg.mut_extra_msg();
+            let mut lightlike_msg = VioletaBftMessage::default();
+            lightlike_msg.set_brane_id(self.brane_id);
+            lightlike_msg.set_from_peer(self.peer.clone());
+            lightlike_msg.set_brane_epoch(self.brane().get_brane_epoch().clone());
+            lightlike_msg.set_to_peer(peer.clone());
+            let extra_msg = lightlike_msg.mut_extra_msg();
             extra_msg.set_type(ExtraMessageType::MsgBraneWakeUp);
-            if let Err(e) = ctx.trans.slightlike(slightlike_msg) {
+            if let Err(e) = ctx.trans.lightlike(lightlike_msg) {
                 error!(?e;
-                    "failed to slightlike wake up message";
+                    "failed to lightlike wake up message";
                     "brane_id" => self.brane_id,
                     "peer_id" => self.peer.get_id(),
                     "target_peer_id" => peer.get_id(),
@@ -3131,16 +3131,16 @@ where
             if peer.get_id() == self.peer_id() {
                 continue;
             }
-            let mut slightlike_msg = VioletaBftMessage::default();
-            slightlike_msg.set_brane_id(self.brane_id);
-            slightlike_msg.set_from_peer(self.peer.clone());
-            slightlike_msg.set_brane_epoch(self.brane().get_brane_epoch().clone());
-            slightlike_msg.set_to_peer(peer.clone());
-            let extra_msg = slightlike_msg.mut_extra_msg();
+            let mut lightlike_msg = VioletaBftMessage::default();
+            lightlike_msg.set_brane_id(self.brane_id);
+            lightlike_msg.set_from_peer(self.peer.clone());
+            lightlike_msg.set_brane_epoch(self.brane().get_brane_epoch().clone());
+            lightlike_msg.set_to_peer(peer.clone());
+            let extra_msg = lightlike_msg.mut_extra_msg();
             extra_msg.set_type(ExtraMessageType::MsgCheckStalePeer);
-            if let Err(e) = ctx.trans.slightlike(slightlike_msg) {
+            if let Err(e) = ctx.trans.lightlike(lightlike_msg) {
                 error!(?e;
-                    "failed to slightlike check stale peer message";
+                    "failed to lightlike check stale peer message";
                     "brane_id" => self.brane_id,
                     "peer_id" => self.peer.get_id(),
                     "target_peer_id" => peer.get_id(),
@@ -3163,15 +3163,15 @@ where
         }
     }
 
-    pub fn slightlike_want_rollback_merge<T: Transport, C>(
+    pub fn lightlike_want_rollback_merge<T: Transport, C>(
         &self,
         premerge_commit: u64,
         ctx: &mut PollContext<EK, ER, T, C>,
     ) {
-        let mut slightlike_msg = VioletaBftMessage::default();
-        slightlike_msg.set_brane_id(self.brane_id);
-        slightlike_msg.set_from_peer(self.peer.clone());
-        slightlike_msg.set_brane_epoch(self.brane().get_brane_epoch().clone());
+        let mut lightlike_msg = VioletaBftMessage::default();
+        lightlike_msg.set_brane_id(self.brane_id);
+        lightlike_msg.set_from_peer(self.peer.clone());
+        lightlike_msg.set_brane_epoch(self.brane().get_brane_epoch().clone());
         let to_peer = match self.get_peer_from_cache(self.leader_id()) {
             Some(p) => p,
             None => {
@@ -3184,13 +3184,13 @@ where
                 return;
             }
         };
-        slightlike_msg.set_to_peer(to_peer.clone());
-        let extra_msg = slightlike_msg.mut_extra_msg();
+        lightlike_msg.set_to_peer(to_peer.clone());
+        let extra_msg = lightlike_msg.mut_extra_msg();
         extra_msg.set_type(ExtraMessageType::MsgWantRollbackMerge);
         extra_msg.set_premerge_commit(premerge_commit);
-        if let Err(e) = ctx.trans.slightlike(slightlike_msg) {
+        if let Err(e) = ctx.trans.lightlike(lightlike_msg) {
             error!(?e;
-                "failed to slightlike want rollback merge message";
+                "failed to lightlike want rollback merge message";
                 "brane_id" => self.brane_id,
                 "peer_id" => self.peer.get_id(),
                 "target_peer_id" => to_peer.get_id(),

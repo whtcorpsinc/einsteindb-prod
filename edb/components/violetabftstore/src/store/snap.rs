@@ -78,7 +78,7 @@ quick_error! {
         TooManySnapshots {
             display("too many snapshots")
         }
-        Other(err: Box<dyn error::Error + Sync + Slightlike>) {
+        Other(err: Box<dyn error::Error + Sync + lightlike>) {
             from()
             cause(err.as_ref())
             display("snap failed {:?}", err)
@@ -199,7 +199,7 @@ pub trait Snapshot<EK: KvEngine>: GenericSnapshot {
 }
 
 /// `GenericSnapshot` is a snapshot not tied to any KV engines.
-pub trait GenericSnapshot: Read + Write + Slightlike {
+pub trait GenericSnapshot: Read + Write + lightlike {
     fn path(&self) -> &str;
     fn exists(&self) -> bool;
     fn delete(&self);
@@ -322,7 +322,7 @@ pub struct CfFile {
     pub path: PathBuf,
     pub tmp_path: PathBuf,
     pub clone_path: PathBuf,
-    file_for_slightlikeing: Option<Box<dyn Read + Slightlike>>,
+    file_for_lightlikeing: Option<Box<dyn Read + lightlike>>,
     file_for_recving: Option<CfFileForRecving>,
     pub kv_count: u64,
     pub size: u64,
@@ -355,7 +355,7 @@ impl Snap {
     fn new<T: Into<PathBuf>>(
         dir: T,
         key: &SnapKey,
-        is_slightlikeing: bool,
+        is_lightlikeing: bool,
         to_build: bool,
         mgr: &SnapManagerCore,
     ) -> VioletaBftStoreResult<Self> {
@@ -363,7 +363,7 @@ impl Snap {
         if !dir_path.exists() {
             fs::create_dir_all(dir_path.as_path())?;
         }
-        let snap_prefix = if is_slightlikeing {
+        let snap_prefix = if is_lightlikeing {
             SNAP_GEN_PREFIX
         } else {
             SNAP_REV_PREFIX
@@ -441,7 +441,7 @@ impl Snap {
         Ok(s)
     }
 
-    fn new_for_slightlikeing<T: Into<PathBuf>>(
+    fn new_for_lightlikeing<T: Into<PathBuf>>(
         dir: T,
         key: &SnapKey,
         mgr: &SnapManagerCore,
@@ -457,7 +457,7 @@ impl Snap {
             // initialize causet file size and reader
             if causet_file.size > 0 {
                 let file = File::open(&causet_file.path)?;
-                causet_file.file_for_slightlikeing = Some(Box::new(file) as Box<dyn Read + Slightlike>);
+                causet_file.file_for_lightlikeing = Some(Box::new(file) as Box<dyn Read + lightlike>);
             }
         }
         Ok(s)
@@ -605,7 +605,7 @@ impl Snap {
         )
     }
 
-    fn validate(&self, engine: &impl KvEngine, for_slightlike: bool) -> VioletaBftStoreResult<()> {
+    fn validate(&self, engine: &impl KvEngine, for_lightlike: bool) -> VioletaBftStoreResult<()> {
         for causet_file in &self.causet_files {
             if causet_file.size == 0 {
                 // Skip empty file. The checksum of this causet file should be 0 and
@@ -630,7 +630,7 @@ impl Snap {
                 self.mgr.encryption_key_manager.as_ref(),
             )?;
 
-            if !for_slightlike && !plain_file_used(causet_file.causet) {
+            if !for_lightlike && !plain_file_used(causet_file.causet) {
                 sst_importer::prepare_sst_for_ingestion(
                     &causet_file.path,
                     &causet_file.clone_path,
@@ -736,7 +736,7 @@ impl Snap {
             if causet_file.kv_count > 0 {
                 // Use `kv_count` instead of file size to check empty files because encrypted sst files
                 // contain some metadata so their sizes will never be 0.
-                self.mgr.rename_tmp_causet_file_for_slightlike(causet_file)?;
+                self.mgr.rename_tmp_causet_file_for_lightlike(causet_file)?;
                 self.mgr.snap_size.fetch_add(causet_file.size, Ordering::SeqCst);
             } else {
                 delete_file_if_exist(&causet_file.tmp_path).unwrap();
@@ -981,7 +981,7 @@ impl Read for Snap {
                 self.causet_index += 1;
                 continue;
             }
-            let reader = causet_file.file_for_slightlikeing.as_mut().unwrap();
+            let reader = causet_file.file_for_lightlikeing.as_mut().unwrap();
             match reader.read(buf) {
                 Ok(0) => {
                     // EOF. Switch to next file.
@@ -1083,14 +1083,14 @@ impl Drop for Snap {
 #[derive(PartialEq, Debug)]
 pub enum SnapEntry {
     Generating = 1,
-    Slightlikeing = 2,
+    lightlikeing = 2,
     Receiving = 3,
     Applying = 4,
 }
 
 /// `SnapStats` is for snapshot statistics.
 pub struct SnapStats {
-    pub slightlikeing_count: usize,
+    pub lightlikeing_count: usize,
     pub receiving_count: usize,
 }
 
@@ -1189,7 +1189,7 @@ impl SnapManager {
                     None => return None,
                     Some(n) => n,
                 };
-                let is_slightlikeing = name.spacelikes_with(SNAP_GEN_PREFIX);
+                let is_lightlikeing = name.spacelikes_with(SNAP_GEN_PREFIX);
                 let numbers: Vec<u64> = name.split('.').next().map_or_else(
                     || vec![],
                     |s| {
@@ -1211,7 +1211,7 @@ impl SnapManager {
                     // Skip those registered snapshot.
                     return None;
                 }
-                Some((snap_key, is_slightlikeing))
+                Some((snap_key, is_lightlikeing))
             })
             .collect();
         v.sort();
@@ -1233,11 +1233,11 @@ impl SnapManager {
             if old_snaps.is_none() {
                 let snaps = self.list_idle_snap()?;
                 let mut key_and_snaps = Vec::with_capacity(snaps.len());
-                for (key, is_slightlikeing) in snaps {
-                    if !is_slightlikeing {
+                for (key, is_lightlikeing) in snaps {
+                    if !is_lightlikeing {
                         continue;
                     }
-                    let snap = match self.get_snapshot_for_slightlikeing(&key) {
+                    let snap = match self.get_snapshot_for_lightlikeing(&key) {
                         Ok(snap) => snap,
                         Err(_) => continue,
                     };
@@ -1259,13 +1259,13 @@ impl SnapManager {
         Ok(Box::new(f))
     }
 
-    pub fn get_snapshot_for_slightlikeing(
+    pub fn get_snapshot_for_lightlikeing(
         &self,
         key: &SnapKey,
     ) -> VioletaBftStoreResult<Box<dyn GenericSnapshot>> {
         let _lock = self.core.registry.rl();
         let base = &self.core.base;
-        let mut s = Snap::new_for_slightlikeing(base, key, &self.core)?;
+        let mut s = Snap::new_for_lightlikeing(base, key, &self.core)?;
         let key_manager = match self.core.encryption_key_manager.as_ref() {
             Some(m) => m,
             None => return Ok(Box::new(s)),
@@ -1276,7 +1276,7 @@ impl SnapManager {
             }
             let p = causet_file.path.to_str().unwrap();
             let reader = snap_io::get_decrypter_reader(p, key_manager)?;
-            causet_file.file_for_slightlikeing = Some(reader);
+            causet_file.file_for_lightlikeing = Some(reader);
         }
         Ok(Box::new(s))
     }
@@ -1384,18 +1384,18 @@ impl SnapManager {
     }
 
     pub fn stats(&self) -> SnapStats {
-        // slightlike_count, generating_count, receiving_count, applying_count
-        let (mut slightlikeing_cnt, mut receiving_cnt) = (0, 0);
+        // lightlike_count, generating_count, receiving_count, applying_count
+        let (mut lightlikeing_cnt, mut receiving_cnt) = (0, 0);
         for v in self.core.registry.rl().values() {
-            let (mut is_slightlikeing, mut is_receiving) = (false, false);
+            let (mut is_lightlikeing, mut is_receiving) = (false, false);
             for s in v {
                 match *s {
-                    SnapEntry::Slightlikeing | SnapEntry::Generating => is_slightlikeing = true,
+                    SnapEntry::lightlikeing | SnapEntry::Generating => is_lightlikeing = true,
                     SnapEntry::Receiving | SnapEntry::Applying => is_receiving = true,
                 }
             }
-            if is_slightlikeing {
-                slightlikeing_cnt += 1;
+            if is_lightlikeing {
+                lightlikeing_cnt += 1;
             }
             if is_receiving {
                 receiving_cnt += 1;
@@ -1403,7 +1403,7 @@ impl SnapManager {
         }
 
         SnapStats {
-            slightlikeing_count: slightlikeing_cnt,
+            lightlikeing_count: lightlikeing_cnt,
             receiving_count: receiving_cnt,
         }
     }
@@ -1449,7 +1449,7 @@ impl SnapManagerCore {
         true
     }
 
-    fn rename_tmp_causet_file_for_slightlike(&self, causet_file: &mut CfFile) -> VioletaBftStoreResult<()> {
+    fn rename_tmp_causet_file_for_lightlike(&self, causet_file: &mut CfFile) -> VioletaBftStoreResult<()> {
         fs::rename(&causet_file.tmp_path, &causet_file.path)?;
         let mgr = self.encryption_key_manager.as_ref();
         if let Some(mgr) = &mgr {
@@ -1810,8 +1810,8 @@ pub mod tests {
         assert_eq!(stat.size as u64, size);
         assert_eq!(stat.kv_count, get_kv_count(&snapshot));
 
-        // Ensure this snapshot could be read for slightlikeing.
-        let mut s2 = Snap::new_for_slightlikeing(src_dir.path(), &key, &mgr_core).unwrap();
+        // Ensure this snapshot could be read for lightlikeing.
+        let mut s2 = Snap::new_for_lightlikeing(src_dir.path(), &key, &mgr_core).unwrap();
         assert!(s2.exists());
 
         // TODO check meta data correct.
@@ -2042,7 +2042,7 @@ pub mod tests {
         mgr: &SnapManagerCore,
         snapshot_meta: SnapshotMeta,
     ) {
-        let mut from = Snap::new_for_slightlikeing(from_dir.path(), key, mgr).unwrap();
+        let mut from = Snap::new_for_lightlikeing(from_dir.path(), key, mgr).unwrap();
         assert!(from.exists());
 
         let mut to = Snap::new_for_receiving(to_dir.path(), key, mgr, snapshot_meta).unwrap();
@@ -2089,7 +2089,7 @@ pub mod tests {
 
         corrupt_snapshot_size_in(dir.path());
 
-        assert!(Snap::new_for_slightlikeing(dir.path(), &key, &mgr_core,).is_err());
+        assert!(Snap::new_for_lightlikeing(dir.path(), &key, &mgr_core,).is_err());
 
         let mut s2 = Snap::new_for_building(dir.path(), &key, &mgr_core).unwrap();
         assert!(!s2.exists());
@@ -2178,7 +2178,7 @@ pub mod tests {
 
         assert_eq!(1, corrupt_snapshot_meta_file(dir.path()));
 
-        assert!(Snap::new_for_slightlikeing(dir.path(), &key, &mgr_core,).is_err());
+        assert!(Snap::new_for_lightlikeing(dir.path(), &key, &mgr_core,).is_err());
 
         let mut s2 = Snap::new_for_building(dir.path(), &key, &mgr_core).unwrap();
         assert!(!s2.exists());
@@ -2266,7 +2266,7 @@ pub mod tests {
             &mut stat,
         )
         .unwrap();
-        let mut s = Snap::new_for_slightlikeing(&path, &key1, &mgr_core).unwrap();
+        let mut s = Snap::new_for_lightlikeing(&path, &key1, &mgr_core).unwrap();
         let expected_size = s.total_size().unwrap();
         let mut s2 =
             Snap::new_for_receiving(&path, &key1, &mgr_core, snap_data.get_meta().clone()).unwrap();
@@ -2294,7 +2294,7 @@ pub mod tests {
         assert!(!s3.exists());
         assert!(!s4.exists());
 
-        mgr.get_snapshot_for_slightlikeing(&key1).unwrap().delete();
+        mgr.get_snapshot_for_lightlikeing(&key1).unwrap().delete();
         assert_eq!(mgr.get_total_snap_size(), expected_size);
         mgr.get_snapshot_for_applying(&key1).unwrap().delete();
         assert_eq!(mgr.get_total_snap_size(), 0);
@@ -2345,8 +2345,8 @@ pub mod tests {
         check_registry_around_deregister(src_mgr.clone(), &key, &SnapEntry::Generating);
 
         // Ensure the snapshot being sent will not be deleted on GC.
-        src_mgr.register(key.clone(), SnapEntry::Slightlikeing);
-        let mut s2 = src_mgr.get_snapshot_for_slightlikeing(&key).unwrap();
+        src_mgr.register(key.clone(), SnapEntry::lightlikeing);
+        let mut s2 = src_mgr.get_snapshot_for_lightlikeing(&key).unwrap();
         let expected_size = s2.total_size().unwrap();
 
         let dst_temp_dir = Builder::new()
@@ -2364,7 +2364,7 @@ pub mod tests {
         assert_eq!(n, expected_size);
         s3.save().unwrap();
 
-        check_registry_around_deregister(src_mgr.clone(), &key, &SnapEntry::Slightlikeing);
+        check_registry_around_deregister(src_mgr.clone(), &key, &SnapEntry::lightlikeing);
         check_registry_around_deregister(dst_mgr.clone(), &key, &SnapEntry::Receiving);
 
         // Ensure the snapshot to be applied will not be deleted on GC.
@@ -2417,7 +2417,7 @@ pub mod tests {
         };
         let recv_remain = {
             let mut data = Vec::with_capacity(1024);
-            let mut s = snap_mgr.get_snapshot_for_slightlikeing(&recv_key).unwrap();
+            let mut s = snap_mgr.get_snapshot_for_lightlikeing(&recv_key).unwrap();
             s.read_to_lightlike(&mut data).unwrap();
             assert!(snap_mgr.delete_snapshot(&recv_key, s.as_ref(), true));
             data

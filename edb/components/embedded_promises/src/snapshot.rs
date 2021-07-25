@@ -10,7 +10,7 @@ use std::fmt::Debug;
 /// clonable, call `into_sync` to create a `SyncSnapshot`.
 pub trait Snapshot
 where
-    Self: 'static + Peekable + Iterable + Slightlike + Sync + Sized + Debug,
+    Self: 'static + Peekable + Iterable + lightlike + Sync + Sized + Debug,
 {
     fn causet_names(&self) -> Vec<&str>;
 }

@@ -2,7 +2,7 @@
 
 use std::error;
 use std::fmt::{self, Display, Formatter};
-use std::sync::mpsc::Slightlikeer;
+use std::sync::mpsc::lightlikeer;
 
 use crate::store::{CasualMessage, CasualRouter};
 
@@ -53,7 +53,7 @@ impl Display for Task {
 quick_error! {
     #[derive(Debug)]
     enum Error {
-        Other(err: Box<dyn error::Error + Sync + Slightlike>) {
+        Other(err: Box<dyn error::Error + Sync + lightlike>) {
             from()
             cause(err.as_ref())
             display("violetabftlog gc failed {:?}", err)
@@ -65,7 +65,7 @@ pub struct Runner<EK: KvEngine, ER: VioletaBftEngine, R: CasualRouter<EK>> {
     ch: R,
     tasks: Vec<Task>,
     engines: Engines<EK, ER>,
-    gc_entries: Option<Slightlikeer<usize>>,
+    gc_entries: Option<lightlikeer<usize>>,
 }
 
 impl<EK: KvEngine, ER: VioletaBftEngine, R: CasualRouter<EK>> Runner<EK, ER, R> {
@@ -91,7 +91,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, R: CasualRouter<EK>> Runner<EK, ER, R> 
 
     fn report_collected(&self, collected: usize) {
         if let Some(ref ch) = self.gc_entries {
-            ch.slightlike(collected).unwrap();
+            ch.lightlike(collected).unwrap();
         }
     }
 
@@ -129,7 +129,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, R: CasualRouter<EK>> Runner<EK, ER, R> 
                         }
                     };
                     for brane_id in branes {
-                        let _ = self.ch.slightlike(brane_id, CasualMessage::ForceCompactVioletaBftLogs);
+                        let _ = self.ch.lightlike(brane_id, CasualMessage::ForceCompactVioletaBftLogs);
                     }
                 }
             }

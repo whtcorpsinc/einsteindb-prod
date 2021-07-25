@@ -27,7 +27,7 @@ fn test_observe_duplicate_cmd() {
     let req = suite.new_changedata_request(brane.get_id());
     let (mut req_tx, event_feed_wrap, receive_event) =
         new_event_feed(suite.get_brane_causet_context_client(brane.get_id()));
-    block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
+    block_on(req_tx.lightlike((req.clone(), WriteFlags::default()))).unwrap();
     let mut events = receive_event(false).events.to_vec();
     assert_eq!(events.len(), 1);
     match events.pop().unwrap().event.unwrap() {
@@ -76,13 +76,13 @@ fn test_observe_duplicate_cmd() {
         .event_feed()
         .unwrap();
     event_feed_wrap.as_ref().replace(Some(resp_rx));
-    block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
+    block_on(req_tx.lightlike((req.clone(), WriteFlags::default()))).unwrap();
     let (mut req_tx, resp_rx) = suite
         .get_brane_causet_context_client(brane.get_id())
         .event_feed()
         .unwrap();
     event_feed_wrap.as_ref().replace(Some(resp_rx));
-    block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
+    block_on(req_tx.lightlike((req, WriteFlags::default()))).unwrap();
     fail::remove(fp);
     // Receive Commit response
     block_on(commit_resp).unwrap();
@@ -136,23 +136,23 @@ fn test_delayed_change_cmd() {
     sleep_ms(300);
 
     let (sx, rx) = mpsc::sync_channel::<VioletaBftMessage>(1);
-    let slightlike_flag = Arc::new(AtomicBool::new(true));
-    let slightlike_read_index_filter = BranePacketFilter::new(brane.get_id(), leader.get_store_id())
-        .direction(Direction::Slightlike)
+    let lightlike_flag = Arc::new(AtomicBool::new(true));
+    let lightlike_read_index_filter = BranePacketFilter::new(brane.get_id(), leader.get_store_id())
+        .direction(Direction::lightlike)
         .msg_type(MessageType::MsgHeartbeat)
         .set_msg_callback(Arc::new(move |msg: &VioletaBftMessage| {
-            if slightlike_flag.compare_and_swap(true, false, Ordering::SeqCst) {
-                sx.slightlike(msg.clone()).unwrap();
+            if lightlike_flag.compare_and_swap(true, false, Ordering::SeqCst) {
+                sx.lightlike(msg.clone()).unwrap();
             }
         }));
     suite
         .cluster
-        .add_slightlike_filter(CloneFilterFactory(slightlike_read_index_filter));
+        .add_lightlike_filter(CloneFilterFactory(lightlike_read_index_filter));
 
     let req = suite.new_changedata_request(brane.get_id());
     let (mut req_tx, event_feed_wrap, receive_event) =
         new_event_feed(suite.get_brane_causet_context_client(brane.get_id()));
-    block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
+    block_on(req_tx.lightlike((req.clone(), WriteFlags::default()))).unwrap();
 
     suite.cluster.must_put(b"k2", b"v2");
 
@@ -161,14 +161,14 @@ fn test_delayed_change_cmd() {
         .event_feed()
         .unwrap();
     event_feed_wrap.as_ref().replace(Some(resp_rx));
-    block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
+    block_on(req_tx.lightlike((req, WriteFlags::default()))).unwrap();
     sleep_ms(200);
 
     suite
         .cluster
         .sim
         .wl()
-        .clear_slightlike_filters(leader.get_store_id());
+        .clear_lightlike_filters(leader.get_store_id());
     rx.recv_timeout(Duration::from_secs(1)).unwrap();
 
     let mut counter = 0;

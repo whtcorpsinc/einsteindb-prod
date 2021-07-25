@@ -3,7 +3,7 @@
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
-use std::sync::mpsc::{self, Slightlikeer};
+use std::sync::mpsc::{self, lightlikeer};
 use std::thread::{self, Builder, JoinHandle};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -109,15 +109,15 @@ impl Default for SlowTimer {
 const DEFAULT_WAIT_MS: u64 = 100;
 
 pub struct Monitor {
-    tx: Slightlikeer<bool>,
+    tx: lightlikeer<bool>,
     handle: Option<JoinHandle<()>>,
 }
 
 impl Monitor {
     pub fn new<D, N>(on_jumped: D, now: N) -> Monitor
     where
-        D: Fn() + Slightlike + 'static,
-        N: Fn() -> SystemTime + Slightlike + 'static,
+        D: Fn() + lightlike + 'static,
+        N: Fn() -> SystemTime + lightlike + 'static,
     {
         let (tx, rx) = mpsc::channel();
         let h = Builder::new()
@@ -163,8 +163,8 @@ impl Drop for Monitor {
             return;
         }
 
-        if let Err(e) = self.tx.slightlike(true) {
-            error!("slightlike quit message for time monitor worker failed"; "err" => ?e);
+        if let Err(e) = self.tx.lightlike(true) {
+            error!("lightlike quit message for time monitor worker failed"; "err" => ?e);
             return;
         }
 

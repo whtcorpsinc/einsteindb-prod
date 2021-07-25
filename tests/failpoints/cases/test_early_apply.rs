@@ -41,9 +41,9 @@ fn test_singleton_early_apply() {
     must_get_equal(&cluster.get_engine(1), b"k0", b"v0");
     must_get_equal(&cluster.get_engine(1), b"k3", b"v3");
     let executed = AtomicBool::new(false);
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 1)
-            .direction(Direction::Slightlike)
+            .direction(Direction::lightlike)
             .msg_type(MessageType::MsgApplightlike)
             // Just for callback, so never filter.
             .when(Arc::new(AtomicBool::new(false)))
@@ -81,12 +81,12 @@ fn test_disable_early_apply() {
     let filter = BranePacketFilter::new(1, 1)
         .msg_type(MessageType::MsgApplightlikeResponse)
         .direction(Direction::Recv);
-    cluster.add_slightlike_filter(CloneFilterFactory(filter));
+    cluster.add_lightlike_filter(CloneFilterFactory(filter));
     let last_index = cluster.violetabft_local_state(1, 1).get_last_index();
     cluster.async_put(b"k2", b"v2").unwrap();
     cluster.wait_last_index(1, 1, last_index + 1, Duration::from_secs(3));
     fail::causet("violetabft_before_save_on_store_1", "pause").unwrap();
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_equal(&cluster.get_engine(2), b"k2", b"v2");
     must_get_none(&cluster.get_engine(1), b"k2");
 }

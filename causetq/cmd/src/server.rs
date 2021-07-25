@@ -400,8 +400,8 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             Box::new(move |compacted_event: engine_lmdb::LmdbCompactedEvent| {
                 let ch = ch.dagger().unwrap();
                 let event = StoreMsg::CompactedEvent(compacted_event);
-                if let Err(e) = ch.slightlike_control(event) {
-                    error!(?e; "slightlike compaction finished event to violetabftstore failed");
+                if let Err(e) = ch.lightlike_control(event) {
+                    error!(?e; "lightlike compaction finished event to violetabftstore failed");
                 }
             });
         engine_lmdb::CompactionListener::new(compacted_handler, Some(size_change_filter))
@@ -490,12 +490,12 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         let engines = self.engines.as_ref().unwrap();
 
         let fidel_worker = FutureWorker::new("fidel-worker");
-        let fidel_slightlikeer = fidel_worker.interlock_semaphore();
+        let fidel_lightlikeer = fidel_worker.interlock_semaphore();
 
         let unified_read_pool = if self.config.readpool.is_unified_pool_enabled() {
             Some(build_yatp_read_pool(
                 &self.config.readpool.unified,
-                fidel_slightlikeer.clone(),
+                fidel_lightlikeer.clone(),
                 engines.engine.clone(),
             ))
         } else {
@@ -519,7 +519,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         } else {
             let causetStorage_read_pools = ReadPool::from(causetStorage::build_read_pool(
                 &self.config.readpool.causetStorage,
-                fidel_slightlikeer.clone(),
+                fidel_lightlikeer.clone(),
                 engines.engine.clone(),
             ));
             causetStorage_read_pools.handle()
@@ -558,7 +558,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         } else {
             let cop_read_pools = ReadPool::from(interlock::readpool_impl::build_read_pool(
                 &self.config.readpool.interlock,
-                fidel_slightlikeer,
+                fidel_lightlikeer,
                 engines.engine.clone(),
             ));
             cop_read_pools.handle()
@@ -1076,7 +1076,7 @@ trait Stop {
 impl<E, R> Stop for StatusServer<E, R>
 where
     E: 'static,
-    R: 'static + Slightlike,
+    R: 'static + lightlike,
 {
     fn stop(self: Box<Self>) {
         (*self).stop()
@@ -1089,7 +1089,7 @@ impl<ER: VioletaBftEngine> Stop for MetricsFlusher<LmdbEngine, ER> {
     }
 }
 
-impl<T: fmt::Display + Slightlike + 'static> Stop for Worker<T> {
+impl<T: fmt::Display + lightlike + 'static> Stop for Worker<T> {
     fn stop(mut self: Box<Self>) {
         if let Some(Err(e)) = Worker::stop(&mut *self).map(JoinHandle::join) {
             info!(

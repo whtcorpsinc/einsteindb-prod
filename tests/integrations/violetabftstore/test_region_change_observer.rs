@@ -7,7 +7,7 @@ use violetabftstore::interlock::{
 };
 use violetabftstore::store::util::{find_peer, new_peer};
 use std::mem;
-use std::sync::mpsc::{channel, sync_channel, Receiver, SyncSlightlikeer};
+use std::sync::mpsc::{channel, sync_channel, Receiver, Synclightlikeer};
 use std::sync::Arc;
 use std::time::Duration;
 use test_violetabftstore::{new_node_cluster, Cluster, NodeCluster};
@@ -15,7 +15,7 @@ use einsteindb_util::HandyRwLock;
 
 #[derive(Clone)]
 struct TestSemaphore {
-    slightlikeer: SyncSlightlikeer<(Brane, BraneChangeEvent)>,
+    lightlikeer: Synclightlikeer<(Brane, BraneChangeEvent)>,
 }
 
 impl Interlock for TestSemaphore {}
@@ -27,7 +27,7 @@ impl BraneChangeSemaphore for TestSemaphore {
         event: BraneChangeEvent,
         _: StateRole,
     ) {
-        self.slightlikeer.slightlike((ctx.brane().clone(), event)).unwrap();
+        self.lightlikeer.lightlike((ctx.brane().clone(), event)).unwrap();
     }
 }
 
@@ -45,12 +45,12 @@ fn test_brane_change_semaphore_impl(mut cluster: Cluster<NodeCluster>) {
             .wl()
             .post_create_interlock_host(Box::new(move |id, host| {
                 if id == 1 {
-                    let (slightlikeer, receiver) = sync_channel(10);
+                    let (lightlikeer, receiver) = sync_channel(10);
                     host.registry.register_brane_change_semaphore(
                         1,
-                        BoxBraneChangeSemaphore::new(TestSemaphore { slightlikeer }),
+                        BoxBraneChangeSemaphore::new(TestSemaphore { lightlikeer }),
                     );
-                    tx.slightlike(receiver).unwrap();
+                    tx.lightlike(receiver).unwrap();
                 }
             }));
         r1 = cluster.run_conf_change();

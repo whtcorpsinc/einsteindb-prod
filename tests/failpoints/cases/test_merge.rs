@@ -180,13 +180,13 @@ fn test_node_merge_respacelike() {
     must_get_equal(&cluster.get_engine(3), b"k11", b"v11");
     let skip_destroy_fp = "violetabft_store_skip_destroy_peer";
     fail::causet(skip_destroy_fp, "return()").unwrap();
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     fidel_client.must_merge(left.get_id(), right.get_id());
     let peer = find_peer(&right, 3).unwrap().to_owned();
     fidel_client.must_remove_peer(right.get_id(), peer);
     cluster.shutdown();
     fail::remove(skip_destroy_fp);
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     cluster.spacelike().unwrap();
     must_get_none(&cluster.get_engine(3), b"k1");
     must_get_none(&cluster.get_engine(3), b"k3");
@@ -214,7 +214,7 @@ fn test_node_merge_catch_up_logs_respacelike() {
     cluster.must_put(b"k0", b"v0");
     must_get_equal(&cluster.get_engine(3), b"k0", b"v0");
 
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(left.get_id(), 3)
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgApplightlike),
@@ -272,7 +272,7 @@ fn test_node_merge_catch_up_logs_leader_election() {
         sleep_ms(10);
     }
 
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(left.get_id(), 3)
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgApplightlike),
@@ -322,7 +322,7 @@ fn test_node_merge_catch_up_logs_no_need() {
     }
 
     // let the peer of left brane on store 3 falls behind.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(left.get_id(), 3)
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgApplightlike),
@@ -348,7 +348,7 @@ fn test_node_merge_catch_up_logs_no_need() {
     fail::remove("apply_after_prepare_merge");
 
     // make sure all the logs are committed, including the compact command
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     thread::sleep(Duration::from_millis(50));
 
     // let merge process continue
@@ -461,12 +461,12 @@ fn test_node_merge_multiple_snapshots(together: bool) {
     //  left brane: 1         2(leader) I 3
     // right brane: 1(leader) 2         I 3
     // I means isolation.(here just means 3 can not receive applightlike log)
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(right.get_id(), 3)
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgApplightlike),
     ));
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(left.get_id(), 3)
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgApplightlike),
@@ -486,7 +486,7 @@ fn test_node_merge_multiple_snapshots(together: bool) {
         let value = format!("v{}", i);
         cluster.must_put(key.as_bytes(), value.as_bytes());
     }
-    // Wait for snapshot to generate and slightlike
+    // Wait for snapshot to generate and lightlike
     thread::sleep(Duration::from_millis(100));
 
     // Merge left and right brane, due to isolation, the branes on store 3 are not merged yet.
@@ -497,15 +497,15 @@ fn test_node_merge_multiple_snapshots(together: bool) {
     // one is snapshot before merge, the other is snapshot after merge.
     // Here blocks violetabftstore for a while to make it not to apply snapshot and receive new log now.
     fail::causet("on_violetabft_ready", "sleep(100)").unwrap();
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     thread::sleep(Duration::from_millis(200));
     // Filter message again to make sure peer on store 3 can not catch up CommitMerge log
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(left.get_id(), 3)
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgApplightlike),
     ));
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(right.get_id(), 3)
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgApplightlike),
@@ -519,7 +519,7 @@ fn test_node_merge_multiple_snapshots(together: bool) {
 
     cluster.must_put(b"k9", b"v9");
     // let follower can reach the new log, then commit merge
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_equal(&cluster.get_engine(3), b"k9", b"v9");
 }
 
@@ -620,7 +620,7 @@ fn test_node_request_snapshot_reject_merge() {
     let target = cluster.get_brane(target_brane.get_spacelike_key());
     assert_eq!(target, target_brane);
     fail::remove(brane_gen_snap_fp);
-    // Drop cluster to ensure notifier will not slightlike any message after rx is dropped.
+    // Drop cluster to ensure notifier will not lightlike any message after rx is dropped.
     drop(cluster);
 }
 
@@ -655,7 +655,7 @@ fn test_node_merge_respacelike_after_apply_premerge_before_apply_compact_log() {
     cluster.must_transfer_leader(left.get_id(), left_peer_1);
 
     // Make log gap between store 1 and store 3, for min_index in preMerge
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     for i in 0..6 {
         cluster.must_put(format!("k1{}", i).as_bytes(), b"v1");
     }
@@ -666,7 +666,7 @@ fn test_node_merge_respacelike_after_apply_premerge_before_apply_compact_log() {
 
     cluster.must_try_merge(left.get_id(), right.get_id());
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     // Prevent apply fsm to apply compact log
     let handle_apply_fp = "on_handle_apply";
     fail::causet(handle_apply_fp, "return()").unwrap();
@@ -740,7 +740,7 @@ fn test_node_failed_merge_before_succeed_merge() {
     must_get_equal(&cluster.get_engine(2), b"k11", b"v2");
     must_get_equal(&cluster.get_engine(3), b"k11", b"v2");
     // Make peer 1003 can't receive PrepareMerge and RollbackMerge log
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
 
     cluster.must_try_merge(left.get_id(), right.get_id());
 
@@ -749,12 +749,12 @@ fn test_node_failed_merge_before_succeed_merge() {
     fail::remove(schedule_merge_fp);
     // Wait for left brane to rollback merge
     cluster.must_put(b"k12", b"v2");
-    // Prevent the `PrepareMerge` and `RollbackMerge` log slightlikeing to apply fsm after
-    // cleaning slightlike filter. Since this method is just to check `RollbackMerge`,
+    // Prevent the `PrepareMerge` and `RollbackMerge` log lightlikeing to apply fsm after
+    // cleaning lightlike filter. Since this method is just to check `RollbackMerge`,
     // the `PrepareMerge` may escape, but it makes the best effort.
-    let before_slightlike_rollback_merge_1003_fp = "before_slightlike_rollback_merge_1003";
-    fail::causet(before_slightlike_rollback_merge_1003_fp, "return").unwrap();
-    cluster.clear_slightlike_filters();
+    let before_lightlike_rollback_merge_1003_fp = "before_lightlike_rollback_merge_1003";
+    fail::causet(before_lightlike_rollback_merge_1003_fp, "return").unwrap();
+    cluster.clear_lightlike_filters();
 
     right = fidel_client.get_brane(b"k5").unwrap();
     let right_peer_1 = find_peer(&right, 1).cloned().unwrap();
@@ -765,23 +765,23 @@ fn test_node_failed_merge_before_succeed_merge() {
     }
     // Do a really succeed merge
     fidel_client.must_merge(left.get_id(), right.get_id());
-    // Wait right brane to slightlike CatchUpLogs to left brane.
+    // Wait right brane to lightlike CatchUpLogs to left brane.
     sleep_ms(100);
-    // After executing CatchUpLogs in source peer fsm, the committed log will slightlike
+    // After executing CatchUpLogs in source peer fsm, the committed log will lightlike
     // to apply fsm in the lightlike of this batch. So even the first `on_ready_prepare_merge`
     // is executed after CatchUplogs, the latter committed logs is still sent to apply fsm
     // if CatchUpLogs and `on_ready_prepare_merge` is in different batch.
     //
     // In this case, the data is complete because the wrong up-to-date msg from the
     // first `on_ready_prepare_merge` is sent after all committed log.
-    // Sleep a while to wait apply fsm to slightlike `on_ready_prepare_merge` to peer fsm.
-    let after_slightlike_to_apply_1003_fp = "after_slightlike_to_apply_1003";
-    fail::causet(after_slightlike_to_apply_1003_fp, "sleep(300)").unwrap();
+    // Sleep a while to wait apply fsm to lightlike `on_ready_prepare_merge` to peer fsm.
+    let after_lightlike_to_apply_1003_fp = "after_lightlike_to_apply_1003";
+    fail::causet(after_lightlike_to_apply_1003_fp, "sleep(300)").unwrap();
 
-    fail::remove(before_slightlike_rollback_merge_1003_fp);
-    // Wait `after_slightlike_to_apply_1003` timeout
+    fail::remove(before_lightlike_rollback_merge_1003_fp);
+    // Wait `after_lightlike_to_apply_1003` timeout
     sleep_ms(300);
-    fail::remove(after_slightlike_to_apply_1003_fp);
+    fail::remove(after_lightlike_to_apply_1003_fp);
     // Check the data integrity
     for i in 0..5 {
         must_get_equal(&cluster.get_engine(3), format!("k2{}", i).as_bytes(), b"v3");
@@ -1008,7 +1008,7 @@ fn test_node_merge_write_data_to_source_brane_after_merging() {
 
     cluster.must_try_merge(left.get_id(), right.get_id());
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
 
     fail::remove(schedule_merge_fp);
 
@@ -1032,7 +1032,7 @@ fn test_node_merge_write_data_to_source_brane_after_merging() {
     let on_has_merge_target_fp = "on_has_merge_target";
     fail::causet(on_has_merge_target_fp, "return").unwrap();
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     // On store 3, now the right brane is ufidelated by snapshot not applying logs
     // so the left brane still exist.
     // Wait for left brane to rollback merge (in previous wrong implementation)
@@ -1070,7 +1070,7 @@ fn test_node_merge_write_data_to_source_brane_after_merging() {
 ///
 /// A einsteindb crash after its source peers have destroyed but this target peer does not become to
 /// `Applying` state which means it will not apply snapshot after this einsteindb respacelikes.
-/// After this einsteindb respacelikes, a new leader may slightlike logs to this target peer, then the panic may happen
+/// After this einsteindb respacelikes, a new leader may lightlike logs to this target peer, then the panic may happen
 /// because it can not find its source peers when applying `CommitMerge` log.
 ///
 /// This test is to reproduce above situation.
@@ -1109,7 +1109,7 @@ fn test_node_merge_crash_before_snapshot_then_catch_up_logs() {
 
     cluster.must_put(b"k1", b"v1");
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
 
     fidel_client.must_merge(left.get_id(), right.get_id());
 
@@ -1161,9 +1161,9 @@ fn test_node_merge_crash_before_snapshot_then_catch_up_logs() {
     let before_handle_snapshot_ready_3_fp = "before_handle_snapshot_ready_3";
     fail::causet(before_handle_snapshot_ready_3_fp, "return()").unwrap();
 
-    cluster.clear_slightlike_filters();
-    // Peer 1 will slightlike snapshot to peer 3
-    // Source peer slightlikes msg to others to get target brane info until the election timeout.
+    cluster.clear_lightlike_filters();
+    // Peer 1 will lightlike snapshot to peer 3
+    // Source peer lightlikes msg to others to get target brane info until the election timeout.
     // The max election timeout is 2 * 10 * 10 = 200ms
     let election_timeout = 2
         * cluster.causet.violetabft_store.violetabft_base_tick_interval.as_millis()
@@ -1177,7 +1177,7 @@ fn test_node_merge_crash_before_snapshot_then_catch_up_logs() {
     fail::remove(before_handle_snapshot_ready_3_fp);
     cluster.run_node(3).unwrap();
     // Peer 2 will become leader and it don't know the compact log is committed.
-    // So it will slightlike logs not snapshot to peer 3
+    // So it will lightlike logs not snapshot to peer 3
     for i in 20..30 {
         cluster.must_put(format!("k{}", i).as_bytes(), b"v");
     }
@@ -1240,7 +1240,7 @@ fn test_node_merge_crash_when_snapshot() {
         must_get_equal(&cluster.get_engine(3), format!("k{}", i).as_bytes(), b"v");
     }
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
 
     fidel_client.must_merge(r2.get_id(), r3.get_id());
     fidel_client.must_merge(r4.get_id(), r3.get_id());
@@ -1276,7 +1276,7 @@ fn test_node_merge_crash_when_snapshot() {
     let on_brane_worker_destroy_fp = "on_brane_worker_destroy";
     fail::causet(on_brane_worker_destroy_fp, "return()").unwrap();
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     let timer = Instant::now();
     loop {
         let local_state = cluster.brane_local_state(brane.get_id(), 3);

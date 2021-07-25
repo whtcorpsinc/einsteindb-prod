@@ -61,24 +61,24 @@ fn setup(
 
 fn validate_waiter<F>(router: &WaiterMgrInterlock_Semaphore, f: F)
 where
-    F: FnOnce(ReadableDuration, ReadableDuration) + Slightlike + 'static,
+    F: FnOnce(ReadableDuration, ReadableDuration) + lightlike + 'static,
 {
     let (tx, rx) = mpsc::channel();
     router.validate(Box::new(move |v1, v2| {
         f(v1, v2);
-        tx.slightlike(()).unwrap();
+        tx.lightlike(()).unwrap();
     }));
     rx.recv_timeout(Duration::from_secs(3)).unwrap();
 }
 
 fn validate_dead_lock<F>(router: &DetectorInterlock_Semaphore, f: F)
 where
-    F: FnOnce(u64) + Slightlike + 'static,
+    F: FnOnce(u64) + lightlike + 'static,
 {
     let (tx, rx) = mpsc::channel();
     router.validate(Box::new(move |v| {
         f(v);
-        tx.slightlike(()).unwrap();
+        tx.lightlike(()).unwrap();
     }));
     rx.recv_timeout(Duration::from_secs(3)).unwrap();
 }

@@ -426,10 +426,10 @@ impl Simulator for ServerCluster {
         cb: Callback<LmdbSnapshot>,
     ) -> Result<()> {
         let router = match self.metas.get(&node_id) {
-            None => return Err(box_err!("missing slightlikeer for store {}", node_id)),
+            None => return Err(box_err!("missing lightlikeer for store {}", node_id)),
             Some(meta) => meta.sim_router.clone(),
         };
-        router.slightlike_command(request, cb)
+        router.lightlike_command(request, cb)
     }
 
     fn async_read(
@@ -441,7 +441,7 @@ impl Simulator for ServerCluster {
     ) {
         match self.metas.get(&node_id) {
             None => {
-                let e: VioletaBftError = box_err!("missing slightlikeer for store {}", node_id);
+                let e: VioletaBftError = box_err!("missing lightlikeer for store {}", node_id);
                 let mut resp = VioletaBftCmdResponse::default();
                 resp.mut_header().set_error(e.into());
                 cb.invoke_with_response(resp);
@@ -452,15 +452,15 @@ impl Simulator for ServerCluster {
         };
     }
 
-    fn slightlike_violetabft_msg(&mut self, violetabft_msg: violetabft_serverpb::VioletaBftMessage) -> Result<()> {
+    fn lightlike_violetabft_msg(&mut self, violetabft_msg: violetabft_serverpb::VioletaBftMessage) -> Result<()> {
         let store_id = violetabft_msg.get_to_peer().get_store_id();
         let addr = self.get_addr(store_id).to_owned();
-        self.violetabft_client.slightlike(store_id, &addr, violetabft_msg).unwrap();
+        self.violetabft_client.lightlike(store_id, &addr, violetabft_msg).unwrap();
         self.violetabft_client.flush();
         Ok(())
     }
 
-    fn add_slightlike_filter(&mut self, node_id: u64, filter: Box<dyn Filter>) {
+    fn add_lightlike_filter(&mut self, node_id: u64, filter: Box<dyn Filter>) {
         self.metas
             .get_mut(&node_id)
             .unwrap()
@@ -468,7 +468,7 @@ impl Simulator for ServerCluster {
             .add_filter(filter);
     }
 
-    fn clear_slightlike_filters(&mut self, node_id: u64) {
+    fn clear_lightlike_filters(&mut self, node_id: u64) {
         self.metas
             .get_mut(&node_id)
             .unwrap()

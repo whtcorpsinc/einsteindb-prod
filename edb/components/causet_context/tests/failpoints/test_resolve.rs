@@ -23,7 +23,7 @@ fn test_stale_resolver() {
     let req = suite.new_changedata_request(brane.get_id());
     let (mut req_tx, event_feed_wrap, receive_event) =
         new_event_feed(suite.get_brane_causet_context_client(brane.get_id()));
-    block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
+    block_on(req_tx.lightlike((req.clone(), WriteFlags::default()))).unwrap();
     // Sleep for a while to wait the scan is done
     sleep_ms(200);
 
@@ -50,12 +50,12 @@ fn test_stale_resolver() {
         .event_feed()
         .unwrap();
     event_feed_wrap.as_ref().replace(Some(resp_rx));
-    block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
+    block_on(req_tx.lightlike((req.clone(), WriteFlags::default()))).unwrap();
     let (mut req_tx1, resp_rx1) = suite
         .get_brane_causet_context_client(brane.get_id())
         .event_feed()
         .unwrap();
-    block_on(req_tx1.slightlike((req, WriteFlags::default()))).unwrap();
+    block_on(req_tx1.lightlike((req, WriteFlags::default()))).unwrap();
     // Unblock the first scan
     fail::remove(fp);
     // Sleep for a while to wait the wrong resolver init

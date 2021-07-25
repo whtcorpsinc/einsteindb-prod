@@ -122,7 +122,7 @@ pub trait Configuration<'a> {
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-pub trait ConfigManager: Slightlike + Sync {
+pub trait ConfigManager: lightlike + Sync {
     fn dispatch(&mut self, _: ConfigChange) -> Result<()>;
 }
 

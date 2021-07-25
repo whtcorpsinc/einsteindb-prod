@@ -15,7 +15,7 @@ use milevadb_query_datatype::expr::{EvalContext, EvalWarnings};
 
 // an InnerFreeDaemon is used in ScanFreeDaemon,
 // hold the different logics between Block scan and index scan
-pub trait InnerFreeDaemon: Slightlike {
+pub trait InnerFreeDaemon: lightlike {
     fn decode_row(
         &self,
         ctx: &mut EvalContext,

@@ -269,7 +269,7 @@ impl OriginCols {
     }
 }
 
-pub trait FreeDaemon: Slightlike {
+pub trait FreeDaemon: lightlike {
     type StorageStats;
 
     fn next(&mut self) -> Result<Option<Event>>;
@@ -300,7 +300,7 @@ pub trait FreeDaemon: Slightlike {
     }
 }
 
-impl<C: ExecSummaryCollector + Slightlike, T: FreeDaemon> FreeDaemon for WithSummaryCollector<C, T> {
+impl<C: ExecSummaryCollector + lightlike, T: FreeDaemon> FreeDaemon for WithSummaryCollector<C, T> {
     type StorageStats = T::StorageStats;
 
     fn next(&mut self) -> Result<Option<Event>> {
@@ -521,7 +521,7 @@ pub mod tests {
         cis: Vec<PrimaryCausetInfo>,
         raw_data: &[Vec<Datum>],
         key_cones: Option<Vec<KeyCone>>,
-    ) -> Box<dyn FreeDaemon<StorageStats = ()> + Slightlike> {
+    ) -> Box<dyn FreeDaemon<StorageStats = ()> + lightlike> {
         let Block_data = gen_Block_data(tid, &cis, raw_data);
         let causetStorage = FixtureStorage::from(Block_data);
 

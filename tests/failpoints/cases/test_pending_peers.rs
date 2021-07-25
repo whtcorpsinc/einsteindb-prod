@@ -65,11 +65,11 @@ fn test_plightlikeing_snapshot() {
     sleep_ms(100);
 
     // Isolate peer 1 from rest of the cluster.
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(1));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(1));
 
     sleep_ms((election_timeout.as_millis() * 2) as _);
     cluster.reset_leader_of_brane(brane_id);
-    // Compact logs to force requesting snapshot after clearing slightlike filters.
+    // Compact logs to force requesting snapshot after clearing lightlike filters.
     let state2 = cluster.truncated_state(1, 2);
     for i in 1..gc_limit * 10 {
         let k = i.to_string().into_bytes();
@@ -88,7 +88,7 @@ fn test_plightlikeing_snapshot() {
     }
 
     // Make sure peer 1 has applied snapshot.
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     let spacelike = Instant::now();
     loop {
         if cluster.fidel_client.get_plightlikeing_peers().get(&1).is_none()

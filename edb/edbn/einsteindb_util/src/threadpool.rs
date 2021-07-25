@@ -15,7 +15,7 @@ const DEFAULT_THREAD_COUNT: usize = 1;
 const NAP_SECS: u64 = 1;
 const QUEUE_MAX_CAPACITY: usize = 8 * DEFAULT_QUEUE_CAPACITY;
 
-pub trait Context: Slightlike {
+pub trait Context: lightlike {
     fn on_task_spacelikeed(&mut self) {}
     fn on_task_finished(&mut self) {}
     fn on_tick(&mut self) {}
@@ -39,13 +39,13 @@ impl<C: Context + Default> ContextFactory<C> for DefaultContextFactory {
 }
 
 pub struct Task<C> {
-    task: Box<dyn FnOnce(&mut C) + Slightlike>,
+    task: Box<dyn FnOnce(&mut C) + lightlike>,
 }
 
 impl<C: Context> Task<C> {
     fn new<F>(job: F) -> Task<C>
     where
-        for<'r> F: FnOnce(&'r mut C) + Slightlike + 'static,
+        for<'r> F: FnOnce(&'r mut C) + lightlike + 'static,
     {
         Task {
             task: Box::new(job),
@@ -146,7 +146,7 @@ pub struct Interlock_Semaphore<Ctx> {
 impl<Ctx> Interlock_Semaphore<Ctx> {
     pub fn schedule<F>(&self, job: F)
     where
-        F: FnOnce(&mut Ctx) + Slightlike + 'static,
+        F: FnOnce(&mut Ctx) + lightlike + 'static,
         Ctx: Context,
     {
         let task = Task::new(job);
@@ -232,7 +232,7 @@ where
 
     pub fn execute<F>(&self, job: F)
     where
-        F: FnOnce(&mut Ctx) + Slightlike + 'static,
+        F: FnOnce(&mut Ctx) + lightlike + 'static,
         Ctx: Context,
     {
         self.interlock_semaphore.schedule(job)
@@ -343,7 +343,7 @@ mod tests {
     use super::*;
 
     use std::sync::atomic::{AtomicIsize, Ordering};
-    use std::sync::mpsc::{channel, Slightlikeer};
+    use std::sync::mpsc::{channel, lightlikeer};
     use std::sync::{Arc, Mutex};
     use std::time::Duration;
 
@@ -364,14 +364,14 @@ mod tests {
                 let rx = rxer.dagger().unwrap();
                 let id = rx.recv_timeout(timeout).unwrap();
                 assert_eq!(id, gid);
-                ftx.slightlike(true).unwrap();
+                ftx.lightlike(true).unwrap();
             });
             task_num += 1;
             assert_eq!(task_pool.get_task_count(), task_num);
         }
 
         for gid in 0..group_num {
-            tx.slightlike(gid).unwrap();
+            tx.lightlike(gid).unwrap();
             frx.recv_timeout(timeout).unwrap();
             let left_num = task_pool.get_task_count();
             // current task may be still running.
@@ -394,7 +394,7 @@ mod tests {
         for _ in 0..10 {
             let t = tx.clone();
             interlock_semaphore.schedule(move |_: &mut DefaultContext| {
-                t.slightlike(()).unwrap();
+                t.lightlike(()).unwrap();
             });
         }
 
@@ -409,10 +409,10 @@ mod tests {
     fn test_task_context() {
         struct TestContext {
             counter: Arc<AtomicIsize>,
-            tx: Slightlikeer<()>,
+            tx: lightlikeer<()>,
         }
 
-        unsafe impl Slightlike for TestContext {}
+        unsafe impl lightlike for TestContext {}
 
         impl Context for TestContext {
             fn on_task_spacelikeed(&mut self) {
@@ -420,14 +420,14 @@ mod tests {
             }
             fn on_task_finished(&mut self) {
                 self.counter.fetch_add(1, Ordering::SeqCst);
-                self.tx.slightlike(()).unwrap();
+                self.tx.lightlike(()).unwrap();
             }
             fn on_tick(&mut self) {}
         }
 
         struct TestContextFactory {
             counter: Arc<AtomicIsize>,
-            tx: Slightlikeer<()>,
+            tx: lightlikeer<()>,
         }
 
         impl ContextFactory<TestContext> for TestContextFactory {
@@ -463,23 +463,23 @@ mod tests {
     fn test_task_tick() {
         struct TestContext {
             counter: Arc<AtomicIsize>,
-            tx: Slightlikeer<()>,
+            tx: lightlikeer<()>,
         }
 
-        unsafe impl Slightlike for TestContext {}
+        unsafe impl lightlike for TestContext {}
 
         impl Context for TestContext {
             fn on_task_spacelikeed(&mut self) {}
             fn on_task_finished(&mut self) {}
             fn on_tick(&mut self) {
                 self.counter.fetch_add(1, Ordering::SeqCst);
-                let _ = self.tx.slightlike(());
+                let _ = self.tx.lightlike(());
             }
         }
 
         struct TestContextFactory {
             counter: Arc<AtomicIsize>,
-            tx: Slightlikeer<()>,
+            tx: lightlikeer<()>,
         }
 
         impl ContextFactory<TestContext> for TestContextFactory {

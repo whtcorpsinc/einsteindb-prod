@@ -26,11 +26,11 @@ pub trait FsmInterlock_Semaphore {
 /// A Fsm is a finite state machine. It should be able to be notified for
 /// ufidelating internal state according to incoming messages.
 pub trait Fsm {
-    type Message: Slightlike;
+    type Message: lightlike;
 
     fn is_stopped(&self) -> bool;
 
-    /// Set a mailbox to Fsm, which should be used to slightlike message to itself.
+    /// Set a mailbox to Fsm, which should be used to lightlike message to itself.
     fn set_mailbox(&mut self, _mailbox: Cow<'_, BasicMailbox<Self>>)
     where
         Self: Sized,

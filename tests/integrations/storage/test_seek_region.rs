@@ -71,7 +71,7 @@ fn test_seek_brane_impl<T: Simulator, R: BraneInfoProvider>(
             .seek_brane(
                 &key,
                 Box::new(move |infos| {
-                    tx_.slightlike(infos.map(|i| i.brane.clone()).collect()).unwrap();
+                    tx_.lightlike(infos.map(|i| i.brane.clone()).collect()).unwrap();
                 }),
             )
             .unwrap();
@@ -84,7 +84,7 @@ fn test_seek_brane_impl<T: Simulator, R: BraneInfoProvider>(
         engine
             .seek_brane(
                 b"k1",
-                Box::new(move |infos| tx_.slightlike(infos.next().unwrap().brane.clone()).unwrap()),
+                Box::new(move |infos| tx_.lightlike(infos.next().unwrap().brane.clone()).unwrap()),
             )
             .unwrap();
         let brane = rx.recv_timeout(Duration::from_secs(3)).unwrap();
@@ -95,7 +95,7 @@ fn test_seek_brane_impl<T: Simulator, R: BraneInfoProvider>(
         engine
             .seek_brane(
                 b"k6\xff\xff\xff\xff\xff",
-                Box::new(move |infos| tx_.slightlike(infos.next().unwrap().brane.clone()).unwrap()),
+                Box::new(move |infos| tx_.lightlike(infos.next().unwrap().brane.clone()).unwrap()),
             )
             .unwrap();
         let brane = rx.recv_timeout(Duration::from_secs(3)).unwrap();
@@ -104,7 +104,7 @@ fn test_seek_brane_impl<T: Simulator, R: BraneInfoProvider>(
         engine
             .seek_brane(
                 b"\xff\xff\xff\xff\xff\xff\xff\xff",
-                Box::new(move |infos| tx_.slightlike(infos.next().unwrap().brane.clone()).unwrap()),
+                Box::new(move |infos| tx_.lightlike(infos.next().unwrap().brane.clone()).unwrap()),
             )
             .unwrap();
         let brane = rx.recv_timeout(Duration::from_secs(3)).unwrap();
@@ -123,7 +123,7 @@ fn test_brane_collection_seek_brane() {
         .post_create_interlock_host(Box::new(move |id, host| {
             let p = BraneInfoAccessor::new(host);
             p.spacelike();
-            tx.slightlike((id, p)).unwrap()
+            tx.lightlike((id, p)).unwrap()
         }));
 
     cluster.run();

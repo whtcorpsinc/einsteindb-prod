@@ -51,7 +51,7 @@ fn test_overlap_cleanup() {
 
 // When resolving remote address, all messages will be dropped and
 // report unreachable. However unreachable won't reset follower's
-// progress if it's in Snapshot state. So trying to slightlike a snapshot
+// progress if it's in Snapshot state. So trying to lightlike a snapshot
 // when the address is being resolved will leave follower's progress
 // stay in Snapshot forever.
 #[test]
@@ -60,7 +60,7 @@ fn test_server_snapshot_on_resolve_failure() {
     configure_for_snapshot(&mut cluster);
 
     let on_resolve_fp = "transport_snapshot_on_resolve";
-    let on_slightlike_store_fp = "transport_on_slightlike_store";
+    let on_lightlike_store_fp = "transport_on_lightlike_store";
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     // Disable default max peer count check.
@@ -73,7 +73,7 @@ fn test_server_snapshot_on_resolve_failure() {
 
     let ready_notify = Arc::default();
     let (notify_tx, notify_rx) = mpsc::channel();
-    cluster.sim.write().unwrap().add_slightlike_filter(
+    cluster.sim.write().unwrap().add_lightlike_filter(
         1,
         Box::new(MessageTypeNotifier::new(
             MessageType::MsgSnapshot,
@@ -91,14 +91,14 @@ fn test_server_snapshot_on_resolve_failure() {
 
     fidel_client.add_peer(1, new_peer(4, 5));
 
-    // The leader is trying to slightlike snapshots, but the filter drops snapshots.
+    // The leader is trying to lightlike snapshots, but the filter drops snapshots.
     drop_snapshot_rx
         .recv_timeout(Duration::from_secs(3))
         .unwrap();
 
-    // "return(4)" those failure occurs if EinsteinDB resolves or slightlikes to store 4.
+    // "return(4)" those failure occurs if EinsteinDB resolves or lightlikes to store 4.
     fail::causet(on_resolve_fp, "return(4)").unwrap();
-    fail::causet(on_slightlike_store_fp, "return(4)").unwrap();
+    fail::causet(on_lightlike_store_fp, "return(4)").unwrap();
 
     // We are ready to recv notify.
     ready_notify.store(true, Ordering::SeqCst);
@@ -108,7 +108,7 @@ fn test_server_snapshot_on_resolve_failure() {
     must_get_none(&engine4, b"k1");
     cluster.sim.write().unwrap().clear_recv_filters(4);
 
-    // Remove the on_slightlike_store_fp.
+    // Remove the on_lightlike_store_fp.
     // Now it will resolve the store 4's address via heartbeat messages,
     // so snapshots works fine.
     //
@@ -117,7 +117,7 @@ fn test_server_snapshot_on_resolve_failure() {
     // injected resolve failure eventually.
     // It perverts a race condition, remove the on_resolve_fp before snapshot
     // messages meet the failpoint, that fails the test.
-    fail::remove(on_slightlike_store_fp);
+    fail::remove(on_lightlike_store_fp);
 
     notify_rx.recv_timeout(Duration::from_secs(3)).unwrap();
     cluster.must_put(b"k2", b"v2");
@@ -145,7 +145,7 @@ fn test_generate_snapshot() {
     // Sleep for a while to ensure all logs are compacted.
     thread::sleep(Duration::from_millis(100));
 
-    fail::causet("snapshot_delete_after_slightlike", "pause").unwrap();
+    fail::causet("snapshot_delete_after_lightlike", "pause").unwrap();
 
     // Let store 4 inform leader to generate a snapshot.
     cluster.run_node(4).unwrap();
@@ -155,7 +155,7 @@ fn test_generate_snapshot() {
     cluster.run_node(5).unwrap();
     thread::sleep(Duration::from_millis(100));
 
-    fail::causet("snapshot_delete_after_slightlike", "off").unwrap();
+    fail::causet("snapshot_delete_after_lightlike", "off").unwrap();
     must_empty_dir(cluster.get_snap_dir(1));
 
     // The task is droped so that we can't get the snapshot on store 5.
@@ -166,7 +166,7 @@ fn test_generate_snapshot() {
     must_get_equal(&cluster.get_engine(5), b"k2", b"v2");
 
     fail::remove("snapshot_enter_do_build");
-    fail::remove("snapshot_delete_after_slightlike");
+    fail::remove("snapshot_delete_after_lightlike");
 }
 
 fn must_empty_dir(path: String) {
@@ -236,7 +236,7 @@ fn test_node_request_snapshot_on_split() {
         &brane,
         b"k1",
         Callback::Write(Box::new(move |_| {
-            split_tx.slightlike(()).unwrap();
+            split_tx.lightlike(()).unwrap();
         })),
     );
     // Split is stopped on peer3.
@@ -297,7 +297,7 @@ fn test_destroy_peer_on_plightlikeing_snapshot() {
 
     cluster.must_transfer_leader(1, new_peer(1, 1));
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
 
     for i in 0..20 {
         cluster.must_put(format!("k1{}", i).as_bytes(), b"v1");
@@ -306,12 +306,12 @@ fn test_destroy_peer_on_plightlikeing_snapshot() {
     let apply_snapshot_fp = "apply_plightlikeing_snapshot";
     fail::causet(apply_snapshot_fp, "return()").unwrap();
 
-    cluster.clear_slightlike_filters();
-    // Wait for leader slightlike snapshot.
+    cluster.clear_lightlike_filters();
+    // Wait for leader lightlike snapshot.
     sleep_ms(100);
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
-    // Don't slightlike check stale msg to FIDel
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
+    // Don't lightlike check stale msg to FIDel
     let peer_check_stale_state_fp = "peer_check_stale_state";
     fail::causet(peer_check_stale_state_fp, "return()").unwrap();
 
@@ -321,8 +321,8 @@ fn test_destroy_peer_on_plightlikeing_snapshot() {
     let before_handle_normal_3_fp = "before_handle_normal_3";
     fail::causet(before_handle_normal_3_fp, "pause").unwrap();
 
-    cluster.clear_slightlike_filters();
-    // Wait for leader slightlike msg to peer 3.
+    cluster.clear_lightlike_filters();
+    // Wait for leader lightlike msg to peer 3.
     // Then destroy peer 3 and create peer 4.
     sleep_ms(100);
 
@@ -403,7 +403,7 @@ fn test_receive_old_snapshot() {
     // Ensure peer 2 is initialized.
     must_get_equal(&cluster.get_engine(2), b"k00", b"v1");
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
 
     for i in 0..20 {
         cluster.must_put(format!("k{}", i).as_bytes(), b"v1");
@@ -418,7 +418,7 @@ fn test_receive_old_snapshot() {
     );
     cluster.sim.wl().add_recv_filter(2, recv_filter);
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     for _ in 0..20 {
         let guard = dropped_msgs.dagger().unwrap();
@@ -445,9 +445,9 @@ fn test_receive_old_snapshot() {
     must_get_equal(&cluster.get_engine(2), b"k39", b"v1");
 
     let router = cluster.sim.wl().get_router(2).unwrap();
-    // Slightlike the old snapshot
+    // lightlike the old snapshot
     for violetabft_msg in msgs {
-        router.slightlike_violetabft_message(violetabft_msg).unwrap();
+        router.lightlike_violetabft_message(violetabft_msg).unwrap();
     }
 
     cluster.must_put(b"k40", b"v1");

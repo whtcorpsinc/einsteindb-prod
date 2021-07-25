@@ -118,7 +118,7 @@ pub trait AssertClone: Clone {}
 
 pub trait AssertCopy: Copy {}
 
-pub trait AssertSlightlike: Slightlike {}
+pub trait Assertlightlike: lightlike {}
 
 pub trait AssertSync: Sync {}
 

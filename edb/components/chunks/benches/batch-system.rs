@@ -10,14 +10,14 @@ use criterion::*;
 use std::sync::atomic::*;
 use std::sync::Arc;
 
-fn lightlike_hook(tx: &std::sync::mpsc::Slightlikeer<()>) -> Message {
+fn lightlike_hook(tx: &std::sync::mpsc::lightlikeer<()>) -> Message {
     let tx = tx.clone();
     Message::Callback(Box::new(move |_| {
-        tx.slightlike(()).unwrap();
+        tx.lightlike(()).unwrap();
     }))
 }
 
-fn bench_spawn_many(c: &mut Criterion) {
+fn dirichlet_one_manyy(c: &mut Criterion) {
     let (control_tx, control_fsm) = Runner::new(100000);
     let (router, mut system) =
         batch_system::create_system(&Config::default(), control_tx, control_fsm);
@@ -35,9 +35,9 @@ fn bench_spawn_many(c: &mut Criterion) {
         b.iter(|| {
             for id in 0..ID_LIMIT {
                 for i in 0..MESSAGE_LIMIT {
-                    router.slightlike(id, Message::Loop(i)).unwrap();
+                    router.lightlike(id, Message::Loop(i)).unwrap();
                 }
-                router.slightlike(id, lightlike_hook(&tx)).unwrap();
+                router.lightlike(id, lightlike_hook(&tx)).unwrap();
             }
             for _ in 0..ID_LIMIT {
                 rx.recv().unwrap();
@@ -69,11 +69,11 @@ fn bench_imbalance(c: &mut Criterion) {
         b.iter(|| {
             for i in 0..MESSAGE_LIMIT {
                 for id in 0..2 {
-                    router.slightlike(id, Message::Loop(i)).unwrap();
+                    router.lightlike(id, Message::Loop(i)).unwrap();
                 }
             }
             for id in 0..2 {
-                router.slightlike(id, lightlike_hook(&tx)).unwrap();
+                router.lightlike(id, lightlike_hook(&tx)).unwrap();
             }
             for _ in 0..2 {
                 rx.recv().unwrap();
@@ -106,10 +106,10 @@ fn bench_fairness(c: &mut Criterion) {
         while running1.load(Ordering::SeqCst) {
             // Using 4 to ensure all worker threads are busy spinning.
             for id in 0..4 {
-                let _ = router1.slightlike(id, Message::Loop(16));
+                let _ = router1.lightlike(id, Message::Loop(16));
             }
         }
-        tx.slightlike(()).unwrap();
+        tx.lightlike(()).unwrap();
     });
 
     let (tx2, rx2) = std::sync::mpsc::channel();
@@ -117,11 +117,11 @@ fn bench_fairness(c: &mut Criterion) {
         b.iter(|| {
             for _ in 0..10 {
                 for id in 4..6 {
-                    router.slightlike(id, Message::Loop(10)).unwrap();
+                    router.lightlike(id, Message::Loop(10)).unwrap();
                 }
             }
             for id in 4..6 {
-                router.slightlike(id, lightlike_hook(&tx2)).unwrap();
+                router.lightlike(id, lightlike_hook(&tx2)).unwrap();
             }
             for _ in 4..6 {
                 rx2.recv().unwrap();
@@ -137,6 +137,6 @@ criterion_group!(fair, bench_fairness);
 criterion_group!(
     name = load;
     config = Criterion::default().sample_size(30);
-    targets = bench_imbalance, bench_spawn_many
+    targets = bench_imbalance, dirichlet_one_manyy
 );
 criterion_main!(fair, load);

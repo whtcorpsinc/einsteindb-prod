@@ -45,14 +45,14 @@ fn setup_causet_controller(
 
 fn validate<F>(interlock_semaphore: &FutureInterlock_Semaphore<GcTask>, f: F)
 where
-    F: FnOnce(&GcConfig, &Limiter) + Slightlike + 'static,
+    F: FnOnce(&GcConfig, &Limiter) + lightlike + 'static,
 {
     let (tx, rx) = channel();
     interlock_semaphore
         .schedule(GcTask::Validate(Box::new(
             move |causet: &GcConfig, limiter: &Limiter| {
                 f(causet, limiter);
-                tx.slightlike(()).unwrap();
+                tx.lightlike(()).unwrap();
             },
         )))
         .unwrap();

@@ -1,79 +1,79 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use super::Daggers_DBCausetBagger::DaggersDBCausetBagger;
+use super::lock_Block::LockBlock;
 
 use parking_lot::Mutex;
 use std::{mem, sync::Arc};
 use tokio::sync::{Mutex as AsyncMutex, MutexGuard as AsyncMutexGuard};
 use txn_types::{Key, Dagger};
 
-/// An entry in the in-memory DBCausetBagger providing functions related to a specific
+/// An entry in the in-memory Block providing functions related to a specific
 /// key.
-pub struct VisorUnDaggers {
+pub struct VisorCypherKey {
     pub key: Key,
-    DBCausetBagger: DBCausetBagger,
+    Block: LockBlock,
     mutex: AsyncMutex<()>,
-    Daggers_store: Mutex<Option<Dagger>>,
+    lock_store: Mutex<Option<Dagger>>,
 }
 
-impl VisorUnDaggers {
-    pub fn new(key: Key, DBCausetBagger: DBCausetBagger) -> Self {
-        VisorUnDaggers {
+impl VisorCypherKey {
+    pub fn new(key: Key, Block: LockBlock) -> Self {
+        VisorCypherKey {
             key,
-            DBCausetBagger,
+            Block,
             mutex: AsyncMutex::new(()),
-            Daggers_store: Mutex::new(None),
+            lock_store: Mutex::new(None),
         }
     }
 
-    pub async fn dagger(self: Arc<Self>) -> VisorUnDaggersGuard {
-        // Safety: `_mutex_guard` is declared before `handle_ref` in `VisorUnDaggersGuard`.
-        // So the mutex guard will be released earlier than the `Arc<VisorUnDaggers>`.
+    pub async fn dagger(self: Arc<Self>) -> VisorCypherKeyGuard {
+        // Safety: `_mutex_guard` is declared before `handle_ref` in `VisorCypherKeyGuard`.
+        // So the mutex guard will be released earlier than the `Arc<VisorCypherKey>`.
         // Then we can make sure the mutex guard doesn't point to released memory.
         let mutex_guard = unsafe { mem::transmute(self.mutex.dagger().await) };
-        VisorUnDaggersGuard {
+        VisorCypherKeyGuard {
             _mutex_guard: mutex_guard,
             handle: self,
         }
     }
 
-    pub fn with_Daggers<T>(&self, f: impl FnOnce(&Option<Dagger>) -> T) -> T {
-        f(&*self.Daggers_store.dagger())
+    pub fn with_lock<T>(&self, f: impl FnOnce(&Option<Dagger>) -> T) -> T {
+        f(&*self.lock_store.dagger())
     }
 }
 
-impl Drop for VisorUnDaggers {
+impl Drop for VisorCypherKey {
     fn drop(&mut self) {
-        self.DBCausetBagger.remove(&self.key);
+        self.Block.remove(&self.key);
     }
 }
 
-/// A `VisorUnDaggers` with its mutex Daggersed.
-pub struct VisorUnDaggersGuard {
+/// A `VisorCypherKey` with its mutex locked.
+pub struct VisorCypherKeyGuard {
     // It must be declared before `handle` so it will be dropped before
     // `handle`.
     _mutex_guard: AsyncMutexGuard<'static, ()>,
-    // It is unsafe to mutate `handle` to point at another `VisorUnDaggers`.
+    // It is unsafe to mutate `handle` to point at another `VisorCypherKey`.
     // Otherwise `_mutex_guard` can be invalidated.
-    handle: Arc<VisorUnDaggers>,
+    handle: Arc<VisorCypherKey>,
 }
 
-impl VisorUnDaggersGuard {
+impl VisorCypherKeyGuard {
     pub fn key(&self) -> &Key {
         &self.handle.key
     }
 
-    pub fn with_Daggers<T>(&self, f: impl FnOnce(&mut Option<Dagger>) -> T) -> T {
-        f(&mut *self.handle.Daggers_store.dagger())
+    pub fn with_lock<T>(&self, f: impl FnOnce(&mut Option<Dagger>) -> T) -> T {
+        f(&mut *self.handle.lock_store.dagger())
     }
 }
 
-impl Drop for VisorUnDaggersGuard {
+impl Drop for VisorCypherKeyGuard {
     fn drop(&mut self) {
         // We only keep the dagger in memory until the write to the underlying
         // store finishes.
         // The guard can be released after finishes writing.
-        *self.handle.Daggers_store.dagger() = None;
+        *self.handle.lock_store.dagger() = None;
     }
 }
 
@@ -88,9 +88,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_key_mutex() {
-        let DBCausetBagger = DaggersDBCausetBagger::default();
-        let key_handle = Arc::new(VisorUnDaggers::new(Key::from_raw(b"k"), DBCausetBagger.clone()));
-        DBCausetBagger
+        let Block = LockBlock::default();
+        let key_handle = Arc::new(VisorCypherKey::new(Key::from_raw(b"k"), Block.clone()));
+        Block
             .0
             .insert(Key::from_raw(b"k"), Arc::downgrade(&key_handle));
 
@@ -117,18 +117,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_ref_count() {
-        let DBCausetBagger = DBCausetBagger::default();
+        let Block = LockBlock::default();
 
         let k = Key::from_raw(b"k");
 
-        let handle = Arc::new(VisorUnDaggers::new(k.clone(), DBCausetBagger.clone()));
-        DBCausetBagger.0.insert(k.clone(), Arc::downgrade(&handle));
-        let Daggers_ref1 = DBCausetBagger.get(&k).unwrap();
-        let Daggers_ref2 = DBCausetBagger.get(&k).unwrap();
+        let handle = Arc::new(VisorCypherKey::new(k.clone(), Block.clone()));
+        Block.0.insert(k.clone(), Arc::downgrade(&handle));
+        let lock_ref1 = Block.get(&k).unwrap();
+        let lock_ref2 = Block.get(&k).unwrap();
         drop(handle);
-        drop(Daggers_ref1);
-        assert!(DBCausetBagger.get(&k).is_some());
-        drop(Daggers_ref2);
-        assert!(DBCausetBagger.get(&k).is_none());
+        drop(lock_ref1);
+        assert!(Block.get(&k).is_some());
+        drop(lock_ref2);
+        assert!(Block.get(&k).is_none());
     }
 }

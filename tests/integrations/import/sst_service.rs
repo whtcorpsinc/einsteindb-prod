@@ -64,19 +64,19 @@ fn test_upload_sst() {
 
     // Mismatch crc32
     let meta = new_sst_meta(0, length);
-    assert!(slightlike_upload_sst(&import, &meta, &data).is_err());
+    assert!(lightlike_upload_sst(&import, &meta, &data).is_err());
 
     // Mismatch length
     let meta = new_sst_meta(crc32, 0);
-    assert!(slightlike_upload_sst(&import, &meta, &data).is_err());
+    assert!(lightlike_upload_sst(&import, &meta, &data).is_err());
 
     let mut meta = new_sst_meta(crc32, length);
     meta.set_brane_id(ctx.get_brane_id());
     meta.set_brane_epoch(ctx.get_brane_epoch().clone());
-    slightlike_upload_sst(&import, &meta, &data).unwrap();
+    lightlike_upload_sst(&import, &meta, &data).unwrap();
 
     // Can't upload the same uuid file again.
-    assert!(slightlike_upload_sst(&import, &meta, &data).is_err());
+    assert!(lightlike_upload_sst(&import, &meta, &data).is_err());
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn test_write_sst() {
         tuplespaceInstanton.push(vec![i]);
         values.push(vec![i]);
     }
-    let resp = slightlike_write_sst(&import, &meta, tuplespaceInstanton, values, 1).unwrap();
+    let resp = lightlike_write_sst(&import, &meta, tuplespaceInstanton, values, 1).unwrap();
 
     for m in resp.metas.into_iter() {
         let mut ingest = IngestRequest::default();
@@ -117,7 +117,7 @@ fn test_ingest_sst() {
     let (mut meta, data) = gen_sst_file(sst_path, sst_cone);
 
     // No brane id and epoch.
-    slightlike_upload_sst(&import, &meta, &data).unwrap();
+    lightlike_upload_sst(&import, &meta, &data).unwrap();
 
     let mut ingest = IngestRequest::default();
     ingest.set_context(ctx.clone());
@@ -128,9 +128,9 @@ fn test_ingest_sst() {
     // Set brane id and epoch.
     meta.set_brane_id(ctx.get_brane_id());
     meta.set_brane_epoch(ctx.get_brane_epoch().clone());
-    slightlike_upload_sst(&import, &meta, &data).unwrap();
+    lightlike_upload_sst(&import, &meta, &data).unwrap();
     // Can't upload the same file again.
-    assert!(slightlike_upload_sst(&import, &meta, &data).is_err());
+    assert!(lightlike_upload_sst(&import, &meta, &data).is_err());
 
     ingest.set_sst(meta.clone());
     let resp = import.ingest(&ingest).unwrap();
@@ -153,7 +153,7 @@ fn test_ingest_sst_without_crc32() {
     meta.set_brane_epoch(ctx.get_brane_epoch().clone());
 
     // Set crc32 == 0 and length != 0 still ingest success
-    slightlike_upload_sst(&import, &meta, &data).unwrap();
+    lightlike_upload_sst(&import, &meta, &data).unwrap();
     meta.set_crc32(0);
 
     let mut ingest = IngestRequest::default();
@@ -234,10 +234,10 @@ fn test_cleanup_sst() {
     meta.set_brane_id(ctx.get_brane_id());
     meta.set_brane_epoch(ctx.get_brane_epoch().clone());
 
-    slightlike_upload_sst(&import, &meta, &data).unwrap();
+    lightlike_upload_sst(&import, &meta, &data).unwrap();
 
     // Can not upload the same file when it exists.
-    assert!(slightlike_upload_sst(&import, &meta, &data).is_err());
+    assert!(lightlike_upload_sst(&import, &meta, &data).is_err());
 
     // The uploaded SST should be deleted if the brane split.
     let brane = cluster.get_brane(&[]);
@@ -254,7 +254,7 @@ fn test_cleanup_sst() {
     meta.set_brane_id(left.get_id());
     meta.set_brane_epoch(left.get_brane_epoch().clone());
 
-    slightlike_upload_sst(&import, &meta, &data).unwrap();
+    lightlike_upload_sst(&import, &meta, &data).unwrap();
 
     // The uploaded SST should be deleted if the brane merged.
     cluster.fidel_client.must_merge(left.get_id(), right.get_id());
@@ -295,7 +295,7 @@ fn new_sst_meta(crc32: u32, length: u64) -> SstMeta {
     m
 }
 
-fn slightlike_upload_sst(
+fn lightlike_upload_sst(
     client: &ImportSstClient,
     meta: &SstMeta,
     data: &[u8],
@@ -310,12 +310,12 @@ fn slightlike_upload_sst(
         .collect();
     let (mut tx, rx) = client.upload().unwrap();
     let mut stream = stream::iter(reqs);
-    block_on(tx.slightlike_all(&mut stream)).unwrap();
+    block_on(tx.lightlike_all(&mut stream)).unwrap();
     block_on(tx.close()).unwrap();
     block_on(rx)
 }
 
-fn slightlike_write_sst(
+fn lightlike_write_sst(
     client: &ImportSstClient,
     meta: &SstMeta,
     tuplespaceInstanton: Vec<Vec<u8>>,
@@ -346,7 +346,7 @@ fn slightlike_write_sst(
 
     let (mut tx, rx) = client.write().unwrap();
     let mut stream = stream::iter(reqs);
-    block_on(tx.slightlike_all(&mut stream)).unwrap();
+    block_on(tx.lightlike_all(&mut stream)).unwrap();
     block_on(tx.close()).unwrap();
     block_on(rx)
 }
@@ -377,11 +377,11 @@ fn check_ingested_txn_kvs(einsteindb: &EINSTEINDBClient, ctx: &Context, sst_cone
 
 fn check_sst_deleted(client: &ImportSstClient, meta: &SstMeta, data: &[u8]) {
     for _ in 0..10 {
-        if slightlike_upload_sst(client, meta, data).is_ok() {
+        if lightlike_upload_sst(client, meta, data).is_ok() {
             // If we can upload the file, it means the previous file has been deleted.
             return;
         }
         thread::sleep(Duration::from_millis(CLEANUP_SST_MILLIS));
     }
-    slightlike_upload_sst(client, meta, data).unwrap();
+    lightlike_upload_sst(client, meta, data).unwrap();
 }

@@ -44,7 +44,7 @@ fn test_fidel_client_deadlock() {
     let leader_client_reconnect_fp = "leader_client_reconnect";
 
     // It contains all interfaces of FidelClient.
-    let test_funcs: Vec<(_, Box<dyn FnOnce() + Slightlike>)> = vec![
+    let test_funcs: Vec<(_, Box<dyn FnOnce() + lightlike>)> = vec![
         request!(client => reconnect()),
         request!(client => get_cluster_id()),
         request!(client => bootstrap_cluster(CausetStore::default(), Brane::default())),
@@ -78,7 +78,7 @@ fn test_fidel_client_deadlock() {
         let (tx, rx) = mpsc::channel();
         let handle = thread::spawn(move || {
             func();
-            tx.slightlike(()).unwrap();
+            tx.lightlike(()).unwrap();
         });
         // Remove the fail point to let the FIDel client thread go on.
         fail::remove(leader_client_reconnect_fp);

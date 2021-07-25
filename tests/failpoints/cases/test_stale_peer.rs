@@ -68,7 +68,7 @@ fn test_node_ufidelate_localreader_after_removed() {
     fidel_client.must_add_peer(r1, new_peer(6, 6));
 
     // Isolate peer 2 from rest of the cluster.
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
 
     // Remove peer 2, so it will receive a gc msssage
     // after max_leader_missing_duration timeout.

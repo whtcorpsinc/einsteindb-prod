@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use crossbeam::channel::TrySlightlikeError;
+use crossbeam::channel::TrylightlikeError;
 use engine_lmdb::raw::DB;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
 use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT};
@@ -66,39 +66,39 @@ impl SyncBenchRouter {
 }
 
 impl CasualRouter<LmdbEngine> for SyncBenchRouter {
-    fn slightlike(&self, _: u64, _: CasualMessage<LmdbEngine>) -> Result<()> {
+    fn lightlike(&self, _: u64, _: CasualMessage<LmdbEngine>) -> Result<()> {
         Ok(())
     }
 }
 
 impl ProposalRouter<LmdbSnapshot> for SyncBenchRouter {
-    fn slightlike(
+    fn lightlike(
         &self,
         _: VioletaBftCommand<LmdbSnapshot>,
-    ) -> std::result::Result<(), TrySlightlikeError<VioletaBftCommand<LmdbSnapshot>>> {
+    ) -> std::result::Result<(), TrylightlikeError<VioletaBftCommand<LmdbSnapshot>>> {
         Ok(())
     }
 }
 impl StoreRouter<LmdbEngine> for SyncBenchRouter {
-    fn slightlike(&self, _: StoreMsg<LmdbEngine>) -> Result<()> {
+    fn lightlike(&self, _: StoreMsg<LmdbEngine>) -> Result<()> {
         Ok(())
     }
 }
 
 impl VioletaBftStoreRouter<LmdbEngine> for SyncBenchRouter {
-    /// Slightlikes VioletaBftMessage to local store.
-    fn slightlike_Violetabft_msg(&self, _: VioletaBftMessage) -> Result<()> {
+    /// lightlikes VioletaBftMessage to local store.
+    fn lightlike_Violetabft_msg(&self, _: VioletaBftMessage) -> Result<()> {
         Ok(())
     }
 
-    /// Slightlikes a significant message. We should guarantee that the message can't be dropped.
-    fn significant_slightlike(&self, _: u64, _: SignificantMsg<LmdbSnapshot>) -> Result<()> {
+    /// lightlikes a significant message. We should guarantee that the message can't be dropped.
+    fn significant_lightlike(&self, _: u64, _: SignificantMsg<LmdbSnapshot>) -> Result<()> {
         Ok(())
     }
 
     fn broadcast_normal(&self, _: impl FnMut() -> PeerMsg<LmdbEngine>) {}
 
-    fn slightlike_command(&self, req: VioletaBftCmdRequest, cb: Callback<LmdbSnapshot>) -> Result<()> {
+    fn lightlike_command(&self, req: VioletaBftCmdRequest, cb: Callback<LmdbSnapshot>) -> Result<()> {
         self.invoke(VioletaBftCommand::new(req, cb));
         Ok(())
     }
@@ -111,7 +111,7 @@ impl LocalReadRouter<LmdbEngine> for SyncBenchRouter {
         req: VioletaBftCmdRequest,
         cb: Callback<LmdbSnapshot>,
     ) -> Result<()> {
-        self.slightlike_command(req, cb)
+        self.lightlike_command(req, cb)
     }
 
     fn release_snapshot_cache(&self) {}

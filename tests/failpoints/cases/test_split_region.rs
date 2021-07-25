@@ -32,11 +32,11 @@ fn test_follower_slow_split() {
     // Use a channel to retrieve spacelike_key and lightlike_key in pre-vote messages.
     let (cone_tx, cone_rx) = mpsc::channel();
     let prevote_filter = PrevoteConeFilter {
-        // Only slightlike 1 pre-vote message to peer 3 so if peer 3 drops it,
+        // Only lightlike 1 pre-vote message to peer 3 so if peer 3 drops it,
         // it needs to spacelike a new election.
         filter: BranePacketFilter::new(1000, 1) // new brane id is 1000
             .msg_type(MessageType::MsgRequestPreVote)
-            .direction(Direction::Slightlike)
+            .direction(Direction::lightlike)
             .allow(1),
         before: Some(Mutex::new(cone_tx)),
         after: None,
@@ -44,16 +44,16 @@ fn test_follower_slow_split() {
     cluster
         .sim
         .wl()
-        .add_slightlike_filter(1, Box::new(prevote_filter));
+        .add_lightlike_filter(1, Box::new(prevote_filter));
 
-    // Ensure pre-vote response is really slightlikeed.
+    // Ensure pre-vote response is really lightlikeed.
     let (tx, rx) = mpsc::channel();
     let prevote_resp_notifier = Box::new(MessageTypeNotifier::new(
         MessageType::MsgRequestPreVoteResponse,
         tx,
         Arc::from(AtomicBool::new(true)),
     ));
-    cluster.sim.wl().add_slightlike_filter(3, prevote_resp_notifier);
+    cluster.sim.wl().add_lightlike_filter(3, prevote_resp_notifier);
 
     // After split, pre-vote message should be sent to peer 2.
     fail::causet("apply_before_split_1_3", "pause").unwrap();
@@ -84,11 +84,11 @@ fn test_split_lost_request_vote() {
     let (cone_tx, cone_rx) = mpsc::channel();
     let (after_sent_tx, after_sent_rx) = mpsc::channel();
     let prevote_filter = PrevoteConeFilter {
-        // Only slightlike 1 pre-vote message to peer 3 so if peer 3 drops it,
+        // Only lightlike 1 pre-vote message to peer 3 so if peer 3 drops it,
         // it needs to spacelike a new election.
         filter: BranePacketFilter::new(1000, 1) // new brane id is 1000
             .msg_type(MessageType::MsgRequestPreVote)
-            .direction(Direction::Slightlike)
+            .direction(Direction::lightlike)
             .allow(1),
         before: Some(Mutex::new(cone_tx)),
         after: Some(Mutex::new(after_sent_tx)),
@@ -96,7 +96,7 @@ fn test_split_lost_request_vote() {
     cluster
         .sim
         .wl()
-        .add_slightlike_filter(1, Box::new(prevote_filter));
+        .add_lightlike_filter(1, Box::new(prevote_filter));
 
     // Ensure pre-vote response is really sent.
     let (tx, rx) = mpsc::channel();
@@ -105,7 +105,7 @@ fn test_split_lost_request_vote() {
         tx,
         Arc::from(AtomicBool::new(true)),
     ));
-    cluster.sim.wl().add_slightlike_filter(3, prevote_resp_notifier);
+    cluster.sim.wl().add_lightlike_filter(3, prevote_resp_notifier);
 
     // After split, pre-vote message should be sent to peer 3.
     fail::causet("apply_after_split_1_3", "pause").unwrap();
@@ -212,13 +212,13 @@ fn test_pause_split_when_snap_gen_never_split() {
     fail::remove(brane_split_skip_max_count);
 }
 
-type FilterSlightlikeer<T> = Mutex<mpsc::Slightlikeer<T>>;
+type Filterlightlikeer<T> = Mutex<mpsc::lightlikeer<T>>;
 
 // Filter prevote message and record the cone.
 struct PrevoteConeFilter {
     filter: BranePacketFilter,
-    before: Option<FilterSlightlikeer<(Vec<u8>, Vec<u8>)>>,
-    after: Option<FilterSlightlikeer<()>>,
+    before: Option<Filterlightlikeer<(Vec<u8>, Vec<u8>)>>,
+    after: Option<Filterlightlikeer<()>>,
 }
 
 impl Filter for PrevoteConeFilter {
@@ -229,7 +229,7 @@ impl Filter for PrevoteConeFilter {
             let lightlike_key = msg.get_lightlike_key().to_owned();
             if let Some(before) = self.before.as_ref() {
                 let tx = before.dagger().unwrap();
-                let _ = tx.slightlike((spacelike_key, lightlike_key));
+                let _ = tx.lightlike((spacelike_key, lightlike_key));
             }
         }
         Ok(())
@@ -237,7 +237,7 @@ impl Filter for PrevoteConeFilter {
     fn after(&self, _: Result<()>) -> Result<()> {
         if let Some(after) = self.after.as_ref() {
             let tx = after.dagger().unwrap();
-            let _ = tx.slightlike(());
+            let _ = tx.lightlike(());
         }
         Ok(())
     }
@@ -364,8 +364,8 @@ fn test_split_not_to_split_exist_tombstone_brane() {
     sleep_ms(100);
 
     // If left_peer_2 can be created, dropping all msg to make it exist.
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
-    // Also don't slightlike check stale msg to FIDel
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
+    // Also don't lightlike check stale msg to FIDel
     let peer_check_stale_state_fp = "peer_check_stale_state";
     fail::causet(peer_check_stale_state_fp, "return()").unwrap();
 

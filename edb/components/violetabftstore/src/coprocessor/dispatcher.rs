@@ -26,16 +26,16 @@ impl<T: Clone> Clone for Entry<T> {
     }
 }
 
-pub trait ClonableSemaphore: 'static + Slightlike {
-    type Ob: ?Sized + Slightlike;
+pub trait ClonableSemaphore: 'static + lightlike {
+    type Ob: ?Sized + lightlike;
     fn inner(&self) -> &Self::Ob;
     fn causet_set_mut(&mut self) -> &mut Self::Ob;
-    fn box_clone(&self) -> Box<dyn ClonableSemaphore<Ob = Self::Ob> + Slightlike>;
+    fn box_clone(&self) -> Box<dyn ClonableSemaphore<Ob = Self::Ob> + lightlike>;
 }
 
 macro_rules! impl_box_semaphore {
     ($name:ident, $ob: ident, $wrapper: ident) => {
-        pub struct $name(Box<dyn ClonableSemaphore<Ob = dyn $ob> + Slightlike>);
+        pub struct $name(Box<dyn ClonableSemaphore<Ob = dyn $ob> + lightlike>);
         impl $name {
             pub fn new<T: 'static + $ob + Clone>(semaphore: T) -> $name {
                 $name(Box::new($wrapper { inner: semaphore }))
@@ -47,9 +47,9 @@ macro_rules! impl_box_semaphore {
             }
         }
         impl Deref for $name {
-            type Target = Box<dyn ClonableSemaphore<Ob = dyn $ob> + Slightlike>;
+            type Target = Box<dyn ClonableSemaphore<Ob = dyn $ob> + lightlike>;
 
-            fn deref(&self) -> &Box<dyn ClonableSemaphore<Ob = dyn $ob> + Slightlike> {
+            fn deref(&self) -> &Box<dyn ClonableSemaphore<Ob = dyn $ob> + lightlike> {
                 &self.0
             }
         }
@@ -67,7 +67,7 @@ macro_rules! impl_box_semaphore {
                 &mut self.inner as _
             }
 
-            fn box_clone(&self) -> Box<dyn ClonableSemaphore<Ob = Self::Ob> + Slightlike> {
+            fn box_clone(&self) -> Box<dyn ClonableSemaphore<Ob = Self::Ob> + lightlike> {
                 Box::new($wrapper {
                     inner: self.inner.clone(),
                 })
@@ -79,8 +79,8 @@ macro_rules! impl_box_semaphore {
 // This is the same as impl_box_semaphore_g except $ob has a typaram
 macro_rules! impl_box_semaphore_g {
     ($name:ident, $ob: ident, $wrapper: ident) => {
-        pub struct $name<E: KvEngine>(Box<dyn ClonableSemaphore<Ob = dyn $ob<E>> + Slightlike>);
-        impl<E: KvEngine + 'static + Slightlike> $name<E> {
+        pub struct $name<E: KvEngine>(Box<dyn ClonableSemaphore<Ob = dyn $ob<E>> + lightlike>);
+        impl<E: KvEngine + 'static + lightlike> $name<E> {
             pub fn new<T: 'static + $ob<E> + Clone>(semaphore: T) -> $name<E> {
                 $name(Box::new($wrapper {
                     inner: semaphore,
@@ -94,9 +94,9 @@ macro_rules! impl_box_semaphore_g {
             }
         }
         impl<E: KvEngine> Deref for $name<E> {
-            type Target = Box<dyn ClonableSemaphore<Ob = dyn $ob<E>> + Slightlike>;
+            type Target = Box<dyn ClonableSemaphore<Ob = dyn $ob<E>> + lightlike>;
 
-            fn deref(&self) -> &Box<dyn ClonableSemaphore<Ob = dyn $ob<E>> + Slightlike> {
+            fn deref(&self) -> &Box<dyn ClonableSemaphore<Ob = dyn $ob<E>> + lightlike> {
                 &self.0
             }
         }
@@ -105,7 +105,7 @@ macro_rules! impl_box_semaphore_g {
             inner: T,
             _phantom: PhantomData<E>,
         }
-        impl<E: KvEngine + 'static + Slightlike, T: 'static + $ob<E> + Clone> ClonableSemaphore
+        impl<E: KvEngine + 'static + lightlike, T: 'static + $ob<E> + Clone> ClonableSemaphore
             for $wrapper<E, T>
         {
             type Ob = dyn $ob<E>;
@@ -117,7 +117,7 @@ macro_rules! impl_box_semaphore_g {
                 &mut self.inner as _
             }
 
-            fn box_clone(&self) -> Box<dyn ClonableSemaphore<Ob = Self::Ob> + Slightlike> {
+            fn box_clone(&self) -> Box<dyn ClonableSemaphore<Ob = Self::Ob> + lightlike> {
                 Box::new($wrapper {
                     inner: self.inner.clone(),
                     _phantom: PhantomData,
@@ -304,7 +304,7 @@ where
 }
 
 impl<E: KvEngine> InterlockHost<E> {
-    pub fn new<C: CasualRouter<E> + Clone + Slightlike + 'static>(ch: C) -> InterlockHost<E> {
+    pub fn new<C: CasualRouter<E> + Clone + lightlike + 'static>(ch: C) -> InterlockHost<E> {
         let mut registry = Registry::default();
         registry.register_split_check_semaphore(
             200,

@@ -51,8 +51,8 @@ where
     }
 }
 
-pub type ReadCallback<S> = Box<dyn FnOnce(ReadResponse<S>) + Slightlike>;
-pub type WriteCallback = Box<dyn FnOnce(WriteResponse) + Slightlike>;
+pub type ReadCallback<S> = Box<dyn FnOnce(ReadResponse<S>) + lightlike>;
+pub type WriteCallback = Box<dyn FnOnce(WriteResponse) + lightlike>;
 
 /// Variants of callbacks for `Msg`.
 ///  - `Read`: a callback for read only requests including `StatusRequest`,
@@ -203,7 +203,7 @@ pub enum SignificantMsg<SK>
 where
     SK: Snapshot,
 {
-    /// Reports whether the snapshot slightlikeing is successful or not.
+    /// Reports whether the snapshot lightlikeing is successful or not.
     SnapshotStatus {
         brane_id: u64,
         to_peer_id: u64,
@@ -291,7 +291,7 @@ pub enum CasualMessage<EK: KvEngine> {
     ForceCompactVioletaBftLogs,
 
     /// A message to access peer's internal state.
-    AccessPeer(Box<dyn FnOnce(&mut dyn AbstractPeer) + Slightlike + 'static>),
+    AccessPeer(Box<dyn FnOnce(&mut dyn AbstractPeer) + lightlike + 'static>),
 }
 
 impl<EK: KvEngine> fmt::Debug for CasualMessage<EK> {
@@ -344,7 +344,7 @@ impl<EK: KvEngine> fmt::Debug for CasualMessage<EK> {
 /// leader of the target violetabft group.
 #[derive(Debug)]
 pub struct VioletaBftCommand<S: Snapshot> {
-    pub slightlike_time: Instant,
+    pub lightlike_time: Instant,
     pub request: VioletaBftCmdRequest,
     pub callback: Callback<S>,
 }
@@ -355,7 +355,7 @@ impl<S: Snapshot> VioletaBftCommand<S> {
         VioletaBftCommand {
             request,
             callback,
-            slightlike_time: Instant::now(),
+            lightlike_time: Instant::now(),
         }
     }
 }
@@ -440,7 +440,7 @@ where
 
     /// Message only used for test.
     #[causet(any(test, feature = "testexport"))]
-    Validate(Box<dyn FnOnce(&crate::store::Config) + Slightlike>),
+    Validate(Box<dyn FnOnce(&crate::store::Config) + lightlike>),
     /// Asks the store to ufidelate replication mode.
     UfidelateReplicationMode(ReplicationStatus),
 }

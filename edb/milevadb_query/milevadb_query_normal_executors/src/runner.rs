@@ -18,7 +18,7 @@ use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
 
 pub struct FreeDaemonsRunner<SS> {
     deadline: Deadline,
-    executor: Box<dyn FreeDaemon<StorageStats = SS> + Slightlike>,
+    executor: Box<dyn FreeDaemon<StorageStats = SS> + lightlike>,
     output_offsets: Vec<u32>,
     batch_row_limit: usize,
     collect_exec_summary: bool,
@@ -36,7 +36,7 @@ pub fn build_executors<S: CausetStorage + 'static, C: ExecSummaryCollector + 'st
     cones: Vec<KeyCone>,
     ctx: Arc<EvalConfig>,
     is_streaming: bool,
-) -> Result<Box<dyn FreeDaemon<StorageStats = S::Statistics> + Slightlike>> {
+) -> Result<Box<dyn FreeDaemon<StorageStats = S::Statistics> + lightlike>> {
     let mut exec_descriptors = exec_descriptors.into_iter();
     let first = exec_descriptors
         .next()
@@ -48,7 +48,7 @@ pub fn build_executors<S: CausetStorage + 'static, C: ExecSummaryCollector + 'st
     for mut exec in exec_descriptors {
         summary_slot_index += 1;
 
-        let curr: Box<dyn FreeDaemon<StorageStats = S::Statistics> + Slightlike> = match exec.get_tp() {
+        let curr: Box<dyn FreeDaemon<StorageStats = S::Statistics> + lightlike> = match exec.get_tp() {
             ExecType::TypeSelection => {
                 EXECUTOR_COUNT_METRICS.selection.inc();
 
@@ -112,7 +112,7 @@ fn build_first_executor<S: CausetStorage + 'static, C: ExecSummaryCollector + 's
     cones: Vec<KeyCone>,
     context: Arc<EvalConfig>,
     is_streaming: bool,
-) -> Result<Box<dyn FreeDaemon<StorageStats = S::Statistics> + Slightlike>> {
+) -> Result<Box<dyn FreeDaemon<StorageStats = S::Statistics> + lightlike>> {
     let context = EvalContext::new(context);
     match first.get_tp() {
         ExecType::TypeBlockScan => {

@@ -9,7 +9,7 @@ pub fn make_rpc_error<E: Debug>(err: E) -> RpcStatus {
 }
 
 #[macro_export]
-macro_rules! slightlike_rpc_response {
+macro_rules! lightlike_rpc_response {
     ($res:ident, $sink:ident, $label:ident, $timer:ident) => {{
         let res = match $res {
             Ok(resp) => {
@@ -26,6 +26,6 @@ macro_rules! slightlike_rpc_response {
                 $sink.fail(make_rpc_error(e))
             }
         };
-        let _ = res.map_err(|e| warn!("slightlike rpc response"; "err" => %e)).await;
+        let _ = res.map_err(|e| warn!("lightlike rpc response"; "err" => %e)).await;
     }};
 }

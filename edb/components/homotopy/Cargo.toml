@@ -1,14 +1,14 @@
 [package]
-name = "into_other"
+name = "homotopy"
 version = "0.0.1"
 edition = "2018"
 publish = false
 
-[features]
-protobuf-codec = ["ekvproto/protobuf-codec", "violetabft/protobuf-codec"]
-prost-codec = ["ekvproto/prost-codec", "violetabft/prost-codec"]
+[features]                                                          
+protobuf-codec = ["eTxnproto/protobuf-codec", "violetabft/protobuf-codec"]
+prost-codec = ["eTxnproto/prost-codec", "violetabft/prost-codec"]
 
 [deplightlikeencies]
-engine_promises = { path = "../engine_promises" }
-ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
+Embedded_promises = { path = "../Embedded_promises" }
+eTxnproto = { git = "https://github.com/whtcorpsinc/eTxnproto.git", default-features = false }
 violetabft = { version = "0.0.1-alpha", default-features = false }

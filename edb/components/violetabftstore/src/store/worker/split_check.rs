@@ -130,7 +130,7 @@ pub enum Task {
     },
     ChangeConfig(ConfigChange),
     #[causet(any(test, feature = "testexport"))]
-    Validate(Box<dyn FnOnce(&Config) + Slightlike>),
+    Validate(Box<dyn FnOnce(&Config) + lightlike>),
 }
 
 impl Task {
@@ -245,15 +245,15 @@ where
         if !split_tuplespaceInstanton.is_empty() {
             let brane_epoch = brane.get_brane_epoch().clone();
             let msg = new_split_brane(brane_epoch, split_tuplespaceInstanton);
-            let res = self.router.slightlike(brane_id, msg);
+            let res = self.router.lightlike(brane_id, msg);
             if let Err(e) = res {
-                warn!("failed to slightlike check result"; "brane_id" => brane_id, "err" => %e);
+                warn!("failed to lightlike check result"; "brane_id" => brane_id, "err" => %e);
             }
 
             CHECK_SPILT_COUNTER.success.inc();
         } else {
             debug!(
-                "no need to slightlike, split key not found";
+                "no need to lightlike, split key not found";
                 "brane_id" => brane_id,
             );
 
@@ -295,11 +295,11 @@ where
                 "size" => size,
                 "tuplespaceInstanton" => tuplespaceInstanton,
             );
-            let _ = self.router.slightlike(
+            let _ = self.router.lightlike(
                 brane.get_id(),
                 CasualMessage::BraneApproximateSize { size },
             );
-            let _ = self.router.slightlike(
+            let _ = self.router.lightlike(
                 brane.get_id(),
                 CasualMessage::BraneApproximateTuplespaceInstanton { tuplespaceInstanton },
             );

@@ -228,7 +228,7 @@ trait MockKvService {
     bstream_call!(batch_commands, BatchCommandsRequest, BatchCommandsResponse);
 }
 
-impl<T: MockKvService + Clone + Slightlike + 'static> EINSTEINDB for MockKv<T> {
+impl<T: MockKvService + Clone + lightlike + 'static> EINSTEINDB for MockKv<T> {
     unary_call_dispatch!(kv_get, GetRequest, GetResponse);
     unary_call_dispatch!(kv_scan, ScanRequest, ScanResponse);
     unary_call_dispatch!(kv_prewrite, PrewriteRequest, PrewriteResponse);
@@ -337,7 +337,7 @@ impl<T: MockKvService + Clone + Slightlike + 'static> EINSTEINDB for MockKv<T> {
 
 fn mock_kv_service<T>(kv: MockKv<T>, ip: &str, port: u16) -> Result<Server>
 where
-    T: MockKvService + Clone + Slightlike + 'static,
+    T: MockKvService + Clone + lightlike + 'static,
 {
     let env = Arc::new(Environment::new(2));
     let security_mgr = Arc::new(SecurityManager::new(&SecurityConfig::default()).unwrap());
@@ -345,7 +345,7 @@ where
     let channel_args = ChannelBuilder::new(Arc::clone(&env))
         .max_concurrent_stream(2)
         .max_receive_message_len(-1)
-        .max_slightlike_message_len(-1)
+        .max_lightlike_message_len(-1)
         .build_args();
 
     let mut sb = ServerBuilder::new(Arc::clone(&env))

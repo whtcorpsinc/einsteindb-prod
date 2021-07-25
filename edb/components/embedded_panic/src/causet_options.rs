@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use crate::db_options::PanicNoetherDBOptions;
-use engine_promises::PrimaryCausetNetworkOptions;
+use Embedded_promises::PrimaryCausetNetworkOptions;
 
 pub struct PanicPrimaryCausetNetworkOptions;
 
@@ -17,10 +17,10 @@ impl PrimaryCausetNetworkOptions for PanicPrimaryCausetNetworkOptions {
     fn get_level_zero_stop_writes_trigger(&self) -> u32 {
         panic!()
     }
-    fn get_soft_plightlikeing_compaction_bytes_limit(&self) -> u64 {
+    fn get_soft_lightlike_compaction_bytes_limit(&self) -> u64 {
         panic!()
     }
-    fn get_hard_plightlikeing_compaction_bytes_limit(&self) -> u64 {
+    fn get_hard_lightlike_compaction_bytes_limit(&self) -> u64 {
         panic!()
     }
     fn get_block_cache_capacity(&self) -> u64 {

@@ -59,7 +59,7 @@ struct Request {
 /// Backup Task.
 pub struct Task {
     request: Request,
-    pub(crate) resp: UnboundedSlightlikeer<BackupResponse>,
+    pub(crate) resp: Unboundedlightlikeer<BackupResponse>,
 }
 
 impl fmt::Display for Task {
@@ -90,7 +90,7 @@ impl Task {
     /// Create a backup task based on the given backup request.
     pub fn new(
         req: BackupRequest,
-        resp: UnboundedSlightlikeer<BackupResponse>,
+        resp: Unboundedlightlikeer<BackupResponse>,
     ) -> Result<(Task, Arc<AtomicBool>)> {
         let cancel = Arc::new(AtomicBool::new(false));
 
@@ -452,7 +452,7 @@ impl<R: BraneInfoProvider> Progress<R> {
         let res = self.brane_info.seek_brane(
             &spacelike_key_,
             Box::new(move |iter| {
-                let mut slightlikeed = 0;
+                let mut lightlikeed = 0;
                 for info in iter {
                     let brane = &info.brane;
                     if lightlike_key.is_some() {
@@ -477,9 +477,9 @@ impl<R: BraneInfoProvider> Progress<R> {
                             is_raw_kv: raw_kv,
                             causet: causet_name,
                         };
-                        tx.slightlike(backup_cone).unwrap();
-                        slightlikeed += 1;
-                        if slightlikeed >= limit {
+                        tx.lightlike(backup_cone).unwrap();
+                        lightlikeed += 1;
+                        if lightlikeed >= limit {
                             break;
                         }
                     }
@@ -524,7 +524,7 @@ impl ControlThreadPool {
 
     fn spawn<F>(&mut self, func: F)
     where
-        F: FnOnce() + Slightlike + 'static,
+        F: FnOnce() + lightlike + 'static,
     {
         self.workers.as_ref().unwrap().execute(|_| func());
     }
@@ -628,7 +628,7 @@ impl<E: Engine, R: BraneInfoProvider> node<E, R> {
         &self,
         prs: Arc<Mutex<Progress<R>>>,
         request: Request,
-        tx: UnboundedSlightlikeer<BackupResponse>,
+        tx: Unboundedlightlikeer<BackupResponse>,
     ) {
         let spacelike_ts = request.spacelike_ts;
         let lightlike_ts = request.lightlike_ts;
@@ -747,8 +747,8 @@ impl<E: Engine, R: BraneInfoProvider> node<E, R> {
                 response.set_spacelike_key(spacelike_key);
                 response.set_lightlike_key(lightlike_key);
 
-                if let Err(e) = tx.unbounded_slightlike(response) {
-                    error!(?e; "backup failed to slightlike response");
+                if let Err(e) = tx.unbounded_lightlike(response) {
+                    error!(?e; "backup failed to lightlike response");
                     return;
                 }
             }
@@ -1432,7 +1432,7 @@ pub mod tests {
         // if not task arrive after create the thread pool is empty
         assert_eq!(lightlikepoint.dagger().unwrap().pool.borrow().size, 0);
 
-        interlock_semaphore.slightlike(Some(task)).unwrap();
+        interlock_semaphore.lightlike(Some(task)).unwrap();
         // wait until the task finish
         let _ = block_on(resp_rx.into_future());
         assert_eq!(lightlikepoint.dagger().unwrap().pool.borrow().size, 10);

@@ -4,10 +4,10 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::time::Instant;
 
-use engine_promises::{PrimaryCausetNetworkOptions, DBOptions, KvEngine};
+use Embedded_promises::{PrimaryCausetNetworkOptions, DBOptions, TxnEmbedded};
 use futures::executor::ThreadPool;
 use futures_util::compat::Future01CompatExt;
-use ekvproto::import_sstpb::*;
+use eTxnproto::import_sstpb::*;
 use einsteindb_util::timer::GLOBAL_TIMER_HANDLE;
 
 use super::Config;
@@ -15,7 +15,7 @@ use super::Result;
 
 type LmdbDBMetricsFn = fn(causet: &str, name: &str, v: f64);
 
-struct ImportModeSwitcherInner<E: KvEngine> {
+struct ImportModeSwitcherInner<E: TxnEmbedded> {
     mode: SwitchMode,
     backup_db_options: ImportModeDBOptions,
     backup_causet_options: Vec<(String, ImportModeCAUSETOptions)>,
@@ -25,7 +25,7 @@ struct ImportModeSwitcherInner<E: KvEngine> {
     metrics_fn: LmdbDBMetricsFn,
 }
 
-impl<E: KvEngine> ImportModeSwitcherInner<E> {
+impl<E: TxnEmbedded> ImportModeSwitcherInner<E> {
     fn enter_normal_mode(&mut self, mf: LmdbDBMetricsFn) -> Result<()> {
         if self.mode == SwitchMode::Normal {
             return Ok(());
@@ -67,11 +67,11 @@ impl<E: KvEngine> ImportModeSwitcherInner<E> {
 }
 
 #[derive(Clone)]
-pub struct ImportModeSwitcher<E: KvEngine> {
+pub struct ImportModeSwitcher<E: TxnEmbedded> {
     inner: Arc<Mutex<ImportModeSwitcherInner<E>>>,
 }
 
-impl<E: KvEngine> ImportModeSwitcher<E> {
+impl<E: TxnEmbedded> ImportModeSwitcher<E> {
     pub fn new(causet: &Config, executor: &ThreadPool, db: E) -> ImportModeSwitcher<E> {
         fn mf(_causet: &str, _name: &str, _v: f64) {}
 
@@ -152,14 +152,14 @@ impl ImportModeDBOptions {
         }
     }
 
-    fn new_options(db: &impl KvEngine) -> ImportModeDBOptions {
+    fn new_options(db: &impl TxnEmbedded) -> ImportModeDBOptions {
         let db_opts = db.get_db_options();
         ImportModeDBOptions {
             max_background_jobs: db_opts.get_max_background_jobs(),
         }
     }
 
-    fn set_options(&self, db: &impl KvEngine) -> Result<()> {
+    fn set_options(&self, db: &impl TxnEmbedded) -> Result<()> {
         let opts = [(
             "max_background_jobs".to_string(),
             self.max_background_jobs.to_string(),
@@ -173,8 +173,7 @@ impl ImportModeDBOptions {
 struct ImportModeCAUSETOptions {
     level0_stop_writes_trigger: u32,
     level0_slowdown_writes_trigger: u32,
-    soft_plightlikeing_compaction_bytes_limit: u64,
-    hard_plightlikeing_compaction_bytes_limit: u64,
+    soft_plightlikeing_compaction_bytes_llightlike: u64,
 }
 
 impl ImportModeCAUSETOptions {
@@ -182,24 +181,22 @@ impl ImportModeCAUSETOptions {
         Self {
             level0_stop_writes_trigger: self.level0_stop_writes_trigger.max(1 << 30),
             level0_slowdown_writes_trigger: self.level0_slowdown_writes_trigger.max(1 << 30),
-            soft_plightlikeing_compaction_bytes_limit: 0,
-            hard_plightlikeing_compaction_bytes_limit: 0,
+            soft_plightlikeing_compaction_bytes_llightlike: 0,
         }
     }
 
-    fn new_options(db: &impl KvEngine, causet_name: &str) -> ImportModeCAUSETOptions {
+    fn new_options(db: &impl TxnEmbedded, causet_name: &str) -> ImportModeCAUSETOptions {
         let causet = db.causet_handle(causet_name).unwrap();
         let causet_opts = db.get_options_causet(causet);
 
         ImportModeCAUSETOptions {
             level0_stop_writes_trigger: causet_opts.get_level_zero_stop_writes_trigger(),
             level0_slowdown_writes_trigger: causet_opts.get_level_zero_slowdown_writes_trigger(),
-            soft_plightlikeing_compaction_bytes_limit: causet_opts.get_soft_plightlikeing_compaction_bytes_limit(),
-            hard_plightlikeing_compaction_bytes_limit: causet_opts.get_hard_plightlikeing_compaction_bytes_limit(),
+            soft_plightlikeing_compaction_bytes_limit: causet_opts.get_soft_plightlikeing_compaction_bytes_lightlike: caulightlike(),
         }
     }
 
-    fn set_options(&self, db: &impl KvEngine, causet_name: &str, mf: LmdbDBMetricsFn) -> Result<()> {
+    fn set_options(&self, db: &impl TxnEmbedded, causet_name: &str, mf: LmdbDBMetricsFn) -> Result<()> {
         let causet = db.causet_handle(causet_name).unwrap();
         let opts = [
             (
@@ -211,12 +208,11 @@ impl ImportModeCAUSETOptions {
                 self.level0_slowdown_writes_trigger.to_string(),
             ),
             (
-                "soft_plightlikeing_compaction_bytes_limit".to_owned(),
+                "soft_lightlike_compaction_bytes_limit".to_owned(),
                 self.soft_plightlikeing_compaction_bytes_limit.to_string(),
             ),
             (
-                "hard_plightlikeing_compaction_bytes_limit".to_owned(),
-                self.hard_plightlikeing_compaction_bytes_limit.to_string(),
+                "hard_lightlike_compaction_bytes_limit".to_owned(lightlike.to_string(),
             ),
         ];
 
@@ -235,11 +231,11 @@ impl ImportModeCAUSETOptions {
 mod tests {
     use super::*;
 
-    use engine_promises::KvEngine;
+    use Embedded_promises::TxnEmbedded;
     use futures::executor::ThreadPoolBuilder;
     use std::thread;
     use tempfile::Builder;
-    use test_sst_importer::{new_test_engine, new_test_engine_with_options};
+    use test_sst_importer::{new_test_Embedded, new_test_Embedded_with_options};
     use einsteindb_util::config::ReadableDuration;
 
     fn check_import_options<E>(
@@ -247,7 +243,7 @@ mod tests {
         expected_db_opts: &ImportModeDBOptions,
         expected_causet_opts: &ImportModeCAUSETOptions,
     ) where
-        E: KvEngine,
+        E: TxnEmbedded,
     {
         let db_opts = db.get_db_options();
         assert_eq!(
@@ -271,8 +267,8 @@ mod tests {
                 expected_causet_opts.soft_plightlikeing_compaction_bytes_limit
             );
             assert_eq!(
-                causet_opts.get_hard_plightlikeing_compaction_bytes_limit(),
-                expected_causet_opts.hard_plightlikeing_compaction_bytes_limit
+                caulightlike(),
+                expected_lightlike
             );
         }
     }
@@ -283,7 +279,7 @@ mod tests {
             .prefix("test_import_mode_switcher")
             .temfidelir()
             .unwrap();
-        let db = new_test_engine(temp_dir.path().to_str().unwrap(), &["a", "b"]);
+        let db = new_test_Embedded(temp_dir.path().to_str().unwrap(), &["a", "b"]);
 
         let normal_db_options = ImportModeDBOptions::new_options(&db);
         let import_db_options = normal_db_options.optimized_for_import_mode();
@@ -322,7 +318,7 @@ mod tests {
             .prefix("test_import_mode_timeout")
             .temfidelir()
             .unwrap();
-        let db = new_test_engine(temp_dir.path().to_str().unwrap(), &["a", "b"]);
+        let db = new_test_Embedded(temp_dir.path().to_str().unwrap(), &["a", "b"]);
 
         let normal_db_options = ImportModeDBOptions::new_options(&db);
         let import_db_options = normal_db_options.optimized_for_import_mode();
@@ -358,7 +354,7 @@ mod tests {
             .prefix("test_import_mode_should_not_decrease_level0_stop_writes_trigger")
             .temfidelir()
             .unwrap();
-        let db = new_test_engine_with_options(
+        let db = new_test_Embedded_with_options(
             temp_dir.path().to_str().unwrap(),
             &["default"],
             |_, opt| opt.set_level_zero_stop_writes_trigger(2_000_000_000),

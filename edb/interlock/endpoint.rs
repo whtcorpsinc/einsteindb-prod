@@ -75,7 +75,7 @@ impl<E: Engine> Clone for node<E> {
     }
 }
 
-impl<E: Engine> einsteindb_util::AssertSlightlike for node<E> {}
+impl<E: Engine> einsteindb_util::Assertlightlike for node<E> {}
 
 impl<E: Engine> node<E> {
     pub fn new(
@@ -565,10 +565,10 @@ impl<E: Engine> node<E> {
         self.read_pool
             .spawn(
                 Self::handle_stream_request_impl(self.semaphore.clone(), tracker, handler_builder)
-                    .then(futures::future::ok::<_, mpsc::SlightlikeError>)
+                    .then(futures::future::ok::<_, mpsc::lightlikeError>)
                     .forward(tx)
                     .unwrap_or_else(|e| {
-                        warn!("interlock stream slightlike error"; "error" => %e);
+                        warn!("interlock stream lightlike error"; "error" => %e);
                     }),
                 priority,
                 task_id,
@@ -777,14 +777,14 @@ mod tests {
 
     /// A streaming `RequestHandler` that produces values according a closure.
     struct StreamFromClosure {
-        result_generator: Box<dyn Fn(usize) -> HandlerStreamStepResult + Slightlike>,
+        result_generator: Box<dyn Fn(usize) -> HandlerStreamStepResult + lightlike>,
         nth: usize,
     }
 
     impl StreamFromClosure {
         pub fn new<F>(result_generator: F) -> StreamFromClosure
         where
-            F: Fn(usize) -> HandlerStreamStepResult + Slightlike + 'static,
+            F: Fn(usize) -> HandlerStreamStepResult + lightlike + 'static,
         {
             StreamFromClosure {
                 result_generator: Box::new(result_generator),
@@ -952,7 +952,7 @@ mod tests {
             let future = causet.handle_unary_request(ReqContext::default_for_test(), handler_builder);
             let tx = tx.clone();
             thread::spawn(move || {
-                tx.slightlike(block_on(future)).unwrap();
+                tx.lightlike(block_on(future)).unwrap();
             });
             thread::sleep(Duration::from_millis(100));
         }
@@ -1241,8 +1241,8 @@ mod tests {
             });
             let resp_future_1 =
                 causet.handle_unary_request(req_with_exec_detail.clone(), handler_builder);
-            let slightlikeer = tx.clone();
-            thread::spawn(move || slightlikeer.slightlike(vec![block_on(resp_future_1).unwrap()]).unwrap());
+            let lightlikeer = tx.clone();
+            thread::spawn(move || lightlikeer.lightlike(vec![block_on(resp_future_1).unwrap()]).unwrap());
             // Sleep a while to make sure that thread is spawn and snapshot is taken.
             thread::sleep(Duration::from_millis(SNAPSHOT_DURATION_MS as u64));
 
@@ -1255,8 +1255,8 @@ mod tests {
             });
             let resp_future_2 =
                 causet.handle_unary_request(req_with_exec_detail.clone(), handler_builder);
-            let slightlikeer = tx.clone();
-            thread::spawn(move || slightlikeer.slightlike(vec![block_on(resp_future_2).unwrap()]).unwrap());
+            let lightlikeer = tx.clone();
+            thread::spawn(move || lightlikeer.lightlike(vec![block_on(resp_future_2).unwrap()]).unwrap());
             thread::sleep(Duration::from_millis(SNAPSHOT_DURATION_MS as u64));
 
             // Response 1
@@ -1313,8 +1313,8 @@ mod tests {
             });
             let resp_future_1 =
                 causet.handle_unary_request(req_with_exec_detail.clone(), handler_builder);
-            let slightlikeer = tx.clone();
-            thread::spawn(move || slightlikeer.slightlike(vec![block_on(resp_future_1).unwrap()]).unwrap());
+            let lightlikeer = tx.clone();
+            thread::spawn(move || lightlikeer.lightlike(vec![block_on(resp_future_1).unwrap()]).unwrap());
             // Sleep a while to make sure that thread is spawn and snapshot is taken.
             thread::sleep(Duration::from_millis(SNAPSHOT_DURATION_MS as u64));
 
@@ -1328,8 +1328,8 @@ mod tests {
             });
             let resp_future_2 =
                 causet.handle_unary_request(req_with_exec_detail.clone(), handler_builder);
-            let slightlikeer = tx.clone();
-            thread::spawn(move || slightlikeer.slightlike(vec![block_on(resp_future_2).unwrap()]).unwrap());
+            let lightlikeer = tx.clone();
+            thread::spawn(move || lightlikeer.lightlike(vec![block_on(resp_future_2).unwrap()]).unwrap());
             thread::sleep(Duration::from_millis(SNAPSHOT_DURATION_MS as u64));
 
             // Response 1
@@ -1370,8 +1370,8 @@ mod tests {
             });
             let resp_future_1 =
                 causet.handle_unary_request(req_with_exec_detail.clone(), handler_builder);
-            let slightlikeer = tx.clone();
-            thread::spawn(move || slightlikeer.slightlike(vec![block_on(resp_future_1).unwrap()]).unwrap());
+            let lightlikeer = tx.clone();
+            thread::spawn(move || lightlikeer.lightlike(vec![block_on(resp_future_1).unwrap()]).unwrap());
             // Sleep a while to make sure that thread is spawn and snapshot is taken.
             thread::sleep(Duration::from_millis(SNAPSHOT_DURATION_MS as u64));
 
@@ -1395,7 +1395,7 @@ mod tests {
                 .handle_stream_request(req_with_exec_detail, handler_builder)
                 .unwrap();
             thread::spawn(move || {
-                tx.slightlike(
+                tx.lightlike(
                     block_on_stream(resp_future_3)
                         .collect::<Result<Vec<_>>>()
                         .unwrap(),

@@ -2083,7 +2083,7 @@
           "dashLength": 10,
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
-          "description": "The duration of a client slightlikeing TSO request until received the response.",
+          "description": "The duration of a client lightlikeing TSO request until received the response.",
           "ediBlock": true,
           "error": false,
           "fill": 1,

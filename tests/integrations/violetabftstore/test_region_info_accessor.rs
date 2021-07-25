@@ -173,7 +173,7 @@ fn test_node_cluster_brane_info_accessor() {
         .post_create_interlock_host(Box::new(move |id, host| {
             if id == 1 {
                 let c = BraneInfoAccessor::new(host);
-                tx.slightlike(c).unwrap();
+                tx.lightlike(c).unwrap();
             }
         }));
     cluster.run_conf_change();

@@ -107,7 +107,7 @@ fn test_rpc_client() {
         .unwrap();
     let (tx, rx) = mpsc::channel();
     let f = client.handle_brane_heartbeat_response(1, move |resp| {
-        let _ = tx.slightlike(resp);
+        let _ = tx.lightlike(resp);
     });
     poller.spawn(f);
     poller.spawn(client.brane_heartbeat(
@@ -388,7 +388,7 @@ fn test_brane_heartbeat_on_leader_change() {
         .unwrap();
     let (tx, rx) = mpsc::channel();
     let f = client.handle_brane_heartbeat_response(1, move |resp| {
-        tx.slightlike(resp).unwrap();
+        tx.lightlike(resp).unwrap();
     });
     poller.spawn(f);
     let brane = metapb::Brane::default();
@@ -432,7 +432,7 @@ fn test_brane_heartbeat_on_leader_change() {
     // Change FIDel leader once then heartbeat FIDel.
     heartbeat_on_leader_change(1);
 
-    // Change FIDel leader twice without ufidelate the heartbeat slightlikeer, then heartbeat FIDel.
+    // Change FIDel leader twice without ufidelate the heartbeat lightlikeer, then heartbeat FIDel.
     heartbeat_on_leader_change(2);
 }
 

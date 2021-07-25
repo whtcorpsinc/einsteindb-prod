@@ -166,14 +166,14 @@ fn test_tick_after_destroy() {
 
     cluster.must_transfer_leader(1, new_peer(3, 3));
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(1));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(1));
     fidel_client.must_remove_peer(1, new_peer(1, 1));
     cluster.must_put(b"k2", b"v2");
     must_get_equal(&engine_3, b"k2", b"v2");
     must_get_equal(&cluster.get_engine(2), b"k2", b"v2");
 
     fidel_client.must_add_peer(1, new_peer(1, 4));
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     cluster.must_put(b"k3", b"v3");
 
     fail::remove(tick_fp);
@@ -206,7 +206,7 @@ fn test_stale_peer_cache() {
 // 1. propose to add peer 4 on the current leader 1;
 // 2. leader 1 applightlikes entries to peer 3, and peer 3 applys them;
 // 3. a new proposal to remove peer 4 is proposed;
-// 4. peer 1 slightlikes a snapshot with latest configuration [1, 2, 3] to peer 3;
+// 4. peer 1 lightlikes a snapshot with latest configuration [1, 2, 3] to peer 3;
 // 5. peer 3 restores the snapshot into memory;
 // 6. then peer 3 calling `VioletaBft::apply_conf_change` to add peer 4;
 // 7. so the disk configuration `[1, 2, 3]` is different from memory configuration `[1, 2, 3, 4]`.
@@ -251,17 +251,17 @@ fn test_redundant_conf_change_by_snapshot() {
     let (tx, rx) = mpsc::sync_channel(128);
     let cb = Arc::new(move |msg: &VioletaBftMessage| {
         if msg.get_message().get_to() == 4 {
-            let _ = tx.slightlike(());
+            let _ = tx.lightlike(());
         }
-    }) as Arc<dyn Fn(&VioletaBftMessage) + Slightlike + Sync>;
+    }) as Arc<dyn Fn(&VioletaBftMessage) + lightlike + Sync>;
     let filter = Box::new(
         BranePacketFilter::new(1, 3)
-            .direction(Direction::Slightlike)
+            .direction(Direction::lightlike)
             .msg_type(MessageType::MsgRequestVote)
             .when(Arc::new(AtomicBool::new(false)))
             .set_msg_callback(cb),
     );
-    cluster.sim.wl().add_slightlike_filter(3, filter);
+    cluster.sim.wl().add_lightlike_filter(3, filter);
 
     // Unpause the fail point, so peer 3 can apply the redundant conf change result.
     fail::causet("apply_on_conf_change_3_1", "off").unwrap();
@@ -293,13 +293,13 @@ fn test_handle_conf_change_when_apply_fsm_resume_plightlikeing_state() {
     fail::causet(yield_apply_conf_change_3_fp, "return()").unwrap();
 
     // Make store 1 and 3 become quorum
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
 
     fidel_client.must_remove_peer(r1, new_peer(3, 3));
-    // Wait for peer fsm to slightlike committed entries to apply fsm
+    // Wait for peer fsm to lightlike committed entries to apply fsm
     sleep_ms(100);
     fail::remove(yield_apply_conf_change_3_fp);
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     // Add new peer 4 to store 3
     fidel_client.must_add_peer(r1, new_peer(3, 4));
 

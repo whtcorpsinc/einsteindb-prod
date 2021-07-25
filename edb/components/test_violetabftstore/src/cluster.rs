@@ -65,11 +65,11 @@ pub trait Simulator {
         request: VioletaBftCmdRequest,
         cb: Callback<LmdbSnapshot>,
     ) -> Result<()>;
-    fn slightlike_violetabft_msg(&mut self, msg: VioletaBftMessage) -> Result<()>;
+    fn lightlike_violetabft_msg(&mut self, msg: VioletaBftMessage) -> Result<()>;
     fn get_snap_dir(&self, node_id: u64) -> String;
     fn get_router(&self, node_id: u64) -> Option<VioletaBftRouter<LmdbEngine, LmdbEngine>>;
-    fn add_slightlike_filter(&mut self, node_id: u64, filter: Box<dyn Filter>);
-    fn clear_slightlike_filters(&mut self, node_id: u64);
+    fn add_lightlike_filter(&mut self, node_id: u64, filter: Box<dyn Filter>);
+    fn clear_lightlike_filters(&mut self, node_id: u64);
     fn add_recv_filter(&mut self, node_id: u64, filter: Box<dyn Filter>);
     fn clear_recv_filters(&mut self, node_id: u64);
 
@@ -306,8 +306,8 @@ impl<T: Simulator> Cluster<T> {
         self.engines[&node_id].clone()
     }
 
-    pub fn slightlike_violetabft_msg(&mut self, msg: VioletaBftMessage) -> Result<()> {
-        self.sim.wl().slightlike_violetabft_msg(msg)
+    pub fn lightlike_violetabft_msg(&mut self, msg: VioletaBftMessage) -> Result<()> {
+        self.sim.wl().lightlike_violetabft_msg(msg)
     }
 
     pub fn call_command_on_node(
@@ -1090,11 +1090,11 @@ impl<T: Simulator> Cluster<T> {
         self.engines[&store_id].violetabft.write(&violetabft_wb).unwrap();
     }
 
-    pub fn add_slightlike_filter<F: FilterFactory>(&self, factory: F) {
+    pub fn add_lightlike_filter<F: FilterFactory>(&self, factory: F) {
         let mut sim = self.sim.wl();
         for node_id in sim.get_node_ids() {
             for filter in factory.generate(node_id) {
-                sim.add_slightlike_filter(node_id, filter);
+                sim.add_lightlike_filter(node_id, filter);
             }
         }
     }
@@ -1135,14 +1135,14 @@ impl<T: Simulator> Cluster<T> {
         self.sim.rl().get_snap_dir(node_id)
     }
 
-    pub fn clear_slightlike_filters(&mut self) {
+    pub fn clear_lightlike_filters(&mut self) {
         let mut sim = self.sim.wl();
         for node_id in sim.get_node_ids() {
-            sim.clear_slightlike_filters(node_id);
+            sim.clear_lightlike_filters(node_id);
         }
     }
 
-    // It's similar to `ask_split`, the difference is the msg, it slightlikes, is `Msg::SplitBrane`,
+    // It's similar to `ask_split`, the difference is the msg, it lightlikes, is `Msg::SplitBrane`,
     // and `brane` will not be embedded to that msg.
     // Caller must ensure that the `split_key` is in the `brane`.
     pub fn split_brane(
@@ -1154,7 +1154,7 @@ impl<T: Simulator> Cluster<T> {
         let leader = self.leader_of_brane(brane.get_id()).unwrap();
         let router = self.sim.rl().get_router(leader.get_store_id()).unwrap();
         let split_key = split_key.to_vec();
-        CasualRouter::slightlike(
+        CasualRouter::lightlike(
             &router,
             brane.get_id(),
             CasualMessage::SplitBrane {
@@ -1361,7 +1361,7 @@ impl<T: Simulator> Cluster<T> {
 
     // it's so common that we provide an API for it
     pub fn partition(&self, s1: Vec<u64>, s2: Vec<u64>) {
-        self.add_slightlike_filter(PartitionFilterFactory::new(s1, s2));
+        self.add_lightlike_filter(PartitionFilterFactory::new(s1, s2));
     }
 
     // Request a snapshot on the given brane.
@@ -1369,14 +1369,14 @@ impl<T: Simulator> Cluster<T> {
         // Request snapshot.
         let (request_tx, request_rx) = mpsc::channel();
         let router = self.sim.rl().get_router(store_id).unwrap();
-        CasualRouter::slightlike(
+        CasualRouter::lightlike(
             &router,
             brane_id,
             CasualMessage::AccessPeer(Box::new(move |peer: &mut dyn AbstractPeer| {
                 let idx = peer.violetabft_committed_index();
                 peer.violetabft_request_snapshot(idx);
                 debug!("{} request snapshot at {:?}", idx, peer.meta_peer());
-                request_tx.slightlike(idx).unwrap();
+                request_tx.lightlike(idx).unwrap();
             })),
         )
         .unwrap();

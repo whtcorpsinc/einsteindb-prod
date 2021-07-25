@@ -25,7 +25,7 @@ fn open_log_file(path: impl AsRef<Path>) -> io::Result<File> {
 }
 
 /// A trait that describes a file rotation operation.
-pub trait Rotator: Slightlike {
+pub trait Rotator: lightlike {
     /// Check if the option is enabled in configuration.
     /// Return true if the `rotator` is valid.
     fn is_enabled(&self) -> bool;
@@ -51,7 +51,7 @@ pub trait Rotator: Slightlike {
 pub struct RotatingFileLogger {
     path: PathBuf,
     file: File,
-    rename: Box<dyn Slightlike + Fn(&Path) -> io::Result<PathBuf>>,
+    rename: Box<dyn lightlike + Fn(&Path) -> io::Result<PathBuf>>,
     rotators: Vec<Box<dyn Rotator>>,
 }
 
@@ -59,13 +59,13 @@ pub struct RotatingFileLogger {
 pub struct RotatingFileLoggerBuilder {
     rotators: Vec<Box<dyn Rotator>>,
     path: PathBuf,
-    rename: Box<dyn Slightlike + Fn(&Path) -> io::Result<PathBuf>>,
+    rename: Box<dyn lightlike + Fn(&Path) -> io::Result<PathBuf>>,
 }
 
 impl RotatingFileLoggerBuilder {
     pub fn new<F>(path: impl AsRef<Path>, rename: F) -> Self
     where
-        F: 'static + Slightlike + Fn(&Path) -> io::Result<PathBuf>,
+        F: 'static + lightlike + Fn(&Path) -> io::Result<PathBuf>,
     {
         RotatingFileLoggerBuilder {
             path: path.as_ref().to_path_buf(),

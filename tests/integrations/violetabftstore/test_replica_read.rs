@@ -74,7 +74,7 @@ fn test_replica_read_not_applied() {
     // Add a filter to forbid peer 2 and 3 to know the last entry is committed.
     let committed_indices = Arc::new(Mutex::new(HashMap::default()));
     let filter = Box::new(CommitToFilter::new(committed_indices));
-    cluster.sim.wl().add_slightlike_filter(1, filter);
+    cluster.sim.wl().add_lightlike_filter(1, filter);
 
     cluster.must_put(b"k1", b"v2");
     must_get_equal(&cluster.get_engine(1), b"k1", b"v2");
@@ -100,11 +100,11 @@ fn test_replica_read_not_applied() {
     // Unpark all applightlike responses so that the new leader can commit its first entry.
     let router = cluster.sim.wl().get_router(2).unwrap();
     for violetabft_msg in mem::replace(dropped_msgs.dagger().unwrap().as_mut(), vec![]) {
-        router.slightlike_violetabft_message(violetabft_msg).unwrap();
+        router.lightlike_violetabft_message(violetabft_msg).unwrap();
     }
 
     // The old read index request won't be blocked forever as it's retried internally.
-    cluster.sim.wl().clear_slightlike_filters(1);
+    cluster.sim.wl().clear_lightlike_filters(1);
     cluster.sim.wl().clear_recv_filters(2);
     let resp1 = resp1_ch.recv_timeout(Duration::from_secs(6)).unwrap();
     let exp_value = resp1.get_responses()[0].get_get().get_value();
@@ -149,18 +149,18 @@ fn test_replica_read_on_hibernate() {
 
     let (tx, rx) = mpsc::sync_channel(1024);
     let cb = Arc::new(move |msg: &VioletaBftMessage| {
-        let _ = tx.slightlike(msg.clone());
-    }) as Arc<dyn Fn(&VioletaBftMessage) + Slightlike + Sync>;
+        let _ = tx.lightlike(msg.clone());
+    }) as Arc<dyn Fn(&VioletaBftMessage) + lightlike + Sync>;
     for i in 1..=3 {
         let filter = Box::new(
             BranePacketFilter::new(1, i)
                 .when(Arc::new(AtomicBool::new(false)))
                 .set_msg_callback(Arc::clone(&cb)),
         );
-        cluster.sim.wl().add_slightlike_filter(i, filter);
+        cluster.sim.wl().add_lightlike_filter(i, filter);
     }
 
-    // In the loop, peer 1 will keep slightlikeing read index messages to 3,
+    // In the loop, peer 1 will keep lightlikeing read index messages to 3,
     // but peer 3 and peer 2 will hibernate later. So, peer 1 will spacelike
     // a new election finally because it always ticks.
     let spacelike = Instant::now();
@@ -211,7 +211,7 @@ fn test_read_hibernated_brane() {
             .reserve_dropped(Arc::clone(&dropped_msgs))
             .set_msg_callback(Arc::new(move |msg: &VioletaBftMessage| {
                 if msg.has_extra_msg() {
-                    tx.slightlike(msg.clone()).unwrap();
+                    tx.lightlike(msg.clone()).unwrap();
                 }
             })),
     );
@@ -232,7 +232,7 @@ fn test_read_hibernated_brane() {
     let wake_up_msg = rx.recv_timeout(Duration::from_secs(5)).unwrap();
     cluster.sim.wl().clear_recv_filters(3);
     let router = cluster.sim.wl().get_router(3).unwrap();
-    router.slightlike_violetabft_message(wake_up_msg).unwrap();
+    router.lightlike_violetabft_message(wake_up_msg).unwrap();
     // Wait for the leader is woken up.
     thread::sleep(Duration::from_millis(500));
     let resp2_ch = async_read_on_peer(&mut cluster, p2, brane, b"k1", true, true);

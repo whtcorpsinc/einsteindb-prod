@@ -27,10 +27,10 @@ fn bench_thread_channel(b: &mut Bencher) {
     let mut n1 = 0;
     b.iter(|| {
         n1 += 1;
-        tx.slightlike(1).unwrap()
+        tx.lightlike(1).unwrap()
     });
 
-    tx.slightlike(0).unwrap();
+    tx.lightlike(0).unwrap();
     let n2 = t.join().unwrap();
     assert_eq!(n1, n2);
 }
@@ -53,10 +53,10 @@ fn bench_util_channel(b: &mut Bencher) {
     let mut n1 = 0;
     b.iter(|| {
         n1 += 1;
-        tx.slightlike(1).unwrap()
+        tx.lightlike(1).unwrap()
     });
 
-    tx.slightlike(0).unwrap();
+    tx.lightlike(0).unwrap();
     let n2 = t.join().unwrap();
     assert_eq!(n1, n2);
 }
@@ -79,10 +79,10 @@ fn bench_util_loose(b: &mut Bencher) {
     let mut n1 = 0;
     b.iter(|| {
         n1 += 1;
-        while tx.try_slightlike(1).is_err() {}
+        while tx.try_lightlike(1).is_err() {}
     });
 
-    while tx.try_slightlike(0).is_err() {}
+    while tx.try_lightlike(0).is_err() {}
 
     let n2 = t.join().unwrap();
     assert_eq!(n1, n2);
@@ -106,10 +106,10 @@ fn bench_crossbeam_channel(b: &mut Bencher) {
     let mut n1 = 0;
     b.iter(|| {
         n1 += 1;
-        tx.slightlike(1).unwrap();
+        tx.lightlike(1).unwrap();
     });
 
-    tx.slightlike(0).unwrap();
+    tx.lightlike(0).unwrap();
     let n2 = t.join().unwrap();
     assert_eq!(n1, n2);
 }
@@ -121,7 +121,7 @@ fn bench_receiver_stream_batch(b: &mut Bencher) {
         let tx1 = tx.clone();
         thread::spawn(move || {
             (0..usize::MAX)
-                .take_while(|i| tx1.slightlike(*i as i32).is_ok())
+                .take_while(|i| tx1.lightlike(*i as i32).is_ok())
                 .count();
         });
     }
@@ -158,7 +158,7 @@ fn bench_receiver_stream(b: &mut Bencher) {
         let tx1 = tx.clone();
         thread::spawn(move || {
             (0..usize::MAX)
-                .take_while(|i| tx1.slightlike(*i as i32).is_ok())
+                .take_while(|i| tx1.lightlike(*i as i32).is_ok())
                 .count();
         });
     }

@@ -387,7 +387,7 @@ fn test_after_remove_itself<T: Simulator>(cluster: &mut Cluster<T>) {
     let put = new_put_cmd(b"test_key", b"test_val");
     let mut req = new_request(1, epoch, vec![put], true);
     req.mut_header().set_peer(new_peer(1, 1));
-    // ignore error, we just want to slightlike this command to peer (1, 1),
+    // ignore error, we just want to lightlike this command to peer (1, 1),
 
     // and the command can't be executed because we have only one peer,
     // so here will return timeout error, we should ignore it.
@@ -451,7 +451,7 @@ fn test_split_brain<T: Simulator>(cluster: &mut Cluster<T>) {
     must_get_equal(&cluster.get_engine(3), b"kk0", b"vv0");
 
     // leader isolation
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(1));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(1));
 
     // refresh brane info, maybe no need
     cluster.must_put(b"k1", b"v1");
@@ -477,8 +477,8 @@ fn test_split_brain<T: Simulator>(cluster: &mut Cluster<T>) {
     }
     assert!(brane_detail.get_leader().get_id() < 4);
 
-    // when network recovers, 1 will slightlike request vote to [2,3]
-    cluster.clear_slightlike_filters();
+    // when network recovers, 1 will lightlike request vote to [2,3]
+    cluster.clear_lightlike_filters();
     cluster.partition(vec![1, 2, 3], vec![4, 5, 6]);
 
     // refresh brane info, maybe no need
@@ -542,7 +542,7 @@ fn test_conf_change_safe<T: Simulator>(cluster: &mut Cluster<T>) {
 
     // Isolate the leader.
     cluster.must_transfer_leader(brane_id, new_peer(1, 1));
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(1));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(1));
 
     // Ensure new leader is elected and it works.
     cluster.must_put(b"k1", b"v1");
@@ -556,7 +556,7 @@ fn test_conf_change_safe<T: Simulator>(cluster: &mut Cluster<T>) {
     fidel_client.must_none_peer(brane_id, new_peer(4, 4));
 
     // Recover the isolated peer.
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     // Then new node could be added.
     fidel_client.must_add_peer(brane_id, new_peer(4, 4));
@@ -568,7 +568,7 @@ fn test_conf_change_safe<T: Simulator>(cluster: &mut Cluster<T>) {
 
     // Isolate the leader.
     cluster.must_transfer_leader(brane_id, new_peer(1, 1));
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(1));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(1));
 
     // Ensure new leader is elected and it works.
     cluster.must_put(b"k3", b"v3");
@@ -828,7 +828,7 @@ fn test_learner_with_slow_snapshot() {
                 let old_len = msgs.len();
                 msgs.retain(|m| m.get_message().get_msg_type() != MessageType::MsgSnapshot);
                 if msgs.len() < old_len {
-                    return Err(box_err!("slightlike snapshot fail"));
+                    return Err(box_err!("lightlike snapshot fail"));
                 }
             }
             Ok(())
@@ -843,7 +843,7 @@ fn test_learner_with_slow_snapshot() {
     });
 
     // New added learner should keep plightlikeing until snapshot is applied.
-    cluster.sim.wl().add_slightlike_filter(1, snap_filter);
+    cluster.sim.wl().add_lightlike_filter(1, snap_filter);
     fidel_client.must_add_peer(r1, new_learner_peer(2, 2));
     for _ in 0..500 {
         sleep_ms(10);
@@ -892,13 +892,13 @@ fn test_stale_peer<T: Simulator>(cluster: &mut Cluster<T>) {
     must_get_equal(&cluster.get_engine(3), b"k1", b"v1");
 
     // replace peer 3 with peer 4 while peer 3 is isolated.
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     fidel_client.must_remove_peer(r1, new_peer(3, 3));
     fidel_client.must_add_peer(r1, new_peer(4, 4));
     must_get_equal(&cluster.get_engine(4), b"k1", b"v1");
 
     // After the peer gets back to the cluster, it knows it's removed.
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_none(&cluster.get_engine(3), b"k1");
 }
 

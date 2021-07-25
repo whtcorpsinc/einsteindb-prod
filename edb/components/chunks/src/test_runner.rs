@@ -12,7 +12,7 @@ pub enum Message {
     /// `Runner` will do simple calculation for the given times.
     Loop(usize),
     /// `Runner` will call the callback directly.
-    Callback(Box<dyn FnOnce(&mut Runner) + Slightlike + 'static>),
+    Callback(Box<dyn FnOnce(&mut Runner) + lightlike + 'static>),
 }
 
 /// A simple runner used for benchmarking only.
@@ -20,7 +20,7 @@ pub struct Runner {
     is_stopped: bool,
     recv: mpsc::Receiver<Message>,
     mailbox: Option<BasicMailbox<Runner>>,
-    pub slightlikeer: Option<mpsc::Slightlikeer<()>>,
+    pub lightlikeer: Option<mpsc::lightlikeer<()>>,
     /// Result of the calculation triggered by `Message::Loop`.
     /// Stores it inside `Runner` to avoid accidental optimization.
     res: usize,
@@ -43,13 +43,13 @@ impl Fsm for Runner {
 }
 
 impl Runner {
-    pub fn new(cap: usize) -> (mpsc::LooseBoundedSlightlikeer<Message>, Box<Runner>) {
+    pub fn new(cap: usize) -> (mpsc::LooseBoundedlightlikeer<Message>, Box<Runner>) {
         let (tx, rx) = mpsc::loose_bounded(cap);
         let fsm = Box::new(Runner {
             is_stopped: false,
             recv: rx,
             mailbox: None,
-            slightlikeer: None,
+            lightlikeer: None,
             res: 0,
         });
         (tx, fsm)

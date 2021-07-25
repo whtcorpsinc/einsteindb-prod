@@ -137,7 +137,7 @@ impl RpnExpressionBuilder {
         func_meta: RpnFnMeta,
         args_len: usize,
         return_field_type: impl Into<FieldType>,
-        metadata: Box<dyn std::any::Any + Slightlike>,
+        metadata: Box<dyn std::any::Any + lightlike>,
     ) -> Self {
         let node = RpnExpressionNode::FnCall {
             func_meta,

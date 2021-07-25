@@ -2,7 +2,7 @@
 
 use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{self, Slightlikeer};
+use std::sync::mpsc::{self, lightlikeer};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
@@ -192,10 +192,10 @@ fn test_concurrent_snap<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.must_put(b"k1", b"v1");
     fidel_client.must_add_peer(r1, new_peer(2, 2));
     // Force peer 2 to be followers all the way.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(r1, 2)
             .msg_type(MessageType::MsgRequestVote)
-            .direction(Direction::Slightlike),
+            .direction(Direction::lightlike),
     ));
     cluster.must_transfer_leader(r1, new_peer(1, 1));
     cluster.must_put(b"k3", b"v3");
@@ -245,7 +245,7 @@ fn test_causet_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
     must_get_causet_equal(&engine1, causet, b"k2", b"v2");
 
     // Isolate node 1.
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(1));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(1));
 
     // Write some data to trigger snapshot.
     for i in 100..110 {
@@ -257,7 +257,7 @@ fn test_causet_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.must_delete_causet(causet, b"k2");
 
     // Add node 1 back.
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     // Now snapshot must be applied on node 1.
     must_get_causet_equal(&engine1, causet, b"k1", b"v1");
@@ -291,7 +291,7 @@ struct StaleSnap {
 
 struct StaleSnapInner {
     first_snap: RwLock<Option<Message>>,
-    sent: Mutex<Slightlikeer<()>>,
+    sent: Mutex<lightlikeer<()>>,
 }
 
 impl Filter for StaleSnap {
@@ -310,7 +310,7 @@ impl Filter for StaleSnap {
                     m.set_message(self.inner.first_snap.rl().as_ref().unwrap().clone());
                     m.mut_message().set_from(from);
                     m.mut_message().set_to(to);
-                    let _ = self.inner.sent.dagger().unwrap().slightlike(());
+                    let _ = self.inner.sent.dagger().unwrap().lightlike(());
                 }
             }
             res.push(m);
@@ -344,7 +344,7 @@ fn test_node_stale_snap() {
             sent: Mutex::new(tx),
         }),
     };
-    cluster.add_slightlike_filter(CloneFilterFactory(filter));
+    cluster.add_lightlike_filter(CloneFilterFactory(filter));
     fidel_client.must_add_peer(r1, new_peer(3, 3));
     cluster.must_put(b"k2", b"v2");
     must_get_equal(&cluster.get_engine(3), b"k2", b"v2");
@@ -357,7 +357,7 @@ fn test_node_stale_snap() {
     rx.recv().unwrap();
     sleep_ms(2000);
     must_get_none(&cluster.get_engine(3), b"k3");
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_equal(&cluster.get_engine(3), b"k3", b"v3");
 }
 
@@ -365,11 +365,11 @@ fn test_node_stale_snap() {
 pub struct SnapshotApplightlikeFilter {
     stale: AtomicBool,
     plightlikeing_msg: Mutex<Vec<VioletaBftMessage>>,
-    notifier: Mutex<Slightlikeer<()>>,
+    notifier: Mutex<lightlikeer<()>>,
 }
 
 impl SnapshotApplightlikeFilter {
-    pub fn new(notifier: Slightlikeer<()>) -> SnapshotApplightlikeFilter {
+    pub fn new(notifier: lightlikeer<()>) -> SnapshotApplightlikeFilter {
         SnapshotApplightlikeFilter {
             stale: AtomicBool::new(false),
             plightlikeing_msg: Mutex::new(vec![]),
@@ -383,7 +383,7 @@ impl Filter for SnapshotApplightlikeFilter {
         if self.stale.load(Ordering::Relaxed) {
             return Ok(());
         }
-        let mut to_slightlike = vec![];
+        let mut to_lightlike = vec![];
         let mut plightlikeing_msg = self.plightlikeing_msg.dagger().unwrap();
         let mut stale = false;
         for msg in msgs.drain(..) {
@@ -393,16 +393,16 @@ impl Filter for SnapshotApplightlikeFilter {
                 && msg.get_message().get_msg_type() == MessageType::MsgApplightlike;
             if should_collect {
                 plightlikeing_msg.push(msg);
-                self.notifier.dagger().unwrap().slightlike(()).unwrap();
+                self.notifier.dagger().unwrap().lightlike(()).unwrap();
             } else {
                 if stale {
-                    to_slightlike.extlightlike(plightlikeing_msg.drain(..));
+                    to_lightlike.extlightlike(plightlikeing_msg.drain(..));
                 }
-                to_slightlike.push(msg);
+                to_lightlike.push(msg);
             }
         }
         self.stale.store(stale, Ordering::SeqCst);
-        msgs.extlightlike(to_slightlike);
+        msgs.extlightlike(to_lightlike);
         Ok(())
     }
 }

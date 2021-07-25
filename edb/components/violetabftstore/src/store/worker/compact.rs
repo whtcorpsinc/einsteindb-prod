@@ -73,7 +73,7 @@ impl Display for Task {
 quick_error! {
     #[derive(Debug)]
     pub enum Error {
-        Other(err: Box<dyn error::Error + Sync + Slightlike>) {
+        Other(err: Box<dyn error::Error + Sync + lightlike>) {
             from()
             cause(err.as_ref())
             display("compact failed {:?}", err)
@@ -93,7 +93,7 @@ where
         Runner { engine }
     }
 
-    /// Slightlikes a compact cone command to Lmdb to compact the cone of the causet.
+    /// lightlikes a compact cone command to Lmdb to compact the cone of the causet.
     pub fn compact_cone_causet(
         &mut self,
         causet_name: &str,

@@ -31,7 +31,7 @@ pub fn build_aggr_func(tp: ExprType) -> Result<Box<dyn AggrFunc>> {
 }
 
 /// `AggrFunc` is used to execute aggregate operations.
-pub trait AggrFunc: Slightlike {
+pub trait AggrFunc: lightlike {
     /// `ufidelate` is used for ufidelate aggregate context.
     fn ufidelate(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()>;
     /// `calc` calculates the aggregated result and push it to collector.

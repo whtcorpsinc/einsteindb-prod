@@ -37,7 +37,7 @@ impl std::fmt::Debug for FuturePool {
     }
 }
 
-impl crate::AssertSlightlike for FuturePool {}
+impl crate::Assertlightlike for FuturePool {}
 impl crate::AssertSync for FuturePool {}
 
 impl FuturePool {
@@ -96,7 +96,7 @@ impl FuturePool {
     /// Spawns a future in the pool.
     pub fn spawn<F>(&self, future: F) -> Result<(), Full>
     where
-        F: Future + Slightlike + 'static,
+        F: Future + lightlike + 'static,
     {
         let timer = Instant::now_coarse();
         let h_schedule = self.env.metrics_pool_schedule_duration.clone();
@@ -124,8 +124,8 @@ impl FuturePool {
         future: F,
     ) -> Result<impl Future<Output = Result<F::Output, Canceled>>, Full>
     where
-        F: Future + Slightlike + 'static,
-        F::Output: Slightlike,
+        F: Future + lightlike + 'static,
+        F::Output: lightlike,
     {
         let timer = Instant::now_coarse();
         let h_schedule = self.env.metrics_pool_schedule_duration.clone();
@@ -141,7 +141,7 @@ impl FuturePool {
             let res = future.await;
             metrics_handled_task_count.inc();
             metrics_running_task_count.dec();
-            let _ = tx.slightlike(res);
+            let _ = tx.lightlike(res);
         });
         Ok(rx)
     }
@@ -196,13 +196,13 @@ mod tests {
 
     #[derive(Clone)]
     pub struct SequenceTicker {
-        tick: Arc<dyn Fn() + Slightlike + Sync>,
+        tick: Arc<dyn Fn() + lightlike + Sync>,
     }
 
     impl SequenceTicker {
         pub fn new<F>(tick: F) -> SequenceTicker
         where
-            F: Fn() + Slightlike + Sync + 'static,
+            F: Fn() + lightlike + Sync + 'static,
         {
             SequenceTicker {
                 tick: Arc::new(tick),
@@ -223,7 +223,7 @@ mod tests {
         let (tx, rx) = mpsc::sync_channel(1000);
         let ticker = SequenceTicker::new(move || {
             let seq = tick_sequence.fetch_add(1, Ordering::SeqCst);
-            tx.slightlike(seq).unwrap();
+            tx.lightlike(seq).unwrap();
         });
 
         let pool = Builder::new(ticker).thread_count(1, 1).build_future_pool();
@@ -272,7 +272,7 @@ mod tests {
         let (tx, rx) = mpsc::sync_channel(1000);
         let ticker = SequenceTicker::new(move || {
             let seq = tick_sequence.fetch_add(1, Ordering::SeqCst);
-            tx.slightlike(seq).unwrap();
+            tx.lightlike(seq).unwrap();
         });
 
         let pool = Builder::new(ticker).thread_count(2, 2).build_future_pool();
@@ -352,14 +352,14 @@ mod tests {
         })
     }
 
-    fn wait_on_new_thread<F>(slightlikeer: mpsc::Slightlikeer<F::Output>, future: F)
+    fn wait_on_new_thread<F>(lightlikeer: mpsc::lightlikeer<F::Output>, future: F)
     where
-        F: Future + Slightlike + 'static,
-        F::Output: Slightlike + 'static,
+        F: Future + lightlike + 'static,
+        F::Output: lightlike + 'static,
     {
         thread::spawn(move || {
             let r = block_on(future);
-            slightlikeer.slightlike(r).unwrap();
+            lightlikeer.lightlike(r).unwrap();
         });
     }
 

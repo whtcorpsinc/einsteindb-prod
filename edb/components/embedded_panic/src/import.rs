@@ -1,15 +1,15 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::engine::PanicEngine;
-use engine_promises::{ImportExt, IngestExternalFileOptions, Result};
+use crate::Embedded::PanicEmbedded;
+use Embedded_promises::{ImportExt, IngestExternalFileOptions, Result};
 use std::path::Path;
 
-impl ImportExt for PanicEngine {
+impl ImportExt for PanicEmbedded {
     type IngestExternalFileOptions = PanicIngestExternalFileOptions;
 
     fn ingest_external_file_causet(
         &self,
-        causet: &Self::CAUSETHandle,
+        causet: &Self::CausetSingleton,
         opts: &Self::IngestExternalFileOptions,
         files: &[&str],
     ) -> Result<()> {
@@ -18,7 +18,7 @@ impl ImportExt for PanicEngine {
 
     fn validate_sst_for_ingestion<P: AsRef<Path>>(
         &self,
-        causet: &Self::CAUSETHandle,
+        causet: &Self::CausetSingleton,
         path: P,
         expected_size: u64,
         expected_checksum: u32,

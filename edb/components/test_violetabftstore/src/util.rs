@@ -354,12 +354,12 @@ pub fn make_cb(cmd: &VioletaBftCmdRequest) -> (Callback<LmdbSnapshot>, mpsc::Rec
     let cb = if is_read {
         Callback::Read(Box::new(move |resp: ReadResponse<LmdbSnapshot>| {
             // we don't care error actually.
-            let _ = tx.slightlike(resp.response);
+            let _ = tx.lightlike(resp.response);
         }))
     } else {
         Callback::Write(Box::new(move |resp: WriteResponse| {
             // we don't care error actually.
-            let _ = tx.slightlike(resp.response);
+            let _ = tx.lightlike(resp.response);
         }))
     };
     (cb, rx)
@@ -402,7 +402,7 @@ pub fn async_read_on_peer<T: Simulator>(
     request.mut_header().set_peer(peer);
     request.mut_header().set_replica_read(replica_read);
     let (tx, rx) = mpsc::sync_channel(1);
-    let cb = Callback::Read(Box::new(move |resp| drop(tx.slightlike(resp.response))));
+    let cb = Callback::Read(Box::new(move |resp| drop(tx.lightlike(resp.response))));
     cluster.sim.wl().async_read(node_id, None, request, cb);
     rx
 }
@@ -426,7 +426,7 @@ pub fn batch_read_on_peer<T: Simulator>(
         request.mut_header().set_peer(peer.clone());
         let t = tx.clone();
         let cb = Callback::Read(Box::new(move |resp| {
-            t.slightlike((len, resp)).unwrap();
+            t.lightlike((len, resp)).unwrap();
         }));
         cluster
             .sim
@@ -540,7 +540,7 @@ pub fn create_test_engine(
             router
                 .dagger()
                 .unwrap()
-                .slightlike_control(StoreMsg::CompactedEvent(event))
+                .lightlike_control(StoreMsg::CompactedEvent(event))
                 .unwrap();
         });
         kv_db_opt.add_event_listener(CompactionListener::new(
@@ -590,7 +590,7 @@ pub fn configure_for_hibernate<T: Simulator>(cluster: &mut Cluster<T>) {
 }
 
 pub fn configure_for_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
-    // Truncate the log quickly so that we can force slightlikeing snapshot.
+    // Truncate the log quickly so that we can force lightlikeing snapshot.
     cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
     cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 2;
     cluster.causet.violetabft_store.merge_max_log_gap = 1;

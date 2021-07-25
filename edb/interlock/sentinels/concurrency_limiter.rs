@@ -8,7 +8,7 @@ use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
 use tokio::sync::{Semaphore, SemaphorePermit};
 
-use crate::interDaggers::metrics::*;
+use crate::interlock::metrics::*;
 
 /// Limits the concurrency of heavy tasks by limiting the time spent on executing `fut`
 /// before forcing to acquire a semaphore permit.
@@ -122,7 +122,7 @@ mod tests {
     use tokio::task::yield_now;
     use tokio::time::{delay_for, timeout};
 
-    #[tokio::test(basic_interDaggers_semaphore)]
+    #[tokio::test(basic_interlock_semaphore)]
     async fn test_limit_concurrency() {
         async fn work(iter: i32) {
             for i in 0..iter {

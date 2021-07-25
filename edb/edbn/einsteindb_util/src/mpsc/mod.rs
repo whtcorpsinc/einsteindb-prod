@@ -10,7 +10,7 @@ supports closed detection and try operations.
 pub mod batch;
 
 use crossbeam::channel::{
-    self, RecvError, RecvTimeoutError, SlightlikeError, TryRecvError, TrySlightlikeError,
+    self, RecvError, RecvTimeoutError, lightlikeError, TryRecvError, TrylightlikeError,
 };
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
@@ -18,27 +18,27 @@ use std::sync::Arc;
 use std::time::Duration;
 
 struct State {
-    slightlikeer_cnt: AtomicIsize,
+    lightlikeer_cnt: AtomicIsize,
     connected: AtomicBool,
 }
 
 impl State {
     fn new() -> State {
         State {
-            slightlikeer_cnt: AtomicIsize::new(1),
+            lightlikeer_cnt: AtomicIsize::new(1),
             connected: AtomicBool::new(true),
         }
     }
 
     #[inline]
-    fn is_slightlikeer_connected(&self) -> bool {
+    fn is_lightlikeer_connected(&self) -> bool {
         self.connected.load(Ordering::Acquire)
     }
 }
 
-/// A slightlikeer that can be closed.
+/// A lightlikeer that can be closed.
 ///
-/// Closed means that slightlikeer can no longer slightlike out any messages after closing.
+/// Closed means that lightlikeer can no longer lightlike out any messages after closing.
 /// However, receiver may still block at receiving.
 ///
 /// Note that a receiver should reports error in such case.
@@ -47,28 +47,28 @@ impl State {
 /// for current usage.
 ///
 /// TODO: use builtin close when crossbeam-rs/crossbeam#236 is resolved.
-pub struct Slightlikeer<T> {
-    slightlikeer: channel::Slightlikeer<T>,
+pub struct lightlikeer<T> {
+    lightlikeer: channel::lightlikeer<T>,
     state: Arc<State>,
 }
 
-impl<T> Clone for Slightlikeer<T> {
+impl<T> Clone for lightlikeer<T> {
     #[inline]
-    fn clone(&self) -> Slightlikeer<T> {
-        self.state.slightlikeer_cnt.fetch_add(1, Ordering::AcqRel);
-        Slightlikeer {
-            slightlikeer: self.slightlikeer.clone(),
+    fn clone(&self) -> lightlikeer<T> {
+        self.state.lightlikeer_cnt.fetch_add(1, Ordering::AcqRel);
+        lightlikeer {
+            lightlikeer: self.lightlikeer.clone(),
             state: self.state.clone(),
         }
     }
 }
 
-impl<T> Drop for Slightlikeer<T> {
+impl<T> Drop for lightlikeer<T> {
     #[inline]
     fn drop(&mut self) {
-        let res = self.state.slightlikeer_cnt.fetch_add(-1, Ordering::AcqRel);
+        let res = self.state.lightlikeer_cnt.fetch_add(-1, Ordering::AcqRel);
         if res == 1 {
-            self.close_slightlikeer();
+            self.close_lightlikeer();
         }
     }
 }
@@ -79,11 +79,11 @@ pub struct Receiver<T> {
     state: Arc<State>,
 }
 
-impl<T> Slightlikeer<T> {
+impl<T> lightlikeer<T> {
     /// Returns the number of messages in the channel.
     #[inline]
     pub fn len(&self) -> usize {
-        self.slightlikeer.len()
+        self.lightlikeer.len()
     }
 
     /// Returns true if the channel is empty.
@@ -91,39 +91,39 @@ impl<T> Slightlikeer<T> {
     /// Note: Zero-capacity channels are always empty.
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.slightlikeer.is_empty()
+        self.lightlikeer.is_empty()
     }
 
     /// Blocks the current thread until a message is sent or the channel is disconnected.
     #[inline]
-    pub fn slightlike(&self, t: T) -> Result<(), SlightlikeError<T>> {
-        if self.state.is_slightlikeer_connected() {
-            self.slightlikeer.slightlike(t)
+    pub fn lightlike(&self, t: T) -> Result<(), lightlikeError<T>> {
+        if self.state.is_lightlikeer_connected() {
+            self.lightlikeer.lightlike(t)
         } else {
-            Err(SlightlikeError(t))
+            Err(lightlikeError(t))
         }
     }
 
-    /// Attempts to slightlike a message into the channel without blocking.
+    /// Attempts to lightlike a message into the channel without blocking.
     #[inline]
-    pub fn try_slightlike(&self, t: T) -> Result<(), TrySlightlikeError<T>> {
-        if self.state.is_slightlikeer_connected() {
-            self.slightlikeer.try_slightlike(t)
+    pub fn try_lightlike(&self, t: T) -> Result<(), TrylightlikeError<T>> {
+        if self.state.is_lightlikeer_connected() {
+            self.lightlikeer.try_lightlike(t)
         } else {
-            Err(TrySlightlikeError::Disconnected(t))
+            Err(TrylightlikeError::Disconnected(t))
         }
     }
 
-    /// Stop the slightlikeer from slightlikeing any further messages.
+    /// Stop the lightlikeer from lightlikeing any further messages.
     #[inline]
-    pub fn close_slightlikeer(&self) {
+    pub fn close_lightlikeer(&self) {
         self.state.connected.store(false, Ordering::Release);
     }
 
-    /// Check if the slightlikeer is still connected.
+    /// Check if the lightlikeer is still connected.
     #[inline]
-    pub fn is_slightlikeer_connected(&self) -> bool {
-        self.state.is_slightlikeer_connected()
+    pub fn is_lightlikeer_connected(&self) -> bool {
+        self.state.is_lightlikeer_connected()
     }
 }
 
@@ -172,12 +172,12 @@ impl<T> Drop for Receiver<T> {
 
 /// Create an unbounded channel.
 #[inline]
-pub fn unbounded<T>() -> (Slightlikeer<T>, Receiver<T>) {
+pub fn unbounded<T>() -> (lightlikeer<T>, Receiver<T>) {
     let state = Arc::new(State::new());
-    let (slightlikeer, receiver) = channel::unbounded();
+    let (lightlikeer, receiver) = channel::unbounded();
     (
-        Slightlikeer {
-            slightlikeer,
+        lightlikeer {
+            lightlikeer,
             state: state.clone(),
         },
         Receiver { receiver, state },
@@ -186,12 +186,12 @@ pub fn unbounded<T>() -> (Slightlikeer<T>, Receiver<T>) {
 
 /// Create a bounded channel.
 #[inline]
-pub fn bounded<T>(cap: usize) -> (Slightlikeer<T>, Receiver<T>) {
+pub fn bounded<T>(cap: usize) -> (lightlikeer<T>, Receiver<T>) {
     let state = Arc::new(State::new());
-    let (slightlikeer, receiver) = channel::bounded(cap);
+    let (lightlikeer, receiver) = channel::bounded(cap);
     (
-        Slightlikeer {
-            slightlikeer,
+        lightlikeer {
+            lightlikeer,
             state: state.clone(),
         },
         Receiver { receiver, state },
@@ -200,18 +200,18 @@ pub fn bounded<T>(cap: usize) -> (Slightlikeer<T>, Receiver<T>) {
 
 const CHECK_INTERVAL: usize = 8;
 
-/// A slightlikeer of channel that limits the maximun plightlikeing messages count loosely.
-pub struct LooseBoundedSlightlikeer<T> {
-    slightlikeer: Slightlikeer<T>,
+/// A lightlikeer of channel that limits the maximun plightlikeing messages count loosely.
+pub struct LooseBoundedlightlikeer<T> {
+    lightlikeer: lightlikeer<T>,
     tried_cnt: Cell<usize>,
     limit: usize,
 }
 
-impl<T> LooseBoundedSlightlikeer<T> {
+impl<T> LooseBoundedlightlikeer<T> {
     /// Returns the number of messages in the channel.
     #[inline]
     pub fn len(&self) -> usize {
-        self.slightlikeer.len()
+        self.lightlikeer.len()
     }
 
     /// Returns true if the channel is empty.
@@ -219,53 +219,53 @@ impl<T> LooseBoundedSlightlikeer<T> {
     /// Note: Zero-capacity channels are always empty.
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.slightlikeer.is_empty()
+        self.lightlikeer.is_empty()
     }
 
-    /// Slightlike a message regardless its capacity limit.
+    /// lightlike a message regardless its capacity limit.
     #[inline]
-    pub fn force_slightlike(&self, t: T) -> Result<(), SlightlikeError<T>> {
+    pub fn force_lightlike(&self, t: T) -> Result<(), lightlikeError<T>> {
         let cnt = self.tried_cnt.get();
         self.tried_cnt.set(cnt + 1);
-        self.slightlikeer.slightlike(t)
+        self.lightlikeer.lightlike(t)
     }
 
-    /// Attempts to slightlike a message into the channel without blocking.
+    /// Attempts to lightlike a message into the channel without blocking.
     #[inline]
-    pub fn try_slightlike(&self, t: T) -> Result<(), TrySlightlikeError<T>> {
+    pub fn try_lightlike(&self, t: T) -> Result<(), TrylightlikeError<T>> {
         let cnt = self.tried_cnt.get();
         if cnt < CHECK_INTERVAL {
             self.tried_cnt.set(cnt + 1);
         } else if self.len() < self.limit {
             self.tried_cnt.set(1);
         } else {
-            return Err(TrySlightlikeError::Full(t));
+            return Err(TrylightlikeError::Full(t));
         }
 
-        match self.slightlikeer.slightlike(t) {
+        match self.lightlikeer.lightlike(t) {
             Ok(()) => Ok(()),
-            Err(SlightlikeError(t)) => Err(TrySlightlikeError::Disconnected(t)),
+            Err(lightlikeError(t)) => Err(TrylightlikeError::Disconnected(t)),
         }
     }
 
-    /// Stop the slightlikeer from slightlikeing any further messages.
+    /// Stop the lightlikeer from lightlikeing any further messages.
     #[inline]
-    pub fn close_slightlikeer(&self) {
-        self.slightlikeer.close_slightlikeer();
+    pub fn close_lightlikeer(&self) {
+        self.lightlikeer.close_lightlikeer();
     }
 
-    /// Check if the slightlikeer is still connected.
+    /// Check if the lightlikeer is still connected.
     #[inline]
-    pub fn is_slightlikeer_connected(&self) -> bool {
-        self.slightlikeer.state.is_slightlikeer_connected()
+    pub fn is_lightlikeer_connected(&self) -> bool {
+        self.lightlikeer.state.is_lightlikeer_connected()
     }
 }
 
-impl<T> Clone for LooseBoundedSlightlikeer<T> {
+impl<T> Clone for LooseBoundedlightlikeer<T> {
     #[inline]
-    fn clone(&self) -> LooseBoundedSlightlikeer<T> {
-        LooseBoundedSlightlikeer {
-            slightlikeer: self.slightlikeer.clone(),
+    fn clone(&self) -> LooseBoundedlightlikeer<T> {
+        LooseBoundedlightlikeer {
+            lightlikeer: self.lightlikeer.clone(),
             tried_cnt: self.tried_cnt.clone(),
             limit: self.limit,
         }
@@ -273,11 +273,11 @@ impl<T> Clone for LooseBoundedSlightlikeer<T> {
 }
 
 /// Create a loosely bounded channel with the given capacity.
-pub fn loose_bounded<T>(cap: usize) -> (LooseBoundedSlightlikeer<T>, Receiver<T>) {
-    let (slightlikeer, receiver) = unbounded();
+pub fn loose_bounded<T>(cap: usize) -> (LooseBoundedlightlikeer<T>, Receiver<T>) {
+    let (lightlikeer, receiver) = unbounded();
     (
-        LooseBoundedSlightlikeer {
-            slightlikeer,
+        LooseBoundedlightlikeer {
+            lightlikeer,
             tried_cnt: Cell::new(0),
             limit: cap,
         },
@@ -294,11 +294,11 @@ mod tests {
     #[test]
     fn test_bounded() {
         let (tx, rx) = super::bounded::<u64>(10);
-        tx.try_slightlike(1).unwrap();
+        tx.try_lightlike(1).unwrap();
         for i in 2..11 {
-            tx.clone().slightlike(i).unwrap();
+            tx.clone().lightlike(i).unwrap();
         }
-        assert_eq!(tx.try_slightlike(11), Err(TrySlightlikeError::Full(11)));
+        assert_eq!(tx.try_lightlike(11), Err(TrylightlikeError::Full(11)));
 
         assert_eq!(rx.try_recv(), Ok(1));
         for i in 2..11 {
@@ -314,13 +314,13 @@ mod tests {
         assert!(elapsed >= Duration::from_millis(100), "{:?}", elapsed);
 
         drop(rx);
-        assert_eq!(tx.slightlike(2), Err(SlightlikeError(2)));
-        assert_eq!(tx.try_slightlike(2), Err(TrySlightlikeError::Disconnected(2)));
-        assert!(!tx.is_slightlikeer_connected());
+        assert_eq!(tx.lightlike(2), Err(lightlikeError(2)));
+        assert_eq!(tx.try_lightlike(2), Err(TrylightlikeError::Disconnected(2)));
+        assert!(!tx.is_lightlikeer_connected());
 
         let (tx, rx) = super::bounded::<u64>(10);
-        tx.slightlike(2).unwrap();
-        tx.slightlike(3).unwrap();
+        tx.lightlike(2).unwrap();
+        tx.lightlike(3).unwrap();
         drop(tx);
         assert_eq!(rx.try_recv(), Ok(2));
         assert_eq!(rx.recv(), Ok(3));
@@ -333,18 +333,18 @@ mod tests {
 
         let (tx, rx) = super::bounded::<u64>(10);
         assert!(tx.is_empty());
-        assert!(tx.is_slightlikeer_connected());
+        assert!(tx.is_lightlikeer_connected());
         assert_eq!(tx.len(), 0);
         assert!(rx.is_empty());
         assert_eq!(rx.len(), 0);
-        tx.slightlike(2).unwrap();
-        tx.slightlike(3).unwrap();
+        tx.lightlike(2).unwrap();
+        tx.lightlike(3).unwrap();
         assert_eq!(tx.len(), 2);
         assert_eq!(rx.len(), 2);
-        tx.close_slightlikeer();
-        assert_eq!(tx.slightlike(3), Err(SlightlikeError(3)));
-        assert_eq!(tx.try_slightlike(3), Err(TrySlightlikeError::Disconnected(3)));
-        assert!(!tx.is_slightlikeer_connected());
+        tx.close_lightlikeer();
+        assert_eq!(tx.lightlike(3), Err(lightlikeError(3)));
+        assert_eq!(tx.try_lightlike(3), Err(TrylightlikeError::Disconnected(3)));
+        assert!(!tx.is_lightlikeer_connected());
         assert_eq!(rx.try_recv(), Ok(2));
         assert_eq!(rx.recv(), Ok(3));
         assert_eq!(rx.try_recv(), Err(TryRecvError::Empty));
@@ -354,7 +354,7 @@ mod tests {
         let (tx2, rx2) = super::bounded::<u64>(0);
         thread::spawn(move || {
             thread::sleep(Duration::from_millis(100));
-            tx1.slightlike(10).unwrap();
+            tx1.lightlike(10).unwrap();
             thread::sleep(Duration::from_millis(100));
             assert_eq!(rx2.recv(), Ok(2));
         });
@@ -363,7 +363,7 @@ mod tests {
         let elapsed = timer.elapsed();
         assert!(elapsed >= Duration::from_millis(100), "{:?}", elapsed);
         let timer = Instant::now();
-        tx2.slightlike(2).unwrap();
+        tx2.lightlike(2).unwrap();
         let elapsed = timer.elapsed();
         assert!(elapsed >= Duration::from_millis(50), "{:?}", elapsed);
     }
@@ -371,8 +371,8 @@ mod tests {
     #[test]
     fn test_unbounded() {
         let (tx, rx) = super::unbounded::<u64>();
-        tx.try_slightlike(1).unwrap();
-        tx.slightlike(2).unwrap();
+        tx.try_lightlike(1).unwrap();
+        tx.lightlike(2).unwrap();
 
         assert_eq!(rx.try_recv(), Ok(1));
         assert_eq!(rx.recv(), Ok(2));
@@ -386,9 +386,9 @@ mod tests {
         assert!(elapsed >= Duration::from_millis(100), "{:?}", elapsed);
 
         drop(rx);
-        assert_eq!(tx.slightlike(2), Err(SlightlikeError(2)));
-        assert_eq!(tx.try_slightlike(2), Err(TrySlightlikeError::Disconnected(2)));
-        assert!(!tx.is_slightlikeer_connected());
+        assert_eq!(tx.lightlike(2), Err(lightlikeError(2)));
+        assert_eq!(tx.try_lightlike(2), Err(TrylightlikeError::Disconnected(2)));
+        assert!(!tx.is_lightlikeer_connected());
 
         let (tx, rx) = super::unbounded::<u64>();
         drop(tx);
@@ -402,7 +402,7 @@ mod tests {
         let (tx, rx) = super::unbounded::<u64>();
         thread::spawn(move || {
             thread::sleep(Duration::from_millis(100));
-            tx.slightlike(10).unwrap();
+            tx.lightlike(10).unwrap();
         });
         let timer = Instant::now();
         assert_eq!(rx.recv(), Ok(10));
@@ -411,18 +411,18 @@ mod tests {
 
         let (tx, rx) = super::unbounded::<u64>();
         assert!(tx.is_empty());
-        assert!(tx.is_slightlikeer_connected());
+        assert!(tx.is_lightlikeer_connected());
         assert_eq!(tx.len(), 0);
         assert!(rx.is_empty());
         assert_eq!(rx.len(), 0);
-        tx.slightlike(2).unwrap();
-        tx.slightlike(3).unwrap();
+        tx.lightlike(2).unwrap();
+        tx.lightlike(3).unwrap();
         assert_eq!(tx.len(), 2);
         assert_eq!(rx.len(), 2);
-        tx.close_slightlikeer();
-        assert_eq!(tx.slightlike(3), Err(SlightlikeError(3)));
-        assert_eq!(tx.try_slightlike(3), Err(TrySlightlikeError::Disconnected(3)));
-        assert!(!tx.is_slightlikeer_connected());
+        tx.close_lightlikeer();
+        assert_eq!(tx.lightlike(3), Err(lightlikeError(3)));
+        assert_eq!(tx.try_lightlike(3), Err(TrylightlikeError::Disconnected(3)));
+        assert!(!tx.is_lightlikeer_connected());
         assert_eq!(rx.try_recv(), Ok(2));
         assert_eq!(rx.recv(), Ok(3));
         assert_eq!(rx.try_recv(), Err(TryRecvError::Empty));
@@ -432,16 +432,16 @@ mod tests {
     #[test]
     fn test_loose() {
         let (tx, rx) = super::loose_bounded(10);
-        tx.try_slightlike(1).unwrap();
+        tx.try_lightlike(1).unwrap();
         for i in 2..11 {
-            tx.clone().try_slightlike(i).unwrap();
+            tx.clone().try_lightlike(i).unwrap();
         }
         for i in 1..super::CHECK_INTERVAL {
-            tx.force_slightlike(i).unwrap();
+            tx.force_lightlike(i).unwrap();
         }
-        assert_eq!(tx.try_slightlike(4), Err(TrySlightlikeError::Full(4)));
-        tx.force_slightlike(5).unwrap();
-        assert_eq!(tx.try_slightlike(6), Err(TrySlightlikeError::Full(6)));
+        assert_eq!(tx.try_lightlike(4), Err(TrylightlikeError::Full(4)));
+        tx.force_lightlike(5).unwrap();
+        assert_eq!(tx.try_lightlike(6), Err(TrylightlikeError::Full(6)));
 
         assert_eq!(rx.try_recv(), Ok(1));
         for i in 2..11 {
@@ -460,16 +460,16 @@ mod tests {
         let elapsed = timer.elapsed();
         assert!(elapsed >= Duration::from_millis(100), "{:?}", elapsed);
 
-        tx.force_slightlike(1).unwrap();
+        tx.force_lightlike(1).unwrap();
         drop(rx);
-        assert_eq!(tx.force_slightlike(2), Err(SlightlikeError(2)));
-        assert_eq!(tx.try_slightlike(2), Err(TrySlightlikeError::Disconnected(2)));
+        assert_eq!(tx.force_lightlike(2), Err(lightlikeError(2)));
+        assert_eq!(tx.try_lightlike(2), Err(TrylightlikeError::Disconnected(2)));
         for _ in 0..super::CHECK_INTERVAL {
-            assert_eq!(tx.try_slightlike(2), Err(TrySlightlikeError::Disconnected(2)));
+            assert_eq!(tx.try_lightlike(2), Err(TrylightlikeError::Disconnected(2)));
         }
 
         let (tx, rx) = super::loose_bounded(10);
-        tx.try_slightlike(2).unwrap();
+        tx.try_lightlike(2).unwrap();
         drop(tx);
         assert_eq!(rx.recv(), Ok(2));
         assert_eq!(rx.recv(), Err(RecvError));
@@ -482,7 +482,7 @@ mod tests {
         let (tx, rx) = super::loose_bounded(10);
         thread::spawn(move || {
             thread::sleep(Duration::from_millis(100));
-            tx.try_slightlike(10).unwrap();
+            tx.try_lightlike(10).unwrap();
         });
         let timer = Instant::now();
         assert_eq!(rx.recv(), Ok(10));

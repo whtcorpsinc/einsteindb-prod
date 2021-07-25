@@ -22,17 +22,17 @@ use einsteindb_util::worker::{Builder as WorkerBuilder, Runnable, RunnableWithTi
 /// `BraneInfoAccessor` is used to collect all branes' information on this EinsteinDB into a collection
 /// so that other parts of EinsteinDB can get brane information from it. It registers a semaphore to
 /// violetabftstore, which is named `BraneEventListener`. When the events that we are interested in
-/// happen (such as creating and deleting branes), `BraneEventListener` simply slightlikes the events
+/// happen (such as creating and deleting branes), `BraneEventListener` simply lightlikes the events
 /// through a channel.
 /// In the mean time, `BraneCollector` keeps fetching messages from the channel, and mutates
 /// the collection according to the messages. When an accessor method of `BraneInfoAccessor` is
-/// called, it also simply slightlikes a message to `BraneCollector`, and the result will be sent
+/// called, it also simply lightlikes a message to `BraneCollector`, and the result will be sent
 /// back through as soon as it's finished.
 /// In fact, the channel mentioned above is actually a `util::worker::Worker`.
 ///
 /// **Caution**: Note that the information in `BraneInfoAccessor` is not perfectly precise. Some
 /// branes may be temporarily absent while merging or splitting is in progress. Also,
-/// `BraneInfoAccessor`'s information may slightly lag the actual branes on the EinsteinDB.
+/// `BraneInfoAccessor`'s information may lightly lag the actual branes on the EinsteinDB.
 
 /// `VioletaBftStoreEvent` Represents events dispatched from violetabftstore interlock.
 #[derive(Debug)]
@@ -69,10 +69,10 @@ impl BraneInfo {
 type BranesMap = HashMap<u64, BraneInfo>;
 type BraneConesMap = BTreeMap<Vec<u8>, u64>;
 
-pub type Callback<T> = Box<dyn FnOnce(T) + Slightlike>;
-pub type SeekBraneCallback = Box<dyn FnOnce(&mut dyn Iteron<Item = &BraneInfo>) + Slightlike>;
+pub type Callback<T> = Box<dyn FnOnce(T) + lightlike>;
+pub type SeekBraneCallback = Box<dyn FnOnce(&mut dyn Iteron<Item = &BraneInfo>) + lightlike>;
 
-/// `BraneInfoAccessor` has its own thread. Queries and ufidelates are done by slightlikeing commands to the
+/// `BraneInfoAccessor` has its own thread. Queries and ufidelates are done by lightlikeing commands to the
 /// thread.
 pub enum BraneInfoQuery {
     VioletaBftStoreEvent(VioletaBftStoreEvent),
@@ -85,7 +85,7 @@ pub enum BraneInfoQuery {
         callback: Callback<Option<BraneInfo>>,
     },
     /// Gets all contents from the collection. Only used for testing.
-    DebugDump(mpsc::Slightlikeer<(BranesMap, BraneConesMap)>),
+    DebugDump(mpsc::lightlikeer<(BranesMap, BraneConesMap)>),
 }
 
 impl Display for BraneInfoQuery {
@@ -103,7 +103,7 @@ impl Display for BraneInfoQuery {
     }
 }
 
-/// `BraneEventListener` implements semaphore promises. It simply slightlike the events that we are interested in
+/// `BraneEventListener` implements semaphore promises. It simply lightlike the events that we are interested in
 /// through the `interlock_semaphore`.
 #[derive(Clone)]
 struct BraneEventListener {
@@ -420,7 +420,7 @@ impl Runnable for BraneCollector {
                 self.handle_find_brane_by_id(brane_id, callback);
             }
             BraneInfoQuery::DebugDump(tx) => {
-                tx.slightlike((self.branes.clone(), self.brane_cones.clone()))
+                tx.lightlike((self.branes.clone(), self.brane_cones.clone()))
                     .unwrap();
             }
         }
@@ -500,7 +500,7 @@ impl BraneInfoAccessor {
     }
 }
 
-pub trait BraneInfoProvider: Slightlike + Clone + 'static {
+pub trait BraneInfoProvider: lightlike + Clone + 'static {
     /// Get a Iteron of branes that contains `from` or have tuplespaceInstanton larger than `from`, and invoke
     /// the callback to process the result.
     fn seek_brane(&self, _from: &[u8], _callback: SeekBraneCallback) -> Result<()> {
@@ -524,7 +524,7 @@ impl BraneInfoProvider for BraneInfoAccessor {
         };
         self.interlock_semaphore
             .schedule(msg)
-            .map_err(|e| box_err!("failed to slightlike request to brane collector: {:?}", e))
+            .map_err(|e| box_err!("failed to lightlike request to brane collector: {:?}", e))
     }
 
     fn find_brane_by_id(
@@ -538,7 +538,7 @@ impl BraneInfoProvider for BraneInfoAccessor {
         };
         self.interlock_semaphore
             .schedule(msg)
-            .map_err(|e| box_err!("failed to slightlike request to brane collector: {:?}", e))
+            .map_err(|e| box_err!("failed to lightlike request to brane collector: {:?}", e))
     }
 }
 

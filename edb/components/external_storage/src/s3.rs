@@ -27,10 +27,10 @@ use ekvproto::backup::S3 as Config;
 pub struct S3Storage {
     config: Config,
     client: S3Client,
-    // The current implementation (rosoto 0.43.0 + hyper 0.13.3) is not `Slightlike`
+    // The current implementation (rosoto 0.43.0 + hyper 0.13.3) is not `lightlike`
     // in practical. See more https://github.com/einsteindb/einsteindb/issues/7236.
     // FIXME: remove it.
-    _not_slightlike: PhantomData<*const ()>,
+    _not_lightlike: PhantomData<*const ()>,
 }
 
 impl S3Storage {
@@ -41,20 +41,20 @@ impl S3Storage {
         Ok(S3Storage {
             config: config.clone(),
             client,
-            _not_slightlike: PhantomData::default(),
+            _not_lightlike: PhantomData::default(),
         })
     }
 
     pub fn with_request_dispatcher<D>(config: &Config, dispatcher: D) -> io::Result<S3Storage>
     where
-        D: DispatchSignedRequest + Slightlike + Sync + 'static,
+        D: DispatchSignedRequest + lightlike + Sync + 'static,
     {
         Self::check_config(config)?;
         let client = new_client!(S3Client, config, dispatcher);
         Ok(S3Storage {
             config: config.clone(),
             client,
-            _not_slightlike: PhantomData::default(),
+            _not_lightlike: PhantomData::default(),
         })
     }
 
@@ -276,7 +276,7 @@ impl ExternalStorage for S3Storage {
     fn write(
         &self,
         name: &str,
-        mut reader: Box<dyn AsyncRead + Slightlike + Unpin>,
+        mut reader: Box<dyn AsyncRead + lightlike + Unpin>,
         content_length: u64,
     ) -> io::Result<()> {
         let key = self.maybe_prefix_key(name);

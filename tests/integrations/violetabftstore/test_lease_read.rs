@@ -68,7 +68,7 @@ fn test_renew_lease<T: Simulator>(cluster: &mut Cluster<T>) {
     let last_index = state.get_last_index();
 
     let detector = LeaseReadFilter::default();
-    cluster.add_slightlike_filter(CloneFilterFactory(detector.clone()));
+    cluster.add_lightlike_filter(CloneFilterFactory(detector.clone()));
 
     // Issue a read request and check the value on response.
     must_read_on_peer(cluster, peer.clone(), brane.clone(), key, b"v1");
@@ -148,7 +148,7 @@ fn test_lease_expired<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.must_transfer_leader(brane_id, peer.clone());
 
     // Isolate the leader `peer` from other peers.
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(store_id));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(store_id));
 
     // Wait for the leader lease to expire and a new leader is elected.
     thread::sleep(election_timeout * 2);
@@ -189,7 +189,7 @@ fn test_lease_unsafe_during_leader_transfers<T: Simulator>(cluster: &mut Cluster
     must_get_equal(&cluster.get_engine(3), b"k0", b"v0");
 
     let detector = LeaseReadFilter::default();
-    cluster.add_slightlike_filter(CloneFilterFactory(detector.clone()));
+    cluster.add_lightlike_filter(CloneFilterFactory(detector.clone()));
 
     // write the initial value for a key.
     let key = b"k";
@@ -217,7 +217,7 @@ fn test_lease_unsafe_during_leader_transfers<T: Simulator>(cluster: &mut Cluster
     must_get_equal(&cluster.get_engine(3), key, b"v1");
 
     // Drop MsgTimeoutNow to `peer3` so that the leader transfer procedure would abort later.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(brane_id, peer3_store_id)
             .msg_type(MessageType::MsgTimeoutNow)
             .direction(Direction::Recv),
@@ -320,7 +320,7 @@ fn test_batch_id_in_lease<T: Simulator>(cluster: &mut Cluster<T>) {
     // Sleep to make sure lease expired
     thread::sleep(election_timeout + Duration::from_millis(200));
 
-    // Slightlike request to brane 0 and 1 to renew their lease.
+    // lightlike request to brane 0 and 1 to renew their lease.
     cluster.must_put(b"k11", b"v2");
     cluster.must_put(b"k33", b"v2");
     assert_eq!(b"v2".to_vec(), cluster.must_get(b"k33").unwrap());
@@ -396,7 +396,7 @@ fn test_node_callback_when_destroyed() {
     let req = new_admin_request(1, &epoch, cc);
     // so the leader can't commit the conf change yet.
     let block = Arc::new(AtomicBool::new(true));
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, leader.get_store_id())
             .msg_type(MessageType::MsgApplightlikeResponse)
             .direction(Direction::Recv)
@@ -405,7 +405,7 @@ fn test_node_callback_when_destroyed() {
     let mut filter = LeaseReadFilter::default();
     filter.take = true;
     // so the leader can't perform read index.
-    cluster.add_slightlike_filter(CloneFilterFactory(filter.clone()));
+    cluster.add_lightlike_filter(CloneFilterFactory(filter.clone()));
     // it always timeout, no need to wait.
     let _ = cluster.call_command_on_leader(req, Duration::from_millis(500));
 
@@ -439,7 +439,7 @@ fn test_node_callback_when_destroyed() {
 /// Test if the callback proposed by read index is cleared correctly.
 #[test]
 fn test_lease_read_callback_destroy() {
-    // Only server cluster can fake slightlikeing message successfully in violetabftstore layer.
+    // Only server cluster can fake lightlikeing message successfully in violetabftstore layer.
     let mut cluster = new_server_cluster(0, 3);
     // Increase the VioletaBft tick interval to make this test case running reliably.
     let election_timeout = configure_for_lease_read(&mut cluster, Some(50), None);
@@ -448,7 +448,7 @@ fn test_lease_read_callback_destroy() {
     cluster.must_put(b"k1", b"v1");
     must_get_equal(&cluster.get_engine(3), b"k1", b"v1");
     // Isolate the target peer to make transfer leader fail.
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     cluster.transfer_leader(1, new_peer(3, 3));
     thread::sleep(election_timeout * 2);
     // Trigger ReadIndex on the leader.
@@ -508,7 +508,7 @@ fn test_read_index_stale_in_suspect_lease() {
             sim.async_command_on_node(
                 old_leader.get_id(),
                 read_request,
-                Callback::Read(Box::new(move |resp| tx.slightlike(resp.response).unwrap())),
+                Callback::Read(Box::new(move |resp| tx.lightlike(resp.response).unwrap())),
             )
             .unwrap();
             rx
@@ -540,7 +540,7 @@ fn test_read_index_stale_in_suspect_lease() {
         for violetabft_msg in mem::replace(dropped_msgs.dagger().unwrap().as_mut(), vec![]) {
             let msg_type = violetabft_msg.get_message().get_msg_type();
             if msg_type == MessageType::MsgHeartbeatResponse {
-                router.slightlike_violetabft_message(violetabft_msg).unwrap();
+                router.lightlike_violetabft_message(violetabft_msg).unwrap();
                 continue;
             }
             cluster.sim.wl().clear_recv_filters(old_leader.get_id());
@@ -616,7 +616,7 @@ fn test_not_leader_read_lease() {
             MessageType::MsgRequestVote,
         )),
     );
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 2)
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgApplightlike),
@@ -664,7 +664,7 @@ fn test_read_index_after_write() {
     let brane_on_store1 = find_peer(&brane, 1).unwrap().to_owned();
     cluster.must_transfer_leader(brane.get_id(), brane_on_store1.clone());
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     // Add heartbeat msg filter to prevent the leader to reply the read index response.
     let filter = Box::new(
         BranePacketFilter::new(brane.get_id(), 2)

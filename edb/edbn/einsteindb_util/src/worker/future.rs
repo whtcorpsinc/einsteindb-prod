@@ -7,7 +7,7 @@ use std::io;
 use std::sync::{Arc, Mutex};
 use std::thread::{self, Builder, JoinHandle};
 
-use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSlightlikeer};
+use futures::channel::mpsc::{unbounded, UnboundedReceiver, Unboundedlightlikeer};
 use futures::executor::block_on;
 use futures::stream::StreamExt;
 use tokio::task::LocalSet;
@@ -28,8 +28,8 @@ impl<T> Debug for Stopped<T> {
     }
 }
 
-impl<T> From<Stopped<T>> for Box<dyn Error + Sync + Slightlike + 'static> {
-    fn from(_: Stopped<T>) -> Box<dyn Error + Sync + Slightlike + 'static> {
+impl<T> From<Stopped<T>> for Box<dyn Error + Sync + lightlike + 'static> {
+    fn from(_: Stopped<T>) -> Box<dyn Error + Sync + lightlike + 'static> {
         box_err!("channel has been closed")
     }
 }
@@ -42,7 +42,7 @@ pub trait Runnable<T: Display> {
 /// Interlock_Semaphore provides interface to schedule task to underlying workers.
 pub struct Interlock_Semaphore<T> {
     name: Arc<String>,
-    slightlikeer: UnboundedSlightlikeer<Option<T>>,
+    lightlikeer: Unboundedlightlikeer<Option<T>>,
     metrics_plightlikeing_task_count: IntGauge,
 }
 
@@ -52,12 +52,12 @@ pub fn dummy_interlock_semaphore<T: Display>() -> Interlock_Semaphore<T> {
 }
 
 impl<T: Display> Interlock_Semaphore<T> {
-    fn new<S: Into<String>>(name: S, slightlikeer: UnboundedSlightlikeer<Option<T>>) -> Interlock_Semaphore<T> {
+    fn new<S: Into<String>>(name: S, lightlikeer: Unboundedlightlikeer<Option<T>>) -> Interlock_Semaphore<T> {
         let name = name.into();
         Interlock_Semaphore {
             metrics_plightlikeing_task_count: WORKER_PENDING_TASK_VEC.with_label_values(&[&name]),
             name: Arc::new(name),
-            slightlikeer,
+            lightlikeer,
         }
     }
 
@@ -66,7 +66,7 @@ impl<T: Display> Interlock_Semaphore<T> {
     /// If the worker is stopped, an error will return.
     pub fn schedule(&self, task: T) -> Result<(), Stopped<T>> {
         debug!("scheduling task {}", task);
-        if let Err(err) = self.slightlikeer.unbounded_slightlike(Some(task)) {
+        if let Err(err) = self.lightlikeer.unbounded_lightlike(Some(task)) {
             return Err(Stopped(err.into_inner().unwrap()));
         }
         self.metrics_plightlikeing_task_count.inc();
@@ -78,7 +78,7 @@ impl<T: Display> Clone for Interlock_Semaphore<T> {
     fn clone(&self) -> Interlock_Semaphore<T> {
         Interlock_Semaphore {
             name: Arc::clone(&self.name),
-            slightlikeer: self.slightlikeer.clone(),
+            lightlikeer: self.lightlikeer.clone(),
             metrics_plightlikeing_task_count: self.metrics_plightlikeing_task_count.clone(),
         }
     }
@@ -94,8 +94,8 @@ pub struct Worker<T: Display> {
 // TODO: add metrics.
 fn poll<R, T>(mut runner: R, mut rx: UnboundedReceiver<Option<T>>)
 where
-    R: Runnable<T> + Slightlike + 'static,
-    T: Display + Slightlike + 'static,
+    R: Runnable<T> + lightlike + 'static,
+    T: Display + lightlike + 'static,
 {
     einsteindb_alloc::add_thread_memory_accessor();
     let current_thread = thread::current();
@@ -123,7 +123,7 @@ where
     einsteindb_alloc::remove_thread_memory_accessor();
 }
 
-impl<T: Display + Slightlike + 'static> Worker<T> {
+impl<T: Display + lightlike + 'static> Worker<T> {
     /// Creates a worker.
     pub fn new<S: Into<String>>(name: S) -> Worker<T> {
         let (tx, rx) = unbounded();
@@ -137,7 +137,7 @@ impl<T: Display + Slightlike + 'static> Worker<T> {
     /// Starts the worker.
     pub fn spacelike<R>(&mut self, runner: R) -> Result<(), io::Error>
     where
-        R: Runnable<T> + Slightlike + 'static,
+        R: Runnable<T> + lightlike + 'static,
     {
         let mut receiver = self.receiver.dagger().unwrap();
         info!("spacelikeing working thread"; "worker" => &self.interlock_semaphore.name);
@@ -178,10 +178,10 @@ impl<T: Display + Slightlike + 'static> Worker<T> {
 
     /// Stops the worker thread.
     pub fn stop(&mut self) -> Option<thread::JoinHandle<()>> {
-        // close slightlikeer explicitly so the background thread will exit.
+        // close lightlikeer explicitly so the background thread will exit.
         info!("stoping worker"; "worker" => &self.interlock_semaphore.name);
         let handle = self.handle.take()?;
-        if let Err(e) = self.interlock_semaphore.slightlikeer.unbounded_slightlike(None) {
+        if let Err(e) = self.interlock_semaphore.lightlikeer.unbounded_lightlike(None) {
             warn!("failed to stop worker thread"; "err" => ?e);
         }
 
@@ -191,7 +191,7 @@ impl<T: Display + Slightlike + 'static> Worker<T> {
 
 #[causet(test)]
 mod tests {
-    use std::sync::mpsc::{self, Slightlikeer};
+    use std::sync::mpsc::{self, lightlikeer};
     use std::time::Duration;
     use std::time::Instant;
 
@@ -204,12 +204,12 @@ mod tests {
 
     struct StepRunner {
         timer: timer::Handle,
-        ch: Slightlikeer<u64>,
+        ch: lightlikeer<u64>,
     }
 
     impl Runnable<u64> for StepRunner {
         fn run(&mut self, step: u64) {
-            self.ch.slightlike(step).unwrap();
+            self.ch.lightlike(step).unwrap();
             let f = self
                 .timer
                 .delay(Instant::now() + Duration::from_millis(step))
@@ -218,7 +218,7 @@ mod tests {
         }
 
         fn shutdown(&mut self) {
-            self.ch.slightlike(0).unwrap();
+            self.ch.lightlike(0).unwrap();
         }
     }
 
@@ -246,7 +246,7 @@ mod tests {
         worker.stop().unwrap().join().unwrap();
         // now worker can't handle any task
         assert!(worker.is_busy());
-        // when shutdown, StepRunner should slightlike back a 0.
+        // when shutdown, StepRunner should lightlike back a 0.
         assert_eq!(0, rx.recv().unwrap());
     }
 }

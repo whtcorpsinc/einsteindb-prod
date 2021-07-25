@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 use std::{mem, thread, u64};
 
 use batch_system::{BasicMailbox, BatchRouter, BatchSystem, Fsm, HandlerBuilder, PollHandler};
-use crossbeam::channel::{TryRecvError, TrySlightlikeError};
+use crossbeam::channel::{TryRecvError, TrylightlikeError};
 use engine_lmdb::{PerfContext, PerfLevel};
 use engine_promises::{Engines, KvEngine, MuBlock, WriteBatch, WriteBatchExt, WriteOptions};
 use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
@@ -33,7 +33,7 @@ use fidel_client::FidelClient;
 use sst_importer::SSTImporter;
 use einsteindb_util::collections::HashMap;
 use einsteindb_util::config::{Tracker, VersionTrack};
-use einsteindb_util::mpsc::{self, LooseBoundedSlightlikeer, Receiver};
+use einsteindb_util::mpsc::{self, LooseBoundedlightlikeer, Receiver};
 use einsteindb_util::time::{duration_to_sec, Instant as TiInstant};
 use einsteindb_util::timer::SteadyTimer;
 use einsteindb_util::worker::{FutureInterlock_Semaphore, FutureWorker, Interlock_Semaphore, Worker};
@@ -46,7 +46,7 @@ use crate::report_perf_context;
 use crate::store::config::Config;
 use crate::store::fsm::metrics::*;
 use crate::store::fsm::peer::{
-    maybe_destroy_source, new_admin_request, PeerFsm, PeerFsmpushdown_causet, SlightlikeerFsmPair,
+    maybe_destroy_source, new_admin_request, PeerFsm, PeerFsmpushdown_causet, lightlikeerFsmPair,
 };
 use crate::store::fsm::ApplyNotifier;
 use crate::store::fsm::ApplyTaskRes;
@@ -187,7 +187,7 @@ where
 {
     fn notify(&self, apply_res: Vec<ApplyRes<EK::Snapshot>>) {
         for r in apply_res {
-            self.router.try_slightlike(
+            self.router.try_lightlike(
                 r.brane_id,
                 PeerMsg::ApplyRes {
                     res: ApplyTaskRes::Apply(r),
@@ -196,7 +196,7 @@ where
         }
     }
     fn notify_one(&self, brane_id: u64, msg: PeerMsg<EK>) {
-        self.router.try_slightlike(brane_id, msg);
+        self.router.try_lightlike(brane_id, msg);
     }
 
     fn clone_box(&self) -> Box<dyn ApplyNotifier<EK>> {
@@ -209,43 +209,43 @@ where
     EK: KvEngine,
     ER: VioletaBftEngine,
 {
-    pub fn slightlike_violetabft_message(
+    pub fn lightlike_violetabft_message(
         &self,
         mut msg: VioletaBftMessage,
-    ) -> std::result::Result<(), TrySlightlikeError<VioletaBftMessage>> {
+    ) -> std::result::Result<(), TrylightlikeError<VioletaBftMessage>> {
         let id = msg.get_brane_id();
-        match self.try_slightlike(id, PeerMsg::VioletaBftMessage(msg)) {
+        match self.try_lightlike(id, PeerMsg::VioletaBftMessage(msg)) {
             Either::Left(Ok(())) => return Ok(()),
-            Either::Left(Err(TrySlightlikeError::Full(PeerMsg::VioletaBftMessage(m)))) => {
-                return Err(TrySlightlikeError::Full(m));
+            Either::Left(Err(TrylightlikeError::Full(PeerMsg::VioletaBftMessage(m)))) => {
+                return Err(TrylightlikeError::Full(m));
             }
-            Either::Left(Err(TrySlightlikeError::Disconnected(PeerMsg::VioletaBftMessage(m)))) => {
-                return Err(TrySlightlikeError::Disconnected(m));
+            Either::Left(Err(TrylightlikeError::Disconnected(PeerMsg::VioletaBftMessage(m)))) => {
+                return Err(TrylightlikeError::Disconnected(m));
             }
             Either::Right(PeerMsg::VioletaBftMessage(m)) => msg = m,
             _ => unreachable!(),
         }
-        match self.slightlike_control(StoreMsg::VioletaBftMessage(msg)) {
+        match self.lightlike_control(StoreMsg::VioletaBftMessage(msg)) {
             Ok(()) => Ok(()),
-            Err(TrySlightlikeError::Full(StoreMsg::VioletaBftMessage(m))) => Err(TrySlightlikeError::Full(m)),
-            Err(TrySlightlikeError::Disconnected(StoreMsg::VioletaBftMessage(m))) => {
-                Err(TrySlightlikeError::Disconnected(m))
+            Err(TrylightlikeError::Full(StoreMsg::VioletaBftMessage(m))) => Err(TrylightlikeError::Full(m)),
+            Err(TrylightlikeError::Disconnected(StoreMsg::VioletaBftMessage(m))) => {
+                Err(TrylightlikeError::Disconnected(m))
             }
             _ => unreachable!(),
         }
     }
 
     #[inline]
-    pub fn slightlike_violetabft_command(
+    pub fn lightlike_violetabft_command(
         &self,
         cmd: VioletaBftCommand<EK::Snapshot>,
-    ) -> std::result::Result<(), TrySlightlikeError<VioletaBftCommand<EK::Snapshot>>> {
+    ) -> std::result::Result<(), TrylightlikeError<VioletaBftCommand<EK::Snapshot>>> {
         let brane_id = cmd.request.get_header().get_brane_id();
-        match self.slightlike(brane_id, PeerMsg::VioletaBftCommand(cmd)) {
+        match self.lightlike(brane_id, PeerMsg::VioletaBftCommand(cmd)) {
             Ok(()) => Ok(()),
-            Err(TrySlightlikeError::Full(PeerMsg::VioletaBftCommand(cmd))) => Err(TrySlightlikeError::Full(cmd)),
-            Err(TrySlightlikeError::Disconnected(PeerMsg::VioletaBftCommand(cmd))) => {
-                Err(TrySlightlikeError::Disconnected(cmd))
+            Err(TrylightlikeError::Full(PeerMsg::VioletaBftCommand(cmd))) => Err(TrylightlikeError::Full(cmd)),
+            Err(TrylightlikeError::Disconnected(PeerMsg::VioletaBftCommand(cmd))) => {
+                Err(TrylightlikeError::Disconnected(cmd))
             }
             _ => unreachable!(),
         }
@@ -271,7 +271,7 @@ where
 
 #[derive(Default)]
 pub struct PeerTickBatch {
-    pub ticks: Vec<Box<dyn FnOnce() + Slightlike>>,
+    pub ticks: Vec<Box<dyn FnOnce() + lightlike>>,
     pub wait_duration: Duration,
 }
 
@@ -417,7 +417,7 @@ where
         if !is_zero_duration(&timeout) {
             let mb = self.router.control_mailbox();
             let delay = self.timer.delay(timeout).compat().map(move |_| {
-                if let Err(e) = mb.force_slightlike(StoreMsg::Tick(tick)) {
+                if let Err(e) = mb.force_lightlike(StoreMsg::Tick(tick)) {
                     info!(
                         "failed to schedule store tick, are we shutting down?";
                         "tick" => ?tick,
@@ -469,9 +469,9 @@ where
         } else {
             gc_msg.set_is_tombstone(true);
         }
-        if let Err(e) = self.trans.slightlike(gc_msg) {
+        if let Err(e) = self.trans.lightlike(gc_msg) {
             error!(?e;
-                "slightlike gc message failed";
+                "lightlike gc message failed";
                 "brane_id" => brane_id,
             );
         }
@@ -501,7 +501,7 @@ impl<EK> StoreFsm<EK>
 where
     EK: KvEngine,
 {
-    pub fn new(causet: &Config) -> (LooseBoundedSlightlikeer<StoreMsg<EK>>, Box<StoreFsm<EK>>) {
+    pub fn new(causet: &Config) -> (LooseBoundedlightlikeer<StoreMsg<EK>>, Box<StoreFsm<EK>>) {
         let (tx, rx) = mpsc::loose_bounded(causet.notify_capacity);
         let fsm = Box::new(StoreFsm {
             store: CausetStore {
@@ -917,7 +917,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
     /// Initialize this store. It scans the db engine, loads all branes
     /// and their peers from it, and schedules snapshot worker if necessary.
     /// WARN: This store should not be used before initialized.
-    fn init(&mut self) -> Result<Vec<SlightlikeerFsmPair<EK, ER>>> {
+    fn init(&mut self) -> Result<Vec<lightlikeerFsmPair<EK, ER>>> {
         // Scan brane meta to get saved branes.
         let spacelike_key = tuplespaceInstanton::REGION_META_MIN_KEY;
         let lightlike_key = tuplespaceInstanton::REGION_META_MAX_KEY;
@@ -1252,7 +1252,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
     fn spacelike_system<T: Transport + 'static, C: FidelClient + 'static, W: WriteBatch<EK> + 'static>(
         &mut self,
         mut workers: Workers<EK>,
-        brane_peers: Vec<SlightlikeerFsmPair<EK, ER>>,
+        brane_peers: Vec<lightlikeerFsmPair<EK, ER>>,
         builder: VioletaBftPollerBuilder<EK, ER, T, C>,
         auto_split_controller: AutoSplitController,
         interlock_host: InterlockHost<EK>,
@@ -1304,10 +1304,10 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
 
         // Make sure Msg::Start is the first message each FSM received.
         for addr in address {
-            self.router.force_slightlike(addr, PeerMsg::Start).unwrap();
+            self.router.force_lightlike(addr, PeerMsg::Start).unwrap();
         }
         self.router
-            .slightlike_control(StoreMsg::Start {
+            .lightlike_control(StoreMsg::Start {
                 store: store.clone(),
             })
             .unwrap();
@@ -1499,7 +1499,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             );
             let mut need_gc_msg = util::is_vote_msg(msg.get_message());
             if msg.has_extra_msg() {
-                // A learner can't vote so it slightlikes the check-stale-peer msg to others to find out whether
+                // A learner can't vote so it lightlikes the check-stale-peer msg to others to find out whether
                 // it is removed due to conf change or merge.
                 need_gc_msg |=
                     msg.get_extra_msg().get_type() == ExtraMessageType::MsgCheckStalePeer;
@@ -1511,17 +1511,17 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                 .handle_stale_msg(msg, brane_epoch.clone(), need_gc_msg && not_exist, None);
 
             if need_gc_msg && !not_exist {
-                let mut slightlike_msg = VioletaBftMessage::default();
-                slightlike_msg.set_brane_id(brane_id);
-                slightlike_msg.set_from_peer(msg.get_to_peer().clone());
-                slightlike_msg.set_to_peer(msg.get_from_peer().clone());
-                slightlike_msg.set_brane_epoch(brane_epoch.clone());
-                let extra_msg = slightlike_msg.mut_extra_msg();
+                let mut lightlike_msg = VioletaBftMessage::default();
+                lightlike_msg.set_brane_id(brane_id);
+                lightlike_msg.set_from_peer(msg.get_to_peer().clone());
+                lightlike_msg.set_to_peer(msg.get_from_peer().clone());
+                lightlike_msg.set_brane_epoch(brane_epoch.clone());
+                let extra_msg = lightlike_msg.mut_extra_msg();
                 extra_msg.set_type(ExtraMessageType::MsgCheckStalePeerResponse);
                 extra_msg.set_check_peers(brane.get_peers().into());
-                if let Err(e) = self.ctx.trans.slightlike(slightlike_msg) {
+                if let Err(e) = self.ctx.trans.lightlike(lightlike_msg) {
                     error!(?e;
-                        "slightlike check stale peer response message failed";
+                        "lightlike check stale peer response message failed";
                         "brane_id" => brane_id,
                     );
                 }
@@ -1553,10 +1553,10 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
 
     fn on_violetabft_message(&mut self, mut msg: VioletaBftMessage) -> Result<()> {
         let brane_id = msg.get_brane_id();
-        match self.ctx.router.slightlike(brane_id, PeerMsg::VioletaBftMessage(msg)) {
-            Ok(()) | Err(TrySlightlikeError::Full(_)) => return Ok(()),
-            Err(TrySlightlikeError::Disconnected(_)) if self.ctx.router.is_shutdown() => return Ok(()),
-            Err(TrySlightlikeError::Disconnected(PeerMsg::VioletaBftMessage(m))) => msg = m,
+        match self.ctx.router.lightlike(brane_id, PeerMsg::VioletaBftMessage(msg)) {
+            Ok(()) | Err(TrylightlikeError::Full(_)) => return Ok(()),
+            Err(TrylightlikeError::Disconnected(_)) if self.ctx.router.is_shutdown() => return Ok(()),
+            Err(TrylightlikeError::Disconnected(PeerMsg::VioletaBftMessage(m))) => msg = m,
             e => panic!(
                 "[store {}] [brane {}] unexpected redirect error: {:?}",
                 self.fsm.store.id, brane_id, e
@@ -1618,7 +1618,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         };
         if is_first_request_vote {
             // To void losing request vote messages, either put it to
-            // plightlikeing_votes or force slightlike.
+            // plightlikeing_votes or force lightlike.
             let mut store_meta = self.ctx.store_meta.dagger().unwrap();
             if !store_meta.branes.contains_key(&brane_id) {
                 store_meta.plightlikeing_votes.push(msg);
@@ -1627,14 +1627,14 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             if let Err(e) = self
                 .ctx
                 .router
-                .force_slightlike(brane_id, PeerMsg::VioletaBftMessage(msg))
+                .force_lightlike(brane_id, PeerMsg::VioletaBftMessage(msg))
             {
                 warn!("handle first request vote failed"; "brane_id" => brane_id, "error" => ?e);
             }
             return Ok(());
         }
 
-        let _ = self.ctx.router.slightlike(brane_id, PeerMsg::VioletaBftMessage(msg));
+        let _ = self.ctx.router.lightlike(brane_id, PeerMsg::VioletaBftMessage(msg));
         Ok(())
     }
 
@@ -1764,7 +1764,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             {
                 // If new brane's epoch version is greater than exist brane's, the exist brane
                 // may has been merged/splitted already.
-                let _ = self.ctx.router.force_slightlike(
+                let _ = self.ctx.router.force_lightlike(
                     exist_brane.get_id(),
                     PeerMsg::CasualMessage(CasualMessage::BraneOverlapped),
                 );
@@ -1779,7 +1779,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         for id in branes_to_destroy {
             self.ctx
                 .router
-                .force_slightlike(
+                .force_lightlike(
                     id,
                     PeerMsg::SignificantMsg(SignificantMsg::MergeResult {
                         target_brane_id: brane_id,
@@ -1818,7 +1818,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         self.ctx.router.register(brane_id, mailbox);
         self.ctx
             .router
-            .force_slightlike(brane_id, PeerMsg::Start)
+            .force_lightlike(brane_id, PeerMsg::Start)
             .unwrap();
         Ok(true)
     }
@@ -1847,7 +1847,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             .observe(brane_declined_bytes.len() as f64);
 
         for (brane_id, declined_bytes) in brane_declined_bytes.drain(..) {
-            let _ = self.ctx.router.slightlike(
+            let _ = self.ctx.router.lightlike(
                 brane_id,
                 PeerMsg::CasualMessage(CasualMessage::CompactionDeclinedBytes {
                     bytes: declined_bytes,
@@ -1959,11 +1959,11 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         }
 
         let snap_stats = self.ctx.snap_mgr.stats();
-        stats.set_slightlikeing_snap_count(snap_stats.slightlikeing_count as u32);
+        stats.set_lightlikeing_snap_count(snap_stats.lightlikeing_count as u32);
         stats.set_receiving_snap_count(snap_stats.receiving_count as u32);
         STORE_SNAPSHOT_TRAFFIC_GAUGE_VEC
-            .with_label_values(&["slightlikeing"])
-            .set(snap_stats.slightlikeing_count as i64);
+            .with_label_values(&["lightlikeing"])
+            .set(snap_stats.lightlikeing_count as i64);
         STORE_SNAPSHOT_TRAFFIC_GAUGE_VEC
             .with_label_values(&["receiving"])
             .set(snap_stats.receiving_count as i64);
@@ -2035,10 +2035,10 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                 "brane_id" => brane_id,
             );
             let gc_snap = PeerMsg::CasualMessage(CasualMessage::GcSnap { snaps });
-            match self.ctx.router.slightlike(brane_id, gc_snap) {
+            match self.ctx.router.lightlike(brane_id, gc_snap) {
                 Ok(()) => Ok(()),
-                Err(TrySlightlikeError::Disconnected(_)) if self.ctx.router.is_shutdown() => Ok(()),
-                Err(TrySlightlikeError::Disconnected(PeerMsg::CasualMessage(
+                Err(TrylightlikeError::Disconnected(_)) if self.ctx.router.is_shutdown() => Ok(()),
+                Err(TrylightlikeError::Disconnected(PeerMsg::CasualMessage(
                     CasualMessage::GcSnap { snaps },
                 ))) => {
                     // The snapshot exists because MsgApplightlike has been rejected. So the
@@ -2049,9 +2049,9 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                         "brane_id" => brane_id,
                         "snaps" => ?snaps,
                     );
-                    for (key, is_slightlikeing) in snaps {
-                        let snap = if is_slightlikeing {
-                            self.ctx.snap_mgr.get_snapshot_for_slightlikeing(&key)?
+                    for (key, is_lightlikeing) in snaps {
+                        let snap = if is_lightlikeing {
+                            self.ctx.snap_mgr.get_snapshot_for_lightlikeing(&key)?
                         } else {
                             self.ctx.snap_mgr.get_snapshot_for_applying(&key)?
                         };
@@ -2061,13 +2061,13 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                     }
                     Ok(())
                 }
-                Err(TrySlightlikeError::Full(_)) => Ok(()),
-                Err(TrySlightlikeError::Disconnected(_)) => unreachable!(),
+                Err(TrylightlikeError::Full(_)) => Ok(()),
+                Err(TrylightlikeError::Disconnected(_)) => unreachable!(),
             }
         };
-        for (key, is_slightlikeing) in snap_tuplespaceInstanton {
+        for (key, is_lightlikeing) in snap_tuplespaceInstanton {
             if last_brane_id == key.brane_id {
-                tuplespaceInstanton.push((key, is_slightlikeing));
+                tuplespaceInstanton.push((key, is_lightlikeing));
                 continue;
             }
 
@@ -2077,7 +2077,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             }
 
             last_brane_id = key.brane_id;
-            tuplespaceInstanton.push((key, is_slightlikeing));
+            tuplespaceInstanton.push((key, is_lightlikeing));
         }
         if !tuplespaceInstanton.is_empty() {
             schedule_gc_snap(last_brane_id, tuplespaceInstanton)?;
@@ -2300,7 +2300,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             .on_prepropose_compute_hash(admin.mut_compute_hash());
         request.set_admin_request(admin);
 
-        let _ = self.ctx.router.slightlike(
+        let _ = self.ctx.router.lightlike(
             target_brane_id,
             PeerMsg::VioletaBftCommand(VioletaBftCommand::new(request, Callback::None)),
         );
@@ -2338,7 +2338,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             }
         }
         for brane_id in branes {
-            let _ = self.ctx.router.slightlike(
+            let _ = self.ctx.router.lightlike(
                 brane_id,
                 PeerMsg::CasualMessage(CasualMessage::ClearBraneSize),
             );
@@ -2363,7 +2363,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
             "unreachable_store_id" => store_id,
         );
         self.fsm.store.last_unreachable_report.insert(store_id, now);
-        // It's possible to acquire the dagger and only slightlike notification to
+        // It's possible to acquire the dagger and only lightlike notification to
         // involved branes. However loop over all the branes can take a
         // lot of time, which may block other operations.
         self.ctx.router.report_unreachable(store_id);

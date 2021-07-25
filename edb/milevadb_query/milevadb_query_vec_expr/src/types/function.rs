@@ -44,7 +44,7 @@ pub struct RpnFnMeta {
     pub validator_ptr: fn(expr: &Expr) -> Result<()>,
 
     /// The metadata constructor of the RPN function.
-    pub metadata_expr_ptr: fn(expr: &mut Expr) -> Result<Box<dyn Any + Slightlike>>,
+    pub metadata_expr_ptr: fn(expr: &mut Expr) -> Result<Box<dyn Any + lightlike>>,
 
     #[allow(clippy::type_complexity)]
     /// The RPN function.
@@ -55,7 +55,7 @@ pub struct RpnFnMeta {
         args: &[RpnStackNode<'_>],
         // Uncommon arguments are grouped together
         extra: &mut RpnFnCallExtra<'_>,
-        metadata: &(dyn Any + Slightlike),
+        metadata: &(dyn Any + lightlike),
     ) -> Result<VectorValue>,
 }
 
@@ -202,7 +202,7 @@ pub trait Evaluator<'a> {
         output_rows: usize,
         args: &'a [RpnStackNode<'a>],
         extra: &mut RpnFnCallExtra<'_>,
-        metadata: &(dyn Any + Slightlike),
+        metadata: &(dyn Any + lightlike),
     ) -> Result<VectorValue>;
 }
 
@@ -231,7 +231,7 @@ impl<'a, A: EvaluableRef<'a>, E: Evaluator<'a>> Evaluator<'a> for ArgConstructor
         output_rows: usize,
         args: &'a [RpnStackNode<'a>],
         extra: &mut RpnFnCallExtra<'_>,
-        metadata: &(dyn Any + Slightlike),
+        metadata: &(dyn Any + lightlike),
     ) -> Result<VectorValue> {
         match &args[self.arg_index] {
             RpnStackNode::Scalar { value, .. } => {

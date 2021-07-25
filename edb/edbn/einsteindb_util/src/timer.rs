@@ -90,7 +90,7 @@ fn spacelike_global_timer() -> Handle {
         .spawn(move || {
             einsteindb_alloc::add_thread_memory_accessor();
             let mut timer = tokio_timer::Timer::default();
-            tx.slightlike(timer.handle()).unwrap();
+            tx.lightlike(timer.handle()).unwrap();
             loop {
                 timer.turn(None).unwrap();
             }
@@ -188,7 +188,7 @@ fn spacelike_global_steady_timer() -> SteadyTimer {
         .spawn(move || {
             let c = Clock::new_with_now(clock_);
             let mut timer = tokio_timer::Timer::new_with_now(ParkThread::new(), c);
-            tx.slightlike(timer.handle()).unwrap();
+            tx.lightlike(timer.handle()).unwrap();
             loop {
                 timer.turn(None).unwrap();
             }
@@ -207,7 +207,7 @@ mod tests {
     use futures::compat::Future01CompatExt;
     use futures::executor::block_on;
     use std::sync::mpsc::RecvTimeoutError;
-    use std::sync::mpsc::{self, Slightlikeer};
+    use std::sync::mpsc::{self, lightlikeer};
 
     #[derive(Debug, PartialEq, Eq, Copy, Clone)]
     enum Task {
@@ -218,17 +218,17 @@ mod tests {
 
     struct Runner {
         counter: usize,
-        ch: Slightlikeer<&'static str>,
+        ch: lightlikeer<&'static str>,
     }
 
     impl Runnable for Runner {
         type Task = &'static str;
 
         fn run(&mut self, msg: &'static str) {
-            self.ch.slightlike(msg).unwrap();
+            self.ch.lightlike(msg).unwrap();
         }
         fn shutdown(&mut self) {
-            self.ch.slightlike("").unwrap();
+            self.ch.lightlike("").unwrap();
         }
     }
 
@@ -238,11 +238,11 @@ mod tests {
         fn on_timeout(&mut self, timer: &mut Timer<Task>, task: Task) {
             let timeout = match task {
                 Task::A => {
-                    self.ch.slightlike("task a").unwrap();
+                    self.ch.lightlike("task a").unwrap();
                     Duration::from_millis(60)
                 }
                 Task::B => {
-                    self.ch.slightlike("task b").unwrap();
+                    self.ch.lightlike("task b").unwrap();
                     Duration::from_millis(100)
                 }
                 _ => unreachable!(),

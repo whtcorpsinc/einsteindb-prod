@@ -2,7 +2,7 @@ use crate::*;
 use ekvproto::violetabft_serverpb::VioletaBftLocalState;
 use violetabft::evioletabftpb::Entry;
 
-pub trait VioletaBftEngine: Clone + Sync + Slightlike + 'static {
+pub trait VioletaBftEngine: Clone + Sync + lightlike + 'static {
     type LogBatch: VioletaBftLogBatch;
 
     fn log_batch(&self, capacity: usize) -> Self::LogBatch;
@@ -85,7 +85,7 @@ pub trait VioletaBftEngine: Clone + Sync + Slightlike + 'static {
     fn dump_stats(&self) -> Result<String>;
 }
 
-pub trait VioletaBftLogBatch: Slightlike {
+pub trait VioletaBftLogBatch: lightlike {
     /// Note: `VioletaBftLocalState` won't be ufidelated in this call.
     fn applightlike(&mut self, violetabft_group_id: u64, entries: Vec<Entry>) -> Result<()>;
 

@@ -115,7 +115,7 @@ fn test_batch_violetabft_fallback() {
 
     let addr = format!("localhost:{}", port);
     (0..100).for_each(|_| {
-        violetabft_client.slightlike(1, &addr, VioletaBftMessage::default()).unwrap();
+        violetabft_client.lightlike(1, &addr, VioletaBftMessage::default()).unwrap();
         thread::sleep(time::Duration::from_millis(10));
         violetabft_client.flush();
     });
@@ -141,26 +141,26 @@ fn test_violetabft_client_reconnect() {
     let service = MockKvForVioletaBft::new(Arc::clone(&msg_count), Arc::clone(&batch_msg_count), true);
     let (mock_server, port) = create_mock_server(service, 60100, 60200).unwrap();
 
-    // `slightlike` should success.
+    // `lightlike` should success.
     let addr = format!("localhost:{}", port);
-    (0..50).for_each(|_| violetabft_client.slightlike(1, &addr, VioletaBftMessage::default()).unwrap());
+    (0..50).for_each(|_| violetabft_client.lightlike(1, &addr, VioletaBftMessage::default()).unwrap());
     violetabft_client.flush();
 
     check_msg_count(500, &msg_count, 50);
 
-    // `slightlike` should fail after the mock server stopped.
+    // `lightlike` should fail after the mock server stopped.
     drop(mock_server);
 
-    let slightlike = |_| {
+    let lightlike = |_| {
         thread::sleep(time::Duration::from_millis(10));
-        violetabft_client.slightlike(1, &addr, VioletaBftMessage::default())
+        violetabft_client.lightlike(1, &addr, VioletaBftMessage::default())
     };
-    assert!((0..100).map(slightlike).collect::<Result<(), _>>().is_err());
+    assert!((0..100).map(lightlike).collect::<Result<(), _>>().is_err());
 
-    // `slightlike` should success after the mock server respacelikeed.
+    // `lightlike` should success after the mock server respacelikeed.
     let service = MockKvForVioletaBft::new(Arc::clone(&msg_count), batch_msg_count, true);
     let mock_server = create_mock_server_on(service, port);
-    (0..50).for_each(|_| violetabft_client.slightlike(1, &addr, VioletaBftMessage::default()).unwrap());
+    (0..50).for_each(|_| violetabft_client.lightlike(1, &addr, VioletaBftMessage::default()).unwrap());
     violetabft_client.flush();
 
     check_msg_count(500, &msg_count, 100);
@@ -185,7 +185,7 @@ fn test_batch_size_limit() {
 
     let addr = format!("localhost:{}", port);
 
-    // `slightlike` should success.
+    // `lightlike` should success.
     for _ in 0..10 {
         // 5M per VioletaBftMessage.
         let mut violetabft_m = VioletaBftMessage::default();
@@ -194,7 +194,7 @@ fn test_batch_size_limit() {
             e.set_data(vec![b'a'; 1024]);
             violetabft_m.mut_message().mut_entries().push(e);
         }
-        violetabft_client.slightlike(1, &addr, violetabft_m).unwrap();
+        violetabft_client.lightlike(1, &addr, violetabft_m).unwrap();
     }
     violetabft_client.flush();
 
@@ -209,7 +209,7 @@ fn test_batch_size_limit() {
 // port chosen between [`min_port`, `max_port`]. Return `None` if no port is available.
 fn create_mock_server<T>(service: T, min_port: u16, max_port: u16) -> Option<(Server, u16)>
 where
-    T: MockKvService + Clone + Slightlike + 'static,
+    T: MockKvService + Clone + lightlike + 'static,
 {
     for port in min_port..max_port {
         let kv = MockKv(service.clone());
@@ -227,7 +227,7 @@ where
 // Return `None` is the port is unavailable.
 fn create_mock_server_on<T>(service: T, port: u16) -> Option<Server>
 where
-    T: MockKvService + Clone + Slightlike + 'static,
+    T: MockKvService + Clone + lightlike + 'static,
 {
     let mut mock_server = match mock_kv_service(MockKv(service), "localhost", port) {
         Ok(s) => s,

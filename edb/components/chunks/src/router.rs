@@ -2,7 +2,7 @@
 
 use crate::fsm::{Fsm, FsmInterlock_Semaphore};
 use crate::mailbox::{BasicMailbox, Mailbox};
-use crossbeam::channel::{SlightlikeError, TrySlightlikeError};
+use crossbeam::channel::{lightlikeError, TrylightlikeError};
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -71,7 +71,7 @@ where
     /// A helper function that tries to unify a common access TuringString to
     /// mailbox.
     ///
-    /// Generally, when slightlikeing a message to a mailbox, cache should be
+    /// Generally, when lightlikeing a message to a mailbox, cache should be
     /// check first, if not found, dagger should be acquired.
     ///
     /// Returns None means there is no mailbox inside the normal registry.
@@ -166,26 +166,26 @@ where
         Mailbox::new(self.control_box.clone(), self.control_interlock_semaphore.clone())
     }
 
-    /// Try to slightlike a message to specified address.
+    /// Try to lightlike a message to specified address.
     ///
     /// If Either::Left is returned, then the message is sent. Otherwise,
     /// it indicates mailbox is not found.
     #[inline]
-    pub fn try_slightlike(
+    pub fn try_lightlike(
         &self,
         addr: u64,
         msg: N::Message,
-    ) -> Either<Result<(), TrySlightlikeError<N::Message>>, N::Message> {
+    ) -> Either<Result<(), TrylightlikeError<N::Message>>, N::Message> {
         let mut msg = Some(msg);
         let res = self.check_do(addr, |mailbox| {
             let m = msg.take().unwrap();
-            match mailbox.try_slightlike(m, &self.normal_interlock_semaphore) {
+            match mailbox.try_lightlike(m, &self.normal_interlock_semaphore) {
                 Ok(()) => Some(Ok(())),
-                r @ Err(TrySlightlikeError::Full(_)) => {
+                r @ Err(TrylightlikeError::Full(_)) => {
                     // TODO: report channel full
                     Some(r)
                 }
-                Err(TrySlightlikeError::Disconnected(m)) => {
+                Err(TrylightlikeError::Disconnected(m)) => {
                     msg = Some(m);
                     None
                 }
@@ -193,43 +193,43 @@ where
         });
         match res {
             CheckDoResult::Valid(r) => Either::Left(r),
-            CheckDoResult::Invalid => Either::Left(Err(TrySlightlikeError::Disconnected(msg.unwrap()))),
+            CheckDoResult::Invalid => Either::Left(Err(TrylightlikeError::Disconnected(msg.unwrap()))),
             CheckDoResult::NotExist => Either::Right(msg.unwrap()),
         }
     }
 
-    /// Slightlike the message to specified address.
+    /// lightlike the message to specified address.
     #[inline]
-    pub fn slightlike(&self, addr: u64, msg: N::Message) -> Result<(), TrySlightlikeError<N::Message>> {
-        match self.try_slightlike(addr, msg) {
+    pub fn lightlike(&self, addr: u64, msg: N::Message) -> Result<(), TrylightlikeError<N::Message>> {
+        match self.try_lightlike(addr, msg) {
             Either::Left(res) => res,
-            Either::Right(m) => Err(TrySlightlikeError::Disconnected(m)),
+            Either::Right(m) => Err(TrylightlikeError::Disconnected(m)),
         }
     }
 
-    /// Force slightlikeing message to specified address despite the capacity
+    /// Force lightlikeing message to specified address despite the capacity
     /// limit of mailbox.
     #[inline]
-    pub fn force_slightlike(&self, addr: u64, msg: N::Message) -> Result<(), SlightlikeError<N::Message>> {
-        match self.slightlike(addr, msg) {
+    pub fn force_lightlike(&self, addr: u64, msg: N::Message) -> Result<(), lightlikeError<N::Message>> {
+        match self.lightlike(addr, msg) {
             Ok(()) => Ok(()),
-            Err(TrySlightlikeError::Full(m)) => {
+            Err(TrylightlikeError::Full(m)) => {
                 let caches = unsafe { &mut *self.caches.as_ptr() };
                 caches
                     .get(&addr)
                     .unwrap()
-                    .force_slightlike(m, &self.normal_interlock_semaphore)
+                    .force_lightlike(m, &self.normal_interlock_semaphore)
             }
-            Err(TrySlightlikeError::Disconnected(m)) => Err(SlightlikeError(m)),
+            Err(TrylightlikeError::Disconnected(m)) => Err(lightlikeError(m)),
         }
     }
 
-    /// Force slightlikeing message to control fsm.
+    /// Force lightlikeing message to control fsm.
     #[inline]
-    pub fn slightlike_control(&self, msg: C::Message) -> Result<(), TrySlightlikeError<C::Message>> {
-        match self.control_box.try_slightlike(msg, &self.control_interlock_semaphore) {
+    pub fn lightlike_control(&self, msg: C::Message) -> Result<(), TrylightlikeError<C::Message>> {
+        match self.control_box.try_lightlike(msg, &self.control_interlock_semaphore) {
             Ok(()) => Ok(()),
-            r @ Err(TrySlightlikeError::Full(_)) => {
+            r @ Err(TrylightlikeError::Full(_)) => {
                 // TODO: record metrics.
                 r
             }
@@ -241,7 +241,7 @@ where
     pub fn broadcast_normal(&self, mut msg_gen: impl FnMut() -> N::Message) {
         let mailboxes = self.normals.dagger().unwrap();
         for mailbox in mailboxes.values() {
-            let _ = mailbox.force_slightlike(msg_gen(), &self.normal_interlock_semaphore);
+            let _ = mailbox.force_lightlike(msg_gen(), &self.normal_interlock_semaphore);
         }
     }
 

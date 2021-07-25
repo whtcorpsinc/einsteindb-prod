@@ -41,7 +41,7 @@ use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
 use milevadb_query_vec_aggr::*;
 use milevadb_query_vec_expr::RpnExpression;
 
-pub trait AggregationFreeDaemonImpl<Src: BatchFreeDaemon>: Slightlike {
+pub trait AggregationFreeDaemonImpl<Src: BatchFreeDaemon>: lightlike {
     /// Accepts entities without any group by PrimaryCausets and modifies them optionally.
     ///
     /// Implementors should modify the `schemaReplicant` entity when there are group by PrimaryCausets.

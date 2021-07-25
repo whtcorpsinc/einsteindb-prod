@@ -40,7 +40,7 @@ pub use crate::store::KeyEntry;
 
 /// Interlock is used to provide a convenient way to inject code to
 /// KV processing.
-pub trait Interlock: Slightlike {
+pub trait Interlock: lightlike {
     fn spacelike(&self) {}
     fn stop(&self) {}
 }

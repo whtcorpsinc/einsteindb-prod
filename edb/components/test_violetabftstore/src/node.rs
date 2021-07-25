@@ -57,7 +57,7 @@ impl ChannelTransport {
 }
 
 impl Transport for ChannelTransport {
-    fn slightlike(&mut self, msg: VioletaBftMessage) -> Result<()> {
+    fn lightlike(&mut self, msg: VioletaBftMessage) -> Result<()> {
         let from_store = msg.get_from_peer().get_store_id();
         let to_store = msg.get_to_peer().get_store_id();
         let to_peer_id = msg.get_to_peer().get_id();
@@ -69,8 +69,8 @@ impl Transport for ChannelTransport {
             let key = SnapKey::from_snap(snap).unwrap();
             let from = match self.core.dagger().unwrap().snap_paths.get(&from_store) {
                 Some(p) => {
-                    p.0.register(key.clone(), SnapEntry::Slightlikeing);
-                    p.0.get_snapshot_for_slightlikeing(&key).unwrap()
+                    p.0.register(key.clone(), SnapEntry::lightlikeing);
+                    p.0.get_snapshot_for_lightlikeing(&key).unwrap()
                 }
                 None => return Err(box_err!("missing temp dir for store {}", from_store)),
             };
@@ -87,7 +87,7 @@ impl Transport for ChannelTransport {
                 let core = self.core.dagger().unwrap();
                 core.snap_paths[&from_store]
                     .0
-                    .deregister(&key, &SnapEntry::Slightlikeing);
+                    .deregister(&key, &SnapEntry::lightlikeing);
                 core.snap_paths[&to_store]
                     .0
                     .deregister(&key, &SnapEntry::Receiving);
@@ -100,7 +100,7 @@ impl Transport for ChannelTransport {
 
         match core.routers.get(&to_store) {
             Some(h) => {
-                h.slightlike_violetabft_msg(msg)?;
+                h.lightlike_violetabft_msg(msg)?;
                 if is_snapshot {
                     // should report snapshot finish.
                     let _ = core.routers[&from_store].report_snapshot_status(
@@ -111,7 +111,7 @@ impl Transport for ChannelTransport {
                 }
                 Ok(())
             }
-            _ => Err(box_err!("missing slightlikeer for store {}", to_store)),
+            _ => Err(box_err!("missing lightlikeer for store {}", to_store)),
         }
     }
 
@@ -343,7 +343,7 @@ impl Simulator for NodeCluster {
             .routers
             .contains_key(&node_id)
         {
-            return Err(box_err!("missing slightlikeer for store {}", node_id));
+            return Err(box_err!("missing lightlikeer for store {}", node_id));
         }
 
         let router = self
@@ -355,7 +355,7 @@ impl Simulator for NodeCluster {
             .get(&node_id)
             .cloned()
             .unwrap();
-        router.slightlike_command(request, cb)
+        router.lightlike_command(request, cb)
     }
 
     fn async_read(
@@ -374,7 +374,7 @@ impl Simulator for NodeCluster {
             .contains_key(&node_id)
         {
             let mut resp = VioletaBftCmdResponse::default();
-            let e: VioletaBftError = box_err!("missing slightlikeer for store {}", node_id);
+            let e: VioletaBftError = box_err!("missing lightlikeer for store {}", node_id);
             resp.mut_header().set_error(e.into());
             cb.invoke_with_response(resp);
             return;
@@ -384,18 +384,18 @@ impl Simulator for NodeCluster {
         router.read(batch_id, request, cb).unwrap();
     }
 
-    fn slightlike_violetabft_msg(&mut self, msg: violetabft_serverpb::VioletaBftMessage) -> Result<()> {
-        self.trans.slightlike(msg)
+    fn lightlike_violetabft_msg(&mut self, msg: violetabft_serverpb::VioletaBftMessage) -> Result<()> {
+        self.trans.lightlike(msg)
     }
 
-    fn add_slightlike_filter(&mut self, node_id: u64, filter: Box<dyn Filter>) {
+    fn add_lightlike_filter(&mut self, node_id: u64, filter: Box<dyn Filter>) {
         self.simulate_trans
             .get_mut(&node_id)
             .unwrap()
             .add_filter(filter);
     }
 
-    fn clear_slightlike_filters(&mut self, node_id: u64) {
+    fn clear_lightlike_filters(&mut self, node_id: u64) {
         self.simulate_trans
             .get_mut(&node_id)
             .unwrap()

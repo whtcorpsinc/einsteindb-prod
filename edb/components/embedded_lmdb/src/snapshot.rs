@@ -17,7 +17,7 @@ pub struct LmdbSnapshot {
     snap: UnsafeSnap,
 }
 
-unsafe impl Slightlike for LmdbSnapshot {}
+unsafe impl lightlike for LmdbSnapshot {}
 unsafe impl Sync for LmdbSnapshot {}
 
 impl LmdbSnapshot {

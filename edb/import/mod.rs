@@ -8,7 +8,7 @@
 //! The `ImportSSTService` is used to ingest the generated SST files into EinsteinDB's
 //! Lmdb instance. The ingesting process: `milevadb-lightning` first uploads SST
 //! files to the host where EinsteinDB is located, and then calls the `Ingest` RPC.
-//! After `ImportSSTService` receives the RPC, it slightlikes a message to violetabftstore
+//! After `ImportSSTService` receives the RPC, it lightlikes a message to violetabftstore
 //! thread to notify it of the ingesting operation.  This service is running
 //! inside EinsteinDB because it needs to interact with violetabftstore.
 

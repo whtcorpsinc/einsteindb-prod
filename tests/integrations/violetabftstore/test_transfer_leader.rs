@@ -50,7 +50,7 @@ fn test_basic_transfer_leader<T: Simulator>(cluster: &mut Cluster<T>) {
     req.mut_header().set_peer(new_peer(2, 2));
     // transfer leader to (1, 1)
     cluster.must_transfer_leader(1, new_peer(1, 1));
-    // slightlike request to old leader (2, 2) directly and verify it fails
+    // lightlike request to old leader (2, 2) directly and verify it fails
     let resp = cluster.call_command(req, Duration::from_secs(5)).unwrap();
     assert!(resp.get_header().get_error().has_not_leader());
 }
@@ -136,9 +136,9 @@ fn test_transfer_leader_during_snapshot<T: Simulator>(cluster: &mut Cluster<T>) 
 
     // hook transport and drop all snapshot packet, so follower's status
     // will stay at snapshot.
-    cluster.add_slightlike_filter(DefaultFilterFactory::<SnapshotFilter>::default());
+    cluster.add_lightlike_filter(DefaultFilterFactory::<SnapshotFilter>::default());
     // don't allow leader transfer succeed if it is actually triggered.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 2)
             .msg_type(MessageType::MsgTimeoutNow)
             .direction(Direction::Recv),

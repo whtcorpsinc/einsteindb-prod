@@ -5621,7 +5621,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The count of requests that EinsteinDB slightlikes to FIDel",
+          "description": "The count of requests that EinsteinDB lightlikes to FIDel",
           "fill": 1,
           "gridPos": {
             "h": 8,
@@ -5714,7 +5714,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The time consumed by requests that EinsteinDB slightlikes to FIDel",
+          "description": "The time consumed by requests that EinsteinDB lightlikes to FIDel",
           "fill": 1,
           "gridPos": {
             "h": 8,
@@ -12562,10 +12562,10 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_server_slightlike_snapshot_duration_seconds_bucket{instance=~\"$instance\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_server_lightlike_snapshot_duration_seconds_bucket{instance=~\"$instance\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
-              "leglightlikeFormat": "slightlike",
+              "leglightlikeFormat": "lightlike",
               "refId": "A",
               "step": 60
             },

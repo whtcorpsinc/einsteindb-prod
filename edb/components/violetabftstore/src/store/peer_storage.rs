@@ -319,7 +319,7 @@ where
 
 fn causetStorage_error<E>(error: E) -> violetabft::Error
 where
-    E: Into<Box<dyn error::Error + Slightlike + Sync>>,
+    E: Into<Box<dyn error::Error + lightlike + Sync>>,
 {
     violetabft::Error::CausetStore(StorageError::Other(error.into()))
 }
@@ -2024,12 +2024,12 @@ mod tests {
         assert_eq!(s.snapshot(0).unwrap_err(), unavailable);
         assert_eq!(*s.snap_tried_cnt.borrow(), 1);
 
-        tx.slightlike(snap.clone()).unwrap();
+        tx.lightlike(snap.clone()).unwrap();
         assert_eq!(s.snapshot(0), Ok(snap.clone()));
         assert_eq!(*s.snap_tried_cnt.borrow(), 0);
 
         let (tx, rx) = channel();
-        tx.slightlike(snap.clone()).unwrap();
+        tx.lightlike(snap.clone()).unwrap();
         s.set_snap_state(SnapState::Generating(rx));
         // stale snapshot should be abandoned, snapshot index < request index.
         assert_eq!(
@@ -2070,7 +2070,7 @@ mod tests {
         s.apply_state = ctx.apply_state;
 
         let (tx, rx) = channel();
-        tx.slightlike(snap).unwrap();
+        tx.lightlike(snap).unwrap();
         s.set_snap_state(SnapState::Generating(rx));
         *s.snap_tried_cnt.borrow_mut() = 1;
         // stale snapshot should be abandoned, snapshot index < truncated index.

@@ -115,9 +115,9 @@ where
     }
 }
 
-impl<C: Slightlike, E: Slightlike> Interlock for SizeCheckSemaphore<C, E> {}
+impl<C: lightlike, E: lightlike> Interlock for SizeCheckSemaphore<C, E> {}
 
-impl<C: CasualRouter<E> + Slightlike, E> SplitCheckSemaphore<E> for SizeCheckSemaphore<C, E>
+impl<C: CasualRouter<E> + lightlike, E> SplitCheckSemaphore<E> for SizeCheckSemaphore<C, E>
 where
     E: KvEngine,
 {
@@ -154,11 +154,11 @@ where
             }
         };
 
-        // slightlike it to violetabftstore to ufidelate brane approximate size
+        // lightlike it to violetabftstore to ufidelate brane approximate size
         let res = CasualMessage::BraneApproximateSize { size: brane_size };
-        if let Err(e) = self.router.dagger().unwrap().slightlike(brane_id, res) {
+        if let Err(e) = self.router.dagger().unwrap().lightlike(brane_id, res) {
             warn!(
-                "failed to slightlike approximate brane size";
+                "failed to lightlike approximate brane size";
                 "brane_id" => brane_id,
                 "err" => %e,
                 "error_code" => %e.error_code(),

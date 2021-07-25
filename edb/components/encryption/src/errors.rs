@@ -10,7 +10,7 @@ use std::{error, result};
 #[derive(Debug, Fail)]
 pub enum Error {
     #[fail(display = "Other error {}", _0)]
-    Other(Box<dyn error::Error + Sync + Slightlike>),
+    Other(Box<dyn error::Error + Sync + lightlike>),
     #[fail(display = "Lmdb error {}", _0)]
     Lmdb(String),
     #[fail(display = "IO error {}", _0)]
@@ -22,14 +22,14 @@ pub enum Error {
     #[fail(display = "Unknown encryption error")]
     UnknownEncryption,
     #[fail(display = "Wrong master key error {}", _0)]
-    WrongMasterKey(Box<dyn error::Error + Sync + Slightlike>),
+    WrongMasterKey(Box<dyn error::Error + Sync + lightlike>),
     #[fail(
         display = "Both master key failed, current key {}, previous key {}.",
         _0, _1
     )]
     BothMasterKeyFail(
-        Box<dyn error::Error + Sync + Slightlike>,
-        Box<dyn error::Error + Sync + Slightlike>,
+        Box<dyn error::Error + Sync + lightlike>,
+        Box<dyn error::Error + Sync + lightlike>,
     ),
 }
 
@@ -46,7 +46,7 @@ macro_rules! impl_from {
 }
 
 impl_from! {
-    Box<dyn error::Error + Sync + Slightlike> => Other,
+    Box<dyn error::Error + Sync + lightlike> => Other,
     String => Lmdb,
     IoError => Io,
     CrypterError => Crypter,

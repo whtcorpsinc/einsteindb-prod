@@ -4410,7 +4410,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": " \tThe count of requests that EinsteinDB slightlikes to FIDel",
+          "description": " \tThe count of requests that EinsteinDB lightlikes to FIDel",
           "fill": 1,
           "gridPos": {
             "h": 8,
@@ -4501,7 +4501,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The time consumed by requests that EinsteinDB slightlikes to FIDel",
+          "description": "The time consumed by requests that EinsteinDB lightlikes to FIDel",
           "fill": 1,
           "gridPos": {
             "h": 8,

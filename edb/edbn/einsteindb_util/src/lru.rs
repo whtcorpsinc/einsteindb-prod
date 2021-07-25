@@ -250,7 +250,7 @@ where
     }
 }
 
-unsafe impl<K: Slightlike, V: Slightlike> Slightlike for LruCache<K, V> {}
+unsafe impl<K: lightlike, V: lightlike> lightlike for LruCache<K, V> {}
 
 impl<K, V> Drop for LruCache<K, V> {
     fn drop(&mut self) {

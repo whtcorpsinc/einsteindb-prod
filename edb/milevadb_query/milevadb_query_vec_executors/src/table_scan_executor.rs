@@ -945,7 +945,7 @@ mod tests {
             let key = Block::encode_row_key(Block_ID, 1);
             let value: std::result::Result<
                 _,
-                Box<dyn Slightlike + Sync + Fn() -> milevadb_query_common::error::StorageError>,
+                Box<dyn lightlike + Sync + Fn() -> milevadb_query_common::error::StorageError>,
             > = Err(Box::new(|| failure::format_err!("locked").into()));
             kv.push((key, value));
         }

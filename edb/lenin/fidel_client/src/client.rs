@@ -360,7 +360,7 @@ impl FidelClient for RpcClient {
         brane_stat: BraneStat,
         replication_status: Option<BraneReplicationStatus>,
     ) -> FidelFuture<()> {
-        FIDel_HEARTBEAT_COUNTER_VEC.with_label_values(&["slightlike"]).inc();
+        FIDel_HEARTBEAT_COUNTER_VEC.with_label_values(&["lightlike"]).inc();
 
         let mut req = fidelpb::BraneHeartbeatRequest::default();
         req.set_term(term);
@@ -385,33 +385,33 @@ impl FidelClient for RpcClient {
 
         let executor = |client: &RwLock<Inner>, req: fidelpb::BraneHeartbeatRequest| {
             let mut inner = client.wl();
-            if let Either::Right(ref slightlikeer) = inner.hb_slightlikeer {
-                let ret = slightlikeer
-                    .unbounded_slightlike(req)
+            if let Either::Right(ref lightlikeer) = inner.hb_lightlikeer {
+                let ret = lightlikeer
+                    .unbounded_lightlike(req)
                     .map_err(|e| Error::Other(Box::new(e)));
                 return Box::pin(future::ready(ret)) as FidelFuture<_>;
             }
 
-            debug!("heartbeat slightlikeer is refreshed");
-            let left = inner.hb_slightlikeer.as_mut().left().unwrap();
-            let slightlikeer = left.take().expect("expect brane heartbeat sink");
+            debug!("heartbeat lightlikeer is refreshed");
+            let left = inner.hb_lightlikeer.as_mut().left().unwrap();
+            let lightlikeer = left.take().expect("expect brane heartbeat sink");
             let (tx, rx) = mpsc::unbounded();
-            tx.unbounded_slightlike(req)
-                .unwrap_or_else(|e| panic!("slightlike request to unbounded channel failed {:?}", e));
-            inner.hb_slightlikeer = Either::Right(tx);
+            tx.unbounded_lightlike(req)
+                .unwrap_or_else(|e| panic!("lightlike request to unbounded channel failed {:?}", e));
+            inner.hb_lightlikeer = Either::Right(tx);
             Box::pin(async move {
-                let mut slightlikeer = slightlikeer.sink_map_err(Error::Grpc);
-                let result = slightlikeer
-                    .slightlike_all(&mut rx.map(|r| Ok((r, WriteFlags::default()))))
+                let mut lightlikeer = lightlikeer.sink_map_err(Error::Grpc);
+                let result = lightlikeer
+                    .lightlike_all(&mut rx.map(|r| Ok((r, WriteFlags::default()))))
                     .await;
                 match result {
                     Ok(()) => {
-                        slightlikeer.get_mut().cancel();
-                        info!("cancel brane heartbeat slightlikeer");
+                        lightlikeer.get_mut().cancel();
+                        info!("cancel brane heartbeat lightlikeer");
                         Ok(())
                     }
                     Err(e) => {
-                        error!(?e; "failed to slightlike heartbeat");
+                        error!(?e; "failed to lightlike heartbeat");
                         Err(e)
                     }
                 }
@@ -425,7 +425,7 @@ impl FidelClient for RpcClient {
 
     fn handle_brane_heartbeat_response<F>(&self, _: u64, f: F) -> FidelFuture<()>
     where
-        F: Fn(fidelpb::BraneHeartbeatResponse) + Slightlike + 'static,
+        F: Fn(fidelpb::BraneHeartbeatResponse) + lightlike + 'static,
     {
         self.leader_client.handle_brane_heartbeat_response(f)
     }
@@ -581,7 +581,7 @@ impl FidelClient for RpcClient {
         check_resp_header(resp.get_header())
     }
 
-    fn handle_reconnect<F: Fn() + Sync + Slightlike + 'static>(&self, f: F) {
+    fn handle_reconnect<F: Fn() + Sync + lightlike + 'static>(&self, f: F) {
         self.leader_client.on_reconnect(Box::new(f))
     }
 
@@ -668,13 +668,13 @@ impl FidelClient for RpcClient {
                 .client_stub
                 .tso()
                 .unwrap_or_else(|e| panic!("fail to request FIDel {} err {:?}", "tso", e));
-            let slightlike_once = async move {
-                req_sink.slightlike((req, WriteFlags::default())).await?;
+            let lightlike_once = async move {
+                req_sink.lightlike((req, WriteFlags::default())).await?;
                 req_sink.close().await?;
                 GrpcResult::Ok(())
             }
             .map(|_| ());
-            cli.client_stub.spawn(slightlike_once);
+            cli.client_stub.spawn(lightlike_once);
             Box::pin(async move {
                 let resp = resp_stream.try_next().await?;
                 let resp = match resp {

@@ -13,7 +13,7 @@ pub type OwnedKvPair = (Vec<u8>, Vec<u8>);
 
 /// The abstract causetStorage interface. The Block scan and index scan executor relies on a `CausetStorage`
 /// implementation to provide source data.
-pub trait CausetStorage: Slightlike {
+pub trait CausetStorage: lightlike {
     type Statistics;
 
     // TODO: Use const generics.

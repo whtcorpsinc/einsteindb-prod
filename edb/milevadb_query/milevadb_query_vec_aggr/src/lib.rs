@@ -42,7 +42,7 @@ use milevadb_query_datatype::expr::EvalContext;
 ///    given data container.
 ///
 /// This trait can be auto derived by using `milevadb_query_codegen::AggrFunction`.
-pub trait AggrFunction: std::fmt::Debug + Slightlike + 'static {
+pub trait AggrFunction: std::fmt::Debug + lightlike + 'static {
     /// The display name of the function.
     fn name(&self) -> &'static str;
 
@@ -61,7 +61,7 @@ pub trait AggrFunction: std::fmt::Debug + Slightlike + 'static {
 /// accept all kinds of data type. However, unmatched types will result in panics in runtime.
 pub trait AggrFunctionState:
     std::fmt::Debug
-    + Slightlike
+    + lightlike
     + 'static
     + AggrFunctionStateUfidelatePartial<&'static Int>
     + AggrFunctionStateUfidelatePartial<&'static Real>
@@ -83,7 +83,7 @@ pub trait AggrFunctionState:
 /// functions according to the associated type. `ufidelate()` and `push_result()` functions that accept
 /// any eval types (but will panic when eval type does not match expectation) will be generated via
 /// implementations over this trait.
-pub trait ConcreteAggrFunctionState: std::fmt::Debug + Slightlike + 'static {
+pub trait ConcreteAggrFunctionState: std::fmt::Debug + lightlike + 'static {
     type ParameterType: EvaluableRef<'static>;
 
     /// # Safety

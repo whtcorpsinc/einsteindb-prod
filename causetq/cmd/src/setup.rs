@@ -68,7 +68,7 @@ fn make_engine_log_path(path: &str, sub_path: &str, filename: &str) -> String {
 pub fn initial_logger(config: &EINSTEINDBConfig) {
     fn build_logger<D>(drainer: D, config: &EINSTEINDBConfig)
     where
-        D: slog::Drain + Slightlike + 'static,
+        D: slog::Drain + lightlike + 'static,
         <D as slog::Drain>::Err: std::fmt::Display,
     {
         // use async drainer and init std log.
@@ -199,10 +199,10 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
             slow: Option<S>,
             config: &EINSTEINDBConfig,
         ) where
-            N: slog::Drain<Ok = (), Err = io::Error> + Slightlike + 'static,
-            R: slog::Drain<Ok = (), Err = io::Error> + Slightlike + 'static,
-            S: slog::Drain<Ok = (), Err = io::Error> + Slightlike + 'static,
-            T: slog::Drain<Ok = (), Err = io::Error> + Slightlike + 'static,
+            N: slog::Drain<Ok = (), Err = io::Error> + lightlike + 'static,
+            R: slog::Drain<Ok = (), Err = io::Error> + lightlike + 'static,
+            S: slog::Drain<Ok = (), Err = io::Error> + lightlike + 'static,
+            T: slog::Drain<Ok = (), Err = io::Error> + lightlike + 'static,
         {
             let drainer = logger::LogDispatcher::new(normal, lmdb, violetabftdb, slow);
 

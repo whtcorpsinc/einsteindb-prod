@@ -27,16 +27,16 @@ struct AwsKms {
     client: KmsClient,
     current_key_id: String,
     runtime: Runtime,
-    // The current implementation (rosoto 0.43.0 + hyper 0.13.3) is not `Slightlike`
+    // The current implementation (rosoto 0.43.0 + hyper 0.13.3) is not `lightlike`
     // in practical. See more https://github.com/einsteindb/einsteindb/issues/7236.
     // FIXME: remove it.
-    _not_slightlike: PhantomData<*const ()>,
+    _not_lightlike: PhantomData<*const ()>,
 }
 
 impl AwsKms {
     fn with_request_dispatcher<D>(config: &KmsConfig, dispatcher: D) -> Result<AwsKms>
     where
-        D: DispatchSignedRequest + Slightlike + Sync + 'static,
+        D: DispatchSignedRequest + lightlike + Sync + 'static,
     {
         Self::check_config(config)?;
 
@@ -54,7 +54,7 @@ impl AwsKms {
             client,
             current_key_id: config.key_id.clone(),
             runtime,
-            _not_slightlike: PhantomData::default(),
+            _not_lightlike: PhantomData::default(),
         })
     }
 
@@ -166,7 +166,7 @@ impl Inner {
         dispatcher: D,
     ) -> Result<()>
     where
-        D: DispatchSignedRequest + Slightlike + Sync + 'static,
+        D: DispatchSignedRequest + lightlike + Sync + 'static,
     {
         if self.backlightlike.is_some()
             && ciphertext_key.map_or(true, |key| *key == self.cached_ciphertext_key)

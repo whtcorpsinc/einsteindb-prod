@@ -82,7 +82,7 @@ fn test_tombstone<T: Simulator>(cluster: &mut Cluster<T>) {
     let conf_ver = state.get_brane().get_brane_epoch().get_conf_ver();
     assert!(conf_ver == 4 || conf_ver == 3);
 
-    // Slightlike a stale violetabft message to peer (2, 2)
+    // lightlike a stale violetabft message to peer (2, 2)
     let mut violetabft_msg = VioletaBftMessage::default();
 
     violetabft_msg.set_brane_id(r1);
@@ -92,7 +92,7 @@ fn test_tombstone<T: Simulator>(cluster: &mut Cluster<T>) {
     violetabft_msg.mut_brane_epoch().set_conf_ver(0);
     violetabft_msg.mut_brane_epoch().set_version(0);
 
-    cluster.slightlike_violetabft_msg(violetabft_msg).unwrap();
+    cluster.lightlike_violetabft_msg(violetabft_msg).unwrap();
 
     // We must get BraneNotFound error.
     let brane_status = new_status_request(r1, new_peer(2, 2), new_brane_leader_cmd());
@@ -188,7 +188,7 @@ fn test_readd_peer<T: Simulator>(cluster: &mut Cluster<T>) {
     let engine_3 = cluster.get_engine(3);
     must_get_equal(&engine_3, b"k1", b"v1");
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
 
     // Remove peer (2, 2) from brane 1.
     fidel_client.must_remove_peer(r1, new_peer(2, 2));
@@ -200,7 +200,7 @@ fn test_readd_peer<T: Simulator>(cluster: &mut Cluster<T>) {
     assert_eq!(cluster.get(key), Some(value.to_vec()));
     fidel_client.must_add_peer(r1, new_peer(2, 4));
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     cluster.must_put(b"k4", b"v4");
     let engine = cluster.get_engine(2);
     must_get_equal(&engine, b"k4", b"v4");
@@ -213,7 +213,7 @@ fn test_readd_peer<T: Simulator>(cluster: &mut Cluster<T>) {
     gc_msg.set_to_peer(new_peer(2, 2));
     gc_msg.set_brane_epoch(epoch);
     gc_msg.set_is_tombstone(true);
-    cluster.slightlike_violetabft_msg(gc_msg).unwrap();
+    cluster.lightlike_violetabft_msg(gc_msg).unwrap();
     // Fixme: find a better way to check if the message is ignored.
     thread::sleep(Duration::from_secs(1));
     must_get_equal(&engine, b"k4", b"v4");
@@ -243,7 +243,7 @@ fn test_server_stale_meta() {
     fidel_client.disable_default_operator();
 
     cluster.run();
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     fidel_client.must_remove_peer(1, new_peer(3, 3));
     fidel_client.must_add_peer(1, new_peer(3, 4));
     cluster.shutdown();
@@ -260,7 +260,7 @@ fn test_server_stale_meta() {
         .c()
         .put_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(1), &state)
         .unwrap();
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     // avoid TIMEWAIT
     sleep_ms(500);
@@ -295,7 +295,7 @@ fn test_safe_tombstone_gc() {
     fidel_client.must_add_peer(r, new_peer(2, 2));
     fidel_client.must_add_peer(r, new_peer(3, 3));
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(4));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(4));
 
     fidel_client.must_add_peer(r, new_peer(4, 4));
     fidel_client.must_add_peer(r, new_peer(5, 5));
@@ -304,14 +304,14 @@ fn test_safe_tombstone_gc() {
     must_get_equal(&cluster.get_engine(5), b"k1", b"v1");
 
     let (tx, rx) = channel::unbounded();
-    cluster.clear_slightlike_filters();
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(5));
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.clear_lightlike_filters();
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(5));
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(r, 4)
             .direction(Direction::Recv)
             .msg_type(MessageType::MsgApplightlike)
             .set_msg_callback(Arc::new(move |msg| {
-                let _ = tx.slightlike(msg.clone());
+                let _ = tx.lightlike(msg.clone());
             })),
     ));
 
@@ -330,8 +330,8 @@ fn test_safe_tombstone_gc() {
     if state.is_none() {
         panic!("brane on store 4 has not been tombstone after 5 seconds.");
     }
-    cluster.clear_slightlike_filters();
-    cluster.add_slightlike_filter(PartitionFilterFactory::new(vec![1, 2, 3], vec![4, 5]));
+    cluster.clear_lightlike_filters();
+    cluster.add_lightlike_filter(PartitionFilterFactory::new(vec![1, 2, 3], vec![4, 5]));
 
     thread::sleep(base_tick_interval * tick as u32 * 3);
     must_get_equal(&cluster.get_engine(5), b"k1", b"v1");

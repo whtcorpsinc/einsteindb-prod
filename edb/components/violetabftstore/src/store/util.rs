@@ -251,7 +251,7 @@ pub fn compare_brane_epoch(
     //
     // A 3 nodes EinsteinDB cluster with merge enabled, after commit merge, EinsteinDB A
     // tells MilevaDB with a epoch not match error contains the latest target Brane
-    // info, MilevaDB ufidelates its brane cache and slightlikes requests to EinsteinDB B,
+    // info, MilevaDB ufidelates its brane cache and lightlikes requests to EinsteinDB B,
     // and EinsteinDB B has not applied commit merge yet, since the brane epoch in
     // request is higher than EinsteinDB B, the request must be denied due to epoch
     // not match, so it does not read on a stale snapshot, thus avoid the
@@ -387,9 +387,9 @@ pub fn is_brane_initialized(r: &metapb::Brane) -> bool {
 ///     current peer lose its leader lease.
 ///     Within this suspect leader lease expire time, read requests could not be performed
 ///     locally.
-///   - The valid leader lease should be `lease = max_lease - (commit_ts - slightlike_ts)`
+///   - The valid leader lease should be `lease = max_lease - (commit_ts - lightlike_ts)`
 ///     And the expired timestamp for that leader lease is `commit_ts + lease`,
-///     which is `slightlike_ts + max_lease` in short.
+///     which is `lightlike_ts + max_lease` in short.
 pub struct Lease {
     // A suspect timestamp is in the Either::Left(_),
     // a valid timestamp is in the Either::Right(_).
@@ -423,16 +423,16 @@ impl Lease {
         }
     }
 
-    /// The valid leader lease should be `lease = max_lease - (commit_ts - slightlike_ts)`
+    /// The valid leader lease should be `lease = max_lease - (commit_ts - lightlike_ts)`
     /// And the expired timestamp for that leader lease is `commit_ts + lease`,
-    /// which is `slightlike_ts + max_lease` in short.
-    fn next_expired_time(&self, slightlike_ts: Timespec) -> Timespec {
-        slightlike_ts + self.max_lease
+    /// which is `lightlike_ts + max_lease` in short.
+    fn next_expired_time(&self, lightlike_ts: Timespec) -> Timespec {
+        lightlike_ts + self.max_lease
     }
 
     /// Renew the lease to the bound.
-    pub fn renew(&mut self, slightlike_ts: Timespec) {
-        let bound = self.next_expired_time(slightlike_ts);
+    pub fn renew(&mut self, lightlike_ts: Timespec) {
+        let bound = self.next_expired_time(lightlike_ts);
         match self.bound {
             // Longer than suspect ts or longer than valid ts.
             Some(Either::Left(ts)) | Some(Either::Right(ts)) => {
@@ -457,9 +457,9 @@ impl Lease {
     }
 
     /// Suspect the lease to the bound.
-    pub fn suspect(&mut self, slightlike_ts: Timespec) {
+    pub fn suspect(&mut self, lightlike_ts: Timespec) {
         self.expire_remote_lease();
-        let bound = self.next_expired_time(slightlike_ts);
+        let bound = self.next_expired_time(lightlike_ts);
         self.bound = Some(Either::Left(bound));
     }
 

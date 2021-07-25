@@ -11,32 +11,32 @@ use std::sync::{Arc, Mutex};
 
 /// Generates a paired future and callback so that when callback is being called, its result
 /// is automatically passed as a future result.
-pub fn paired_future_callback<T>() -> (Box<dyn FnOnce(T) + Slightlike>, futures_oneshot::Receiver<T>)
+pub fn paired_future_callback<T>() -> (Box<dyn FnOnce(T) + lightlike>, futures_oneshot::Receiver<T>)
 where
-    T: Slightlike + 'static,
+    T: lightlike + 'static,
 {
     let (tx, future) = futures_oneshot::channel::<T>();
     let callback = Box::new(move |result| {
-        let r = tx.slightlike(result);
+        let r = tx.lightlike(result);
         if r.is_err() {
-            warn!("paired_future_callback: Failed to slightlike result to the future rx, discarded.");
+            warn!("paired_future_callback: Failed to lightlike result to the future rx, discarded.");
         }
     });
     (callback, future)
 }
 
 pub fn paired_must_called_future_callback<T>(
-    arg_on_drop: impl FnOnce() -> T + Slightlike + 'static,
-) -> (Box<dyn FnOnce(T) + Slightlike>, futures_oneshot::Receiver<T>)
+    arg_on_drop: impl FnOnce() -> T + lightlike + 'static,
+) -> (Box<dyn FnOnce(T) + lightlike>, futures_oneshot::Receiver<T>)
 where
-    T: Slightlike + 'static,
+    T: lightlike + 'static,
 {
     let (tx, future) = futures_oneshot::channel::<T>();
     let callback = must_call(
         move |result| {
-            let r = tx.slightlike(result);
+            let r = tx.lightlike(result);
             if r.is_err() {
-                warn!("paired_future_callback: Failed to slightlike result to the future rx, discarded.");
+                warn!("paired_future_callback: Failed to lightlike result to the future rx, discarded.");
             }
         },
         arg_on_drop,
@@ -50,18 +50,18 @@ pub fn create_stream_with_buffer<T, S>(
     s: S,
     size: usize,
 ) -> (
-    impl Stream<Item = T> + Slightlike + 'static,
-    impl Future<Output = ()> + Slightlike + 'static,
+    impl Stream<Item = T> + lightlike + 'static,
+    impl Future<Output = ()> + lightlike + 'static,
 )
 where
-    S: Stream<Item = T> + Slightlike + 'static,
-    T: Slightlike + 'static,
+    S: Stream<Item = T> + lightlike + 'static,
+    T: lightlike + 'static,
 {
     let (tx, rx) = mpsc::channel::<T>(size);
     let driver = s
-        .then(future::ok::<T, mpsc::SlightlikeError>)
+        .then(future::ok::<T, mpsc::lightlikeError>)
         .forward(tx)
-        .map_err(|e| warn!("stream with buffer slightlike error"; "error" => %e))
+        .map_err(|e| warn!("stream with buffer lightlike error"; "error" => %e))
         .map(|_| ());
     (rx, driver)
 }
@@ -70,7 +70,7 @@ where
 /// it will register the waker. When the event is ready, the waker will
 /// be notified, then the internal future is immediately polled in the
 /// thread calling `wake()`.
-pub fn poll_future_notify<F: Future<Output = ()> + Slightlike + 'static>(f: F) {
+pub fn poll_future_notify<F: Future<Output = ()> + lightlike + 'static>(f: F) {
     let f: BoxFuture<'static, ()> = Box::pin(f);
     let waker = Arc::new(BatchCommandsWaker(Mutex::new(Some(f))));
     waker.wake();

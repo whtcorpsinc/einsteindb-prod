@@ -31,7 +31,7 @@ use violetabftstore::Error as VioletaBftStoreError;
 use resolved_ts::Resolver;
 use einsteindb::causetStorage::txn::TxnEntry;
 use einsteindb_util::collections::HashMap;
-use einsteindb_util::mpsc::batch::Slightlikeer as BatchSlightlikeer;
+use einsteindb_util::mpsc::batch::lightlikeer as Batchlightlikeer;
 use txn_types::{Key, Dagger, LockType, TimeStamp, WriteRef, WriteType};
 
 use crate::lightlikepoint::{OldValueCache, OldValueCallback};
@@ -76,7 +76,7 @@ pub struct Downstream {
     // The IP address of downstream.
     peer: String,
     brane_epoch: BraneEpoch,
-    sink: Option<BatchSlightlikeer<causet_contextEvent>>,
+    sink: Option<Batchlightlikeer<causet_contextEvent>>,
     state: Arc<AtomicCell<DownstreamState>>,
 }
 
@@ -84,7 +84,7 @@ impl Downstream {
     /// Create a Downsteam.
     ///
     /// peer is the address of the downstream.
-    /// sink slightlikes data to the downstream.
+    /// sink lightlikes data to the downstream.
     pub fn new(
         peer: String,
         brane_epoch: BraneEpoch,
@@ -112,21 +112,21 @@ impl Downstream {
             return;
         }
         let sink = self.sink.as_ref().unwrap();
-        if let Err(e) = sink.try_slightlike(causet_contextEvent::Event(event)) {
+        if let Err(e) = sink.try_lightlike(causet_contextEvent::Event(event)) {
             match e {
-                crossbeam::TrySlightlikeError::Disconnected(_) => {
-                    debug!("slightlike event failed, disconnected";
+                crossbeam::TrylightlikeError::Disconnected(_) => {
+                    debug!("lightlike event failed, disconnected";
                         "conn_id" => ?self.conn_id, "downstream_id" => ?self.id);
                 }
-                crossbeam::TrySlightlikeError::Full(_) => {
-                    info!("slightlike event failed, full";
+                crossbeam::TrylightlikeError::Full(_) => {
+                    info!("lightlike event failed, full";
                         "conn_id" => ?self.conn_id, "downstream_id" => ?self.id);
                 }
             }
         }
     }
 
-    pub fn set_sink(&mut self, sink: BatchSlightlikeer<causet_contextEvent>) {
+    pub fn set_sink(&mut self, sink: Batchlightlikeer<causet_contextEvent>) {
         self.sink = Some(sink);
     }
 
@@ -506,7 +506,7 @@ impl pushdown_causet {
                     //   3. key
                     //   4. value
                     if Evcausetidx.get_type() == EventLogType::Rollback {
-                        // We dont need to slightlike rollbacks to downstream,
+                        // We dont need to lightlike rollbacks to downstream,
                         // because downstream does not needs rollback to clean
                         // prewrite as it drops all previous stashed data.
                         continue;

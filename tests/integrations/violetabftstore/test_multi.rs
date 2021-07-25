@@ -191,7 +191,7 @@ fn test_multi_node_base() {
 
 fn test_multi_drop_packet<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.run();
-    cluster.add_slightlike_filter(CloneFilterFactory(DropPacketFilter::new(30)));
+    cluster.add_lightlike_filter(CloneFilterFactory(DropPacketFilter::new(30)));
     test_multi_base_after_bootstrap(cluster);
 }
 
@@ -218,7 +218,7 @@ fn test_multi_server_base() {
 
 fn test_multi_latency<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.run();
-    cluster.add_slightlike_filter(CloneFilterFactory(DelayFilter::new(Duration::from_millis(
+    cluster.add_lightlike_filter(CloneFilterFactory(DelayFilter::new(Duration::from_millis(
         30,
     ))));
     test_multi_base_after_bootstrap(cluster);
@@ -233,7 +233,7 @@ fn test_multi_server_latency() {
 
 fn test_multi_random_latency<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.run();
-    cluster.add_slightlike_filter(CloneFilterFactory(RandomLatencyFilter::new(50)));
+    cluster.add_lightlike_filter(CloneFilterFactory(RandomLatencyFilter::new(50)));
     test_multi_base_after_bootstrap(cluster);
 }
 
@@ -331,7 +331,7 @@ fn test_leader_change_with_uncommitted_log<T: Simulator>(cluster: &mut Cluster<T
     cluster.must_transfer_leader(1, new_peer(1, 1));
 
     // So peer 3 won't replicate any message of the brane but still can vote.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 3).msg_type(MessageType::MsgApplightlike),
     ));
     cluster.must_put(b"k1", b"v1");
@@ -349,7 +349,7 @@ fn test_leader_change_with_uncommitted_log<T: Simulator>(cluster: &mut Cluster<T
 
     // hack: first MsgApplightlike will applightlike log, second MsgApplightlike will set commit index,
     // So only allowing first MsgApplightlike to make peer 2 have uncommitted entries.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 2)
             .msg_type(MessageType::MsgApplightlike)
             .direction(Direction::Recv)
@@ -357,21 +357,21 @@ fn test_leader_change_with_uncommitted_log<T: Simulator>(cluster: &mut Cluster<T
     ));
     // Make peer 2 have no way to know the uncommitted entries can be applied
     // when it becomes leader.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 1)
             .msg_type(MessageType::MsgHeartbeatResponse)
-            .direction(Direction::Slightlike),
+            .direction(Direction::lightlike),
     ));
     // Make peer 2's msg won't be replicated when it becomes leader,
     // so the uncommitted entries won't be applied immediately.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 1)
             .msg_type(MessageType::MsgApplightlike)
             .direction(Direction::Recv),
     ));
     // Make peer 2 have no way to know the uncommitted entries can be applied
     // when it's still follower.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 2)
             .msg_type(MessageType::MsgHeartbeat)
             .direction(Direction::Recv),
@@ -396,7 +396,7 @@ fn test_leader_change_with_uncommitted_log<T: Simulator>(cluster: &mut Cluster<T
     );
     debug!("requesting: {:?}", put);
     put.mut_header().set_peer(new_peer(2, 2));
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     let resp = cluster.call_command(put, Duration::from_secs(5)).unwrap();
     assert!(!resp.get_header().has_error(), "{:?}", resp);
 
@@ -433,7 +433,7 @@ fn test_node_leader_change_with_log_overlap() {
     cluster.must_transfer_leader(1, new_peer(1, 1));
 
     // So peer 3 won't replicate any message of the brane but still can vote.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 3).msg_type(MessageType::MsgApplightlike),
     ));
     cluster.must_put(b"k1", b"v1");
@@ -450,10 +450,10 @@ fn test_node_leader_change_with_log_overlap() {
     // now only peer 1 and peer 2 can step to leader.
     // Make peer 1's msg won't be replicated,
     // so the proposed entries won't be committed.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 1)
             .msg_type(MessageType::MsgApplightlike)
-            .direction(Direction::Slightlike),
+            .direction(Direction::lightlike),
     ));
     let put_msg = vec![new_put_cmd(b"k2", b"v2")];
     let brane = cluster.get_brane(b"");
@@ -470,7 +470,7 @@ fn test_node_leader_change_with_log_overlap() {
         .sim
         .rl()
         .get_node_router(1)
-        .slightlike_command(
+        .lightlike_command(
             put_req,
             Callback::Write(Box::new(move |resp: WriteResponse| {
                 called_.store(true, Ordering::SeqCst);
@@ -482,10 +482,10 @@ fn test_node_leader_change_with_log_overlap() {
 
     // Now let peer(1, 1) steps down. Can't use transfer leader here, because
     // it still has plightlikeing proposed entries.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 1)
             .msg_type(MessageType::MsgHeartbeat)
-            .direction(Direction::Slightlike),
+            .direction(Direction::lightlike),
     ));
     // make sure k2 has not been committed.
     must_get_none(&cluster.get_engine(1), b"k2");
@@ -495,7 +495,7 @@ fn test_node_leader_change_with_log_overlap() {
 
     must_get_none(&cluster.get_engine(2), b"k2");
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     for _ in 0..50 {
         sleep_ms(100);
@@ -518,8 +518,8 @@ fn test_read_leader_with_unapplied_log<T: Simulator>(cluster: &mut Cluster<T>) {
     // guarantee peer 1 is leader
     cluster.must_transfer_leader(1, new_peer(1, 1));
 
-    // if peer 2 is unreachable, leader will not slightlike MsgApplightlike to peer 2, and the leader will
-    // slightlike MsgApplightlike with committed information to peer 2 after network recovered, and peer 2
+    // if peer 2 is unreachable, leader will not lightlike MsgApplightlike to peer 2, and the leader will
+    // lightlike MsgApplightlike with committed information to peer 2 after network recovered, and peer 2
     // will apply the entry regardless of we add an filter, so we put k0/v0 to make sure the
     // network is reachable.
     let (k0, v0) = (b"k0", b"v0");
@@ -531,7 +531,7 @@ fn test_read_leader_with_unapplied_log<T: Simulator>(cluster: &mut Cluster<T>) {
 
     // hack: first MsgApplightlike will applightlike log, second MsgApplightlike will set commit index,
     // So only allowing first MsgApplightlike to make peer 2 have uncommitted entries.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 2)
             .msg_type(MessageType::MsgApplightlike)
             .direction(Direction::Recv)
@@ -540,15 +540,15 @@ fn test_read_leader_with_unapplied_log<T: Simulator>(cluster: &mut Cluster<T>) {
 
     // Make peer 2's msg won't be replicated when it becomes leader,
     // so the uncommitted entries won't be applied immediately.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 2)
             .msg_type(MessageType::MsgApplightlike)
-            .direction(Direction::Slightlike),
+            .direction(Direction::lightlike),
     ));
 
     // Make peer 2 have no way to know the uncommitted entries can be applied
     // when it's still follower.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 2)
             .msg_type(MessageType::MsgHeartbeat)
             .direction(Direction::Recv),
@@ -576,7 +576,7 @@ fn test_read_leader_with_unapplied_log<T: Simulator>(cluster: &mut Cluster<T>) {
     );
 
     // recover network
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     assert_eq!(cluster.get(k).unwrap(), v);
 }
@@ -623,16 +623,16 @@ fn test_remove_leader_with_uncommitted_log<T: Simulator>(cluster: &mut Cluster<T
     cluster.must_transfer_leader(1, new_peer(1, 1));
 
     // stop peer 2 replicate messages.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 2)
             .msg_type(MessageType::MsgApplightlike)
             .direction(Direction::Recv),
     ));
     // peer 2 can't step to leader.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 2)
             .msg_type(MessageType::MsgRequestVote)
-            .direction(Direction::Slightlike),
+            .direction(Direction::lightlike),
     ));
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
@@ -651,7 +651,7 @@ fn test_remove_leader_with_uncommitted_log<T: Simulator>(cluster: &mut Cluster<T
     );
     debug!("requesting: {:?}", put);
     put.mut_header().set_peer(new_peer(1, 1));
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     let resp = cluster.call_command(put, Duration::from_secs(5)).unwrap();
     assert!(resp.get_header().has_error());
     assert!(
@@ -689,7 +689,7 @@ fn test_node_dropped_proposal() {
     cluster.must_transfer_leader(1, new_peer(1, 1));
 
     // so peer 3 won't have latest messages, it can't become leader.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 3).msg_type(MessageType::MsgApplightlike),
     ));
     cluster.must_put(b"k1", b"v1");
@@ -722,10 +722,10 @@ fn test_node_dropped_proposal() {
         .sim
         .rl()
         .get_node_router(1)
-        .slightlike_command(
+        .lightlike_command(
             put_req,
             Callback::Write(Box::new(move |resp: WriteResponse| {
-                let _ = tx.slightlike(resp.response);
+                let _ = tx.lightlike(resp.response);
             })),
         )
         .unwrap();

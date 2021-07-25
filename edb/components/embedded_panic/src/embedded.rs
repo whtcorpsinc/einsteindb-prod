@@ -3,15 +3,15 @@
 use crate::db_vector::PanicDBVector;
 use crate::snapshot::PanicSnapshot;
 use crate::write_batch::PanicWriteBatch;
-use engine_promises::{
-    IterOptions, Iterable, Iteron, KvEngine, Peekable, ReadOptions, Result, SeekKey, SyncMuBlock,
+use Embedded_promises::{
+    IterOptions, Iterable, Iteron, TxnEmbedded, Peekable, ReadOptions, Result, SeekKey, SyncMuBlock,
     WriteOptions,
 };
 
 #[derive(Clone, Debug)]
-pub struct PanicEngine;
+pub struct PanicEmbedded;
 
-impl KvEngine for PanicEngine {
+impl TxnEmbedded for PanicEmbedded {
     type Snapshot = PanicSnapshot;
 
     fn snapshot(&self) -> Self::Snapshot {
@@ -25,7 +25,7 @@ impl KvEngine for PanicEngine {
     }
 }
 
-impl Peekable for PanicEngine {
+impl Peekable for PanicEmbedded {
     type DBVector = PanicDBVector;
 
     fn get_value_opt(&self, opts: &ReadOptions, key: &[u8]) -> Result<Option<Self::DBVector>> {
@@ -41,7 +41,7 @@ impl Peekable for PanicEngine {
     }
 }
 
-impl SyncMuBlock for PanicEngine {
+impl SyncMuBlock for PanicEmbedded {
     fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
         panic!()
     }
@@ -60,8 +60,8 @@ impl SyncMuBlock for PanicEngine {
     }
 }
 
-impl Iterable for PanicEngine {
-    type Iteron = PanicEngineIterator;
+impl Iterable for PanicEmbedded {
+    type Iteron = PanicEmbeddedIterator;
 
     fn Iteron_opt(&self, opts: IterOptions) -> Result<Self::Iteron> {
         panic!()
@@ -71,9 +71,9 @@ impl Iterable for PanicEngine {
     }
 }
 
-pub struct PanicEngineIterator;
+pub struct PanicEmbeddedIterator;
 
-impl Iteron for PanicEngineIterator {
+impl Iteron for PanicEmbeddedIterator {
     fn seek(&mut self, key: SeekKey) -> Result<bool> {
         panic!()
     }

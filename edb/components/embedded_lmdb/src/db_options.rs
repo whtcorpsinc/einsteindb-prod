@@ -1,14 +1,14 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::engine::LmdbEngine;
-use engine_promises::DBOptions;
-use engine_promises::DBOptionsExt;
-use engine_promises::Result;
-use engine_promises::NoetherDBOptions;
+use crate::Embedded::LmdbEmbedded;
+use embedded_promises::DBOptions;
+use embedded_promises::DBOptionsExt;
+use embedded_promises::Result;
+use embedded_promises::NoetherDBOptions;
 use lmdb::DBOptions as RawDBOptions;
 use lmdb::NoetherDBOptions as RawNoetherDBOptions;
 
-impl DBOptionsExt for LmdbEngine {
+impl DBOptionsExt for LmdbEmbedded {
     type DBOptions = LmdbDBOptions;
 
     fn get_db_options(&self) -> Self::DBOptions {

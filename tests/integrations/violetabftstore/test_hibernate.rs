@@ -26,8 +26,8 @@ fn test_proposal_prevent_sleep() {
             * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32,
     );
 
-    cluster.add_slightlike_filter(CloneFilterFactory(
-        BranePacketFilter::new(1, 1).direction(Direction::Slightlike),
+    cluster.add_lightlike_filter(CloneFilterFactory(
+        BranePacketFilter::new(1, 1).direction(Direction::lightlike),
     ));
     let brane = block_on(cluster.fidel_client.get_brane_by_id(1))
         .unwrap()
@@ -36,11 +36,11 @@ fn test_proposal_prevent_sleep() {
     let put = new_put_cmd(b"k2", b"v2");
     let mut req = new_request(1, brane.get_brane_epoch().clone(), vec![put], true);
     req.mut_header().set_peer(new_peer(1, 1));
-    // ignore error, we just want to slightlike this command to peer (1, 1),
+    // ignore error, we just want to lightlike this command to peer (1, 1),
     // and the command can't be executed because we have only one peer,
     // so here will return timeout error, we should ignore it.
     let _ = cluster.call_command(req, Duration::from_millis(10));
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_equal(&cluster.get_engine(3), b"k2", b"v2");
     assert_eq!(cluster.leader_of_brane(1), Some(new_peer(1, 1)));
 
@@ -50,8 +50,8 @@ fn test_proposal_prevent_sleep() {
             * 2
             * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32,
     );
-    cluster.add_slightlike_filter(CloneFilterFactory(
-        BranePacketFilter::new(1, 1).direction(Direction::Slightlike),
+    cluster.add_lightlike_filter(CloneFilterFactory(
+        BranePacketFilter::new(1, 1).direction(Direction::lightlike),
     ));
     let mut request = new_request(
         brane.get_id(),
@@ -61,14 +61,14 @@ fn test_proposal_prevent_sleep() {
     );
     request.mut_header().set_peer(new_peer(1, 1));
     let (cb, rx) = make_cb(&request);
-    // slightlike to peer 2
+    // lightlike to peer 2
     cluster
         .sim
         .rl()
         .async_command_on_node(1, request, cb)
         .unwrap();
     thread::sleep(Duration::from_millis(10));
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     let resp = rx.recv_timeout(Duration::from_secs(5)).unwrap();
     assert!(
         !resp.get_header().has_error(),
@@ -82,8 +82,8 @@ fn test_proposal_prevent_sleep() {
             * 2
             * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32,
     );
-    cluster.add_slightlike_filter(CloneFilterFactory(
-        BranePacketFilter::new(1, 1).direction(Direction::Slightlike),
+    cluster.add_lightlike_filter(CloneFilterFactory(
+        BranePacketFilter::new(1, 1).direction(Direction::lightlike),
     ));
     let conf_change = new_change_peer_request(ConfChangeType::RemoveNode, new_peer(3, 3));
     let mut admin_req = new_admin_request(1, &brane.get_brane_epoch(), conf_change);
@@ -95,7 +95,7 @@ fn test_proposal_prevent_sleep() {
         .async_command_on_node(1, admin_req, cb)
         .unwrap();
     thread::sleep(Duration::from_millis(10));
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     cluster.fidel_client.must_none_peer(1, new_peer(3, 3));
 }
 
@@ -137,11 +137,11 @@ fn test_prompt_learner() {
     must_get_equal(&cluster.get_engine(4), b"k1", b"v1");
 
     // Suppose there is only one way partition.
-    cluster.add_slightlike_filter(CloneFilterFactory(
-        BranePacketFilter::new(1, 3).direction(Direction::Slightlike),
+    cluster.add_lightlike_filter(CloneFilterFactory(
+        BranePacketFilter::new(1, 3).direction(Direction::lightlike),
     ));
-    cluster.add_slightlike_filter(CloneFilterFactory(
-        BranePacketFilter::new(1, 4).direction(Direction::Slightlike),
+    cluster.add_lightlike_filter(CloneFilterFactory(
+        BranePacketFilter::new(1, 4).direction(Direction::lightlike),
     ));
     let idx = cluster.truncated_state(1, 1).get_index();
     // Trigger a log compaction.
@@ -164,9 +164,9 @@ fn test_prompt_learner() {
             * 2
             * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32,
     );
-    cluster.clear_slightlike_filters();
-    cluster.add_slightlike_filter(CloneFilterFactory(
-        BranePacketFilter::new(1, 3).direction(Direction::Slightlike),
+    cluster.clear_lightlike_filters();
+    cluster.add_lightlike_filter(CloneFilterFactory(
+        BranePacketFilter::new(1, 3).direction(Direction::lightlike),
     ));
     cluster.fidel_client.must_add_peer(1, new_peer(4, 4));
 }
@@ -183,9 +183,9 @@ fn test_transfer_leader_delay() {
     must_get_equal(&cluster.get_engine(3), b"k1", b"v1");
 
     let messages = Arc::new(Mutex::new(vec![]));
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 3)
-            .direction(Direction::Slightlike)
+            .direction(Direction::lightlike)
             .msg_type(MessageType::MsgTransferLeader)
             .reserve_dropped(messages.clone()),
     ));
@@ -201,13 +201,13 @@ fn test_transfer_leader_delay() {
             * 2
             * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32,
     );
-    cluster.clear_slightlike_filters();
-    cluster.add_slightlike_filter(CloneFilterFactory(DropMessageFilter::new(
+    cluster.clear_lightlike_filters();
+    cluster.add_lightlike_filter(CloneFilterFactory(DropMessageFilter::new(
         MessageType::MsgTimeoutNow,
     )));
     let router = cluster.sim.wl().get_router(1).unwrap();
     router
-        .slightlike_violetabft_message(messages.dagger().unwrap().pop().unwrap())
+        .lightlike_violetabft_message(messages.dagger().unwrap().pop().unwrap())
         .unwrap();
     let timer = Instant::now();
     while timer.elapsed() < Duration::from_secs(3) {

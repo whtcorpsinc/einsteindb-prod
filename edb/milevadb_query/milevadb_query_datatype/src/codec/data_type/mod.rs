@@ -117,7 +117,7 @@ pub macro match_template_evaluable($t:tt, $($tail:tt)*) {
     }
 }
 
-pub trait SolitonRef<'a, T: EvaluableRef<'a>>: Copy + Clone + std::fmt::Debug + Slightlike + Sync {
+pub trait SolitonRef<'a, T: EvaluableRef<'a>>: Copy + Clone + std::fmt::Debug + lightlike + Sync {
     fn get_option_ref(self, idx: usize) -> Option<T>;
 
     fn get_bit_vec(self) -> &'a BitVec;
@@ -135,7 +135,7 @@ pub trait UnsafeRefInto<T> {
 }
 
 /// A trait of all types that can be used during evaluation (eval type).
-pub trait Evaluable: Clone + std::fmt::Debug + Slightlike + Sync + 'static {
+pub trait Evaluable: Clone + std::fmt::Debug + lightlike + Sync + 'static {
     const EVAL_TYPE: EvalType;
 
     /// Borrows this concrete type from a `ScalarValue` in the same type;
@@ -151,7 +151,7 @@ pub trait Evaluable: Clone + std::fmt::Debug + Slightlike + Sync + 'static {
     fn borrow_vector_value(v: &VectorValue) -> &SolitonedVecSized<Self>;
 }
 
-pub trait EvaluableRet: Clone + std::fmt::Debug + Slightlike + Sync + 'static {
+pub trait EvaluableRet: Clone + std::fmt::Debug + lightlike + Sync + 'static {
     const EVAL_TYPE: EvalType;
     type SolitonedType: SolitonedVec<Self>;
     /// Converts a vector of this concrete type into a `VectorValue` in the same type;
@@ -224,7 +224,7 @@ impl_evaluable_ret! { DateTime, SolitonedVecSized<Self> }
 impl_evaluable_ret! { Duration, SolitonedVecSized<Self> }
 impl_evaluable_ret! { Json, SolitonedVecJson }
 
-pub trait EvaluableRef<'a>: Clone + std::fmt::Debug + Slightlike + Sync {
+pub trait EvaluableRef<'a>: Clone + std::fmt::Debug + lightlike + Sync {
     const EVAL_TYPE: EvalType;
     type SolitonedType: SolitonRef<'a, Self> + 'a;
     type EvaluableType: EvaluableRet;

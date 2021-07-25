@@ -4,7 +4,7 @@ use std::collections::Bound::{Excluded, Included, Unbounded};
 use std::collections::{BTreeMap, VecDeque};
 use std::fmt::{self, Display, Formatter};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc::SyncSlightlikeer;
+use std::sync::mpsc::Synclightlikeer;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::u64;
@@ -50,7 +50,7 @@ pub enum Task<S> {
         last_applied_index_term: u64,
         last_applied_state: VioletaBftApplyState,
         kv_snap: S,
-        notifier: SyncSlightlikeer<VioletaBftSnapshot>,
+        notifier: Synclightlikeer<VioletaBftSnapshot>,
     },
     Apply {
         brane_id: u64,
@@ -239,7 +239,7 @@ where
         last_applied_index_term: u64,
         last_applied_state: VioletaBftApplyState,
         kv_snap: EK::Snapshot,
-        notifier: SyncSlightlikeer<VioletaBftSnapshot>,
+        notifier: Synclightlikeer<VioletaBftSnapshot>,
     ) -> Result<()> {
         // do we need to check leader here?
         let snap = box_try!(store::do_snapshot::<EK>(
@@ -253,7 +253,7 @@ where
         // Only enable the fail point when the brane id is equal to 1, which is
         // the id of bootstrapped brane in tests.
         fail_point!("brane_gen_snap", brane_id == 1, |_| Ok(()));
-        if let Err(e) = notifier.try_slightlike(snap) {
+        if let Err(e) = notifier.try_lightlike(snap) {
             info!(
                 "failed to notify snap result, leadership may have changed, ignore error";
                 "brane_id" => brane_id,
@@ -263,7 +263,7 @@ where
         // The error can be ignored as snapshot will be sent in next heartbeat in the lightlike.
         let _ = self
             .router
-            .slightlike(brane_id, CasualMessage::SnapshotGenerated);
+            .lightlike(brane_id, CasualMessage::SnapshotGenerated);
         Ok(())
     }
 
@@ -274,7 +274,7 @@ where
         last_applied_index_term: u64,
         last_applied_state: VioletaBftApplyState,
         kv_snap: EK::Snapshot,
-        notifier: SyncSlightlikeer<VioletaBftSnapshot>,
+        notifier: Synclightlikeer<VioletaBftSnapshot>,
     ) {
         SNAP_COUNTER.generate.all.inc();
         let spacelike = einsteindb_util::time::Instant::now();
@@ -628,7 +628,7 @@ impl<EK, ER, R> Runnable for Runner<EK, ER, R>
 where
     EK: KvEngine,
     ER: VioletaBftEngine,
-    R: CasualRouter<EK> + Slightlike + Clone + 'static,
+    R: CasualRouter<EK> + lightlike + Clone + 'static,
 {
     type Task = Task<EK::Snapshot>;
 
@@ -699,7 +699,7 @@ impl<EK, ER, R> RunnableWithTimer for Runner<EK, ER, R>
 where
     EK: KvEngine,
     ER: VioletaBftEngine,
-    R: CasualRouter<EK> + Slightlike + Clone + 'static,
+    R: CasualRouter<EK> + lightlike + Clone + 'static,
 {
     type TimeoutTask = Event;
 
@@ -970,7 +970,7 @@ mod tests {
             let data = s1.get_data();
             let key = SnapKey::from_snap(&s1).unwrap();
             let mgr = SnapManager::new(snap_dir.path().to_str().unwrap());
-            let mut s2 = mgr.get_snapshot_for_slightlikeing(&key).unwrap();
+            let mut s2 = mgr.get_snapshot_for_lightlikeing(&key).unwrap();
             let mut s3 = mgr.get_snapshot_for_receiving(&key, &data[..]).unwrap();
             io::copy(&mut s2, &mut s3).unwrap();
             s3.save().unwrap();

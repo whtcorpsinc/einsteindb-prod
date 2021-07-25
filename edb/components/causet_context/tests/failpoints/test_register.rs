@@ -29,7 +29,7 @@ fn test_failed_plightlikeing_batch() {
     let mut req = suite.new_changedata_request(brane.get_id());
     let (mut req_tx, event_feed_wrap, receive_event) =
         new_event_feed(suite.get_brane_causet_context_client(1));
-    block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
+    block_on(req_tx.lightlike((req.clone(), WriteFlags::default()))).unwrap();
     // Split brane.
     suite.cluster.must_split(&brane, b"k0");
     // Wait for receiving split cmd.
@@ -56,7 +56,7 @@ fn test_failed_plightlikeing_batch() {
     // Ensure it is the previous brane.
     assert_eq!(req.get_brane_id(), brane.get_id());
     req.set_brane_epoch(brane.get_brane_epoch().clone());
-    block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
+    block_on(req_tx.lightlike((req, WriteFlags::default()))).unwrap();
     let mut events = receive_event(false).events.to_vec();
     assert_eq!(events.len(), 1, "{:?}", events);
     match events.pop().unwrap().event.unwrap() {
@@ -82,7 +82,7 @@ fn test_brane_ready_after_deregister() {
     let req = suite.new_changedata_request(1);
     let (mut req_tx, event_feed_wrap, receive_event) =
         new_event_feed(suite.get_brane_causet_context_client(1));
-    block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
+    block_on(req_tx.lightlike((req, WriteFlags::default()))).unwrap();
     // Sleep for a while to make sure the brane has been subscribed
     sleep_ms(200);
 
@@ -127,7 +127,7 @@ fn test_connections_register() {
 
     let (mut req_tx, event_feed_wrap, receive_event) =
         new_event_feed(suite.get_brane_causet_context_client(1));
-    block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
+    block_on(req_tx.lightlike((req.clone(), WriteFlags::default()))).unwrap();
     let mut events = receive_event(false).events.to_vec();
     match events.pop().unwrap().event.unwrap() {
         Event_oneof_event::Error(err) => {
@@ -138,7 +138,7 @@ fn test_connections_register() {
 
     // Conn 1
     req.set_brane_epoch(brane.get_brane_epoch().clone());
-    block_on(req_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
+    block_on(req_tx.lightlike((req.clone(), WriteFlags::default()))).unwrap();
     thread::sleep(Duration::from_secs(1));
     // Close conn 1
     event_feed_wrap.as_ref().replace(None);
@@ -147,7 +147,7 @@ fn test_connections_register() {
         .get_brane_causet_context_client(brane.get_id())
         .event_feed()
         .unwrap();
-    block_on(req_tx.slightlike((req, WriteFlags::default()))).unwrap();
+    block_on(req_tx.lightlike((req, WriteFlags::default()))).unwrap();
     event_feed_wrap.as_ref().replace(Some(resp_rx));
     // Split brane.
     suite.cluster.must_split(&brane, b"k0");
@@ -180,14 +180,14 @@ fn test_merge() {
     req.set_brane_epoch(source.get_brane_epoch().clone());
     let (mut source_tx, source_wrap, source_event) =
         new_event_feed(suite.get_brane_causet_context_client(source.get_id()));
-    block_on(source_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
+    block_on(source_tx.lightlike((req.clone(), WriteFlags::default()))).unwrap();
     // Subscribe target brane
     let target = suite.cluster.get_brane(b"k2");
     req.brane_id = target.get_id();
     req.set_brane_epoch(target.get_brane_epoch().clone());
     let (mut target_tx, target_wrap, target_event) =
         new_event_feed(suite.get_brane_causet_context_client(target.get_id()));
-    block_on(target_tx.slightlike((req.clone(), WriteFlags::default()))).unwrap();
+    block_on(target_tx.lightlike((req.clone(), WriteFlags::default()))).unwrap();
     sleep_ms(200);
     // Pause before completing commit merge
     let commit_merge_fp = "before_handle_catch_up_logs_for_merge";
@@ -236,7 +236,7 @@ fn test_merge() {
     source_epoch.set_conf_ver(source_epoch.get_conf_ver() + 1);
     req.brane_id = source.get_id();
     req.set_brane_epoch(source_epoch);
-    block_on(source_tx.slightlike((req, WriteFlags::default()))).unwrap();
+    block_on(source_tx.lightlike((req, WriteFlags::default()))).unwrap();
     // Wait until violetabftstore receives ChangeCmd
     sleep_ms(100);
     fail::remove(destroy_peer_fp);
@@ -279,7 +279,7 @@ fn test_deregister_plightlikeing_downstream() {
     let mut req = suite.new_changedata_request(1);
     let (mut req_tx1, event_feed_wrap, receive_event) =
         new_event_feed(suite.get_brane_causet_context_client(1));
-    block_on(req_tx1.slightlike((req.clone(), WriteFlags::default()))).unwrap();
+    block_on(req_tx1.lightlike((req.clone(), WriteFlags::default()))).unwrap();
     // Sleep for a while to make sure the brane has been subscribed
     sleep_ms(200);
 
@@ -289,7 +289,7 @@ fn test_deregister_plightlikeing_downstream() {
     // Conn 2
     let (mut req_tx2, resp_rx2) = suite.get_brane_causet_context_client(1).event_feed().unwrap();
     req.set_brane_epoch(BraneEpoch::default());
-    block_on(req_tx2.slightlike((req.clone(), WriteFlags::default()))).unwrap();
+    block_on(req_tx2.lightlike((req.clone(), WriteFlags::default()))).unwrap();
     let _resp_rx1 = event_feed_wrap.as_ref().replace(Some(resp_rx2));
     // Sleep for a while to make sure the brane has been subscribed
     sleep_ms(200);
@@ -303,7 +303,7 @@ fn test_deregister_plightlikeing_downstream() {
         other => panic!("unknown event {:?}", other),
     }
 
-    block_on(req_tx2.slightlike((req, WriteFlags::default()))).unwrap();
+    block_on(req_tx2.lightlike((req, WriteFlags::default()))).unwrap();
     let mut events = receive_event(false).events.to_vec();
     assert_eq!(events.len(), 1, "{:?}", events);
     match events.pop().unwrap().event.unwrap() {

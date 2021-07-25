@@ -31,7 +31,7 @@ fn prepare_cluster() -> Cluster<ServerCluster> {
 #[test]
 fn test_dr_auto_sync() {
     let mut cluster = prepare_cluster();
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
     let brane = cluster.get_brane(b"k1");
     let mut request = new_request(
         brane.get_id(),
@@ -53,8 +53,8 @@ fn test_dr_auto_sync() {
     assert_eq!(state.state_id, 1);
     assert_eq!(state.state, BraneReplicationState::IntegrityOverLabel);
 
-    cluster.clear_slightlike_filters();
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.clear_lightlike_filters();
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     let mut request = new_request(
         brane.get_id(),
         brane.get_brane_epoch().clone(),
@@ -85,7 +85,7 @@ fn test_check_conf_change() {
     let fidel_client = cluster.fidel_client.clone();
     fidel_client.must_remove_peer(1, new_peer(2, 2));
     must_get_none(&cluster.get_engine(2), b"k1");
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
     fidel_client.must_add_peer(1, new_learner_peer(2, 4));
     let brane = cluster.get_brane(b"k1");
     // Peer 4 can be promoted as there will be enough quorum alive.
@@ -96,12 +96,12 @@ fn test_check_conf_change() {
         .unwrap();
     assert!(!res.get_header().has_error(), "{:?}", res);
     must_get_none(&cluster.get_engine(2), b"k1");
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_equal(&cluster.get_engine(2), b"k1", b"v0");
 
     fidel_client.must_remove_peer(1, new_peer(3, 3));
     must_get_none(&cluster.get_engine(3), b"k1");
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     fidel_client.must_add_peer(1, new_learner_peer(3, 5));
     let brane = cluster.get_brane(b"k1");
     // Peer 5 can not be promoted as there is no enough quorum alive.
@@ -146,18 +146,18 @@ fn test_ufidelate_group_id() {
     fidel_client.must_add_peer(left.id, new_peer(3, 3));
     // If node 3's group id is not assigned, leader will make commit index as the smallest last
     // index of all followers.
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
     cluster.must_put(b"k11", b"v11");
     must_get_equal(&cluster.get_engine(3), b"k11", b"v11");
     must_get_equal(&cluster.get_engine(1), b"k11", b"v11");
 
     // So both node 1 and node 3 have fully resolved all stores. Further ufidelates to group ID have
     // to be done when applying conf change and snapshot.
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     fidel_client.must_add_peer(right.id, new_peer(2, 4));
     fidel_client.must_add_peer(right.id, new_learner_peer(3, 5));
     fidel_client.must_add_peer(right.id, new_peer(3, 5));
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
     cluster.must_put(b"k3", b"v3");
     cluster.must_transfer_leader(right.id, new_peer(3, 5));
     cluster.must_put(b"k4", b"v4");
@@ -168,7 +168,7 @@ fn test_ufidelate_group_id() {
 fn test_switching_replication_mode() {
     let mut cluster = prepare_cluster();
     let brane = cluster.get_brane(b"k1");
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     let mut request = new_request(
         brane.get_id(),
         brane.get_brane_epoch().clone(),
@@ -227,7 +227,7 @@ fn test_switching_replication_mode() {
     assert_eq!(state.state_id, 3);
     assert_eq!(state.state, BraneReplicationState::SimpleMajority);
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_equal(&cluster.get_engine(1), b"k3", b"v3");
     thread::sleep(Duration::from_millis(100));
     let state = cluster.fidel_client.brane_replication_status(brane.get_id());
@@ -262,7 +262,7 @@ fn test_switching_replication_mode_hibernate() {
     must_get_equal(&cluster.get_engine(3), b"k1", b"v0");
     // Wait for applightlike response after applying snapshot.
     thread::sleep(Duration::from_millis(50));
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(3));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(3));
     fidel_client.must_add_peer(r, new_peer(3, 3));
     // Wait for leader become hibernated.
     thread::sleep(
@@ -270,7 +270,7 @@ fn test_switching_replication_mode_hibernate() {
             * 2
             * (cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32),
     );
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     // Wait for brane heartbeat.
     thread::sleep(Duration::from_millis(100));
     let state = cluster.fidel_client.brane_replication_status(r);
@@ -290,7 +290,7 @@ fn test_migrate_replication_mode() {
     cluster.add_label(3, "zone", "WS");
     cluster.run();
     cluster.must_transfer_leader(1, new_peer(1, 1));
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
     cluster.must_put(b"k1", b"v0");
     // Non exists label key can't tolerate any node unavailable.
     cluster.fidel_client.configure_dr_auto_sync("host");
@@ -351,7 +351,7 @@ fn test_loading_label_after_rolling_spacelike() {
     cluster.must_put(b"k1", b"v1");
     must_get_equal(&cluster.get_engine(3), b"k1", b"v1");
 
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
     cluster.must_put(b"k2", b"v2");
     // Non exists label key can't tolerate any node unavailable.
     cluster.fidel_client.configure_dr_auto_sync("zone");

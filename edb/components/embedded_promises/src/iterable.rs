@@ -43,7 +43,7 @@ pub enum SeekKey<'a> {
 /// Iterators are implemented for `KvEngine`s and for `Snapshot`s. They see a
 /// consistent view of the database; an Iteron created by an engine behaves as
 /// if a snapshot was created first, and the Iteron created from the snapshot.
-pub trait Iteron: Slightlike {
+pub trait Iteron: lightlike {
     fn seek(&mut self, key: SeekKey) -> Result<bool>;
 
     fn seek_for_prev(&mut self, key: SeekKey) -> Result<bool>;

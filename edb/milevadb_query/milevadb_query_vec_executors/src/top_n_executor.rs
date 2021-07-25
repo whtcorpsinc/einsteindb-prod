@@ -61,8 +61,8 @@ pub struct BatchTopNFreeDaemon<Src: BatchFreeDaemon> {
 
 /// All `NonNull` pointers in `BatchTopNFreeDaemon` cannot be accessed out of the struct and
 /// `BatchTopNFreeDaemon` doesn't leak the pointers to other threads. Therefore, with those `NonNull`
-/// pointers, BatchTopNFreeDaemon still remains `Slightlike`.
-unsafe impl<Src: BatchFreeDaemon> Slightlike for BatchTopNFreeDaemon<Src> {}
+/// pointers, BatchTopNFreeDaemon still remains `lightlike`.
+unsafe impl<Src: BatchFreeDaemon> lightlike for BatchTopNFreeDaemon<Src> {}
 
 // We assign a dummy type `Box<dyn BatchFreeDaemon<StorageStats = ()>>` so that we can omit the type
 // when calling `check_supported`.

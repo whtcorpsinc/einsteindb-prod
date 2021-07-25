@@ -23,7 +23,7 @@ use engine_promises::{SstExt, SstWriterBuilder};
 use violetabftstore::router::VioletaBftStoreRouter;
 use violetabftstore::store::Callback;
 use security::{check_common_name, SecurityManager};
-use sst_importer::slightlike_rpc_response;
+use sst_importer::lightlike_rpc_response;
 use einsteindb_util::future::create_stream_with_buffer;
 use einsteindb_util::future::paired_future_callback;
 use einsteindb_util::time::{Instant, Limiter};
@@ -35,7 +35,7 @@ use sst_importer::{error_inc, Config, Error, SSTImporter};
 
 /// ImportSSTService provides einsteindb-server with the ability to ingest SST files.
 ///
-/// It saves the SST sent from client to a file and then slightlikes a command to
+/// It saves the SST sent from client to a file and then lightlikes a command to
 /// violetabftstore to trigger the ingest process.
 #[derive(Clone)]
 pub struct ImportSSTService<Router> {
@@ -108,7 +108,7 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
 
         let task = async move {
             let res = Ok(SwitchModeResponse::default());
-            slightlike_rpc_response!(res, sink, label, timer);
+            lightlike_rpc_response!(res, sink, label, timer);
         };
         ctx.spawn(task);
     }
@@ -153,7 +153,7 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
                 file.finish().map(|_| UploadResponse::default())
             }
             .await;
-            slightlike_rpc_response!(res, sink, label, timer);
+            lightlike_rpc_response!(res, sink, label, timer);
         };
 
         self.threads.spawn_ok(buf_driver);
@@ -184,7 +184,7 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
             // FIXME: download() should be an async fn, to allow BR to cancel
             // a download task.
             // Unfortunately, this currently can't happen because the S3Storage
-            // is not Slightlike + Sync. See the documentation of S3Storage for reason.
+            // is not lightlike + Sync. See the documentation of S3Storage for reason.
             let res = importer.download::<LmdbEngine>(
                 req.get_sst(),
                 req.get_causetStorage_backlightlike(),
@@ -202,13 +202,13 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
                 Err(e) => resp.set_error(e.into()),
             }
             let resp = Ok(resp);
-            slightlike_rpc_response!(resp, sink, label, timer);
+            lightlike_rpc_response!(resp, sink, label, timer);
         };
 
         self.threads.spawn_ok(handle_task);
     }
 
-    /// Ingest the file by slightlikeing a violetabft command to violetabftstore.
+    /// Ingest the file by lightlikeing a violetabft command to violetabftstore.
     ///
     /// If the ingestion fails because the brane is not found or the epoch does
     /// not match, the remaining files will eventually be cleaned up by
@@ -241,7 +241,7 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
             resp.set_error(errorpb);
             ctx.spawn(
                 sink.success(resp)
-                    .unwrap_or_else(|e| warn!("slightlike rpc failed"; "err" => %e)),
+                    .unwrap_or_else(|e| warn!("lightlike rpc failed"; "err" => %e)),
             );
             return;
         }
@@ -259,12 +259,12 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
         cmd.mut_requests().push(ingest);
 
         let (cb, future) = paired_future_callback();
-        if let Err(e) = self.router.slightlike_command(cmd, Callback::Write(cb)) {
+        if let Err(e) = self.router.lightlike_command(cmd, Callback::Write(cb)) {
             let mut resp = IngestResponse::default();
             resp.set_error(e.into());
             ctx.spawn(
                 sink.success(resp)
-                    .unwrap_or_else(|e| warn!("slightlike rpc failed"; "err" => %e)),
+                    .unwrap_or_else(|e| warn!("lightlike rpc failed"; "err" => %e)),
             );
             return;
         }
@@ -282,7 +282,7 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
                 }
                 Err(e) => Err(e),
             };
-            slightlike_rpc_response!(res, sink, label, timer);
+            lightlike_rpc_response!(res, sink, label, timer);
         };
         ctx.spawn(ctx_task);
     }
@@ -348,7 +348,7 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
             let res = res
                 .map_err(|e| Error::Engine(box_err!(e)))
                 .map(|_| CompactResponse::default());
-            slightlike_rpc_response!(res, sink, label, timer);
+            lightlike_rpc_response!(res, sink, label, timer);
         };
 
         self.threads.spawn_ok(handle_task);
@@ -375,7 +375,7 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
 
         let ctx_task = async move {
             let res = Ok(SetDownloadSpeedLimitResponse::default());
-            slightlike_rpc_response!(res, sink, label, timer);
+            lightlike_rpc_response!(res, sink, label, timer);
         };
 
         ctx.spawn(ctx_task);
@@ -447,7 +447,7 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
                 })
             }
             .await;
-            slightlike_rpc_response!(res, sink, label, timer);
+            lightlike_rpc_response!(res, sink, label, timer);
         };
 
         self.threads.spawn_ok(buf_driver);

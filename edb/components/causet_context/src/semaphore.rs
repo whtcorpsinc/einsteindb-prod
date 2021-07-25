@@ -339,7 +339,7 @@ mod tests {
             _ => panic!("unexpected task"),
         };
 
-        // Does not slightlike unsubscribed brane events.
+        // Does not lightlike unsubscribed brane events.
         let mut brane = Brane::default();
         brane.set_id(1);
         let mut ctx = SemaphoreContext::new(&brane);

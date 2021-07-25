@@ -130,7 +130,7 @@ fn test_server_split_brane_twice() {
         assert_eq!(brane2.get_spacelike_key(), left.get_spacelike_key());
         assert_eq!(left.get_lightlike_key(), right.get_spacelike_key());
         assert_eq!(brane2.get_lightlike_key(), right.get_lightlike_key());
-        tx.slightlike(right).unwrap();
+        tx.lightlike(right).unwrap();
     });
     cluster.split_brane(&brane, split_key, Callback::Write(c));
     let brane3 = rx.recv_timeout(Duration::from_secs(5)).unwrap();
@@ -142,7 +142,7 @@ fn test_server_split_brane_twice() {
         assert!(write_resp.response.has_header());
         assert!(write_resp.response.get_header().has_error());
         assert!(!write_resp.response.has_admin_response());
-        tx1.slightlike(()).unwrap();
+        tx1.lightlike(()).unwrap();
     });
     cluster.split_brane(&brane3, split_key, Callback::Write(c));
     rx1.recv_timeout(Duration::from_secs(5)).unwrap();
@@ -324,7 +324,7 @@ fn test_delay_split_brane() {
     check_cluster(&mut cluster, b"k3", b"v3", true);
     cluster.must_transfer_leader(brane.get_id(), new_peer(1, 1));
 
-    cluster.add_slightlike_filter(CloneFilterFactory(EraseHeartbeatCommit));
+    cluster.add_lightlike_filter(CloneFilterFactory(EraseHeartbeatCommit));
 
     cluster.must_put(b"k4", b"v4");
     sleep_ms(100);
@@ -338,7 +338,7 @@ fn test_delay_split_brane() {
     cluster.must_put(b"k5", b"v5");
     // New committed entries should be broadcast lazily.
     check_cluster(&mut cluster, b"k5", b"v5", false);
-    cluster.add_slightlike_filter(CloneFilterFactory(EraseHeartbeatCommit));
+    cluster.add_lightlike_filter(CloneFilterFactory(EraseHeartbeatCommit));
 
     let k2 = b"k2";
     // Split should be bcast eagerly, otherwise following must_put will fail
@@ -364,7 +364,7 @@ fn test_split_overlap_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
     let fidel_client = Arc::clone(&cluster.fidel_client);
 
     // isolate node 3 for brane 1.
-    cluster.add_slightlike_filter(CloneFilterFactory(BranePacketFilter::new(1, 3)));
+    cluster.add_lightlike_filter(CloneFilterFactory(BranePacketFilter::new(1, 3)));
     cluster.must_put(b"k1", b"v1");
 
     let brane = fidel_client.get_brane(b"").unwrap();
@@ -392,7 +392,7 @@ fn test_split_overlap_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
         .collect();
     assert!(snapfiles.is_empty());
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     cluster.must_put(b"k3", b"v3");
 
     sleep_ms(3000);
@@ -413,7 +413,7 @@ fn test_server_split_overlap_snapshot() {
 }
 
 fn test_apply_new_version_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
-    // truncate the log quickly so that we can force slightlikeing snapshot.
+    // truncate the log quickly so that we can force lightlikeing snapshot.
     cluster.causet.violetabft_store.violetabft_log_gc_tick_interval = ReadableDuration::millis(20);
     cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 5;
     cluster.causet.violetabft_store.merge_max_log_gap = 1;
@@ -430,7 +430,7 @@ fn test_apply_new_version_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
     let fidel_client = Arc::clone(&cluster.fidel_client);
 
     // isolate node 3 for brane 1.
-    cluster.add_slightlike_filter(CloneFilterFactory(BranePacketFilter::new(1, 3)));
+    cluster.add_lightlike_filter(CloneFilterFactory(BranePacketFilter::new(1, 3)));
     cluster.must_put(b"k1", b"v1");
 
     let brane = fidel_client.get_brane(b"").unwrap();
@@ -457,7 +457,7 @@ fn test_apply_new_version_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
         cluster.must_put(b"k2", b"v2");
     }
 
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     sleep_ms(3000);
     // node 3 must have k1, k2.
@@ -504,7 +504,7 @@ fn test_split_with_stale_peer<T: Simulator>(cluster: &mut Cluster<T>) {
 
     // isolate node 3 for brane 1.
     // only filter MsgApplightlike to avoid election when recover.
-    cluster.add_slightlike_filter(CloneFilterFactory(
+    cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(1, 3).msg_type(MessageType::MsgApplightlike),
     ));
 
@@ -523,7 +523,7 @@ fn test_split_with_stale_peer<T: Simulator>(cluster: &mut Cluster<T>) {
     // clear isolation so node 3 can split brane 1.
     // now node 3 has a stale peer for brane 2, but
     // it will be removed soon.
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     cluster.must_put(b"k1", b"v1");
 
     // check node 3 has k1

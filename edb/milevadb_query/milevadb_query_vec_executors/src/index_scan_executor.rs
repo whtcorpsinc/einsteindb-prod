@@ -53,7 +53,7 @@ impl<S: CausetStorage> BatchIndexScanFreeDaemon<S> {
         // strictly stipulated. The order of PrimaryCausets in the schemaReplicant must be the same as index data
         // stored and if PK handle is needed it must be placed as the last one.
         //
-        // Note 3: Currently MilevaDB may slightlike multiple PK handles to EinsteinDB (but only the last one is
+        // Note 3: Currently MilevaDB may lightlike multiple PK handles to EinsteinDB (but only the last one is
         // real). We accept this kind of request for compatibility considerations, but will be
         // forbidden soon.
 

@@ -54,7 +54,7 @@ fn test_interlock_semaphore_leader_change_twice() {
                 ctx0,
             ),
             Box::new(move |res: causetStorage::Result<_>| {
-                prewrite_tx.slightlike(res).unwrap();
+                prewrite_tx.lightlike(res).unwrap();
             }),
         )
         .unwrap();
@@ -376,7 +376,7 @@ fn test_async_commit_prewrite_with_stale_max_ts() {
                     ctx.clone(),
                 ),
                 Box::new(move |res: causetStorage::Result<_>| {
-                    prewrite_tx.slightlike(res).unwrap();
+                    prewrite_tx.lightlike(res).unwrap();
                 }),
             )
             .unwrap();
@@ -405,7 +405,7 @@ fn test_async_commit_prewrite_with_stale_max_ts() {
                     ctx.clone(),
                 ),
                 Box::new(move |res: causetStorage::Result<_>| {
-                    prewrite_tx.slightlike(res).unwrap();
+                    prewrite_tx.lightlike(res).unwrap();
                 }),
             )
             .unwrap();

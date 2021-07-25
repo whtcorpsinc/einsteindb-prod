@@ -234,7 +234,7 @@ impl GCSStorage {
 
     fn error_to_async_read<E>(kind: io::ErrorKind, e: E) -> Box<dyn AsyncRead + Unpin>
     where
-        E: Into<Box<dyn std::error::Error + Slightlike + Sync>>,
+        E: Into<Box<dyn std::error::Error + lightlike + Sync>>,
     {
         Box::new(error_stream(io::Error::new(kind, e)).into_async_read())
     }
@@ -257,7 +257,7 @@ impl ExternalStorage for GCSStorage {
     fn write(
         &self,
         name: &str,
-        mut reader: Box<dyn AsyncRead + Slightlike + Unpin>,
+        mut reader: Box<dyn AsyncRead + lightlike + Unpin>,
         content_length: u64,
     ) -> io::Result<()> {
         use std::convert::TryFrom;

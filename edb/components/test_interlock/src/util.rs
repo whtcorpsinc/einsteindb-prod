@@ -44,7 +44,7 @@ pub fn handle_streaming_select<E, F>(
 ) -> Vec<StreamResponse>
 where
     E: Engine,
-    F: FnMut(&Response) + Slightlike + 'static,
+    F: FnMut(&Response) + lightlike + 'static,
 {
     let resps = causet
         .parse_and_handle_stream_request(req, None)

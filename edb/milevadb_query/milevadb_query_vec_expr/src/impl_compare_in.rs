@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 use std::hash::Hash;
-use std::marker::{PhantomData, Slightlike, Sized};
+use std::marker::{PhantomData, lightlike, Sized};
 
 use codec::prelude::NumberDecoder;
 use milevadb_query_codegen::rpn_fn;
@@ -16,13 +16,13 @@ use milevadb_query_datatype::codec::mysql::{Decimal, MAX_FSP};
 
 pub trait InByHash {
     type Key: EvaluableRet + Extract + Eq;
-    type StoreKey: 'static + Hash + Eq + Sized + Slightlike;
+    type StoreKey: 'static + Hash + Eq + Sized + lightlike;
 
     fn map(key: Self::Key) -> Result<Self::StoreKey>;
     fn map_ref(key: &Self::Key) -> Result<&Self::StoreKey>;
 }
 
-pub struct NormalInByHash<K: EvaluableRet + Extract + Hash + Eq + Sized + Slightlike>(PhantomData<K>);
+pub struct NormalInByHash<K: EvaluableRet + Extract + Hash + Eq + Sized + lightlike>(PhantomData<K>);
 
 impl<K: EvaluableRet + Extract + Hash + Eq + Sized> InByHash for NormalInByHash<K> {
     type Key = K;

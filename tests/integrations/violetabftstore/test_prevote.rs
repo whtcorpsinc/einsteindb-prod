@@ -28,8 +28,8 @@ fn attach_prevote_notifiers<T: Simulator>(cluster: &Cluster<T>, peer: u64) -> mp
         Arc::from(AtomicBool::new(true)),
     ));
 
-    cluster.sim.wl().add_slightlike_filter(peer, response_notifier);
-    cluster.sim.wl().add_slightlike_filter(peer, request_notifier);
+    cluster.sim.wl().add_lightlike_filter(peer, response_notifier);
+    cluster.sim.wl().add_lightlike_filter(peer, request_notifier);
 
     rx
 }
@@ -54,7 +54,7 @@ fn test_prevote<T: Simulator>(
     let detect_during_failure = detect_during_failure.into();
     let detect_during_recovery = detect_during_recovery.into();
 
-    // We must spacelike the cluster before adding slightlike filters, otherwise it panics.
+    // We must spacelike the cluster before adding lightlike filters, otherwise it panics.
     cluster.run();
 
     cluster.must_transfer_leader(1, new_peer(leader_id, 1));
@@ -85,17 +85,17 @@ fn test_prevote<T: Simulator>(
         assert_eq!(
             received.is_ok(),
             should_detect,
-            "Slightlikes a PreVote or PreVoteResponse during failure.",
+            "lightlikes a PreVote or PreVoteResponse during failure.",
         );
     }
 
     // Let the cluster recover.
     match failure_type {
         FailureType::Partition(_, _) => {
-            cluster.clear_slightlike_filters();
+            cluster.clear_lightlike_filters();
         }
         FailureType::Reboot(peers) => {
-            cluster.clear_slightlike_filters();
+            cluster.clear_lightlike_filters();
             peers.iter().for_each(|&peer| {
                 cluster.run_node(peer).unwrap();
             });
@@ -123,7 +123,7 @@ fn test_prevote<T: Simulator>(
         assert_eq!(
             received.is_ok(),
             should_detect,
-            "Slightlikes a PreVote or PreVoteResponse during recovery.",
+            "lightlikes a PreVote or PreVoteResponse during recovery.",
         );
     };
 
@@ -259,8 +259,8 @@ fn test_isolated_follower_leader_does_not_change<T: Simulator>(cluster: &mut Clu
         * cluster.causet.violetabft_store.violetabft_election_timeout_ticks as u32;
     // Peer5 should not increase its term.
     thread::sleep(election_timeout * 2);
-    // Now peer5 can slightlike messages to others
-    cluster.clear_slightlike_filters();
+    // Now peer5 can lightlike messages to others
+    cluster.clear_lightlike_filters();
     thread::sleep(election_timeout * 2);
     cluster.must_put(b"k1", b"v1");
     // Peer1 is still the leader.
@@ -288,15 +288,15 @@ fn test_create_peer_from_pre_vote<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.must_put(b"k1", b"v1");
 
     let rx = attach_prevote_notifiers(cluster, 1);
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(2));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(2));
     fidel_client.must_add_peer(r1, new_peer(2, 2));
 
     if rx.recv_timeout(Duration::from_secs(3)).is_err() {
-        panic!("peer 1 should slightlike pre vote");
+        panic!("peer 1 should lightlike pre vote");
     }
 
     // The peer 2 should be created.
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
     must_get_equal(&cluster.get_engine(2), b"k1", b"v1");
 }
 

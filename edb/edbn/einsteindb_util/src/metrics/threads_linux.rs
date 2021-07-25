@@ -507,7 +507,7 @@ mod tests {
                 f.write_all(name.as_bytes()).unwrap();
                 f.sync_all().unwrap();
                 std::thread::sleep(Duration::from_secs(1));
-                tx1.slightlike(()).unwrap();
+                tx1.lightlike(()).unwrap();
                 rx.recv().unwrap();
                 fs::remove_file(tmp).unwrap();
             })
@@ -535,20 +535,20 @@ mod tests {
             })
             .unwrap();
 
-        tx.slightlike(()).unwrap();
+        tx.lightlike(()).unwrap();
         h.join().unwrap();
     }
 
     fn write_two_string(
         str1: String,
         str2: String,
-    ) -> (sync::mpsc::Slightlikeer<()>, sync::mpsc::Receiver<()>) {
+    ) -> (sync::mpsc::lightlikeer<()>, sync::mpsc::Receiver<()>) {
         let (tx, rx) = sync::mpsc::channel();
         let (tx1, rx1) = sync::mpsc::channel();
         thread::Builder::new()
             .name(str1.to_owned())
             .spawn(move || {
-                tx1.slightlike(()).unwrap();
+                tx1.lightlike(()).unwrap();
 
                 // Make `io::write_bytes` > 0
                 let mut tmp = temp_dir();
@@ -558,17 +558,17 @@ mod tests {
                 f.write_all(str1.as_bytes()).unwrap();
                 f.sync_all().unwrap();
                 std::thread::sleep(Duration::from_secs(1));
-                tx1.slightlike(()).unwrap();
+                tx1.lightlike(()).unwrap();
                 rx.recv().unwrap();
 
                 f.write_all(str2.as_bytes()).unwrap();
                 f.sync_all().unwrap();
                 std::thread::sleep(Duration::from_secs(1));
-                tx1.slightlike(()).unwrap();
+                tx1.lightlike(()).unwrap();
                 rx.recv().unwrap();
 
                 fs::remove_file(tmp).unwrap();
-                tx1.slightlike(()).unwrap();
+                tx1.lightlike(()).unwrap();
             })
             .unwrap();
 
@@ -603,7 +603,7 @@ mod tests {
                         assert_eq!(*write_io as u64, page_size);
                     }
 
-                    tx.slightlike(()).unwrap();
+                    tx.lightlike(()).unwrap();
 
                     rx1.recv().unwrap();
                     thread_info.record();
@@ -616,7 +616,7 @@ mod tests {
                         assert_eq!(*write_io as u64, page_size * 2);
                     }
 
-                    tx.slightlike(()).unwrap();
+                    tx.lightlike(()).unwrap();
                     rx1.recv().unwrap();
                     return;
                 }
@@ -628,13 +628,13 @@ mod tests {
     fn high_cpu_thread(
         name: String,
         duration_ms: u32,
-    ) -> (sync::mpsc::Slightlikeer<()>, sync::mpsc::Receiver<()>) {
+    ) -> (sync::mpsc::lightlikeer<()>, sync::mpsc::Receiver<()>) {
         let (tx, rx) = sync::mpsc::channel();
         let (tx1, rx1) = sync::mpsc::channel();
         thread::Builder::new()
             .name(name)
             .spawn(move || {
-                tx1.slightlike(()).unwrap();
+                tx1.lightlike(()).unwrap();
 
                 let spacelike = Instant::now();
                 loop {
@@ -643,7 +643,7 @@ mod tests {
                     }
                 }
 
-                tx1.slightlike(()).unwrap();
+                tx1.lightlike(()).unwrap();
                 rx.recv().unwrap();
             })
             .unwrap();
@@ -676,7 +676,7 @@ mod tests {
                         panic!("the load must be heavy than 0.8, but got {}", *cpu_usage);
                     }
 
-                    tx.slightlike(()).unwrap();
+                    tx.lightlike(()).unwrap();
                     return;
                 }
             }

@@ -61,7 +61,7 @@ impl ExternalStorage for LocalStorage {
     fn write(
         &self,
         name: &str,
-        reader: Box<dyn AsyncRead + Slightlike + Unpin>,
+        reader: Box<dyn AsyncRead + lightlike + Unpin>,
         _content_length: u64,
     ) -> io::Result<()> {
         // CausetStorage does not support dir,

@@ -31,7 +31,7 @@ pub fn err_resp(e: Error, term: u64) -> VioletaBftCmdResponse {
 
 pub fn message_error<E>(err: E) -> VioletaBftCmdResponse
 where
-    E: Into<Box<dyn error::Error + Slightlike + Sync>>,
+    E: Into<Box<dyn error::Error + lightlike + Sync>>,
 {
     new_error(Error::Other(err.into()))
 }

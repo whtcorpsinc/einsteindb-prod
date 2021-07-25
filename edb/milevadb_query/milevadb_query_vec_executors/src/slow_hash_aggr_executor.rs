@@ -228,7 +228,7 @@ pub struct SlowHashAggregationImpl {
     cached_encoded_result: Vec<Option<Vec<u8>>>,
 }
 
-unsafe impl Slightlike for SlowHashAggregationImpl {}
+unsafe impl lightlike for SlowHashAggregationImpl {}
 
 impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for SlowHashAggregationImpl {
     #[inline]

@@ -5,7 +5,7 @@ use std::io;
 use std::net;
 use std::result;
 
-use crossbeam::TrySlightlikeError;
+use crossbeam::TrylightlikeError;
 #[causet(feature = "prost-codec")]
 use prost::{DecodeError, EncodeError};
 use protobuf::ProtobufError;
@@ -55,7 +55,7 @@ quick_error! {
                     hex::encode_upper(brane.get_lightlike_key()),
                     brane.get_id())
         }
-        Other(err: Box<dyn error::Error + Sync + Slightlike>) {
+        Other(err: Box<dyn error::Error + Sync + lightlike>) {
             from()
             cause(err.as_ref())
             display("{:?}", err)
@@ -213,12 +213,12 @@ impl From<Error> for errorpb::Error {
     }
 }
 
-impl<T> From<TrySlightlikeError<T>> for Error {
+impl<T> From<TrylightlikeError<T>> for Error {
     #[inline]
-    fn from(e: TrySlightlikeError<T>) -> Error {
+    fn from(e: TrylightlikeError<T>) -> Error {
         match e {
-            TrySlightlikeError::Full(_) => Error::Transport(DiscardReason::Full),
-            TrySlightlikeError::Disconnected(_) => Error::Transport(DiscardReason::Disconnected),
+            TrylightlikeError::Full(_) => Error::Transport(DiscardReason::Full),
+            TrylightlikeError::Disconnected(_) => Error::Transport(DiscardReason::Disconnected),
         }
     }
 }

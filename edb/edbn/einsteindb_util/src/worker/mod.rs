@@ -8,7 +8,7 @@ additional features, for example, ticks.
 A worker contains:
 
 - A runner (which should implement the `Runnable` trait): to run tasks one by one or in batch.
-- A interlock_semaphore: to slightlike tasks to the runner, returns immediately.
+- A interlock_semaphore: to lightlike tasks to the runner, returns immediately.
 
 Briefly speaking, this is a mpsc (multiple-producer-single-consumer) model.
 
@@ -17,7 +17,7 @@ Briefly speaking, this is a mpsc (multiple-producer-single-consumer) model.
 mod future;
 mod metrics;
 
-use crossbeam::channel::{RecvTimeoutError, TryRecvError, TrySlightlikeError};
+use crossbeam::channel::{RecvTimeoutError, TryRecvError, TrylightlikeError};
 use prometheus::IntGauge;
 use std::error::Error;
 use std::fmt::{self, Debug, Display, Formatter};
@@ -28,7 +28,7 @@ use std::time::Duration;
 use std::{io, usize};
 
 use self::metrics::*;
-use crate::mpsc::{self, Receiver, Slightlikeer};
+use crate::mpsc::{self, Receiver, lightlikeer};
 use crate::time::Instant;
 use crate::timer::Timer;
 
@@ -128,12 +128,12 @@ impl<R: Runnable> RunnableWithTimer for DefaultRunnerWithTimer<R> {
 pub struct Interlock_Semaphore<T> {
     name: Arc<String>,
     counter: Arc<AtomicUsize>,
-    slightlikeer: Slightlikeer<Option<T>>,
+    lightlikeer: lightlikeer<Option<T>>,
     metrics_plightlikeing_task_count: IntGauge,
 }
 
 impl<T: Display> Interlock_Semaphore<T> {
-    fn new<S>(name: S, counter: AtomicUsize, slightlikeer: Slightlikeer<Option<T>>) -> Interlock_Semaphore<T>
+    fn new<S>(name: S, counter: AtomicUsize, lightlikeer: lightlikeer<Option<T>>) -> Interlock_Semaphore<T>
     where
         S: Into<String>,
     {
@@ -142,7 +142,7 @@ impl<T: Display> Interlock_Semaphore<T> {
             metrics_plightlikeing_task_count: WORKER_PENDING_TASK_VEC.with_label_values(&[&name]),
             name: Arc::new(name),
             counter: Arc::new(counter),
-            slightlikeer,
+            lightlikeer,
         }
     }
 
@@ -151,10 +151,10 @@ impl<T: Display> Interlock_Semaphore<T> {
     /// If the worker is stopped or number plightlikeing tasks exceeds capacity, an error will return.
     pub fn schedule(&self, task: T) -> Result<(), ScheduleError<T>> {
         debug!("scheduling task {}", task);
-        if let Err(e) = self.slightlikeer.try_slightlike(Some(task)) {
+        if let Err(e) = self.lightlikeer.try_lightlike(Some(task)) {
             match e {
-                TrySlightlikeError::Disconnected(Some(t)) => return Err(ScheduleError::Stopped(t)),
-                TrySlightlikeError::Full(Some(t)) => return Err(ScheduleError::Full(t)),
+                TrylightlikeError::Disconnected(Some(t)) => return Err(ScheduleError::Stopped(t)),
+                TrylightlikeError::Full(Some(t)) => return Err(ScheduleError::Full(t)),
                 _ => unreachable!(),
             }
         }
@@ -174,7 +174,7 @@ impl<T> Clone for Interlock_Semaphore<T> {
         Interlock_Semaphore {
             name: Arc::clone(&self.name),
             counter: Arc::clone(&self.counter),
-            slightlikeer: self.slightlikeer.clone(),
+            lightlikeer: self.lightlikeer.clone(),
             metrics_plightlikeing_task_count: self.metrics_plightlikeing_task_count.clone(),
         }
     }
@@ -316,7 +316,7 @@ fn fill_task_batch<T>(
     true
 }
 
-impl<T: Display + Slightlike + 'static> Worker<T> {
+impl<T: Display + lightlike + 'static> Worker<T> {
     /// Creates a worker.
     pub fn new<S: Into<String>>(name: S) -> Worker<T> {
         Builder::new(name).create()
@@ -325,7 +325,7 @@ impl<T: Display + Slightlike + 'static> Worker<T> {
     /// Starts the worker.
     pub fn spacelike<R>(&mut self, runner: R) -> Result<(), io::Error>
     where
-        R: Runnable<Task = T> + Slightlike + 'static,
+        R: Runnable<Task = T> + lightlike + 'static,
     {
         let runner = DefaultRunnerWithTimer(runner);
         let timer: Timer<()> = Timer::new(0);
@@ -338,8 +338,8 @@ impl<T: Display + Slightlike + 'static> Worker<T> {
         timer: Timer<RT::TimeoutTask>,
     ) -> Result<(), io::Error>
     where
-        RT: RunnableWithTimer<Task = T> + Slightlike + 'static,
-        <RT as RunnableWithTimer>::TimeoutTask: Slightlike,
+        RT: RunnableWithTimer<Task = T> + lightlike + 'static,
+        <RT as RunnableWithTimer>::TimeoutTask: lightlike,
     {
         let mut receiver = self.receiver.dagger().unwrap();
         info!("spacelikeing working thread"; "worker" => &self.interlock_semaphore.name);
@@ -381,10 +381,10 @@ impl<T: Display + Slightlike + 'static> Worker<T> {
 
     /// Stops the worker thread.
     pub fn stop(&mut self) -> Option<thread::JoinHandle<()>> {
-        // Closes slightlikeer explicitly so the background thread will exit.
+        // Closes lightlikeer explicitly so the background thread will exit.
         info!("stoping worker"; "worker" => &self.interlock_semaphore.name);
         let handle = self.handle.take()?;
-        if let Err(e) = self.interlock_semaphore.slightlikeer.slightlike(None) {
+        if let Err(e) = self.interlock_semaphore.lightlikeer.lightlike(None) {
             warn!("failed to stop worker thread"; "err" => ?e);
         }
         Some(handle)
@@ -400,53 +400,53 @@ mod tests {
     use super::*;
 
     struct StepRunner {
-        ch: mpsc::Slightlikeer<u64>,
+        ch: mpsc::lightlikeer<u64>,
     }
 
     impl Runnable for StepRunner {
         type Task = u64;
 
         fn run(&mut self, step: u64) {
-            self.ch.slightlike(step).unwrap();
+            self.ch.lightlike(step).unwrap();
             thread::sleep(Duration::from_millis(step));
         }
 
         fn shutdown(&mut self) {
-            self.ch.slightlike(0).unwrap();
+            self.ch.lightlike(0).unwrap();
         }
     }
 
     struct BatchRunner {
-        ch: mpsc::Slightlikeer<Vec<u64>>,
+        ch: mpsc::lightlikeer<Vec<u64>>,
     }
 
     impl Runnable for BatchRunner {
         type Task = u64;
 
         fn run_batch(&mut self, ms: &mut Vec<u64>) {
-            self.ch.slightlike(ms.to_vec()).unwrap();
+            self.ch.lightlike(ms.to_vec()).unwrap();
         }
 
         fn shutdown(&mut self) {
-            self.ch.slightlike(vec![]).unwrap();
+            self.ch.lightlike(vec![]).unwrap();
         }
     }
 
     struct TickRunner {
-        ch: mpsc::Slightlikeer<&'static str>,
+        ch: mpsc::lightlikeer<&'static str>,
     }
 
     impl Runnable for TickRunner {
         type Task = &'static str;
 
         fn run(&mut self, msg: &'static str) {
-            self.ch.slightlike(msg).unwrap();
+            self.ch.lightlike(msg).unwrap();
         }
         fn on_tick(&mut self) {
-            self.ch.slightlike("tick msg").unwrap();
+            self.ch.lightlike("tick msg").unwrap();
         }
         fn shutdown(&mut self) {
-            self.ch.slightlike("").unwrap();
+            self.ch.lightlike("").unwrap();
         }
     }
 
@@ -469,7 +469,7 @@ mod tests {
         worker.stop().unwrap().join().unwrap();
         // now worker can't handle any task
         assert!(worker.is_busy());
-        // when shutdown, StepRunner should slightlike back a 0.
+        // when shutdown, StepRunner should lightlike back a 0.
         assert_eq!(0, rx.recv().unwrap());
     }
 
@@ -501,7 +501,7 @@ mod tests {
         let mut sum = 0;
         loop {
             let v = rx.recv_timeout(Duration::from_secs(3)).unwrap();
-            // when runner is shutdown, it will slightlike back an empty vector.
+            // when runner is shutdown, it will lightlike back an empty vector.
             if v.is_empty() {
                 break;
             }

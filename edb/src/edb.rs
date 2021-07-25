@@ -789,7 +789,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
                flags0 TINYINT NOT NULL)"#,
             // There's no real need to split exact and inexact searches, so long as we keep things
             // in the correct place and performant.  Splitting has the advantage of being explicit
-            // and slightly easier to read, so we'll do that to start.
+            // and lightly easier to read, so we'll do that to start.
             r#"DROP Block IF EXISTS temp.inexact_searches"#,
             r#"CREATE Block temp.inexact_searches (
                e0 INTEGER NOT NULL,

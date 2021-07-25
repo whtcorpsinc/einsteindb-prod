@@ -35,7 +35,7 @@ struct CaseLifeWatcher<H: TestHook> {
     hook: H,
 }
 
-impl<H: TestHook + Slightlike + 'static> CaseLifeWatcher<H> {
+impl<H: TestHook + lightlike + 'static> CaseLifeWatcher<H> {
     fn new(name: String, mut hook: H) -> CaseLifeWatcher<H> {
         debug!("case spacelike"; "name" => &name);
         hook.setup();
@@ -51,7 +51,7 @@ impl<H: TestHook> Drop for CaseLifeWatcher<H> {
 }
 
 /// Connects std tests and custom test framework.
-pub fn run_test_with_hook(cases: &[&TestDescAndFn], hook: impl TestHook + Slightlike + Clone + 'static) {
+pub fn run_test_with_hook(cases: &[&TestDescAndFn], hook: impl TestHook + lightlike + Clone + 'static) {
     crate::setup_for_ci();
     let cases: Vec<_> = cases
         .iter()

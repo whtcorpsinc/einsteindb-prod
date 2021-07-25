@@ -100,9 +100,9 @@ where
     }
 }
 
-impl<C: Slightlike, E: Slightlike> Interlock for TuplespaceInstantonCheckSemaphore<C, E> {}
+impl<C: lightlike, E: lightlike> Interlock for TuplespaceInstantonCheckSemaphore<C, E> {}
 
-impl<C: CasualRouter<E> + Slightlike, E> SplitCheckSemaphore<E> for TuplespaceInstantonCheckSemaphore<C, E>
+impl<C: CasualRouter<E> + lightlike, E> SplitCheckSemaphore<E> for TuplespaceInstantonCheckSemaphore<C, E>
 where
     E: KvEngine,
 {
@@ -140,9 +140,9 @@ where
         };
 
         let res = CasualMessage::BraneApproximateTuplespaceInstanton { tuplespaceInstanton: brane_tuplespaceInstanton };
-        if let Err(e) = self.router.dagger().unwrap().slightlike(brane_id, res) {
+        if let Err(e) = self.router.dagger().unwrap().lightlike(brane_id, res) {
             warn!(
-                "failed to slightlike approximate brane tuplespaceInstanton";
+                "failed to lightlike approximate brane tuplespaceInstanton";
                 "brane_id" => brane_id,
                 "err" => %e,
                 "error_code" => %e.error_code(),

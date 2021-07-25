@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crossbeam::channel::{
-    self, RecvError, RecvTimeoutError, SlightlikeError, TryRecvError, TrySlightlikeError,
+    self, RecvError, RecvTimeoutError, lightlikeError, TryRecvError, TrylightlikeError,
 };
 use futures::stream::Stream;
 use futures::task::{Context, Poll, Waker};
@@ -36,7 +36,7 @@ impl State {
     }
 
     #[inline]
-    fn try_notify_post_slightlike(&self) {
+    fn try_notify_post_lightlike(&self) {
         let old_plightlikeing = self.plightlikeing.fetch_add(1, Ordering::AcqRel);
         if old_plightlikeing >= self.notify_size - 1 {
             self.notify();
@@ -56,8 +56,8 @@ impl State {
 
     /// When the `Receiver` that holds the `State` is running on an `FreeDaemon`,
     /// the `Receiver` calls this to yield from the current `poll` context,
-    /// and puts the current task handle to `recv_task`, so that the `Slightlikeer`
-    /// respectively can notify it after slightlikeing some messages into the channel.
+    /// and puts the current task handle to `recv_task`, so that the `lightlikeer`
+    /// respectively can notify it after lightlikeing some messages into the channel.
     #[inline]
     fn yield_poll(&self, waker: Waker) -> bool {
         let t = Box::into_raw(Box::new(waker));
@@ -101,25 +101,25 @@ impl Drop for Notifier {
     }
 }
 
-pub struct Slightlikeer<T> {
-    slightlikeer: Option<channel::Slightlikeer<T>>,
+pub struct lightlikeer<T> {
+    lightlikeer: Option<channel::lightlikeer<T>>,
     state: Arc<State>,
 }
 
-impl<T> Clone for Slightlikeer<T> {
+impl<T> Clone for lightlikeer<T> {
     #[inline]
-    fn clone(&self) -> Slightlikeer<T> {
-        Slightlikeer {
-            slightlikeer: self.slightlikeer.clone(),
+    fn clone(&self) -> lightlikeer<T> {
+        lightlikeer {
+            lightlikeer: self.lightlikeer.clone(),
             state: Arc::clone(&self.state),
         }
     }
 }
 
-impl<T> Drop for Slightlikeer<T> {
+impl<T> Drop for lightlikeer<T> {
     #[inline]
     fn drop(&mut self) {
-        drop(self.slightlikeer.take());
+        drop(self.lightlikeer.take());
         self.state.notify();
     }
 }
@@ -129,31 +129,31 @@ pub struct Receiver<T> {
     state: Arc<State>,
 }
 
-impl<T> Slightlikeer<T> {
+impl<T> lightlikeer<T> {
     pub fn is_empty(&self) -> bool {
-        // When there is no slightlikeer references, it can't be knownCauset whether
+        // When there is no lightlikeer references, it can't be knownCauset whether
         // it's empty or not.
-        self.slightlikeer.as_ref().map_or(false, |s| s.is_empty())
+        self.lightlikeer.as_ref().map_or(false, |s| s.is_empty())
     }
 
     #[inline]
-    pub fn slightlike(&self, t: T) -> Result<(), SlightlikeError<T>> {
-        self.slightlikeer.as_ref().unwrap().slightlike(t)?;
-        self.state.try_notify_post_slightlike();
+    pub fn lightlike(&self, t: T) -> Result<(), lightlikeError<T>> {
+        self.lightlikeer.as_ref().unwrap().lightlike(t)?;
+        self.state.try_notify_post_lightlike();
         Ok(())
     }
 
     #[inline]
-    pub fn slightlike_and_notify(&self, t: T) -> Result<(), SlightlikeError<T>> {
-        self.slightlikeer.as_ref().unwrap().slightlike(t)?;
+    pub fn lightlike_and_notify(&self, t: T) -> Result<(), lightlikeError<T>> {
+        self.lightlikeer.as_ref().unwrap().lightlike(t)?;
         self.state.notify();
         Ok(())
     }
 
     #[inline]
-    pub fn try_slightlike(&self, t: T) -> Result<(), TrySlightlikeError<T>> {
-        self.slightlikeer.as_ref().unwrap().try_slightlike(t)?;
-        self.state.try_notify_post_slightlike();
+    pub fn try_lightlike(&self, t: T) -> Result<(), TrylightlikeError<T>> {
+        self.lightlikeer.as_ref().unwrap().try_lightlike(t)?;
+        self.state.try_notify_post_lightlike();
         Ok(())
     }
 
@@ -185,18 +185,18 @@ impl<T> Receiver<T> {
 }
 
 /// Creates a unbounded channel with a given `notify_size`, which means if there are more plightlikeing
-/// messages in the channel than `notify_size`, the `Slightlikeer` will auto notify the `Receiver`.
+/// messages in the channel than `notify_size`, the `lightlikeer` will auto notify the `Receiver`.
 ///
 /// # Panics
 /// if `notify_size` equals to 0.
 #[inline]
-pub fn unbounded<T>(notify_size: usize) -> (Slightlikeer<T>, Receiver<T>) {
+pub fn unbounded<T>(notify_size: usize) -> (lightlikeer<T>, Receiver<T>) {
     assert!(notify_size > 0);
     let state = Arc::new(State::new(notify_size));
-    let (slightlikeer, receiver) = channel::unbounded();
+    let (lightlikeer, receiver) = channel::unbounded();
     (
-        Slightlikeer {
-            slightlikeer: Some(slightlikeer),
+        lightlikeer {
+            lightlikeer: Some(lightlikeer),
             state: state.clone(),
         },
         Receiver { receiver, state },
@@ -204,18 +204,18 @@ pub fn unbounded<T>(notify_size: usize) -> (Slightlikeer<T>, Receiver<T>) {
 }
 
 /// Creates a bounded channel with a given `notify_size`, which means if there are more plightlikeing
-/// messages in the channel than `notify_size`, the `Slightlikeer` will auto notify the `Receiver`.
+/// messages in the channel than `notify_size`, the `lightlikeer` will auto notify the `Receiver`.
 ///
 /// # Panics
 /// if `notify_size` equals to 0.
 #[inline]
-pub fn bounded<T>(cap: usize, notify_size: usize) -> (Slightlikeer<T>, Receiver<T>) {
+pub fn bounded<T>(cap: usize, notify_size: usize) -> (lightlikeer<T>, Receiver<T>) {
     assert!(notify_size > 0);
     let state = Arc::new(State::new(notify_size));
-    let (slightlikeer, receiver) = channel::bounded(cap);
+    let (lightlikeer, receiver) = channel::bounded(cap);
     (
-        Slightlikeer {
-            slightlikeer: Some(slightlikeer),
+        lightlikeer {
+            lightlikeer: Some(lightlikeer),
             state: state.clone(),
         },
         Receiver { receiver, state },
@@ -232,7 +232,7 @@ impl<T> Stream for Receiver<T> {
                 if self.state.yield_poll(cx.waker().clone()) {
                     Poll::Plightlikeing
                 } else {
-                    // For the case that all slightlikeers are dropped before the current task is saved.
+                    // For the case that all lightlikeers are dropped before the current task is saved.
                     self.poll_next(cx)
                 }
             }
@@ -372,21 +372,21 @@ mod tests {
             }
         }
 
-        // Slightlike without notify, the receiver can't get batched messages.
-        assert!(tx.slightlike(0).is_ok());
+        // lightlike without notify, the receiver can't get batched messages.
+        assert!(tx.lightlike(0).is_ok());
         thread::sleep(time::Duration::from_millis(10));
         assert_eq!(msg_counter.load(Ordering::Acquire), 0);
 
-        // Slightlike with notify.
+        // lightlike with notify.
         let notifier = tx.get_notifier().unwrap();
         assert!(tx.get_notifier().is_none());
         notifier.notify();
         thread::sleep(time::Duration::from_millis(10));
         assert_eq!(msg_counter.load(Ordering::Acquire), 1);
 
-        // Auto notify with more slightlikeings.
+        // Auto notify with more lightlikeings.
         for _ in 0..4 {
-            assert!(tx.slightlike(0).is_ok());
+            assert!(tx.lightlike(0).is_ok());
         }
         thread::sleep(time::Duration::from_millis(10));
         assert_eq!(msg_counter.load(Ordering::Acquire), 5);
@@ -409,7 +409,7 @@ mod tests {
             stream::select(
                 rx,
                 stream::poll_fn(move |_| -> Poll<Option<Vec<u64>>> {
-                    nty.slightlike(()).unwrap();
+                    nty.lightlike(()).unwrap();
                     Poll::Ready(None)
                 }),
             )
@@ -424,28 +424,28 @@ mod tests {
         // Wait until the receiver has been polled in the spawned thread.
         polled.recv().unwrap();
 
-        // Slightlike without notify, the receiver can't get batched messages.
-        assert!(tx.slightlike(0).is_ok());
+        // lightlike without notify, the receiver can't get batched messages.
+        assert!(tx.lightlike(0).is_ok());
         thread::sleep(time::Duration::from_millis(10));
         assert_eq!(msg_counter.load(Ordering::Acquire), 0);
 
-        // Slightlike with notify.
+        // lightlike with notify.
         let notifier = tx.get_notifier().unwrap();
         assert!(tx.get_notifier().is_none());
         notifier.notify();
         thread::sleep(time::Duration::from_millis(10));
         assert_eq!(msg_counter.load(Ordering::Acquire), 1);
 
-        // Auto notify with more slightlikeings.
+        // Auto notify with more lightlikeings.
         for _ in 0..16 {
-            assert!(tx.slightlike(0).is_ok());
+            assert!(tx.lightlike(0).is_ok());
         }
         thread::sleep(time::Duration::from_millis(10));
         assert_eq!(msg_counter.load(Ordering::Acquire), 17);
     }
 
     #[test]
-    fn test_switch_between_slightlikeer_and_receiver() {
+    fn test_switch_between_lightlikeer_and_receiver() {
         let (tx, mut rx) = unbounded::<i32>(4);
         let future = async move { rx.next().await };
         let task = Task {
@@ -455,7 +455,7 @@ mod tests {
         // in this tick.
         task.tick();
         assert!(task.future.dagger().unwrap().is_some());
-        // After slightlikeer is dropped, the task will be waked and then it tick self
+        // After lightlikeer is dropped, the task will be waked and then it tick self
         // again to advance the progress.
         drop(tx);
         assert!(task.future.dagger().unwrap().is_none());

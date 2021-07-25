@@ -42,7 +42,7 @@ pub fn init_log<D>(
     slow_memory_barrier: u64,
 ) -> Result<(), SetLoggerError>
 where
-    D: Drain + Slightlike + 'static,
+    D: Drain + lightlike + 'static,
     <D as Drain>::Err: std::fmt::Display,
 {
     // Only for debug purpose, so use environment instead of configuration file.
@@ -119,7 +119,7 @@ pub fn file_writer<N>(
     rename: N,
 ) -> io::Result<BufWriter<RotatingFileLogger>>
 where
-    N: 'static + Slightlike + Fn(&Path) -> io::Result<PathBuf>,
+    N: 'static + lightlike + Fn(&Path) -> io::Result<PathBuf>,
 {
     let logger = BufWriter::new(
         RotatingFileLoggerBuilder::new(path, rename)

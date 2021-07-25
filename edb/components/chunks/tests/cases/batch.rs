@@ -20,21 +20,21 @@ fn test_batch() {
     let tx_ = tx.clone();
     let r = router.clone();
     router
-        .slightlike_control(Message::Callback(Box::new(move |_: &mut Runner| {
+        .lightlike_control(Message::Callback(Box::new(move |_: &mut Runner| {
             let (tx, runner) = Runner::new(10);
             let mailbox = BasicMailbox::new(tx, runner);
             r.register(1, mailbox);
-            tx_.slightlike(1).unwrap();
+            tx_.lightlike(1).unwrap();
         })))
         .unwrap();
     assert_eq!(rx.recv_timeout(Duration::from_secs(3)), Ok(1));
     // sleep to wait Batch-System to finish calling lightlike().
     sleep(Duration::from_millis(20));
     router
-        .slightlike(
+        .lightlike(
             1,
             Message::Callback(Box::new(move |_: &mut Runner| {
-                tx.slightlike(2).unwrap();
+                tx.lightlike(2).unwrap();
             })),
         )
         .unwrap();

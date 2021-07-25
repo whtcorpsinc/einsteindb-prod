@@ -45,13 +45,13 @@ fn test_compact_after_delete<T: Simulator>(cluster: &mut Cluster<T>) {
     for engines in cluster.engines.values() {
         engines.kv.flush_causet(CAUSET_WRITE, true).unwrap();
     }
-    let (slightlikeer, receiver) = mpsc::channel();
-    let sync_slightlikeer = Mutex::new(slightlikeer);
+    let (lightlikeer, receiver) = mpsc::channel();
+    let sync_lightlikeer = Mutex::new(lightlikeer);
     fail::causet_callback(
         "violetabftstore::compact::CheckAndCompact:AfterCompact",
         move || {
-            let slightlikeer = sync_slightlikeer.dagger().unwrap();
-            slightlikeer.slightlike(true).unwrap();
+            let lightlikeer = sync_lightlikeer.dagger().unwrap();
+            lightlikeer.lightlike(true).unwrap();
         },
     )
     .unwrap();

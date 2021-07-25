@@ -7,7 +7,7 @@ use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 use std::{cmp, thread};
 
-use futures::channel::mpsc::{self, UnboundedReceiver, UnboundedSlightlikeer};
+use futures::channel::mpsc::{self, UnboundedReceiver, Unboundedlightlikeer};
 use futures::compat::Future01CompatExt;
 use futures::executor::block_on;
 use futures::future::{err, ok, FutureExt};
@@ -37,7 +37,7 @@ use super::*;
 struct CausetStore {
     store: metapb::CausetStore,
     brane_ids: HashSet<u64>,
-    slightlikeer: UnboundedSlightlikeer<fidelpb::BraneHeartbeatResponse>,
+    lightlikeer: Unboundedlightlikeer<fidelpb::BraneHeartbeatResponse>,
     receiver: Option<UnboundedReceiver<fidelpb::BraneHeartbeatResponse>>,
 }
 
@@ -47,7 +47,7 @@ impl Default for CausetStore {
         CausetStore {
             store: Default::default(),
             brane_ids: Default::default(),
-            slightlikeer: tx,
+            lightlikeer: tx,
             receiver: Some(rx),
         }
     }
@@ -1122,7 +1122,7 @@ impl FidelClient for TestFidelClient {
             Ok(resp) => {
                 let store_id = leader.get_store_id();
                 if let Some(store) = self.cluster.wl().stores.get(&store_id) {
-                    store.slightlikeer.unbounded_slightlike(resp).unwrap();
+                    store.lightlikeer.unbounded_lightlike(resp).unwrap();
                 }
                 Box::pin(ok(()))
             }
@@ -1133,7 +1133,7 @@ impl FidelClient for TestFidelClient {
     fn handle_brane_heartbeat_response<F>(&self, store_id: u64, f: F) -> FidelFuture<()>
     where
         Self: Sized,
-        F: Fn(fidelpb::BraneHeartbeatResponse) + Slightlike + 'static,
+        F: Fn(fidelpb::BraneHeartbeatResponse) + lightlike + 'static,
     {
         let cluster1 = Arc::clone(&self.cluster);
         let timer = self.timer.clone();

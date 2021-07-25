@@ -1,7 +1,7 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::fmt::{self, Display, Formatter};
-use std::sync::mpsc::{self, Slightlikeer};
+use std::sync::mpsc::{self, lightlikeer};
 use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
@@ -57,7 +57,7 @@ impl FlowStatistics {
 }
 
 // Reports flow statistics to outside.
-pub trait FlowStatsReporter: Slightlike + Clone + Sync + 'static {
+pub trait FlowStatsReporter: lightlike + Clone + Sync + 'static {
     // TODO: maybe we need to return a Result later?
     fn report_read_stats(&self, read_stats: ReadStats);
 }
@@ -68,7 +68,7 @@ where
 {
     fn report_read_stats(&self, read_stats: ReadStats) {
         if let Err(e) = self.schedule(Task::ReadStats { read_stats }) {
-            error!("Failed to slightlike read flow statistics"; "err" => ?e);
+            error!("Failed to lightlike read flow statistics"; "err" => ?e);
         }
     }
 }
@@ -289,8 +289,8 @@ where
 {
     interlock_semaphore: Interlock_Semaphore<Task<E>>,
     handle: Option<JoinHandle<()>>,
-    timer: Option<Slightlikeer<bool>>,
-    slightlikeer: Option<Slightlikeer<ReadStats>>,
+    timer: Option<lightlikeer<bool>>,
+    lightlikeer: Option<lightlikeer<ReadStats>>,
     thread_info_interval: Duration,
     qps_info_interval: Duration,
     collect_interval: Duration,
@@ -305,7 +305,7 @@ where
             interlock_semaphore,
             handle: None,
             timer: None,
-            slightlikeer: None,
+            lightlikeer: None,
             thread_info_interval: interval,
             qps_info_interval: cmp::min(DEFAULT_QPS_INFO_INTERVAL, interval),
             collect_interval: cmp::min(DEFAULT_COLLECT_INTERVAL, interval),
@@ -337,8 +337,8 @@ where
         let (tx, rx) = mpsc::channel();
         self.timer = Some(tx);
 
-        let (slightlikeer, receiver) = mpsc::channel();
-        self.slightlikeer = Some(slightlikeer);
+        let (lightlikeer, receiver) = mpsc::channel();
+        self.lightlikeer = Some(lightlikeer);
 
         let interlock_semaphore = self.interlock_semaphore.clone();
 
@@ -362,7 +362,7 @@ where
                         };
                         if let Err(e) = interlock_semaphore.schedule(task) {
                             error!(
-                                "failed to slightlike store infos to fidel worker";
+                                "failed to lightlike store infos to fidel worker";
                                 "err" => ?e,
                             );
                         }
@@ -377,7 +377,7 @@ where
                         let task = Task::AutoSplit { split_infos };
                         if let Err(e) = interlock_semaphore.schedule(task) {
                             error!(
-                                "failed to slightlike split infos to fidel worker";
+                                "failed to lightlike split infos to fidel worker";
                                 "err" => ?e,
                             );
                         }
@@ -406,15 +406,15 @@ where
     pub fn stop(&mut self) {
         if let Some(h) = self.handle.take() {
             drop(self.timer.take());
-            drop(self.slightlikeer.take());
+            drop(self.lightlikeer.take());
             if let Err(e) = h.join() {
                 error!("join stats collector failed"; "err" => ?e);
             }
         }
     }
 
-    pub fn get_slightlikeer(&self) -> &Option<Slightlikeer<ReadStats>> {
-        &self.slightlikeer
+    pub fn get_lightlikeer(&self) -> &Option<lightlikeer<ReadStats>> {
+        &self.lightlikeer
     }
 }
 
@@ -434,8 +434,8 @@ where
     // Records the boot time.
     spacelike_ts: UnixSecs,
 
-    // use for Runner inner handle function to slightlike Task to itself
-    // actually it is the slightlikeer connected to Runner's Worker which
+    // use for Runner inner handle function to lightlike Task to itself
+    // actually it is the lightlikeer connected to Runner's Worker which
     // calls Runner's run() on Task received.
     interlock_semaphore: Interlock_Semaphore<Task<EK>>,
     stats_monitor: StatsMonitor<EK>,
@@ -513,7 +513,7 @@ where
                     );
                     let brane_id = brane.get_id();
                     let epoch = brane.take_brane_epoch();
-                    slightlike_admin_request(&router, brane_id, epoch, peer, req, callback)
+                    lightlike_admin_request(&router, brane_id, epoch, peer, req, callback)
                 }
                 Err(e) => {
                     warn!("failed to ask split";
@@ -563,7 +563,7 @@ where
                     );
                     let brane_id = brane.get_id();
                     let epoch = brane.take_brane_epoch();
-                    slightlike_admin_request(&router, brane_id, epoch, peer, req, callback)
+                    lightlike_admin_request(&router, brane_id, epoch, peer, req, callback)
                 }
                 // When rolling ufidelate, there might be some old version einsteindbs that don't support batch split in cluster.
                 // In this situation, FIDel version check would refuse `ask_batch_split`.
@@ -635,7 +635,7 @@ where
             .brane_heartbeat(term, brane.clone(), peer, brane_stat, replication_status)
             .map_err(move |e| {
                 debug!(
-                    "failed to slightlike heartbeat";
+                    "failed to lightlike heartbeat";
                     "brane_id" => brane.get_id(),
                     "err" => ?e
                 );
@@ -717,7 +717,7 @@ where
             match resp.await {
                 Ok(mut resp) => {
                     if let Some(status) = resp.replication_status.take() {
-                        let _ = router.slightlike_control(StoreMsg::UfidelateReplicationMode(status));
+                        let _ = router.lightlike_control(StoreMsg::UfidelateReplicationMode(status));
                     }
                 }
                 Err(e) => {
@@ -769,7 +769,7 @@ where
                         .all(|p| p.get_id() != peer.get_id())
                     {
                         // Peer is not a member of this Brane anymore. Probably it's removed out.
-                        // Slightlike it a violetabft massage to destroy it since it's obsolete.
+                        // lightlike it a violetabft massage to destroy it since it's obsolete.
                         info!(
                             "peer is not a valid member of brane, to be \
                              destroyed soon";
@@ -780,7 +780,7 @@ where
                         FIDel_VALIDATE_PEER_COUNTER_VEC
                             .with_label_values(&["peer stale"])
                             .inc();
-                        slightlike_destroy_peer_message(&router, local_brane, peer, fidel_brane);
+                        lightlike_destroy_peer_message(&router, local_brane, peer, fidel_brane);
                     } else {
                         info!(
                             "peer is still a valid member of brane";
@@ -831,7 +831,7 @@ where
                         change_peer.get_change_type(),
                         change_peer.take_peer(),
                     );
-                    slightlike_admin_request(&router, brane_id, epoch, peer, req, Callback::None);
+                    lightlike_admin_request(&router, brane_id, epoch, peer, req, Callback::None);
                 } else if resp.has_transfer_leader() {
                     FIDel_HEARTBEAT_COUNTER_VEC
                         .with_label_values(&["transfer leader"])
@@ -845,7 +845,7 @@ where
                         "to_peer" => ?transfer_leader.get_peer()
                     );
                     let req = new_transfer_leader_request(transfer_leader.take_peer());
-                    slightlike_admin_request(&router, brane_id, epoch, peer, req, Callback::None);
+                    lightlike_admin_request(&router, brane_id, epoch, peer, req, Callback::None);
                 } else if resp.has_split_brane() {
                     FIDel_HEARTBEAT_COUNTER_VEC
                         .with_label_values(&["split brane"])
@@ -865,8 +865,8 @@ where
                             policy: split_brane.get_policy(),
                         }
                     };
-                    if let Err(e) = router.slightlike(brane_id, PeerMsg::CasualMessage(msg)) {
-                        error!("slightlike halfsplit request failed"; "brane_id" => brane_id, "err" => ?e);
+                    if let Err(e) = router.lightlike(brane_id, PeerMsg::CasualMessage(msg)) {
+                        error!("lightlike halfsplit request failed"; "brane_id" => brane_id, "err" => ?e);
                     }
                 } else if resp.has_merge() {
                     FIDel_HEARTBEAT_COUNTER_VEC.with_label_values(&["merge"]).inc();
@@ -874,7 +874,7 @@ where
                     let merge = resp.take_merge();
                     info!("try to merge"; "brane_id" => brane_id, "merge" => ?merge);
                     let req = new_merge_request(merge);
-                    slightlike_admin_request(&router, brane_id, epoch, peer, req, Callback::None)
+                    lightlike_admin_request(&router, brane_id, epoch, peer, req, Callback::None)
                 } else {
                     FIDel_HEARTBEAT_COUNTER_VEC.with_label_values(&["noop"]).inc();
                 }
@@ -906,9 +906,9 @@ where
             self.store_stat.engine_total_tuplespaceInstanton_read += stats.read_tuplespaceInstanton as u64;
         }
         if !read_stats.brane_infos.is_empty() {
-            if let Some(slightlikeer) = self.stats_monitor.get_slightlikeer() {
-                if slightlikeer.slightlike(read_stats).is_err() {
-                    warn!("slightlike read_stats failed, are we shutting down?")
+            if let Some(lightlikeer) = self.stats_monitor.get_lightlikeer() {
+                if lightlikeer.lightlike(read_stats).is_err() {
+                    warn!("lightlike read_stats failed, are we shutting down?")
                 }
             }
         }
@@ -1201,7 +1201,7 @@ fn new_merge_request(merge: fidelpb::Merge) -> AdminRequest {
     req
 }
 
-fn slightlike_admin_request<EK, ER>(
+fn lightlike_admin_request<EK, ER>(
     router: &VioletaBftRouter<EK, ER>,
     brane_id: u64,
     epoch: metapb::BraneEpoch,
@@ -1221,16 +1221,16 @@ fn slightlike_admin_request<EK, ER>(
 
     req.set_admin_request(request);
 
-    if let Err(e) = router.slightlike_violetabft_command(VioletaBftCommand::new(req, callback)) {
+    if let Err(e) = router.lightlike_violetabft_command(VioletaBftCommand::new(req, callback)) {
         error!(
-            "slightlike request failed";
+            "lightlike request failed";
             "brane_id" => brane_id, "cmd_type" => ?cmd_type, "err" => ?e,
         );
     }
 }
 
-/// Slightlikes a violetabft message to destroy the specified stale Peer
-fn slightlike_destroy_peer_message<EK, ER>(
+/// lightlikes a violetabft message to destroy the specified stale Peer
+fn lightlike_destroy_peer_message<EK, ER>(
     router: &VioletaBftRouter<EK, ER>,
     local_brane: metapb::Brane,
     peer: metapb::Peer,
@@ -1245,9 +1245,9 @@ fn slightlike_destroy_peer_message<EK, ER>(
     message.set_to_peer(peer);
     message.set_brane_epoch(fidel_brane.get_brane_epoch().clone());
     message.set_is_tombstone(true);
-    if let Err(e) = router.slightlike_violetabft_message(message) {
+    if let Err(e) = router.lightlike_violetabft_message(message) {
         error!(
-            "slightlike gc peer request failed";
+            "lightlike gc peer request failed";
             "brane_id" => local_brane.get_id(),
             "err" => ?e
         )

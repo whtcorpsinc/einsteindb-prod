@@ -55,21 +55,21 @@ impl Backup for Service {
             error!("backup task initiate failed"; "error" => ?status);
             ctx.spawn(
                 sink.fail(status)
-                    .unwrap_or_else(|e| error!("backup failed to slightlike error"; "error" => ?e)),
+                    .unwrap_or_else(|e| error!("backup failed to lightlike error"; "error" => ?e)),
             );
             return;
         };
 
-        let slightlike_task = async move {
+        let lightlike_task = async move {
             let mut s = rx.map(|resp| Ok((resp, WriteFlags::default())));
-            sink.slightlike_all(&mut s).await?;
+            sink.lightlike_all(&mut s).await?;
             sink.close().await?;
             Ok(())
         }
         .map(|res: Result<()>| {
             match res {
                 Ok(_) => {
-                    info!("backup slightlike half closed");
+                    info!("backup lightlike half closed");
                 }
                 Err(e) => {
                     if let Some(c) = cancel {
@@ -81,7 +81,7 @@ impl Backup for Service {
             }
         });
 
-        ctx.spawn(slightlike_task);
+        ctx.spawn(lightlike_task);
     }
 }
 
@@ -178,7 +178,7 @@ mod tests {
         // Wait util the task is canceled in map_err.
         loop {
             std::thread::sleep(Duration::from_millis(100));
-            if task.resp.unbounded_slightlike(Default::default()).is_err() {
+            if task.resp.unbounded_lightlike(Default::default()).is_err() {
                 break;
             }
         }

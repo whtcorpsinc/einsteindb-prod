@@ -15,7 +15,7 @@ use milevadb_query_datatype::expr::EvalContext;
 use milevadb_query_vec_expr::RpnExpression;
 
 /// A trait for MAX/MIN aggregation functions
-pub trait Extremum: Clone + std::fmt::Debug + Slightlike + Sync + 'static {
+pub trait Extremum: Clone + std::fmt::Debug + lightlike + Sync + 'static {
     const TP: ExprType;
     const ORD: Ordering;
 }

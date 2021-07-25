@@ -10,7 +10,7 @@ use engine_lmdb::LmdbEngine;
 use futures::executor::block_on;
 use futures::StreamExt;
 use grpcio::{ChannelBuilder, Environment};
-use grpcio::{ClientDuplexReceiver, ClientDuplexSlightlikeer, ClientUnaryReceiver};
+use grpcio::{ClientDuplexReceiver, ClientDuplexlightlikeer, ClientUnaryReceiver};
 use ekvproto::causet_contextpb::{create_change_data, ChangeDataClient, ChangeDataEvent, ChangeDataRequest};
 use ekvproto::kvrpcpb::*;
 use ekvproto::einsteindbpb::EINSTEINDBClient;
@@ -34,7 +34,7 @@ pub fn init() {
 pub fn new_event_feed(
     client: &ChangeDataClient,
 ) -> (
-    ClientDuplexSlightlikeer<ChangeDataRequest>,
+    ClientDuplexlightlikeer<ChangeDataRequest>,
     Rc<Cell<Option<ClientDuplexReceiver<ChangeDataEvent>>>>,
     impl Fn(bool) -> ChangeDataEvent,
 ) {

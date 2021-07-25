@@ -17,7 +17,7 @@ use ekvproto::causet_contextpb::{
 use protobuf::Message;
 use security::{check_common_name, SecurityManager};
 use einsteindb_util::collections::HashMap;
-use einsteindb_util::mpsc::batch::{self, BatchReceiver, Slightlikeer as BatchSlightlikeer, VecCollector};
+use einsteindb_util::mpsc::batch::{self, BatchReceiver, lightlikeer as Batchlightlikeer, VecCollector};
 use einsteindb_util::worker::*;
 
 use crate::pushdown_causet::{Downstream, DownstreamID};
@@ -98,7 +98,7 @@ impl EventBatcher {
                 let mut change_data_event = ChangeDataEvent::default();
                 change_data_event.set_resolved_ts(r);
                 self.events.push(change_data_event);
-                // Set last_size to MAX-1 for slightlikeing resolved ts as an individual event.
+                // Set last_size to MAX-1 for lightlikeing resolved ts as an individual event.
                 // '-1' is to avoid empty event when the next event is still resolved ts.
                 self.last_size = causet_context_MAX_RESP_SIZE - 1;
             }
@@ -123,14 +123,14 @@ bitflags::bitflags! {
 
 pub struct Conn {
     id: ConnID,
-    sink: BatchSlightlikeer<causet_contextEvent>,
+    sink: Batchlightlikeer<causet_contextEvent>,
     downstreams: HashMap<u64, DownstreamID>,
     peer: String,
     version: Option<(semver::Version, FeatureGate)>,
 }
 
 impl Conn {
-    pub fn new(sink: BatchSlightlikeer<causet_contextEvent>, peer: String) -> Conn {
+    pub fn new(sink: Batchlightlikeer<causet_contextEvent>, peer: String) -> Conn {
         Conn {
             id: ConnID::new(),
             sink,
@@ -190,7 +190,7 @@ impl Conn {
         self.downstreams
     }
 
-    pub fn get_sink(&self) -> BatchSlightlikeer<causet_contextEvent> {
+    pub fn get_sink(&self) -> Batchlightlikeer<causet_contextEvent> {
         self.sink.clone()
     }
 
@@ -266,7 +266,7 @@ impl ChangeData for Service {
             error!("causet_context connection initiate failed"; "error" => ?status);
             ctx.spawn(
                 sink.fail(status)
-                    .unwrap_or_else(|e| error!("causet_context failed to slightlike error"; "error" => ?e)),
+                    .unwrap_or_else(|e| error!("causet_context failed to lightlike error"; "error" => ?e)),
             );
             return;
         }
@@ -327,10 +327,10 @@ impl ChangeData for Service {
             }
             match res {
                 Ok(()) => {
-                    info!("causet_context slightlike half closed"; "downstream" => peer, "conn_id" => ?conn_id);
+                    info!("causet_context lightlike half closed"; "downstream" => peer, "conn_id" => ?conn_id);
                 }
                 Err(e) => {
-                    warn!("causet_context slightlike failed"; "error" => ?e, "downstream" => peer, "conn_id" => ?conn_id);
+                    warn!("causet_context lightlike failed"; "error" => ?e, "downstream" => peer, "conn_id" => ?conn_id);
                 }
             }
         });
@@ -339,7 +339,7 @@ impl ChangeData for Service {
         let interlock_semaphore = self.interlock_semaphore.clone();
 
         ctx.spawn(async move {
-            let res = sink.slightlike_all(&mut rx).await;
+            let res = sink.lightlike_all(&mut rx).await;
             // Unregister this downstream only.
             let deregister = Deregister::Conn(conn_id);
             if let Err(e) = interlock_semaphore.schedule(Task::Deregister(deregister)) {
@@ -347,11 +347,11 @@ impl ChangeData for Service {
             }
             match res {
                 Ok(_s) => {
-                    info!("causet_context slightlike half closed"; "downstream" => peer, "conn_id" => ?conn_id);
+                    info!("causet_context lightlike half closed"; "downstream" => peer, "conn_id" => ?conn_id);
                     let _ = sink.close().await;
                 }
                 Err(e) => {
-                    warn!("causet_context slightlike failed"; "error" => ?e, "downstream" => peer, "conn_id" => ?conn_id);
+                    warn!("causet_context lightlike failed"; "error" => ?e, "downstream" => peer, "conn_id" => ?conn_id);
                 }
             }
         });

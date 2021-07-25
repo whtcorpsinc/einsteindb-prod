@@ -26,7 +26,7 @@ quick_error! {
             cause(err)
             display("{}", err)
         }
-        Other(err: Box<dyn error::Error + Sync + Slightlike>) {
+        Other(err: Box<dyn error::Error + Sync + lightlike>) {
             from()
             cause(err.as_ref())
             display("unknown error {:?}", err)

@@ -10,7 +10,7 @@ use milevadb_query_datatype::expr::EvalContext;
 use milevadb_query_vec_expr::RpnExpression;
 
 /// A trait for all bit operations
-pub trait BitOp: Clone + std::fmt::Debug + Slightlike + Sync + 'static {
+pub trait BitOp: Clone + std::fmt::Debug + lightlike + Sync + 'static {
     /// Returns the bit operation type
     fn tp() -> ExprType;
 

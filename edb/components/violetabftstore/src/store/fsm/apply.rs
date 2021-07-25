@@ -8,15 +8,15 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 #[causet(test)]
-use std::sync::mpsc::Slightlikeer;
-use std::sync::mpsc::SyncSlightlikeer;
+use std::sync::mpsc::lightlikeer;
+use std::sync::mpsc::Synclightlikeer;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::vec::Drain;
 use std::{cmp, usize};
 
 use batch_system::{BasicMailbox, BatchRouter, BatchSystem, Fsm, HandlerBuilder, PollHandler};
-use crossbeam::channel::{TryRecvError, TrySlightlikeError};
+use crossbeam::channel::{TryRecvError, TrylightlikeError};
 use engine_lmdb::{PerfContext, PerfLevel};
 use engine_promises::{KvEngine, VioletaBftEngine, Snapshot, WriteBatch};
 use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
@@ -34,7 +34,7 @@ use violetabft::evioletabftpb::{ConfChange, ConfChangeType, Entry, EntryType, Sn
 use sst_importer::SSTImporter;
 use einsteindb_util::collections::{HashMap, HashMapEntry, HashSet};
 use einsteindb_util::config::{Tracker, VersionTrack};
-use einsteindb_util::mpsc::{loose_bounded, LooseBoundedSlightlikeer, Receiver};
+use einsteindb_util::mpsc::{loose_bounded, LooseBoundedlightlikeer, Receiver};
 use einsteindb_util::time::{duration_to_sec, Instant};
 use einsteindb_util::worker::Interlock_Semaphore;
 use einsteindb_util::{escape, Either, MustConsumeVec};
@@ -293,7 +293,7 @@ where
     }
 }
 
-pub trait Notifier<EK: KvEngine>: Slightlike {
+pub trait Notifier<EK: KvEngine>: lightlike {
     fn notify(&self, apply_res: Vec<ApplyRes<EK::Snapshot>>);
     fn notify_one(&self, brane_id: u64, msg: PeerMsg<EK>);
     fn clone_box(&self) -> Box<dyn Notifier<EK>>;
@@ -621,7 +621,7 @@ fn should_write_to_engine(cmd: &VioletaBftCmdRequest) -> bool {
 fn should_sync_log(cmd: &VioletaBftCmdRequest) -> bool {
     if cmd.has_admin_request() {
         if cmd.get_admin_request().get_cmd_type() == AdminCmdType::CompactLog {
-            // We do not need to sync WAL before compact log, because this request will slightlike a msg to
+            // We do not need to sync WAL before compact log, because this request will lightlike a msg to
             // violetabft_gc_log thread to delete the entries before this index instead of deleting them in
             // apply thread directly.
             return false;
@@ -814,7 +814,7 @@ where
             return;
         }
         apply_ctx.prepare_for(self);
-        // If we slightlike multiple ConfChange commands, only first one will be proposed correctly,
+        // If we lightlike multiple ConfChange commands, only first one will be proposed correctly,
         // others will be saved as a normal entry with no data, so we must re-propose these
         // commands again.
         apply_ctx.committed_count += committed_entries_drainer.len();
@@ -924,7 +924,7 @@ where
         self.applied_index_term = term;
         assert!(term > 0);
 
-        // 1. When a peer become leader, it will slightlike an empty entry.
+        // 1. When a peer become leader, it will lightlike an empty entry.
         // 2. When a leader tries to read index during transferring leader,
         //    it will also propose an empty entry. But that entry will not contain
         //    any associated callback. So no need to clear callback.
@@ -2005,17 +2005,17 @@ where
         ))
     }
 
-    // The target peer should slightlike missing log entries to the source peer.
+    // The target peer should lightlike missing log entries to the source peer.
     //
     // So, the merge process order would be:
-    // 1.   `exec_commit_merge` in target apply fsm and slightlike `CatchUpLogs` to source peer fsm
+    // 1.   `exec_commit_merge` in target apply fsm and lightlike `CatchUpLogs` to source peer fsm
     // 2.   `on_catch_up_logs_for_merge` in source peer fsm
     // 3.   if the source peer has already executed the corresponding `on_ready_prepare_merge`, set plightlikeing_remove and jump to step 6
     // 4.   ... (violetabft applightlike and apply logs)
     // 5.   `on_ready_prepare_merge` in source peer fsm and set plightlikeing_remove (means source brane has finished applying all logs)
-    // 6.   `logs_up_to_date_for_merge` in source apply fsm (destroy its apply fsm and slightlike Noop to trigger the target apply fsm)
+    // 6.   `logs_up_to_date_for_merge` in source apply fsm (destroy its apply fsm and lightlike Noop to trigger the target apply fsm)
     // 7.   resume `exec_commit_merge` in target apply fsm
-    // 8.   `on_ready_commit_merge` in target peer fsm and slightlike `MergeResult` to source peer fsm
+    // 8.   `on_ready_commit_merge` in target peer fsm and lightlike `MergeResult` to source peer fsm
     // 9.   `on_merge_result` in source peer fsm (destroy itself)
     fn exec_commit_merge<W: WriteBatch<EK>>(
         &mut self,
@@ -2056,7 +2056,7 @@ where
                 "source_brane_id" => source_brane_id
             );
             fail_point!("before_handle_catch_up_logs_for_merge");
-            // Slightlikes message to the source peer fsm and pause `exec_commit_merge` process
+            // lightlikes message to the source peer fsm and pause `exec_commit_merge` process
             let logs_up_to_date = Arc::new(AtomicU64::new(0));
             let msg = SignificantMsg::CatchUpLogs(CatchUpLogs {
                 target_brane_id: self.brane_id(),
@@ -2493,14 +2493,14 @@ pub struct CatchUpLogs {
 pub struct GenSnapTask {
     pub(crate) brane_id: u64,
     commit_index: u64,
-    snap_notifier: SyncSlightlikeer<VioletaBftSnapshot>,
+    snap_notifier: Synclightlikeer<VioletaBftSnapshot>,
 }
 
 impl GenSnapTask {
     pub fn new(
         brane_id: u64,
         commit_index: u64,
-        snap_notifier: SyncSlightlikeer<VioletaBftSnapshot>,
+        snap_notifier: Synclightlikeer<VioletaBftSnapshot>,
     ) -> GenSnapTask {
         GenSnapTask {
             brane_id,
@@ -2602,7 +2602,7 @@ where
     },
     #[causet(any(test, feature = "testexport"))]
     #[allow(clippy::type_complexity)]
-    Validate(u64, Box<dyn FnOnce(*const u8) + Slightlike>),
+    Validate(u64, Box<dyn FnOnce(*const u8) + lightlike>),
 }
 
 impl<EK> Msg<EK>
@@ -2713,12 +2713,12 @@ where
 {
     fn from_peer<ER: VioletaBftEngine>(
         peer: &Peer<EK, ER>,
-    ) -> (LooseBoundedSlightlikeer<Msg<EK>>, Box<ApplyFsm<EK>>) {
+    ) -> (LooseBoundedlightlikeer<Msg<EK>>, Box<ApplyFsm<EK>>) {
         let reg = Registration::new(peer);
         ApplyFsm::from_registration(reg)
     }
 
-    fn from_registration(reg: Registration) -> (LooseBoundedSlightlikeer<Msg<EK>>, Box<ApplyFsm<EK>>) {
+    fn from_registration(reg: Registration) -> (LooseBoundedlightlikeer<Msg<EK>>, Box<ApplyFsm<EK>>) {
         let (tx, rx) = loose_bounded(usize::MAX);
         let pushdown_causet = Applypushdown_causet::from_registration(reg);
         (
@@ -2917,14 +2917,14 @@ where
             "peer_id" => self.pushdown_causet.id(),
         );
         // The source peer fsm will be destroyed when the target peer executes `on_ready_commit_merge`
-        // and slightlikes `merge result` to the source peer fsm.
+        // and lightlikes `merge result` to the source peer fsm.
         self.destroy(ctx);
         catch_up_logs
             .logs_up_to_date
             .store(brane_id, Ordering::SeqCst);
         // To trigger the target apply fsm
         if let Some(mailbox) = ctx.router.mailbox(catch_up_logs.target_brane_id) {
-            let _ = mailbox.force_slightlike(Msg::Noop);
+            let _ = mailbox.force_lightlike(Msg::Noop);
         } else {
             error!(
                 "failed to get mailbox, are we shutting down?";
@@ -3272,7 +3272,7 @@ pub struct Builder<EK: KvEngine, W: WriteBatch<EK>> {
     importer: Arc<SSTImporter>,
     brane_interlock_semaphore: Interlock_Semaphore<BraneTask<<EK as KvEngine>::Snapshot>>,
     engine: EK,
-    slightlikeer: Box<dyn Notifier<EK>>,
+    lightlikeer: Box<dyn Notifier<EK>>,
     router: ApplyRouter<EK>,
     _phantom: PhantomData<W>,
     store_id: u64,
@@ -3285,7 +3285,7 @@ where
 {
     pub fn new<T, C, ER: VioletaBftEngine>(
         builder: &VioletaBftPollerBuilder<EK, ER, T, C>,
-        slightlikeer: Box<dyn Notifier<EK>>,
+        lightlikeer: Box<dyn Notifier<EK>>,
         router: ApplyRouter<EK>,
     ) -> Builder<EK, W> {
         Builder {
@@ -3296,7 +3296,7 @@ where
             brane_interlock_semaphore: builder.brane_interlock_semaphore.clone(),
             engine: builder.engines.kv.clone(),
             _phantom: PhantomData,
-            slightlikeer,
+            lightlikeer,
             router,
             store_id: builder.store.get_id(),
             plightlikeing_create_peers: builder.plightlikeing_create_peers.clone(),
@@ -3322,7 +3322,7 @@ where
                 self.brane_interlock_semaphore.clone(),
                 self.engine.clone(),
                 self.router.clone(),
-                self.slightlikeer.clone_box(),
+                self.lightlikeer.clone_box(),
                 &causet,
                 self.store_id,
                 self.plightlikeing_create_peers.clone(),
@@ -3366,9 +3366,9 @@ where
     EK: KvEngine,
 {
     pub fn schedule_task(&self, brane_id: u64, msg: Msg<EK>) {
-        let reg = match self.try_slightlike(brane_id, msg) {
+        let reg = match self.try_lightlike(brane_id, msg) {
             Either::Left(Ok(())) => return,
-            Either::Left(Err(TrySlightlikeError::Disconnected(msg))) | Either::Right(msg) => match msg {
+            Either::Left(Err(TrylightlikeError::Disconnected(msg))) | Either::Right(msg) => match msg {
                 Msg::Registration(reg) => reg,
                 Msg::Apply { mut apply, .. } => {
                     info!(
@@ -3426,15 +3426,15 @@ where
                 #[causet(any(test, feature = "testexport"))]
                 Msg::Validate(_, _) => return,
             },
-            Either::Left(Err(TrySlightlikeError::Full(_))) => unreachable!(),
+            Either::Left(Err(TrylightlikeError::Full(_))) => unreachable!(),
         };
 
         // Messages in one brane are sent in sequence, so there is no race here.
         // However, this can't be handled inside control fsm, as messages can be
         // queued inside both queue of control fsm and normal fsm, which can reorder
         // messages.
-        let (slightlikeer, apply_fsm) = ApplyFsm::from_registration(reg);
-        let mailbox = BasicMailbox::new(slightlikeer, apply_fsm);
+        let (lightlikeer, apply_fsm) = ApplyFsm::from_registration(reg);
+        let mailbox = BasicMailbox::new(lightlikeer, apply_fsm);
         self.register(brane_id, mailbox);
     }
 }
@@ -3541,18 +3541,18 @@ mod tests {
 
     #[derive(Clone)]
     pub struct TestNotifier<EK: KvEngine> {
-        tx: Slightlikeer<PeerMsg<EK>>,
+        tx: lightlikeer<PeerMsg<EK>>,
     }
 
     impl<EK: KvEngine> Notifier<EK> for TestNotifier<EK> {
         fn notify(&self, apply_res: Vec<ApplyRes<EK::Snapshot>>) {
             for r in apply_res {
                 let res = TaskRes::Apply(r);
-                let _ = self.tx.slightlike(PeerMsg::ApplyRes { res });
+                let _ = self.tx.lightlike(PeerMsg::ApplyRes { res });
             }
         }
         fn notify_one(&self, _: u64, msg: PeerMsg<EK>) {
-            let _ = self.tx.slightlike(msg);
+            let _ = self.tx.lightlike(msg);
         }
         fn clone_box(&self) -> Box<dyn Notifier<EK>> {
             Box::new(self.clone())
@@ -3600,7 +3600,7 @@ mod tests {
 
     fn validate<F>(router: &ApplyRouter<LmdbEngine>, brane_id: u64, validate: F)
     where
-        F: FnOnce(&Applypushdown_causet<LmdbEngine>) + Slightlike + 'static,
+        F: FnOnce(&Applypushdown_causet<LmdbEngine>) + lightlike + 'static,
     {
         let (validate_tx, validate_rx) = mpsc::channel();
         router.schedule_task(
@@ -3610,7 +3610,7 @@ mod tests {
                 Box::new(move |pushdown_causet: *const u8| {
                     let pushdown_causet = unsafe { &*(pushdown_causet as *const Applypushdown_causet<LmdbEngine>) };
                     validate(pushdown_causet);
-                    validate_tx.slightlike(()).unwrap();
+                    validate_tx.lightlike(()).unwrap();
                 }),
             ),
         );
@@ -3630,7 +3630,7 @@ mod tests {
             Msg::Validate(
                 brane_id,
                 Box::new(move |_| {
-                    notify1.slightlike(()).unwrap();
+                    notify1.lightlike(()).unwrap();
                     wait2.recv().unwrap();
                 }),
             ),
@@ -3641,7 +3641,7 @@ mod tests {
             router.schedule_task(brane_id, msg);
         }
 
-        notify2.slightlike(()).unwrap();
+        notify2.lightlike(()).unwrap();
     }
 
     fn fetch_apply_res(
@@ -3696,7 +3696,7 @@ mod tests {
     #[test]
     fn test_basic_flow() {
         let (tx, rx) = mpsc::channel();
-        let slightlikeer = Box::new(TestNotifier { tx });
+        let lightlikeer = Box::new(TestNotifier { tx });
         let (_tmp, engine) = create_tmp_engine("apply-basic");
         let (_dir, importer) = create_tmp_importer("apply-basic");
         let (brane_interlock_semaphore, snapshot_rx) = dummy_interlock_semaphore();
@@ -3709,7 +3709,7 @@ mod tests {
             interlock_host: InterlockHost::<LmdbEngine>::default(),
             importer,
             brane_interlock_semaphore,
-            slightlikeer,
+            lightlikeer,
             engine,
             router: router.clone(),
             _phantom: Default::default(),
@@ -3741,7 +3741,7 @@ mod tests {
             1,
             0,
             Callback::Write(Box::new(move |resp: WriteResponse| {
-                resp_tx.slightlike(resp.response).unwrap();
+                resp_tx.lightlike(resp.response).unwrap();
             })),
         );
         router.schedule_task(
@@ -3769,7 +3769,7 @@ mod tests {
                 4,
                 4,
                 Callback::Write(Box::new(move |write: WriteResponse| {
-                    cc_tx.slightlike(write.response).unwrap();
+                    cc_tx.lightlike(write.response).unwrap();
                 })),
             ),
             proposal(false, 4, 5, Callback::None),
@@ -3857,7 +3857,7 @@ mod tests {
             1,
             0,
             Callback::Write(Box::new(move |resp: WriteResponse| {
-                resp_tx.slightlike(resp.response).unwrap();
+                resp_tx.lightlike(resp.response).unwrap();
             })),
         );
         router.schedule_task(
@@ -3885,13 +3885,13 @@ mod tests {
         system.shutdown();
     }
 
-    fn cb<S: Snapshot>(idx: u64, term: u64, tx: Slightlikeer<VioletaBftCmdResponse>) -> Proposal<S> {
+    fn cb<S: Snapshot>(idx: u64, term: u64, tx: lightlikeer<VioletaBftCmdResponse>) -> Proposal<S> {
         proposal(
             false,
             idx,
             term,
             Callback::Write(Box::new(move |resp: WriteResponse| {
-                tx.slightlike(resp.response).unwrap();
+                tx.lightlike(resp.response).unwrap();
             })),
         )
     }
@@ -4011,7 +4011,7 @@ mod tests {
         post_admin_count: Arc<AtomicUsize>,
         post_query_count: Arc<AtomicUsize>,
         cmd_batches: RefCell<Vec<CmdBatch>>,
-        cmd_sink: Option<Arc<Mutex<Slightlikeer<CmdBatch>>>>,
+        cmd_sink: Option<Arc<Mutex<lightlikeer<CmdBatch>>>>,
     }
 
     impl Interlock for ApplySemaphore {}
@@ -4046,7 +4046,7 @@ mod tests {
                 let batches = self.cmd_batches.replace(Vec::default());
                 for b in batches {
                     if let Some(sink) = self.cmd_sink.as_ref() {
-                        sink.dagger().unwrap().slightlike(b).unwrap();
+                        sink.dagger().unwrap().lightlike(b).unwrap();
                     }
                 }
             }
@@ -4064,14 +4064,14 @@ mod tests {
 
         let (tx, rx) = mpsc::channel();
         let (brane_interlock_semaphore, _) = dummy_interlock_semaphore();
-        let slightlikeer = Box::new(TestNotifier { tx });
+        let lightlikeer = Box::new(TestNotifier { tx });
         let causet = Arc::new(VersionTrack::new(Config::default()));
         let (router, mut system) = create_apply_batch_system(&causet.value());
         let plightlikeing_create_peers = Arc::new(Mutex::new(HashMap::default()));
         let builder = super::Builder::<LmdbEngine, LmdbWriteBatch> {
             tag: "test-store".to_owned(),
             causet,
-            slightlikeer,
+            lightlikeer,
             brane_interlock_semaphore,
             interlock_host: host,
             importer: importer.clone(),
@@ -4350,7 +4350,7 @@ mod tests {
                         Callback::Write(Box::new(move |resp: WriteResponse| {
                             // Sleep until yield timeout.
                             thread::sleep(Duration::from_millis(500));
-                            capture_tx_clone.slightlike(resp.response).unwrap();
+                            capture_tx_clone.lightlike(resp.response).unwrap();
                         })),
                     ),
                     cb(11, 3, capture_tx.clone()),
@@ -4422,14 +4422,14 @@ mod tests {
 
         let (tx, rx) = mpsc::channel();
         let (brane_interlock_semaphore, _) = dummy_interlock_semaphore();
-        let slightlikeer = Box::new(TestNotifier { tx });
+        let lightlikeer = Box::new(TestNotifier { tx });
         let causet = Config::default();
         let (router, mut system) = create_apply_batch_system(&causet);
         let plightlikeing_create_peers = Arc::new(Mutex::new(HashMap::default()));
         let builder = super::Builder::<LmdbEngine, LmdbWriteBatch> {
             tag: "test-store".to_owned(),
             causet: Arc::new(VersionTrack::new(causet)),
-            slightlikeer,
+            lightlikeer,
             brane_interlock_semaphore,
             interlock_host: host,
             importer,
@@ -4507,7 +4507,7 @@ mod tests {
             },
         );
         // Unblock the apply worker
-        block_tx.slightlike(()).unwrap();
+        block_tx.lightlike(()).unwrap();
         fetch_apply_res(&rx);
         let (capture_tx, capture_rx) = mpsc::channel();
         let put_entry = EntryBuilder::new(3, 2)
@@ -4714,7 +4714,7 @@ mod tests {
         let peers = vec![new_peer(2, 3), new_peer(4, 5), new_learner_peer(6, 7)];
         reg.brane.set_peers(peers.clone().into());
         let (tx, _rx) = mpsc::channel();
-        let slightlikeer = Box::new(TestNotifier { tx });
+        let lightlikeer = Box::new(TestNotifier { tx });
         let mut host = InterlockHost::<LmdbEngine>::default();
         let mut obs = ApplySemaphore::default();
         let (sink, cmdbatch_rx) = mpsc::channel();
@@ -4728,7 +4728,7 @@ mod tests {
         let builder = super::Builder::<LmdbEngine, LmdbWriteBatch> {
             tag: "test-store".to_owned(),
             causet,
-            slightlikeer,
+            lightlikeer,
             importer,
             brane_interlock_semaphore,
             interlock_host: host,
@@ -4921,7 +4921,7 @@ mod tests {
                         resp
                     );
                     assert!(resp.snapshot.is_none());
-                    tx.slightlike(()).unwrap();
+                    tx.lightlike(()).unwrap();
                 })),
             },
         );

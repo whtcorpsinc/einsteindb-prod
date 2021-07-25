@@ -34,7 +34,7 @@ impl Server<Service> {
     }
 }
 
-impl<C: FidelMocker + Slightlike + Sync + 'static> Server<C> {
+impl<C: FidelMocker + lightlike + Sync + 'static> Server<C> {
     pub fn with_case(eps_count: usize, case: Arc<C>) -> Server<C> {
         let mgr = SecurityManager::new(&SecurityConfig::default()).unwrap();
         let eps = vec![("127.0.0.1".to_owned(), 0); eps_count];
@@ -114,7 +114,7 @@ fn hijack_unary<F, R, C: FidelMocker>(
     sink: UnarySink<R>,
     f: F,
 ) where
-    R: Slightlike + 'static,
+    R: lightlike + 'static,
     F: Fn(&dyn FidelMocker) -> Option<Result<R>>,
 {
     let resp = mock
@@ -163,7 +163,7 @@ impl<C: FidelMocker> Clone for FidelMock<C> {
     }
 }
 
-impl<C: FidelMocker + Slightlike + Sync + 'static> Fidel for FidelMock<C> {
+impl<C: FidelMocker + lightlike + Sync + 'static> Fidel for FidelMock<C> {
     fn get_members(
         &mut self,
         ctx: RpcContext<'_>,
@@ -181,7 +181,7 @@ impl<C: FidelMocker + Slightlike + Sync + 'static> Fidel for FidelMock<C> {
     ) {
         let header = Service::header();
         let fut = async move {
-            resp.slightlike_all(&mut req.map(move |_| {
+            resp.lightlike_all(&mut req.map(move |_| {
                 let mut r = TsoResponse::default();
                 r.set_header(header.clone());
                 r.mut_timestamp().physical = 42;
@@ -278,7 +278,7 @@ impl<C: FidelMocker + Slightlike + Sync + 'static> Fidel for FidelMock<C> {
                 }
             });
             let mut sink = sink.sink_map_err(FidelError::from);
-            sink.slightlike_all(&mut stream).await.unwrap();
+            sink.lightlike_all(&mut stream).await.unwrap();
             let _ = sink.close().await;
         });
     }

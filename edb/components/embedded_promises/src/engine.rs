@@ -19,7 +19,7 @@ pub trait KvEngine:
     + CompactExt
     + ConePropertiesExt
     + MiscExt
-    + Slightlike
+    + lightlike
     + Sync
     + Clone
     + Debug

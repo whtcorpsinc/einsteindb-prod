@@ -2,7 +2,7 @@
 
 use std::marker::PhantomData;
 
-pub type Callback<T> = Box<dyn FnOnce(T) + Slightlike>;
+pub type Callback<T> = Box<dyn FnOnce(T) + lightlike>;
 
 /// Creates a callback that is automatically called on drop if it's not called
 /// explicitly.
@@ -12,9 +12,9 @@ pub type Callback<T> = Box<dyn FnOnce(T) + Slightlike>;
 ///
 /// Also note that because `callback` and `arg_on_drop` may be called in the `drop`
 /// method, do not panic inside them or use `safe_panic` instead.
-pub fn must_call<T: Slightlike + 'static>(
-    callback: impl FnOnce(T) + Slightlike + 'static,
-    arg_on_drop: impl FnOnce() -> T + Slightlike + 'static,
+pub fn must_call<T: lightlike + 'static>(
+    callback: impl FnOnce(T) + lightlike + 'static,
+    arg_on_drop: impl FnOnce() -> T + lightlike + 'static,
 ) -> Callback<T> {
     let mut must_call = MustCall {
         callback: Some(callback),

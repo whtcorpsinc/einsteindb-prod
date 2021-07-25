@@ -7,7 +7,7 @@ use std::result::Result as StdResult;
 quick_error! {
     #[derive(Debug)]
     pub enum Error {
-        Other(err: Box<dyn StdError + Sync + Slightlike>) {
+        Other(err: Box<dyn StdError + Sync + lightlike>) {
             from()
             cause(err.as_ref())
             display("{}", err)

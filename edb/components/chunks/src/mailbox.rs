@@ -1,7 +1,7 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use crate::fsm::{Fsm, FsmInterlock_Semaphore, FsmState};
-use crossbeam::channel::{SlightlikeError, TrySlightlikeError};
+use crossbeam::channel::{lightlikeError, TrylightlikeError};
 use std::borrow::Cow;
 use std::sync::Arc;
 use einsteindb_util::mpsc;
@@ -15,24 +15,24 @@ use einsteindb_util::mpsc;
 /// idle. An idle owner will be scheduled via `FsmInterlock_Semaphore` immediately, which
 /// will drive the fsm to poll for messages.
 pub struct BasicMailbox<Owner: Fsm> {
-    slightlikeer: mpsc::LooseBoundedSlightlikeer<Owner::Message>,
+    lightlikeer: mpsc::LooseBoundedlightlikeer<Owner::Message>,
     state: Arc<FsmState<Owner>>,
 }
 
 impl<Owner: Fsm> BasicMailbox<Owner> {
     #[inline]
     pub fn new(
-        slightlikeer: mpsc::LooseBoundedSlightlikeer<Owner::Message>,
+        lightlikeer: mpsc::LooseBoundedlightlikeer<Owner::Message>,
         fsm: Box<Owner>,
     ) -> BasicMailbox<Owner> {
         BasicMailbox {
-            slightlikeer,
+            lightlikeer,
             state: Arc::new(FsmState::new(fsm)),
         }
     }
 
     pub(crate) fn is_connected(&self) -> bool {
-        self.slightlikeer.is_slightlikeer_connected()
+        self.lightlikeer.is_lightlikeer_connected()
     }
 
     pub(crate) fn release(&self, fsm: Box<Owner>) {
@@ -45,36 +45,36 @@ impl<Owner: Fsm> BasicMailbox<Owner> {
 
     #[inline]
     pub fn len(&self) -> usize {
-        self.slightlikeer.len()
+        self.lightlikeer.len()
     }
 
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.slightlikeer.is_empty()
+        self.lightlikeer.is_empty()
     }
 
-    /// Force slightlikeing a message despite the capacity limit on channel.
+    /// Force lightlikeing a message despite the capacity limit on channel.
     #[inline]
-    pub fn force_slightlike<S: FsmInterlock_Semaphore<Fsm = Owner>>(
+    pub fn force_lightlike<S: FsmInterlock_Semaphore<Fsm = Owner>>(
         &self,
         msg: Owner::Message,
         interlock_semaphore: &S,
-    ) -> Result<(), SlightlikeError<Owner::Message>> {
-        self.slightlikeer.force_slightlike(msg)?;
+    ) -> Result<(), lightlikeError<Owner::Message>> {
+        self.lightlikeer.force_lightlike(msg)?;
         self.state.notify(interlock_semaphore, Cow::Borrowed(self));
         Ok(())
     }
 
-    /// Try to slightlike a message to the mailbox.
+    /// Try to lightlike a message to the mailbox.
     ///
     /// If there are too many plightlikeing messages, function may fail.
     #[inline]
-    pub fn try_slightlike<S: FsmInterlock_Semaphore<Fsm = Owner>>(
+    pub fn try_lightlike<S: FsmInterlock_Semaphore<Fsm = Owner>>(
         &self,
         msg: Owner::Message,
         interlock_semaphore: &S,
-    ) -> Result<(), TrySlightlikeError<Owner::Message>> {
-        self.slightlikeer.try_slightlike(msg)?;
+    ) -> Result<(), TrylightlikeError<Owner::Message>> {
+        self.lightlikeer.try_lightlike(msg)?;
         self.state.notify(interlock_semaphore, Cow::Borrowed(self));
         Ok(())
     }
@@ -82,7 +82,7 @@ impl<Owner: Fsm> BasicMailbox<Owner> {
     /// Close the mailbox explicitly.
     #[inline]
     pub(crate) fn close(&self) {
-        self.slightlikeer.close_slightlikeer();
+        self.lightlikeer.close_lightlikeer();
         self.state.clear();
     }
 }
@@ -91,7 +91,7 @@ impl<Owner: Fsm> Clone for BasicMailbox<Owner> {
     #[inline]
     fn clone(&self) -> BasicMailbox<Owner> {
         BasicMailbox {
-            slightlikeer: self.slightlikeer.clone(),
+            lightlikeer: self.lightlikeer.clone(),
             state: self.state.clone(),
         }
     }
@@ -116,15 +116,15 @@ where
         Mailbox { mailbox, interlock_semaphore }
     }
 
-    /// Force slightlikeing a message despite channel capacity limit.
+    /// Force lightlikeing a message despite channel capacity limit.
     #[inline]
-    pub fn force_slightlike(&self, msg: Owner::Message) -> Result<(), SlightlikeError<Owner::Message>> {
-        self.mailbox.force_slightlike(msg, &self.interlock_semaphore)
+    pub fn force_lightlike(&self, msg: Owner::Message) -> Result<(), lightlikeError<Owner::Message>> {
+        self.mailbox.force_lightlike(msg, &self.interlock_semaphore)
     }
 
-    /// Try to slightlike a message.
+    /// Try to lightlike a message.
     #[inline]
-    pub fn try_slightlike(&self, msg: Owner::Message) -> Result<(), TrySlightlikeError<Owner::Message>> {
-        self.mailbox.try_slightlike(msg, &self.interlock_semaphore)
+    pub fn try_lightlike(&self, msg: Owner::Message) -> Result<(), TrylightlikeError<Owner::Message>> {
+        self.mailbox.try_lightlike(msg, &self.interlock_semaphore)
     }
 }

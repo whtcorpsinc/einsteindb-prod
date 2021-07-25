@@ -14,7 +14,7 @@ use txn_types::Error as TxnTypesError;
 #[derive(Debug, Fail)]
 pub enum Error {
     #[fail(display = "Other error {}", _0)]
-    Other(Box<dyn error::Error + Sync + Slightlike>),
+    Other(Box<dyn error::Error + Sync + lightlike>),
     #[fail(display = "Lmdb error {}", _0)]
     Lmdb(String),
     #[fail(display = "IO error {}", _0)]
@@ -44,7 +44,7 @@ macro_rules! impl_from {
 }
 
 impl_from! {
-    Box<dyn error::Error + Sync + Slightlike> => Other,
+    Box<dyn error::Error + Sync + lightlike> => Other,
     String => Lmdb,
     IoError => Io,
     EngineError => Engine,

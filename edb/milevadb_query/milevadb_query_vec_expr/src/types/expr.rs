@@ -15,7 +15,7 @@ pub enum RpnExpressionNode {
         func_meta: RpnFnMeta,
         args_len: usize,
         field_type: FieldType,
-        metadata: Box<dyn Any + Slightlike>,
+        metadata: Box<dyn Any + lightlike>,
     },
 
     /// Represents a scalar constant value.

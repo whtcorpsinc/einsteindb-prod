@@ -159,7 +159,7 @@ pub trait ExternalStorage: 'static {
     fn write(
         &self,
         name: &str,
-        reader: Box<dyn AsyncRead + Slightlike + Unpin>,
+        reader: Box<dyn AsyncRead + lightlike + Unpin>,
         content_length: u64,
     ) -> io::Result<()>;
     /// Read all contents of the given path.
@@ -170,7 +170,7 @@ impl ExternalStorage for Arc<dyn ExternalStorage> {
     fn write(
         &self,
         name: &str,
-        reader: Box<dyn AsyncRead + Slightlike + Unpin>,
+        reader: Box<dyn AsyncRead + lightlike + Unpin>,
         content_length: u64,
     ) -> io::Result<()> {
         (**self).write(name, reader, content_length)

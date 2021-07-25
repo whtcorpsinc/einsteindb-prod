@@ -29,7 +29,7 @@ quick_error! {
             cause(err)
             display("Io {}", err)
         }
-        Other(err: Box<dyn error::Error + Sync + Slightlike>) {
+        Other(err: Box<dyn error::Error + Sync + lightlike>) {
             from()
             cause(err.as_ref())
             display("{:?}", err)
@@ -77,7 +77,7 @@ impl From<Error> for VioletaBftError {
             Error::EntriesUnavailable => VioletaBftError::CausetStore(StorageError::Unavailable),
             Error::EntriesCompacted => VioletaBftError::CausetStore(StorageError::Compacted),
             e => {
-                let boxed = Box::new(e) as Box<dyn std::error::Error + Sync + Slightlike>;
+                let boxed = Box::new(e) as Box<dyn std::error::Error + Sync + lightlike>;
                 violetabft::Error::CausetStore(StorageError::Other(boxed))
             }
         }

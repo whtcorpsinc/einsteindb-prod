@@ -153,7 +153,7 @@ where
         let reader = get_decrypter_reader(path, key_mgr)?;
         BufReader::new(reader)
     } else {
-        BufReader::new(Box::new(file) as Box<dyn Read + Slightlike>)
+        BufReader::new(Box::new(file) as Box<dyn Read + lightlike>)
     };
 
     let mut wb = db.write_batch();
@@ -215,7 +215,7 @@ where
 pub fn get_decrypter_reader(
     file: &str,
     encryption_key_manager: &DataKeyManager,
-) -> Result<Box<dyn Read + Slightlike>, Error> {
+) -> Result<Box<dyn Read + lightlike>, Error> {
     let enc_info = box_try!(encryption_key_manager.get_file(file));
     let mthd = encryption_method_from_db_encryption_method(enc_info.method);
     debug!(
@@ -224,12 +224,12 @@ pub fn get_decrypter_reader(
     );
     if mthd == EncryptionMethod::Plaintext {
         let f = box_try!(File::open(file));
-        return Ok(Box::new(f) as Box<dyn Read + Slightlike>);
+        return Ok(Box::new(f) as Box<dyn Read + lightlike>);
     }
     let iv = box_try!(Iv::from_slice(&enc_info.iv));
     let f = box_try!(File::open(file));
     let r = box_try!(DecrypterReader::new(f, mthd, &enc_info.key, iv));
-    Ok(Box::new(r) as Box<dyn Read + Slightlike>)
+    Ok(Box::new(r) as Box<dyn Read + lightlike>)
 }
 
 #[causet(test)]

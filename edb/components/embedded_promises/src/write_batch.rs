@@ -21,7 +21,7 @@ pub trait WriteBatchExt: Sized {
     fn write_batch_with_cap(&self, cap: usize) -> Self::WriteBatch;
 }
 
-pub trait MuBlock: Slightlike {
+pub trait MuBlock: lightlike {
     fn data_size(&self) -> usize;
     fn count(&self) -> usize;
     fn is_empty(&self) -> bool;

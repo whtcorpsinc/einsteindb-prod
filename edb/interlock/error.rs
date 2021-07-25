@@ -25,9 +25,9 @@ pub enum Error {
     Other(String),
 }
 
-impl From<Box<dyn std::error::Error + Slightlike + Sync>> for Error {
+impl From<Box<dyn std::error::Error + lightlike + Sync>> for Error {
     #[inline]
-    fn from(err: Box<dyn std::error::Error + Slightlike + Sync>) -> Self {
+    fn from(err: Box<dyn std::error::Error + lightlike + Sync>) -> Self {
         Error::Other(err.to_string())
     }
 }

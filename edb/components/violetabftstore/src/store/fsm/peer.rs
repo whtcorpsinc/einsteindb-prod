@@ -29,7 +29,7 @@ use violetabft::evioletabftpb::{ConfChangeType, MessageType};
 use violetabft::{self, SnapshotStatus, INVALID_INDEX, NO_LIMIT};
 use violetabft::{Ready, StateRole};
 use einsteindb_util::collections::HashMap;
-use einsteindb_util::mpsc::{self, LooseBoundedSlightlikeer, Receiver};
+use einsteindb_util::mpsc::{self, LooseBoundedlightlikeer, Receiver};
 use einsteindb_util::time::duration_to_sec;
 use einsteindb_util::worker::{Interlock_Semaphore, Stopped};
 use einsteindb_util::{escape, is_zero_duration, Either};
@@ -104,7 +104,7 @@ where
     early_apply: bool,
     mailbox: Option<BasicMailbox<PeerFsm<EK, ER>>>,
     pub receiver: Receiver<PeerMsg<EK>>,
-    /// when snapshot is generating or slightlikeing, skip split check at most REGION_SPLIT_SKIT_MAX_COUNT times.
+    /// when snapshot is generating or lightlikeing, skip split check at most REGION_SPLIT_SKIT_MAX_COUNT times.
     skip_split_count: usize,
     /// Sometimes applied violetabft logs won't be compacted in time, because less compact means less
     /// sync-log in apply threads. Stale logs will be deleted if the skip time reaches this
@@ -149,7 +149,7 @@ where
     }
 }
 
-pub type SlightlikeerFsmPair<EK, ER> = (LooseBoundedSlightlikeer<PeerMsg<EK>>, Box<PeerFsm<EK, ER>>);
+pub type lightlikeerFsmPair<EK, ER> = (LooseBoundedlightlikeer<PeerMsg<EK>>, Box<PeerFsm<EK, ER>>);
 
 impl<EK, ER> PeerFsm<EK, ER>
 where
@@ -165,7 +165,7 @@ where
         sched: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
         engines: Engines<EK, ER>,
         brane: &metapb::Brane,
-    ) -> Result<SlightlikeerFsmPair<EK, ER>> {
+    ) -> Result<lightlikeerFsmPair<EK, ER>> {
         let meta_peer = match util::find_peer(brane, store_id) {
             None => {
                 return Err(box_err!(
@@ -214,7 +214,7 @@ where
         engines: Engines<EK, ER>,
         brane_id: u64,
         peer: metapb::Peer,
-    ) -> Result<SlightlikeerFsmPair<EK, ER>> {
+    ) -> Result<lightlikeerFsmPair<EK, ER>> {
         // We will remove tombstone key when apply snapshot
         info!(
             "replicate peer";
@@ -389,7 +389,7 @@ where
         self.stopped
     }
 
-    /// Set a mailbox to Fsm, which should be used to slightlike message to itself.
+    /// Set a mailbox to Fsm, which should be used to lightlike message to itself.
     #[inline]
     fn set_mailbox(&mut self, mailbox: Cow<'_, BasicMailbox<Self>>)
     where
@@ -447,7 +447,7 @@ where
                         .violetabft_metrics
                         .propose
                         .request_wait_time
-                        .observe(duration_to_sec(cmd.slightlike_time.elapsed()) as f64);
+                        .observe(duration_to_sec(cmd.lightlike_time.elapsed()) as f64);
                     let req_size = cmd.request.compute_size();
                     if self.fsm.batch_req_builder.can_batch(&cmd.request, req_size) {
                         self.fsm.batch_req_builder.add(cmd, req_size);
@@ -550,7 +550,7 @@ where
 
                 if is_learner(&self.fsm.peer.peer) {
                     // FIXME: should use `bcast_check_stale_peer_message` instead.
-                    // Slightlikeing a new enum type msg to a old einsteindb may cause panic during rolling ufidelate
+                    // lightlikeing a new enum type msg to a old einsteindb may cause panic during rolling ufidelate
                     // we should change the protobuf behavior and check if properly handled in all place
                     self.fsm.peer.bcast_wake_up_message(&mut self.ctx);
                 }
@@ -609,9 +609,9 @@ where
         let compacted_idx = s.truncated_index();
         let compacted_term = s.truncated_term();
         let is_applying_snap = s.is_applying_snapshot();
-        for (key, is_slightlikeing) in snaps {
-            if is_slightlikeing {
-                let s = match self.ctx.snap_mgr.get_snapshot_for_slightlikeing(&key) {
+        for (key, is_lightlikeing) in snaps {
+            if is_lightlikeing {
+                let s = match self.ctx.snap_mgr.get_snapshot_for_lightlikeing(&key) {
                     Ok(s) => s,
                     Err(e) => {
                         error!(%e;
@@ -946,7 +946,7 @@ where
             // This can happen only when the peer is about to be destroyed
             // or the node is shutting down. So it's OK to not to clean up
             // registry.
-            if let Err(e) = mb.force_slightlike(PeerMsg::Tick(tick)) {
+            if let Err(e) = mb.force_lightlike(PeerMsg::Tick(tick)) {
                 debug!(
                     "failed to schedule peer tick";
                     "brane_id" => brane_id,
@@ -996,9 +996,9 @@ where
                 // Then the follower's `election_elapsed` will be 1 + `missing_tick` + 1
                 // (default 1 + 6 + 1 = 8) which is less than the min election timeout.
                 // The reason is that we don't want let all followers become (pre)candidate if one
-                // follower may receive a request, then becomes (pre)candidate and slightlikes (pre)vote msg
+                // follower may receive a request, then becomes (pre)candidate and lightlikes (pre)vote msg
                 // to others. As long as the leader can wake up and broadcast hearbeats in one `violetabft_heartbeat_ticks`
-                // time(default 2s), no more followers will wake up and slightlikes vote msg again.
+                // time(default 2s), no more followers will wake up and lightlikes vote msg again.
                 if self.fsm.missing_ticks + 2 + self.ctx.causet.violetabft_heartbeat_ticks
                     < self.ctx.causet.violetabft_election_timeout_ticks
                 {
@@ -1076,7 +1076,7 @@ where
                 if !merge_from_snapshot {
                     self.destroy_peer(false);
                 } else {
-                    // Wait for its target peer to apply snapshot and then slightlike `MergeResult` back
+                    // Wait for its target peer to apply snapshot and then lightlike `MergeResult` back
                     // to destroy itself
                     let mut meta = self.ctx.store_meta.dagger().unwrap();
                     // The `need_atomic` flag must be true
@@ -1267,18 +1267,18 @@ where
         let from_store_id = msg.get_from_peer().get_store_id();
 
         // Let's consider following cases with three nodes [1, 2, 3] and 1 is leader:
-        // a. 1 removes 2, 2 may still slightlike MsgApplightlikeResponse to 1.
+        // a. 1 removes 2, 2 may still lightlike MsgApplightlikeResponse to 1.
         //  We should ignore this stale message and let 2 remove itself after
         //  applying the ConfChange log.
         // b. 2 is isolated, 1 removes 2. When 2 rejoins the cluster, 2 will
-        //  slightlike stale MsgRequestVote to 1 and 3, at this time, we should tell 2 to gc itself.
+        //  lightlike stale MsgRequestVote to 1 and 3, at this time, we should tell 2 to gc itself.
         // c. 2 is isolated but can communicate with 3. 1 removes 3.
-        //  2 will slightlike stale MsgRequestVote to 3, 3 should ignore this message.
+        //  2 will lightlike stale MsgRequestVote to 3, 3 should ignore this message.
         // d. 2 is isolated but can communicate with 3. 1 removes 2, then adds 4, remove 3.
-        //  2 will slightlike stale MsgRequestVote to 3, 3 should tell 2 to gc itself.
+        //  2 will lightlike stale MsgRequestVote to 3, 3 should tell 2 to gc itself.
         // e. 2 is isolated. 1 adds 4, 5, 6, removes 3, 1. Now assume 4 is leader.
-        //  After 2 rejoins the cluster, 2 may slightlike stale MsgRequestVote to 1 and 3,
-        //  1 and 3 will ignore this message. Later 4 will slightlike messages to 2 and 2 will
+        //  After 2 rejoins the cluster, 2 may lightlike stale MsgRequestVote to 1 and 3,
+        //  1 and 3 will ignore this message. Later 4 will lightlike messages to 2 and 2 will
         //  rejoin the violetabft group again.
         // f. 2 is isolated. 1 adds 4, 5, 6, removes 3, 1. Now assume 4 is leader, and 4 removes 2.
         //  unlike case e, 2 will be stale forever.
@@ -1289,7 +1289,7 @@ where
         {
             let mut need_gc_msg = util::is_vote_msg(msg.get_message());
             if msg.has_extra_msg() {
-                // A learner can't vote so it slightlikes the check-stale-peer msg to others to find out whether
+                // A learner can't vote so it lightlikes the check-stale-peer msg to others to find out whether
                 // it is removed due to conf change or merge.
                 need_gc_msg |=
                     msg.get_extra_msg().get_type() == ExtraMessageType::MsgCheckStalePeer;
@@ -1331,10 +1331,10 @@ where
                             if let Err(e) = self
                                 .ctx
                                 .router
-                                .slightlike_control(StoreMsg::VioletaBftMessage(msg.clone()))
+                                .lightlike_control(StoreMsg::VioletaBftMessage(msg.clone()))
                             {
                                 info!(
-                                    "failed to slightlike back store message, are we shutting down?";
+                                    "failed to lightlike back store message, are we shutting down?";
                                     "brane_id" => self.fsm.brane_id(),
                                     "peer_id" => self.fsm.peer_id(),
                                     "err" => %e,
@@ -1604,7 +1604,7 @@ where
             {
                 // If snapshot's epoch version is greater than exist brane's, the exist brane
                 // may has been merged/splitted already.
-                let _ = self.ctx.router.force_slightlike(
+                let _ = self.ctx.router.force_lightlike(
                     exist_brane.get_id(),
                     PeerMsg::CasualMessage(CasualMessage::BraneOverlapped),
                 );
@@ -1683,7 +1683,7 @@ where
             // It deplightlikes on the implementation of `destroy_peer`
             self.ctx
                 .router
-                .force_slightlike(
+                .force_lightlike(
                     source_brane_id,
                     PeerMsg::SignificantMsg(SignificantMsg::MergeResult {
                         target_brane_id: self.fsm.brane_id(),
@@ -1781,7 +1781,7 @@ where
             // data too.
             panic!("{} destroy err {:?}", self.fsm.peer.tag, e);
         }
-        // Some places use `force_slightlike().unwrap()` if the StoreMeta dagger is held.
+        // Some places use `force_lightlike().unwrap()` if the StoreMeta dagger is held.
         // So in here, it's necessary to held the StoreMeta dagger when closing the router.
         self.ctx.router.close(brane_id);
         self.fsm.stop();
@@ -2000,7 +2000,7 @@ where
                 "split_count" => branes.len(),
             );
             // Now fidel only uses ReportBatchSplit for history operation show,
-            // so we slightlike it indeplightlikeently here.
+            // so we lightlike it indeplightlikeently here.
             let task = FidelTask::ReportBatchSplit {
                 branes: branes.to_vec(),
             };
@@ -2081,14 +2081,14 @@ where
                 self.ctx.router.close(new_brane_id);
             }
 
-            let (slightlikeer, mut new_peer) = match PeerFsm::create(
+            let (lightlikeer, mut new_peer) = match PeerFsm::create(
                 self.ctx.store_id(),
                 &self.ctx.causet,
                 self.ctx.brane_interlock_semaphore.clone(),
                 self.ctx.engines.clone(),
                 &new_brane,
             ) {
-                Ok((slightlikeer, new_peer)) => (slightlikeer, new_peer),
+                Ok((lightlikeer, new_peer)) => (lightlikeer, new_peer),
                 Err(e) => {
                     // peer information is already written into db, can't recover.
                     // there is probably a bug.
@@ -2113,7 +2113,7 @@ where
             new_peer.has_ready |= campaigned;
 
             if is_leader {
-                // The new peer is likely to become leader, slightlike a heartbeat immediately to reduce
+                // The new peer is likely to become leader, lightlike a heartbeat immediately to reduce
                 // client query miss.
                 new_peer.peer.heartbeat_fidel(self.ctx);
             }
@@ -2127,11 +2127,11 @@ where
                 // check again after split.
                 new_peer.peer.size_diff_hint = self.ctx.causet.brane_split_check_diff.0;
             }
-            let mailbox = BasicMailbox::new(slightlikeer, new_peer);
+            let mailbox = BasicMailbox::new(lightlikeer, new_peer);
             self.ctx.router.register(new_brane_id, mailbox);
             self.ctx
                 .router
-                .force_slightlike(new_brane_id, PeerMsg::Start)
+                .force_lightlike(new_brane_id, PeerMsg::Start)
                 .unwrap();
 
             if !campaigned {
@@ -2142,7 +2142,7 @@ where
                     if let Err(e) = self
                         .ctx
                         .router
-                        .force_slightlike(new_brane_id, PeerMsg::VioletaBftMessage(msg))
+                        .force_lightlike(new_brane_id, PeerMsg::VioletaBftMessage(msg))
                     {
                         warn!("handle first requset vote failed"; "brane_id" => brane_id, "error" => ?e);
                     }
@@ -2351,7 +2351,7 @@ where
         // brane. Otherwise we need to enable proposal forwarding.
         self.ctx
             .router
-            .force_slightlike(
+            .force_lightlike(
                 target_id,
                 PeerMsg::VioletaBftCommand(VioletaBftCommand::new(request, Callback::None)),
             )
@@ -2420,7 +2420,7 @@ where
                     "error_code" => %e.error_code(),
                 );
                 if self.fsm.peer.leader_id() != violetabft::INVALID_ID {
-                    self.fsm.peer.slightlike_want_rollback_merge(
+                    self.fsm.peer.lightlike_want_rollback_merge(
                         self.fsm
                             .peer
                             .plightlikeing_merge_state
@@ -2449,8 +2449,8 @@ where
                 // Indicate that `on_catch_up_logs_for_merge` has already executed.
                 // Mark plightlikeing_remove because its apply fsm will be destroyed.
                 self.fsm.peer.plightlikeing_remove = true;
-                // Slightlike CatchUpLogs back to destroy source apply fsm,
-                // then it will slightlike `Noop` to trigger target apply fsm.
+                // lightlike CatchUpLogs back to destroy source apply fsm,
+                // then it will lightlike `Noop` to trigger target apply fsm.
                 self.ctx.apply_router.schedule_task(
                     self.fsm.brane_id(),
                     ApplyTask::LogsUpToDate(self.fsm.peer.catch_up_logs.take().unwrap()),
@@ -2484,8 +2484,8 @@ where
                 self.fsm.peer.plightlikeing_remove = true;
                 // Just for saving memory.
                 catch_up_logs.merge.clear_entries();
-                // Slightlike CatchUpLogs back to destroy source apply fsm,
-                // then it will slightlike `Noop` to trigger target apply fsm.
+                // lightlike CatchUpLogs back to destroy source apply fsm,
+                // then it will lightlike `Noop` to trigger target apply fsm.
                 self.ctx
                     .apply_router
                     .schedule_task(brane_id, ApplyTask::LogsUpToDate(catch_up_logs));
@@ -2569,7 +2569,7 @@ where
             );
             self.fsm.peer.heartbeat_fidel(self.ctx);
         }
-        if let Err(e) = self.ctx.router.force_slightlike(
+        if let Err(e) = self.ctx.router.force_lightlike(
             source.get_id(),
             PeerMsg::SignificantMsg(SignificantMsg::MergeResult {
                 target_brane_id: self.fsm.brane_id(),
@@ -2579,7 +2579,7 @@ where
         ) {
             if !self.ctx.router.is_shutdown() {
                 panic!(
-                    "{} failed to slightlike merge result(FromTargetLog) to source brane {}, err {}",
+                    "{} failed to lightlike merge result(FromTargetLog) to source brane {}, err {}",
                     self.fsm.peer.tag,
                     source.get_id(),
                     e
@@ -2816,7 +2816,7 @@ where
         drop(meta);
 
         for r in &apply_result.destroyed_branes {
-            if let Err(e) = self.ctx.router.force_slightlike(
+            if let Err(e) = self.ctx.router.force_lightlike(
                 r.get_id(),
                 PeerMsg::SignificantMsg(SignificantMsg::MergeResult {
                     target_brane_id: self.fsm.brane_id(),
@@ -2825,7 +2825,7 @@ where
                 }),
             ) {
                 if !self.ctx.router.is_shutdown() {
-                    panic!("{} failed to slightlike merge result(FromTargetSnapshotStep2) to source brane {}, err {}", self.fsm.peer.tag, r.get_id(), e);
+                    panic!("{} failed to lightlike merge result(FromTargetSnapshotStep2) to source brane {}, err {}", self.fsm.peer.tag, r.get_id(), e);
                 }
             }
         }
@@ -2999,7 +2999,7 @@ where
                 .brane_not_initialized += 1;
             return Err(Error::BraneNotInitialized(brane_id));
         }
-        // If the peer is applying snapshot, it may drop some slightlikeing messages, that could
+        // If the peer is applying snapshot, it may drop some lightlikeing messages, that could
         // make clients wait for response until timeout.
         if self.fsm.peer.is_applying_snapshot() {
             self.ctx.violetabft_metrics.invalid_proposal.is_applying_snapshot += 1;
@@ -3265,7 +3265,7 @@ where
         }
 
         // bulk insert too fast may cause snapshot stale very soon, worst case it stale before
-        // slightlikeing. so when snapshot is generating or slightlikeing, skip split check at most 3 times.
+        // lightlikeing. so when snapshot is generating or lightlikeing, skip split check at most 3 times.
         // There is a trade off between brane size and snapshot success rate. Split check is
         // triggered every 10 seconds. If a snapshot can't be generated in 30 seconds, it might be
         // just too large to be generated. Split it into smaller size can help generation. check
@@ -3373,7 +3373,7 @@ where
 
         // This is a little difference for `check_brane_epoch` in brane split case.
         // Here we just need to check `version` because `conf_ver` will be ufidelate
-        // to the latest value of the peer, and then slightlike to FIDel.
+        // to the latest value of the peer, and then lightlike to FIDel.
         if latest_epoch.get_version() != epoch.get_version() {
             info!(
                 "epoch changed, retry later";
@@ -3483,7 +3483,7 @@ where
             if self.fsm.group_state == GroupState::Idle {
                 self.fsm.peer.ping();
                 if !self.fsm.peer.is_leader() {
-                    // If leader is able to receive messge but can't slightlike out any,
+                    // If leader is able to receive messge but can't lightlike out any,
                     // follower should be able to spacelike an election.
                     self.fsm.group_state = GroupState::PreChaos;
                 } else {

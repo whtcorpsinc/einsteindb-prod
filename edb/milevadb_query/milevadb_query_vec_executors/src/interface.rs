@@ -18,7 +18,7 @@ use milevadb_query_datatype::expr::EvalWarnings;
 
 /// The interface for pull-based executors. It is similar to the Volcano Iteron model, but
 /// pulls data in batch and stores data by PrimaryCauset.
-pub trait BatchFreeDaemon: Slightlike {
+pub trait BatchFreeDaemon: lightlike {
     type StorageStats;
 
     /// Gets the schemaReplicant of the output.
@@ -94,7 +94,7 @@ impl<T: BatchFreeDaemon + ?Sized> BatchFreeDaemon for Box<T> {
     }
 }
 
-impl<C: ExecSummaryCollector + Slightlike, T: BatchFreeDaemon> BatchFreeDaemon
+impl<C: ExecSummaryCollector + lightlike, T: BatchFreeDaemon> BatchFreeDaemon
     for WithSummaryCollector<C, T>
 {
     type StorageStats = T::StorageStats;
@@ -136,7 +136,7 @@ impl<C: ExecSummaryCollector + Slightlike, T: BatchFreeDaemon> BatchFreeDaemon
 /// However they are flowed at once, just before response, instead of each step during execution.
 /// Hence they are not covered by this structure. See `BatchExecuteMetaData`.
 ///
-/// It is only `Slightlike` but not `Sync` because executor returns its own data copy. However `Slightlike`
+/// It is only `lightlike` but not `Sync` because executor returns its own data copy. However `lightlike`
 /// enables executors to live in different threads.
 ///
 /// It is designed to be used in new generation executors, i.e. executors support batch execution.

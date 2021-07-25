@@ -95,12 +95,12 @@ where
             }
         }
 
-        // We need to slightlike back the result to check for the stale
+        // We need to lightlike back the result to check for the stale
         // peer, which may ingest the stale SST before it is
         // destroyed.
         let msg = StoreMsg::ValidateSSTResult { invalid_ssts };
-        if let Err(e) = self.store_router.slightlike(msg) {
-            error!(%e; "slightlike validate sst result failed");
+        if let Err(e) = self.store_router.lightlike(msg) {
+            error!(%e; "lightlike validate sst result failed");
         }
     }
 }

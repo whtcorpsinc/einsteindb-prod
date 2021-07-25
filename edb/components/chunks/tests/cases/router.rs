@@ -27,46 +27,46 @@ fn unreachable() -> Message {
 fn test_basic() {
     let (control_tx, mut control_fsm) = Runner::new(10);
     let (control_drop_tx, control_drop_rx) = mpsc::unbounded();
-    control_fsm.slightlikeer = Some(control_drop_tx);
+    control_fsm.lightlikeer = Some(control_drop_tx);
     let (router, mut system) =
         batch_system::create_system(&Config::default(), control_tx, control_fsm);
     let builder = Builder::new();
     system.spawn("test".to_owned(), builder);
 
     // Missing mailbox should report error.
-    match router.force_slightlike(1, unreachable()) {
-        Err(SlightlikeError(_)) => (),
-        Ok(_) => panic!("slightlike should fail"),
+    match router.force_lightlike(1, unreachable()) {
+        Err(lightlikeError(_)) => (),
+        Ok(_) => panic!("lightlike should fail"),
     }
-    match router.slightlike(1, unreachable()) {
-        Err(TrySlightlikeError::Disconnected(_)) => (),
-        Ok(_) => panic!("slightlike should fail"),
-        Err(TrySlightlikeError::Full(_)) => panic!("expect disconnected."),
+    match router.lightlike(1, unreachable()) {
+        Err(TrylightlikeError::Disconnected(_)) => (),
+        Ok(_) => panic!("lightlike should fail"),
+        Err(TrylightlikeError::Full(_)) => panic!("expect disconnected."),
     }
 
     let (tx, rx) = mpsc::unbounded();
     let router_ = router.clone();
     // Control mailbox should be connected.
     router
-        .slightlike_control(Message::Callback(Box::new(move |_: &mut Runner| {
-            let (slightlikeer, mut runner) = Runner::new(10);
+        .lightlike_control(Message::Callback(Box::new(move |_: &mut Runner| {
+            let (lightlikeer, mut runner) = Runner::new(10);
             let (tx1, rx1) = mpsc::unbounded();
-            runner.slightlikeer = Some(tx1);
-            let mailbox = BasicMailbox::new(slightlikeer, runner);
+            runner.lightlikeer = Some(tx1);
+            let mailbox = BasicMailbox::new(lightlikeer, runner);
             router_.register(1, mailbox);
-            tx.slightlike(rx1).unwrap();
+            tx.lightlike(rx1).unwrap();
         })))
         .unwrap();
     let runner_drop_rx = rx.recv_timeout(Duration::from_secs(3)).unwrap();
 
     // Registered mailbox should be connected.
-    router.force_slightlike(1, noop()).unwrap();
-    router.slightlike(1, noop()).unwrap();
+    router.force_lightlike(1, noop()).unwrap();
+    router.lightlike(1, noop()).unwrap();
 
-    // Slightlike should respect capacity limit, while force_slightlike not.
+    // lightlike should respect capacity limit, while force_lightlike not.
     let (tx, rx) = mpsc::unbounded();
     router
-        .slightlike(
+        .lightlike(
             1,
             Message::Callback(Box::new(move |_: &mut Runner| {
                 rx.recv_timeout(Duration::from_secs(100)).unwrap();
@@ -75,22 +75,22 @@ fn test_basic() {
         .unwrap();
     let counter = Arc::new(AtomicUsize::new(0));
     let sent_cnt = (0..)
-        .take_while(|_| router.slightlike(1, counter_closure(&counter)).is_ok())
+        .take_while(|_| router.lightlike(1, counter_closure(&counter)).is_ok())
         .count();
-    match router.slightlike(1, counter_closure(&counter)) {
-        Err(TrySlightlikeError::Full(_)) => {}
-        Err(TrySlightlikeError::Disconnected(_)) => panic!("mailbox should still be connected."),
-        Ok(_) => panic!("slightlike should fail"),
+    match router.lightlike(1, counter_closure(&counter)) {
+        Err(TrylightlikeError::Full(_)) => {}
+        Err(TrylightlikeError::Disconnected(_)) => panic!("mailbox should still be connected."),
+        Ok(_) => panic!("lightlike should fail"),
     }
-    router.force_slightlike(1, counter_closure(&counter)).unwrap();
-    tx.slightlike(1).unwrap();
+    router.force_lightlike(1, counter_closure(&counter)).unwrap();
+    tx.lightlike(1).unwrap();
     // Flush.
     let (tx, rx) = mpsc::unbounded();
     router
-        .force_slightlike(
+        .force_lightlike(
             1,
             Message::Callback(Box::new(move |_: &mut Runner| {
-                tx.slightlike(1).unwrap();
+                tx.lightlike(1).unwrap();
             })),
         )
         .unwrap();
@@ -106,14 +106,14 @@ fn test_basic() {
         runner_drop_rx.recv_timeout(Duration::from_secs(3)),
         Err(RecvTimeoutError::Disconnected)
     );
-    match router.slightlike(1, unreachable()) {
-        Err(TrySlightlikeError::Disconnected(_)) => (),
-        Ok(_) => panic!("slightlike should fail."),
-        Err(TrySlightlikeError::Full(_)) => panic!("slightlikeer should be closed"),
+    match router.lightlike(1, unreachable()) {
+        Err(TrylightlikeError::Disconnected(_)) => (),
+        Ok(_) => panic!("lightlike should fail."),
+        Err(TrylightlikeError::Full(_)) => panic!("lightlikeer should be closed"),
     }
-    match router.force_slightlike(1, unreachable()) {
-        Err(SlightlikeError(_)) => (),
-        Ok(_) => panic!("slightlike should fail."),
+    match router.force_lightlike(1, unreachable()) {
+        Err(lightlikeError(_)) => (),
+        Ok(_) => panic!("lightlike should fail."),
     }
     assert_eq!(control_drop_rx.try_recv(), Err(TryRecvError::Empty));
     system.shutdown();

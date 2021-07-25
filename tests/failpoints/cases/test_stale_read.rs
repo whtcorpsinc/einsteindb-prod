@@ -357,7 +357,7 @@ fn test_read_index_when_transfer_leader_2() {
             sim.async_command_on_node(
                 old_leader.get_id(),
                 read_request,
-                Callback::Read(Box::new(move |resp| tx.slightlike(resp.response).unwrap())),
+                Callback::Read(Box::new(move |resp| tx.lightlike(resp.response).unwrap())),
             )
             .unwrap();
             rx
@@ -403,7 +403,7 @@ fn test_read_index_when_transfer_leader_2() {
     // change in one `Ready`.
     fail::causet("pause_on_peer_collect_message", "pause").unwrap();
     for violetabft_msg in reserved_msgs {
-        router.slightlike_violetabft_message(violetabft_msg).unwrap();
+        router.lightlike_violetabft_message(violetabft_msg).unwrap();
     }
     fail::causet("pause_on_peer_collect_message", "off").unwrap();
     cluster.sim.wl().clear_recv_filters(old_leader.get_id());

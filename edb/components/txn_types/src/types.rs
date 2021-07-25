@@ -360,7 +360,7 @@ impl TxnExtra {
     }
 }
 
-pub trait TxnExtraInterlock_Semaphore: Slightlike + Sync {
+pub trait TxnExtraInterlock_Semaphore: lightlike + Sync {
     fn schedule(&self, txn_extra: TxnExtra);
 }
 

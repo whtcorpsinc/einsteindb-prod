@@ -19,7 +19,7 @@ use tokio::{runtime::Builder, time::delay_for};
 
 /// Wrapper of an `AsyncRead` instance, exposed as a `Sync` `Stream` of `Bytes`.
 pub struct AsyncReadAsSyncStreamOfBytes<R> {
-    // we need this Mutex to ensure the type is Sync (provided R is Slightlike).
+    // we need this Mutex to ensure the type is Sync (provided R is lightlike).
     // this is because lmdb::SequentialFile is *not* Sync
     // (according to the documentation it cannot be Sync either,
     // requiring "external synchronization".)
@@ -55,7 +55,7 @@ impl<R: AsyncRead + Unpin> Stream for AsyncReadAsSyncStreamOfBytes<R> {
     }
 }
 
-pub fn error_stream(e: io::Error) -> impl Stream<Item = io::Result<Bytes>> + Unpin + Slightlike + Sync {
+pub fn error_stream(e: io::Error) -> impl Stream<Item = io::Result<Bytes>> + Unpin + lightlike + Sync {
     stream::iter(iter::once(Err(e)))
 }
 

@@ -26,20 +26,20 @@ fn test_batch_commands() {
     let channel = ChannelBuilder::new(env).connect(&addr);
     let client = EINSTEINDBClient::new(channel);
 
-    let (mut slightlikeer, receiver) = client.batch_commands().unwrap();
+    let (mut lightlikeer, receiver) = client.batch_commands().unwrap();
     for _ in 0..1000 {
         let mut batch_req = BatchCommandsRequest::default();
         for i in 0..10 {
             batch_req.mut_requests().push(Default::default());
             batch_req.mut_request_ids().push(i);
         }
-        block_on(slightlikeer.slightlike((batch_req, WriteFlags::default()))).unwrap();
+        block_on(lightlikeer.lightlike((batch_req, WriteFlags::default()))).unwrap();
     }
-    block_on(slightlikeer.close()).unwrap();
+    block_on(lightlikeer.close()).unwrap();
 
     let (tx, rx) = mpsc::sync_channel(1);
     thread::spawn(move || {
-        // We have slightlike 10k requests to the server, so we should get 10k responses.
+        // We have lightlike 10k requests to the server, so we should get 10k responses.
         let mut count = 0;
         for x in block_on(
             receiver
@@ -48,7 +48,7 @@ fn test_batch_commands() {
         ) {
             count += x;
             if count == 10000 {
-                tx.slightlike(1).unwrap();
+                tx.lightlike(1).unwrap();
                 return;
             }
         }
@@ -68,7 +68,7 @@ fn test_empty_commands() {
     let channel = ChannelBuilder::new(env).connect(&addr);
     let client = EINSTEINDBClient::new(channel);
 
-    let (mut slightlikeer, receiver) = client.batch_commands().unwrap();
+    let (mut lightlikeer, receiver) = client.batch_commands().unwrap();
     for _ in 0..1000 {
         let mut batch_req = BatchCommandsRequest::default();
         for i in 0..10 {
@@ -79,13 +79,13 @@ fn test_empty_commands() {
             batch_req.mut_requests().push(req);
             batch_req.mut_request_ids().push(i);
         }
-        block_on(slightlikeer.slightlike((batch_req, WriteFlags::default()))).unwrap();
+        block_on(lightlikeer.lightlike((batch_req, WriteFlags::default()))).unwrap();
     }
-    block_on(slightlikeer.close()).unwrap();
+    block_on(lightlikeer.close()).unwrap();
 
     let (tx, rx) = mpsc::sync_channel(1);
     thread::spawn(move || {
-        // We have slightlike 10k requests to the server, so we should get 10k responses.
+        // We have lightlike 10k requests to the server, so we should get 10k responses.
         let mut count = 0;
         for x in block_on(
             receiver
@@ -94,7 +94,7 @@ fn test_empty_commands() {
         ) {
             count += x;
             if count == 10000 {
-                tx.slightlike(1).unwrap();
+                tx.lightlike(1).unwrap();
                 return;
             }
         }

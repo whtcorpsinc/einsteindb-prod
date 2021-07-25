@@ -130,7 +130,7 @@ fn new_debug_client(host: &str, mgr: Arc<SecurityManager>) -> DebugClient {
     let env = Arc::new(Environment::new(1));
     let cb = ChannelBuilder::new(env)
         .max_receive_message_len(1 << 30) // 1G.
-        .max_slightlike_message_len(1 << 30)
+        .max_lightlike_message_len(1 << 30)
         .keepalive_time(Duration::from_secs(10))
         .keepalive_timeout(Duration::from_secs(3));
 

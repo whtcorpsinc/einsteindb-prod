@@ -3,7 +3,7 @@
 use std::fmt::{self, Debug, Formatter};
 use std::io::Result;
 
-pub trait EncryptionKeyManager: Sync + Slightlike {
+pub trait EncryptionKeyManager: Sync + lightlike {
     fn get_file(&self, fname: &str) -> Result<FileEncryptionInfo>;
     fn new_file(&self, fname: &str) -> Result<FileEncryptionInfo>;
     fn delete_file(&self, fname: &str) -> Result<()>;

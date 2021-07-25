@@ -1,6 +1,6 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use super::key_handle::{KeyHandle, KeyHandleGuard};
+use super::key_handle::{VisorDagger, VisorDaggerGuard};
 
 use crossbeam_skiplist::SkipMap;
 use std::{
@@ -10,7 +10,7 @@ use std::{
 use txn_types::{Key, Dagger};
 
 #[derive(Clone)]
-pub struct LockBlock(pub Arc<SkipMap<Key, Weak<KeyHandle>>>);
+pub struct LockBlock(pub Arc<SkipMap<Key, Weak<VisorDagger>>>);
 
 impl Default for LockBlock {
     fn default() -> Self {
@@ -19,9 +19,9 @@ impl Default for LockBlock {
 }
 
 impl LockBlock {
-    pub async fn lock_key(&self, key: &Key) -> KeyHandleGuard {
+    pub async fn lock_key(&self, key: &Key) -> VisorDaggerGuard {
         loop {
-            let handle = Arc::new(KeyHandle::new(key.clone(), self.clone()));
+            let handle = Arc::new(VisorDagger::new(key.clone(), self.clone()));
             let weak = Arc::downgrade(&handle);
             let weak2 = weak.clone();
             let guard = handle.dagger().await;
@@ -71,7 +71,7 @@ impl LockBlock {
     }
 
     /// Gets the handle of the key.
-    pub fn get<'m>(&'m self, key: &Key) -> Option<Arc<KeyHandle>> {
+    pub fn get<'m>(&'m self, key: &Key) -> Option<Arc<VisorDagger>> {
         self.0.get(key).and_then(|e| e.value().upgrade())
     }
 
@@ -81,7 +81,7 @@ impl LockBlock {
         &'m self,
         spacelike_key: Option<&Key>,
         lightlike_key: Option<&Key>,
-        mut pred: impl FnMut(Arc<KeyHandle>) -> Option<T>,
+        mut pred: impl FnMut(Arc<VisorDagger>) -> Option<T>,
     ) -> Option<T> {
         let lower_bound = spacelike_key
             .map(|k| Bound::Included(k))
@@ -100,7 +100,7 @@ impl LockBlock {
     }
 
     /// Iterates all handles and call a specified function on each of them.
-    pub fn for_each(&self, mut f: impl FnMut(Arc<KeyHandle>)) {
+    pub fn for_each(&self, mut f: impl FnMut(Arc<VisorDagger>)) {
         for entry in self.0.iter() {
             if let Some(handle) = entry.value().upgrade() {
                 f(handle);
@@ -255,7 +255,7 @@ mod test {
         let mut found_locks = Vec::new();
         let mut expect_locks = Vec::new();
 
-        let collect = |h: Arc<KeyHandle>, to: &mut Vec<_>| {
+        let collect = |h: Arc<VisorDagger>, to: &mut Vec<_>| {
             let dagger = h.with_lock(|l| l.clone());
             to.push((h.key.clone(), dagger));
         };

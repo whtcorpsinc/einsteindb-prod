@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crossbeam::atomic::AtomicCell;
-use crossbeam::TrySlightlikeError;
+use crossbeam::TrylightlikeError;
 use ekvproto::errorpb;
 use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
 use ekvproto::metapb;
@@ -321,16 +321,16 @@ where
         debug!("localreader redirects command"; "command" => ?cmd);
         let brane_id = cmd.request.get_header().get_brane_id();
         let mut err = errorpb::Error::default();
-        match self.router.slightlike(cmd) {
+        match self.router.lightlike(cmd) {
             Ok(()) => return,
-            Err(TrySlightlikeError::Full(c)) => {
+            Err(TrylightlikeError::Full(c)) => {
                 self.metrics.rejected_by_channel_full += 1;
                 err.set_message(VIOLETABFTSTORE_IS_BUSY.to_owned());
                 err.mut_server_is_busy()
                     .set_reason(VIOLETABFTSTORE_IS_BUSY.to_owned());
                 cmd = c;
             }
-            Err(TrySlightlikeError::Disconnected(c)) => {
+            Err(TrylightlikeError::Disconnected(c)) => {
                 self.metrics.rejected_by_no_brane += 1;
                 err.set_message(format!("brane {} is missing", brane_id));
                 err.mut_brane_not_found().set_brane_id(brane_id);
@@ -707,7 +707,7 @@ mod tests {
         store_meta: Arc<Mutex<StoreMeta>>,
     ) -> (
         TempDir,
-        LocalReader<SyncSlightlikeer<VioletaBftCommand<LmdbSnapshot>>, LmdbEngine>,
+        LocalReader<Synclightlikeer<VioletaBftCommand<LmdbSnapshot>>, LmdbEngine>,
         Receiver<VioletaBftCommand<LmdbSnapshot>>,
     ) {
         let path = Builder::new().prefix(path).temfidelir().unwrap();
@@ -732,7 +732,7 @@ mod tests {
     }
 
     fn must_redirect(
-        reader: &mut LocalReader<SyncSlightlikeer<VioletaBftCommand<LmdbSnapshot>>, LmdbEngine>,
+        reader: &mut LocalReader<Synclightlikeer<VioletaBftCommand<LmdbSnapshot>>, LmdbEngine>,
         rx: &Receiver<VioletaBftCommand<LmdbSnapshot>>,
         cmd: VioletaBftCmdRequest,
     ) {
@@ -752,7 +752,7 @@ mod tests {
     }
 
     fn must_not_redirect(
-        reader: &mut LocalReader<SyncSlightlikeer<VioletaBftCommand<LmdbSnapshot>>, LmdbEngine>,
+        reader: &mut LocalReader<Synclightlikeer<VioletaBftCommand<LmdbSnapshot>>, LmdbEngine>,
         rx: &Receiver<VioletaBftCommand<LmdbSnapshot>>,
         task: VioletaBftCommand<LmdbSnapshot>,
     ) {

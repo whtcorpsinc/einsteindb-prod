@@ -87,7 +87,7 @@ quick_error! {
         InvalidSoliton {
             display("invalid Soliton")
         }
-        Engine(err: Box<dyn StdError + Slightlike + Sync + 'static>) {
+        Engine(err: Box<dyn StdError + lightlike + Sync + 'static>) {
             display("{}", err)
         }
         CannotReadExternalStorage(url: String, name: String, local_path: PathBuf, err: IoError) {

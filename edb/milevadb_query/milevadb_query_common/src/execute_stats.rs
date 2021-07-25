@@ -17,7 +17,7 @@ pub struct ExecSummary {
 }
 
 /// A trait for all execution summary collectors.
-pub trait ExecSummaryCollector: Slightlike {
+pub trait ExecSummaryCollector: lightlike {
     type DurationRecorder;
 
     /// Creates a new instance with specified output slot index.

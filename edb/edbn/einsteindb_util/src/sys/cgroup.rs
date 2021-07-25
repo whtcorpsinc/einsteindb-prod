@@ -25,7 +25,7 @@ const SUBSYS_SEP: &str = ",";
 quick_error! {
     #[derive(Debug)]
     pub enum Error {
-        Other(err: Box<dyn error::Error + Sync + Slightlike>) {
+        Other(err: Box<dyn error::Error + Sync + lightlike>) {
             from()
             cause(err.as_ref())
             display("{}", err)

@@ -69,7 +69,7 @@ fn test_read_leader_in_lease() {
     must_put(&ctx, &causetStorage, k2, v2);
 
     // isolate leader
-    cluster.add_slightlike_filter(IsolationFilterFactory::new(leader.get_store_id()));
+    cluster.add_lightlike_filter(IsolationFilterFactory::new(leader.get_store_id()));
 
     // leader still in lease, check if can read on leader
     assert_eq!(can_read(&ctx, &causetStorage, k2, v2), true);
@@ -224,7 +224,7 @@ fn test_invalid_read_index_when_no_leader() {
 
     // wait for election timeout
     thread::sleep(time::Duration::from_millis(300));
-    // slightlike read index requests to follower
+    // lightlike read index requests to follower
     let mut request = new_request(
         brane.get_id(),
         brane.get_brane_epoch().clone(),

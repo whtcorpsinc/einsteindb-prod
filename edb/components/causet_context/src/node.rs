@@ -96,9 +96,9 @@ impl fmt::Debug for Deregister {
     }
 }
 
-type InitCallback = Box<dyn FnOnce() + Slightlike>;
+type InitCallback = Box<dyn FnOnce() + lightlike>;
 pub(crate) type OldValueCallback =
-    Box<dyn FnMut(Key, &mut OldValueCache) -> Option<Vec<u8>> + Slightlike>;
+    Box<dyn FnMut(Key, &mut OldValueCache) -> Option<Vec<u8>> + lightlike>;
 
 pub struct OldValueCache {
     pub cache: LruCache<Key, (Option<OldValue>, MutationType)>,
@@ -154,7 +154,7 @@ pub enum Task {
         cb: InitCallback,
     },
     TxnExtra(TxnExtra),
-    Validate(u64, Box<dyn FnOnce(Option<&pushdown_causet>) + Slightlike>),
+    Validate(u64, Box<dyn FnOnce(Option<&pushdown_causet>) + lightlike>),
 }
 
 impl fmt::Display for Task {
@@ -432,7 +432,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
 
         // TODO: Add a new task to close incompatible features.
         if let Some(e) = conn.check_version_and_set_feature(version) {
-            // The downstream has not registered yet, slightlike error right away.
+            // The downstream has not registered yet, lightlike error right away.
             downstream.sink_compatibility_error(brane_id, e);
             return;
         }
@@ -516,7 +516,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
         let (cb, fut) = einsteindb_util::future::paired_future_callback();
         let interlock_semaphore = self.interlock_semaphore.clone();
         let deregister_downstream = move |err| {
-            warn!("causet_context slightlike capture change cmd failed"; "brane_id" => brane_id, "error" => ?err);
+            warn!("causet_context lightlike capture change cmd failed"; "brane_id" => brane_id, "error" => ?err);
             let deregister = Deregister::Downstream {
                 brane_id,
                 downstream_id,
@@ -528,7 +528,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
             }
         };
         let interlock_semaphore = self.interlock_semaphore.clone();
-        if let Err(e) = self.violetabft_router.significant_slightlike(
+        if let Err(e) = self.violetabft_router.significant_lightlike(
             brane_id,
             SignificantMsg::CaptureChange {
                 cmd: change_cmd,
@@ -643,15 +643,15 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
         resolved_ts.branes = branes;
         resolved_ts.ts = self.min_resolved_ts.into_inner();
 
-        let slightlike_causet_context_event = |conn: &Conn, event| {
-            if let Err(e) = conn.get_sink().try_slightlike(event) {
+        let lightlike_causet_context_event = |conn: &Conn, event| {
+            if let Err(e) = conn.get_sink().try_lightlike(event) {
                 match e {
-                    crossbeam::TrySlightlikeError::Disconnected(_) => {
-                        debug!("slightlike event failed, disconnected";
+                    crossbeam::TrylightlikeError::Disconnected(_) => {
+                        debug!("lightlike event failed, disconnected";
                             "conn_id" => ?conn.get_id(), "downstream" => conn.get_peer());
                     }
-                    crossbeam::TrySlightlikeError::Full(_) => {
-                        info!("slightlike event failed, full";
+                    crossbeam::TrylightlikeError::Full(_) => {
+                        info!("lightlike event failed, full";
                             "conn_id" => ?conn.get_id(), "downstream" => conn.get_peer());
                     }
                 }
@@ -666,7 +666,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
             };
 
             if features.contains(FeatureGate::BATCH_RESOLVED_TS) {
-                slightlike_causet_context_event(conn, causet_contextEvent::ResolvedTs(resolved_ts.clone()));
+                lightlike_causet_context_event(conn, causet_contextEvent::ResolvedTs(resolved_ts.clone()));
             } else {
                 // Fallback to previous non-batch resolved ts event.
                 for brane_id in &resolved_ts.branes {
@@ -725,14 +725,14 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
                 }
             }
 
-            // TODO: slightlike a message to violetabftstore would consume too much cpu time,
+            // TODO: lightlike a message to violetabftstore would consume too much cpu time,
             // try to handle it outside violetabftstore.
             let branes: Vec<_> = branes.iter().copied().map(|(brane_id, observe_id)| {
                 let interlock_semaphore_clone = interlock_semaphore.clone();
                 let violetabft_router_clone = violetabft_router.clone();
                 async move {
                     let (tx, rx) = futures::channel::oneshot::channel();
-                    if let Err(e) = violetabft_router_clone.significant_slightlike(
+                    if let Err(e) = violetabft_router_clone.significant_lightlike(
                         brane_id,
                         SignificantMsg::LeaderCallback(Callback::Read(Box::new(move |resp| {
                             let resp = if resp.response.get_header().has_error() {
@@ -740,12 +740,12 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
                             } else {
                                 Some(brane_id)
                             };
-                            if tx.slightlike(resp).is_err() {
-                                error!("causet_context slightlike tso response failed");
+                            if tx.lightlike(resp).is_err() {
+                                error!("causet_context lightlike tso response failed");
                             }
                         }))),
                     ) {
-                        warn!("causet_context slightlike LeaderCallback failed"; "err" => ?e, "min_ts" => min_ts);
+                        warn!("causet_context lightlike LeaderCallback failed"; "err" => ?e, "min_ts" => min_ts);
                         let deregister = Deregister::Brane {
                             observe_id,
                             brane_id,
@@ -1078,7 +1078,7 @@ mod tests {
     use violetabftstore::store::msg::CasualMessage;
     use std::collections::BTreeMap;
     use std::fmt::Display;
-    use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Slightlikeer};
+    use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, lightlikeer};
     use tempfile::TempDir;
     use test_violetabftstore::MockVioletaBftStoreRouter;
     use test_violetabftstore::TestFidelClient;
@@ -1091,18 +1091,18 @@ mod tests {
     use einsteindb_util::worker::{dummy_interlock_semaphore, Builder as WorkerBuilder, Worker};
 
     struct ReceiverRunnable<T> {
-        tx: Slightlikeer<T>,
+        tx: lightlikeer<T>,
     }
 
     impl<T: Display> Runnable for ReceiverRunnable<T> {
         type Task = T;
 
         fn run(&mut self, task: T) {
-            self.tx.slightlike(task).unwrap();
+            self.tx.lightlike(task).unwrap();
         }
     }
 
-    fn new_receiver_worker<T: Display + Slightlike + 'static>() -> (Worker<T>, Receiver<T>) {
+    fn new_receiver_worker<T: Display + lightlike + 'static>() -> (Worker<T>, Receiver<T>) {
         let (tx, rx) = channel();
         let runnable = ReceiverRunnable { tx };
         let mut worker = WorkerBuilder::new("test-receiver-worker").create();
@@ -1243,14 +1243,14 @@ mod tests {
         let _violetabft_rx = violetabft_router.add_brane(1 /* brane id */, 1 /* cap */);
         loop {
             if let Err(VioletaBftStoreError::Transport(_)) =
-                violetabft_router.slightlike_casual_msg(1, CasualMessage::ClearBraneSize)
+                violetabft_router.lightlike_casual_msg(1, CasualMessage::ClearBraneSize)
             {
                 break;
             }
         }
         // Make sure channel is full.
         violetabft_router
-            .slightlike_casual_msg(1, CasualMessage::ClearBraneSize)
+            .lightlike_casual_msg(1, CasualMessage::ClearBraneSize)
             .unwrap_err();
 
         let conn = Conn::new(tx, String::new());
@@ -1477,7 +1477,7 @@ mod tests {
         if let causet_contextEvent::ResolvedTs(mut r) = causet_context_event {
             r.branes.as_mut_slice().sort();
             // Although brane 3 is not register in the first conn, batch resolved ts
-            // slightlikes all brane ids.
+            // lightlikes all brane ids.
             assert_eq!(r.branes, vec![1, 2, 3]);
             assert_eq!(r.ts, 3);
         } else {

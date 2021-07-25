@@ -20,7 +20,7 @@ fn test_partition_write<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.must_put(key, value);
     assert_eq!(cluster.get(key), Some(value.to_vec()));
     cluster.must_transfer_leader(brane_id, new_peer(1, 1));
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     // leader in minority, new leader should be elected
     cluster.partition(vec![1, 2], vec![3, 4, 5]);
@@ -28,7 +28,7 @@ fn test_partition_write<T: Simulator>(cluster: &mut Cluster<T>) {
     assert_ne!(cluster.leader_of_brane(brane_id).unwrap().get_id(), 1);
     assert_ne!(cluster.leader_of_brane(brane_id).unwrap().get_id(), 2);
     cluster.must_put(key, b"changed");
-    cluster.clear_slightlike_filters();
+    cluster.clear_lightlike_filters();
 
     // when network recover, old leader should sync data
     cluster.reset_leader_of_brane(brane_id);

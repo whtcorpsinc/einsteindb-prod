@@ -24,7 +24,7 @@ use einsteindb_util::worker::{FutureWorker, Worker};
 #[derive(Clone)]
 struct MockTransport;
 impl Transport for MockTransport {
-    fn slightlike(&mut self, _: VioletaBftMessage) -> Result<()> {
+    fn lightlike(&mut self, _: VioletaBftMessage) -> Result<()> {
         unimplemented!()
     }
     fn flush(&mut self) {
@@ -116,13 +116,13 @@ fn spacelike_violetabftstore(
 
 fn validate_store<F>(router: &VioletaBftRouter<LmdbEngine, LmdbEngine>, f: F)
 where
-    F: FnOnce(&Config) + Slightlike + 'static,
+    F: FnOnce(&Config) + lightlike + 'static,
 {
     let (tx, rx) = mpsc::channel();
     router
-        .slightlike_control(StoreMsg::Validate(Box::new(move |causet: &Config| {
+        .lightlike_control(StoreMsg::Validate(Box::new(move |causet: &Config| {
             f(causet);
-            tx.slightlike(()).unwrap();
+            tx.lightlike(()).unwrap();
         })))
         .unwrap();
     rx.recv_timeout(Duration::from_secs(3)).unwrap();

@@ -49,13 +49,13 @@ fn setup(causet: EINSTEINDBConfig, engine: Arc<DB>) -> (ConfigController, Worker
 
 fn validate<F>(interlock_semaphore: &Interlock_Semaphore<Task>, f: F)
 where
-    F: FnOnce(&Config) + Slightlike + 'static,
+    F: FnOnce(&Config) + lightlike + 'static,
 {
     let (tx, rx) = mpsc::channel();
     interlock_semaphore
         .schedule(Task::Validate(Box::new(move |causet: &Config| {
             f(causet);
-            tx.slightlike(()).unwrap();
+            tx.lightlike(()).unwrap();
         })))
         .unwrap();
     rx.recv_timeout(Duration::from_secs(1)).unwrap();

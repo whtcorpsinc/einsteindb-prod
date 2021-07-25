@@ -1704,7 +1704,7 @@ fn test_cache() {
     // Cache version must be >= 5 because VioletaBft apply index must be >= 5.
     assert!(cache_version >= 5);
 
-    // Slightlike the request again using is_cache_enabled == false (default) and a matching version.
+    // lightlike the request again using is_cache_enabled == false (default) and a matching version.
     // The request should be processed as usual.
 
     let mut req2 = req.clone();
@@ -1718,7 +1718,7 @@ fn test_cache() {
     );
     assert_eq!(resp.get_data(), resp2.get_data());
 
-    // Slightlike the request again using is_cached_enabled == true and a matching version.
+    // lightlike the request again using is_cached_enabled == true and a matching version.
     // The request should be skipped.
 
     let mut req3 = req.clone();
@@ -1729,7 +1729,7 @@ fn test_cache() {
     assert!(resp3.get_is_cache_hit());
     assert!(resp3.get_data().is_empty());
 
-    // Slightlike the request using a non-matching version. The request should be processed.
+    // lightlike the request using a non-matching version. The request should be processed.
 
     let mut req4 = req;
     req4.set_is_cache_enabled(true);
