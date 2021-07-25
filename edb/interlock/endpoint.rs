@@ -24,8 +24,8 @@ use crate::causetStorage::tail_pointer::Error as MvccError;
 use crate::causetStorage::{self, Engine, Snapshot, SnapshotStore};
 
 use crate::interlock::cache::CachedRequestHandler;
-use crate::interlock::interceptors::limit_concurrency;
-use crate::interlock::interceptors::track;
+use crate::interlock::sentinels::limit_concurrency;
+use crate::interlock::sentinels::track;
 use crate::interlock::metrics::*;
 use crate::interlock::tracker::Tracker;
 use crate::interlock::*;

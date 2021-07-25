@@ -24,7 +24,7 @@ mod checksum;
 pub mod posetdag;
 mod lightlikepoint;
 mod error;
-mod interceptors;
+mod sentinels;
 pub(crate) mod metrics;
 pub mod readpool_impl;
 mod statistics;

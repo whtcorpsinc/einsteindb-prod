@@ -8,7 +8,7 @@ use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
 use tokio::sync::{Semaphore, SemaphorePermit};
 
-use crate::interlock::metrics::*;
+use crate::interDaggers::metrics::*;
 
 /// Limits the concurrency of heavy tasks by limiting the time spent on executing `fut`
 /// before forcing to acquire a semaphore permit.
@@ -76,23 +76,23 @@ where
                 match this.permit_fut.poll(cx) {
                     Poll::Ready(permit) => {
                         *this.state = LimitationState::Acuqired(permit);
-                        COPR_ACQUIRE_SEMAPHORE_TYPE.acquired.inc();
+                        EINST_ACQUIRE_SEMAPHORE_TYPE.acquired.inc();
                     }
-                    Poll::Plightlikeing => {
+                    Poll::lightlike => {
                         *this.state = LimitationState::Acquiring;
-                        COPR_WAITING_FOR_SEMAPHORE.inc();
-                        return Poll::Plightlikeing;
+                        EINST_WAITING_FOR_SEMAPHORE.inc();
+                        return Poll::lightlike;
                     }
                 }
             }
             LimitationState::Acquiring => match this.permit_fut.poll(cx) {
                 Poll::Ready(permit) => {
                     *this.state = LimitationState::Acuqired(permit);
-                    COPR_WAITING_FOR_SEMAPHORE.dec();
-                    COPR_ACQUIRE_SEMAPHORE_TYPE.acquired.inc();
+                    EINST_WAITING_FOR_SEMAPHORE.dec();
+                    EINST_ACQUIRE_SEMAPHORE_TYPE.acquired.inc();
                 }
-                Poll::Plightlikeing => {
-                    return Poll::Plightlikeing;
+                Poll::lightlike => {
+                    return Poll::lightlike;
                 }
             },
             _ => {}
@@ -101,13 +101,13 @@ where
         match this.fut.poll(cx) {
             Poll::Ready(res) => {
                 if let LimitationState::NotLimited = this.state {
-                    COPR_ACQUIRE_SEMAPHORE_TYPE.unacquired.inc();
+                    EINST_ACQUIRE_SEMAPHORE_TYPE.unacquired.inc();
                 }
                 Poll::Ready(res)
             }
-            Poll::Plightlikeing => {
+            Poll::lightlike => {
                 *this.execution_time += now.elapsed();
-                Poll::Plightlikeing
+                Poll::lightlike
             }
         }
     }
@@ -122,7 +122,7 @@ mod tests {
     use tokio::task::yield_now;
     use tokio::time::{delay_for, timeout};
 
-    #[tokio::test(basic_interlock_semaphore)]
+    #[tokio::test(basic_interDaggers_semaphore)]
     async fn test_limit_concurrency() {
         async fn work(iter: i32) {
             for i in 0..iter {
