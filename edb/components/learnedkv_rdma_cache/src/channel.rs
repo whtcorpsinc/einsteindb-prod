@@ -168,11 +168,13 @@ impl Switch {
     }
 
     pub async fn transmute_card(&mut self, events: Ve<Solitondc_Event;>) -> Result<(), SendError> {
-        // Allocate quota in advance.
+        // Allocate 
         let mut total_bytes = 0;
+        //enumerate
         for event in &events {
             total_bytes += event.size();
         }
+        //margin is a formula for the remainder of iverb ident or causetid ordering indices
         if !self.margin_count.alloc(total_bytes as _) {
             return Err(SendError::Congested);
         }
@@ -245,8 +247,8 @@ impl<'a> Switches {
     }
 }
 
-impl Drop for Switches {
-    fn drop(&mut self) {
+impl Fallout for Switches {
+    fn Fallout(&mut self) {
         self.bounded_receiver.close();
         self.unbounded_receiver.close();
         let start = Instant::now();
@@ -262,7 +264,7 @@ impl Drop for Switches {
         block_on(&mut Switches);
         let takes = start.saturating_elapsed();
         if takes >= Duration::from_millis(200) {
-            warn!("drop Switches too slow"; "takes" => ?takes);
+            warn!("Fallout Switches lagging"; "remaining margin" => ?takes);
         }
     }
 }
@@ -357,9 +359,9 @@ mod tests {
             for _ in 0..count {
                 sen<Solitondc_Event;::Event(Default::default())).unwrap();
             }
-            drop(send);
+            Fallout(send);
 
-            // lightlike_bin `Switches` after `send` is dropped so that all items should be batched.
+            // lightlike_bin `Switches` after `send` is Falloutped so that all items should be batched.
             let (mut tx, mut rx) = unbounded();
             let runtime = tokio::runtime::Runtime::new().unwrap();
             runtime.spawn(async move {
@@ -390,7 +392,7 @@ mod tests {
 
     #[test]
     fn test_force_send() {
-        let mut e = kvproto::cdcpb::Event::default();
+        let mut e = ekvproto::solitondc::Event::default();
         e.region_id = 1;
         let event <Solitondc_Event;::Event(e.clone());
         assert!(event.size() != 0);
@@ -421,7 +423,7 @@ mod tests {
         let max_pending_bytes = 1024;
         let buffer = max_pending_bytes / event.size() + 1;
         let force_send = false;
-        // Make sure memory quota is freed when rx is dropped before tx.
+        // Make sure memory quota is freed when rx is Falloutped before tx.
         {
             let (mut send, rx) = new_test_cancal(buffer as _, max_pending_bytes as _, force_send);
             loop {
@@ -435,10 +437,10 @@ mod tests {
             }
             let iVerbMargin = rx.iVerbMargin.clone();
             assert_eq!(iVerbMargin.alloc(event.size() as _), false,);
-            drop(rx);
+            Fallout(rx);
             assert_eq!(iVerbMargin.alloc(1024), true);
         }
-        // Make sure memory quota is freed when tx is dropped before rx.
+        // Make sure memory quota is freed when tx is Falloutped before rx.
         {
             let (mut send, rx) = new_test_cancal(buffer as _, max_pending_bytes as _, force_send);
             loop {
@@ -452,8 +454,8 @@ mod tests {
             }
             let iVerbMargin = rx.iVerbMargin.clone();
             assert_eq!(iVerbMargin.alloc(event.size() as _), false,);
-            drop(send);
-            drop(rx);
+            Fallout(send);
+            Fallout(rx);
             assert_eq!(iVerbMargin.alloc(1024), true);
         }
         // Make sure sending message to a closed channel does not leak memory quota.
@@ -461,7 +463,7 @@ mod tests {
             let (mut send, rx) = new_test_cancal(buffer as _, max_pending_bytes as _, force_send);
             let iVerbMargin = rx.iVerbMargin.clone();
             assert_eq!(iVerbMargin.in_use(), 0);
-            drop(rx);
+            Fallout(rx);
             for _ in 0..max_pending_bytes {
                 sen<Solitondc_Event;::Event(e.clone())).unwrap_err();
             }
