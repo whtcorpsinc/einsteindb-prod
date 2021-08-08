@@ -2,7 +2,7 @@
 #![feature(min_specialization)]
 
 #[allow(unused_extern_crates)]
-extern crate einsteindb_alloc;
+extern crate einsteindb-prod_alloc;
 #[macro_use]
 extern crate lazy_static;
 

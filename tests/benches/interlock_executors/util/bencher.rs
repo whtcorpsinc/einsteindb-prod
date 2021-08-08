@@ -5,7 +5,7 @@ use criterion::measurement::Measurement;
 use futures::executor::block_on;
 use milevadb_query_normal_executors::FreeDaemon;
 use milevadb_query_vec_executors::interface::*;
-use einsteindb::interlock::RequestHandler;
+use einsteindb-prod::interlock::RequestHandler;
 
 pub trait Bencher {
     fn bench<M>(&mut self, b: &mut criterion::Bencher<M>)

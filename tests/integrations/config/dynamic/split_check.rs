@@ -12,8 +12,8 @@ use violetabftstore::interlock::{
     InterlockHost,
 };
 use violetabftstore::store::{SplitCheckRunner as Runner, SplitCheckTask as Task};
-use einsteindb::config::{ConfigController, Module, EINSTEINDBConfig};
-use einsteindb_util::worker::{Interlock_Semaphore, Worker};
+use einsteindb-prod::config::{ConfigController, Module, EINSTEINDBConfig};
+use einsteindb-prod_util::worker::{Interlock_Semaphore, Worker};
 
 fn tmp_engine<P: AsRef<Path>>(path: P) -> Arc<DB> {
     Arc::new(

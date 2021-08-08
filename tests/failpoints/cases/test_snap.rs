@@ -9,8 +9,8 @@ use violetabft::evioletabftpb::MessageType;
 
 use violetabftstore::store::*;
 use test_violetabftstore::*;
-use einsteindb_util::config::*;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::config::*;
+use einsteindb-prod_util::HandyRwLock;
 
 #[test]
 fn test_overlap_cleanup() {

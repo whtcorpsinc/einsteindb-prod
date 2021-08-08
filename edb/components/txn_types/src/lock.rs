@@ -6,8 +6,8 @@ use crate::{Error, ErrorInner, Result};
 use byteorder::ReadBytesExt;
 use ekvproto::kvrpcpb::{LockInfo, Op};
 use std::{borrow::Cow, mem::size_of};
-use einsteindb_util::codec::bytes::{self, BytesEncoder};
-use einsteindb_util::codec::number::{self, NumberEncoder, MAX_VAR_I64_LEN, MAX_VAR_U64_LEN};
+use einsteindb-prod_util::codec::bytes::{self, BytesEncoder};
+use einsteindb-prod_util::codec::number::{self, NumberEncoder, MAX_VAR_I64_LEN, MAX_VAR_U64_LEN};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LockType {

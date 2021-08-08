@@ -14,7 +14,7 @@ use ekvproto::kvrpcpb::Context;
 use ekvproto::metapb;
 use ekvproto::violetabft_cmdpb::*;
 use ekvproto::violetabft_serverpb;
-use ekvproto::einsteindbpb::EINSTEINDBClient;
+use ekvproto::einsteindb-prodpb::EINSTEINDBClient;
 use tempfile::{Builder, TempDir};
 use tokio::runtime::Builder as TokioBuilder;
 
@@ -36,26 +36,26 @@ use violetabftstore::store::{
 };
 use violetabftstore::Result;
 use security::SecurityManager;
-use einsteindb::config::{ConfigController, EINSTEINDBConfig};
-use einsteindb::interlock;
-use einsteindb::import::{ImportSSTService, SSTImporter};
-use einsteindb::read_pool::ReadPool;
-use einsteindb::server::gc_worker::GcWorker;
-use einsteindb::server::load_statistics::ThreadLoad;
-use einsteindb::server::lock_manager::LockManager;
-use einsteindb::server::resolve::{self, Task as ResolveTask};
-use einsteindb::server::service::DebugService;
-use einsteindb::server::Result as ServerResult;
-use einsteindb::server::{
+use einsteindb-prod::config::{ConfigController, EINSTEINDBConfig};
+use einsteindb-prod::interlock;
+use einsteindb-prod::import::{ImportSSTService, SSTImporter};
+use einsteindb-prod::read_pool::ReadPool;
+use einsteindb-prod::server::gc_worker::GcWorker;
+use einsteindb-prod::server::load_statistics::ThreadLoad;
+use einsteindb-prod::server::lock_manager::LockManager;
+use einsteindb-prod::server::resolve::{self, Task as ResolveTask};
+use einsteindb-prod::server::service::DebugService;
+use einsteindb-prod::server::Result as ServerResult;
+use einsteindb-prod::server::{
     create_violetabft_causetStorage, Config, Error, Node, FidelStoreAddrResolver, VioletaBftClient, VioletaBftKv, Server,
     ServerTransport,
 };
-use einsteindb::causetStorage;
-use einsteindb_util::collections::{HashMap, HashSet};
-use einsteindb_util::config::VersionTrack;
-use einsteindb_util::time::ThreadReadId;
-use einsteindb_util::worker::{FutureWorker, Worker};
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod::causetStorage;
+use einsteindb-prod_util::collections::{HashMap, HashSet};
+use einsteindb-prod_util::config::VersionTrack;
+use einsteindb-prod_util::time::ThreadReadId;
+use einsteindb-prod_util::worker::{FutureWorker, Worker};
+use einsteindb-prod_util::HandyRwLock;
 
 type SimulateStoreTransport = SimulateTransport<ServerVioletaBftStoreRouter<LmdbEngine, LmdbEngine>>;
 type SimulateServerTransport =
@@ -194,7 +194,7 @@ impl Simulator for ServerCluster {
         // Create causetStorage.
         let fidel_worker = FutureWorker::new("test-fidel-worker");
         let causetStorage_read_pool = ReadPool::from(causetStorage::build_read_pool_for_test(
-            &einsteindb::config::StorageReadPoolConfig::default_for_test(),
+            &einsteindb-prod::config::StorageReadPoolConfig::default_for_test(),
             violetabft_engine.clone(),
         ));
 
@@ -250,7 +250,7 @@ impl Simulator for ServerCluster {
             .build(tmp_str);
         let server_causet = Arc::new(causet.server.clone());
         let cop_read_pool = ReadPool::from(interlock::readpool_impl::build_read_pool_for_test(
-            &einsteindb::config::CoprReadPoolConfig::default_for_test(),
+            &einsteindb-prod::config::CoprReadPoolConfig::default_for_test(),
             store.get_engine(),
         ));
         let causet = interlock::node::new(

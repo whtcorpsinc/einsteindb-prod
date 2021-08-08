@@ -123,7 +123,7 @@ impl Monitor {
         let h = Builder::new()
             .name(thd_name!("time-monitor"))
             .spawn(move || {
-                einsteindb_alloc::add_thread_memory_accessor();
+                einsteindb-prod_alloc::add_thread_memory_accessor();
                 while rx.try_recv().is_err() {
                     let before = now();
                     thread::sleep(Duration::from_millis(DEFAULT_WAIT_MS));
@@ -139,7 +139,7 @@ impl Monitor {
                         on_jumped()
                     }
                 }
-                einsteindb_alloc::remove_thread_memory_accessor();
+                einsteindb-prod_alloc::remove_thread_memory_accessor();
             })
             .unwrap();
 

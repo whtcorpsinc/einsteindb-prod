@@ -8,7 +8,7 @@ use ekvproto::interlock::KeyCone;
 use fidelpb::{self, PrimaryCausetInfo};
 
 use milevadb_query_datatype::codec::Block;
-use einsteindb_util::codec::number::NumberEncoder;
+use einsteindb-prod_util::codec::number::NumberEncoder;
 
 #[derive(Clone)]
 pub struct Block {

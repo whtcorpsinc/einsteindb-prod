@@ -9,9 +9,9 @@ use crate::store::{Callback, Config};
 
 use engine_promises::Snapshot;
 use ekvproto::violetabft_cmdpb::VioletaBftCmdRequest;
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::time::{duration_to_sec, monotonic_raw_now};
-use einsteindb_util::MustConsumeVec;
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::time::{duration_to_sec, monotonic_raw_now};
+use einsteindb-prod_util::MustConsumeVec;
 use time::Timespec;
 use uuid::Uuid;
 

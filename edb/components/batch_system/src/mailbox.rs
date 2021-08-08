@@ -4,7 +4,7 @@ use crate::fsm::{Fsm, FsmInterlock_Semaphore, FsmState};
 use crossbeam::channel::{lightlikeError, TrylightlikeError};
 use std::borrow::Cow;
 use std::sync::Arc;
-use einsteindb_util::mpsc;
+use einsteindb-prod_util::mpsc;
 
 /// A basic mailbox.
 ///

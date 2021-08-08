@@ -1416,7 +1416,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.999, sum(rate(milevadb_einsteindbclient_txn_cmd_duration_seconds_bucket{type=~\"commit\"}[1m])) by (le, type))",
+              "expr": "histogram_quantile(0.999, sum(rate(milevadb_einsteindb-prodclient_txn_cmd_duration_seconds_bucket{type=~\"commit\"}[1m])) by (le, type))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{type}}",
@@ -1511,7 +1511,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(milevadb_einsteindbclient_txn_cmd_duration_seconds_bucket{type=~\"commit\"}[1m])) by (le, type))",
+              "expr": "histogram_quantile(0.99, sum(rate(milevadb_einsteindb-prodclient_txn_cmd_duration_seconds_bucket{type=~\"commit\"}[1m])) by (le, type))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{type}}",
@@ -1639,11 +1639,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(milevadb_einsteindbclient_lock_resolver_actions_total[1m])) by (type)",
+              "expr": "sum(rate(milevadb_einsteindb-prodclient_lock_resolver_actions_total[1m])) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{type}}",
-              "metric": "milevadb_einsteindbclient_lock_resolver_actions_total",
+              "metric": "milevadb_einsteindb-prodclient_lock_resolver_actions_total",
               "refId": "A",
               "step": 40
             }
@@ -1743,7 +1743,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(milevadb_einsteindbclient_backoff_seconds_bucket[5m])) by (le, type))",
+              "expr": "histogram_quantile(0.99, sum(rate(milevadb_einsteindb-prodclient_backoff_seconds_bucket[5m])) by (le, type))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{type}}",
@@ -1868,7 +1868,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(milevadb_einsteindbclient_backoff_seconds_count[1m])) by (type)",
+              "expr": "sum(rate(milevadb_einsteindb-prodclient_backoff_seconds_count[1m])) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{type}}",
@@ -2251,7 +2251,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_grpc_msg_duration_seconds_bucket{type=~\"kv_prewrite|kv_commit\"}[5m])) by (le, type))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb-prod_grpc_msg_duration_seconds_bucket{type=~\"kv_prewrite|kv_commit\"}[5m])) by (le, type))",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 2,
@@ -2378,7 +2378,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "topk(5, sum(rate(einsteindb_thread_cpu_seconds_total{name=~\"grpc.*\"}[1m])) by (instance, name))",
+              "expr": "topk(5, sum(rate(einsteindb-prod_thread_cpu_seconds_total{name=~\"grpc.*\"}[1m])) by (instance, name))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{ instance }} - {{ name }}",
@@ -2537,7 +2537,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_bucket[5m])) by (le, type))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb-prod_interlock_semaphore_latch_wait_duration_seconds_bucket[5m])) by (le, type))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "99% - {{ type }}",
@@ -2546,7 +2546,7 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_bucket[5m])) by (le, type))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb-prod_interlock_semaphore_latch_wait_duration_seconds_bucket[5m])) by (le, type))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "95% - {{ type }}",
@@ -2555,7 +2555,7 @@
               "step": 10
             },
             {
-              "expr": "rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_sum[5m]) / rate(einsteindb_interlock_semaphore_latch_wait_duration_seconds_count[5m])",
+              "expr": "rate(einsteindb-prod_interlock_semaphore_latch_wait_duration_seconds_sum[5m]) / rate(einsteindb-prod_interlock_semaphore_latch_wait_duration_seconds_count[5m])",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "avg - {{ type }}",
@@ -2695,11 +2695,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_thread_cpu_seconds_total{name=~\"sched_.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{name=~\"sched_.*\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
-              "metric": "einsteindb_thread_cpu_seconds_total",
+              "metric": "einsteindb-prod_thread_cpu_seconds_total",
               "refId": "A",
               "step": 4
             }
@@ -2810,7 +2810,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_bucket[1m])) by (le, type))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb-prod_interlock_semaphore_command_duration_seconds_bucket[1m])) by (le, type))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{ type }}",
@@ -2954,11 +2954,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_violetabftstore_request_wait_time_duration_secs_bucket[1m])) by (le, instance))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_request_wait_time_duration_secs_bucket[1m])) by (le, instance))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{ instance }}",
-              "metric": "einsteindb_violetabftstore_request_wait_time_duration_secs_bucket",
+              "metric": "einsteindb-prod_violetabftstore_request_wait_time_duration_secs_bucket",
               "refId": "A",
               "step": 4
             }
@@ -3029,10 +3029,10 @@
                 "query": {
                   "datasourceId": 1,
                   "model": {
-                    "expr": "sum(rate(einsteindb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"violetabftstore_.*\"}[1m])) by (instance)",
+                    "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"violetabftstore_.*\"}[1m])) by (instance)",
                     "intervalFactor": 2,
                     "leglightlikeFormat": "{{instance}}",
-                    "metric": "einsteindb_thread_cpu_seconds_total",
+                    "metric": "einsteindb-prod_thread_cpu_seconds_total",
                     "refId": "A",
                     "step": 20
                   },
@@ -3104,11 +3104,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_thread_cpu_seconds_total{name=~\"violetabftstore_.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{name=~\"violetabftstore_.*\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
-              "metric": "einsteindb_thread_cpu_seconds_total",
+              "metric": "einsteindb-prod_thread_cpu_seconds_total",
               "refId": "A",
               "step": 4
             }
@@ -3211,7 +3211,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_causetStorage_engine_async_request_duration_seconds_bucket{type=\"write\"}[5m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb-prod_causetStorage_engine_async_request_duration_seconds_bucket{type=\"write\"}[5m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "99%",
@@ -3219,7 +3219,7 @@
               "step": 4
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_causetStorage_engine_async_request_duration_seconds_bucket{type=\"write\"}[5m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb-prod_causetStorage_engine_async_request_duration_seconds_bucket{type=\"write\"}[5m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "95%",
@@ -3227,7 +3227,7 @@
               "step": 4
             },
             {
-              "expr": "sum(rate(einsteindb_causetStorage_engine_async_request_duration_seconds_sum{type=\"write\"}[5m])) / sum(rate(einsteindb_causetStorage_engine_async_request_duration_seconds_count{type=\"write\"}[5m]))",
+              "expr": "sum(rate(einsteindb-prod_causetStorage_engine_async_request_duration_seconds_sum{type=\"write\"}[5m])) / sum(rate(einsteindb-prod_causetStorage_engine_async_request_duration_seconds_count{type=\"write\"}[5m]))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "avg",
@@ -3368,7 +3368,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_violetabftstore_applightlike_log_duration_seconds_bucket[1m])) by (le, instance))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_applightlike_log_duration_seconds_bucket[1m])) by (le, instance))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{ instance }}",
@@ -3478,7 +3478,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(einsteindb_engine_write_micro_seconds{db=\"violetabft\", type=\"write_max\"})",
+              "expr": "max(einsteindb-prod_engine_write_micro_seconds{db=\"violetabft\", type=\"write_max\"})",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "max",
@@ -3486,7 +3486,7 @@
               "step": 10
             },
             {
-              "expr": "max(einsteindb_engine_write_micro_seconds{db=\"violetabft\", type=\"write_percentile99\"})",
+              "expr": "max(einsteindb-prod_engine_write_micro_seconds{db=\"violetabft\", type=\"write_percentile99\"})",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "99%",
@@ -3494,7 +3494,7 @@
               "step": 10
             },
             {
-              "expr": "max(einsteindb_engine_write_micro_seconds{db=\"violetabft\", type=\"write_percentile95\"})",
+              "expr": "max(einsteindb-prod_engine_write_micro_seconds{db=\"violetabft\", type=\"write_percentile95\"})",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "95%",
@@ -3502,7 +3502,7 @@
               "step": 10
             },
             {
-              "expr": "max(einsteindb_engine_write_micro_seconds{db=\"violetabft\", type=\"write_average\"})",
+              "expr": "max(einsteindb-prod_engine_write_micro_seconds{db=\"violetabft\", type=\"write_average\"})",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "avg",
@@ -3645,11 +3645,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_violetabftstore_apply_wait_time_duration_secs_bucket[5m])) by (le, instance))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_apply_wait_time_duration_secs_bucket[5m])) by (le, instance))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{ instance }}",
-              "metric": "einsteindb_violetabftstore_request_wait_time_duration_secs_bucket",
+              "metric": "einsteindb-prod_violetabftstore_request_wait_time_duration_secs_bucket",
               "refId": "A",
               "step": 4
             }
@@ -3782,7 +3782,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_violetabftstore_apply_log_duration_seconds_bucket[1m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_apply_log_duration_seconds_bucket[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": " 99%",
@@ -3791,7 +3791,7 @@
               "step": 4
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_violetabftstore_apply_log_duration_seconds_bucket[1m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb-prod_violetabftstore_apply_log_duration_seconds_bucket[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "95%",
@@ -3799,7 +3799,7 @@
               "step": 4
             },
             {
-              "expr": "sum(rate(einsteindb_violetabftstore_apply_log_duration_seconds_sum[1m])) / sum(rate(einsteindb_violetabftstore_apply_log_duration_seconds_count[1m])) ",
+              "expr": "sum(rate(einsteindb-prod_violetabftstore_apply_log_duration_seconds_sum[1m])) / sum(rate(einsteindb-prod_violetabftstore_apply_log_duration_seconds_count[1m])) ",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "avg",
@@ -3908,7 +3908,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(einsteindb_engine_write_micro_seconds{db=\"kv\", type=\"write_max\"})",
+              "expr": "max(einsteindb-prod_engine_write_micro_seconds{db=\"kv\", type=\"write_max\"})",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "max",
@@ -3916,7 +3916,7 @@
               "step": 10
             },
             {
-              "expr": "max(einsteindb_engine_write_micro_seconds{db=\"kv\", type=\"write_percentile99\"})",
+              "expr": "max(einsteindb-prod_engine_write_micro_seconds{db=\"kv\", type=\"write_percentile99\"})",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "99%",
@@ -3924,7 +3924,7 @@
               "step": 10
             },
             {
-              "expr": "max(einsteindb_engine_write_micro_seconds{db=\"kv\", type=\"write_percentile95\"})",
+              "expr": "max(einsteindb-prod_engine_write_micro_seconds{db=\"kv\", type=\"write_percentile95\"})",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "95%",
@@ -3932,7 +3932,7 @@
               "step": 10
             },
             {
-              "expr": "max(einsteindb_engine_write_micro_seconds{db=\"kv\", type=\"write_average\"})",
+              "expr": "max(einsteindb-prod_engine_write_micro_seconds{db=\"kv\", type=\"write_average\"})",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "avg",
@@ -4062,11 +4062,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb_thread_cpu_seconds_total{name=~\"apply_[0-9]+\"}[1m])) by (instance)",
+              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{name=~\"apply_[0-9]+\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
-              "metric": "einsteindb_thread_cpu_seconds_total",
+              "metric": "einsteindb-prod_thread_cpu_seconds_total",
               "refId": "A",
               "step": 4
             }

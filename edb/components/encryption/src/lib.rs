@@ -6,7 +6,7 @@ extern crate failure;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
-extern crate einsteindb_util;
+extern crate einsteindb-prod_util;
 #[macro_use]
 extern crate configuration;
 

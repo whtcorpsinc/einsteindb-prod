@@ -25,7 +25,7 @@ use crate::store::ProposalContext;
 use crate::{Error, Result};
 use engine_promises::{VioletaBftEngine, VioletaBftLogBatch};
 use into_other::into_other;
-use einsteindb_util::worker::Interlock_Semaphore;
+use einsteindb-prod_util::worker::Interlock_Semaphore;
 
 use super::metrics::*;
 use super::worker::BraneTask;
@@ -149,7 +149,7 @@ impl EntryCache {
         // Cache either is empty or contains latest log. Hence we don't need to fetch log
         // from lmdb anymore.
         assert!(lightlike_idx == limit_idx || fetched_size > max_size);
-        let (first, second) = einsteindb_util::slices_in_cone(&self.cache, spacelike_idx, lightlike_idx);
+        let (first, second) = einsteindb-prod_util::slices_in_cone(&self.cache, spacelike_idx, lightlike_idx);
         ents.extlightlike_from_slice(first);
         ents.extlightlike_from_slice(second);
     }
@@ -1655,7 +1655,7 @@ mod tests {
     use std::sync::*;
     use std::time::Duration;
     use tempfile::{Builder, TempDir};
-    use einsteindb_util::worker::{Interlock_Semaphore, Worker};
+    use einsteindb-prod_util::worker::{Interlock_Semaphore, Worker};
 
     use super::*;
 
@@ -1776,7 +1776,7 @@ mod tests {
             (5, Ok(5)),
         ];
         for (i, (idx, wterm)) in tests.drain(..).enumerate() {
-            let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+            let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
             let sched = worker.interlock_semaphore();
             let store = new_causetStorage_from_ents(sched, &td, &ents);
@@ -1830,7 +1830,7 @@ mod tests {
 
     #[test]
     fn test_causetStorage_clear_meta() {
-        let td = Builder::new().prefix("einsteindb-store").temfidelir().unwrap();
+        let td = Builder::new().prefix("einsteindb-prod-store").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
         let mut store = new_causetStorage_from_ents(sched, &td, &[new_entry(3, 3), new_entry(4, 4)]);
@@ -1908,7 +1908,7 @@ mod tests {
         ];
 
         for (i, (lo, hi, maxsize, wentries)) in tests.drain(..).enumerate() {
-            let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+            let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
             let sched = worker.interlock_semaphore();
             let store = new_causetStorage_from_ents(sched, &td, &ents);
@@ -1932,7 +1932,7 @@ mod tests {
             (5, Ok(())),
         ];
         for (i, (idx, werr)) in tests.drain(..).enumerate() {
-            let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+            let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
             let sched = worker.interlock_semaphore();
             let store = new_causetStorage_from_ents(sched, &td, &ents);
@@ -1983,7 +1983,7 @@ mod tests {
         let mut cs = ConfState::default();
         cs.set_voters(vec![1, 2, 3]);
 
-        let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+        let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
         let snap_dir = Builder::new().prefix("snap_dir").temfidelir().unwrap();
         let mgr = SnapManager::new(snap_dir.path().to_str().unwrap());
         let mut worker = Worker::new("brane-worker");
@@ -2146,7 +2146,7 @@ mod tests {
             ),
         ];
         for (i, (entries, wentries)) in tests.drain(..).enumerate() {
-            let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+            let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
             let sched = worker.interlock_semaphore();
             let mut store = new_causetStorage_from_ents(sched, &td, &ents);
@@ -2162,7 +2162,7 @@ mod tests {
     #[test]
     fn test_causetStorage_cache_fetch() {
         let ents = vec![new_entry(3, 3), new_entry(4, 4), new_entry(5, 5)];
-        let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+        let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
         let mut store = new_causetStorage_from_ents(sched, &td, &ents);
@@ -2205,7 +2205,7 @@ mod tests {
     #[test]
     fn test_causetStorage_cache_ufidelate() {
         let ents = vec![new_entry(3, 3), new_entry(4, 4), new_entry(5, 5)];
-        let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+        let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
         let mut store = new_causetStorage_from_ents(sched, &td, &ents);
@@ -2299,7 +2299,7 @@ mod tests {
         let mut cs = ConfState::default();
         cs.set_voters(vec![1, 2, 3]);
 
-        let td1 = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+        let td1 = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
         let snap_dir = Builder::new().prefix("snap").temfidelir().unwrap();
         let mgr = SnapManager::new(snap_dir.path().to_str().unwrap());
         let mut worker = Worker::new("snap-manager");
@@ -2327,7 +2327,7 @@ mod tests {
         assert_eq!(s1.truncated_term(), 3);
         worker.stop().unwrap().join().unwrap();
 
-        let td2 = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+        let td2 = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
         let mut s2 = new_causetStorage(sched.clone(), &td2);
         assert_eq!(s2.first_index(), s2.applied_index() + 1);
         let mut ctx = InvokeContext::new(&s2);
@@ -2344,7 +2344,7 @@ mod tests {
         assert_eq!(s2.first_index(), s2.applied_index() + 1);
         validate_cache(&s2, &[]);
 
-        let td3 = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+        let td3 = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
         let ents = &[new_entry(3, 3), new_entry(4, 3)];
         let mut s3 = new_causetStorage_from_ents(sched, &td3, ents);
         validate_cache(&s3, &ents[1..]);
@@ -2364,7 +2364,7 @@ mod tests {
 
     #[test]
     fn test_canceling_snapshot() {
-        let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+        let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
         let mut s = new_causetStorage(sched, &td);
@@ -2410,7 +2410,7 @@ mod tests {
 
     #[test]
     fn test_try_finish_snapshot() {
-        let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+        let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
         let mut s = new_causetStorage(sched, &td);
@@ -2486,7 +2486,7 @@ mod tests {
 
     #[test]
     fn test_validate_states() {
-        let td = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+        let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
         let kv_db = new_engine(td.path().to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();

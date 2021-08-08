@@ -8,7 +8,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     Keyword,
 };
 

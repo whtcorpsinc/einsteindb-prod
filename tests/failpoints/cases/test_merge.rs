@@ -14,8 +14,8 @@ use engine_promises::{Peekable, CAUSET_VIOLETABFT};
 use fidel_client::FidelClient;
 use violetabftstore::store::*;
 use test_violetabftstore::*;
-use einsteindb_util::config::*;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::config::*;
+use einsteindb-prod_util::HandyRwLock;
 
 /// Test if merge is rollback as expected.
 #[test]
@@ -1068,9 +1068,9 @@ fn test_node_merge_write_data_to_source_brane_after_merging() {
 /// In previous implementation, destroying its source peer(s) and applying snapshot is not **atomic**.
 /// It may break the rule of our merging process.
 ///
-/// A einsteindb crash after its source peers have destroyed but this target peer does not become to
-/// `Applying` state which means it will not apply snapshot after this einsteindb respacelikes.
-/// After this einsteindb respacelikes, a new leader may lightlike logs to this target peer, then the panic may happen
+/// A einsteindb-prod crash after its source peers have destroyed but this target peer does not become to
+/// `Applying` state which means it will not apply snapshot after this einsteindb-prod respacelikes.
+/// After this einsteindb-prod respacelikes, a new leader may lightlike logs to this target peer, then the panic may happen
 /// because it can not find its source peers when applying `CommitMerge` log.
 ///
 /// This test is to reproduce above situation.

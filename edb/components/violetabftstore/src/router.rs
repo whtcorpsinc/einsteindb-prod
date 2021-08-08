@@ -7,7 +7,7 @@ use engine_promises::{KvEngine, VioletaBftEngine, Snapshot};
 use ekvproto::violetabft_cmdpb::VioletaBftCmdRequest;
 use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use violetabft::SnapshotStatus;
-use einsteindb_util::time::ThreadReadId;
+use einsteindb-prod_util::time::ThreadReadId;
 
 use crate::store::fsm::VioletaBftRouter;
 use crate::store::transport::{CasualRouter, ProposalRouter, StoreRouter};

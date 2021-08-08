@@ -36,10 +36,10 @@ use crate::store::{CasualMessage, PeerMsg, VioletaBftCommand, VioletaBftRouter, 
 use concurrency_manager::ConcurrencyManager;
 use fidel_client::metrics::*;
 use fidel_client::{Error, FidelClient, BraneStat};
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::metrics::ThreadInfoStatistics;
-use einsteindb_util::time::UnixSecs;
-use einsteindb_util::worker::{FutureRunnable as Runnable, FutureInterlock_Semaphore as Interlock_Semaphore, Stopped};
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::metrics::ThreadInfoStatistics;
+use einsteindb-prod_util::time::UnixSecs;
+use einsteindb-prod_util::worker::{FutureRunnable as Runnable, FutureInterlock_Semaphore as Interlock_Semaphore, Stopped};
 
 type RecordPairVec = Vec<fidelpb::RecordPair>;
 
@@ -345,7 +345,7 @@ where
         let h = Builder::new()
             .name(thd_name!("stats-monitor"))
             .spawn(move || {
-                einsteindb_alloc::add_thread_memory_accessor();
+                einsteindb-prod_alloc::add_thread_memory_accessor();
                 let mut thread_stats = ThreadInfoStatistics::new();
                 while let Err(mpsc::RecvTimeoutError::Timeout) = rx.recv_timeout(collect_interval) {
                     if timer_cnt % thread_info_interval == 0 {
@@ -396,7 +396,7 @@ where
                     timer_cnt = (timer_cnt + 1) % (qps_info_interval * thread_info_interval);
                     auto_split_controller.refresh_causet();
                 }
-                einsteindb_alloc::remove_thread_memory_accessor();
+                einsteindb-prod_alloc::remove_thread_memory_accessor();
             })?;
 
         self.handle = Some(h);
@@ -565,7 +565,7 @@ where
                     let epoch = brane.take_brane_epoch();
                     lightlike_admin_request(&router, brane_id, epoch, peer, req, callback)
                 }
-                // When rolling ufidelate, there might be some old version einsteindbs that don't support batch split in cluster.
+                // When rolling ufidelate, there might be some old version einsteindb-prods that don't support batch split in cluster.
                 // In this situation, FIDel version check would refuse `ask_batch_split`.
                 // But if ufidelate time is long, it may cause large Branes, so call `ask_split` instead.
                 Err(Error::Incompatible) => {
@@ -1260,7 +1260,7 @@ mod tests {
     use engine_lmdb::LmdbEngine;
     use std::sync::Mutex;
     use std::time::Instant;
-    use einsteindb_util::worker::FutureWorker;
+    use einsteindb-prod_util::worker::FutureWorker;
 
     use super::*;
 

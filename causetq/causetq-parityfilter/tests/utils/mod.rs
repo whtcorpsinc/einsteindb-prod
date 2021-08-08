@@ -19,7 +19,7 @@ use embedded_promises::{
     MinkowskiValueType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     SchemaReplicant,
 };
 
@@ -31,7 +31,7 @@ use causetq_parityfilter_promises::errors::{
     ParityFilterError,
 };
 
-use einsteindb_causetq_parityfilter::{
+use einsteindb-prod_causetq_parityfilter::{
     ConjoiningGerunds,
     KnownCauset,
     CausetQInputs,

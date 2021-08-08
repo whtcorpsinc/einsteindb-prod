@@ -15,7 +15,7 @@ use embedded_promises::{
     MinkowskiSet,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     Cloned,
     HasSchemaReplicant,
 };
@@ -665,7 +665,7 @@ mod testing {
         Attribute,
         MinkowskiSet,
     };
-    use einsteindb_embedded::{
+    use einsteindb-prod_embedded::{
         SchemaReplicant,
     };
 

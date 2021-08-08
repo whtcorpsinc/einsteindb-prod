@@ -97,7 +97,7 @@ where
     R: Runnable<T> + lightlike + 'static,
     T: Display + lightlike + 'static,
 {
-    einsteindb_alloc::add_thread_memory_accessor();
+    einsteindb-prod_alloc::add_thread_memory_accessor();
     let current_thread = thread::current();
     let name = current_thread.name().unwrap();
     let metrics_plightlikeing_task_count = WORKER_PENDING_TASK_VEC.with_label_values(&[name]);
@@ -120,7 +120,7 @@ where
         block_on(handle.run_until(task));
     }
     runner.shutdown();
-    einsteindb_alloc::remove_thread_memory_accessor();
+    einsteindb-prod_alloc::remove_thread_memory_accessor();
 }
 
 impl<T: Display + lightlike + 'static> Worker<T> {

@@ -9,10 +9,10 @@ use violetabft::evioletabftpb::MessageType;
 
 use engine_promises::{CfName, IterOptions, CAUSET_DEFAULT};
 use test_violetabftstore::*;
-use einsteindb::causetStorage::kv::*;
-use einsteindb::causetStorage::CfStatistics;
-use einsteindb_util::codec::bytes;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod::causetStorage::kv::*;
+use einsteindb-prod::causetStorage::CfStatistics;
+use einsteindb-prod_util::codec::bytes;
+use einsteindb-prod_util::HandyRwLock;
 use txn_types::Key;
 
 #[test]

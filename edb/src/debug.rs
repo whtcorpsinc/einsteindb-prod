@@ -73,7 +73,7 @@ use embedded_promises::{
     MinkowskiValueType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     HasSchemaReplicant,
     SQLMinkowskiValueType,
     TxReport,
@@ -318,7 +318,7 @@ pub fn dump_sql_causetq(conn: &rusqlite::Connection, allegrosql: &str, params: &
 }
 
 // A connection that doesn't try to be clever about possibly sharing its `SchemaReplicant`.  Compare to
-// `einsteindb::Conn`.
+// `einsteindb-prod::Conn`.
 pub struct TestConn {
     pub sqlite: rusqlite::Connection,
     pub partition_map: PartitionMap,

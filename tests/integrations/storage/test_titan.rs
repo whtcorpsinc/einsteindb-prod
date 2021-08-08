@@ -21,11 +21,11 @@ use violetabftstore::store::BraneSnapshot;
 use violetabftstore::store::{apply_sst_causet_file, build_sst_causet_file};
 use tempfile::Builder;
 use test_violetabftstore::*;
-use einsteindb::config::EINSTEINDBConfig;
-use einsteindb::causetStorage::tail_pointer::ScannerBuilder;
-use einsteindb::causetStorage::txn::Scanner;
-use einsteindb_util::config::{ReadableDuration, ReadableSize};
-use einsteindb_util::time::Limiter;
+use einsteindb-prod::config::EINSTEINDBConfig;
+use einsteindb-prod::causetStorage::tail_pointer::ScannerBuilder;
+use einsteindb-prod::causetStorage::txn::Scanner;
+use einsteindb-prod_util::config::{ReadableDuration, ReadableSize};
+use einsteindb-prod_util::time::Limiter;
 use txn_types::{Key, Write, WriteType};
 
 #[test]

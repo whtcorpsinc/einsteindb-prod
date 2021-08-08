@@ -12,7 +12,7 @@ use protobuf::ProtobufError;
 
 use error_code::{self, ErrorCode, ErrorCodeExt};
 use ekvproto::{errorpb, metapb};
-use einsteindb_util::codec;
+use einsteindb-prod_util::codec;
 
 use super::interlock::Error as CopError;
 use super::store::SnapError;

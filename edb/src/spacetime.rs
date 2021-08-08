@@ -46,7 +46,7 @@ use embedded_promises::{
     MinkowskiValueType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     SchemaReplicant,
     AttributeMap,
 };
@@ -133,7 +133,7 @@ fn update_attribute_map_from_schemaReplicant_retractions(attribute_map: &mut Att
         }
     }
 
-    // TODO (see https://github.com/whtcorpsinc/einsteindb/issues/796).
+    // TODO (see https://github.com/whtcorpsinc/einsteindb-prod/issues/796).
     // Retraction of causetIds is allowed, but if an causetid names a schemaReplicant attribute, then we should enforce
     // retraction of all of the associated schemaReplicant attributes.
     // Unfortunately, our current in-memory schemaReplicant representation (namely, how we define an Attribute) is not currently

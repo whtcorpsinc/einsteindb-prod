@@ -14,7 +14,7 @@
 #![feature(decl_macro)]
 
 #[macro_use(box_try, warn)]
-extern crate einsteindb_util;
+extern crate einsteindb-prod_util;
 
 #[macro_use(other_err)]
 extern crate milevadb_query_common;

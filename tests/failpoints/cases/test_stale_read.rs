@@ -11,8 +11,8 @@ use violetabft::evioletabftpb::MessageType;
 use fidel_client::FidelClient;
 use violetabftstore::store::Callback;
 use test_violetabftstore::*;
-use einsteindb_util::config::*;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::config::*;
+use einsteindb-prod_util::HandyRwLock;
 
 fn stale_read_during_splitting(right_derive: bool) {
     let count = 3;

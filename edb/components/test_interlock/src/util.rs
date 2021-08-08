@@ -10,8 +10,8 @@ use ekvproto::interlock::{Request, Response};
 use fidelpb::PrimaryCausetInfo;
 use fidelpb::{SelectResponse, StreamResponse};
 
-use einsteindb::interlock::node;
-use einsteindb::causetStorage::Engine;
+use einsteindb-prod::interlock::node;
+use einsteindb-prod::causetStorage::Engine;
 
 static ID_GENERATOR: AtomicUsize = AtomicUsize::new(1);
 

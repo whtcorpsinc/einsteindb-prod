@@ -14,7 +14,7 @@ use embedded_promises::{
     MinkowskiSet,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     SchemaReplicant,
     SQLTypeAffinity,
     SQLMinkowskiValueType,
@@ -22,7 +22,7 @@ use einsteindb_embedded::{
     MinkowskiValueTypeTag,
 };
 
-use einsteindb_embedded::util::{
+use einsteindb-prod_embedded::util::{
     Either,
 };
 
@@ -30,7 +30,7 @@ use edbn::causetq::{
     Limit,
 };
 
-use einsteindb_causetq_parityfilter::{
+use einsteindb-prod_causetq_parityfilter::{
     AlgebraicCausetQ,
     CausetIndexAlternation,
     CausetIndexConstraint,
@@ -57,7 +57,7 @@ use ::{
     causetq_projection,
 };
 
-use einsteindb_causetq_sql::{
+use einsteindb-prod_causetq_sql::{
     CausetIndexOrExpression,
     Constraint,
     FromGerund,

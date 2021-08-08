@@ -14,7 +14,7 @@ use std::iter::{
     once,
 };
 
-use einsteindb_causetq_pull::{
+use einsteindb-prod_causetq_pull::{
     Puller,
 };
 

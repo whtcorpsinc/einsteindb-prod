@@ -3,13 +3,13 @@
 use ekvproto::kvrpcpb::{Context, LockInfo};
 
 use test_violetabftstore::{Cluster, ServerCluster, SimulateEngine};
-use einsteindb::causetStorage::kv::{Error as KvError, ErrorInner as KvErrorInner, LmdbEngine};
-use einsteindb::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner, MAX_TXN_WRITE_SIZE};
-use einsteindb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
-use einsteindb::causetStorage::{
+use einsteindb-prod::causetStorage::kv::{Error as KvError, ErrorInner as KvErrorInner, LmdbEngine};
+use einsteindb-prod::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner, MAX_TXN_WRITE_SIZE};
+use einsteindb-prod::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
+use einsteindb-prod::causetStorage::{
     self, Engine, Error as StorageError, ErrorInner as StorageErrorInner, TxnStatus,
 };
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::HandyRwLock;
 use txn_types::{Key, KvPair, Mutation, TimeStamp, Value};
 
 use super::*;

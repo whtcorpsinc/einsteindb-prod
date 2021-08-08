@@ -3,8 +3,8 @@
 use criterion::{Bencher, Criterion};
 use ekvproto::deadlock::*;
 use rand::prelude::*;
-use einsteindb::server::lock_manager::deadlock::DetectBlock;
-use einsteindb_util::time::Duration;
+use einsteindb-prod::server::lock_manager::deadlock::DetectBlock;
+use einsteindb-prod_util::time::Duration;
 
 struct DetectGenerator {
     rng: ThreadRng,

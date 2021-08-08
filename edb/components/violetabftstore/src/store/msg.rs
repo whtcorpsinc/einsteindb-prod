@@ -19,7 +19,7 @@ use crate::store::fsm::apply::{CatchUpLogs, ChangeCmd};
 use crate::store::metrics::VioletaBftEventDurationType;
 use crate::store::util::TuplespaceInstantonInfoFormatter;
 use crate::store::SnapKey;
-use einsteindb_util::escape;
+use einsteindb-prod_util::escape;
 
 use super::{AbstractPeer, BraneSnapshot};
 

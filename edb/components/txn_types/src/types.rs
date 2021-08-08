@@ -2,11 +2,11 @@ use super::timestamp::TimeStamp;
 use byteorder::{ByteOrder, NativeEndian};
 use ekvproto::kvrpcpb;
 use std::fmt::{self, Debug, Display, Formatter};
-use einsteindb_util::codec;
-use einsteindb_util::codec::bytes;
-use einsteindb_util::codec::bytes::BytesEncoder;
-use einsteindb_util::codec::number::{self, NumberEncoder};
-use einsteindb_util::collections::HashMap;
+use einsteindb-prod_util::codec;
+use einsteindb-prod_util::codec::bytes;
+use einsteindb-prod_util::codec::bytes::BytesEncoder;
+use einsteindb-prod_util::codec::number::{self, NumberEncoder};
+use einsteindb-prod_util::collections::HashMap;
 
 // Short value max len must <= 255.
 pub const SHORT_VALUE_MAX_LEN: usize = 255;

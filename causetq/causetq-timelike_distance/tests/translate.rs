@@ -9,11 +9,11 @@
 // specific language governing permissions and limitations under the License.
 
 extern crate edbn;
-extern crate einsteindb_embedded;
+extern crate einsteindb-prod_embedded;
 extern crate embedded_promises;
-extern crate einsteindb_causetq_parityfilter;
-extern crate einsteindb_causetq_projector;
-extern crate einsteindb_sql;
+extern crate einsteindb-prod_causetq_parityfilter;
+extern crate einsteindb-prod_causetq_projector;
+extern crate einsteindb-prod_sql;
 
 use std::collections::BTreeMap;
 
@@ -32,11 +32,11 @@ use embedded_promises::{
     MinkowskiValueType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     SchemaReplicant,
 };
 
-use einsteindb_causetq_parityfilter::{
+use einsteindb-prod_causetq_parityfilter::{
     KnownCauset,
     CausetQInputs,
     algebrize,
@@ -44,16 +44,16 @@ use einsteindb_causetq_parityfilter::{
     parse_find_string,
 };
 
-use einsteindb_causetq_projector::{
+use einsteindb-prod_causetq_projector::{
     MinkowskiProjector,
 };
 
-use einsteindb_causetq_projector::translate::{
+use einsteindb-prod_causetq_projector::translate::{
     GreedoidSelect,
     causetq_to_select,
 };
 
-use einsteindb_sql::SQLCausetQ;
+use einsteindb-prod_sql::SQLCausetQ;
 
 /// Produce the appropriate `ToUpper` for the provided valid ?-prefixed name.
 /// This lives here because we can't re-export macros:
@@ -144,8 +144,8 @@ fn prepopulated_schemaReplicant() -> SchemaReplicant {
     prepopulated_typed_schemaReplicant(MinkowskiValueType::String)
 }
 
-fn make_arg(name: &'static str, value: &'static str) -> (String, Rc<einsteindb_sql::Value>) {
-    (name.to_string(), Rc::new(einsteindb_sql::Value::Text(value.to_string())))
+fn make_arg(name: &'static str, value: &'static str) -> (String, Rc<einsteindb-prod_sql::Value>) {
+    (name.to_string(), Rc::new(einsteindb-prod_sql::Value::Text(value.to_string())))
 }
 
 #[test]
@@ -1312,7 +1312,7 @@ fn test_causecausetx_data() {
     assert_eq!(args, vec![]);
 
     // This is awkward since the bundles Block is queried twice, once to list transaction IDs
-    // and a second time to extract data.  https://github.com/whtcorpsinc/einsteindb/issues/644 tracks
+    // and a second time to extract data.  https://github.com/whtcorpsinc/einsteindb-prod/issues/644 tracks
     // improving this, perhaps by optimizing certain combinations of functions and ConstrainedEntss.
     let causetq = r#"[:find ?e ?a ?v ?causetx ?added :where [(causetx-ids $ 1000 2000) [[?causetx]]] [(causetx-data $ ?causetx) [[?e ?a ?v _ ?added]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);

@@ -14,16 +14,16 @@ extern crate indexmap;
 extern crate rusqlite;
 
 extern crate edbn;
-extern crate einsteindb_embedded;
+extern crate einsteindb-prod_embedded;
 extern crate edb_promises;
 #[macro_use]
 extern crate embedded_promises;
 extern crate einstein_db;                 // For value conversion.
-extern crate einsteindb_causetq_parityfilter;
-extern crate einsteindb_causetq_pull;
+extern crate einsteindb-prod_causetq_parityfilter;
+extern crate einsteindb-prod_causetq_pull;
 extern crate causetq_pull_promises;
 extern crate causetq_projector_promises;
-extern crate einsteindb_causetq_sql;
+extern crate einsteindb-prod_causetq_sql;
 
 use std::collections::{
     BTreeSet,
@@ -43,12 +43,12 @@ use embedded_promises::{
     MinkowskiType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     SchemaReplicant,
     MinkowskiValueTypeTag,
 };
 
-use einsteindb_embedded::util::{
+use einsteindb-prod_embedded::util::{
     Either,
 };
 
@@ -63,12 +63,12 @@ use edbn::causetq::{
     ToUpper,
 };
 
-use einsteindb_causetq_parityfilter::{
+use einsteindb-prod_causetq_parityfilter::{
     AlgebraicCausetQ,
     MinkowskiConstrainedEntsConstraints,
 };
 
-use einsteindb_causetq_sql::{
+use einsteindb-prod_causetq_sql::{
     GroupBy,
     Projection,
 };

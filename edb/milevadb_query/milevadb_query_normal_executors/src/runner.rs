@@ -7,7 +7,7 @@ use protobuf::Message;
 use fidelpb::{self, ExecType, FreeDaemonExecutionSummary};
 use fidelpb::{Soliton, PosetDagRequest, SelectResponse, StreamResponse};
 
-use einsteindb_util::deadline::Deadline;
+use einsteindb-prod_util::deadline::Deadline;
 
 use super::FreeDaemon;
 use milevadb_query_common::execute_stats::*;

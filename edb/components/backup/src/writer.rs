@@ -10,9 +10,9 @@ use engine_promises::{ExternalSstFileInfo, SstCompressionType, SstWriter, SstWri
 use external_causetStorage::ExternalStorage;
 use futures_util::io::AllowStdIo;
 use ekvproto::backup::File;
-use einsteindb::interlock::checksum_crc64_xor;
-use einsteindb::causetStorage::txn::TxnEntry;
-use einsteindb_util::{self, box_err, file::Sha256Reader, time::Limiter};
+use einsteindb-prod::interlock::checksum_crc64_xor;
+use einsteindb-prod::causetStorage::txn::TxnEntry;
+use einsteindb-prod_util::{self, box_err, file::Sha256Reader, time::Limiter};
 use txn_types::KvPair;
 
 use crate::metrics::*;
@@ -294,7 +294,7 @@ mod tests {
     use std::f64::INFINITY;
     use std::path::Path;
     use tempfile::TempDir;
-    use einsteindb::causetStorage::TestEngineBuilder;
+    use einsteindb-prod::causetStorage::TestEngineBuilder;
 
     type CfKvs<'a> = (engine_promises::CfName, &'a [(&'a [u8], &'a [u8])]);
 

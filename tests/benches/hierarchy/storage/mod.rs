@@ -5,7 +5,7 @@ use engine_promises::CAUSET_DEFAULT;
 use ekvproto::kvrpcpb::Context;
 use test_causetStorage::SyncTestStorageBuilder;
 use test_util::KvGenerator;
-use einsteindb::causetStorage::kv::Engine;
+use einsteindb-prod::causetStorage::kv::Engine;
 use txn_types::{Key, Mutation};
 
 use super::{BenchConfig, EngineFactory, DEFAULT_ITERATIONS};

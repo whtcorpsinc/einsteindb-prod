@@ -4,7 +4,7 @@ use crate::rocks_metrics::*;
 use lmdb::{
     CompactionJobInfo, DBBackgroundErrorReason, FlushJobInfo, IngestionInfo, WriteStallInfo,
 };
-use einsteindb_util::set_panic_mark;
+use einsteindb-prod_util::set_panic_mark;
 
 pub struct LmdbEventListener {
     db_name: String,
@@ -59,7 +59,7 @@ impl lmdb::EventListener for LmdbEventListener {
                 DBBackgroundErrorReason::WriteCallback => "write_callback",
                 DBBackgroundErrorReason::MemBlock => "memBlock",
             };
-            // Avoid einsteindb from respacelikeing if lmdb get corruption.
+            // Avoid einsteindb-prod from respacelikeing if lmdb get corruption.
             if err.spacelikes_with("Corruption") {
                 set_panic_mark();
             }

@@ -54,7 +54,7 @@ extern crate failure;
 extern crate rusqlite;
 
 extern crate edbn;
-extern crate einsteindb_embedded;
+extern crate einsteindb-prod_embedded;
 extern crate embedded_promises;
 extern crate edb;
 extern crate causetq_pull_promises;
@@ -75,7 +75,7 @@ use embedded_promises::{
     StructuredMap,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     Cloned,
     HasSchemaReplicant,
     Keyword,

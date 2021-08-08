@@ -46,9 +46,9 @@ fn test_deadline_3() {
 
     let product = ProductBlock::new();
     let (_, lightlikepoint) = {
-        let engine = einsteindb::causetStorage::TestEngineBuilder::new().build().unwrap();
-        let mut causet = einsteindb::server::Config::default();
-        causet.lightlike_point_request_max_handle_duration = einsteindb_util::config::ReadableDuration::secs(1);
+        let engine = einsteindb-prod::causetStorage::TestEngineBuilder::new().build().unwrap();
+        let mut causet = einsteindb-prod::server::Config::default();
+        causet.lightlike_point_request_max_handle_duration = einsteindb-prod_util::config::ReadableDuration::secs(1);
         init_data_with_details(Context::default(), engine, &product, &data, true, &causet)
     };
     let req = DAGSelect::from(&product).build();

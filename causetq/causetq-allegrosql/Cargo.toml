@@ -11,14 +11,14 @@ path = "..edb/edbn"
 [dependencies.embedded_promises]
 path = "../embedded-promises"
 
-[dependencies.einsteindb_embedded]
+[dependencies.einsteindb-prod_embedded]
 path = "../embedded"
 
-[dependencies.einsteindb_sql]
+[dependencies.einsteindb-prod_sql]
 path = "../allegrosql"
 
 [dependencies.allegrosql_promises]
 path = "../allegrosql-promises"
 
-[dependencies.einsteindb_causetq_parityfilter]
+[dependencies.einsteindb-prod_causetq_parityfilter]
 path = "../causetq-parityfilter"

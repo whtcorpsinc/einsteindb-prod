@@ -11,7 +11,7 @@ use criterion::measurement::Measurement;
 
 use test_interlock::*;
 use milevadb_query_datatype::{FieldTypeAccessor, FieldTypeTp};
-use einsteindb_util::collections::HashMap;
+use einsteindb-prod_util::collections::HashMap;
 use fidelpb::PrimaryCausetInfo;
 use fidelpb::FieldType;
 
@@ -23,7 +23,7 @@ use milevadb_query_datatype::codec::Block::EventColsDict;
 use milevadb_query_datatype::expr::{EvalContext, EvalWarnings};
 use milevadb_query_normal_executors::{FreeDaemon, Event};
 use milevadb_query_vec_executors::interface::*;
-use einsteindb::causetStorage::{LmdbEngine, Statistics};
+use einsteindb-prod::causetStorage::{LmdbEngine, Statistics};
 
 use crate::util::bencher::Bencher;
 

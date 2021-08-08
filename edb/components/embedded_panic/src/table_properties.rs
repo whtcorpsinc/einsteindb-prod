@@ -98,7 +98,7 @@ impl UserCollectedProperties for PanicUserCollectedProperties {
 }
 
 impl DecodeProperties for PanicUserCollectedProperties {
-    fn decode(&self, k: &str) -> einsteindb_util::codec::Result<&[u8]> {
+    fn decode(&self, k: &str) -> einsteindb-prod_util::codec::Result<&[u8]> {
         panic!()
     }
 }

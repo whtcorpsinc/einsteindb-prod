@@ -18,8 +18,8 @@ use fidel_client::FidelClient;
 use violetabftstore::store::util::is_learner;
 use violetabftstore::Result;
 use test_violetabftstore::*;
-use einsteindb_util::config::ReadableDuration;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::config::ReadableDuration;
+use einsteindb-prod_util::HandyRwLock;
 
 fn test_simple_conf_change<T: Simulator>(cluster: &mut Cluster<T>) {
     let fidel_client = Arc::clone(&cluster.fidel_client);

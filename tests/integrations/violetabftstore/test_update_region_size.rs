@@ -6,7 +6,7 @@ use std::{thread, time};
 use engine_promises::MiscExt;
 use fidel_client::FidelClient;
 use test_violetabftstore::*;
-use einsteindb_util::config::*;
+use einsteindb-prod_util::config::*;
 
 fn flush<T: Simulator>(cluster: &mut Cluster<T>) {
     for engines in cluster.engines.values() {

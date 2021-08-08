@@ -3,7 +3,7 @@
 use prometheus::local::LocalHistogram;
 use std::sync::{Arc, Mutex};
 
-use einsteindb_util::collections::HashSet;
+use einsteindb-prod_util::collections::HashSet;
 
 use super::metrics::*;
 

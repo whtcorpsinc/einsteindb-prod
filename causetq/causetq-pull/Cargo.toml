@@ -19,7 +19,7 @@ features = ["limits"]
 [dependencies.edbn]
 path = "../edbn"
 
-[dependencies.einsteindb_embedded]
+[dependencies.einsteindb-prod_embedded]
 path = "../embedded"
 
 [dependencies.embedded_promises]

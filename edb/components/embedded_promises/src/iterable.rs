@@ -27,7 +27,7 @@
 //! - [Lmdb Iteron API](https://github.com/facebook/lmdb/blob/master/include/lmdb/Iteron.h).
 //! - [Lmdb wiki on Iterons](https://github.com/facebook/lmdb/wiki/Iteron)
 
-use einsteindb_util::keybuilder::KeyBuilder;
+use einsteindb-prod_util::keybuilder::KeyBuilder;
 
 use crate::*;
 

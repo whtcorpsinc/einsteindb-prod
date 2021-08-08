@@ -17,15 +17,15 @@ use fidel_client::Config as FidelConfig;
 use violetabftstore::interlock::{Config as CopConfig, ConsistencyCheckMethod};
 use violetabftstore::store::Config as VioletaBftstoreConfig;
 use security::SecurityConfig;
-use einsteindb::config::*;
-use einsteindb::import::Config as ImportConfig;
-use einsteindb::server::config::GrpcCompressionType;
-use einsteindb::server::gc_worker::GcConfig;
-use einsteindb::server::lock_manager::Config as PessimisticTxnConfig;
-use einsteindb::server::Config as ServerConfig;
-use einsteindb::causetStorage::config::{BlockCacheConfig, Config as StorageConfig};
-use einsteindb_util::collections::HashSet;
-use einsteindb_util::config::{LogFormat, OptionReadableSize, ReadableDuration, ReadableSize};
+use einsteindb-prod::config::*;
+use einsteindb-prod::import::Config as ImportConfig;
+use einsteindb-prod::server::config::GrpcCompressionType;
+use einsteindb-prod::server::gc_worker::GcConfig;
+use einsteindb-prod::server::lock_manager::Config as PessimisticTxnConfig;
+use einsteindb-prod::server::Config as ServerConfig;
+use einsteindb-prod::causetStorage::config::{BlockCacheConfig, Config as StorageConfig};
+use einsteindb-prod_util::collections::HashSet;
+use einsteindb-prod_util::config::{LogFormat, OptionReadableSize, ReadableDuration, ReadableSize};
 
 mod dynamic;
 mod test_config_client;
@@ -51,7 +51,7 @@ fn read_file_in_project_dir(path: &str) -> String {
 }
 
 #[test]
-fn test_serde_custom_einsteindb_config() {
+fn test_serde_custom_einsteindb-prod_config() {
     let mut value = EINSTEINDBConfig::default();
     value.log_level = Level::Debug;
     value.log_file = "foo".to_owned();
@@ -126,7 +126,7 @@ fn test_serde_custom_einsteindb_config() {
     value.metric = MetricConfig {
         interval: ReadableDuration::secs(12),
         address: "example.com:443".to_owned(),
-        job: "einsteindb_1".to_owned(),
+        job: "einsteindb-prod_1".to_owned(),
     };
     let mut apply_batch_system = BatchSystemConfig::default();
     apply_batch_system.max_batch_size = 22;
@@ -618,7 +618,7 @@ fn test_serde_custom_einsteindb_config() {
         consistency_check_method: ConsistencyCheckMethod::Mvcc,
     };
     let mut cert_allowed_cn = HashSet::default();
-    cert_allowed_cn.insert("example.einsteindb.com".to_owned());
+    cert_allowed_cn.insert("example.einsteindb-prod.com".to_owned());
     value.security = SecurityConfig {
         ca_path: "invalid path".to_owned(),
         cert_path: "invalid path".to_owned(),

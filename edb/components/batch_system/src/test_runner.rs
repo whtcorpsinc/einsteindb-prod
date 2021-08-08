@@ -5,7 +5,7 @@
 use crate::*;
 use std::borrow::Cow;
 use std::sync::{Arc, Mutex};
-use einsteindb_util::mpsc;
+use einsteindb-prod_util::mpsc;
 
 /// Message `Runner` can accepts.
 pub enum Message {

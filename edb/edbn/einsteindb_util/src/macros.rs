@@ -7,7 +7,7 @@
 /// # Examples
 ///
 /// ```
-/// # #[macro_use] extern crate einsteindb_util;
+/// # #[macro_use] extern crate einsteindb-prod_util;
 /// # fn main() {
 /// assert_eq!(count_args!(), 0);
 /// assert_eq!(count_args!(1), 1);
@@ -26,10 +26,10 @@ macro_rules! count_args {
 /// # Examples
 ///
 /// ```
-/// # #[macro_use] extern crate einsteindb_util;
+/// # #[macro_use] extern crate einsteindb-prod_util;
 /// # fn main() {
 /// // empty map
-/// let m: einsteindb_util::collections::HashMap<u8, u8> = map!();
+/// let m: einsteindb-prod_util::collections::HashMap<u8, u8> = map!();
 /// assert!(m.is_empty());
 ///
 /// // one initial kv pairs.

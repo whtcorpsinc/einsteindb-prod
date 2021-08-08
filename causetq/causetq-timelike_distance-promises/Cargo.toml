@@ -30,14 +30,14 @@ path = "../edb-promises"
 [dependencies.causetq_pull_promises]
 path = "../causetq-pull-promises"
 
-[dependencies.einsteindb_causetq_parityfilter]
+[dependencies.einsteindb-prod_causetq_parityfilter]
 path = "../causetq-parityfilter"
 
-[dependencies.einsteindb_causetq_sql]
+[dependencies.einsteindb-prod_causetq_sql]
 path = "../causetq-allegrosql"
 
-[dev-dependencies.einsteindb_embedded]
+[dev-dependencies.einsteindb-prod_embedded]
 path = "../embedded"
 
-[dev-dependencies.einsteindb_causetq_projector]
+[dev-dependencies.einsteindb-prod_causetq_projector]
 path = "../causetq-projector"

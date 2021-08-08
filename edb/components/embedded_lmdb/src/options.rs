@@ -3,7 +3,7 @@
 use lmdb::{
     ReadOptions as RawReadOptions, BlockFilter, BlockProperties, WriteOptions as RawWriteOptions,
 };
-use einsteindb_util::codec::number;
+use einsteindb-prod_util::codec::number;
 
 pub struct LmdbReadOptions(RawReadOptions);
 
@@ -108,8 +108,8 @@ impl BlockFilter for TsFilter {
 
         if let Some(hint_min_ts) = self.hint_min_ts {
             // TODO avoid hard code after refactor MvccProperties from
-            // einsteindb/src/violetabftstore/interlock/ into some component about engine.
-            if let Some(mut p) = user_props.get("einsteindb.max_ts") {
+            // einsteindb-prod/src/violetabftstore/interlock/ into some component about engine.
+            if let Some(mut p) = user_props.get("einsteindb-prod.max_ts") {
                 if let Ok(get_max) = number::decode_u64(&mut p) {
                     if get_max < hint_min_ts {
                         return false;
@@ -120,8 +120,8 @@ impl BlockFilter for TsFilter {
 
         if let Some(hint_max_ts) = self.hint_max_ts {
             // TODO avoid hard code after refactor MvccProperties from
-            // einsteindb/src/violetabftstore/interlock/ into some component about engine.
-            if let Some(mut p) = user_props.get("einsteindb.min_ts") {
+            // einsteindb-prod/src/violetabftstore/interlock/ into some component about engine.
+            if let Some(mut p) = user_props.get("einsteindb-prod.min_ts") {
                 if let Ok(get_min) = number::decode_u64(&mut p) {
                     if get_min > hint_max_ts {
                         return false;

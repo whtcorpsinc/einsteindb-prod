@@ -194,7 +194,7 @@ impl<T> HandyRwLock<T> for RwLock<T> {
 /// # Examples
 ///
 /// ```
-/// use einsteindb_util::escape;
+/// use einsteindb-prod_util::escape;
 ///
 /// assert_eq!(r"ab", escape(b"ab"));
 /// assert_eq!(r"a\\023", escape(b"a\\023"));
@@ -447,7 +447,7 @@ pub fn set_panic_hook(panic_abort: bool, data_dir: &str) {
     use std::process;
 
     // HACK! New a backtrace ahead for caching necessary elf sections of this
-    // einsteindb-server, in case it can not open more files during panicking
+    // einsteindb-prod-server, in case it can not open more files during panicking
     // which leads to no stack info (0x5648bdfe4ff2 - <no info>).
     //
     // Crate backtrace caches debug info in a static variable `STATE`,

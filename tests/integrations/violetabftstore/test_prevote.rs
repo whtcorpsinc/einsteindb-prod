@@ -5,7 +5,7 @@ use std::thread;
 use std::time::Duration;
 
 use violetabft::evioletabftpb::MessageType;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::HandyRwLock;
 
 use test_violetabftstore::*;
 

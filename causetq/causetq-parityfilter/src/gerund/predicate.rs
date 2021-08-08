@@ -13,7 +13,7 @@ use embedded_promises::{
     MinkowskiSet,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     SchemaReplicant,
 };
 

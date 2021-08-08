@@ -6,8 +6,8 @@ use std::fmt::{self, Debug, Display, Formatter};
 use std::{i64, str};
 
 use crate::FieldTypeTp;
-use einsteindb_util::codec::BytesSlice;
-use einsteindb_util::escape;
+use einsteindb-prod_util::codec::BytesSlice;
+use einsteindb-prod_util::escape;
 
 use super::mysql::{
     self, parse_json_path_expr, Decimal, DecimalDecoder, DecimalEncoder, Duration, Json,

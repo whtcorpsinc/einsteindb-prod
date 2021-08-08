@@ -37,7 +37,7 @@ quick_error! {
         CAUSETName(name: String) {
             display("CAUSET {} not found", name)
         }
-        Codec(err: einsteindb_util::codec::Error) {
+        Codec(err: einsteindb-prod_util::codec::Error) {
             from()
             cause(err)
             display("Codec {}", err)

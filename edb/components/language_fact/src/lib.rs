@@ -12,7 +12,7 @@ extern crate failure;
 #[causet(test)]
 extern crate test;
 #[allow(unused_extern_crates)]
-extern crate einsteindb_alloc;
+extern crate einsteindb-prod_alloc;
 
 pub mod buffer;
 pub mod byte;

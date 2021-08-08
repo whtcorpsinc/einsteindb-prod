@@ -26,9 +26,9 @@ use ekvproto::fidelpb::{
     BraneHeartbeatRequest, BraneHeartbeatResponse, ResponseHeader,
 };
 use security::SecurityManager;
-use einsteindb_util::collections::HashSet;
-use einsteindb_util::timer::GLOBAL_TIMER_HANDLE;
-use einsteindb_util::{Either, HandyRwLock};
+use einsteindb-prod_util::collections::HashSet;
+use einsteindb-prod_util::timer::GLOBAL_TIMER_HANDLE;
+use einsteindb-prod_util::{Either, HandyRwLock};
 use tokio_timer::timer::Handle;
 
 use super::{ClusterVersion, Config, Error, FidelFuture, Result, REQUEST_TIMEOUT};

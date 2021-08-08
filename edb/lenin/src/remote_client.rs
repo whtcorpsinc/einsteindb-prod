@@ -15,7 +15,7 @@ use std;
 use futures::{future, Future, Stream};
 use hyper;
 // TODO: enable TLS support; hurdle is cross-compiling openssl for Android.
-// See https://github.com/whtcorpsinc/einsteindb/issues/569
+// See https://github.com/whtcorpsinc/einsteindb-prod/issues/569
 // use hyper_tls;
 use hyper::{
     Method,
@@ -26,7 +26,7 @@ use hyper::{
 use hyper::header::{
     ContentType,
 };
-// TODO: https://github.com/whtcorpsinc/einsteindb/issues/570
+// TODO: https://github.com/whtcorpsinc/einsteindb-prod/issues/570
 // use serde_cbor;
 use serde_json;
 use tokio_embedded::reactor::Core;
@@ -95,7 +95,7 @@ impl RemoteClient {
     // But for now, we get code duplication.
     fn get_uuid(&self, uri: String) -> Result<Uuid> {
         let mut embedded = Core::new()?;
-        // TODO https://github.com/whtcorpsinc/einsteindb/issues/569
+        // TODO https://github.com/whtcorpsinc/einsteindb-prod/issues/569
         // let client = hyper::Client::configure()
         //     .connector(hyper_tls::HttpsConnector::new(4, &embedded.handle()).unwrap())
         //     .build(&embedded.handle());
@@ -127,7 +127,7 @@ impl RemoteClient {
     fn put<T>(&self, uri: String, payload: T, expected: StatusCode) -> Result<()>
     where hyper::Body: std::convert::From<T>, {
         let mut embedded = Core::new()?;
-        // TODO https://github.com/whtcorpsinc/einsteindb/issues/569
+        // TODO https://github.com/whtcorpsinc/einsteindb-prod/issues/569
         // let client = hyper::Client::configure()
         //     .connector(hyper_tls::HttpsConnector::new(4, &embedded.handle()).unwrap())
         //     .build(&embedded.handle());
@@ -158,7 +158,7 @@ impl RemoteClient {
 
     fn get_bundles(&self, parent_uuid: &Uuid) -> Result<Vec<Uuid>> {
         let mut embedded = Core::new()?;
-        // TODO https://github.com/whtcorpsinc/einsteindb/issues/569
+        // TODO https://github.com/whtcorpsinc/einsteindb-prod/issues/569
         // let client = hyper::Client::configure()
         //     .connector(hyper_tls::HttpsConnector::new(4, &embedded.handle()).unwrap())
         //     .build(&embedded.handle());
@@ -191,7 +191,7 @@ impl RemoteClient {
 
     fn get_chunks(&self, transaction_uuid: &Uuid) -> Result<Vec<Uuid>> {
         let mut embedded = Core::new()?;
-        // TODO https://github.com/whtcorpsinc/einsteindb/issues/569
+        // TODO https://github.com/whtcorpsinc/einsteindb-prod/issues/569
         // let client = hyper::Client::configure()
         //     .connector(hyper_tls::HttpsConnector::new(4, &embedded.handle()).unwrap())
         //     .build(&embedded.handle());
@@ -224,7 +224,7 @@ impl RemoteClient {
 
     fn get_chunk(&self, chunk_uuid: &Uuid) -> Result<TxPart> {
         let mut embedded = Core::new()?;
-        // TODO https://github.com/whtcorpsinc/einsteindb/issues/569
+        // TODO https://github.com/whtcorpsinc/einsteindb-prod/issues/569
         // let client = hyper::Client::configure()
         //     .connector(hyper_tls::HttpsConnector::new(4, &embedded.handle()).unwrap())
         //     .build(&embedded.handle());

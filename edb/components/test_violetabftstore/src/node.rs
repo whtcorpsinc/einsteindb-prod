@@ -26,14 +26,14 @@ use violetabftstore::store::fsm::{VioletaBftBatchSystem, VioletaBftRouter};
 use violetabftstore::store::SnapManagerBuilder;
 use violetabftstore::store::*;
 use violetabftstore::Result;
-use einsteindb::config::{ConfigController, Module, EINSTEINDBConfig};
-use einsteindb::import::SSTImporter;
-use einsteindb::server::Node;
-use einsteindb::server::Result as ServerResult;
-use einsteindb_util::collections::{HashMap, HashSet};
-use einsteindb_util::config::VersionTrack;
-use einsteindb_util::time::ThreadReadId;
-use einsteindb_util::worker::{FutureWorker, Worker};
+use einsteindb-prod::config::{ConfigController, Module, EINSTEINDBConfig};
+use einsteindb-prod::import::SSTImporter;
+use einsteindb-prod::server::Node;
+use einsteindb-prod::server::Result as ServerResult;
+use einsteindb-prod_util::collections::{HashMap, HashSet};
+use einsteindb-prod_util::config::VersionTrack;
+use einsteindb-prod_util::time::ThreadReadId;
+use einsteindb-prod_util::worker::{FutureWorker, Worker};
 
 pub struct ChannelTransportCore {
     snap_paths: HashMap<u64, (SnapManager, TempDir)>,

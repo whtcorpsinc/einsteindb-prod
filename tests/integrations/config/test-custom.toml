@@ -92,7 +92,7 @@ lightlikepoints = [
 [metric]
 interval = "12s"
 address = "example.com:443"
-job = "einsteindb_1"
+job = "einsteindb-prod_1"
 
 [violetabftstore]
 sync-log = false
@@ -546,7 +546,7 @@ ca-path = "invalid path"
 cert-path = "invalid path"
 key-path = "invalid path"
 cert-allowed-cn = [
-    "example.einsteindb.com",
+    "example.einsteindb-prod.com",
 ]
 
 [security.encryption]

@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use test_interlock::*;
-use einsteindb::causetStorage::LmdbEngine;
+use einsteindb-prod::causetStorage::LmdbEngine;
 
 /// Builds a fixture Block, which contains two PrimaryCausets: id, foo and there is an index over
 /// `foo` PrimaryCauset.

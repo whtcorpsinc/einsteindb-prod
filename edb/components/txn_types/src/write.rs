@@ -5,7 +5,7 @@ use crate::timestamp::TimeStamp;
 use crate::types::{Value, SHORT_VALUE_MAX_LEN, SHORT_VALUE_PREFIX};
 use crate::{Error, ErrorInner, Result};
 use codec::prelude::NumberDecoder;
-use einsteindb_util::codec::number::{NumberEncoder, MAX_VAR_U64_LEN};
+use einsteindb-prod_util::codec::number::{NumberEncoder, MAX_VAR_U64_LEN};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum WriteType {

@@ -1,9 +1,9 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use grpcio::{ChannelBuilder, Environment};
-use ekvproto::{kvrpcpb::*, metapb, einsteindbpb::EINSTEINDBClient};
+use ekvproto::{kvrpcpb::*, metapb, einsteindb-prodpb::EINSTEINDBClient};
 use test_violetabftstore::*;
-use einsteindb_util::{collections::HashMap, HandyRwLock};
+use einsteindb-prod_util::{collections::HashMap, HandyRwLock};
 
 use std::sync::Arc;
 

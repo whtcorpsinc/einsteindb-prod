@@ -8,7 +8,7 @@ use futures::executor::block_on;
 use fidel_client::FidelClient;
 use violetabft::evioletabftpb::{ConfChangeType, MessageType};
 use test_violetabftstore::*;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::HandyRwLock;
 
 #[test]
 fn test_proposal_prevent_sleep() {

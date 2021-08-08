@@ -9,7 +9,7 @@ use ekvproto::kvrpcpb::Context;
 use violetabft::evioletabftpb::MessageType;
 
 use test_violetabftstore::*;
-use einsteindb_util::config::*;
+use einsteindb-prod_util::config::*;
 
 fn test_basic_transfer_leader<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.causet.violetabft_store.violetabft_heartbeat_ticks = 20;
@@ -166,7 +166,7 @@ fn test_server_transfer_leader_during_snapshot() {
 
 #[test]
 fn test_sync_max_ts_after_leader_transfer() {
-    use einsteindb::causetStorage::{Engine, Snapshot};
+    use einsteindb-prod::causetStorage::{Engine, Snapshot};
 
     let mut cluster = new_server_cluster(0, 3);
     cluster.causet.violetabft_store.violetabft_heartbeat_ticks = 20;

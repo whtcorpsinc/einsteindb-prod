@@ -20,12 +20,12 @@ use embedded_promises::{
     MinkowskiSet,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     SQLMinkowskiValueType,
     SQLMinkowskiSet,
 };
 
-use einsteindb_embedded::util::{
+use einsteindb-prod_embedded::util::{
     Either,
 };
 
@@ -35,7 +35,7 @@ use edbn::causetq::{
     ToUpper,
 };
 
-use einsteindb_causetq_parityfilter::{
+use einsteindb-prod_causetq_parityfilter::{
     AlgebraicCausetQ,
     CausetIndexName,
     ConjoiningGerunds,
@@ -44,7 +44,7 @@ use einsteindb_causetq_parityfilter::{
 };
 
 
-use einsteindb_causetq_sql::{
+use einsteindb-prod_causetq_sql::{
     CausetIndexOrExpression,
     GroupBy,
     Name,

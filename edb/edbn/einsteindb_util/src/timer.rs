@@ -88,7 +88,7 @@ fn spacelike_global_timer() -> Handle {
     Builder::new()
         .name(thd_name!("timer"))
         .spawn(move || {
-            einsteindb_alloc::add_thread_memory_accessor();
+            einsteindb-prod_alloc::add_thread_memory_accessor();
             let mut timer = tokio_timer::Timer::default();
             tx.lightlike(timer.handle()).unwrap();
             loop {

@@ -1084,92 +1084,92 @@ pub fn flush_engine_properties(engine: &DB, name: &str, shared_block_cache: bool
 #[rustfmt::skip]
 lazy_static! {
     pub static ref STORE_ENGINE_SIZE_GAUGE_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_size_bytes",
+        "einsteindb-prod_engine_size_bytes",
         "Sizes of each PrimaryCauset families",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOCK_CACHE_USAGE_GAUGE_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_block_cache_size_bytes",
+        "einsteindb-prod_engine_block_cache_size_bytes",
         "Usage of each PrimaryCauset families' block cache",
         &["db", "causet"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOB_CACHE_USAGE_GAUGE_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_blob_cache_size_bytes",
+        "einsteindb-prod_engine_blob_cache_size_bytes",
         "Usage of each PrimaryCauset families' blob cache",
         &["db", "causet"]
     ).unwrap();
     pub static ref STORE_ENGINE_MEMORY_GAUGE_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_memory_bytes",
+        "einsteindb-prod_engine_memory_bytes",
         "Sizes of each PrimaryCauset families",
         &["db", "causet", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_ESTIMATE_NUM_KEYS_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_estimate_num_tuplespaceInstanton",
+        "einsteindb-prod_engine_estimate_num_tuplespaceInstanton",
         "Estimate num tuplespaceInstanton of each PrimaryCauset families",
         &["db", "causet"]
     ).unwrap();
     pub static ref STORE_ENGINE_PENDING_COMPACTION_BYTES_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_plightlikeing_compaction_bytes",
+        "einsteindb-prod_engine_plightlikeing_compaction_bytes",
         "Plightlikeing compaction bytes",
         &["db", "causet"]
     ).unwrap();
     pub static ref STORE_ENGINE_COMPRESSION_RATIO_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_compression_ratio",
+        "einsteindb-prod_engine_compression_ratio",
         "Compression ratio at different levels",
         &["db", "causet", "level"]
     ).unwrap();
     pub static ref STORE_ENGINE_NUM_FILES_AT_LEVEL_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_num_files_at_level",
+        "einsteindb-prod_engine_num_files_at_level",
         "Number of files at each level",
         &["db", "causet", "level"]
     ).unwrap();
     pub static ref STORE_ENGINE_NUM_SNAPSHOTS_GAUGE_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_num_snapshots",
+        "einsteindb-prod_engine_num_snapshots",
         "Number of unreleased snapshots",
         &["db"]
     ).unwrap();
     pub static ref STORE_ENGINE_OLDEST_SNAPSHOT_DURATION_GAUGE_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_oldest_snapshot_duration",
+        "einsteindb-prod_engine_oldest_snapshot_duration",
         "Oldest unreleased snapshot duration in seconds",
         &["db"]
     ).unwrap();
     pub static ref STORE_ENGINE_WRITE_STALL_REASON_GAUGE_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_write_stall_reason",
-        "QPS of each reason which cause einsteindb write stall",
+        "einsteindb-prod_engine_write_stall_reason",
+        "QPS of each reason which cause einsteindb-prod write stall",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_TITANDB_NUM_BLOB_FILES_AT_LEVEL_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_titandb_num_blob_files_at_level",
+        "einsteindb-prod_engine_titandb_num_blob_files_at_level",
         "Number of blob files at each level",
         &["db", "causet", "level"]
     ).unwrap();
     pub static ref STORE_ENGINE_TITANDB_LIVE_BLOB_SIZE_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_titandb_live_blob_size",
+        "einsteindb-prod_engine_titandb_live_blob_size",
         "Total titan blob value size referenced by LSM tree",
         &["db", "causet"]
     ).unwrap();
     pub static ref STORE_ENGINE_TITANDB_NUM_LIVE_BLOB_FILE_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_titandb_num_live_blob_file",
+        "einsteindb-prod_engine_titandb_num_live_blob_file",
         "Number of live blob file",
         &["db", "causet"]
     ).unwrap();
     pub static ref STORE_ENGINE_TITANDB_NUM_OBSOLETE_BLOB_FILE_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_titandb_num_obsolete_blob_file",
+        "einsteindb-prod_engine_titandb_num_obsolete_blob_file",
         "Number of obsolete blob file",
         &["db", "causet"]
     ).unwrap();
     pub static ref STORE_ENGINE_TITANDB_LIVE_BLOB_FILE_SIZE_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_titandb_live_blob_file_size",
+        "einsteindb-prod_engine_titandb_live_blob_file_size",
         "Size of live blob file",
         &["db", "causet"]
     ).unwrap();
     pub static ref STORE_ENGINE_TITANDB_OBSOLETE_BLOB_FILE_SIZE_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_titandb_obsolete_blob_file_size",
+        "einsteindb-prod_engine_titandb_obsolete_blob_file_size",
         "Size of obsolete blob file",
         &["db", "causet"]
     ).unwrap();
     pub static ref STORE_ENGINE_TITANDB_BLOB_FILE_DISCARDABLE_RATIO_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_titandb_blob_file_discardable_ratio",
+        "einsteindb-prod_engine_titandb_blob_file_discardable_ratio",
         "Size of obsolete blob file",
         &["db", "causet", "ratio"]
     ).unwrap();
@@ -1179,7 +1179,7 @@ lazy_static! {
 #[rustfmt::skip]
 lazy_static! {
     pub static ref STORE_ENGINE_CACHE_EFFICIENCY_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_cache_efficiency",
+        "einsteindb-prod_engine_cache_efficiency",
         "Efficiency of lmdb's block cache",
         &["db", "type"]
     ).unwrap();
@@ -1187,7 +1187,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_CACHE_EFFICIENCY_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_MEMBlock_EFFICIENCY_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_memBlock_efficiency",
+        "einsteindb-prod_engine_memBlock_efficiency",
         "Hit and miss of memBlock",
         &["db", "type"]
     ).unwrap();
@@ -1195,7 +1195,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_MEMBlock_EFFICIENCY_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_GET_SERVED_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_get_served",
+        "einsteindb-prod_engine_get_served",
         "Get queries served by engine",
         &["db", "type"]
     ).unwrap();
@@ -1203,7 +1203,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_GET_SERVED_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_WRITE_SERVED_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_write_served",
+        "einsteindb-prod_engine_write_served",
         "Write queries served by engine",
         &["db", "type"]
     ).unwrap();
@@ -1211,7 +1211,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_WRITE_SERVED_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_BLOOM_EFFICIENCY_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_bloom_efficiency",
+        "einsteindb-prod_engine_bloom_efficiency",
         "Efficiency of lmdb's bloom filter",
         &["db", "type"]
     ).unwrap();
@@ -1219,7 +1219,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_BLOOM_EFFICIENCY_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_FLOW_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_flow_bytes",
+        "einsteindb-prod_engine_flow_bytes",
         "Bytes and tuplespaceInstanton of read/written",
         &["db", "type"]
     ).unwrap();
@@ -1227,7 +1227,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_FLOW_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_STALL_MICROS_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_stall_micro_seconds",
+        "einsteindb-prod_engine_stall_micro_seconds",
         "Stall micros",
         &["db"]
     ).unwrap();
@@ -1235,7 +1235,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_STALL_MICROS_VEC, SimpleEngineTickerMetrics);
 
     pub static ref STORE_ENGINE_COMPACTION_FLOW_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_compaction_flow_bytes",
+        "einsteindb-prod_engine_compaction_flow_bytes",
         "Bytes of read/written during compaction",
         &["db", "type"]
     ).unwrap();
@@ -1243,7 +1243,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_COMPACTION_FLOW_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_COMPACTION_DROP_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_compaction_key_drop",
+        "einsteindb-prod_engine_compaction_key_drop",
         "Count the reasons for key drop during compaction",
         &["db", "type"]
     ).unwrap();
@@ -1251,23 +1251,23 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_COMPACTION_DROP_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_COMPACTION_DURATIONS_VEC: HistogramVec = register_histogram_vec!(
-        "einsteindb_engine_compaction_duration_seconds",
+        "einsteindb-prod_engine_compaction_duration_seconds",
         "Histogram of compaction duration seconds",
         &["db", "causet"],
         exponential_buckets(0.005, 2.0, 20).unwrap()
     ).unwrap();
     pub static ref STORE_ENGINE_COMPACTION_NUM_CORRUPT_KEYS_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_compaction_num_corrupt_tuplespaceInstanton",
+        "einsteindb-prod_engine_compaction_num_corrupt_tuplespaceInstanton",
         "Number of corrupt tuplespaceInstanton during compaction",
         &["db", "causet"]
     ).unwrap();
     pub static ref STORE_ENGINE_COMPACTION_REASON_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_compaction_reason",
+        "einsteindb-prod_engine_compaction_reason",
         "Number of compaction reason",
         &["db", "causet", "reason"]
     ).unwrap();
     pub static ref STORE_ENGINE_LOCATE_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_locate",
+        "einsteindb-prod_engine_locate",
         "Number of calls to seek/next/prev",
         &["db", "type"]
     ).unwrap();
@@ -1275,7 +1275,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_LOCATE_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_FILE_STATUS_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_file_status",
+        "einsteindb-prod_engine_file_status",
         "Number of different status of files",
         &["db", "type"]
     ).unwrap();
@@ -1283,7 +1283,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_FILE_STATUS_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_READ_AMP_FLOW_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_read_amp_flow_bytes",
+        "einsteindb-prod_engine_read_amp_flow_bytes",
         "Bytes of read amplification",
         &["db", "type"]
     ).unwrap();
@@ -1291,12 +1291,12 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_READ_AMP_FLOW_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_NO_ITERATORS: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_no_Iteron",
+        "einsteindb-prod_engine_no_Iteron",
         "Number of Iterons currently open",
         &["db"]
     ).unwrap();
     pub static ref STORE_ENGINE_WAL_FILE_SYNCED_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_wal_file_synced",
+        "einsteindb-prod_engine_wal_file_synced",
         "Number of times WAL sync is done",
         &["db"]
     ).unwrap();
@@ -1304,17 +1304,17 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_WAL_FILE_SYNCED_VEC, SimpleEngineTickerMetrics);
 
     pub static ref STORE_ENGINE_EVENT_COUNTER_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_event_total",
+        "einsteindb-prod_engine_event_total",
         "Number of engine events",
         &["db", "causet", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_NUM_IMMUBlock_MEM_Block_VEC: IntGaugeVec = register_int_gauge_vec!(
-        "einsteindb_engine_num_immuBlock_mem_Block",
+        "einsteindb-prod_engine_num_immuBlock_mem_Block",
         "Number of immuBlock mem-Block",
         &["db", "causet"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOB_LOCATE_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_blob_locate",
+        "einsteindb-prod_engine_blob_locate",
         "Number of calls to titan blob seek/next/prev",
         &["db", "type"]
     ).unwrap();
@@ -1322,7 +1322,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_BLOB_LOCATE_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_BLOB_FLOW_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_blob_flow_bytes",
+        "einsteindb-prod_engine_blob_flow_bytes",
         "Bytes and tuplespaceInstanton of titan blob read/written",
         &["db", "type"]
     ).unwrap();
@@ -1330,7 +1330,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_BLOB_FLOW_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_BLOB_GC_FLOW_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_blob_gc_flow_bytes",
+        "einsteindb-prod_engine_blob_gc_flow_bytes",
         "Bytes and tuplespaceInstanton of titan blob gc read/written",
         &["db", "type"]
     ).unwrap();
@@ -1338,7 +1338,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_BLOB_GC_FLOW_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_BLOB_GC_FILE_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_blob_gc_file_count",
+        "einsteindb-prod_engine_blob_gc_file_count",
         "Number of blob file involved in titan blob gc",
         &["db", "type"]
     ).unwrap();
@@ -1346,7 +1346,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_BLOB_GC_FILE_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_BLOB_GC_ACTION_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_blob_gc_action_count",
+        "einsteindb-prod_engine_blob_gc_action_count",
         "Number of actions of titan gc",
         &["db", "type"]
     ).unwrap();
@@ -1354,7 +1354,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_BLOB_GC_ACTION_VEC, EngineTickerMetrics);
 
     pub static ref STORE_ENGINE_BLOB_FILE_SYNCED_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_blob_file_synced",
+        "einsteindb-prod_engine_blob_file_synced",
         "Number of times titan blob file sync is done",
         &["db"]
     ).unwrap();
@@ -1362,7 +1362,7 @@ lazy_static! {
         auto_flush_from!(STORE_ENGINE_BLOB_FILE_SYNCED_VEC, SimpleEngineTickerMetrics); 
     
     pub static ref STORE_ENGINE_BLOB_CACHE_EFFICIENCY_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_engine_blob_cache_efficiency",
+        "einsteindb-prod_engine_blob_cache_efficiency",
         "Efficiency of titan's blob cache",
         &["db", "type"]
     ).unwrap();
@@ -1374,187 +1374,187 @@ lazy_static! {
 #[rustfmt::skip]
 lazy_static! {
     pub static ref STORE_ENGINE_GET_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_get_micro_seconds",
+        "einsteindb-prod_engine_get_micro_seconds",
         "Histogram of get micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_WRITE_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_write_micro_seconds",
+        "einsteindb-prod_engine_write_micro_seconds",
         "Histogram of write micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_COMPACTION_TIME_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_compaction_time",
+        "einsteindb-prod_engine_compaction_time",
         "Histogram of compaction time",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_Block_SYNC_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_Block_sync_micro_seconds",
+        "einsteindb-prod_engine_Block_sync_micro_seconds",
         "Histogram of Block sync micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_COMPACTION_OUTFILE_SYNC_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_compaction_outfile_sync_micro_seconds",
+        "einsteindb-prod_engine_compaction_outfile_sync_micro_seconds",
         "Histogram of compaction outfile sync micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_MANIFEST_FILE_SYNC_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_manifest_file_sync_micro_seconds",
+        "einsteindb-prod_engine_manifest_file_sync_micro_seconds",
         "Histogram of manifest file sync micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_WAL_FILE_SYNC_MICROS_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_wal_file_sync_micro_seconds",
+        "einsteindb-prod_engine_wal_file_sync_micro_seconds",
         "Histogram of WAL file sync micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_STALL_L0_SLOWDOWN_COUNT_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_stall_l0_slowdown_count",
+        "einsteindb-prod_engine_stall_l0_slowdown_count",
         "Histogram of stall l0 slowdown count",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_STALL_MEMBlock_COMPACTION_COUNT_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_stall_memBlock_compaction_count",
+        "einsteindb-prod_engine_stall_memBlock_compaction_count",
         "Histogram of stall memBlock compaction count",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_STALL_L0_NUM_FILES_COUNT_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_stall_l0_num_files_count",
+        "einsteindb-prod_engine_stall_l0_num_files_count",
         "Histogram of stall l0 num files count",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_HARD_RATE_LIMIT_DELAY_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_hard_rate_limit_delay_count",
+        "einsteindb-prod_engine_hard_rate_limit_delay_count",
         "Histogram of hard rate limit delay count",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_SOFT_RATE_LIMIT_DELAY_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_soft_rate_limit_delay_count",
+        "einsteindb-prod_engine_soft_rate_limit_delay_count",
         "Histogram of soft rate limit delay count",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_NUM_FILES_IN_SINGLE_COMPACTION_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_num_files_in_single_compaction",
+        "einsteindb-prod_engine_num_files_in_single_compaction",
         "Histogram of number of files in single compaction",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_SEEK_MICROS_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_seek_micro_seconds",
+        "einsteindb-prod_engine_seek_micro_seconds",
         "Histogram of seek micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_WRITE_STALL_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_write_stall",
+        "einsteindb-prod_engine_write_stall",
         "Histogram of write stall",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_SST_READ_MICROS_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_sst_read_micros",
+        "einsteindb-prod_engine_sst_read_micros",
         "Histogram of SST read micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_NUM_SUBCOMPACTION_SCHEDULED_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_num_subcompaction_scheduled",
+        "einsteindb-prod_engine_num_subcompaction_scheduled",
         "Histogram of number of subcompaction scheduled",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BYTES_PER_READ_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_bytes_per_read",
+        "einsteindb-prod_engine_bytes_per_read",
         "Histogram of bytes per read",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BYTES_PER_WRITE_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_bytes_per_write",
+        "einsteindb-prod_engine_bytes_per_write",
         "Histogram of bytes per write",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BYTES_COMPRESSED_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_bytes_compressed",
+        "einsteindb-prod_engine_bytes_compressed",
         "Histogram of bytes compressed",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BYTES_DECOMPRESSED_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_bytes_decompressed",
+        "einsteindb-prod_engine_bytes_decompressed",
         "Histogram of bytes decompressed",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_COMPRESSION_TIMES_NANOS_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_compression_time_nanos",
+        "einsteindb-prod_engine_compression_time_nanos",
         "Histogram of compression time nanos",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_DECOMPRESSION_TIMES_NANOS_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_decompression_time_nanos",
+        "einsteindb-prod_engine_decompression_time_nanos",
         "Histogram of decompression time nanos",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_WRITE_WAL_TIME_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_write_wal_time_micro_seconds",
+        "einsteindb-prod_engine_write_wal_time_micro_seconds",
         "Histogram of write wal micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOB_KEY_SIZE_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_blob_key_size",
+        "einsteindb-prod_engine_blob_key_size",
         "Histogram of titan blob key size",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOB_VALUE_SIZE_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_blob_value_size",
+        "einsteindb-prod_engine_blob_value_size",
         "Histogram of titan blob value size",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOB_GET_MICROS_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_blob_get_micros_seconds",
+        "einsteindb-prod_engine_blob_get_micros_seconds",
         "Histogram of titan blob read micros for calling get",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOB_SEEK_MICROS_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_blob_seek_micros_seconds",
+        "einsteindb-prod_engine_blob_seek_micros_seconds",
         "Histogram of titan blob read micros for calling seek",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOB_NEXT_MICROS_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_blob_next_micros_seconds",
+        "einsteindb-prod_engine_blob_next_micros_seconds",
         "Histogram of titan blob read micros for calling next",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOB_PREV_MICROS_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_blob_prev_micros_seconds",
+        "einsteindb-prod_engine_blob_prev_micros_seconds",
         "Histogram of titan blob read micros for calling prev",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOB_FILE_WRITE_MICROS_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_blob_file_write_micros_seconds",
+        "einsteindb-prod_engine_blob_file_write_micros_seconds",
         "Histogram of titan blob file write micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOB_FILE_READ_MICROS_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_blob_file_read_micros_seconds",
+        "einsteindb-prod_engine_blob_file_read_micros_seconds",
         "Histogram of titan blob file read micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOB_FILE_SYNC_MICROS_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_blob_file_sync_micros_seconds",
+        "einsteindb-prod_engine_blob_file_sync_micros_seconds",
         "Histogram of titan blob file sync micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_BLOB_GC_MICROS_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_blob_gc_micros_seconds",
+        "einsteindb-prod_engine_blob_gc_micros_seconds",
         "Histogram of titan blob gc micros",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_GC_INPUT_BLOB_FILE_SIZE_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_blob_gc_input_file",
+        "einsteindb-prod_engine_blob_gc_input_file",
         "Histogram of titan blob gc input file size",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_GC_OUTPUT_BLOB_FILE_SIZE_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_blob_gc_output_file",
+        "einsteindb-prod_engine_blob_gc_output_file",
         "Histogram of titan blob gc output file size",
         &["db", "type"]
     ).unwrap();
     pub static ref STORE_ENGINE_ITER_TOUCH_BLOB_FILE_COUNT_VEC: GaugeVec = register_gauge_vec!(
-        "einsteindb_engine_blob_iter_touch_blob_file_count",
+        "einsteindb-prod_engine_blob_iter_touch_blob_file_count",
         "Histogram of titan iter touched blob file count",
         &["db", "type"]
     ).unwrap();

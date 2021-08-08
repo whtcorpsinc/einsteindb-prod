@@ -16,8 +16,8 @@ use std::sync::mpsc;
 use std::sync::Arc;
 use std::time::Duration;
 use test_violetabftstore::*;
-use einsteindb_util::config::ReadableDuration;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::config::ReadableDuration;
+use einsteindb-prod_util::HandyRwLock;
 
 #[test]
 fn test_observe_duplicate_cmd() {

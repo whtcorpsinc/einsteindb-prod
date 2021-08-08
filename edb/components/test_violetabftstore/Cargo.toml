@@ -13,7 +13,7 @@ protobuf-codec = [
   "fidel_client/protobuf-codec",
   "violetabft/protobuf-codec",
   "violetabftstore/protobuf-codec",
-  "einsteindb/protobuf-codec",
+  "einsteindb-prod/protobuf-codec",
 ]
 prost-codec = [
   "engine_lmdb/prost-codec",
@@ -23,7 +23,7 @@ prost-codec = [
   "fidel_client/prost-codec",
   "violetabft/prost-codec",
   "violetabftstore/prost-codec",
-  "einsteindb/prost-codec",
+  "einsteindb-prod/prost-codec",
 ]
 
 [deplightlikeencies]
@@ -46,8 +46,8 @@ slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debu
 slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global.git", rev = "0e23a5baff302a9d7bccd85f8f31e43339c2f2c1" }
 tempfile = "3.0"
 test_util = { path = "../test_util" }
-einsteindb = { path = "../../", default-features = false }
-einsteindb_util = { path = "../einsteindb_util" }
+einsteindb-prod = { path = "../../", default-features = false }
+einsteindb-prod_util = { path = "../einsteindb-prod_util" }
 tokio-threadpool = "0.1"
 tokio-timer = "0.2"
 txn_types = { path = "../txn_types" }

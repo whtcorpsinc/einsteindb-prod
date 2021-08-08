@@ -4,9 +4,9 @@ use concurrency_manager::ConcurrencyManager;
 use criterion::{black_box, BatchSize, Bencher, Criterion};
 use ekvproto::kvrpcpb::Context;
 use test_util::KvGenerator;
-use einsteindb::causetStorage::kv::{Engine, WriteData};
-use einsteindb::causetStorage::tail_pointer::{self, MvccReader, MvccTxn};
-use einsteindb::causetStorage::txn::commit;
+use einsteindb-prod::causetStorage::kv::{Engine, WriteData};
+use einsteindb-prod::causetStorage::tail_pointer::{self, MvccReader, MvccTxn};
+use einsteindb-prod::causetStorage::txn::commit;
 use txn_types::{Key, Mutation, TimeStamp};
 
 use super::{BenchConfig, EngineFactory, DEFAULT_ITERATIONS, DEFAULT_KV_GENERATOR_SEED};

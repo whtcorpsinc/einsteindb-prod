@@ -11,7 +11,7 @@ use milevadb_query_datatype::expr::EvalConfig;
 use milevadb_query_normal_executors::{FreeDaemon, StreamAggFreeDaemon};
 use milevadb_query_vec_executors::interface::BatchFreeDaemon;
 use milevadb_query_vec_executors::BatchStreamAggregationFreeDaemon;
-use einsteindb::causetStorage::Statistics;
+use einsteindb-prod::causetStorage::Statistics;
 
 use crate::util::bencher::Bencher;
 use crate::util::executor_descriptor::stream_aggregate;

@@ -70,7 +70,7 @@ mod tests {
     use milevadb_query_datatype::codec::datum;
     use milevadb_query_datatype::codec::datum::Datum;
     use milevadb_query_datatype::expr::EvalContext;
-    use einsteindb_util::collections::HashMap;
+    use einsteindb-prod_util::collections::HashMap;
 
     impl CmSketch {
         fn query(&self, bytes: &[u8]) -> u32 {

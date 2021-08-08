@@ -21,27 +21,27 @@ use ekvproto::backup::*;
 use ekvproto::import_sstpb::*;
 use ekvproto::kvrpcpb::*;
 use ekvproto::violetabft_cmdpb::{CmdType, VioletaBftCmdRequest, VioletaBftRequestHeader, Request};
-use ekvproto::einsteindbpb::EINSTEINDBClient;
+use ekvproto::einsteindb-prodpb::EINSTEINDBClient;
 use fidel_client::FidelClient;
 use tempfile::Builder;
 use test_violetabftstore::*;
 use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
 use milevadb_query_common::causetStorage::{IntervalCone, Cone};
-use einsteindb::config::BackupConfig;
-use einsteindb::interlock::checksum_crc64_xor;
-use einsteindb::interlock::posetdag::EinsteinDBStorage;
-use einsteindb::causetStorage::kv::Engine;
-use einsteindb::causetStorage::SnapshotStore;
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::file::calc_crc32_bytes;
-use einsteindb_util::worker::Worker;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod::config::BackupConfig;
+use einsteindb-prod::interlock::checksum_crc64_xor;
+use einsteindb-prod::interlock::posetdag::EinsteinDBStorage;
+use einsteindb-prod::causetStorage::kv::Engine;
+use einsteindb-prod::causetStorage::SnapshotStore;
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::file::calc_crc32_bytes;
+use einsteindb-prod_util::worker::Worker;
+use einsteindb-prod_util::HandyRwLock;
 use txn_types::TimeStamp;
 
 struct TestSuite {
     cluster: Cluster<ServerCluster>,
     lightlikepoints: HashMap<u64, Worker<Task>>,
-    einsteindb_cli: EINSTEINDBClient,
+    einsteindb-prod_cli: EINSTEINDBClient,
     context: Context,
     ts: TimeStamp,
 
@@ -108,12 +108,12 @@ impl TestSuite {
 
         let env = Arc::new(Environment::new(1));
         let channel = ChannelBuilder::new(env.clone()).connect(&leader_addr);
-        let einsteindb_cli = EINSTEINDBClient::new(channel);
+        let einsteindb-prod_cli = EINSTEINDBClient::new(channel);
 
         TestSuite {
             cluster,
             lightlikepoints,
-            einsteindb_cli,
+            einsteindb-prod_cli,
             context,
             ts: TimeStamp::zero(),
             _env: env,
@@ -137,9 +137,9 @@ impl TestSuite {
         request.set_key(k);
         request.set_value(v);
         request.set_causet(causet);
-        let mut response = self.einsteindb_cli.raw_put(&request).unwrap();
+        let mut response = self.einsteindb-prod_cli.raw_put(&request).unwrap();
         retry_req!(
-            self.einsteindb_cli.raw_put(&request).unwrap(),
+            self.einsteindb-prod_cli.raw_put(&request).unwrap(),
             !response.has_brane_error() && response.error.is_empty(),
             response,
             10,   // retry 10 times
@@ -160,9 +160,9 @@ impl TestSuite {
         prewrite_req.primary_lock = pk;
         prewrite_req.spacelike_version = ts.into_inner();
         prewrite_req.lock_ttl = prewrite_req.spacelike_version + 1;
-        let mut prewrite_resp = self.einsteindb_cli.kv_prewrite(&prewrite_req).unwrap();
+        let mut prewrite_resp = self.einsteindb-prod_cli.kv_prewrite(&prewrite_req).unwrap();
         retry_req!(
-            self.einsteindb_cli.kv_prewrite(&prewrite_req).unwrap(),
+            self.einsteindb-prod_cli.kv_prewrite(&prewrite_req).unwrap(),
             !prewrite_resp.has_brane_error() && prewrite_resp.errors.is_empty(),
             prewrite_resp,
             10,   // retry 10 times
@@ -186,9 +186,9 @@ impl TestSuite {
         commit_req.spacelike_version = spacelike_ts.into_inner();
         commit_req.set_tuplespaceInstanton(tuplespaceInstanton.into_iter().collect());
         commit_req.commit_version = commit_ts.into_inner();
-        let mut commit_resp = self.einsteindb_cli.kv_commit(&commit_req).unwrap();
+        let mut commit_resp = self.einsteindb-prod_cli.kv_commit(&commit_req).unwrap();
         retry_req!(
-            self.einsteindb_cli.kv_commit(&commit_req).unwrap(),
+            self.einsteindb-prod_cli.kv_commit(&commit_req).unwrap(),
             !commit_resp.has_brane_error() && !commit_resp.has_error(),
             commit_resp,
             10,   // retry 10 times

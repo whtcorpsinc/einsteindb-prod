@@ -19,17 +19,17 @@ use ekvproto::metapb::*;
 use violetabft::StateRole;
 use violetabftstore::interlock::BraneInfoProvider;
 use violetabftstore::store::util::find_peer;
-use einsteindb::config::BackupConfig;
-use einsteindb::causetStorage::kv::{Engine, ScanMode, Snapshot};
-use einsteindb::causetStorage::tail_pointer::Error as MvccError;
-use einsteindb::causetStorage::txn::{
+use einsteindb-prod::config::BackupConfig;
+use einsteindb-prod::causetStorage::kv::{Engine, ScanMode, Snapshot};
+use einsteindb-prod::causetStorage::tail_pointer::Error as MvccError;
+use einsteindb-prod::causetStorage::txn::{
     EntryBatch, Error as TxnError, SnapshotStore, TxnEntryScanner, TxnEntryStore,
 };
-use einsteindb::causetStorage::Statistics;
-use einsteindb_util::threadpool::{DefaultContext, ThreadPool, ThreadPoolBuilder};
-use einsteindb_util::time::Limiter;
-use einsteindb_util::timer::Timer;
-use einsteindb_util::worker::{Runnable, RunnableWithTimer};
+use einsteindb-prod::causetStorage::Statistics;
+use einsteindb-prod_util::threadpool::{DefaultContext, ThreadPool, ThreadPoolBuilder};
+use einsteindb-prod_util::time::Limiter;
+use einsteindb-prod_util::timer::Timer;
+use einsteindb-prod_util::worker::{Runnable, RunnableWithTimer};
 use txn_types::{Key, Dagger, TimeStamp};
 
 use crate::metrics::*;
@@ -654,7 +654,7 @@ impl<E: Engine, R: BraneInfoProvider> node<E, R> {
                 return;
             }
 
-            einsteindb_alloc::add_thread_memory_accessor();
+            einsteindb-prod_alloc::add_thread_memory_accessor();
 
             // CausetStorage backlightlike has been checked in `Task::new()`.
             let backlightlike = create_causetStorage(&request.backlightlike).unwrap();
@@ -675,7 +675,7 @@ impl<E: Engine, R: BraneInfoProvider> node<E, R> {
                     } else {
                         k.into_raw().unwrap()
                     };
-                    einsteindb_util::file::sha256(&input).ok().map(|b| hex::encode(b))
+                    einsteindb-prod_util::file::sha256(&input).ok().map(|b| hex::encode(b))
                 });
                 let name = backup_file_name(store_id, &bcone.brane, key);
                 let ct = to_sst_compression_type(request.compression_type);
@@ -753,7 +753,7 @@ impl<E: Engine, R: BraneInfoProvider> node<E, R> {
                 }
             }
 
-            einsteindb_alloc::remove_thread_memory_accessor();
+            einsteindb-prod_alloc::remove_thread_memory_accessor();
         });
     }
 
@@ -903,10 +903,10 @@ pub mod tests {
     use violetabftstore::store::util::new_peer;
     use std::thread;
     use tempfile::TempDir;
-    use einsteindb::causetStorage::tail_pointer::tests::*;
-    use einsteindb::causetStorage::txn::tests::must_commit;
-    use einsteindb::causetStorage::{LmdbEngine, TestEngineBuilder};
-    use einsteindb_util::time::Instant;
+    use einsteindb-prod::causetStorage::tail_pointer::tests::*;
+    use einsteindb-prod::causetStorage::txn::tests::must_commit;
+    use einsteindb-prod::causetStorage::{LmdbEngine, TestEngineBuilder};
+    use einsteindb-prod_util::time::Instant;
     use txn_types::SHORT_VALUE_MAX_LEN;
 
     #[derive(Clone)]
@@ -1396,7 +1396,7 @@ pub mod tests {
         let lightlikepoint = Arc::new(Mutex::new(lightlikepoint));
         let interlock_semaphore = {
             let lightlikepoint = lightlikepoint.clone();
-            let (tx, rx) = einsteindb_util::mpsc::unbounded();
+            let (tx, rx) = einsteindb-prod_util::mpsc::unbounded();
             thread::spawn(move || loop {
                 let tick_time = backup_timer.next_timeout().unwrap();
                 let timeout = tick_time.checked_sub(Instant::now()).unwrap_or_default();

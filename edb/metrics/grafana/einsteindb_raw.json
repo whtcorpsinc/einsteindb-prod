@@ -105,7 +105,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb-prod_interlock_semaphore_command_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 1,
               "leglightlikeFormat": "99%",
@@ -114,14 +114,14 @@
               "type": "timeserie"
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb-prod_interlock_semaphore_command_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 1,
               "leglightlikeFormat": "95%",
               "refId": "B"
             },
             {
-              "expr": "sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_sum{instance=~\"$instance\", type=~\"$command\"}[1m])) / sum(rate(einsteindb_interlock_semaphore_command_duration_seconds_count{instance=~\"$instance\", type=~\"$command\"}[1m])) ",
+              "expr": "sum(rate(einsteindb-prod_interlock_semaphore_command_duration_seconds_sum{instance=~\"$instance\", type=~\"$command\"}[1m])) / sum(rate(einsteindb-prod_interlock_semaphore_command_duration_seconds_count{instance=~\"$instance\", type=~\"$command\"}[1m])) ",
               "format": "time_series",
               "intervalFactor": 1,
               "leglightlikeFormat": "avg",
@@ -215,7 +215,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb_interlock_semaphore_processing_read_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(einsteindb-prod_interlock_semaphore_processing_read_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 1,
               "leglightlikeFormat": "99%",
@@ -224,14 +224,14 @@
               "type": "timeserie"
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb_interlock_semaphore_processing_read_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(einsteindb-prod_interlock_semaphore_processing_read_duration_seconds_bucket{instance=~\"$instance\", type=~\"$command\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 1,
               "leglightlikeFormat": "95%",
               "refId": "B"
             },
             {
-              "expr": "sum(rate(einsteindb_interlock_semaphore_processing_read_duration_seconds_sum{instance=~\"$instance\", type=~\"$command\"}[1m])) / sum(rate(einsteindb_interlock_semaphore_processing_read_duration_seconds_count{instance=~\"$instance\", type=~\"$command\"}[1m]))",
+              "expr": "sum(rate(einsteindb-prod_interlock_semaphore_processing_read_duration_seconds_sum{instance=~\"$instance\", type=~\"$command\"}[1m])) / sum(rate(einsteindb-prod_interlock_semaphore_processing_read_duration_seconds_count{instance=~\"$instance\", type=~\"$command\"}[1m]))",
               "format": "time_series",
               "intervalFactor": 1,
               "leglightlikeFormat": "avg",
@@ -295,14 +295,14 @@
         "allValue": null,
         "current": {},
         "datasource": "${DS_TEST-CLUSTER}",
-        "definition": "label_values(einsteindb_causetStorage_command_total, type)",
+        "definition": "label_values(einsteindb-prod_causetStorage_command_total, type)",
         "hide": 0,
         "includeAll": true,
         "label": "command",
         "multi": true,
         "name": "command",
         "options": [],
-        "query": "label_values(einsteindb_causetStorage_command_total, type)",
+        "query": "label_values(einsteindb-prod_causetStorage_command_total, type)",
         "refresh": 1,
         "regex": "raw_get|raw_scan|raw_batch_get|raw_batch_scan",
         "skipUrlSync": false,
@@ -317,14 +317,14 @@
         "allValue": null,
         "current": {},
         "datasource": "${DS_TEST-CLUSTER}",
-        "definition": "label_values(einsteindb_engine_size_bytes, instance)",
+        "definition": "label_values(einsteindb-prod_engine_size_bytes, instance)",
         "hide": 0,
         "includeAll": true,
         "label": "instance",
         "multi": true,
         "name": "instance",
         "options": [],
-        "query": "label_values(einsteindb_engine_size_bytes, instance)",
+        "query": "label_values(einsteindb-prod_engine_size_bytes, instance)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,

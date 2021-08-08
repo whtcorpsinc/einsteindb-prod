@@ -26,7 +26,7 @@ use embedded_promises::{
     values,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     CausetIdMap,
     SchemaReplicant,
 };

@@ -7,7 +7,7 @@
 #[macro_use]
 extern crate failure;
 #[macro_use(box_err, box_try)]
-extern crate einsteindb_util;
+extern crate einsteindb-prod_util;
 
 #[causet(test)]
 extern crate test;
@@ -40,7 +40,7 @@ use std::sync::Arc;
 use codec::prelude::NumberDecoder;
 use milevadb_query_datatype::prelude::*;
 use milevadb_query_datatype::FieldTypeFlag;
-use einsteindb_util::collections::HashSet;
+use einsteindb-prod_util::collections::HashSet;
 use fidelpb::PrimaryCausetInfo;
 use fidelpb::{Expr, ExprType};
 
@@ -394,8 +394,8 @@ pub mod tests {
     use milevadb_query_datatype::codec::{datum, Block, Datum};
     use milevadb_query_datatype::expr::EvalContext;
     use milevadb_query_datatype::{FieldTypeAccessor, FieldTypeTp};
-    use einsteindb_util::collections::HashMap;
-    use einsteindb_util::map;
+    use einsteindb-prod_util::collections::HashMap;
+    use einsteindb-prod_util::map;
     use fidelpb::PrimaryCausetInfo;
     use fidelpb::BlockScan;
     use fidelpb::{Expr, ExprType};

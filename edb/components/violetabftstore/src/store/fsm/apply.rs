@@ -32,12 +32,12 @@ use ekvproto::violetabft_serverpb::{
 };
 use violetabft::evioletabftpb::{ConfChange, ConfChangeType, Entry, EntryType, Snapshot as VioletaBftSnapshot};
 use sst_importer::SSTImporter;
-use einsteindb_util::collections::{HashMap, HashMapEntry, HashSet};
-use einsteindb_util::config::{Tracker, VersionTrack};
-use einsteindb_util::mpsc::{loose_bounded, LooseBoundedlightlikeer, Receiver};
-use einsteindb_util::time::{duration_to_sec, Instant};
-use einsteindb_util::worker::Interlock_Semaphore;
-use einsteindb_util::{escape, Either, MustConsumeVec};
+use einsteindb-prod_util::collections::{HashMap, HashMapEntry, HashSet};
+use einsteindb-prod_util::config::{Tracker, VersionTrack};
+use einsteindb-prod_util::mpsc::{loose_bounded, LooseBoundedlightlikeer, Receiver};
+use einsteindb-prod_util::time::{duration_to_sec, Instant};
+use einsteindb-prod_util::worker::Interlock_Semaphore;
+use einsteindb-prod_util::{escape, Either, MustConsumeVec};
 use time::Timespec;
 use uuid::Builder as UuidBuilder;
 
@@ -3500,8 +3500,8 @@ mod tests {
 
     use crate::store::{Config, BraneTask};
     use test_sst_importer::*;
-    use einsteindb_util::config::VersionTrack;
-    use einsteindb_util::worker::dummy_interlock_semaphore;
+    use einsteindb-prod_util::config::VersionTrack;
+    use einsteindb-prod_util::worker::dummy_interlock_semaphore;
 
     use super::*;
 

@@ -36,17 +36,17 @@ use einstein_db::{
     causetids,
     PartitionMap,
 };
-use einsteindb_transaction::{
+use einsteindb-prod_transaction::{
     InProgress,
     TermBuilder,
     CausetQable,
 };
 
-use einsteindb_transaction::instanton_builder::{
+use einsteindb-prod_transaction::instanton_builder::{
     BuildTerms,
 };
 
-use einsteindb_transaction::causetq::{
+use einsteindb-prod_transaction::causetq::{
     CausetQInputs,
     ToUpper,
 };

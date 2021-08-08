@@ -3,7 +3,7 @@
 //! It is responsible for reading from configs, spacelikeing up the various server components,
 //! and handling errors (mostly by aborting and reporting to the user).
 //!
-//! The entry point is `run_einsteindb`.
+//! The entry point is `run_einsteindb-prod`.
 //!
 //! Components are often used to initialize other components, and/or must be explicitly stopped.
 //! We keep these components in the `EinsteinDBServer` struct.
@@ -47,7 +47,7 @@ use violetabftstore::{
     },
 };
 use security::SecurityManager;
-use einsteindb::{
+use einsteindb-prod::{
     config::{ConfigController, DBConfigManger, DBType, EINSTEINDBConfig},
     interlock,
     import::{ImportSSTService, SSTImporter},
@@ -64,8 +64,8 @@ use einsteindb::{
     },
     causetStorage::{self, config::StorageConfigManger},
 };
-use einsteindb_util::config::VersionTrack;
-use einsteindb_util::{
+use einsteindb-prod_util::config::VersionTrack;
+use einsteindb-prod_util::{
     check_environment_variables,
     config::ensure_dir_exist,
     sys::sys_quota::SysQuota,
@@ -78,14 +78,14 @@ use crate::{setup::*, signal_handler};
 
 /// Run a EinsteinDB server. Returns when the server is shutdown by the user, in which
 /// case the server will be properly stopped.
-pub fn run_einsteindb(config: EINSTEINDBConfig) {
+pub fn run_einsteindb-prod(config: EINSTEINDBConfig) {
     // Sets the global logger ASAP.
     // It is okay to use the config w/o `validate()`,
     // because `initial_logger()` handles various conditions.
     initial_logger(&config);
 
     // Print version information.
-    einsteindb::log_einsteindb_info();
+    einsteindb-prod::log_einsteindb-prod_info();
 
     // Print resource quota.
     SysQuota::new().log_quota();
@@ -98,22 +98,22 @@ pub fn run_einsteindb(config: EINSTEINDBConfig) {
 
     macro_rules! run_impl {
         ($ER: ty) => {{
-            let mut einsteindb = EinsteinDBServer::<$ER>::init(config);
-            einsteindb.check_conflict_addr();
-            einsteindb.init_fs();
-            einsteindb.init_yatp();
-            einsteindb.init_encryption();
-            let engines = einsteindb.init_raw_engines();
-            einsteindb.init_engines(engines);
-            let gc_worker = einsteindb.init_gc_worker();
-            let server_config = einsteindb.init_servers(&gc_worker);
-            einsteindb.register_services();
-            einsteindb.init_metrics_flusher();
-            einsteindb.run_server(server_config);
-            einsteindb.run_status_server();
+            let mut einsteindb-prod = EinsteinDBServer::<$ER>::init(config);
+            einsteindb-prod.check_conflict_addr();
+            einsteindb-prod.init_fs();
+            einsteindb-prod.init_yatp();
+            einsteindb-prod.init_encryption();
+            let engines = einsteindb-prod.init_raw_engines();
+            einsteindb-prod.init_engines(engines);
+            let gc_worker = einsteindb-prod.init_gc_worker();
+            let server_config = einsteindb-prod.init_servers(&gc_worker);
+            einsteindb-prod.register_services();
+            einsteindb-prod.init_metrics_flusher();
+            einsteindb-prod.run_server(server_config);
+            einsteindb-prod.run_status_server();
 
-            signal_handler::wait_for_signal(Some(einsteindb.engines.take().unwrap().engines));
-            einsteindb.stop();
+            signal_handler::wait_for_signal(Some(einsteindb-prod.engines.take().unwrap().engines));
+            einsteindb-prod.stop();
         }};
     }
 
@@ -158,7 +158,7 @@ struct Servers<ER: VioletaBftEngine> {
     server: Server<VioletaBftRouter<LmdbEngine, ER>, resolve::FidelStoreAddrResolver>,
     node: Node<RpcClient, ER>,
     importer: Arc<SSTImporter>,
-    causet_context_interlock_semaphore: einsteindb_util::worker::Interlock_Semaphore<causet_context::Task>,
+    causet_context_interlock_semaphore: einsteindb-prod_util::worker::Interlock_Semaphore<causet_context::Task>,
 }
 
 impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
@@ -255,7 +255,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         validate_and_persist_config(&mut config, true);
         check_system_config(&config);
 
-        einsteindb_util::set_panic_hook(false, &config.causetStorage.data_dir);
+        einsteindb-prod_util::set_panic_hook(false, &config.causetStorage.data_dir);
 
         info!(
             "using config";
@@ -263,7 +263,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         );
         if config.panic_when_unexpected_key_or_data {
             info!("panic-when-unexpected-key-or-data is on");
-            einsteindb_util::set_panic_when_unexpected_key_or_data(true);
+            einsteindb-prod_util::set_panic_when_unexpected_key_or_data(true);
         }
 
         config.write_into_metrics();
@@ -347,17 +347,17 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         }
         self.lock_files.push(f);
 
-        if einsteindb_util::panic_mark_file_exists(&self.config.causetStorage.data_dir) {
+        if einsteindb-prod_util::panic_mark_file_exists(&self.config.causetStorage.data_dir) {
             fatal!(
                 "panic_mark_file {} exists, there must be something wrong with the db.",
-                einsteindb_util::panic_mark_file_path(&self.config.causetStorage.data_dir).display()
+                einsteindb-prod_util::panic_mark_file_path(&self.config.causetStorage.data_dir).display()
             );
         }
 
         // We truncate a big file to make sure that both violetabftdb and kvdb of EinsteinDB have enough space
         // to compaction when EinsteinDB recover. This file is created in data_dir rather than db_path,
         // because we must not increase store size of db_path.
-        einsteindb_util::reserve_space_for_recover(
+        einsteindb-prod_util::reserve_space_for_recover(
             &self.config.causetStorage.data_dir,
             self.config.causetStorage.reserve_space.0,
         )
@@ -365,7 +365,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
     }
 
     fn init_yatp(&self) {
-        yatp::metrics::set_namespace(Some("einsteindb"));
+        yatp::metrics::set_namespace(Some("einsteindb-prod"));
         prometheus::register(Box::new(yatp::metrics::MULTILEVEL_LEVEL0_CHANCE.clone())).unwrap();
         prometheus::register(Box::new(yatp::metrics::MULTILEVEL_LEVEL_ELAPSED.clone())).unwrap();
     }
@@ -419,7 +419,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
 
         let causet_controller = self.causet_controller.as_mut().unwrap();
         causet_controller.register(
-            einsteindb::config::Module::CausetStorage,
+            einsteindb-prod::config::Module::CausetStorage,
             Box::new(StorageConfigManger::new(
                 engines.kv.clone(),
                 self.config.causetStorage.block_cache.shared,
@@ -462,12 +462,12 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
     ) -> Arc<ServerConfig> {
         let causet_controller = self.causet_controller.as_mut().unwrap();
         causet_controller.register(
-            einsteindb::config::Module::Gc,
+            einsteindb-prod::config::Module::Gc,
             Box::new(gc_worker.get_config_manager()),
         );
 
         // Create causet_context.
-        let mut causet_context_worker = Box::new(einsteindb_util::worker::Worker::new("causet_context"));
+        let mut causet_context_worker = Box::new(einsteindb-prod_util::worker::Worker::new("causet_context"));
         let causet_context_interlock_semaphore = causet_context_worker.interlock_semaphore();
         let txn_extra_interlock_semaphore = causet_context::causet_contextTxnExtraInterlock_Semaphore::new(causet_context_interlock_semaphore.clone());
 
@@ -482,7 +482,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
 
         let lock_mgr = LockManager::new();
         causet_controller.register(
-            einsteindb::config::Module::PessimisticTxn,
+            einsteindb-prod::config::Module::PessimisticTxn,
             Box::new(lock_mgr.config_manager()),
         );
         lock_mgr.register_detector_role_change_semaphore(&mut interlock_host);
@@ -508,8 +508,8 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
                 .threaded_interlock_semaphore()
                 .thread_name(thd_name!("debugger"))
                 .core_threads(1)
-                .on_thread_spacelike(|| einsteindb_alloc::add_thread_memory_accessor())
-                .on_thread_stop(|| einsteindb_alloc::remove_thread_memory_accessor())
+                .on_thread_spacelike(|| einsteindb-prod_alloc::add_thread_memory_accessor())
+                .on_thread_stop(|| einsteindb-prod_alloc::remove_thread_memory_accessor())
                 .build()
                 .unwrap(),
         );
@@ -602,7 +602,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         );
         split_check_worker.spacelike(split_check_runner).unwrap();
         causet_controller.register(
-            einsteindb::config::Module::Interlock,
+            einsteindb-prod::config::Module::Interlock,
             Box::new(SplitCheckConfigManager(split_check_worker.interlock_semaphore())),
         );
 
@@ -612,14 +612,14 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             .unwrap_or_else(|e| fatal!("failed to validate violetabftstore config {}", e));
         let violetabft_store = Arc::new(VersionTrack::new(self.config.violetabft_store.clone()));
         causet_controller.register(
-            einsteindb::config::Module::VioletaBftstore,
+            einsteindb-prod::config::Module::VioletaBftstore,
             Box::new(VioletaBftstoreConfigManager(violetabft_store.clone())),
         );
 
         let split_config_manager =
             SplitConfigManager(Arc::new(VersionTrack::new(self.config.split.clone())));
         causet_controller.register(
-            einsteindb::config::Module::Split,
+            einsteindb-prod::config::Module::Split,
             Box::new(split_config_manager.clone()),
         );
 
@@ -760,7 +760,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             .unwrap_or_else(|e| fatal!("failed to spacelike dagger manager: {}", e));
 
         // Backup service.
-        let mut backup_worker = Box::new(einsteindb_util::worker::Worker::new("backup-lightlikepoint"));
+        let mut backup_worker = Box::new(einsteindb-prod_util::worker::Worker::new("backup-lightlikepoint"));
         let backup_interlock_semaphore = backup_worker.interlock_semaphore();
         let backup_service = backup::Service::new(backup_interlock_semaphore, self.security_mgr.clone());
         if servers
@@ -780,7 +780,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             self.concurrency_manager.clone(),
         );
         self.causet_controller.as_mut().unwrap().register(
-            einsteindb::config::Module::Backup,
+            einsteindb-prod::config::Module::Backup,
             Box::new(backup_lightlikepoint.get_config_manager()),
         );
         let backup_timer = backup_lightlikepoint.new_timer();
@@ -914,7 +914,7 @@ impl EinsteinDBServer<LmdbEngine> {
 
         let causet_controller = self.causet_controller.as_mut().unwrap();
         causet_controller.register(
-            einsteindb::config::Module::Lmdbdb,
+            einsteindb-prod::config::Module::Lmdbdb,
             Box::new(DBConfigManger::new(
                 engines.kv.clone(),
                 DBType::Kv,
@@ -922,7 +922,7 @@ impl EinsteinDBServer<LmdbEngine> {
             )),
         );
         causet_controller.register(
-            einsteindb::config::Module::VioletaBftdb,
+            einsteindb-prod::config::Module::VioletaBftdb,
             Box::new(DBConfigManger::new(
                 engines.violetabft.clone(),
                 DBType::VioletaBft,
@@ -965,7 +965,7 @@ impl EinsteinDBServer<VioletaBftLogEngine> {
 
         let causet_controller = self.causet_controller.as_mut().unwrap();
         causet_controller.register(
-            einsteindb::config::Module::Lmdbdb,
+            einsteindb-prod::config::Module::Lmdbdb,
             Box::new(DBConfigManger::new(
                 engines.kv.clone(),
                 DBType::Kv,
@@ -998,7 +998,7 @@ impl EinsteinDBServer<VioletaBftLogEngine> {
 /// - if the "TZ" environment variable is not set on unix
 fn pre_spacelike() {
     check_environment_variables();
-    for e in einsteindb_util::config::check_kernel() {
+    for e in einsteindb-prod_util::config::check_kernel() {
         warn!(
             "check: kernel";
             "err" => %e
@@ -1015,14 +1015,14 @@ fn check_system_config(config: &EINSTEINDBConfig) {
         // open files here
         lmdb_max_open_files *= 2;
     }
-    if let Err(e) = einsteindb_util::config::check_max_open_fds(
+    if let Err(e) = einsteindb-prod_util::config::check_max_open_fds(
         RESERVED_OPEN_FDS + (lmdb_max_open_files + config.violetabftdb.max_open_files) as u64,
     ) {
         fatal!("{}", e);
     }
 
     // Check Lmdb data dir
-    if let Err(e) = einsteindb_util::config::check_data_dir(&config.causetStorage.data_dir) {
+    if let Err(e) = einsteindb-prod_util::config::check_data_dir(&config.causetStorage.data_dir) {
         warn!(
             "check: lmdb-data-dir";
             "path" => &config.causetStorage.data_dir,
@@ -1030,7 +1030,7 @@ fn check_system_config(config: &EINSTEINDBConfig) {
         );
     }
     // Check violetabft data dir
-    if let Err(e) = einsteindb_util::config::check_data_dir(&config.violetabft_store.violetabftdb_path) {
+    if let Err(e) = einsteindb-prod_util::config::check_data_dir(&config.violetabft_store.violetabftdb_path) {
         warn!(
             "check: violetabftdb-path";
             "path" => &config.violetabft_store.violetabftdb_path,

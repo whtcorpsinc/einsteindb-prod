@@ -93,8 +93,8 @@ impl From<TxnError> for Error {
     }
 }
 
-impl From<einsteindb_util::deadline::DeadlineError> for Error {
-    fn from(_: einsteindb_util::deadline::DeadlineError) -> Self {
+impl From<einsteindb-prod_util::deadline::DeadlineError> for Error {
+    fn from(_: einsteindb-prod_util::deadline::DeadlineError) -> Self {
         Error::DeadlineExceeded
     }
 }

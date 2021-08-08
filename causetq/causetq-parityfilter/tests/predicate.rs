@@ -9,9 +9,9 @@
 // specific language governing permissions and limitations under the License.
 
 extern crate edbn;
-extern crate einsteindb_embedded;
+extern crate einsteindb-prod_embedded;
 extern crate embedded_promises;
-extern crate einsteindb_causetq_parityfilter;
+extern crate einsteindb-prod_causetq_parityfilter;
 extern crate causetq_parityfilter_promises;
 
 mod utils;
@@ -23,7 +23,7 @@ use embedded_promises::{
     MinkowskiSet,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     DateTime,
     SchemaReplicant,
     Utc,
@@ -39,7 +39,7 @@ use causetq_parityfilter_promises::errors::{
     ParityFilterError,
 };
 
-use einsteindb_causetq_parityfilter::{
+use einsteindb-prod_causetq_parityfilter::{
     EmptyBecause,
     KnownCauset,
     CausetQInputs,

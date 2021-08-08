@@ -28,13 +28,13 @@ use violetabftstore::store::fsm::{create_violetabft_batch_system, VioletaBftBatc
 use violetabftstore::store::transport::CasualRouter;
 use violetabftstore::store::*;
 use violetabftstore::{Error, Result};
-use einsteindb::config::EINSTEINDBConfig;
-use einsteindb::server::Result as ServerResult;
-use einsteindb_util::collections::{HashMap, HashSet};
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod::config::EINSTEINDBConfig;
+use einsteindb-prod::server::Result as ServerResult;
+use einsteindb-prod_util::collections::{HashMap, HashSet};
+use einsteindb-prod_util::HandyRwLock;
 
 use super::*;
-use einsteindb_util::time::ThreadReadId;
+use einsteindb-prod_util::time::ThreadReadId;
 
 // We simulate 3 or 5 nodes, each has a store.
 // Sometimes, we use fixed id to test, which means the id
@@ -147,7 +147,7 @@ impl<T: Simulator> Cluster<T> {
     ) -> Cluster<T> {
         // TODO: In the future, maybe it's better to test both case where `use_delete_cone` is true and false
         Cluster {
-            causet: new_einsteindb_config(id),
+            causet: new_einsteindb-prod_config(id),
             leaders: HashMap::default(),
             count,
             paths: vec![],

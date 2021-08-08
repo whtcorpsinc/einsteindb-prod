@@ -295,7 +295,7 @@ deplightlikeencies = [
  "failure",
  "libc",
  "static_assertions",
- "einsteindb_alloc",
+ "einsteindb-prod_alloc",
 ]
 
 [[package]]
@@ -491,8 +491,8 @@ deplightlikeencies = [
  "slog",
  "slog-global",
  "sysinfo",
- "einsteindb_alloc",
- "einsteindb_util",
+ "einsteindb-prod_alloc",
+ "einsteindb-prod_util",
  "time",
 ]
 
@@ -507,8 +507,8 @@ deplightlikeencies = [
  "lmdb",
  "slog",
  "slog-global",
- "einsteindb_alloc",
- "einsteindb_util",
+ "einsteindb-prod_alloc",
+ "einsteindb-prod_util",
  "time",
 ]
 
@@ -521,8 +521,8 @@ deplightlikeencies = [
  "quick-error",
  "slog",
  "slog-global",
- "einsteindb_alloc",
- "einsteindb_util",
+ "einsteindb-prod_alloc",
+ "einsteindb-prod_util",
 ]
 
 [[package]]
@@ -1026,7 +1026,7 @@ deplightlikeencies = [
 [[package]]
 name = "liblmdb_sys"
 version = "0.1.0"
-source = "git+https://github.com/einsteindb/rust-lmdb.git#89a161a5f5987dfe0b3889e88080a452e93a4013"
+source = "git+https://github.com/einsteindb-prod/rust-lmdb.git#89a161a5f5987dfe0b3889e88080a452e93a4013"
 deplightlikeencies = [
  "bindgen",
  "bzip2-sys",
@@ -1043,7 +1043,7 @@ deplightlikeencies = [
 [[package]]
 name = "libtitan_sys"
 version = "0.0.1"
-source = "git+https://github.com/einsteindb/rust-lmdb.git#89a161a5f5987dfe0b3889e88080a452e93a4013"
+source = "git+https://github.com/einsteindb-prod/rust-lmdb.git#89a161a5f5987dfe0b3889e88080a452e93a4013"
 deplightlikeencies = [
  "bzip2-sys",
  "cc",
@@ -1469,7 +1469,7 @@ deplightlikeencies = [
 [[package]]
 name = "procinfo"
 version = "0.4.2"
-source = "git+https://github.com/einsteindb/procinfo-rs?rev=5125fc1a69496b73b26b3c08b6e8afc3c665a56e#5125fc1a69496b73b26b3c08b6e8afc3c665a56e"
+source = "git+https://github.com/einsteindb-prod/procinfo-rs?rev=5125fc1a69496b73b26b3c08b6e8afc3c665a56e#5125fc1a69496b73b26b3c08b6e8afc3c665a56e"
 deplightlikeencies = [
  "byteorder",
  "libc",
@@ -1849,7 +1849,7 @@ checksum = "cabe4fa914dec5870285fa7f71f602645da47c486e68486d2b4ceb4a343e90ac"
 [[package]]
 name = "lmdb"
 version = "0.3.0"
-source = "git+https://github.com/einsteindb/rust-lmdb.git#89a161a5f5987dfe0b3889e88080a452e93a4013"
+source = "git+https://github.com/einsteindb-prod/rust-lmdb.git#89a161a5f5987dfe0b3889e88080a452e93a4013"
 deplightlikeencies = [
  "libc",
  "liblmdb_sys",
@@ -2186,7 +2186,7 @@ deplightlikeencies = [
 [[package]]
 name = "sysinfo"
 version = "0.9.6"
-source = "git+https://github.com/einsteindb/sysinfo.git?branch=einsteindb#762badf918f1e0b36fce032f9f81274d79fdff7d"
+source = "git+https://github.com/einsteindb-prod/sysinfo.git?branch=einsteindb-prod#762badf918f1e0b36fce032f9f81274d79fdff7d"
 deplightlikeencies = [
  "cache-size",
  "causet-if",
@@ -2285,14 +2285,14 @@ deplightlikeencies = [
 ]
 
 [[package]]
-name = "einsteindb_alloc"
+name = "einsteindb-prod_alloc"
 version = "0.1.0"
 deplightlikeencies = [
  "libc",
 ]
 
 [[package]]
-name = "einsteindb_util"
+name = "einsteindb-prod_util"
 version = "0.1.0"
 deplightlikeencies = [
  "async-speed-limit",
@@ -2326,7 +2326,7 @@ deplightlikeencies = [
  "slog-async",
  "slog-global",
  "slog-term",
- "einsteindb_alloc",
+ "einsteindb-prod_alloc",
  "time",
  "tokio-core",
  "tokio-executor",

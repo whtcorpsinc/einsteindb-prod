@@ -13,9 +13,9 @@ use test_interlock::*;
 use test_causetStorage::*;
 use milevadb_query_datatype::codec::{datum, Datum};
 use milevadb_query_datatype::expr::EvalContext;
-use einsteindb::server::Config;
-use einsteindb::causetStorage::TestEngineBuilder;
-use einsteindb_util::codec::number::*;
+use einsteindb-prod::server::Config;
+use einsteindb-prod::causetStorage::TestEngineBuilder;
+use einsteindb-prod_util::codec::number::*;
 
 const FLAG_IGNORE_TRUNCATE: u64 = 1;
 const FLAG_TRUNCATE_AS_WARNING: u64 = 1 << 1;

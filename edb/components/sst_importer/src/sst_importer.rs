@@ -27,7 +27,7 @@ use engine_promises::{
     SstReader, SstWriter, CAUSET_DEFAULT, CAUSET_WRITE,
 };
 use external_causetStorage::{block_on_external_io, create_causetStorage, url_of_backlightlike, READ_BUF_SIZE};
-use einsteindb_util::time::Limiter;
+use einsteindb-prod_util::time::Limiter;
 use txn_types::{is_short_value, Key, TimeStamp, Write as KvWrite, WriteRef, WriteType};
 
 use super::{Error, Result};

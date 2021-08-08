@@ -7,7 +7,7 @@ extern crate failure;
 #[macro_use(fail_point)]
 extern crate fail;
 #[macro_use]
-extern crate einsteindb_util;
+extern crate einsteindb-prod_util;
 
 mod pushdown_causet;
 mod lightlikepoint;

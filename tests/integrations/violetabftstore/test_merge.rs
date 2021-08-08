@@ -17,8 +17,8 @@ use engine_promises::{CAUSET_VIOLETABFT, CAUSET_WRITE};
 use fidel_client::FidelClient;
 use violetabftstore::store::*;
 use test_violetabftstore::*;
-use einsteindb_util::config::*;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::config::*;
+use einsteindb-prod_util::HandyRwLock;
 
 /// Test if merge is working as expected in a general condition.
 #[test]
@@ -1189,7 +1189,7 @@ fn test_merge_remove_target_peer_isolated() {
 
 #[test]
 fn test_sync_max_ts_after_brane_merge() {
-    use einsteindb::causetStorage::{Engine, Snapshot};
+    use einsteindb-prod::causetStorage::{Engine, Snapshot};
 
     let mut cluster = new_server_cluster(0, 3);
     configure_for_merge(&mut cluster);

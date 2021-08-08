@@ -5,9 +5,9 @@ use std::{error, result};
 
 use engine_promises::Error as EnginePromisesError;
 use ekvproto::errorpb::Error as ErrorHeader;
-use einsteindb::causetStorage::kv::{Error as EngineError, ErrorInner as EngineErrorInner};
-use einsteindb::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
-use einsteindb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
+use einsteindb-prod::causetStorage::kv::{Error as EngineError, ErrorInner as EngineErrorInner};
+use einsteindb-prod::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
+use einsteindb-prod::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
 use txn_types::Error as TxnTypesError;
 
 /// The error type for causet_context.

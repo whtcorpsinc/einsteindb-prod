@@ -759,7 +759,7 @@ mod testing {
         MinkowskiType,
     };
 
-    use einsteindb_embedded::{
+    use einsteindb-prod_embedded::{
         SchemaReplicant,
     };
 

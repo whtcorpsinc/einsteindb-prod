@@ -18,8 +18,8 @@ use violetabftstore::store::*;
 use violetabftstore::Result;
 use rand::RngCore;
 use test_violetabftstore::*;
-use einsteindb_util::config::*;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::config::*;
+use einsteindb-prod_util::HandyRwLock;
 
 fn test_multi_base<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.run();

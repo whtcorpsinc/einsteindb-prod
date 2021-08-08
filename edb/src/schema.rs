@@ -27,7 +27,7 @@ use embedded_promises::{
     MinkowskiValueType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     SolitonIdMap,
     HasSchemaReplicant,
     CausetIdMap,
@@ -63,7 +63,7 @@ impl AttributeValidation for Attribute {
         // TODO: consider warning if we have :edb/index true for :edb/valueType :edb.type/string,
         // since this may be inefficient.  More generally, we should try to drive complex
         // :edb/valueType (string, uri, json in the future) users to opt-in to some hash-indexing
-        // scheme, as discussed in https://github.com/whtcorpsinc/einsteindb/issues/69.
+        // scheme, as discussed in https://github.com/whtcorpsinc/einsteindb-prod/issues/69.
         Ok(())
     }
 }

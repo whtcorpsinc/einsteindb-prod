@@ -28,7 +28,7 @@ struct AwsKms {
     current_key_id: String,
     runtime: Runtime,
     // The current implementation (rosoto 0.43.0 + hyper 0.13.3) is not `lightlike`
-    // in practical. See more https://github.com/einsteindb/einsteindb/issues/7236.
+    // in practical. See more https://github.com/einsteindb-prod/einsteindb-prod/issues/7236.
     // FIXME: remove it.
     _not_lightlike: PhantomData<*const ()>,
 }

@@ -12,8 +12,8 @@ use fidelpb::{ByItem, Expr, ExprType};
 use fidelpb::{Soliton, PosetDagRequest};
 
 use milevadb_query_datatype::codec::{datum, Datum};
-use einsteindb::interlock::REQ_TYPE_DAG;
-use einsteindb_util::codec::number::NumberEncoder;
+use einsteindb-prod::interlock::REQ_TYPE_DAG;
+use einsteindb-prod_util::codec::number::NumberEncoder;
 
 pub struct DAGSelect {
     pub execs: Vec<FreeDaemon>,

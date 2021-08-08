@@ -12,7 +12,7 @@ protobuf-codec = [
   "fidel_client/protobuf-codec",
   "violetabft/protobuf-codec",
   "violetabftstore/protobuf-codec",
-  "einsteindb/protobuf-codec",
+  "einsteindb-prod/protobuf-codec",
   "txn_types/protobuf-codec",
 ]
 prost-codec = [
@@ -22,16 +22,16 @@ prost-codec = [
   "fidel_client/prost-codec",
   "violetabft/prost-codec",
   "violetabftstore/prost-codec",
-  "einsteindb/prost-codec",
+  "einsteindb-prod/prost-codec",
   "txn_types/prost-codec",
 ]
-tcmalloc = ["einsteindb/tcmalloc"]
-jemalloc = ["einsteindb/jemalloc"]
-mimalloc = ["einsteindb/mimalloc"]
-porBlock = ["einsteindb/porBlock"]
-sse = ["einsteindb/sse"]
-mem-profiling = ["einsteindb/mem-profiling"]
-failpoints = ["einsteindb/failpoints"]
+tcmalloc = ["einsteindb-prod/tcmalloc"]
+jemalloc = ["einsteindb-prod/jemalloc"]
+mimalloc = ["einsteindb-prod/mimalloc"]
+porBlock = ["einsteindb-prod/porBlock"]
+sse = ["einsteindb-prod/sse"]
+mem-profiling = ["einsteindb-prod/mem-profiling"]
+failpoints = ["einsteindb-prod/failpoints"]
 
 [deplightlikeencies]
 bitflags = "1.0"
@@ -51,8 +51,8 @@ security = { path = "../security" }
 semver = "0.10"
 slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debug"] }
 slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global.git", rev = "0e23a5baff302a9d7bccd85f8f31e43339c2f2c1" }
-einsteindb = { path = "../../", default-features = false }
-einsteindb_util = { path = "../einsteindb_util" }
+einsteindb-prod = { path = "../../", default-features = false }
+einsteindb-prod_util = { path = "../einsteindb-prod_util" }
 tokio = { version = "0.2", features = ["rt-threaded"]}
 txn_types = { path = "../txn_types" }
 concurrency_manager = { path = "../concurrency_manager" }

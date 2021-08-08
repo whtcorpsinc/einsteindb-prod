@@ -13,8 +13,8 @@ use engine_promises::{
     Iterable, KvEngine, MuBlock, SstWriter, SstWriterBuilder,
 };
 use ekvproto::encryptionpb::EncryptionMethod;
-use einsteindb_util::codec::bytes::{BytesEncoder, CompactBytesFromFileDecoder};
-use einsteindb_util::time::Limiter;
+use einsteindb-prod_util::codec::bytes::{BytesEncoder, CompactBytesFromFileDecoder};
+use einsteindb-prod_util::time::Limiter;
 
 use super::Error;
 
@@ -244,7 +244,7 @@ mod tests {
     use engine_lmdb::{Compat, LmdbEngine, LmdbSnapshot};
     use engine_promises::CAUSET_DEFAULT;
     use tempfile::Builder;
-    use einsteindb_util::time::Limiter;
+    use einsteindb-prod_util::time::Limiter;
 
     struct TestStaleDetector;
     impl StaleDetector for TestStaleDetector {

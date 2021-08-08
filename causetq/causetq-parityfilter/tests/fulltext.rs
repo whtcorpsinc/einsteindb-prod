@@ -9,9 +9,9 @@
 // specific language governing permissions and limitations under the License.
 
 extern crate edbn;
-extern crate einsteindb_embedded;
+extern crate einsteindb-prod_embedded;
 extern crate embedded_promises;
-extern crate einsteindb_causetq_parityfilter;
+extern crate einsteindb-prod_causetq_parityfilter;
 extern crate causetq_parityfilter_promises;
 
 mod utils;
@@ -21,7 +21,7 @@ use embedded_promises::{
     MinkowskiValueType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     SchemaReplicant,
 };
 
@@ -35,7 +35,7 @@ use utils::{
     associate_causetId,
 };
 
-use einsteindb_causetq_parityfilter::KnownCauset;
+use einsteindb-prod_causetq_parityfilter::KnownCauset;
 
 fn prepopulated_schemaReplicant() -> SchemaReplicant {
     let mut schemaReplicant = SchemaReplicant::default();

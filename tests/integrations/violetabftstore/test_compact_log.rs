@@ -6,8 +6,8 @@ use engine_lmdb::LmdbEngine;
 use engine_promises::{Engines, Peekable, CAUSET_VIOLETABFT};
 use violetabftstore::store::*;
 use test_violetabftstore::*;
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::config::*;
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::config::*;
 
 fn get_violetabft_msg_or_default<M: protobuf::Message + Default>(
     engines: &Engines<LmdbEngine, LmdbEngine>,

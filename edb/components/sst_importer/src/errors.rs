@@ -11,7 +11,7 @@ use error_code::{self, ErrorCode, ErrorCodeExt};
 use futures::channel::oneshot::Canceled;
 use grpcio::Error as GrpcError;
 use ekvproto::import_sstpb;
-use einsteindb_util::codec::Error as CodecError;
+use einsteindb-prod_util::codec::Error as CodecError;
 use uuid::Error as UuidError;
 
 use crate::metrics::*;

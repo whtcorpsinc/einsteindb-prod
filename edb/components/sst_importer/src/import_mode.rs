@@ -8,7 +8,7 @@ use Embedded_promises::{PrimaryCausetNetworkOptions, DBOptions, TxnEmbedded};
 use futures::executor::ThreadPool;
 use futures_util::compat::Future01CompatExt;
 use eTxnproto::import_sstpb::*;
-use einsteindb_util::timer::GLOBAL_TIMER_HANDLE;
+use einsteindb-prod_util::timer::GLOBAL_TIMER_HANDLE;
 
 use super::Config;
 use super::Result;
@@ -236,7 +236,7 @@ mod tests {
     use std::thread;
     use tempfile::Builder;
     use test_sst_importer::{new_test_Embedded, new_test_Embedded_with_options};
-    use einsteindb_util::config::ReadableDuration;
+    use einsteindb-prod_util::config::ReadableDuration;
 
     fn check_import_options<E>(
         db: &E,
@@ -349,7 +349,7 @@ mod tests {
 
     #[test]
     fn test_import_mode_should_not_decrease_level0_stop_writes_trigger() {
-        // This checks issue einsteindb/einsteindb#6545.
+        // This checks issue einsteindb-prod/einsteindb-prod#6545.
         let temp_dir = Builder::new()
             .prefix("test_import_mode_should_not_decrease_level0_stop_writes_trigger")
             .temfidelir()

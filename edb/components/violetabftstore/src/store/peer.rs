@@ -43,11 +43,11 @@ use crate::store::worker::{Readpushdown_causet, ReadFreeDaemon, ReadProgress, Br
 use crate::store::{Callback, Config, GlobalReplicationState, FidelTask, ReadResponse};
 use crate::{Error, Result};
 use fidel_client::INVALID_ID;
-use einsteindb_util::collections::{HashMap, HashSet};
-use einsteindb_util::time::{duration_to_sec, monotonic_raw_now};
-use einsteindb_util::time::{Instant as UtilInstant, ThreadReadId};
-use einsteindb_util::worker::{FutureInterlock_Semaphore, Interlock_Semaphore};
-use einsteindb_util::Either;
+use einsteindb-prod_util::collections::{HashMap, HashSet};
+use einsteindb-prod_util::time::{duration_to_sec, monotonic_raw_now};
+use einsteindb-prod_util::time::{Instant as UtilInstant, ThreadReadId};
+use einsteindb-prod_util::worker::{FutureInterlock_Semaphore, Interlock_Semaphore};
+use einsteindb-prod_util::Either;
 
 use super::cmd_resp;
 use super::local_metrics::{VioletaBftMessageMetrics, VioletaBftReadyMetrics};
@@ -2758,7 +2758,7 @@ where
     ///     Leader checks if it's appropriate to transfer leadership. If it
     ///     does, it calls violetabft transfer_leader API to do the remaining work.
     ///
-    /// See also: einsteindb/rfcs#37.
+    /// See also: einsteindb-prod/rfcs#37.
     fn propose_transfer_leader<T, C>(
         &mut self,
         ctx: &mut PollContext<EK, ER, T, C>,

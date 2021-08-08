@@ -13,13 +13,13 @@ use protobuf::{self, Message};
 use violetabft::evioletabftpb::{self, ConfChangeType, ConfState, MessageType};
 use violetabft::INVALID_INDEX;
 use violetabft_proto::ConfChangeI;
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::time::monotonic_raw_now;
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::time::monotonic_raw_now;
 use time::{Duration, Timespec};
 
 use super::peer_causetStorage;
 use crate::{Error, Result};
-use einsteindb_util::Either;
+use einsteindb-prod_util::Either;
 
 pub fn find_peer(brane: &metapb::Brane, store_id: u64) -> Option<&metapb::Peer> {
     brane
@@ -892,7 +892,7 @@ mod tests {
     use time::Duration as TimeDuration;
 
     use crate::store::peer_causetStorage;
-    use einsteindb_util::time::{monotonic_now, monotonic_raw_now};
+    use einsteindb-prod_util::time::{monotonic_now, monotonic_raw_now};
 
     use super::*;
 

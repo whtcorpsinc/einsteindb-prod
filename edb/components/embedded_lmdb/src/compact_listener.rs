@@ -12,7 +12,7 @@ use lmdb::{
 };
 use std::collections::BTreeMap;
 use std::collections::Bound::{Excluded, Included, Unbounded};
-use einsteindb_util::collections::hash_set_with_capacity;
+use einsteindb-prod_util::collections::hash_set_with_capacity;
 
 pub struct LmdbCompactionJobInfo<'a>(&'a RawCompactionJobInfo);
 

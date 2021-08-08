@@ -1,8 +1,8 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::sync::Arc;
-use einsteindb::causetStorage::kv::LmdbSnapshot;
-use einsteindb::causetStorage::txn::{FixtureStore, SnapshotStore, CausetStore};
+use einsteindb-prod::causetStorage::kv::LmdbSnapshot;
+use einsteindb-prod::causetStorage::txn::{FixtureStore, SnapshotStore, CausetStore};
 
 /// `MemStore` is a store provider that operates directly over a BTreeMap.
 pub type MemStore = FixtureStore;

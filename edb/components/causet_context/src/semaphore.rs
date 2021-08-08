@@ -12,9 +12,9 @@ use violetabftstore::interlock::*;
 use violetabftstore::store::fsm::ObserveID;
 use violetabftstore::store::BraneSnapshot;
 use violetabftstore::Error as VioletaBftStoreError;
-use einsteindb::causetStorage::{Cursor, ScanMode, Snapshot as EngineSnapshot, Statistics};
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::worker::Interlock_Semaphore;
+use einsteindb-prod::causetStorage::{Cursor, ScanMode, Snapshot as EngineSnapshot, Statistics};
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::worker::Interlock_Semaphore;
 use txn_types::{Key, Dagger, MutationType, Value, WriteRef, WriteType};
 
 use crate::lightlikepoint::{Deregister, OldValueCache, Task};
@@ -311,13 +311,13 @@ mod tests {
     use ekvproto::metapb::Brane;
     use ekvproto::violetabft_cmdpb::*;
     use std::time::Duration;
-    use einsteindb::causetStorage::kv::TestEngineBuilder;
-    use einsteindb::causetStorage::tail_pointer::tests::*;
-    use einsteindb::causetStorage::txn::tests::*;
+    use einsteindb-prod::causetStorage::kv::TestEngineBuilder;
+    use einsteindb-prod::causetStorage::tail_pointer::tests::*;
+    use einsteindb-prod::causetStorage::txn::tests::*;
 
     #[test]
     fn test_register_and_deregister() {
-        let (interlock_semaphore, rx) = einsteindb_util::worker::dummy_interlock_semaphore();
+        let (interlock_semaphore, rx) = einsteindb-prod_util::worker::dummy_interlock_semaphore();
         let semaphore = causet_contextSemaphore::new(interlock_semaphore);
         let observe_id = ObserveID::new();
         let engine = TestEngineBuilder::new().build().unwrap().get_lmdb();

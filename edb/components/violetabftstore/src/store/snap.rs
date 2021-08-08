@@ -29,12 +29,12 @@ use violetabft::evioletabftpb::Snapshot as VioletaBftSnapshot;
 use error_code::{self, ErrorCode, ErrorCodeExt};
 use tuplespaceInstanton::{enc_lightlike_key, enc_spacelike_key};
 use openssl::symm::{Cipher, Crypter, Mode};
-use einsteindb_util::collections::{HashMap, HashMapEntry as Entry};
-use einsteindb_util::file::{
+use einsteindb-prod_util::collections::{HashMap, HashMapEntry as Entry};
+use einsteindb-prod_util::file::{
     calc_crc32, calc_crc32_and_size, delete_file_if_exist, file_exists, get_file_size, sync_dir,
 };
-use einsteindb_util::time::{duration_to_sec, Limiter};
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::time::{duration_to_sec, Limiter};
+use einsteindb-prod_util::HandyRwLock;
 
 use crate::interlock::InterlockHost;
 use crate::store::metrics::{
@@ -1534,7 +1534,7 @@ pub mod tests {
 
     use protobuf::Message;
     use tempfile::{Builder, TempDir};
-    use einsteindb_util::time::Limiter;
+    use einsteindb-prod_util::time::Limiter;
 
     use super::{
         ApplyOptions, GenericSnapshot, Snap, SnapEntry, SnapKey, SnapManager, SnapManagerBuilder,

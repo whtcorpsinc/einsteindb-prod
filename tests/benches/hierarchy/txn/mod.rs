@@ -4,12 +4,12 @@ use concurrency_manager::ConcurrencyManager;
 use criterion::{black_box, BatchSize, Bencher, Criterion};
 use ekvproto::kvrpcpb::Context;
 use test_util::KvGenerator;
-use einsteindb::causetStorage::kv::{Engine, WriteData};
-use einsteindb::causetStorage::tail_pointer::{self, MvccTxn};
+use einsteindb-prod::causetStorage::kv::{Engine, WriteData};
+use einsteindb-prod::causetStorage::tail_pointer::{self, MvccTxn};
 use txn_types::{Key, Mutation, TimeStamp};
 
 use super::{BenchConfig, EngineFactory, DEFAULT_ITERATIONS};
-use einsteindb::causetStorage::txn::commit;
+use einsteindb-prod::causetStorage::txn::commit;
 
 fn setup_prewrite<E, F>(
     engine: &E,

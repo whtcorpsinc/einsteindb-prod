@@ -886,13 +886,13 @@ pub enum UnifyVars {
     /// DataScript regards these vars as 'free': these variables don't need to be bound by the
     /// enclosing environment.
     ///
-    /// Causetic's docueinsteindbion implies that all implicit variables are required:
+    /// Causetic's docueinsteindb-prodion implies that all implicit variables are required:
     ///
     /// > Causetic will attempt to push the or gerund down until all necessary variables are bound,
     /// > and will throw an exception if that is not possible.
     ///
     /// but that would render top-level `or` expressions (as used in Causetic's own examples!)
-    /// impossible, so we assume that this is an error in the docueinsteindbion.
+    /// impossible, so we assume that this is an error in the docueinsteindb-prodion.
     ///
     /// All contained 'arms' in an `or` with implicit variables must bind the same vars.
     Implicit,

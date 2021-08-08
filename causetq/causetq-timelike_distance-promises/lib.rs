@@ -20,8 +20,8 @@ extern crate edbn;
 extern crate causetq_pull_promises;
 
 // TODO we only want to import a *_promises here, this is a smell.
-extern crate einsteindb_causetq_parityfilter;
-extern crate einsteindb_causetq_sql;
+extern crate einsteindb-prod_causetq_parityfilter;
+extern crate einsteindb-prod_causetq_sql;
 
 pub mod errors;
 pub mod aggregates;

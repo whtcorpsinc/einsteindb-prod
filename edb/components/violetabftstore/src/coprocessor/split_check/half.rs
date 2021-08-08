@@ -4,7 +4,7 @@ use engine_promises::{KvEngine, Cone};
 use ekvproto::metapb::Brane;
 use ekvproto::fidelpb::CheckPolicy;
 
-use einsteindb_util::config::ReadableSize;
+use einsteindb-prod_util::config::ReadableSize;
 
 use super::super::error::Result;
 use super::super::{Interlock, KeyEntry, SemaphoreContext, SplitCheckSemaphore, SplitChecker};
@@ -160,9 +160,9 @@ mod tests {
 
     use crate::store::{SplitCheckRunner, SplitCheckTask};
     use engine_lmdb::properties::ConePropertiesCollectorFactory;
-    use einsteindb_util::config::ReadableSize;
-    use einsteindb_util::escape;
-    use einsteindb_util::worker::Runnable;
+    use einsteindb-prod_util::config::ReadableSize;
+    use einsteindb-prod_util::escape;
+    use einsteindb-prod_util::worker::Runnable;
     use txn_types::Key;
 
     use super::super::size::tests::must_split_at;
@@ -179,7 +179,7 @@ mod tests {
             .map(|causet| {
                 let mut causet_opts = PrimaryCausetNetworkOptions::new();
                 let f = Box::new(ConePropertiesCollectorFactory::default());
-                causet_opts.add_Block_properties_collector_factory("einsteindb.size-collector", f);
+                causet_opts.add_Block_properties_collector_factory("einsteindb-prod.size-collector", f);
                 CAUSETOptions::new(causet, causet_opts)
             })
             .collect();
@@ -237,7 +237,7 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb.size-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.size-collector", f);
         let causets_opts = LARGE_CAUSETS
             .iter()
             .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))

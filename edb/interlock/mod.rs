@@ -40,8 +40,8 @@ use async_trait::async_trait;
 use ekvproto::{interlock as coppb, kvrpcpb};
 use metrics::ReqTag;
 use rand::prelude::*;
-use einsteindb_util::deadline::Deadline;
-use einsteindb_util::time::Duration;
+use einsteindb-prod_util::deadline::Deadline;
+use einsteindb-prod_util::time::Duration;
 use txn_types::TsSet;
 
 pub const REQ_TYPE_DAG: i64 = 103;

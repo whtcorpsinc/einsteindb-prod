@@ -24,7 +24,7 @@ slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global
 milevadb_query_datatype = { path = "../milevadb_query_datatype" }
 milevadb_query_common = { path = "../milevadb_query_common" }
 milevadb_query_shared_expr = { path = "../milevadb_query_shared_expr" }
-einsteindb_util = { path = "../einsteindb_util" }
+einsteindb-prod_util = { path = "../einsteindb-prod_util" }
 fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
 twoway = "0.2.0"
 uuid = { version = "0.8.1", features = ["v4"] }

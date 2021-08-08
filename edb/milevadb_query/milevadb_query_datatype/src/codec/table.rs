@@ -14,8 +14,8 @@ use super::mysql::{Duration, Time};
 use super::{datum, datum::DatumDecoder, Datum, Error, Result};
 use crate::expr::EvalContext;
 use codec::prelude::*;
-use einsteindb_util::codec::BytesSlice;
-use einsteindb_util::collections::{HashMap, HashSet};
+use einsteindb-prod_util::codec::BytesSlice;
+use einsteindb-prod_util::collections::{HashMap, HashSet};
 
 // handle or index id
 pub const ID_LEN: usize = 8;
@@ -529,8 +529,8 @@ mod tests {
     use fidelpb::PrimaryCausetInfo;
 
     use crate::codec::datum::{self, Datum};
-    use einsteindb_util::collections::{HashMap, HashSet};
-    use einsteindb_util::map;
+    use einsteindb-prod_util::collections::{HashMap, HashSet};
+    use einsteindb-prod_util::map;
 
     use super::*;
 

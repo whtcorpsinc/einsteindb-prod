@@ -93,7 +93,7 @@ mod tests {
     use std::{fs, path::Path, sync::Arc};
     use tempfile::Builder;
     use test_util::encryption::new_test_key_manager;
-    use einsteindb_util::file::calc_crc32;
+    use einsteindb-prod_util::file::calc_crc32;
 
     #[causet(unix)]
     fn check_hard_link<P: AsRef<Path>>(path: P, nlink: u64) {

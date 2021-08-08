@@ -22,12 +22,12 @@ use violetabftstore::store::fsm::store::StoreMeta;
 use violetabftstore::store::{AutoSplitController, SnapManager};
 use tempfile::Builder;
 use test_violetabftstore::*;
-use einsteindb::interlock::REQ_TYPE_DAG;
-use einsteindb::import::SSTImporter;
-use einsteindb::server::gc_worker::sync_gc;
-use einsteindb::causetStorage::tail_pointer::{Dagger, LockType, TimeStamp};
-use einsteindb_util::worker::{FutureWorker, Worker};
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod::interlock::REQ_TYPE_DAG;
+use einsteindb-prod::import::SSTImporter;
+use einsteindb-prod::server::gc_worker::sync_gc;
+use einsteindb-prod::causetStorage::tail_pointer::{Dagger, LockType, TimeStamp};
+use einsteindb-prod_util::worker::{FutureWorker, Worker};
+use einsteindb-prod_util::HandyRwLock;
 use txn_types::Key;
 
 #[test]

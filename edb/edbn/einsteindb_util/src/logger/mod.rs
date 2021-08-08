@@ -55,8 +55,8 @@ where
             // The format of the returned value from module() would like this:
             // ```
             //  violetabftstore::store::fsm::store
-            //  einsteindb_util
-            //  einsteindb_util::config::check_data_dir
+            //  einsteindb-prod_util
+            //  einsteindb-prod_util::config::check_data_dir
             //  violetabft::violetabft
             //  grpcio::log_util
             //  ...
@@ -454,7 +454,7 @@ where
     }
 }
 
-/// Writes log header to decorator. See [log-header](https://github.com/einsteindb/rfcs/blob/master/text/2018-12-19-unified-log-format.md#log-header-section)
+/// Writes log header to decorator. See [log-header](https://github.com/einsteindb-prod/rfcs/blob/master/text/2018-12-19-unified-log-format.md#log-header-section)
 fn write_log_header(decorator: &mut dyn RecordDecorator, record: &Record<'_>) -> io::Result<()> {
     decorator.spacelike_timestamp()?;
     write!(
@@ -488,7 +488,7 @@ fn write_log_header(decorator: &mut dyn RecordDecorator, record: &Record<'_>) ->
     Ok(())
 }
 
-/// Writes log message to decorator. See [log-message](https://github.com/einsteindb/rfcs/blob/master/text/2018-12-19-unified-log-format.md#log-message-section)
+/// Writes log message to decorator. See [log-message](https://github.com/einsteindb-prod/rfcs/blob/master/text/2018-12-19-unified-log-format.md#log-message-section)
 fn write_log_msg(decorator: &mut dyn RecordDecorator, record: &Record<'_>) -> io::Result<()> {
     decorator.spacelike_whitespace()?;
     write!(decorator, " ")?;
@@ -502,7 +502,7 @@ fn write_log_msg(decorator: &mut dyn RecordDecorator, record: &Record<'_>) -> io
     Ok(())
 }
 
-/// Writes log fields to decorator. See [log-fields](https://github.com/einsteindb/rfcs/blob/master/text/2018-12-19-unified-log-format.md#log-fields-section)
+/// Writes log fields to decorator. See [log-fields](https://github.com/einsteindb-prod/rfcs/blob/master/text/2018-12-19-unified-log-format.md#log-fields-section)
 fn write_log_fields(
     decorator: &mut dyn RecordDecorator,
     record: &Record<'_>,

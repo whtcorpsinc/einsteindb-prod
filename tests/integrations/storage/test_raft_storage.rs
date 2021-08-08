@@ -8,13 +8,13 @@ use std::sync::mpsc::channel;
 use std::sync::Arc;
 use test_violetabftstore::*;
 use test_causetStorage::*;
-use einsteindb::server::gc_worker::{AutoGcConfig, GcConfig};
-use einsteindb::causetStorage::kv::{Engine, Error as KvError, ErrorInner as KvErrorInner};
-use einsteindb::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
-use einsteindb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
-use einsteindb::causetStorage::{Error as StorageError, ErrorInner as StorageErrorInner};
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod::server::gc_worker::{AutoGcConfig, GcConfig};
+use einsteindb-prod::causetStorage::kv::{Engine, Error as KvError, ErrorInner as KvErrorInner};
+use einsteindb-prod::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
+use einsteindb-prod::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
+use einsteindb-prod::causetStorage::{Error as StorageError, ErrorInner as StorageErrorInner};
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::HandyRwLock;
 use txn_types::{Key, Mutation, TimeStamp};
 
 fn new_violetabft_causetStorage() -> (

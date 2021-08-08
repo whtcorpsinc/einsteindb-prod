@@ -50,7 +50,7 @@ use embedded_promises::{
     MinkowskiValueType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     AttributeMap,
     FromMicros,
     CausetIdMap,
@@ -112,7 +112,7 @@ fn make_connection(uri: &Path, maybe_encryption_key: Option<&str>) -> rusqlite::
         String::new()
     };
 
-    // See https://github.com/whtcorpsinc/einsteindb/issues/505 for details on temp_store
+    // See https://github.com/whtcorpsinc/einsteindb-prod/issues/505 for details on temp_store
     // pragma and how it might interact together with consumers such as Firefox.
     // temp_store=2 is currently present to force SQLite to store temp files in memory.
     // Some of the platforms we support do not have a tmp partition (e.g. Android)
@@ -195,7 +195,7 @@ lazy_static! {
 
         // TODO: possibly remove this index.  :edb.unique/{value,causetIdity} should be asserted by the
         // transactor in all cases, but the index may speed up some of SQLite's causetq planning.  For now,
-        // it serves to validate the transactor impleeinsteindbion.  Note that tag is needed here to
+        // it serves to validate the transactor impleeinsteindb-prodion.  Note that tag is needed here to
         // differentiate, e.g., keywords and strings.
         r#"CREATE UNIQUE INDEX idx_Causets_unique_value ON causets (a, value_type_tag, v) WHERE unique_value IS NOT 0"#,
 
@@ -260,7 +260,7 @@ lazy_static! {
 /// Set the SQLite user version.
 ///
 /// EinsteinDB manages its own SQL schemaReplicant version using the user version.  See the [SQLite
-/// docueinsteindbion](https://www.sqlite.org/pragma.html#pragma_user_version).
+/// docueinsteindb-prodion](https://www.sqlite.org/pragma.html#pragma_user_version).
 fn set_user_version(conn: &rusqlite::Connection, version: i32) -> Result<()> {
     conn.execute(&format!("PRAGMA user_version = {}", version), &[])
         .context(DbErrorKind::CouldNotSetVersionPragma)?;
@@ -270,7 +270,7 @@ fn set_user_version(conn: &rusqlite::Connection, version: i32) -> Result<()> {
 /// Get the SQLite user version.
 ///
 /// EinsteinDB manages its own SQL schemaReplicant version using the user version.  See the [SQLite
-/// docueinsteindbion](https://www.sqlite.org/pragma.html#pragma_user_version).
+/// docueinsteindb-prodion](https://www.sqlite.org/pragma.html#pragma_user_version).
 fn get_user_version(conn: &rusqlite::Connection) -> Result<i32> {
     let v = conn.causetq_row("PRAGMA user_version", &[], |Evcausetidx| {
         Evcausetidx.get(0)
@@ -557,7 +557,7 @@ pub enum SearchType {
 /// `EinsteinDBStoring` will be the trait that encapsulates the storage layer.  It is consumed by the
 /// transaction processing layer.
 ///
-/// Right now, the only impleeinsteindbion of `EinsteinDBStoring` is the SQLite-specific SQL schemaReplicant.  In the
+/// Right now, the only impleeinsteindb-prodion of `EinsteinDBStoring` is the SQLite-specific SQL schemaReplicant.  In the
 /// future, we might consider other SQL engines (perhaps with different fulltext indexing), or
 /// entirely different data stores, say ones shaped like key-value stores.
 pub trait EinsteinDBStoring {
@@ -585,12 +585,12 @@ pub trait EinsteinDBStoring {
     ///
     /// Use this to finalize temporary Blocks, complete indices, revert pragmas, etc, after the
     /// final `insert_non_fts_searches` invocation.
-    fn materialize_einsteindb_transaction(&self, causecausetx_id: SolitonId) -> Result<()>;
+    fn materialize_einsteindb-prod_transaction(&self, causecausetx_id: SolitonId) -> Result<()>;
 
     /// Finalize the underlying storage layer after a EinsteinDB transaction.
     ///
     /// This is a final step in performing a transaction.
-    fn commit_einsteindb_transaction(&self, causecausetx_id: SolitonId) -> Result<()>;
+    fn commit_einsteindb-prod_transaction(&self, causecausetx_id: SolitonId) -> Result<()>;
 
     /// Extract spacetime-related [e a typed_value added] causets resolved in the last
     /// materialized transaction.
@@ -599,7 +599,7 @@ pub trait EinsteinDBStoring {
 
 /// Take search rows and complete `temp.search_results`.
 ///
-/// See https://github.com/whtcorpsinc/einsteindb/wiki/Transacting:-instanton-to-SQL-translation.
+/// See https://github.com/whtcorpsinc/einsteindb-prod/wiki/Transacting:-instanton-to-SQL-translation.
 fn search(conn: &rusqlite::Connection) -> Result<()> {
     // First is fast, only one Block walk: lookup by exact eav.
     // Second is slower, but still only one Block walk: lookup old value by ea.
@@ -630,7 +630,7 @@ fn search(conn: &rusqlite::Connection) -> Result<()> {
 ///
 /// This turns the contents of `search_results` into a new transaction.
 ///
-/// See https://github.com/whtcorpsinc/einsteindb/wiki/Transacting:-instanton-to-SQL-translation.
+/// See https://github.com/whtcorpsinc/einsteindb-prod/wiki/Transacting:-instanton-to-SQL-translation.
 fn insert_transaction(conn: &rusqlite::Connection, causetx: SolitonId) -> Result<()> {
     // EinsteinDB follows Causetic and treats its input as a set.  That means it is okay to transact the
     // same [e a v] twice in one transaction.  However, we don't want to represent the transacted
@@ -665,7 +665,7 @@ fn insert_transaction(conn: &rusqlite::Connection, causetx: SolitonId) -> Result
 ///
 /// This applies the contents of `search_results` to the `causets` Block (in place).
 ///
-/// See https://github.com/whtcorpsinc/einsteindb/wiki/Transacting:-instanton-to-SQL-translation.
+/// See https://github.com/whtcorpsinc/einsteindb-prod/wiki/Transacting:-instanton-to-SQL-translation.
 fn update_Causets(conn: &rusqlite::Connection, causetx: SolitonId) -> Result<()> {
     // Delete causets that were retracted, or those that were :edb.cardinality/one and will be
     // replaced.
@@ -837,7 +837,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
     /// Insert search rows into temporary search Blocks.
     ///
     /// Eventually, the details of this approach will be captured in
-    /// https://github.com/whtcorpsinc/einsteindb/wiki/Transacting:-instanton-to-SQL-translation.
+    /// https://github.com/whtcorpsinc/einsteindb-prod/wiki/Transacting:-instanton-to-SQL-translation.
     fn insert_non_fts_searches<'a>(&self, entities: &'a [ReducedInstanton<'a>], search_type: SearchType) -> Result<()> {
         let ConstrainedEntss_per_statement = 6;
 
@@ -902,7 +902,7 @@ impl EinsteinDBStoring for rusqlite::Connection {
     /// Insert search rows into temporary search Blocks.
     ///
     /// Eventually, the details of this approach will be captured in
-    /// https://github.com/whtcorpsinc/einsteindb/wiki/Transacting:-instanton-to-SQL-translation.
+    /// https://github.com/whtcorpsinc/einsteindb-prod/wiki/Transacting:-instanton-to-SQL-translation.
     fn insert_fts_searches<'a>(&self, entities: &'a [ReducedInstanton<'a>], search_type: SearchType) -> Result<()> {
         let max_vars = self.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER) as usize;
         let ConstrainedEntss_per_statement = 6;
@@ -1017,12 +1017,12 @@ impl EinsteinDBStoring for rusqlite::Connection {
         results.map(|_| ())
     }
 
-    fn commit_einsteindb_transaction(&self, causecausetx_id: SolitonId) -> Result<()> {
+    fn commit_einsteindb-prod_transaction(&self, causecausetx_id: SolitonId) -> Result<()> {
         insert_transaction(&self, causecausetx_id)?;
         Ok(())
     }
 
-    fn materialize_einsteindb_transaction(&self, causecausetx_id: SolitonId) -> Result<()> {
+    fn materialize_einsteindb-prod_transaction(&self, causecausetx_id: SolitonId) -> Result<()> {
         search(&self)?;
         update_Causets(&self, causecausetx_id)?;
         Ok(())
@@ -1233,11 +1233,11 @@ mod tests {
         attribute,
         KnownSolitonId,
     };
-    use einsteindb_embedded::{
+    use einsteindb-prod_embedded::{
         HasSchemaReplicant,
         Keyword,
     };
-    use einsteindb_embedded::util::Either::*;
+    use einsteindb-prod_embedded::util::Either::*;
     use std::collections::{
         BTreeMap,
     };
@@ -1638,8 +1638,8 @@ mod tests {
     fn test_edb_install() {
         let mut conn = TestConn::default();
 
-        // We're missing some tests here, since our impleeinsteindbion is incomplete.
-        // See https://github.com/whtcorpsinc/einsteindb/issues/797
+        // We're missing some tests here, since our impleeinsteindb-prodion is incomplete.
+        // See https://github.com/whtcorpsinc/einsteindb-prod/issues/797
 
         // We can assert a new schemaReplicant attribute.
         assert_transact!(conn, "[[:edb/add 100 :edb/causetid :test/causetid]
@@ -1694,7 +1694,7 @@ mod tests {
                          [:edb/retract 100 :edb/cardinality :edb.cardinality/many]]",
                          Err("bad schemaReplicant assertion: Retracting defining attributes of a schemaReplicant without retracting its :edb/causetid is not permitted."));
 
-        // See https://github.com/whtcorpsinc/einsteindb/issues/796.
+        // See https://github.com/whtcorpsinc/einsteindb-prod/issues/796.
         // assert_transact!(conn,
         //                 "[[:edb/retract 100 :edb/causetid :test/causetid]]",
         //                 Err("bad schemaReplicant assertion: Retracting :edb/causetid of a schemaReplicant without retracting its defining attributes is not permitted."));
@@ -2373,7 +2373,7 @@ mod tests {
         assert_matches!(conn.last_transaction(),
                         "[[65537 :test/dangling 65536 ?causetx true]
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
-        // This is impleeinsteindbion specific, but it should be deterministic.
+        // This is impleeinsteindb-prodion specific, but it should be deterministic.
         assert_matches!(tempids(&report),
                         "{\"s\" 65536
                           \"t\" 65537}");
@@ -2411,7 +2411,7 @@ mod tests {
         assert_matches!(conn.last_transaction(),
                         "[[65543 :test/dangling 65542 ?causetx true]
                           [?causetx :edb/causecausetxInstant ?ms ?causetx true]]");
-        // This is impleeinsteindbion specific, but it should be deterministic.
+        // This is impleeinsteindb-prodion specific, but it should be deterministic.
         assert_matches!(tempids(&report),
                         "{\"s\" 65542
                           \"t\" 65543}");
@@ -2520,7 +2520,7 @@ mod tests {
             [:edb/add "bar" :test/unique "x"]
             [:edb/add "bar" :test/one 124]
         ]"#,
-        // This is impleeinsteindbion specific (due to the allocated solitonId), but it should be deterministic.
+        // This is impleeinsteindb-prodion specific (due to the allocated solitonId), but it should be deterministic.
         Err("schemaReplicant constraint violation: cardinality conflicts:\n  CardinalityOneAddConflict { e: 65536, a: 111, vs: {Long(123), Long(124)} }\n"));
 
         // It also fails for map notation.
@@ -2528,7 +2528,7 @@ mod tests {
             {:test/unique "x", :test/one 123}
             {:test/unique "x", :test/one 124}
         ]"#,
-        // This is impleeinsteindbion specific (due to the allocated solitonId), but it should be deterministic.
+        // This is impleeinsteindb-prodion specific (due to the allocated solitonId), but it should be deterministic.
         Err("schemaReplicant constraint violation: cardinality conflicts:\n  CardinalityOneAddConflict { e: 65536, a: 111, vs: {Long(123), Long(124)} }\n"));
     }
 

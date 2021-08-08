@@ -23,7 +23,7 @@ use std::sync::Arc;
 
 pub use engine_lmdb::LmdbEngine as TestEngine;
 
-pub const PROP_TEST_MARKER_CAUSET_NAME: &[u8] = b"einsteindb.test_marker_causet_name";
+pub const PROP_TEST_MARKER_CAUSET_NAME: &[u8] = b"einsteindb-prod.test_marker_causet_name";
 
 pub fn new_test_engine(path: &str, causets: &[&str]) -> LmdbEngine {
     new_test_engine_with_options(path, causets, |_, _| {})
@@ -39,7 +39,7 @@ where
             let mut opt = PrimaryCausetNetworkOptions::new();
             apply(*causet, &mut opt);
             opt.add_Block_properties_collector_factory(
-                "einsteindb.test_properties",
+                "einsteindb-prod.test_properties",
                 Box::new(TestPropertiesCollectorFactory::new(*causet)),
             );
             CAUSETOptions::new(*causet, opt)

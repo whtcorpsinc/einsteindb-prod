@@ -14,8 +14,8 @@ use engine_promises::Peekable;
 use violetabftstore::store::*;
 use violetabftstore::Result;
 use test_violetabftstore::*;
-use einsteindb_util::config::*;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::config::*;
+use einsteindb-prod_util::HandyRwLock;
 
 fn test_huge_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 1000;

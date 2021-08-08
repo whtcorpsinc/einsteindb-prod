@@ -17,15 +17,15 @@ use ekvproto::metapb;
 use ekvproto::fidelpb::{self, Member};
 use ekvproto::replication_modepb::{BraneReplicationStatus, ReplicationStatus};
 use security::SecurityManager;
-use einsteindb_util::time::duration_to_sec;
-use einsteindb_util::{Either, HandyRwLock};
+use einsteindb-prod_util::time::duration_to_sec;
+use einsteindb-prod_util::{Either, HandyRwLock};
 use txn_types::TimeStamp;
 
 use super::metrics::*;
 use super::util::{check_resp_header, sync_request, validate_lightlikepoints, Inner, LeaderClient};
 use super::{ClusterVersion, Config, FidelFuture, UnixSecs};
 use super::{Error, FidelClient, BraneInfo, BraneStat, Result, REQUEST_TIMEOUT};
-use einsteindb_util::timer::GLOBAL_TIMER_HANDLE;
+use einsteindb-prod_util::timer::GLOBAL_TIMER_HANDLE;
 
 const CQ_COUNT: usize = 1;
 const CLIENT_PREFIX: &str = "fidel";

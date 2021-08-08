@@ -2,7 +2,7 @@
 
 use configuration::{ConfigChange, ConfigManager, Configuration};
 use std::sync::Arc;
-use einsteindb_util::config::VersionTrack;
+use einsteindb-prod_util::config::VersionTrack;
 
 const DEFAULT_DETECT_TIMES: u64 = 10;
 const DEFAULT_SAMPLE_THRESHOLD: i32 = 100;

@@ -9,10 +9,10 @@
 // specific language governing permissions and limitations under the License.
 
 extern crate edbn;
-extern crate einsteindb_embedded;
+extern crate einsteindb-prod_embedded;
 extern crate embedded_promises;
-extern crate einsteindb_causetq_parityfilter;
-extern crate einsteindb_causetq_projector;
+extern crate einsteindb-prod_causetq_parityfilter;
+extern crate einsteindb-prod_causetq_projector;
 extern crate causetq_projector_promises;
 
 use embedded_promises::{
@@ -21,7 +21,7 @@ use embedded_promises::{
     MinkowskiValueType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     SchemaReplicant,
 };
 
@@ -29,13 +29,13 @@ use edbn::causetq::{
     Keyword,
 };
 
-use einsteindb_causetq_parityfilter::{
+use einsteindb-prod_causetq_parityfilter::{
     KnownCauset,
     algebrize,
     parse_find_string,
 };
 
-use einsteindb_causetq_projector::{
+use einsteindb-prod_causetq_projector::{
     causetq_projection,
 };
 

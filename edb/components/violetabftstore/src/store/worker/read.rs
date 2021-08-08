@@ -25,9 +25,9 @@ use crate::store::{
 use crate::Result;
 
 use engine_promises::{KvEngine, VioletaBftEngine};
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::time::monotonic_raw_now;
-use einsteindb_util::time::{Instant, ThreadReadId};
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::time::monotonic_raw_now;
+use einsteindb-prod_util::time::{Instant, ThreadReadId};
 
 use super::metrics::*;
 use crate::store::fsm::store::StoreMeta;
@@ -696,7 +696,7 @@ mod tests {
     use crate::store::Callback;
     use engine_lmdb::{LmdbEngine, LmdbSnapshot};
     use engine_promises::ALL_CAUSETS;
-    use einsteindb_util::time::monotonic_raw_now;
+    use einsteindb-prod_util::time::monotonic_raw_now;
 
     use super::*;
 

@@ -11,7 +11,7 @@ use engine_promises::KvEngine;
 use fidel_client::FidelClient;
 use sst_importer::SSTImporter;
 use std::marker::PhantomData;
-use einsteindb_util::worker::Runnable;
+use einsteindb-prod_util::worker::Runnable;
 
 pub enum Task {
     DeleteSST { ssts: Vec<SstMeta> },

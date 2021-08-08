@@ -9,12 +9,12 @@ use crate::config::Config;
 use crate::fsm::{Fsm, FsmInterlock_Semaphore};
 use crate::mailbox::BasicMailbox;
 use crate::router::Router;
-use crossbeam::channel::{self, lightlikeError};
+use crossbeam::channel::{self,lightlikeror};
 use std::borrow::Cow;
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
-use einsteindb_util::mpsc;
-use einsteindb_util::time::Instant;
+use einsteindb-prod_util::mpsc;
+use einsteindb-prod_util::time::Instant;
 
 /// A unify type for FSMs so that they can be sent to channel easily.
 enum FsmTypes<N, C> {
@@ -28,14 +28,14 @@ enum FsmTypes<N, C> {
 macro_rules! impl_sched {
     ($name:ident, $ty:path, Fsm = $fsm:tt) => {
         pub struct $name<N, C> {
-            lightlikeer: channel::lightlikeer<FsmTypes<N, C>>,
+        lightlike: channel:lightlike<FsmTypes<N, C>>,
         }
 
         impl<N, C> Clone for $name<N, C> {
             #[inline]
             fn clone(&self) -> $name<N, C> {
                 $name {
-                    lightlikeer: self.lightlikeer.clone(),
+                lightlike: self lightlike.clone(),
                 }
             }
         }
@@ -48,10 +48,10 @@ macro_rules! impl_sched {
 
             #[inline]
             fn schedule(&self, fsm: Box<Self::Fsm>) {
-                match self.lightlikeer.lightlike($ty(fsm)) {
+                match self lightlike.lightlike($ty(fsm)) {
                     Ok(()) => {}
                     // TODO: use debug instead.
-                    Err(lightlikeError($ty(fsm))) => warn!("failed to schedule fsm {:p}", fsm),
+                    Errlightlikeror($ty(fsm))) => warn!("failed to schedule fsm {:p}", fsm),
                     _ => unreachable!(),
                 }
             }
@@ -60,7 +60,7 @@ macro_rules! impl_sched {
                 // TODO: close it explicitly once it's supported.
                 // Magic number, actually any number greater than poll pool size works.
                 for _ in 0..100 {
-                    let _ = self.lightlikeer.lightlike(FsmTypes::Empty);
+                    let _ = self lightlike.lightlike(FsmTypes::Empty);
                 }
             }
         }
@@ -429,16 +429,16 @@ pub type BatchRouter<N, C> = Router<N, C, NormalInterlock_Semaphore<N, C>, Contr
 
 /// Create a batch system with the given thread name prefix and pool size.
 ///
-/// `lightlikeer` and `controller` should be paired.
+/// lightlike` and `controller` should be paired.
 pub fn create_system<N: Fsm, C: Fsm>(
     causet: &Config,
-    lightlikeer: mpsc::LooseBoundedlightlikeer<C::Message>,
+lightlike: mpsc::LooseBoundelightlike<C::Message>,
     controller: Box<C>,
 ) -> (BatchRouter<N, C>, BatchSystem<N, C>) {
-    let control_box = BasicMailbox::new(lightlikeer, controller);
+    let control_box = BasicMailbox::newlightlike, controller);
     let (tx, rx) = channel::unbounded();
-    let normal_interlock_semaphore = NormalInterlock_Semaphore { lightlikeer: tx.clone() };
-    let control_interlock_semaphore = ControlInterlock_Semaphore { lightlikeer: tx };
+    let normal_interlock_semaphore = NormalInterlock_Semaphore {lightlike: tx.clone() };
+    let control_interlock_semaphore = ControlInterlock_Semaphore {lightlike: tx };
     let router = Router::new(control_box, normal_interlock_semaphore, control_interlock_semaphore);
     let system = BatchSystem {
         name_prefix: None,

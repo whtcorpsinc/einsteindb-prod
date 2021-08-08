@@ -5,7 +5,7 @@ use std::fmt::{self, Display, Formatter};
 use byteorder::{BigEndian, WriteBytesExt};
 use engine_promises::{KvEngine, Snapshot};
 use ekvproto::metapb::Brane;
-use einsteindb_util::worker::Runnable;
+use einsteindb-prod_util::worker::Runnable;
 
 use crate::interlock::{ConsistencyCheckMethod, InterlockHost};
 use crate::store::metrics::*;
@@ -139,11 +139,11 @@ mod tests {
     use std::sync::mpsc;
     use std::time::Duration;
     use tempfile::Builder;
-    use einsteindb_util::worker::Runnable;
+    use einsteindb-prod_util::worker::Runnable;
 
     #[test]
     fn test_consistency_check() {
-        let path = Builder::new().prefix("einsteindb-store-test").temfidelir().unwrap();
+        let path = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
         let db = new_engine(
             path.path().to_str().unwrap(),
             None,

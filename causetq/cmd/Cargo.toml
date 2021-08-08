@@ -4,16 +4,16 @@ version = "0.0.1"
 license = "Apache-2.0"
 edition = "2018"
 publish = false
-default-run = "einsteindb-server"
+default-run = "einsteindb-prod-server"
 
 [features]
-tcmalloc = ["einsteindb/tcmalloc"]
-jemalloc = ["einsteindb/jemalloc"]
-mimalloc = ["einsteindb/mimalloc"]
-porBlock = ["einsteindb/porBlock"]
-sse = ["einsteindb/sse"]
-mem-profiling = ["einsteindb/mem-profiling"]
-failpoints = ["einsteindb/failpoints"]
+tcmalloc = ["einsteindb-prod/tcmalloc"]
+jemalloc = ["einsteindb-prod/jemalloc"]
+mimalloc = ["einsteindb-prod/mimalloc"]
+porBlock = ["einsteindb-prod/porBlock"]
+sse = ["einsteindb-prod/sse"]
+mem-profiling = ["einsteindb-prod/mem-profiling"]
+failpoints = ["einsteindb-prod/failpoints"]
 protobuf-codec = [
   "backup/protobuf-codec",
   "grpcio/protobuf-codec",
@@ -22,7 +22,7 @@ protobuf-codec = [
   "fidel_client/protobuf-codec",
   "violetabft/protobuf-codec",
   "violetabftstore/protobuf-codec",
-  "einsteindb/protobuf-codec",
+  "einsteindb-prod/protobuf-codec",
   "txn_types/protobuf-codec",
   "causet_context/protobuf-codec",
   "violetabft_log_engine/protobuf-codec"
@@ -35,7 +35,7 @@ prost-codec = [
   "fidel_client/prost-codec",
   "violetabft/prost-codec",
   "violetabftstore/prost-codec",
-  "einsteindb/prost-codec",
+  "einsteindb-prod/prost-codec",
   "txn_types/prost-codec",
   "causet_context/prost-codec",
   "violetabft_log_engine/prost-codec"
@@ -45,10 +45,10 @@ prost-codec = [
 name = "cmd"
 
 [[bin]]
-name = "einsteindb-server"
+name = "einsteindb-prod-server"
 
 [[bin]]
-name = "einsteindb-ctl"
+name = "einsteindb-prod-ctl"
 
 [deplightlikeencies]
 backup = { path = "../components/backup", default-features = false }
@@ -82,15 +82,15 @@ security = { path = "../components/security" }
 serde_json = "1.0"
 slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debug"] }
 slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global.git", rev = "0e23a5baff302a9d7bccd85f8f31e43339c2f2c1" }
-einsteindb = { path = "../", default-features = false }
-einsteindb_alloc = { path = "../components/einsteindb_alloc" }
-einsteindb_util = { path = "../components/einsteindb_util" }
+einsteindb-prod = { path = "../", default-features = false }
+einsteindb-prod_alloc = { path = "../components/einsteindb-prod_alloc" }
+einsteindb-prod_util = { path = "../components/einsteindb-prod_util" }
 toml = "0.4"
 txn_types = { path = "../components/txn_types" }
 vlog = "0.1.4"
 
 [deplightlikeencies.yatp]
-git = "https://github.com/einsteindb/yatp.git"
+git = "https://github.com/einsteindb-prod/yatp.git"
 
 [target.'causet(unix)'.deplightlikeencies]
 signal = "0.6"

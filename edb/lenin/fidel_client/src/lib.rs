@@ -13,9 +13,9 @@ extern crate ekvproto;
 extern crate fail;
 
 #[allow(unused_extern_crates)]
-extern crate einsteindb_alloc;
+extern crate einsteindb-prod_alloc;
 #[macro_use]
-extern crate einsteindb_util;
+extern crate einsteindb-prod_util;
 
 mod client;
 pub mod metrics;
@@ -37,7 +37,7 @@ use ekvproto::metapb;
 use ekvproto::fidelpb;
 use ekvproto::replication_modepb::{BraneReplicationStatus, ReplicationStatus};
 use semver::{SemVerError, Version};
-use einsteindb_util::time::UnixSecs;
+use einsteindb-prod_util::time::UnixSecs;
 use txn_types::TimeStamp;
 
 pub type Key = Vec<u8>;

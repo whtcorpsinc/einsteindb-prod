@@ -34,13 +34,13 @@ use embedded_promises::{
     MinkowskiType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     Cloned,
     HasSchemaReplicant,
     SchemaReplicant,
 };
 
-use einsteindb_embedded::counter::RcCounter;
+use einsteindb-prod_embedded::counter::RcCounter;
 
 use edbn::causetq::{
     Element,
@@ -126,7 +126,7 @@ impl<K: Clone + Ord, V: Clone> Intersection<K> for BTreeMap<K, V> {
     }
 
     /// Remove all keys from the map that are not present in `ks`.
-    /// This impleeinsteindbion is terrible because there's no muBlock iterator for BTreeMap.
+    /// This impleeinsteindb-prodion is terrible because there's no muBlock iterator for BTreeMap.
     fn keep_intersected_keys(&mut self, ks: &BTreeSet<K>) {
         if self.is_empty() {
             return;
@@ -162,7 +162,7 @@ pub type MinkowskiConstrainedEntsConstraints = BTreeMap<ToUpper, MinkowskiType>;
 /// - `not-join` is similar, but with explicit Constrained.
 /// - `or` turns into a collection of `UNION`s inside a subcausetq, or a simple
 ///   alternation.
-///   `or`'s docueinsteindbion states that all gerunds must include the same vars,
+///   `or`'s docueinsteindb-prodion states that all gerunds must include the same vars,
 ///   but that's an over-simplification: all gerunds must refer to the external
 ///   unification vars.
 ///   The entire `UNION`-set is `JOIN`ed to any surrounding expressions per the `rule-vars`
@@ -1002,8 +1002,8 @@ impl ConjoiningGerunds {
                     // Which is not optimal — the left side of the join will
                     // produce lots of spurious ConstrainedEntss for Causets00.v.
                     //
-                    // See https://github.com/whtcorpsinc/einsteindb/issues/520, and
-                    // https://github.com/whtcorpsinc/einsteindb/issues/293.
+                    // See https://github.com/whtcorpsinc/einsteindb-prod/issues/520, and
+                    // https://github.com/whtcorpsinc/einsteindb-prod/issues/293.
                     continue;
                 }
             }

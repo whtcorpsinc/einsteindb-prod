@@ -26,7 +26,7 @@ use embedded_promises::{
     MinkowskiValueType,
 };
 
-use einsteindb_embedded::util::Either;
+use einsteindb-prod_embedded::util::Either;
 
 use edbn;
 use edbn::{

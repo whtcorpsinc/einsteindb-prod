@@ -11,15 +11,15 @@ use violetabftstore::store::fsm::StoreMeta;
 use violetabftstore::store::fsm::*;
 use violetabftstore::store::{AutoSplitController, SnapManager, StoreMsg, Transport};
 use violetabftstore::Result;
-use einsteindb::config::{ConfigController, Module, EINSTEINDBConfig};
-use einsteindb::import::SSTImporter;
+use einsteindb-prod::config::{ConfigController, Module, EINSTEINDBConfig};
+use einsteindb-prod::import::SSTImporter;
 
 use concurrency_manager::ConcurrencyManager;
 use engine_promises::{Engines, ALL_CAUSETS};
 use tempfile::TempDir;
 use test_violetabftstore::TestFidelClient;
-use einsteindb_util::config::VersionTrack;
-use einsteindb_util::worker::{FutureWorker, Worker};
+use einsteindb-prod_util::config::VersionTrack;
+use einsteindb-prod_util::worker::{FutureWorker, Worker};
 
 #[derive(Clone)]
 struct MockTransport;

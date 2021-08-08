@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use engine_promises::{CfName, CAUSET_DEFAULT, CAUSET_WRITE};
 use test_violetabftstore::*;
-use einsteindb_util::config::*;
+use einsteindb-prod_util::config::*;
 
 // TODO add epoch not match test cases.
 

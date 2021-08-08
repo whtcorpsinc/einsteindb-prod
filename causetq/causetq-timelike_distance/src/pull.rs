@@ -20,7 +20,7 @@ use embedded_promises::{
     MinkowskiType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     SchemaReplicant,
     ValueRc,
 };
@@ -29,7 +29,7 @@ use edbn::causetq::{
     PullAttributeSpec,
 };
 
-use einsteindb_causetq_pull::{
+use einsteindb-prod_causetq_pull::{
     Puller,
 };
 

@@ -28,11 +28,11 @@ use protobuf::Message;
 use violetabft::evioletabftpb::{ConfChangeType, MessageType};
 use violetabft::{self, SnapshotStatus, INVALID_INDEX, NO_LIMIT};
 use violetabft::{Ready, StateRole};
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::mpsc::{self, LooseBoundedlightlikeer, Receiver};
-use einsteindb_util::time::duration_to_sec;
-use einsteindb_util::worker::{Interlock_Semaphore, Stopped};
-use einsteindb_util::{escape, is_zero_duration, Either};
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::mpsc::{self, LooseBoundedlightlikeer, Receiver};
+use einsteindb-prod_util::time::duration_to_sec;
+use einsteindb-prod_util::worker::{Interlock_Semaphore, Stopped};
+use einsteindb-prod_util::{escape, is_zero_duration, Either};
 
 use crate::interlock::BraneChangeEvent;
 use crate::store::cmd_resp::{bind_term, new_error};
@@ -550,7 +550,7 @@ where
 
                 if is_learner(&self.fsm.peer.peer) {
                     // FIXME: should use `bcast_check_stale_peer_message` instead.
-                    // lightlikeing a new enum type msg to a old einsteindb may cause panic during rolling ufidelate
+                    // lightlikeing a new enum type msg to a old einsteindb-prod may cause panic during rolling ufidelate
                     // we should change the protobuf behavior and check if properly handled in all place
                     self.fsm.peer.bcast_wake_up_message(&mut self.ctx);
                 }

@@ -8,8 +8,8 @@ use fidel_client::FidelClient;
 use violetabft::evioletabftpb::ConfChangeType;
 use std::sync::mpsc;
 use test_violetabftstore::*;
-use einsteindb_util::config::*;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::config::*;
+use einsteindb-prod_util::HandyRwLock;
 
 fn prepare_cluster() -> Cluster<ServerCluster> {
     let mut cluster = new_server_cluster(0, 3);

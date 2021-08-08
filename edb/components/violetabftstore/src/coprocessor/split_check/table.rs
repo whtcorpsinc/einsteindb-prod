@@ -7,7 +7,7 @@ use error_code::ErrorCodeExt;
 use ekvproto::metapb::Brane;
 use ekvproto::fidelpb::CheckPolicy;
 use milevadb_query_datatype::codec::Block as Block_codec;
-use einsteindb_util::keybuilder::KeyBuilder;
+use einsteindb-prod_util::keybuilder::KeyBuilder;
 use txn_types::Key;
 
 use super::super::{
@@ -237,9 +237,9 @@ mod tests {
     use engine_lmdb::util::new_engine;
     use engine_promises::{SyncMuBlock, ALL_CAUSETS};
     use milevadb_query_datatype::codec::Block::{Block_PREFIX, Block_PREFIX_KEY_LEN};
-    use einsteindb_util::codec::number::NumberEncoder;
-    use einsteindb_util::config::ReadableSize;
-    use einsteindb_util::worker::Runnable;
+    use einsteindb-prod_util::codec::number::NumberEncoder;
+    use einsteindb-prod_util::config::ReadableSize;
+    use einsteindb-prod_util::worker::Runnable;
     use txn_types::Key;
 
     use super::*;

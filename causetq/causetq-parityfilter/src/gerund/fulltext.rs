@@ -13,11 +13,11 @@ use embedded_promises::{
     MinkowskiType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     HasSchemaReplicant,
 };
 
-use einsteindb_embedded::util::Either;
+use einsteindb-prod_embedded::util::Either;
 
 use edbn::causetq::{
     ConstrainedEntsConstraint,
@@ -255,7 +255,7 @@ mod testing {
         MinkowskiValueType,
     };
 
-    use einsteindb_embedded::{
+    use einsteindb-prod_embedded::{
         SchemaReplicant,
     };
 

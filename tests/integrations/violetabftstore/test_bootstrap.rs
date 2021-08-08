@@ -15,10 +15,10 @@ use violetabftstore::interlock::InterlockHost;
 use violetabftstore::store::fsm::store::StoreMeta;
 use violetabftstore::store::{bootstrap_store, fsm, AutoSplitController, SnapManager};
 use test_violetabftstore::*;
-use einsteindb::import::SSTImporter;
-use einsteindb::server::Node;
-use einsteindb_util::config::VersionTrack;
-use einsteindb_util::worker::{FutureWorker, Worker};
+use einsteindb-prod::import::SSTImporter;
+use einsteindb-prod::server::Node;
+use einsteindb-prod_util::config::VersionTrack;
+use einsteindb-prod_util::worker::{FutureWorker, Worker};
 
 fn test_bootstrap_idempotent<T: Simulator>(cluster: &mut Cluster<T>) {
     // assume that there is a node  bootstrap the cluster and add brane in fidel successfully
@@ -38,7 +38,7 @@ fn test_bootstrap_idempotent<T: Simulator>(cluster: &mut Cluster<T>) {
 fn test_node_bootstrap_with_prepared_data() {
     // create a node
     let fidel_client = Arc::new(TestFidelClient::new(0, false));
-    let causet = new_einsteindb_config(0);
+    let causet = new_einsteindb-prod_config(0);
 
     let (_, system) = fsm::create_violetabft_batch_system(&causet.violetabft_store);
     let simulate_trans = SimulateTransport::new(ChannelTransport::new());

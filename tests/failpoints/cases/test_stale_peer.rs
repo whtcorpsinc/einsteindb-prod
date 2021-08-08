@@ -7,7 +7,7 @@ use engine_lmdb::Compat;
 use engine_promises::Peekable;
 use ekvproto::violetabft_serverpb::VioletaBftLocalState;
 use test_violetabftstore::*;
-use einsteindb_util::config::ReadableDuration;
+use einsteindb-prod_util::config::ReadableDuration;
 
 #[test]
 fn test_one_node_leader_missing() {

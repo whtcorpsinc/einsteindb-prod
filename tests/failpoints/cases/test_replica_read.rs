@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use test_violetabftstore::*;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::HandyRwLock;
 
 #[test]
 fn test_wait_for_apply_index() {

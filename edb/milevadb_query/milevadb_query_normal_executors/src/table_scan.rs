@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use ekvproto::interlock::KeyCone;
-use einsteindb_util::collections::HashSet;
+use einsteindb-prod_util::collections::HashSet;
 use fidelpb::PrimaryCausetInfo;
 use fidelpb::BlockScan;
 

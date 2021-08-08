@@ -8,7 +8,7 @@ use crossbeam::channel;
 use ekvproto::violetabft_serverpb::{PeerState, VioletaBftMessage, BraneLocalState, StoreIdent};
 use protobuf::Message;
 use violetabft::evioletabftpb::MessageType;
-use einsteindb_util::config::*;
+use einsteindb-prod_util::config::*;
 
 use engine_lmdb::raw::WriBlock;
 use engine_lmdb::Compat;
@@ -233,7 +233,7 @@ fn test_server_readd_peer() {
     test_readd_peer(&mut cluster);
 }
 
-// Simulate a case that einsteindb exit before a removed peer clean up its stale meta.
+// Simulate a case that einsteindb-prod exit before a removed peer clean up its stale meta.
 #[test]
 fn test_server_stale_meta() {
     let count = 3;

@@ -52,14 +52,14 @@ make_static_metric! {
 
 lazy_static! {
     pub static ref SNAP_COUNTER_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_violetabftstore_snapshot_total",
+        "einsteindb-prod_violetabftstore_snapshot_total",
         "Total number of violetabftstore snapshot processed.",
         &["type", "status"]
     )
     .unwrap();
     pub static ref SNAP_COUNTER: SnapCounter = auto_flush_from!(SNAP_COUNTER_VEC, SnapCounter);
     pub static ref CHECK_SPILT_COUNTER_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_violetabftstore_check_split_total",
+        "einsteindb-prod_violetabftstore_check_split_total",
         "Total number of violetabftstore split check.",
         &["type"]
     )
@@ -67,7 +67,7 @@ lazy_static! {
     pub static ref CHECK_SPILT_COUNTER: CheckSplitCounter =
         auto_flush_from!(CHECK_SPILT_COUNTER_VEC, CheckSplitCounter);
     pub static ref SNAP_HISTOGRAM_VEC: HistogramVec = register_histogram_vec!(
-        "einsteindb_violetabftstore_snapshot_duration_seconds",
+        "einsteindb-prod_violetabftstore_snapshot_duration_seconds",
         "Bucketed histogram of violetabftstore snapshot process duration",
         &["type"],
         exponential_buckets(0.0005, 2.0, 20).unwrap()
@@ -76,29 +76,29 @@ lazy_static! {
     pub static ref SNAP_HISTOGRAM: SnapHistogram =
         auto_flush_from!(SNAP_HISTOGRAM_VEC, SnapHistogram);
     pub static ref CHECK_SPILT_HISTOGRAM: Histogram = register_histogram!(
-        "einsteindb_violetabftstore_check_split_duration_seconds",
+        "einsteindb-prod_violetabftstore_check_split_duration_seconds",
         "Bucketed histogram of violetabftstore split check duration",
         exponential_buckets(0.0005, 2.0, 20).unwrap()
     )
     .unwrap();
     pub static ref COMPACT_RANGE_CAUSET: HistogramVec = register_histogram_vec!(
-        "einsteindb_compact_cone_causet_duration_seconds",
+        "einsteindb-prod_compact_cone_causet_duration_seconds",
         "Bucketed histogram of compact cone for causet execution",
         &["causet"]
     )
     .unwrap();
     pub static ref REGION_HASH_HISTOGRAM: Histogram = register_histogram!(
-        "einsteindb_violetabftstore_hash_duration_seconds",
+        "einsteindb-prod_violetabftstore_hash_duration_seconds",
         "Bucketed histogram of violetabftstore hash computation duration"
     )
     .unwrap();
     pub static ref STALE_PEER_PENDING_DELETE_RANGE_GAUGE: Gauge = register_gauge!(
-        "einsteindb_plightlikeing_delete_cones_of_stale_peer",
-        "Total number of einsteindb plightlikeing delete cone of stale peer"
+        "einsteindb-prod_plightlikeing_delete_cones_of_stale_peer",
+        "Total number of einsteindb-prod plightlikeing delete cone of stale peer"
     )
     .unwrap();
     pub static ref LOCAL_READ_REJECT_VEC: IntCounterVec = register_int_counter_vec!(
-        "einsteindb_violetabftstore_local_read_reject_total",
+        "einsteindb-prod_violetabftstore_local_read_reject_total",
         "Total number of rejections from the local reader.",
         &["reason"]
     )
@@ -106,12 +106,12 @@ lazy_static! {
     pub static ref LOCAL_READ_REJECT: ReadRejectCounter =
         ReadRejectCounter::from(&LOCAL_READ_REJECT_VEC);
     pub static ref LOCAL_READ_EXECUTED_REQUESTS: IntCounter = register_int_counter!(
-        "einsteindb_violetabftstore_local_read_executed_requests",
+        "einsteindb-prod_violetabftstore_local_read_executed_requests",
         "Total number of requests directly executed by local reader."
     )
     .unwrap();
     pub static ref LOCAL_READ_EXECUTED_CACHE_REQUESTS: IntCounter = register_int_counter!(
-        "einsteindb_violetabftstore_local_read_cache_requests",
+        "einsteindb-prod_violetabftstore_local_read_cache_requests",
         "Total number of requests directly executed by local reader."
     )
     .unwrap();

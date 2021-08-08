@@ -29,7 +29,7 @@ impl RcCounter {
     /// Return the next value in the sequence.
     ///
     /// ```
-    /// use einsteindb_embedded::counter::RcCounter;
+    /// use einsteindb-prod_embedded::counter::RcCounter;
     ///
     /// let c = RcCounter::with_initial(3);
     /// assert_eq!(c.next(), 3);

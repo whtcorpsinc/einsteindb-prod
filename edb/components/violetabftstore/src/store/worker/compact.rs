@@ -7,7 +7,7 @@ use std::time::Instant;
 
 use engine_promises::KvEngine;
 use engine_promises::CAUSET_WRITE;
-use einsteindb_util::worker::Runnable;
+use einsteindb-prod_util::worker::Runnable;
 
 use super::metrics::COMPACT_RANGE_CAUSET;
 use engine_lmdb::properties::get_cone_entries_and_versions;
@@ -340,7 +340,7 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(8);
         let f = Box::new(MvccPropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb.test-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.test-collector", f);
         let causets_opts = vec![
             CAUSETOptions::new(CAUSET_DEFAULT, PrimaryCausetNetworkOptions::new()),
             CAUSETOptions::new(CAUSET_VIOLETABFT, PrimaryCausetNetworkOptions::new()),

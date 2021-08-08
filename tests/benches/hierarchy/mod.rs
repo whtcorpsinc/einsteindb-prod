@@ -12,7 +12,7 @@ use self::tail_pointer::bench_tail_pointer;
 use self::causetStorage::bench_causetStorage;
 use self::txn::bench_txn;
 use criterion::Criterion;
-use einsteindb::causetStorage::Engine;
+use einsteindb-prod::causetStorage::Engine;
 
 const DEFAULT_ITERATIONS: usize = 10;
 const DEFAULT_KEY_LENGTHS: [usize; 1] = [64];

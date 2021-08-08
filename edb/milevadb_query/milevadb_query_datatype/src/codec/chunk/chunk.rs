@@ -78,7 +78,7 @@ impl Soliton {
 
     #[causet(test)]
     pub fn decode(
-        buf: &mut einsteindb_util::codec::BytesSlice<'_>,
+        buf: &mut einsteindb-prod_util::codec::BytesSlice<'_>,
         field_types: &[FieldType],
     ) -> Result<Soliton> {
         let mut Soliton = Soliton {

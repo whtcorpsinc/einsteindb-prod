@@ -8,8 +8,8 @@ use std::sync::mpsc;
 use std::sync::Mutex;
 use std::time::Duration;
 use test_violetabftstore::*;
-use einsteindb::causetStorage::tail_pointer::{TimeStamp, Write, WriteType};
-use einsteindb_util::config::*;
+use einsteindb-prod::causetStorage::tail_pointer::{TimeStamp, Write, WriteType};
+use einsteindb-prod_util::config::*;
 use txn_types::Key;
 
 fn gen_tail_pointer_put_kv(

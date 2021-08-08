@@ -11,7 +11,7 @@
 extern crate failure;
 
 extern crate edbn;
-extern crate einsteindb_embedded;
+extern crate einsteindb-prod_embedded;
 #[macro_use]
 extern crate embedded_promises;
 extern crate causetq_parityfilter_promises;
@@ -30,13 +30,13 @@ use embedded_promises::{
     MinkowskiValueType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     CachedAttributes,
     SchemaReplicant,
     parse_causetq,
 };
 
-use einsteindb_embedded::counter::RcCounter;
+use einsteindb-prod_embedded::counter::RcCounter;
 
 use edbn::causetq::{
     Element,

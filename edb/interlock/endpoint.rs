@@ -75,7 +75,7 @@ impl<E: Engine> Clone for node<E> {
     }
 }
 
-impl<E: Engine> einsteindb_util::Assertlightlike for node<E> {}
+impl<E: Engine> einsteindb-prod_util::Assertlightlike for node<E> {}
 
 impl<E: Engine> node<E> {
     pub fn new(
@@ -474,7 +474,7 @@ impl<E: Engine> node<E> {
             };
             if let Some(collector) = collector {
                 let span_sets = collector.collect();
-                resp.set_spans(einsteindb_util::trace::encode_spans(span_sets).collect())
+                resp.set_spans(einsteindb-prod_util::trace::encode_spans(span_sets).collect())
             }
             resp
         }
@@ -908,7 +908,7 @@ mod tests {
     fn test_full() {
         use crate::causetStorage::kv::{destroy_tls_engine, set_tls_engine};
         use std::sync::Mutex;
-        use einsteindb_util::yatp_pool::{DefaultTicker, YatpPoolBuilder};
+        use einsteindb-prod_util::yatp_pool::{DefaultTicker, YatpPoolBuilder};
 
         let engine = TestEngineBuilder::new().build().unwrap();
 
@@ -1186,7 +1186,7 @@ mod tests {
 
     #[test]
     fn test_handle_time() {
-        use einsteindb_util::config::ReadableDuration;
+        use einsteindb-prod_util::config::ReadableDuration;
 
         /// Asserted that the snapshot can be retrieved in 500ms.
         const SNAPSHOT_DURATION_MS: i64 = 500;

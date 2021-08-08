@@ -161,7 +161,7 @@ pub mod tests {
 
     use codec::prelude::NumberEncoder;
     use milevadb_query_datatype::FieldTypeTp;
-    use einsteindb_util::collections::HashMap;
+    use einsteindb-prod_util::collections::HashMap;
     use fidelpb::{Expr, ExprType};
 
     use crate::OriginCols;

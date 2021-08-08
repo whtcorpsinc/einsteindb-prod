@@ -11,10 +11,10 @@ use fidel_client::FidelClient;
 use violetabft::evioletabftpb::MessageType;
 use violetabftstore::store::util::is_vote_msg;
 use violetabftstore::Result;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::HandyRwLock;
 
 use test_violetabftstore::*;
-use einsteindb_util::config::{ReadableDuration, ReadableSize};
+use einsteindb-prod_util::config::{ReadableDuration, ReadableSize};
 
 #[test]
 fn test_follower_slow_split() {

@@ -3,7 +3,7 @@
 use criterion::{black_box, BatchSize, Bencher, Criterion};
 use ekvproto::kvrpcpb::Context;
 use test_util::KvGenerator;
-use einsteindb::causetStorage::kv::{Engine, Snapshot};
+use einsteindb-prod::causetStorage::kv::{Engine, Snapshot};
 use txn_types::{Key, Value};
 
 use super::{BenchConfig, EngineFactory, DEFAULT_ITERATIONS, DEFAULT_KV_GENERATOR_SEED};

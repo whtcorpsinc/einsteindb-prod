@@ -8,7 +8,7 @@
 #[macro_use]
 extern crate slog_global;
 #[allow(unused_extern_crates)]
-extern crate einsteindb_alloc;
+extern crate einsteindb-prod_alloc;
 
 use std::io;
 use std::marker::Unpin;

@@ -2,7 +2,7 @@
 
 use std::fmt;
 use std::sync::Arc;
-use einsteindb_util::collections::HashSet;
+use einsteindb-prod_util::collections::HashSet;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct TimeStamp(u64);

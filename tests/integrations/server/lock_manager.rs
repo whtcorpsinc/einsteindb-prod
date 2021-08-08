@@ -7,10 +7,10 @@ use std::time::Duration;
 use grpcio::{ChannelBuilder, Environment};
 use ekvproto::kvrpcpb::*;
 use ekvproto::metapb::{Peer, Brane};
-use ekvproto::einsteindbpb::EINSTEINDBClient;
+use ekvproto::einsteindb-prodpb::EINSTEINDBClient;
 
 use test_violetabftstore::*;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::HandyRwLock;
 
 fn must_deadlock(client: &EINSTEINDBClient, ctx: Context, key1: &[u8], ts: u64) {
     let key1 = key1.to_vec();

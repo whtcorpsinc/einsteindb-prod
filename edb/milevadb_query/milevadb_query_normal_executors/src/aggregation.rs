@@ -425,7 +425,7 @@ mod tests {
     use std::i64;
 
     use milevadb_query_datatype::FieldTypeTp;
-    use einsteindb_util::collections::HashMap;
+    use einsteindb-prod_util::collections::HashMap;
     use fidelpb::PrimaryCausetInfo;
     use fidelpb::{Expr, ExprType};
 

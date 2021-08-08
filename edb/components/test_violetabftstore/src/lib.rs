@@ -3,7 +3,7 @@
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
-extern crate einsteindb_util;
+extern crate einsteindb-prod_util;
 extern crate fidel_client;
 
 mod cluster;

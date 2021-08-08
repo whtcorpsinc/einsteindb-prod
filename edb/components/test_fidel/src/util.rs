@@ -2,7 +2,7 @@
 
 use fidel_client::{Config, RpcClient};
 use security::{SecurityConfig, SecurityManager};
-use einsteindb_util::config::ReadableDuration;
+use einsteindb-prod_util::config::ReadableDuration;
 
 use std::sync::Arc;
 

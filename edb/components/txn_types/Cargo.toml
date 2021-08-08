@@ -18,5 +18,5 @@ codec = { path = "../codec" }
 ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
 slog = "2.3"
 quick-error = "1.2.3"
-einsteindb_alloc = { path = "../einsteindb_alloc" }
-einsteindb_util = { path = "../einsteindb_util" }
+einsteindb-prod_alloc = { path = "../einsteindb-prod_alloc" }
+einsteindb-prod_util = { path = "../einsteindb-prod_util" }

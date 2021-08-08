@@ -16,8 +16,8 @@ use crate::interlock::SplitCheckerHost;
 use crate::store::{Callback, CasualMessage, CasualRouter};
 use crate::Result;
 use configuration::{ConfigChange, Configuration};
-use einsteindb_util::keybuilder::KeyBuilder;
-use einsteindb_util::worker::Runnable;
+use einsteindb-prod_util::keybuilder::KeyBuilder;
+use einsteindb-prod_util::worker::Runnable;
 
 use super::metrics::*;
 

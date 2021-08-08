@@ -27,8 +27,8 @@ use crate::store::{
 use yatp::pool::{Builder, ThreadPool};
 use yatp::task::future::TaskCell;
 
-use einsteindb_util::timer::Timer;
-use einsteindb_util::worker::{Runnable, RunnableWithTimer};
+use einsteindb-prod_util::timer::Timer;
+use einsteindb-prod_util::worker::{Runnable, RunnableWithTimer};
 
 use super::metrics::*;
 
@@ -277,7 +277,7 @@ where
         notifier: Synclightlikeer<VioletaBftSnapshot>,
     ) {
         SNAP_COUNTER.generate.all.inc();
-        let spacelike = einsteindb_util::time::Instant::now();
+        let spacelike = einsteindb-prod_util::time::Instant::now();
 
         if let Err(e) = self.generate_snap(
             brane_id,
@@ -378,7 +378,7 @@ where
         SNAP_COUNTER.apply.all.inc();
         // let apply_histogram = SNAP_HISTOGRAM.with_label_values(&["apply"]);
         // let timer = apply_histogram.spacelike_coarse_timer();
-        let spacelike = einsteindb_util::time::Instant::now();
+        let spacelike = einsteindb-prod_util::time::Instant::now();
 
         match self.apply_snap(brane_id, Arc::clone(&status)) {
             Ok(()) => {
@@ -646,7 +646,7 @@ where
                 let ctx = self.ctx.clone();
 
                 self.pool.spawn(async move {
-                    einsteindb_alloc::add_thread_memory_accessor();
+                    einsteindb-prod_alloc::add_thread_memory_accessor();
                     ctx.handle_gen(
                         brane_id,
                         last_applied_index_term,
@@ -654,7 +654,7 @@ where
                         kv_snap,
                         notifier,
                     );
-                    einsteindb_alloc::remove_thread_memory_accessor();
+                    einsteindb-prod_alloc::remove_thread_memory_accessor();
                 });
             }
             task @ Task::Apply { .. } => {
@@ -746,8 +746,8 @@ mod tests {
     use ekvproto::violetabft_serverpb::{PeerState, VioletaBftApplyState, BraneLocalState};
     use violetabft::evioletabftpb::Entry;
     use tempfile::Builder;
-    use einsteindb_util::timer::Timer;
-    use einsteindb_util::worker::Worker;
+    use einsteindb-prod_util::timer::Timer;
+    use einsteindb-prod_util::worker::Worker;
 
     use super::Event;
     use super::PlightlikeingDeleteCones;

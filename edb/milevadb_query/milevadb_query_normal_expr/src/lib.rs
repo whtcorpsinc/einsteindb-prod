@@ -13,7 +13,7 @@
 #[macro_use]
 extern crate failure;
 #[macro_use(box_err, box_try, try_opt, debug)]
-extern crate einsteindb_util;
+extern crate einsteindb-prod_util;
 
 #[causet(test)]
 extern crate test;

@@ -5,7 +5,7 @@ use ekvproto::kvrpcpb::ScanDetailV2;
 
 use crate::causetStorage::kv::{PerfStatisticsDelta, PerfStatisticsInstant};
 
-use einsteindb_util::time::{self, Duration, Instant};
+use einsteindb-prod_util::time::{self, Duration, Instant};
 
 use super::metrics::*;
 use crate::interlock::*;

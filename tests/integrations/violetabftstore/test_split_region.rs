@@ -18,7 +18,7 @@ use fidel_client::FidelClient;
 use violetabftstore::store::{Callback, WriteResponse};
 use violetabftstore::Result;
 use test_violetabftstore::*;
-use einsteindb_util::config::*;
+use einsteindb-prod_util::config::*;
 
 pub const REGION_MAX_SIZE: u64 = 50000;
 pub const REGION_SPLIT_SIZE: u64 = 30000;

@@ -3,7 +3,7 @@
 use std::sync::{atomic::AtomicUsize, atomic::Ordering, Arc};
 use std::time::Duration;
 
-use einsteindb_util::time::Instant;
+use einsteindb-prod_util::time::Instant;
 
 use futures:: {
     band::mpsc::{
@@ -17,7 +17,7 @@ use futures:: {
 use grpcio: WriteFlags;
 use ekvproto::solitondc::ChangeDataEvent;
 
-use einsteindb_util::{impl_display_as_debug, warn};
+use einsteindb-prod_util::{impl_display_as_debug, warn};
 
 use crate::service::(solitondcEvent, EventFlush);
 

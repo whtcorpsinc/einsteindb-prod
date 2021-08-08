@@ -17,7 +17,7 @@ use ekvproto::fidelpb::{
 use ekvproto::violetabft_cmdpb::{AdminCmdType, CmdType, StatusCmdType};
 use ekvproto::violetabft_cmdpb::{AdminRequest, VioletaBftCmdRequest, VioletaBftCmdResponse, Request, StatusRequest};
 use ekvproto::violetabft_serverpb::{PeerState, VioletaBftLocalState, BraneLocalState};
-use ekvproto::einsteindbpb::EINSTEINDBClient;
+use ekvproto::einsteindb-prodpb::EINSTEINDBClient;
 use violetabft::evioletabftpb::ConfChangeType;
 
 use encryption::{DataKeyManager, FileConfig, MasterKeyConfig};
@@ -30,16 +30,16 @@ use engine_promises::{Engines, Iterable, Peekable};
 use violetabftstore::store::fsm::VioletaBftRouter;
 use violetabftstore::store::*;
 use violetabftstore::Result;
-use einsteindb::config::*;
-use einsteindb::causetStorage::config::DEFAULT_LMDB_SUB_DIR;
-use einsteindb_util::config::*;
-use einsteindb_util::{escape, HandyRwLock};
+use einsteindb-prod::config::*;
+use einsteindb-prod::causetStorage::config::DEFAULT_LMDB_SUB_DIR;
+use einsteindb-prod_util::config::*;
+use einsteindb-prod_util::{escape, HandyRwLock};
 
 use super::*;
 
 use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_VIOLETABFT};
 pub use violetabftstore::store::util::{find_peer, new_learner_peer, new_peer};
-use einsteindb_util::time::ThreadReadId;
+use einsteindb-prod_util::time::ThreadReadId;
 
 pub fn must_get(engine: &Arc<DB>, causet: &str, key: &[u8], value: Option<&[u8]>) {
     for _ in 1..300 {
@@ -127,7 +127,7 @@ lazy_static! {
     };
 }
 
-pub fn new_einsteindb_config(cluster_id: u64) -> EINSTEINDBConfig {
+pub fn new_einsteindb-prod_config(cluster_id: u64) -> EINSTEINDBConfig {
     let mut causet = TEST_CONFIG.clone();
     causet.server.cluster_id = cluster_id;
     causet

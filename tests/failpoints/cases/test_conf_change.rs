@@ -10,8 +10,8 @@ use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use fidel_client::FidelClient;
 use violetabft::evioletabftpb::{ConfChangeType, MessageType};
 use test_violetabftstore::*;
-use einsteindb_util::config::ReadableDuration;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::config::ReadableDuration;
+use einsteindb-prod_util::HandyRwLock;
 
 #[test]
 fn test_destroy_local_reader() {

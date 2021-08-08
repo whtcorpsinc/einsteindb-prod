@@ -8,4 +8,4 @@ publish = false
 hex = "0.4"
 slog = "2.3"
 slog-term = "2.4"
-einsteindb_alloc = { path = "../einsteindb_alloc" }
+einsteindb-prod_alloc = { path = "../einsteindb-prod_alloc" }

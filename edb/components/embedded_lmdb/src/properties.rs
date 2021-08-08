@@ -14,13 +14,13 @@ use lmdb::{
     DBEntryType, BlockPropertiesCollector, BlockPropertiesCollectorFactory, NoetherBlobIndex,
     UserCollectedProperties,
 };
-use einsteindb_util::codec::number::{self, NumberEncoder};
-use einsteindb_util::codec::{Error, Result};
+use einsteindb-prod_util::codec::number::{self, NumberEncoder};
+use einsteindb-prod_util::codec::{Error, Result};
 use txn_types::{Key, TimeStamp, Write, WriteType};
 
-const PROP_TOTAL_SIZE: &str = "einsteindb.total_size";
-const PROP_SIZE_INDEX: &str = "einsteindb.size_index";
-const PROP_RANGE_INDEX: &str = "einsteindb.cone_index";
+const PROP_TOTAL_SIZE: &str = "einsteindb-prod.total_size";
+const PROP_SIZE_INDEX: &str = "einsteindb-prod.size_index";
+const PROP_RANGE_INDEX: &str = "einsteindb-prod.cone_index";
 pub const DEFAULT_PROP_SIZE_INDEX_DISTANCE: u64 = 4 * 1024 * 1024;
 pub const DEFAULT_PROP_KEYS_INDEX_DISTANCE: u64 = 40 * 1024;
 
@@ -398,15 +398,15 @@ impl BlockPropertiesCollectorFactory for ConePropertiesCollectorFactory {
     }
 }
 
-const PROP_NUM_ERRORS: &str = "einsteindb.num_errors";
-const PROP_MIN_TS: &str = "einsteindb.min_ts";
-const PROP_MAX_TS: &str = "einsteindb.max_ts";
-const PROP_NUM_ROWS: &str = "einsteindb.num_rows";
-const PROP_NUM_PUTS: &str = "einsteindb.num_puts";
-const PROP_NUM_DELETES: &str = "einsteindb.num_deletes";
-const PROP_NUM_VERSIONS: &str = "einsteindb.num_versions";
-const PROP_MAX_ROW_VERSIONS: &str = "einsteindb.max_row_versions";
-const PROP_ROWS_INDEX: &str = "einsteindb.rows_index";
+const PROP_NUM_ERRORS: &str = "einsteindb-prod.num_errors";
+const PROP_MIN_TS: &str = "einsteindb-prod.min_ts";
+const PROP_MAX_TS: &str = "einsteindb-prod.max_ts";
+const PROP_NUM_ROWS: &str = "einsteindb-prod.num_rows";
+const PROP_NUM_PUTS: &str = "einsteindb-prod.num_puts";
+const PROP_NUM_DELETES: &str = "einsteindb-prod.num_deletes";
+const PROP_NUM_VERSIONS: &str = "einsteindb-prod.num_versions";
+const PROP_MAX_ROW_VERSIONS: &str = "einsteindb-prod.max_row_versions";
+const PROP_ROWS_INDEX: &str = "einsteindb-prod.rows_index";
 const PROP_ROWS_INDEX_DISTANCE: u64 = 10000;
 
 #[derive(Clone, Debug, Default)]
@@ -806,7 +806,7 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(MvccPropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb.tail_pointer-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.tail_pointer-properties-collector", f);
         let causets_opts = LARGE_CAUSETS
             .iter()
             .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))

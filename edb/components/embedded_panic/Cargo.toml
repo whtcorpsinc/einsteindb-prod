@@ -7,6 +7,6 @@ publish = false
 
 [deplightlikeencies]
 engine_promises = { path = "../engine_promises" }
-einsteindb_alloc = { path = "../einsteindb_alloc" }
+einsteindb-prod_alloc = { path = "../einsteindb-prod_alloc" }
 # FIXME: Remove this dep from the engine_promises interface
-einsteindb_util = { path = "../einsteindb_util" }
+einsteindb-prod_util = { path = "../einsteindb-prod_util" }

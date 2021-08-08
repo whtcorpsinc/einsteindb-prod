@@ -4,24 +4,24 @@ version = "1.0.0"
 authors = ["WHTCORPS INC"]
 description = "MemCAM inspired Distributed Relativistic Semi-Relational Allegro SQL"
 license = "Apache-2.0"
-keywords = ["einsteindb", "distributed-systems", "violetabft"]
-homepage = "https://einsteindb.com"
-repository = "https://github.com/whtcorpsinc/einsteindb-prod/"
+keywords = ["einsteindb-prod", "distributed-systems", "violetabft"]
+homepage = "https://einsteindb-prod.com"
+repository = "https://github.com/whtcorpsinc/einsteindb-prod-prod/"
 readme = "README.md"
 edition = "2018"
 publish = false
 
 [features]
 bundled_sqlite3 = ["rusqlite/bundled"]
-sqlcipher = ["rusqlite/sqlcipher", "einsteindb_edb/sqlcipher"]
-syncable = ["einsteindb_lenin", "lenin_promises", "einsteindb_edb/syncable"]
+sqlcipher = ["rusqlite/sqlcipher", "einsteindb-prod_edb/sqlcipher"]
+syncable = ["einsteindb-prod_lenin", "lenin_promises", "einsteindb-prod_edb/syncable"]
 default = ["protobuf-codec", "bundled_sqlite3", "syncable"]
-tcmalloc = ["einsteindb_alloc/tcmalloc"]
-jemalloc = ["einsteindb_alloc/jemalloc", "engine_lmdb/jemalloc"]
-mimalloc = ["einsteindb_alloc/mimalloc"]
+tcmalloc = ["einsteindb-prod_alloc/tcmalloc"]
+jemalloc = ["einsteindb-prod_alloc/jemalloc", "engine_lmdb/jemalloc"]
+mimalloc = ["einsteindb-prod_alloc/mimalloc"]
 porBlock = ["engine_lmdb/porBlock"]
 sse = ["engine_lmdb/sse"]
-mem-profiling = ["einsteindb_alloc/mem-profiling"]
+mem-profiling = ["einsteindb-prod_alloc/mem-profiling"]
 failpoints = ["fail/failpoints", "violetabftstore/failpoints"]
 prost-codec = [
     "engine_lmdb/prost-codec",
@@ -36,7 +36,7 @@ prost-codec = [
     "fidelpb/prost-codec",
     "txn_types/prost-codec",
     "encryption/prost-codec",
-    "einsteindb_util/prost-codec",
+    "einsteindb-prod_util/prost-codec",
 ]
 protobuf-codec = [
     "engine_lmdb/protobuf-codec",
@@ -51,7 +51,7 @@ protobuf-codec = [
     "fidelpb/protobuf-codec",
     "txn_types/protobuf-codec",
     "encryption/protobuf-codec",
-    "einsteindb_util/protobuf-codec",
+    "einsteindb-prod_util/protobuf-codec",
 ]
 testexport = ["violetabftstore/testexport"]
 
@@ -59,7 +59,7 @@ testexport = ["violetabftstore/testexport"]
 testing = []
 
 [lib]
-name = "einsteindb-prod"
+name = "einsteindb-prod-prod"
 
 [dependencies]
 panic_hook = { path = "components/panic_hook" }
@@ -147,7 +147,7 @@ milevadb_query_normal_executors = { path = "components/milevadb_query_normal_exe
 milevadb_query_vec_expr = { path = "components/milevadb_query_vec_expr" }
 milevadb_query_vec_aggr = { path = "components/milevadb_query_vec_aggr" }
 milevadb_query_vec_executors = { path = "components/milevadb_query_vec_executors" }
-einsteindb_util = { path = "components/einsteindb_util" }
+einsteindb-prod_util = { path = "components/einsteindb-prod_util" }
 time = "0.2.23"
 fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
 tokio-threadpool = "0.1.13"

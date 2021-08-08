@@ -24,16 +24,16 @@ use violetabftstore::router::VioletaBftStoreRouter;
 use violetabftstore::store::Callback;
 use security::{check_common_name, SecurityManager};
 use sst_importer::lightlike_rpc_response;
-use einsteindb_util::future::create_stream_with_buffer;
-use einsteindb_util::future::paired_future_callback;
-use einsteindb_util::time::{Instant, Limiter};
+use einsteindb-prod_util::future::create_stream_with_buffer;
+use einsteindb-prod_util::future::paired_future_callback;
+use einsteindb-prod_util::time::{Instant, Limiter};
 
 use sst_importer::import_mode::*;
 use sst_importer::metrics::*;
 use sst_importer::service::*;
 use sst_importer::{error_inc, Config, Error, SSTImporter};
 
-/// ImportSSTService provides einsteindb-server with the ability to ingest SST files.
+/// ImportSSTService provides einsteindb-prod-server with the ability to ingest SST files.
 ///
 /// It saves the SST sent from client to a file and then lightlikes a command to
 /// violetabftstore to trigger the ingest process.
@@ -60,8 +60,8 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSSTService<Router> {
         let threads = ThreadPoolBuilder::new()
             .pool_size(causet.num_threads)
             .name_prefix("sst-importer")
-            .after_spacelike(move |_| einsteindb_alloc::add_thread_memory_accessor())
-            .before_stop(move |_| einsteindb_alloc::remove_thread_memory_accessor())
+            .after_spacelike(move |_| einsteindb-prod_alloc::add_thread_memory_accessor())
+            .before_stop(move |_| einsteindb-prod_alloc::remove_thread_memory_accessor())
             .create()
             .unwrap();
         let switcher = ImportModeSwitcher::new(&causet, &threads, engine.clone());

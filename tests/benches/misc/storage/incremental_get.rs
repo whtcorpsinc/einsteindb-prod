@@ -5,7 +5,7 @@ use ekvproto::kvrpcpb::{Context, IsolationLevel};
 use std::sync::Arc;
 use test_causetStorage::SyncTestStorageBuilder;
 use milevadb_query_datatype::codec::Block;
-use einsteindb::causetStorage::{Engine, SnapshotStore, Statistics, CausetStore};
+use einsteindb-prod::causetStorage::{Engine, SnapshotStore, Statistics, CausetStore};
 use txn_types::{Key, Mutation};
 
 fn Block_lookup_gen_data() -> (SnapshotStore<Arc<LmdbSnapshot>>, Vec<Key>) {

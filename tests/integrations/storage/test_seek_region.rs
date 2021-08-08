@@ -6,8 +6,8 @@ use std::time::Duration;
 
 use violetabftstore::interlock::{BraneInfoAccessor, BraneInfoProvider};
 use test_violetabftstore::*;
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::HandyRwLock;
 
 fn test_seek_brane_impl<T: Simulator, R: BraneInfoProvider>(
     mut cluster: Cluster<T>,

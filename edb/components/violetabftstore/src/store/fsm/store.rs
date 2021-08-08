@@ -31,13 +31,13 @@ use engine_promises::{VioletaBftEngine, VioletaBftLogBatch};
 use tuplespaceInstanton::{self, data_lightlike_key, data_key, enc_lightlike_key, enc_spacelike_key};
 use fidel_client::FidelClient;
 use sst_importer::SSTImporter;
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::config::{Tracker, VersionTrack};
-use einsteindb_util::mpsc::{self, LooseBoundedlightlikeer, Receiver};
-use einsteindb_util::time::{duration_to_sec, Instant as TiInstant};
-use einsteindb_util::timer::SteadyTimer;
-use einsteindb_util::worker::{FutureInterlock_Semaphore, FutureWorker, Interlock_Semaphore, Worker};
-use einsteindb_util::{is_zero_duration, sys as sys_util, Either, RingQueue};
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::config::{Tracker, VersionTrack};
+use einsteindb-prod_util::mpsc::{self, LooseBoundedlightlikeer, Receiver};
+use einsteindb-prod_util::time::{duration_to_sec, Instant as TiInstant};
+use einsteindb-prod_util::timer::SteadyTimer;
+use einsteindb-prod_util::worker::{FutureInterlock_Semaphore, FutureWorker, Interlock_Semaphore, Worker};
+use einsteindb-prod_util::{is_zero_duration, sys as sys_util, Either, RingQueue};
 
 use crate::interlock::split_semaphore::SplitSemaphore;
 use crate::interlock::{BoxAdminSemaphore, InterlockHost, BraneChangeEvent};
@@ -71,7 +71,7 @@ use crate::store::{
 };
 use crate::Result;
 use concurrency_manager::ConcurrencyManager;
-use einsteindb_util::future::poll_future_notify;
+use einsteindb-prod_util::future::poll_future_notify;
 
 type Key = Vec<u8>;
 
@@ -379,7 +379,7 @@ where
 
     /// Timeout is calculated from EinsteinDB spacelike, the node should not become
     /// hibernated if it still within the hibernate timeout, see
-    /// https://github.com/einsteindb/einsteindb/issues/7747
+    /// https://github.com/einsteindb-prod/einsteindb-prod/issues/7747
     pub fn is_hibernate_timeout(&mut self) -> bool {
         let timeout = match self.node_spacelike_time {
             Some(t) => t.elapsed() >= self.causet.hibernate_timeout.0,

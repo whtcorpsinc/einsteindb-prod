@@ -12,12 +12,12 @@ use uuid::Uuid;
 use grpcio::{ChannelBuilder, Environment, Result, WriteFlags};
 use ekvproto::import_sstpb::*;
 use ekvproto::kvrpcpb::*;
-use ekvproto::einsteindbpb::*;
+use ekvproto::einsteindb-prodpb::*;
 
 use fidel_client::FidelClient;
 use test_violetabftstore::*;
 use test_sst_importer::*;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::HandyRwLock;
 
 const CLEANUP_SST_MILLIS: u64 = 10;
 
@@ -39,7 +39,7 @@ fn new_cluster() -> (Cluster<ServerCluster>, Context) {
     (cluster, ctx)
 }
 
-fn new_cluster_and_einsteindb_import_client(
+fn new_cluster_and_einsteindb-prod_import_client(
 ) -> (Cluster<ServerCluster>, Context, EINSTEINDBClient, ImportSstClient) {
     let (cluster, ctx) = new_cluster();
 
@@ -48,15 +48,15 @@ fn new_cluster_and_einsteindb_import_client(
         let node = ctx.get_peer().get_store_id();
         ChannelBuilder::new(env).connect(cluster.sim.rl().get_addr(node))
     };
-    let einsteindb = EINSTEINDBClient::new(ch.clone());
+    let einsteindb-prod = EINSTEINDBClient::new(ch.clone());
     let import = ImportSstClient::new(ch);
 
-    (cluster, ctx, einsteindb, import)
+    (cluster, ctx, einsteindb-prod, import)
 }
 
 #[test]
 fn test_upload_sst() {
-    let (_cluster, ctx, _, import) = new_cluster_and_einsteindb_import_client();
+    let (_cluster, ctx, _, import) = new_cluster_and_einsteindb-prod_import_client();
 
     let data = vec![1; 1024];
     let crc32 = calc_data_crc32(&data);
@@ -81,7 +81,7 @@ fn test_upload_sst() {
 
 #[test]
 fn test_write_sst() {
-    let (_cluster, ctx, einsteindb, import) = new_cluster_and_einsteindb_import_client();
+    let (_cluster, ctx, einsteindb-prod, import) = new_cluster_and_einsteindb-prod_import_client();
 
     let mut meta = new_sst_meta(0, 0);
     meta.set_brane_id(ctx.get_brane_id());
@@ -103,12 +103,12 @@ fn test_write_sst() {
         let resp = import.ingest(&ingest).unwrap();
         assert!(!resp.has_error());
     }
-    check_ingested_txn_kvs(&einsteindb, &ctx, sst_cone, 2);
+    check_ingested_txn_kvs(&einsteindb-prod, &ctx, sst_cone, 2);
 }
 
 #[test]
 fn test_ingest_sst() {
-    let (_cluster, ctx, _einsteindb, import) = new_cluster_and_einsteindb_import_client();
+    let (_cluster, ctx, _einsteindb-prod, import) = new_cluster_and_einsteindb-prod_import_client();
 
     let temp_dir = Builder::new().prefix("test_ingest_sst").temfidelir().unwrap();
 
@@ -139,7 +139,7 @@ fn test_ingest_sst() {
 
 #[test]
 fn test_ingest_sst_without_crc32() {
-    let (_cluster, ctx, einsteindb, import) = new_cluster_and_einsteindb_import_client();
+    let (_cluster, ctx, einsteindb-prod, import) = new_cluster_and_einsteindb-prod_import_client();
 
     let temp_dir = Builder::new()
         .prefix("test_ingest_sst_without_crc32")
@@ -163,12 +163,12 @@ fn test_ingest_sst_without_crc32() {
     assert!(!resp.has_error(), "{:?}", resp.get_error());
 
     // Check ingested kvs
-    check_ingested_kvs(&einsteindb, &ctx, sst_cone);
+    check_ingested_kvs(&einsteindb-prod, &ctx, sst_cone);
 }
 
 #[test]
 fn test_download_sst() {
-    let (_cluster, ctx, einsteindb, import) = new_cluster_and_einsteindb_import_client();
+    let (_cluster, ctx, einsteindb-prod, import) = new_cluster_and_einsteindb-prod_import_client();
     let temp_dir = Builder::new()
         .prefix("test_download_sst")
         .temfidelir()
@@ -219,12 +219,12 @@ fn test_download_sst() {
     let resp = import.ingest(&ingest).unwrap();
     assert!(!resp.has_error());
 
-    check_ingested_kvs(&einsteindb, &ctx, sst_cone);
+    check_ingested_kvs(&einsteindb-prod, &ctx, sst_cone);
 }
 
 #[test]
 fn test_cleanup_sst() {
-    let (mut cluster, ctx, _, import) = new_cluster_and_einsteindb_import_client();
+    let (mut cluster, ctx, _, import) = new_cluster_and_einsteindb-prod_import_client();
 
     let temp_dir = Builder::new().prefix("test_cleanup_sst").temfidelir().unwrap();
 
@@ -266,7 +266,7 @@ fn test_cleanup_sst() {
 
 #[test]
 fn test_ingest_sst_brane_not_found() {
-    let (_cluster, mut ctx_not_found, _, import) = new_cluster_and_einsteindb_import_client();
+    let (_cluster, mut ctx_not_found, _, import) = new_cluster_and_einsteindb-prod_import_client();
 
     let temp_dir = Builder::new()
         .prefix("test_ingest_sst_errors")
@@ -351,25 +351,25 @@ fn lightlike_write_sst(
     block_on(rx)
 }
 
-fn check_ingested_kvs(einsteindb: &EINSTEINDBClient, ctx: &Context, sst_cone: (u8, u8)) {
+fn check_ingested_kvs(einsteindb-prod: &EINSTEINDBClient, ctx: &Context, sst_cone: (u8, u8)) {
     for i in sst_cone.0..sst_cone.1 {
         let mut m = RawGetRequest::default();
         m.set_context(ctx.clone());
         m.set_key(vec![i]);
-        let resp = einsteindb.raw_get(&m).unwrap();
+        let resp = einsteindb-prod.raw_get(&m).unwrap();
         assert!(resp.get_error().is_empty());
         assert!(!resp.has_brane_error());
         assert_eq!(resp.get_value(), &[i]);
     }
 }
 
-fn check_ingested_txn_kvs(einsteindb: &EINSTEINDBClient, ctx: &Context, sst_cone: (u8, u8), spacelike_ts: u64) {
+fn check_ingested_txn_kvs(einsteindb-prod: &EINSTEINDBClient, ctx: &Context, sst_cone: (u8, u8), spacelike_ts: u64) {
     for i in sst_cone.0..sst_cone.1 {
         let mut m = GetRequest::default();
         m.set_context(ctx.clone());
         m.set_key(vec![i]);
         m.set_version(spacelike_ts);
-        let resp = einsteindb.kv_get(&m).unwrap();
+        let resp = einsteindb-prod.kv_get(&m).unwrap();
         assert!(!resp.has_brane_error());
         assert_eq!(resp.get_value(), &[i]);
     }

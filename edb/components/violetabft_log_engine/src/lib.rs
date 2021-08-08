@@ -17,7 +17,7 @@
 #![causet_attr(test, feature(test))]
 
 #[macro_use]
-extern crate einsteindb_util;
+extern crate einsteindb-prod_util;
 
 extern crate slog_global;
 

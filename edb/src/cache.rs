@@ -84,7 +84,7 @@ use embedded_promises::{
     MinkowskiType,
 };
 
-use einsteindb_embedded::{
+use einsteindb-prod_embedded::{
     CachedAttributes,
     HasSchemaReplicant,
     SchemaReplicant,
@@ -92,11 +92,11 @@ use einsteindb_embedded::{
     ValueRc,
 };
 
-use einsteindb_embedded::util::{
+use einsteindb-prod_embedded::util::{
     Either,
 };
 
-use einsteindb_sql::{
+use einsteindb-prod_sql::{
     CausetQBuilder,
     SQLiteCausetQBuilder,
     SQLCausetQ,

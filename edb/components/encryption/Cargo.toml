@@ -28,8 +28,8 @@ serde_derive = "1.0"
 slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debug"] }
 # better to not use slog-global, but pass in the logger
 slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global.git", rev = "0e23a5baff302a9d7bccd85f8f31e43339c2f2c1" }
-einsteindb_alloc = { path = "../einsteindb_alloc" }
-einsteindb_util = { path = "../einsteindb_util" }
+einsteindb-prod_alloc = { path = "../einsteindb-prod_alloc" }
+einsteindb-prod_util = { path = "../einsteindb-prod_util" }
 rusoto_core = "0.44.0"
 rusoto_kms = { version = "0.44.0", features = ["serialize_structs"] }
 rusoto_credential = "0.44.0"

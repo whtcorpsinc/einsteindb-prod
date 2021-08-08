@@ -15,9 +15,9 @@ use engine_promises::VioletaBftEngine;
 use engine_promises::CAUSET_VIOLETABFT;
 use engine_promises::{Error as EngineError, Iterable, Iteron};
 use tuplespaceInstanton::DATA_PREFIX_KEY;
-use einsteindb_util::keybuilder::KeyBuilder;
-use einsteindb_util::metrics::CRITICAL_ERROR;
-use einsteindb_util::{panic_when_unexpected_key_or_data, set_panic_mark};
+use einsteindb-prod_util::keybuilder::KeyBuilder;
+use einsteindb-prod_util::metrics::CRITICAL_ERROR;
+use einsteindb-prod_util::{panic_when_unexpected_key_or_data, set_panic_mark};
 
 /// Snapshot of a brane.
 ///
@@ -388,7 +388,7 @@ mod tests {
     use tuplespaceInstanton::data_key;
     use ekvproto::metapb::{Peer, Brane};
     use tempfile::Builder;
-    use einsteindb_util::worker;
+    use einsteindb-prod_util::worker;
 
     use super::*;
 

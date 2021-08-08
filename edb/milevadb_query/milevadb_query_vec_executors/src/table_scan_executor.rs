@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use ekvproto::interlock::KeyCone;
 use milevadb_query_datatype::{EvalType, FieldTypeAccessor};
-use einsteindb_util::collections::HashMap;
+use einsteindb-prod_util::collections::HashMap;
 use fidelpb::PrimaryCausetInfo;
 use fidelpb::FieldType;
 use fidelpb::BlockScan;

@@ -117,8 +117,8 @@ impl UserCollectedProperties for LmdbUserCollectedProperties {
 }
 
 impl DecodeProperties for LmdbUserCollectedProperties {
-    fn decode(&self, k: &str) -> einsteindb_util::codec::Result<&[u8]> {
+    fn decode(&self, k: &str) -> einsteindb-prod_util::codec::Result<&[u8]> {
         self.get(k.as_bytes())
-            .ok_or(einsteindb_util::codec::Error::KeyNotFound)
+            .ok_or(einsteindb-prod_util::codec::Error::KeyNotFound)
     }
 }

@@ -10,8 +10,8 @@ use fidelpb::PrimaryCausetInfo;
 use test_interlock::*;
 use milevadb_query_normal_executors::FreeDaemon;
 use milevadb_query_vec_executors::interface::*;
-use einsteindb::interlock::RequestHandler;
-use einsteindb::causetStorage::{LmdbEngine, CausetStore as TxnStore};
+use einsteindb-prod::interlock::RequestHandler;
+use einsteindb-prod::causetStorage::{LmdbEngine, CausetStore as TxnStore};
 
 use crate::util::bencher::Bencher;
 use crate::util::store::StoreDescriber;

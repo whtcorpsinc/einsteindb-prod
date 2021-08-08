@@ -13,7 +13,7 @@
 // TODO it would be nice to be able to pass
 // in a logger into Syncer::flow; would allow for a "debug mode"
 // and getting useful logs out of clients.
-// See https://github.com/whtcorpsinc/einsteindb/issues/571
+// See https://github.com/whtcorpsinc/einsteindb-prod/issues/571
 // Below is some debug Android-friendly logging:
 
 // use std::os::raw::c_char;

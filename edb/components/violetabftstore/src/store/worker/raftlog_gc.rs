@@ -7,9 +7,9 @@ use std::sync::mpsc::lightlikeer;
 use crate::store::{CasualMessage, CasualRouter};
 
 use engine_promises::{Engines, KvEngine, VioletaBftEngine};
-use einsteindb_util::time::Duration;
-use einsteindb_util::timer::Timer;
-use einsteindb_util::worker::{Runnable, RunnableWithTimer};
+use einsteindb-prod_util::time::Duration;
+use einsteindb-prod_util::timer::Timer;
+use einsteindb-prod_util::worker::{Runnable, RunnableWithTimer};
 
 const MAX_GC_REGION_BATCH: usize = 128;
 const COMPACT_LOG_INTERVAL: Duration = Duration::from_secs(60);

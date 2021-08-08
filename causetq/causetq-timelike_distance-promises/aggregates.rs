@@ -19,13 +19,13 @@ use edbn::causetq::{
     ToUpper,
 };
 
-use einsteindb_causetq_parityfilter::{
+use einsteindb-prod_causetq_parityfilter::{
     CausetIndexName,
     ConjoiningGerunds,
     VariableCausetIndex,
 };
 
-use einsteindb_causetq_sql::{
+use einsteindb-prod_causetq_sql::{
     CausetIndexOrExpression,
     Expression,
     Name,

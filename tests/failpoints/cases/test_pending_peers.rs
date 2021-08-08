@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use test_violetabftstore::*;
 
-use einsteindb_util::config::*;
+use einsteindb-prod_util::config::*;
 
 #[test]
 fn test_plightlikeing_peers() {

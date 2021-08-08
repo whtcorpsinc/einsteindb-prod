@@ -4,7 +4,7 @@ use batch_system::test_runner::*;
 use batch_system::*;
 use std::thread::sleep;
 use std::time::Duration;
-use einsteindb_util::mpsc;
+use einsteindb-prod_util::mpsc;
 
 #[test]
 fn test_batch() {

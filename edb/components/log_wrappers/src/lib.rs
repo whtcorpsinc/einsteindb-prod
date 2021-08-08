@@ -5,16 +5,11 @@
 #[macro_use]
 extern crate slog;
 #[allow(unused_extern_crates)]
-extern crate einsteindb_alloc;
+extern crate einsteindb-prod_alloc;
 
 pub mod test_util;
 
-/// Wraps any `Display` type, use `Display` as `slog::Value`.
-///
-/// Usually this wrapper is useful in containers, e.g. `Option<DisplayValue<T>>`.
-///
-/// If your type `val: T` is directly used as a field value, you may use `"key" => %value` syntax
-/// instead.
+
 pub struct DisplayValue<T: std::fmt::Display>(pub T);
 
 impl<T: std::fmt::Display> slog::Value for DisplayValue<T> {

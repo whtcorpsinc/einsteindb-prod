@@ -13,14 +13,14 @@ use grpcio::{ChannelBuilder, Environment};
 use grpcio::{ClientDuplexReceiver, ClientDuplexlightlikeer, ClientUnaryReceiver};
 use ekvproto::causet_contextpb::{create_change_data, ChangeDataClient, ChangeDataEvent, ChangeDataRequest};
 use ekvproto::kvrpcpb::*;
-use ekvproto::einsteindbpb::EINSTEINDBClient;
+use ekvproto::einsteindb-prodpb::EINSTEINDBClient;
 use violetabftstore::interlock::InterlockHost;
 use security::*;
 use test_violetabftstore::*;
-use einsteindb::config::causet_contextConfig;
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::worker::Worker;
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod::config::causet_contextConfig;
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::worker::Worker;
+use einsteindb-prod_util::HandyRwLock;
 use txn_types::TimeStamp;
 
 use causet_context::{causet_contextSemaphore, Task};
@@ -51,7 +51,7 @@ pub fn new_event_feed(
         if !keep_resolved_ts && change_data_event.has_resolved_ts() {
             continue;
         }
-        einsteindb_util::info!("receive event {:?}", change_data_event);
+        einsteindb-prod_util::info!("receive event {:?}", change_data_event);
         break change_data_event;
     };
     (req_tx, event_feed_wrap, receive_event)
@@ -61,7 +61,7 @@ pub struct TestSuite {
     pub cluster: Cluster<ServerCluster>,
     pub lightlikepoints: HashMap<u64, Worker<Task>>,
     pub obs: HashMap<u64, causet_contextSemaphore>,
-    einsteindb_cli: HashMap<u64, EINSTEINDBClient>,
+    einsteindb-prod_cli: HashMap<u64, EINSTEINDBClient>,
     causet_context_cli: HashMap<u64, ChangeDataClient>,
     concurrency_managers: HashMap<u64, ConcurrencyManager>,
 
@@ -135,7 +135,7 @@ impl TestSuite {
             obs,
             concurrency_managers,
             env: Arc::new(Environment::new(1)),
-            einsteindb_cli: HashMap::default(),
+            einsteindb-prod_cli: HashMap::default(),
             causet_context_cli: HashMap::default(),
         }
     }
@@ -172,7 +172,7 @@ impl TestSuite {
         prewrite_req.spacelike_version = ts.into_inner();
         prewrite_req.lock_ttl = prewrite_req.spacelike_version + 1;
         let prewrite_resp = self
-            .get_einsteindb_client(brane_id)
+            .get_einsteindb-prod_client(brane_id)
             .kv_prewrite(&prewrite_req)
             .unwrap();
         assert!(
@@ -200,7 +200,7 @@ impl TestSuite {
         commit_req.set_tuplespaceInstanton(tuplespaceInstanton.into_iter().collect());
         commit_req.commit_version = commit_ts.into_inner();
         let commit_resp = self
-            .get_einsteindb_client(brane_id)
+            .get_einsteindb-prod_client(brane_id)
             .kv_commit(&commit_req)
             .unwrap();
         assert!(
@@ -217,7 +217,7 @@ impl TestSuite {
         rollback_req.spacelike_version = spacelike_ts.into_inner();
         rollback_req.set_tuplespaceInstanton(tuplespaceInstanton.into_iter().collect());
         let rollback_resp = self
-            .get_einsteindb_client(brane_id)
+            .get_einsteindb-prod_client(brane_id)
             .kv_batch_rollback(&rollback_req)
             .unwrap();
         assert!(
@@ -244,7 +244,7 @@ impl TestSuite {
         commit_req.spacelike_version = spacelike_ts.into_inner();
         commit_req.set_tuplespaceInstanton(tuplespaceInstanton.into_iter().collect());
         commit_req.commit_version = commit_ts.into_inner();
-        self.get_einsteindb_client(brane_id)
+        self.get_einsteindb-prod_client(brane_id)
             .kv_commit_async(&commit_req)
             .unwrap()
     }
@@ -259,12 +259,12 @@ impl TestSuite {
         context
     }
 
-    pub fn get_einsteindb_client(&mut self, brane_id: u64) -> &EINSTEINDBClient {
+    pub fn get_einsteindb-prod_client(&mut self, brane_id: u64) -> &EINSTEINDBClient {
         let leader = self.cluster.leader_of_brane(brane_id).unwrap();
         let store_id = leader.get_store_id();
         let addr = self.cluster.sim.rl().get_addr(store_id).to_owned();
         let env = self.env.clone();
-        self.einsteindb_cli
+        self.einsteindb-prod_cli
             .entry(leader.get_store_id())
             .or_insert_with(|| {
                 let channel = ChannelBuilder::new(env).connect(&addr);

@@ -1,5 +1,5 @@
 [package]
-name = "einsteindb_embedded"
+name = "einsteindb-prod_embedded"
 version = "0.0.1"
 workspace = ".."
 

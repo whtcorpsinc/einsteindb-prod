@@ -257,7 +257,7 @@
 #[macro_use]
 extern crate quick_error;
 #[allow(unused_extern_crates)]
-extern crate einsteindb_alloc;
+extern crate einsteindb-prod_alloc;
 #[macro_use]
 extern crate slog_global;
 

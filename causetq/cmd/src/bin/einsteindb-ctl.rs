@@ -36,16 +36,16 @@ use ekvproto::kvrpcpb::{MvccInfo, SplitBraneRequest};
 use ekvproto::metapb::{Peer, Brane};
 use ekvproto::violetabft_cmdpb::VioletaBftCmdRequest;
 use ekvproto::violetabft_serverpb::{PeerState, SnapshotMeta};
-use ekvproto::einsteindbpb::EINSTEINDBClient;
+use ekvproto::einsteindb-prodpb::EINSTEINDBClient;
 use fidel_client::{Config as FidelConfig, FidelClient, RpcClient};
 use violetabft::evioletabftpb::{ConfChange, Entry, EntryType};
 use violetabft_log_engine::VioletaBftLogEngine;
 use violetabftstore::store::INIT_EPOCH_CONF_VER;
 use security::{SecurityConfig, SecurityManager};
 use std::pin::Pin;
-use einsteindb::config::{ConfigController, EINSTEINDBConfig};
-use einsteindb::server::debug::{BottommostLevelCompaction, Debugger, BraneInfo};
-use einsteindb_util::{escape, file::calc_crc32, unescape};
+use einsteindb-prod::config::{ConfigController, EINSTEINDBConfig};
+use einsteindb-prod::server::debug::{BottommostLevelCompaction, Debugger, BraneInfo};
+use einsteindb-prod_util::{escape, file::calc_crc32, unescape};
 use txn_types::Key;
 
 const METRICS_PROMETHEUS: &str = "prometheus";
@@ -574,7 +574,7 @@ trait DebugFreeDaemon {
 
     fn recover_all(&self, threads: usize, read_only: bool);
 
-    fn modify_einsteindb_config(&self, config_name: &str, config_value: &str);
+    fn modify_einsteindb-prod_config(&self, config_name: &str, config_value: &str);
 
     fn dump_metrics(&self, tags: Vec<&str>);
 
@@ -746,12 +746,12 @@ impl DebugFreeDaemon for DebugClient {
         v1!("success!");
     }
 
-    fn modify_einsteindb_config(&self, config_name: &str, config_value: &str) {
+    fn modify_einsteindb-prod_config(&self, config_name: &str, config_value: &str) {
         let mut req = ModifyEINSTEINDBConfigRequest::default();
         req.set_config_name(config_name.to_owned());
         req.set_config_value(config_value.to_owned());
-        self.modify_einsteindb_config(&req)
-            .unwrap_or_else(|e| perror_and_exit("DebugClient::modify_einsteindb_config", e));
+        self.modify_einsteindb-prod_config(&req)
+            .unwrap_or_else(|e| perror_and_exit("DebugClient::modify_einsteindb-prod_config", e));
         v1!("success");
     }
 
@@ -967,7 +967,7 @@ impl<ER: VioletaBftEngine> DebugFreeDaemon for Debugger<ER> {
         process::exit(-1);
     }
 
-    fn modify_einsteindb_config(&self, _: &str, _: &str) {
+    fn modify_einsteindb-prod_config(&self, _: &str, _: &str) {
         ve1!("only support remote mode");
         process::exit(-1);
     }
@@ -1025,9 +1025,9 @@ fn main() {
     vlog::set_verbosity_level(1);
 
     let raw_key_hint: &'static str = "Raw key (generally spacelikes with \"z\") in escaped form";
-    let version_info = einsteindb::einsteindb_version_info();
+    let version_info = einsteindb-prod::einsteindb-prod_version_info();
 
-    let mut app = App::new("EinsteinDB Control (einsteindb-ctl)")
+    let mut app = App::new("EinsteinDB Control (einsteindb-prod-ctl)")
         .about("A tool for interacting with EinsteinDB deployments.")
         .author(crate_authors!())
         .version(version_info.as_ref())
@@ -1591,8 +1591,8 @@ fn main() {
         )
         .subcommand(SubCommand::with_name("bad-branes").about("Get all branes with corrupt violetabft"))
         .subcommand(
-            SubCommand::with_name("modify-einsteindb-config")
-                .about("Modify einsteindb config, eg. einsteindb-ctl --host ip:port modify-einsteindb-config -n lmdb.defaultcauset.disable-auto-compactions -v true")
+            SubCommand::with_name("modify-einsteindb-prod-config")
+                .about("Modify einsteindb-prod config, eg. einsteindb-prod-ctl --host ip:port modify-einsteindb-prod-config -n lmdb.defaultcauset.disable-auto-compactions -v true")
                 .arg(
                     Arg::with_name("config_name")
                         .required(true)
@@ -1736,7 +1736,7 @@ fn main() {
                                 .takes_value(true)
                                 .help(
                                     "Inject fail point and actions pairs.\
-                                E.g. einsteindb-ctl fail inject a=off b=panic",
+                                E.g. einsteindb-prod-ctl fail inject a=off b=panic",
                                 ),
                         )
                         .arg(
@@ -1753,7 +1753,7 @@ fn main() {
                             Arg::with_name("args")
                                 .multiple(true)
                                 .takes_value(true)
-                                .help("Recover fail points. Eg. einsteindb-ctl fail recover a b"),
+                                .help("Recover fail points. Eg. einsteindb-prod-ctl fail recover a b"),
                         )
                         .arg(
                             Arg::with_name("file")
@@ -2146,10 +2146,10 @@ fn main() {
         debug_executor.check_brane_consistency(brane_id);
     } else if matches.subcommand_matches("bad-branes").is_some() {
         debug_executor.print_bad_branes();
-    } else if let Some(matches) = matches.subcommand_matches("modify-einsteindb-config") {
+    } else if let Some(matches) = matches.subcommand_matches("modify-einsteindb-prod-config") {
         let config_name = matches.value_of("config_name").unwrap();
         let config_value = matches.value_of("config_value").unwrap();
-        debug_executor.modify_einsteindb_config(config_name, config_value);
+        debug_executor.modify_einsteindb-prod_config(config_name, config_value);
     } else if let Some(matches) = matches.subcommand_matches("metrics") {
         let tags = Vec::from_iter(matches.values_of("tag").unwrap());
         debug_executor.dump_metrics(tags)
@@ -2309,7 +2309,7 @@ fn split_brane(fidel_client: &RpcClient, mgr: Arc<SecurityManager>, brane_id: u6
         .get_store(leader.get_store_id())
         .expect("get_store should success");
 
-    let einsteindb_client = {
+    let einsteindb-prod_client = {
         let cb = ChannelBuilder::new(Arc::new(Environment::new(1)));
         let channel = mgr.connect(cb, store.get_address());
         EINSTEINDBClient::new(channel)
@@ -2321,7 +2321,7 @@ fn split_brane(fidel_client: &RpcClient, mgr: Arc<SecurityManager>, brane_id: u6
         .set_brane_epoch(brane.get_brane_epoch().clone());
     req.set_split_key(key);
 
-    let resp = einsteindb_client
+    let resp = einsteindb-prod_client
         .split_brane(&req)
         .expect("split_brane should success");
     if resp.has_brane_error() {
@@ -2360,7 +2360,7 @@ fn compact_whole_cluster(
         let (from, to) = (from.clone(), to.clone());
         let causets: Vec<String> = causets.iter().map(|causet| (*causet).to_string()).collect();
         let h = thread::spawn(move || {
-            einsteindb_alloc::add_thread_memory_accessor();
+            einsteindb-prod_alloc::add_thread_memory_accessor();
             let debug_executor = new_debug_executor(None, None, false, Some(&addr), &causet, mgr);
             for causet in causets {
                 debug_executor.compact(
@@ -2373,7 +2373,7 @@ fn compact_whole_cluster(
                     bottommost,
                 );
             }
-            einsteindb_alloc::remove_thread_memory_accessor();
+            einsteindb-prod_alloc::remove_thread_memory_accessor();
         });
         handles.push(h);
     }

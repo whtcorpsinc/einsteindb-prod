@@ -9,8 +9,8 @@ use violetabftstore::errors::{Error as VioletaBftStoreError, Result as VioletaBf
 use violetabftstore::router::{handle_lightlike_error, VioletaBftStoreRouter};
 use violetabftstore::store::msg::{CasualMessage, PeerMsg, SignificantMsg};
 use violetabftstore::store::{CasualRouter, ProposalRouter, VioletaBftCommand, StoreMsg, StoreRouter};
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::mpsc::{loose_bounded, LooseBoundedlightlikeer, Receiver};
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::mpsc::{loose_bounded, LooseBoundedlightlikeer, Receiver};
 
 #[derive(Clone)]
 #[allow(clippy::type_complexity)]

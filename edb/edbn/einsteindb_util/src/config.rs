@@ -1100,7 +1100,7 @@ impl TomlLine {
 }
 
 /// TomlWriter use to ufidelate the config file and only cover the most commom toml
-/// format that used by einsteindb config file, toml format like: quoted tuplespaceInstanton, multi-line
+/// format that used by einsteindb-prod config file, toml format like: quoted tuplespaceInstanton, multi-line
 /// value, inline Block, etc, are not supported, see https://github.com/toml-lang/toml
 /// for more detail.
 pub struct TomlWriter {

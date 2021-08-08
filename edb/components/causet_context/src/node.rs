@@ -21,16 +21,16 @@ use violetabftstore::router::VioletaBftStoreRouter;
 use violetabftstore::store::fsm::{ChangeCmd, ObserveID, StoreMeta};
 use violetabftstore::store::msg::{Callback, ReadResponse, SignificantMsg};
 use resolved_ts::Resolver;
-use einsteindb::config::causet_contextConfig;
-use einsteindb::causetStorage::kv::Snapshot;
-use einsteindb::causetStorage::tail_pointer::{DeltaScanner, ScannerBuilder};
-use einsteindb::causetStorage::txn::TxnEntry;
-use einsteindb::causetStorage::txn::TxnEntryScanner;
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::lru::LruCache;
-use einsteindb_util::time::Instant;
-use einsteindb_util::timer::{SteadyTimer, Timer};
-use einsteindb_util::worker::{Runnable, RunnableWithTimer, ScheduleError, Interlock_Semaphore};
+use einsteindb-prod::config::causet_contextConfig;
+use einsteindb-prod::causetStorage::kv::Snapshot;
+use einsteindb-prod::causetStorage::tail_pointer::{DeltaScanner, ScannerBuilder};
+use einsteindb-prod::causetStorage::txn::TxnEntry;
+use einsteindb-prod::causetStorage::txn::TxnEntryScanner;
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::lru::LruCache;
+use einsteindb-prod_util::time::Instant;
+use einsteindb-prod_util::timer::{SteadyTimer, Timer};
+use einsteindb-prod_util::worker::{Runnable, RunnableWithTimer, ScheduleError, Interlock_Semaphore};
 use tokio::runtime::{Builder, Runtime};
 use txn_types::{
     Key, Dagger, LockType, MutationType, OldValue, TimeStamp, TxnExtra, TxnExtraInterlock_Semaphore,
@@ -513,7 +513,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
             build_resolver: is_new_pushdown_causet,
         };
 
-        let (cb, fut) = einsteindb_util::future::paired_future_callback();
+        let (cb, fut) = einsteindb-prod_util::future::paired_future_callback();
         let interlock_semaphore = self.interlock_semaphore.clone();
         let deregister_downstream = move |err| {
             warn!("causet_context lightlike capture change cmd failed"; "brane_id" => brane_id, "error" => ?err);
@@ -1082,13 +1082,13 @@ mod tests {
     use tempfile::TempDir;
     use test_violetabftstore::MockVioletaBftStoreRouter;
     use test_violetabftstore::TestFidelClient;
-    use einsteindb::causetStorage::kv::Engine;
-    use einsteindb::causetStorage::tail_pointer::tests::*;
-    use einsteindb::causetStorage::TestEngineBuilder;
-    use einsteindb_util::collections::HashSet;
-    use einsteindb_util::config::ReadableDuration;
-    use einsteindb_util::mpsc::batch;
-    use einsteindb_util::worker::{dummy_interlock_semaphore, Builder as WorkerBuilder, Worker};
+    use einsteindb-prod::causetStorage::kv::Engine;
+    use einsteindb-prod::causetStorage::tail_pointer::tests::*;
+    use einsteindb-prod::causetStorage::TestEngineBuilder;
+    use einsteindb-prod_util::collections::HashSet;
+    use einsteindb-prod_util::config::ReadableDuration;
+    use einsteindb-prod_util::mpsc::batch;
+    use einsteindb-prod_util::worker::{dummy_interlock_semaphore, Builder as WorkerBuilder, Worker};
 
     struct ReceiverRunnable<T> {
         tx: lightlikeer<T>,

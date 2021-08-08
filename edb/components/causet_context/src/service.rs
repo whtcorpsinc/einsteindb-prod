@@ -16,9 +16,9 @@ use ekvproto::causet_contextpb::{
 };
 use protobuf::Message;
 use security::{check_common_name, SecurityManager};
-use einsteindb_util::collections::HashMap;
-use einsteindb_util::mpsc::batch::{self, BatchReceiver, lightlikeer as Batchlightlikeer, VecCollector};
-use einsteindb_util::worker::*;
+use einsteindb-prod_util::collections::HashMap;
+use einsteindb-prod_util::mpsc::batch::{self, BatchReceiver, lightlikeer as Batchlightlikeer, VecCollector};
+use einsteindb-prod_util::worker::*;
 
 use crate::pushdown_causet::{Downstream, DownstreamID};
 use crate::lightlikepoint::{Deregister, Task};

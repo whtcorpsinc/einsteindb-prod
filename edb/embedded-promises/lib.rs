@@ -406,8 +406,8 @@ impl fmt::Display for MinkowskiValueType {
 impl TransacBlockValueMarker for MinkowskiType {}
 
 /// Represents a value that can be stored in a EinsteinDB store.
-// TODO: expand to include :edb.type/uri. https://github.com/whtcorpsinc/einsteindb/issues/201
-// TODO: JSON data type? https://github.com/whtcorpsinc/einsteindb/issues/31
+// TODO: expand to include :edb.type/uri. https://github.com/whtcorpsinc/einsteindb-prod/issues/201
+// TODO: JSON data type? https://github.com/whtcorpsinc/einsteindb-prod/issues/31
 // TODO: BigInt? Bytes?
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq, Serialize, Deserialize)]
 pub enum MinkowskiType {

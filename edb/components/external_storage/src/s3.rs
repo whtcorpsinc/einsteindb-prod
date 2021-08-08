@@ -28,7 +28,7 @@ pub struct S3Storage {
     config: Config,
     client: S3Client,
     // The current implementation (rosoto 0.43.0 + hyper 0.13.3) is not `lightlike`
-    // in practical. See more https://github.com/einsteindb/einsteindb/issues/7236.
+    // in practical. See more https://github.com/einsteindb-prod/einsteindb-prod/issues/7236.
     // FIXME: remove it.
     _not_lightlike: PhantomData<*const ()>,
 }
@@ -390,7 +390,7 @@ mod tests {
     // body stream which itself can have bug)
     fn test_real_s3_causetStorage() {
         use std::f64::INFINITY;
-        use einsteindb_util::time::Limiter;
+        use einsteindb-prod_util::time::Limiter;
 
         let mut s3 = Config::default();
         s3.set_lightlikepoint("http://127.0.0.1:9000".to_owned());

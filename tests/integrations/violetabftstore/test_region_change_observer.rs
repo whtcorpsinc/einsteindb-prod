@@ -11,7 +11,7 @@ use std::sync::mpsc::{channel, sync_channel, Receiver, Synclightlikeer};
 use std::sync::Arc;
 use std::time::Duration;
 use test_violetabftstore::{new_node_cluster, Cluster, NodeCluster};
-use einsteindb_util::HandyRwLock;
+use einsteindb-prod_util::HandyRwLock;
 
 #[derive(Clone)]
 struct TestSemaphore {
