@@ -11,15 +11,15 @@ use violetabftstore::store::fsm::StoreMeta;
 use violetabftstore::store::fsm::*;
 use violetabftstore::store::{AutoSplitController, SnapManager, StoreMsg, Transport};
 use violetabftstore::Result;
-use einsteindb-prod::config::{ConfigController, Module, EINSTEINDBConfig};
-use einsteindb-prod::import::SSTImporter;
+use edb::config::{ConfigController, Module, EINSTEINDBConfig};
+use edb::import::SSTImporter;
 
 use concurrency_manager::ConcurrencyManager;
-use engine_promises::{Engines, ALL_CAUSETS};
+use edb::{Engines, ALL_CausetS};
 use tempfile::TempDir;
 use test_violetabftstore::TestFidelClient;
-use einsteindb-prod_util::config::VersionTrack;
-use einsteindb-prod_util::worker::{FutureWorker, Worker};
+use edb_util::config::VersionTrack;
+use edb_util::worker::{FutureWorker, Worker};
 
 #[derive(Clone)]
 struct MockTransport;
@@ -37,7 +37,7 @@ fn create_tmp_engine(dir: &TempDir) -> Engines<LmdbEngine, LmdbEngine> {
         engine_lmdb::raw_util::new_engine(
             dir.path().join("db").to_str().unwrap(),
             None,
-            ALL_CAUSETS,
+            ALL_CausetS,
             None,
         )
         .unwrap(),

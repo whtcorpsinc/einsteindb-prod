@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use crate::config::CoprReadPoolConfig;
 use crate::causetStorage::kv::{destroy_tls_engine, set_tls_engine};
 use crate::causetStorage::{Engine, FlowStatsReporter};
-use einsteindb-prod_util::yatp_pool::{Config, DefaultTicker, FuturePool, PoolTicker, YatpPoolBuilder};
+use edb_util::yatp_pool::{Config, DefaultTicker, FuturePool, PoolTicker, YatpPoolBuilder};
 
 use super::metrics::*;
 

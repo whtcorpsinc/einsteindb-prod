@@ -6,9 +6,9 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::*;
-use einsteindb-prod_util::time::UnixSecs as FidelInstant;
-use einsteindb-prod_util::HandyRwLock;
+use edb_util::config::*;
+use edb_util::time::UnixSecs as FidelInstant;
+use edb_util::HandyRwLock;
 
 fn wait_down_peers<T: Simulator>(cluster: &Cluster<T>, count: u64, peer: Option<u64>) {
     let mut peers = cluster.get_down_peers();

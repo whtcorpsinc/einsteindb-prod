@@ -231,7 +231,7 @@ impl Attribute {
     pub fn to_edbn_value(&self, causetid: Option<Keyword>) -> edbn::Value {
         let mut attribute_map: BTreeMap<edbn::Value, edbn::Value> = BTreeMap::default();
         if let Some(causetid) = causetid {
-            attribute_map.insert(values::DB_CAUSETID.clone(), edbn::Value::Keyword(causetid));
+            attribute_map.insert(values::DB_CausetID.clone(), edbn::Value::Keyword(causetid));
         }
 
         attribute_map.insert(values::DB_VALUE_TYPE.clone(), self.value_type.into_edbn_value());
@@ -240,7 +240,7 @@ impl Attribute {
 
         match self.unique {
             Some(attribute::Unique::Value) => { attribute_map.insert(values::DB_UNIQUE.clone(), values::DB_UNIQUE_VALUE.clone()); },
-            Some(attribute::Unique::CausetIdity) => { attribute_map.insert(values::DB_UNIQUE.clone(), values::DB_UNIQUE_CAUSETIDITY.clone()); },
+            Some(attribute::Unique::CausetIdity) => { attribute_map.insert(values::DB_UNIQUE.clone(), values::DB_UNIQUE_CausetIDITY.clone()); },
             None => (),
         }
 
@@ -406,8 +406,8 @@ impl fmt::Display for MinkowskiValueType {
 impl TransacBlockValueMarker for MinkowskiType {}
 
 /// Represents a value that can be stored in a EinsteinDB store.
-// TODO: expand to include :edb.type/uri. https://github.com/whtcorpsinc/einsteindb-prod/issues/201
-// TODO: JSON data type? https://github.com/whtcorpsinc/einsteindb-prod/issues/31
+// TODO: expand to include :edb.type/uri. https://github.com/whtcorpsinc/edb/issues/201
+// TODO: JSON data type? https://github.com/whtcorpsinc/edb/issues/31
 // TODO: BigInt? Bytes?
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq, Serialize, Deserialize)]
 pub enum MinkowskiType {

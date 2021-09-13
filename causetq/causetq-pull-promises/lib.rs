@@ -12,7 +12,7 @@ extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 
-extern crate embedded_promises;
+extern crate raum_promises;
 extern crate edbn_promises;
 
 pub mod errors;

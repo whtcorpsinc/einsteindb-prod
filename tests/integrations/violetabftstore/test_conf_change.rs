@@ -13,13 +13,13 @@ use ekvproto::violetabft_serverpb::*;
 use violetabft::evioletabftpb::{ConfChangeType, MessageType};
 
 use engine_lmdb::Compat;
-use engine_promises::{Peekable, CAUSET_VIOLETABFT};
+use edb::{Peekable, Causet_VIOLETABFT};
 use fidel_client::FidelClient;
 use violetabftstore::store::util::is_learner;
 use violetabftstore::Result;
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::ReadableDuration;
-use einsteindb-prod_util::HandyRwLock;
+use edb_util::config::ReadableDuration;
+use edb_util::HandyRwLock;
 
 fn test_simple_conf_change<T: Simulator>(cluster: &mut Cluster<T>) {
     let fidel_client = Arc::clone(&cluster.fidel_client);
@@ -399,7 +399,7 @@ fn test_after_remove_itself<T: Simulator>(cluster: &mut Cluster<T>) {
     for _ in 0..250 {
         let brane: BraneLocalState = engine1
             .c()
-            .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(r1))
+            .get_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::brane_state_key(r1))
             .unwrap()
             .unwrap();
         if brane.get_state() == PeerState::Tombstone {
@@ -409,7 +409,7 @@ fn test_after_remove_itself<T: Simulator>(cluster: &mut Cluster<T>) {
     }
     let brane: BraneLocalState = engine1
         .c()
-        .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(r1))
+        .get_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::brane_state_key(r1))
         .unwrap()
         .unwrap();
     assert_eq!(brane.get_state(), PeerState::Tombstone);

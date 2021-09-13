@@ -12,7 +12,7 @@ use protobuf::ProtobufError;
 
 use error_code::{self, ErrorCode, ErrorCodeExt};
 use ekvproto::{errorpb, metapb};
-use einsteindb-prod_util::codec;
+use edb_util::codec;
 
 use super::interlock::Error as CopError;
 use super::store::SnapError;
@@ -67,7 +67,7 @@ quick_error! {
             cause(err)
             display("Io {}", err)
         }
-        Engine(err: engine_promises::Error) {
+        Engine(err: edb::Error) {
             from()
             display("Engine {:?}", err)
         }
@@ -196,7 +196,7 @@ impl From<Error> for errorpb::Error {
                 server_is_busy_err.set_reason(VIOLETABFTSTORE_IS_BUSY.to_owned());
                 errorpb.set_server_is_busy(server_is_busy_err);
             }
-            Error::Engine(engine_promises::Error::NotInCone(key, brane_id, spacelike_key, lightlike_key)) => {
+            Error::Engine(edb::Error::NotInCone(key, brane_id, spacelike_key, lightlike_key)) => {
                 errorpb.mut_key_not_in_brane().set_key(key);
                 errorpb.mut_key_not_in_brane().set_brane_id(brane_id);
                 errorpb

@@ -14,5 +14,5 @@ failure_derive = "0.1.1"
 [dependencies.edbn]
 path = "../edbn"
 
-[dependencies.embedded_promises]
-path = "../embedded-promises"
+[dependencies.raum_promises]
+path = "../raum-promises"

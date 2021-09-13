@@ -1,14 +1,14 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::Embedded::LmdbEmbedded;
-use embedded_promises::DBOptions;
-use embedded_promises::DBOptionsExt;
-use embedded_promises::Result;
-use embedded_promises::NoetherDBOptions;
+use crate::Raum::LmdbRaum;
+use raum_promises::DBOptions;
+use raum_promises::DBOptionsExt;
+use raum_promises::Result;
+use raum_promises::NoetherDBOptions;
 use lmdb::DBOptions as RawDBOptions;
 use lmdb::NoetherDBOptions as RawNoetherDBOptions;
 
-impl DBOptionsExt for LmdbEmbedded {
+impl DBOptionsExt for LmdbRaum {
     type DBOptions = LmdbDBOptions;
 
     fn get_db_options(&self) -> Self::DBOptions {
@@ -56,8 +56,8 @@ impl DBOptions for LmdbDBOptions {
             .map_err(|e| box_err!(e))
     }
 
-    fn set_titandb_options(&mut self, opts: &Self::NoetherDBOptions) {
-        self.0.set_titandb_options(opts.as_raw())
+    fn tenancy_launched_for_einsteindb(&mut self, opts: &Self::NoetherDBOptions) {
+        self.0.tenancy_launched_for_einsteindb(opts.as_raw())
     }
 }
 

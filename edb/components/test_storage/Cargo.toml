@@ -9,14 +9,14 @@ protobuf-codec = [
   "ekvproto/protobuf-codec",
   "violetabftstore/protobuf-codec",
   "test_violetabftstore/protobuf-codec",
-  "einsteindb-prod/protobuf-codec",
+  "edb/protobuf-codec",
   "txn_types/protobuf-codec",
 ]
 prost-codec = [
   "ekvproto/prost-codec",
   "violetabftstore/prost-codec",
   "test_violetabftstore/prost-codec",
-  "einsteindb-prod/prost-codec",
+  "edb/prost-codec",
   "txn_types/prost-codec",
 ]
 
@@ -26,6 +26,6 @@ ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-featur
 violetabftstore = { path = "../violetabftstore" }
 fidel_client = { path = "../fidel_client" }
 test_violetabftstore = { path = "../test_violetabftstore" }
-einsteindb-prod = { path = "../../", default-features = false }
-einsteindb-prod_util = { path = "../einsteindb-prod_util" }
+edb = { path = "../../", default-features = false }
+edb_util = { path = "../edb_util" }
 txn_types = { path = "../txn_types" }

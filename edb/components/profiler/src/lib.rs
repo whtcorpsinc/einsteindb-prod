@@ -43,7 +43,7 @@
 //! Also see `examples/prime.rs`.
 
 #[allow(unused_extern_crates)]
-extern crate einsteindb-prod_alloc;
+extern crate edb_alloc;
 
 #[causet(all(unix, feature = "profiling"))]
 mod profiler_unix;

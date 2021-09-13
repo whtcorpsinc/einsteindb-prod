@@ -1,11 +1,11 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 #[macro_use(debug)]
-extern crate einsteindb-prod_util;
+extern crate edb_util;
 
 use std::cmp;
 use std::collections::BTreeMap;
-use einsteindb-prod_util::collections::HashSet;
+use edb_util::collections::HashSet;
 use txn_types::TimeStamp;
 
 // Resolver resolves timestamps that guarantee no more commit will happen before

@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 lazy_static! {
     pub static ref APPLY_PROPOSAL: Histogram = register_histogram!(
-        "einsteindb-prod_violetabftstore_apply_proposal",
+        "edb_violetabftstore_apply_proposal",
         "The count of proposals sent by a brane at once",
         exponential_buckets(1.0, 2.0, 20).unwrap()
     )

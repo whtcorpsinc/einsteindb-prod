@@ -3,7 +3,7 @@
 use std::f64::INFINITY;
 use std::sync::Arc;
 
-use engine_promises::{name_to_causet, CompactExt, MiscExt, CAUSET_DEFAULT, CAUSET_WRITE};
+use edb::{name_to_causet, CompactExt, MiscExt, Causet_DEFAULT, Causet_WRITE};
 use futures::executor::{ThreadPool, ThreadPoolBuilder};
 use futures::{TryFutureExt, TryStreamExt};
 use grpcio::{ClientStreamingSink, RequestStream, RpcContext, UnarySink};
@@ -19,21 +19,21 @@ use ekvproto::violetabft_cmdpb::*;
 
 use crate::server::CONFIG_LMDB_GAUGE;
 use engine_lmdb::LmdbEngine;
-use engine_promises::{SstExt, SstWriterBuilder};
+use edb::{SstExt, SstWriterBuilder};
 use violetabftstore::router::VioletaBftStoreRouter;
 use violetabftstore::store::Callback;
 use security::{check_common_name, SecurityManager};
 use sst_importer::lightlike_rpc_response;
-use einsteindb-prod_util::future::create_stream_with_buffer;
-use einsteindb-prod_util::future::paired_future_callback;
-use einsteindb-prod_util::time::{Instant, Limiter};
+use edb_util::future::create_stream_with_buffer;
+use edb_util::future::paired_future_callback;
+use edb_util::time::{Instant, Limiter};
 
 use sst_importer::import_mode::*;
 use sst_importer::metrics::*;
 use sst_importer::service::*;
 use sst_importer::{error_inc, Config, Error, SSTImporter};
 
-/// ImportSSTService provides einsteindb-prod-server with the ability to ingest SST files.
+/// ImportSSTService provides edb-server with the ability to ingest SST files.
 ///
 /// It saves the SST sent from client to a file and then lightlikes a command to
 /// violetabftstore to trigger the ingest process.
@@ -60,8 +60,8 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSSTService<Router> {
         let threads = ThreadPoolBuilder::new()
             .pool_size(causet.num_threads)
             .name_prefix("sst-importer")
-            .after_spacelike(move |_| einsteindb-prod_alloc::add_thread_memory_accessor())
-            .before_stop(move |_| einsteindb-prod_alloc::remove_thread_memory_accessor())
+            .after_spacelike(move |_| edb_alloc::add_thread_memory_accessor())
+            .before_stop(move |_| edb_alloc::remove_thread_memory_accessor())
             .create()
             .unwrap();
         let switcher = ImportModeSwitcher::new(&causet, &threads, engine.clone());
@@ -228,7 +228,7 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
         if self.switcher.get_mode() == SwitchMode::Normal
             && self
                 .engine
-                .ingest_maybe_slowdown_writes(CAUSET_DEFAULT)
+                .ingest_maybe_slowdown_writes(Causet_DEFAULT)
                 .expect("causet")
         {
             let err = "too many sst files are ingesting";
@@ -413,12 +413,12 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
                 let default = <LmdbEngine as SstExt>::SstWriterBuilder::new()
                     .set_in_memory(true)
                     .set_db(&engine)
-                    .set_causet(CAUSET_DEFAULT)
+                    .set_causet(Causet_DEFAULT)
                     .build(&name.to_str().unwrap())?;
                 let write = <LmdbEngine as SstExt>::SstWriterBuilder::new()
                     .set_in_memory(true)
                     .set_db(&engine)
-                    .set_causet(CAUSET_WRITE)
+                    .set_causet(Causet_WRITE)
                     .build(&name.to_str().unwrap())?;
                 let writer = match import.new_writer::<LmdbEngine>(default, write, meta) {
                     Ok(w) => w,

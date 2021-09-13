@@ -90,14 +90,14 @@ mod testing {
 
     use super::*;
 
-    use embedded_promises::{
+    use raum_promises::{
         Attribute,
         MinkowskiType,
         MinkowskiValueType,
         MinkowskiSet,
     };
 
-    use einsteindb-prod_embedded::{
+    use edb_raum::{
         SchemaReplicant,
     };
 

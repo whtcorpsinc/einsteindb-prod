@@ -3,7 +3,7 @@
 use ekvproto::metapb::*;
 use fidel_client::{FidelClient, BraneInfo, BraneStat, RpcClient};
 use test_fidel::{mocker::*, util::*, Server as MockServer};
-use einsteindb-prod_util::config::ReadableDuration;
+use edb_util::config::ReadableDuration;
 
 use std::sync::{mpsc, Arc};
 use std::thread;

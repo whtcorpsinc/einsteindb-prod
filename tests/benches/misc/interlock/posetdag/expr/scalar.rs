@@ -1,6 +1,6 @@
 use std::usize;
 use test::{black_box, Bencher};
-use einsteindb-prod_util::collections::HashMap;
+use edb_util::collections::HashMap;
 use fidelpb::ScalarFuncSig;
 
 fn get_scalar_args_with_match(sig: ScalarFuncSig) -> (usize, usize) {

@@ -1,9 +1,9 @@
 use crate::{LmdbEngine, LmdbWriteBatch};
 
-use engine_promises::{Error, VioletaBftEngine, VioletaBftLogBatch, Result};
-use engine_promises::{
+use edb::{Error, VioletaBftEngine, VioletaBftLogBatch, Result};
+use edb::{
     Iterable, KvEngine, MiscExt, MuBlock, Peekable, SyncMuBlock, WriteBatchExt, WriteOptions,
-    CAUSET_DEFAULT, MAX_DELETE_BATCH_COUNT,
+    Causet_DEFAULT, MAX_DELETE_BATCH_COUNT,
 };
 use ekvproto::violetabft_serverpb::VioletaBftLocalState;
 use protobuf::Message;
@@ -24,12 +24,12 @@ impl VioletaBftEngine for LmdbEngine {
 
     fn get_violetabft_state(&self, violetabft_group_id: u64) -> Result<Option<VioletaBftLocalState>> {
         let key = tuplespaceInstanton::violetabft_state_key(violetabft_group_id);
-        self.get_msg_causet(CAUSET_DEFAULT, &key)
+        self.get_msg_causet(Causet_DEFAULT, &key)
     }
 
     fn get_entry(&self, violetabft_group_id: u64, index: u64) -> Result<Option<Entry>> {
         let key = tuplespaceInstanton::violetabft_log_key(violetabft_group_id, index);
-        self.get_msg_causet(CAUSET_DEFAULT, &key)
+        self.get_msg_causet(Causet_DEFAULT, &key)
     }
 
     fn fetch_entries_to(

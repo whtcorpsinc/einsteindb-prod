@@ -15,7 +15,7 @@ use std::collections::HashSet;
 use rusqlite;
 use uuid::Uuid;
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     KnownSolitonId,
     MinkowskiType,
@@ -36,17 +36,17 @@ use einstein_db::{
     causetids,
     PartitionMap,
 };
-use einsteindb-prod_transaction::{
+use edb_transaction::{
     InProgress,
     TermBuilder,
     CausetQable,
 };
 
-use einsteindb-prod_transaction::instanton_builder::{
+use edb_transaction::instanton_builder::{
     BuildTerms,
 };
 
-use einsteindb-prod_transaction::causetq::{
+use edb_transaction::causetq::{
     CausetQInputs,
     ToUpper,
 };
@@ -497,7 +497,7 @@ impl Syncer {
                 // If we have an causetid definition locally, check if remote
                 // already defined this causetid. If it did, we'll need to ensure
                 // both local and remote are defining it in the same way.
-                if part.a == causetids::DB_CAUSETID {
+                if part.a == causetids::DB_CausetID {
                     match part.v {
                         MinkowskiType::Keyword(ref local_kw) => {
                             // Remote did not define this causetid. Make a note of it,
@@ -710,7 +710,7 @@ impl Syncer {
         let bootstrap_helper = BootstrapHelper::new(remote_bootstrap);
 
         if !bootstrap_helper.is_compatible()? {
-            return Ok(SyncReport::IncompatibleRemoteBootstrap(CORE_SCHEMA_VERSION as i64, bootstrap_helper.embedded_schemaReplicant_version()?));
+            return Ok(SyncReport::IncompatibleRemoteBootstrap(CORE_SCHEMA_VERSION as i64, bootstrap_helper.raum_schemaReplicant_version()?));
         }
 
         d(&format!("mapping incoming bootstrap causetx uuid to local bootstrap solitonId: {} -> {}", remote_bootstrap.causetx, local_bootstrap));

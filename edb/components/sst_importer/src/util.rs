@@ -8,7 +8,7 @@ use std::{
 };
 
 use encryption::DataKeyManager;
-use engine_promises::EncryptionKeyManager;
+use edb::EncryptionKeyManager;
 
 use super::Result;
 
@@ -82,18 +82,18 @@ mod tests {
 
     use encryption::DataKeyManager;
     use engine_lmdb::{
-        util::{new_engine, LmdbCAUSETOptions},
+        util::{new_engine, LmdbCausetOptions},
         LmdbPrimaryCausetNetworkOptions, LmdbDBOptions, LmdbEngine, LmdbIngestExternalFileOptions,
         LmdbSstWriterBuilder, LmdbNoetherDBOptions,
     };
-    use engine_promises::{
-        CAUSETHandleExt, CfName, PrimaryCausetNetworkOptions, DBOptions, EncryptionKeyManager, ImportExt,
+    use edb::{
+        CausetHandleExt, CfName, PrimaryCausetNetworkOptions, DBOptions, EncryptionKeyManager, ImportExt,
         IngestExternalFileOptions, Peekable, SstWriter, SstWriterBuilder, NoetherDBOptions,
     };
     use std::{fs, path::Path, sync::Arc};
     use tempfile::Builder;
     use test_util::encryption::new_test_key_manager;
-    use einsteindb-prod_util::file::calc_crc32;
+    use edb_util::file::calc_crc32;
 
     #[causet(unix)]
     fn check_hard_link<P: AsRef<Path>>(path: P, nlink: u64) {
@@ -129,7 +129,7 @@ mod tests {
 
     fn check_prepare_sst_for_ingestion(
         db_opts: Option<LmdbDBOptions>,
-        causet_opts: Option<Vec<LmdbCAUSETOptions>>,
+        causet_opts: Option<Vec<LmdbCausetOptions>>,
         key_manager: Option<&Arc<DataKeyManager>>,
         was_encrypted: bool,
     ) {
@@ -215,12 +215,12 @@ mod tests {
         let mut titan_opts = LmdbNoetherDBOptions::new();
         // Force all values write out to blob files.
         titan_opts.set_min_blob_size(0);
-        db_opts.set_titandb_options(&titan_opts);
+        db_opts.tenancy_launched_for_einsteindb(&titan_opts);
         let mut causet_opts = LmdbPrimaryCausetNetworkOptions::new();
-        causet_opts.set_titandb_options(&titan_opts);
+        causet_opts.tenancy_launched_for_einsteindb(&titan_opts);
         check_prepare_sst_for_ingestion(
             Some(db_opts),
-            Some(vec![LmdbCAUSETOptions::new("default", causet_opts)]),
+            Some(vec![LmdbCausetOptions::new("default", causet_opts)]),
             None,  /*key_manager*/
             false, /*was_encrypted*/
         );

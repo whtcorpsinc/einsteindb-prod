@@ -1,14 +1,14 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use engine_lmdb::raw::{CompactOptions, WriBlock, DB};
-use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER};
+use edb::{Causet_DEFAULT, Causet_DAGGER};
 use test_violetabftstore::*;
 
 fn init_db_with_sst_files(db: &DB, level: i32, n: u8) {
     let mut opts = CompactOptions::new();
     opts.set_change_level(true);
     opts.set_target_level(level);
-    for causet_name in &[CAUSET_DEFAULT, CAUSET_DAGGER] {
+    for causet_name in &[Causet_DEFAULT, Causet_DAGGER] {
         let handle = db.causet_handle(causet_name).unwrap();
         // Each SST file has only one kv.
         for i in 0..n {
@@ -21,7 +21,7 @@ fn init_db_with_sst_files(db: &DB, level: i32, n: u8) {
 }
 
 fn check_db_files_at_level(db: &DB, level: i32, num_files: u64) {
-    for causet_name in &[CAUSET_DEFAULT, CAUSET_DAGGER] {
+    for causet_name in &[Causet_DEFAULT, Causet_DAGGER] {
         let handle = db.causet_handle(causet_name).unwrap();
         let name = format!("lmdb.num-files-at-level{}", level);
         let value = db.get_property_int_causet(handle, &name).unwrap();
@@ -35,7 +35,7 @@ fn check_db_files_at_level(db: &DB, level: i32, num_files: u64) {
 }
 
 fn check_kv_in_all_causets(db: &DB, i: u8, found: bool) {
-    for causet_name in &[CAUSET_DEFAULT, CAUSET_DAGGER] {
+    for causet_name in &[Causet_DEFAULT, Causet_DAGGER] {
         let handle = db.causet_handle(causet_name).unwrap();
         let k = tuplespaceInstanton::data_key(&[i]);
         let v = db.get_causet(handle, &k).unwrap();

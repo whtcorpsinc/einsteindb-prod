@@ -46,8 +46,8 @@ test = true
 
 [features]
 default = ["failpoints", "testexport", "protobuf-codec"]
-failpoints = ["fail/failpoints", "einsteindb-prod/failpoints"]
-testexport = ["violetabftstore/testexport", "einsteindb-prod/testexport"]
+failpoints = ["fail/failpoints", "edb/failpoints"]
+testexport = ["violetabftstore/testexport", "edb/testexport"]
 profiling = ["profiler/profiling"]
 protobuf-codec = [
   "grpcio/protobuf-codec",
@@ -55,7 +55,7 @@ protobuf-codec = [
   "fidel_client/protobuf-codec",
   "violetabft/protobuf-codec",
   "violetabftstore/protobuf-codec",
-  "einsteindb-prod/protobuf-codec",
+  "edb/protobuf-codec",
   "milevadb_query_datatype/protobuf-codec",
   "fidelpb/protobuf-codec",
   "txn_types/protobuf-codec",
@@ -67,15 +67,15 @@ prost-codec = [
   "fidel_client/prost-codec",
   "violetabft/prost-codec",
   "violetabftstore/prost-codec",
-  "einsteindb-prod/prost-codec",
+  "edb/prost-codec",
   "milevadb_query_datatype/prost-codec",
   "fidelpb/prost-codec",
   "txn_types/prost-codec",
   "causet_context/prost-codec",
 ]
-jemalloc = ["einsteindb-prod/jemalloc"]
-sse = ["einsteindb-prod/sse"]
-porBlock = ["einsteindb-prod/porBlock"]
+jemalloc = ["edb/jemalloc"]
+sse = ["edb/sse"]
+porBlock = ["edb/porBlock"]
 
 [deplightlikeencies]
 fail = { version = "0.3", optional = true }
@@ -104,8 +104,8 @@ milevadb_query_normal_executors = { path = "../components/milevadb_query_normal_
 milevadb_query_vec_aggr = { path = "../components/milevadb_query_vec_aggr" }
 milevadb_query_vec_executors = { path = "../components/milevadb_query_vec_executors" }
 milevadb_query_vec_expr = { path = "../components/milevadb_query_vec_expr" }
-einsteindb-prod = { path = "../", default-features = false }
-einsteindb-prod_util = { path = "../components/einsteindb-prod_util" }
+edb = { path = "../", default-features = false }
+edb_util = { path = "../components/edb_util" }
 fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
 tokio-threadpool = "0.1.13"
 toml = "0.4"
@@ -121,7 +121,7 @@ criterion-cpu-time = "0.1"
 arrow = "0.10"
 rand_xorshift = "0.2"
 engine_lmdb = { path = "../components/engine_lmdb" }
-engine_promises = { path = "../components/engine_promises" }
+edb = { path = "../components/edb" }
 external_causetStorage = { path = "../components/external_causetStorage" }
 hyper = { version = "0.13", default-features = false, features = ["runtime"] }
 tuplespaceInstanton = { path = "../components/tuplespaceInstanton" }

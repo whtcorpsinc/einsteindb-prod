@@ -1,11 +1,11 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-//! Implementation of engine_promises for Lmdb
+//! Implementation of edb for Lmdb
 //!
 //! This is a work-in-progress attempt to abstract all the features needed by
 //! EinsteinDB to persist its data.
 //!
-//! The module structure here mirrors that in engine_promises where possible.
+//! The module structure here mirrors that in edb where possible.
 //!
 //! Because there are so many similarly named types across the EinsteinDB codebase,
 //! and so much "import renaming", this crate consistently explicitly names type
@@ -17,9 +17,9 @@
 #![causet_attr(test, feature(test))]
 
 #[allow(unused_extern_crates)]
-extern crate einsteindb-prod_alloc;
+extern crate edb_alloc;
 #[macro_use]
-extern crate einsteindb-prod_util;
+extern crate edb_util;
 
 #[macro_use]
 extern crate serde_derive;
@@ -40,7 +40,7 @@ pub use crate::db_options::*;
 mod db_vector;
 pub use crate::db_vector::*;
 mod engine;
-pub use crate::engine::*;
+pub use crate::edb::*;
 mod import;
 pub use crate::import::*;
 mod logger;
@@ -59,7 +59,7 @@ pub mod cone_properties;
 pub use crate::cone_properties::*;
 
 mod engine_Iteron;
-pub use crate::engine_Iteron::*;
+pub use crate::edb_Iteron::*;
 
 mod options;
 pub mod raw_util;

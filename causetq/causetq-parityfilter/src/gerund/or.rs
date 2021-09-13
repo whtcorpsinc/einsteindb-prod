@@ -14,7 +14,7 @@ use std::collections::{
     BTreeSet,
 };
 
-use embedded_promises::{
+use raum_promises::{
     MinkowskiSet,
 };
 
@@ -753,13 +753,13 @@ fn union_types(into: &mut BTreeMap<ToUpper, MinkowskiSet>,
 mod testing {
     use super::*;
 
-    use embedded_promises::{
+    use raum_promises::{
         Attribute,
         MinkowskiValueType,
         MinkowskiType,
     };
 
-    use einsteindb-prod_embedded::{
+    use edb_raum::{
         SchemaReplicant,
     };
 

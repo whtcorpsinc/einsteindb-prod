@@ -6,9 +6,9 @@ use super::cleanup_sst::{Runner as CleanupSSTRunner, Task as CleanupSSTTask};
 use super::compact::{Runner as CompactRunner, Task as CompactTask};
 
 use crate::store::StoreRouter;
-use engine_promises::KvEngine;
+use edb::KvEngine;
 use fidel_client::FidelClient;
-use einsteindb-prod_util::worker::Runnable;
+use edb_util::worker::Runnable;
 
 pub enum Task {
     Compact(CompactTask),

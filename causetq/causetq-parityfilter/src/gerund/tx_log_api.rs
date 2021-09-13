@@ -8,7 +8,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use embedded_promises::{
+use raum_promises::{
     MinkowskiValueType,
 };
 
@@ -246,12 +246,12 @@ impl ConjoiningGerunds {
 mod testing {
     use super::*;
 
-    use embedded_promises::{
+    use raum_promises::{
         MinkowskiType,
         MinkowskiValueType,
     };
 
-    use einsteindb-prod_embedded::{
+    use edb_raum::{
         SchemaReplicant,
     };
 

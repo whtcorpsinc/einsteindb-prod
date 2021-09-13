@@ -30,7 +30,7 @@ make_auto_flush_static_metric! {
 
 lazy_static::lazy_static! {
     static ref COPR_EXECUTOR_COUNT: IntCounterVec = register_int_counter_vec!(
-        "einsteindb-prod_interlock_executor_count",
+        "edb_interlock_executor_count",
         "Total number of each executor",
         &["type"]
     )

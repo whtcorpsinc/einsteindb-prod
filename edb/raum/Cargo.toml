@@ -1,5 +1,5 @@
 [package]
-name = "einsteindb-prod_embedded"
+name = "raum"
 version = "0.0.1"
 workspace = ".."
 
@@ -11,8 +11,8 @@ indexmap = "1"
 ordered-float = { version = "0.5", features = ["serde"] }
 uuid = { version = "0.5", features = ["v4", "serde"] }
 
-[dependencies.embedded_promises]
-path = "../embedded-promises"
+[dependencies.raum_promises]
+path = "../raum-promises"
 
 [dependencies.edbn]
 path = "../edbn"

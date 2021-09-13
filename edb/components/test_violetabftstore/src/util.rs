@@ -17,7 +17,7 @@ use ekvproto::fidelpb::{
 use ekvproto::violetabft_cmdpb::{AdminCmdType, CmdType, StatusCmdType};
 use ekvproto::violetabft_cmdpb::{AdminRequest, VioletaBftCmdRequest, VioletaBftCmdResponse, Request, StatusRequest};
 use ekvproto::violetabft_serverpb::{PeerState, VioletaBftLocalState, BraneLocalState};
-use ekvproto::einsteindb-prodpb::EINSTEINDBClient;
+use ekvproto::edbpb::EINSTEINDBClient;
 use violetabft::evioletabftpb::ConfChangeType;
 
 use encryption::{DataKeyManager, FileConfig, MasterKeyConfig};
@@ -26,20 +26,20 @@ use engine_lmdb::encryption::get_env;
 use engine_lmdb::raw::DB;
 use engine_lmdb::{CompactionListener, LmdbCompactionJobInfo};
 use engine_lmdb::{Compat, LmdbEngine, LmdbSnapshot};
-use engine_promises::{Engines, Iterable, Peekable};
+use edb::{Engines, Iterable, Peekable};
 use violetabftstore::store::fsm::VioletaBftRouter;
 use violetabftstore::store::*;
 use violetabftstore::Result;
-use einsteindb-prod::config::*;
-use einsteindb-prod::causetStorage::config::DEFAULT_LMDB_SUB_DIR;
-use einsteindb-prod_util::config::*;
-use einsteindb-prod_util::{escape, HandyRwLock};
+use edb::config::*;
+use edb::causetStorage::config::DEFAULT_LMDB_SUB_DIR;
+use edb_util::config::*;
+use edb_util::{escape, HandyRwLock};
 
 use super::*;
 
-use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_VIOLETABFT};
+use edb::{ALL_CausetS, Causet_DEFAULT, Causet_VIOLETABFT};
 pub use violetabftstore::store::util::{find_peer, new_learner_peer, new_peer};
-use einsteindb-prod_util::time::ThreadReadId;
+use edb_util::time::ThreadReadId;
 
 pub fn must_get(engine: &Arc<DB>, causet: &str, key: &[u8], value: Option<&[u8]>) {
     for _ in 1..300 {
@@ -86,11 +86,11 @@ pub fn must_get_causet_none(engine: &Arc<DB>, causet: &str, key: &[u8]) {
 pub fn must_brane_cleared(engine: &Engines<LmdbEngine, LmdbEngine>, brane: &metapb::Brane) {
     let id = brane.get_id();
     let state_key = tuplespaceInstanton::brane_state_key(id);
-    let state: BraneLocalState = engine.kv.get_msg_causet(CAUSET_VIOLETABFT, &state_key).unwrap().unwrap();
+    let state: BraneLocalState = engine.kv.get_msg_causet(Causet_VIOLETABFT, &state_key).unwrap().unwrap();
     assert_eq!(state.get_state(), PeerState::Tombstone, "{:?}", state);
     let spacelike_key = tuplespaceInstanton::data_key(brane.get_spacelike_key());
     let lightlike_key = tuplespaceInstanton::data_key(brane.get_lightlike_key());
-    for causet in ALL_CAUSETS {
+    for causet in ALL_CausetS {
         engine
             .kv
             .scan_causet(causet, &spacelike_key, &lightlike_key, false, |k, v| {
@@ -127,7 +127,7 @@ lazy_static! {
     };
 }
 
-pub fn new_einsteindb-prod_config(cluster_id: u64) -> EINSTEINDBConfig {
+pub fn new_edb_config(cluster_id: u64) -> EINSTEINDBConfig {
     let mut causet = TEST_CONFIG.clone();
     causet.server.cluster_id = cluster_id;
     causet
@@ -680,7 +680,7 @@ pub fn put_till_size<T: Simulator>(
     limit: u64,
     cone: &mut dyn Iteron<Item = u64>,
 ) -> Vec<u8> {
-    put_causet_till_size(cluster, CAUSET_DEFAULT, limit, cone)
+    put_causet_till_size(cluster, Causet_DEFAULT, limit, cone)
 }
 
 pub fn put_causet_till_size<T: Simulator>(

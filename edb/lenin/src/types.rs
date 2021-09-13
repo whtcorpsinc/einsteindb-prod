@@ -11,7 +11,7 @@
 use std::cmp::Ordering;
 use uuid::Uuid;
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     MinkowskiType,
 };

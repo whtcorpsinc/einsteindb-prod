@@ -5,7 +5,7 @@ use crate::timestamp::TimeStamp;
 use crate::types::{Value, SHORT_VALUE_MAX_LEN, SHORT_VALUE_PREFIX};
 use crate::{Error, ErrorInner, Result};
 use codec::prelude::NumberDecoder;
-use einsteindb-prod_util::codec::number::{NumberEncoder, MAX_VAR_U64_LEN};
+use edb_util::codec::number::{NumberEncoder, MAX_VAR_U64_LEN};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum WriteType {
@@ -61,7 +61,7 @@ pub struct Write {
     pub spacelike_ts: TimeStamp,
     pub short_value: Option<Value>,
     /// The `commit_ts` of bundles can be non-globally-unique. But since we store Rollback
-    /// records in the same CAUSET where Commit records is, and Rollback records are saved with
+    /// records in the same Causet where Commit records is, and Rollback records are saved with
     /// `user_key{spacelike_ts}` as the internal key, the collision between Commit and Rollback
     /// records can't be avoided. In this case, we keep the Commit record, and set the
     /// `has_overlapped_rollback` flag to indicate that there's also a Rollback record.
@@ -147,7 +147,7 @@ pub struct WriteRef<'a> {
     pub spacelike_ts: TimeStamp,
     pub short_value: Option<&'a [u8]>,
     /// The `commit_ts` of bundles can be non-globally-unique. But since we store Rollback
-    /// records in the same CAUSET where Commit records is, and Rollback records are saved with
+    /// records in the same Causet where Commit records is, and Rollback records are saved with
     /// `user_key{spacelike_ts}` as the internal key, the collision between Commit and Rollback
     /// records can't be avoided. In this case, we keep the Commit record, and set the
     /// `has_overlapped_rollback` flag to indicate that there's also a Rollback record.

@@ -7,7 +7,7 @@
 #![feature(specialization)]
 
 #[macro_use(box_try)]
-extern crate einsteindb-prod_util;
+extern crate edb_util;
 
 #[macro_use(other_err)]
 extern crate milevadb_query_common;

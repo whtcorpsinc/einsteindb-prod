@@ -7,11 +7,11 @@ use ekvproto::import_sstpb::SstMeta;
 
 use crate::store::util::is_epoch_stale;
 use crate::store::{StoreMsg, StoreRouter};
-use engine_promises::KvEngine;
+use edb::KvEngine;
 use fidel_client::FidelClient;
 use sst_importer::SSTImporter;
 use std::marker::PhantomData;
-use einsteindb-prod_util::worker::Runnable;
+use edb_util::worker::Runnable;
 
 pub enum Task {
     DeleteSST { ssts: Vec<SstMeta> },

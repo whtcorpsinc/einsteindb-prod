@@ -15,9 +15,9 @@ use milevadb_query_normal_executors::FreeDaemon;
 use milevadb_query_normal_executors::BlockScanFreeDaemon;
 use milevadb_query_vec_executors::interface::*;
 use milevadb_query_vec_executors::BatchBlockScanFreeDaemon;
-use einsteindb-prod::interlock::posetdag::EinsteinDBStorage;
-use einsteindb-prod::interlock::RequestHandler;
-use einsteindb-prod::causetStorage::{LmdbEngine, Statistics, CausetStore as TxnStore};
+use edb::interlock::posetdag::EinsteinDBStorage;
+use edb::interlock::RequestHandler;
+use edb::causetStorage::{LmdbEngine, Statistics, CausetStore as TxnStore};
 
 use crate::util::executor_descriptor::Block_scan;
 use crate::util::scan_bencher;

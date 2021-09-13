@@ -21,16 +21,16 @@ use violetabftstore::router::VioletaBftStoreRouter;
 use violetabftstore::store::fsm::{ChangeCmd, ObserveID, StoreMeta};
 use violetabftstore::store::msg::{Callback, ReadResponse, SignificantMsg};
 use resolved_ts::Resolver;
-use einsteindb-prod::config::causet_contextConfig;
-use einsteindb-prod::causetStorage::kv::Snapshot;
-use einsteindb-prod::causetStorage::tail_pointer::{DeltaScanner, ScannerBuilder};
-use einsteindb-prod::causetStorage::txn::TxnEntry;
-use einsteindb-prod::causetStorage::txn::TxnEntryScanner;
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::lru::LruCache;
-use einsteindb-prod_util::time::Instant;
-use einsteindb-prod_util::timer::{SteadyTimer, Timer};
-use einsteindb-prod_util::worker::{Runnable, RunnableWithTimer, ScheduleError, Interlock_Semaphore};
+use edb::config::causet_contextConfig;
+use edb::causetStorage::kv::Snapshot;
+use edb::causetStorage::tail_pointer::{DeltaScanner, ScannerBuilder};
+use edb::causetStorage::txn::TxnEntry;
+use edb::causetStorage::txn::TxnEntryScanner;
+use edb_util::collections::HashMap;
+use edb_util::lru::LruCache;
+use edb_util::time::Instant;
+use edb_util::timer::{SteadyTimer, Timer};
+use edb_util::worker::{Runnable, RunnableWithTimer, ScheduleError, Interlock_Semaphore};
 use tokio::runtime::{Builder, Runtime};
 use txn_types::{
     Key, Dagger, LockType, MutationType, OldValue, TimeStamp, TxnExtra, TxnExtraInterlock_Semaphore,
@@ -513,7 +513,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
             build_resolver: is_new_pushdown_causet,
         };
 
-        let (cb, fut) = einsteindb-prod_util::future::paired_future_callback();
+        let (cb, fut) = edb_util::future::paired_future_callback();
         let interlock_semaphore = self.interlock_semaphore.clone();
         let deregister_downstream = move |err| {
             warn!("causet_context lightlike capture change cmd failed"; "brane_id" => brane_id, "error" => ?err);
@@ -1069,7 +1069,7 @@ impl TxnExtraInterlock_Semaphore for causet_contextTxnExtraInterlock_Semaphore {
 #[causet(test)]
 mod tests {
     use super::*;
-    use engine_promises::DATA_CAUSETS;
+    use edb::DATA_CausetS;
     #[causet(feature = "prost-codec")]
     use ekvproto::causet_contextpb::event::Event as Event_oneof_event;
     use ekvproto::errorpb::Error as ErrorHeader;
@@ -1082,13 +1082,13 @@ mod tests {
     use tempfile::TempDir;
     use test_violetabftstore::MockVioletaBftStoreRouter;
     use test_violetabftstore::TestFidelClient;
-    use einsteindb-prod::causetStorage::kv::Engine;
-    use einsteindb-prod::causetStorage::tail_pointer::tests::*;
-    use einsteindb-prod::causetStorage::TestEngineBuilder;
-    use einsteindb-prod_util::collections::HashSet;
-    use einsteindb-prod_util::config::ReadableDuration;
-    use einsteindb-prod_util::mpsc::batch;
-    use einsteindb-prod_util::worker::{dummy_interlock_semaphore, Builder as WorkerBuilder, Worker};
+    use edb::causetStorage::kv::Engine;
+    use edb::causetStorage::tail_pointer::tests::*;
+    use edb::causetStorage::TestEngineBuilder;
+    use edb_util::collections::HashSet;
+    use edb_util::config::ReadableDuration;
+    use edb_util::mpsc::batch;
+    use edb_util::worker::{dummy_interlock_semaphore, Builder as WorkerBuilder, Worker};
 
     struct ReceiverRunnable<T> {
         tx: lightlikeer<T>,
@@ -1144,7 +1144,7 @@ mod tests {
         let temp = TempDir::new().unwrap();
         let engine = TestEngineBuilder::new()
             .path(temp.path())
-            .causets(DATA_CAUSETS)
+            .causets(DATA_CausetS)
             .build()
             .unwrap();
 

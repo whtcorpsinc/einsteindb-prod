@@ -10,12 +10,12 @@ use ekvproto::violetabft_serverpb::{PeerState, VioletaBftMessage, BraneLocalStat
 use violetabft::evioletabftpb::MessageType;
 
 use engine_lmdb::Compat;
-use engine_promises::{Peekable, CAUSET_VIOLETABFT};
+use edb::{Peekable, Causet_VIOLETABFT};
 use fidel_client::FidelClient;
 use violetabftstore::store::*;
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::*;
-use einsteindb-prod_util::HandyRwLock;
+use edb_util::config::*;
+use edb_util::HandyRwLock;
 
 /// Test if merge is rollback as expected.
 #[test]
@@ -69,7 +69,7 @@ fn test_node_merge_rollback() {
         let state: BraneLocalState = cluster
             .get_engine(i)
             .c()
-            .get_msg_causet(CAUSET_VIOLETABFT, &state_key)
+            .get_msg_causet(Causet_VIOLETABFT, &state_key)
             .unwrap()
             .unwrap();
         assert_eq!(state.get_state(), PeerState::Normal);
@@ -98,7 +98,7 @@ fn test_node_merge_rollback() {
         let state: BraneLocalState = cluster
             .get_engine(i)
             .c()
-            .get_msg_causet(CAUSET_VIOLETABFT, &state_key)
+            .get_msg_causet(Causet_VIOLETABFT, &state_key)
             .unwrap()
             .unwrap();
         assert_eq!(state.get_state(), PeerState::Normal);
@@ -131,10 +131,10 @@ fn test_node_merge_respacelike() {
     cluster.shutdown();
     let engine = cluster.get_engine(leader.get_store_id());
     let state_key = tuplespaceInstanton::brane_state_key(left.get_id());
-    let state: BraneLocalState = engine.c().get_msg_causet(CAUSET_VIOLETABFT, &state_key).unwrap().unwrap();
+    let state: BraneLocalState = engine.c().get_msg_causet(Causet_VIOLETABFT, &state_key).unwrap().unwrap();
     assert_eq!(state.get_state(), PeerState::Merging, "{:?}", state);
     let state_key = tuplespaceInstanton::brane_state_key(right.get_id());
-    let state: BraneLocalState = engine.c().get_msg_causet(CAUSET_VIOLETABFT, &state_key).unwrap().unwrap();
+    let state: BraneLocalState = engine.c().get_msg_causet(Causet_VIOLETABFT, &state_key).unwrap().unwrap();
     assert_eq!(state.get_state(), PeerState::Normal, "{:?}", state);
     fail::remove(schedule_merge_fp);
     cluster.spacelike().unwrap();
@@ -150,7 +150,7 @@ fn test_node_merge_respacelike() {
         let state: BraneLocalState = cluster
             .get_engine(i)
             .c()
-            .get_msg_causet(CAUSET_VIOLETABFT, &state_key)
+            .get_msg_causet(Causet_VIOLETABFT, &state_key)
             .unwrap()
             .unwrap();
         assert_eq!(state.get_state(), PeerState::Tombstone, "{:?}", state);
@@ -158,7 +158,7 @@ fn test_node_merge_respacelike() {
         let state: BraneLocalState = cluster
             .get_engine(i)
             .c()
-            .get_msg_causet(CAUSET_VIOLETABFT, &state_key)
+            .get_msg_causet(Causet_VIOLETABFT, &state_key)
             .unwrap()
             .unwrap();
         assert_eq!(state.get_state(), PeerState::Normal, "{:?}", state);
@@ -1068,9 +1068,9 @@ fn test_node_merge_write_data_to_source_brane_after_merging() {
 /// In previous implementation, destroying its source peer(s) and applying snapshot is not **atomic**.
 /// It may break the rule of our merging process.
 ///
-/// A einsteindb-prod crash after its source peers have destroyed but this target peer does not become to
-/// `Applying` state which means it will not apply snapshot after this einsteindb-prod respacelikes.
-/// After this einsteindb-prod respacelikes, a new leader may lightlike logs to this target peer, then the panic may happen
+/// A edb crash after its source peers have destroyed but this target peer does not become to
+/// `Applying` state which means it will not apply snapshot after this edb respacelikes.
+/// After this edb respacelikes, a new leader may lightlike logs to this target peer, then the panic may happen
 /// because it can not find its source peers when applying `CommitMerge` log.
 ///
 /// This test is to reproduce above situation.

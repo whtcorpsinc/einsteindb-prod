@@ -17,12 +17,12 @@
 // - When semaphores are registered we want to flip some flags as writes occur so that we can
 //   notifying them outside the transaction.
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     MinkowskiType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     SchemaReplicant,
 };
 

@@ -6,9 +6,9 @@ use std::error::Error;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use test_violetabftstore::{new_server_cluster, Simulator};
-use einsteindb-prod::config::ConfigController;
-use einsteindb-prod::server::status_server::{brane_meta::BraneMeta, StatusServer};
-use einsteindb-prod_util::HandyRwLock;
+use edb::config::ConfigController;
+use edb::server::status_server::{brane_meta::BraneMeta, StatusServer};
+use edb_util::HandyRwLock;
 
 async fn check(authority: SocketAddr, brane_id: u64) -> Result<(), Box<dyn Error>> {
     let client = Client::new();

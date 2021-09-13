@@ -73,7 +73,7 @@ pub(crate) fn validate_not_join(not_join: &NotJoin) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    extern crate einsteindb-prod_embedded;
+    extern crate edb_raum;
     extern crate edbn;
 
     use edbn::causetq::{

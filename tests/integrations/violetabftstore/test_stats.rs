@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use fidel_client::FidelClient;
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::*;
+use edb_util::config::*;
 
 fn check_available<T: Simulator>(cluster: &mut Cluster<T>) {
     let fidel_client = Arc::clone(&cluster.fidel_client);

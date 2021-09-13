@@ -1,6 +1,6 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::engine::LmdbEngine;
+use crate::edb::LmdbEngine;
 use crate::raw::DB;
 use std::sync::Arc;
 

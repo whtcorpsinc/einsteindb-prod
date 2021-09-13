@@ -6,7 +6,7 @@
 #[macro_use]
 extern crate quick_error;
 #[allow(unused_extern_crates)]
-extern crate einsteindb-prod_alloc;
+extern crate edb_alloc;
 
 mod dagger;
 mod timestamp;
@@ -34,7 +34,7 @@ quick_error! {
             cause(err)
             display("{}", err)
         }
-        Codec(err: einsteindb-prod_util::codec::Error) {
+        Codec(err: edb_util::codec::Error) {
             from()
             cause(err)
             display("{}", err)

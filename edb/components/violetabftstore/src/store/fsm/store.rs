@@ -12,8 +12,8 @@ use std::{mem, thread, u64};
 use batch_system::{BasicMailbox, BatchRouter, BatchSystem, Fsm, HandlerBuilder, PollHandler};
 use crossbeam::channel::{TryRecvError, TrylightlikeError};
 use engine_lmdb::{PerfContext, PerfLevel};
-use engine_promises::{Engines, KvEngine, MuBlock, WriteBatch, WriteBatchExt, WriteOptions};
-use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
+use edb::{Engines, KvEngine, MuBlock, WriteBatch, WriteBatchExt, WriteOptions};
+use edb::{Causet_DEFAULT, Causet_DAGGER, Causet_VIOLETABFT, Causet_WRITE};
 use futures::compat::Future01CompatExt;
 use futures::FutureExt;
 use ekvproto::import_sstpb::SstMeta;
@@ -26,18 +26,18 @@ use protobuf::Message;
 use violetabft::{Ready, StateRole};
 use time::{self, Timespec};
 
-use engine_promises::CompactedEvent;
-use engine_promises::{VioletaBftEngine, VioletaBftLogBatch};
+use edb::CompactedEvent;
+use edb::{VioletaBftEngine, VioletaBftLogBatch};
 use tuplespaceInstanton::{self, data_lightlike_key, data_key, enc_lightlike_key, enc_spacelike_key};
 use fidel_client::FidelClient;
 use sst_importer::SSTImporter;
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::config::{Tracker, VersionTrack};
-use einsteindb-prod_util::mpsc::{self, LooseBoundedlightlikeer, Receiver};
-use einsteindb-prod_util::time::{duration_to_sec, Instant as TiInstant};
-use einsteindb-prod_util::timer::SteadyTimer;
-use einsteindb-prod_util::worker::{FutureInterlock_Semaphore, FutureWorker, Interlock_Semaphore, Worker};
-use einsteindb-prod_util::{is_zero_duration, sys as sys_util, Either, RingQueue};
+use edb_util::collections::HashMap;
+use edb_util::config::{Tracker, VersionTrack};
+use edb_util::mpsc::{self, LooseBoundedlightlikeer, Receiver};
+use edb_util::time::{duration_to_sec, Instant as TiInstant};
+use edb_util::timer::SteadyTimer;
+use edb_util::worker::{FutureInterlock_Semaphore, FutureWorker, Interlock_Semaphore, Worker};
+use edb_util::{is_zero_duration, sys as sys_util, Either, RingQueue};
 
 use crate::interlock::split_semaphore::SplitSemaphore;
 use crate::interlock::{BoxAdminSemaphore, InterlockHost, BraneChangeEvent};
@@ -71,7 +71,7 @@ use crate::store::{
 };
 use crate::Result;
 use concurrency_manager::ConcurrencyManager;
-use einsteindb-prod_util::future::poll_future_notify;
+use edb_util::future::poll_future_notify;
 
 type Key = Vec<u8>;
 
@@ -379,7 +379,7 @@ where
 
     /// Timeout is calculated from EinsteinDB spacelike, the node should not become
     /// hibernated if it still within the hibernate timeout, see
-    /// https://github.com/einsteindb-prod/einsteindb-prod/issues/7747
+    /// https://github.com/edb/edb/issues/7747
     pub fn is_hibernate_timeout(&mut self) -> bool {
         let timeout = match self.node_spacelike_time {
             Some(t) => t.elapsed() >= self.causet.hibernate_timeout.0,
@@ -935,7 +935,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
         let mut merging_count = 0;
         let mut meta = self.store_meta.dagger().unwrap();
         let mut replication_state = self.global_replication_state.dagger().unwrap();
-        kv_engine.scan_causet(CAUSET_VIOLETABFT, spacelike_key, lightlike_key, false, |key, value| {
+        kv_engine.scan_causet(Causet_VIOLETABFT, spacelike_key, lightlike_key, false, |key, value| {
             let (brane_id, suffix) = box_try!(tuplespaceInstanton::decode_brane_meta_key(key));
             if suffix != tuplespaceInstanton::REGION_STATE_SUFFIX {
                 return Ok(true);
@@ -1047,7 +1047,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
         };
         peer_causetStorage::clear_meta(&self.engines, kv_wb, violetabft_wb, rid, &violetabft_state).unwrap();
         let key = tuplespaceInstanton::brane_state_key(rid);
-        kv_wb.put_msg_causet(CAUSET_VIOLETABFT, &key, origin_state).unwrap();
+        kv_wb.put_msg_causet(Causet_VIOLETABFT, &key, origin_state).unwrap();
     }
 
     /// `clear_stale_data` clean up all possible garbage data.
@@ -1435,7 +1435,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         // Check if the target peer is tombstone.
         let state_key = tuplespaceInstanton::brane_state_key(brane_id);
         let local_state: BraneLocalState =
-            match self.ctx.engines.kv.get_msg_causet(CAUSET_VIOLETABFT, &state_key)? {
+            match self.ctx.engines.kv.get_msg_causet(Causet_VIOLETABFT, &state_key)? {
                 Some(state) => state,
                 None => return Ok(CheckMsgStatus::NewPeerFirst),
             };
@@ -1692,7 +1692,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                 .ctx
                 .engines
                 .kv
-                .get_value_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id))?
+                .get_value_causet(Causet_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id))?
                 .is_some()
             {
                 return Ok(false);
@@ -1930,7 +1930,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         }
 
         // Schedule the task.
-        let causet_names = vec![CAUSET_DEFAULT.to_owned(), CAUSET_WRITE.to_owned()];
+        let causet_names = vec![Causet_DEFAULT.to_owned(), Causet_WRITE.to_owned()];
         if let Err(e) = self.ctx.cleanup_interlock_semaphore.schedule(CleanupTask::Compact(
             CompactTask::CheckAndCompact {
                 causet_names,
@@ -2111,7 +2111,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                 .fetch_sub(lock_causet_bytes_written, Ordering::SeqCst);
 
             let task = CompactTask::Compact {
-                causet_name: String::from(CAUSET_DAGGER),
+                causet_name: String::from(Causet_DAGGER),
                 spacelike_key: None,
                 lightlike_key: None,
             };

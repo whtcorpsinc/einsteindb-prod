@@ -6,7 +6,7 @@ use std::{
 };
 
 use external_causetStorage::{
-    create_causetStorage, make_gcs_backlightlike, make_local_backlightlike, make_noop_backlightlike, make_s3_backlightlike,
+    create_causetStorage, make_gcs_lightlike, make_local_lightlike, make_noop_lightlike, make_s3_lightlike,
     ExternalStorage,
 };
 use futures::executor::block_on;
@@ -30,7 +30,7 @@ arg_enum! {
 #[structopt(rename_all = "kebab-case", name = "scli", version = "0.1")]
 /// An example using causetStorage to save and load a file.
 pub struct Opt {
-    /// CausetStorage backlightlike.
+    /// CausetStorage lightlike.
     #[structopt(short, long, possible_values = &StorageType::variants(), case_insensitive = true)]
     causetStorage: StorageType,
     /// Local file to load from or save to.
@@ -109,7 +109,7 @@ fn create_s3_causetStorage(opt: &Opt) -> Result<Arc<dyn ExternalStorage>> {
     if let Some(prefix) = &opt.prefix {
         config.prefix = prefix.to_string();
     }
-    create_causetStorage(&make_s3_backlightlike(config))
+    create_causetStorage(&make_s3_lightlike(config))
 }
 
 fn create_gcs_causetStorage(opt: &Opt) -> Result<Arc<dyn ExternalStorage>> {
@@ -129,14 +129,14 @@ fn create_gcs_causetStorage(opt: &Opt) -> Result<Arc<dyn ExternalStorage>> {
     if let Some(prefix) = &opt.prefix {
         config.prefix = prefix.to_string();
     }
-    create_causetStorage(&make_gcs_backlightlike(config))
+    create_causetStorage(&make_gcs_lightlike(config))
 }
 
 fn process() -> Result<()> {
     let opt = Opt::from_args();
     let causetStorage = match opt.causetStorage {
-        StorageType::Noop => create_causetStorage(&make_noop_backlightlike())?,
-        StorageType::Local => create_causetStorage(&make_local_backlightlike(Path::new(&opt.path)))?,
+        StorageType::Noop => create_causetStorage(&make_noop_lightlike())?,
+        StorageType::Local => create_causetStorage(&make_local_lightlike(Path::new(&opt.path)))?,
         StorageType::S3 => create_s3_causetStorage(&opt)?,
         StorageType::GCS => create_gcs_causetStorage(&opt)?,
     };

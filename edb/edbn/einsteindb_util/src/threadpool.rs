@@ -211,10 +211,10 @@ where
             }
             let thread = tb
                 .spawn(move || {
-                    einsteindb-prod_alloc::add_thread_memory_accessor();
+                    edb_alloc::add_thread_memory_accessor();
                     let mut worker = Worker::new(state, task_num, tasks_per_tick, ctx);
                     worker.run();
-                    einsteindb-prod_alloc::remove_thread_memory_accessor();
+                    edb_alloc::remove_thread_memory_accessor();
                 })
                 .unwrap();
             threads.push(thread);

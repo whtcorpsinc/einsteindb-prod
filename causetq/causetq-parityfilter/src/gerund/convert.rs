@@ -8,13 +8,13 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use embedded_promises::{
+use raum_promises::{
     MinkowskiValueType,
     MinkowskiSet,
     MinkowskiType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     HasSchemaReplicant,
     SchemaReplicant,
     SQLMinkowskiValueType,

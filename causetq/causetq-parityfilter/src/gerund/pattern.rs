@@ -8,14 +8,14 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     MinkowskiValueType,
     MinkowskiType,
     MinkowskiSet,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     Cloned,
     HasSchemaReplicant,
 };
@@ -658,14 +658,14 @@ mod testing {
     use std::collections::BTreeMap;
     use std::collections::BTreeSet;
 
-    use embedded_promises::attribute::{
+    use raum_promises::attribute::{
         Unique,
     };
-    use embedded_promises::{
+    use raum_promises::{
         Attribute,
         MinkowskiSet,
     };
-    use einsteindb-prod_embedded::{
+    use edb_raum::{
         SchemaReplicant,
     };
 

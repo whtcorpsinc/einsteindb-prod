@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crossbeam::channel::TrylightlikeError;
 use engine_lmdb::raw::DB;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
-use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT};
+use edb::{ALL_CausetS, Causet_DEFAULT};
 use ekvproto::kvrpcpb::{Context, ExtraOp as TxnExtraOp};
 use ekvproto::metapb::Brane;
 use ekvproto::Violetabft_cmdpb::{VioletaBftCmdRequest, VioletaBftCmdResponse, Response};
@@ -17,12 +17,12 @@ use violetabftstore::store::{
 };
 use violetabftstore::Result;
 use tempfile::{Builder, TempDir};
-use einsteindb-prod::server::violetabftkv::{CmdRes, VioletaBftKv};
-use einsteindb-prod::causetStorage::kv::{
+use edb::server::violetabftkv::{CmdRes, VioletaBftKv};
+use edb::causetStorage::kv::{
     Callback as EngineCallback, CbContext, Modify, Result as EngineResult, WriteData,
 };
-use einsteindb-prod::causetStorage::Engine;
-use einsteindb-prod_util::time::ThreadReadId;
+use edb::causetStorage::Engine;
+use edb_util::time::ThreadReadId;
 use txn_types::Key;
 
 use crate::test;
@@ -120,7 +120,7 @@ impl LocalReadRouter<LmdbEngine> for SyncBenchRouter {
 fn new_engine() -> (TempDir, Arc<DB>) {
     let dir = Builder::new().prefix("bench_rafkv").temfidelir().unwrap();
     let path = dir.path().to_str().unwrap().to_string();
-    let db = engine_lmdb::raw_util::new_engine(&path, None, ALL_CAUSETS, None).unwrap();
+    let db = engine_lmdb::raw_util::new_engine(&path, None, ALL_CausetS, None).unwrap();
     (dir, Arc::new(db))
 }
 
@@ -214,7 +214,7 @@ fn bench_async_write(b: &mut test::Bencher) {
         kv.async_write(
             &ctx,
             WriteData::from_modifies(vec![Modify::Delete(
-                CAUSET_DEFAULT,
+                Causet_DEFAULT,
                 Key::from_encoded(b"fooo".to_vec()),
             )]),
             on_finished,

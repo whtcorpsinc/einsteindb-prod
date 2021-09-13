@@ -8,17 +8,17 @@ workspace = ".."
 [dependencies.edbn]
 path = "..edb/edbn"
 
-[dependencies.embedded_promises]
-path = "../embedded-promises"
+[dependencies.raum_promises]
+path = "../raum-promises"
 
-[dependencies.einsteindb-prod_embedded]
-path = "../embedded"
+[dependencies.edb_raum]
+path = "../raum"
 
-[dependencies.einsteindb-prod_sql]
+[dependencies.edb_sql]
 path = "../allegrosql"
 
 [dependencies.allegrosql_promises]
 path = "../allegrosql-promises"
 
-[dependencies.einsteindb-prod_causetq_parityfilter]
+[dependencies.edb_causetq_parityfilter]
 path = "../causetq-parityfilter"

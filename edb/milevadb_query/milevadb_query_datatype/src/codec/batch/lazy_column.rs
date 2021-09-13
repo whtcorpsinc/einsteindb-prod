@@ -3,7 +3,7 @@
 use std::convert::TryFrom;
 
 use crate::{EvalType, FieldTypeAccessor};
-use einsteindb-prod_util::buffer_vec::BufferVec;
+use edb_util::buffer_vec::BufferVec;
 use fidelpb::FieldType;
 
 use crate::codec::Soliton::{SolitonPrimaryCausetEncoder, PrimaryCauset};

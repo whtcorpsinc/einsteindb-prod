@@ -6,10 +6,10 @@ use std::sync::mpsc::lightlikeer;
 
 use crate::store::{CasualMessage, CasualRouter};
 
-use engine_promises::{Engines, KvEngine, VioletaBftEngine};
-use einsteindb-prod_util::time::Duration;
-use einsteindb-prod_util::timer::Timer;
-use einsteindb-prod_util::worker::{Runnable, RunnableWithTimer};
+use edb::{Engines, KvEngine, VioletaBftEngine};
+use edb_util::time::Duration;
+use edb_util::timer::Timer;
+use edb_util::worker::{Runnable, RunnableWithTimer};
 
 const MAX_GC_REGION_BATCH: usize = 128;
 const COMPACT_LOG_INTERVAL: Duration = Duration::from_secs(60);
@@ -181,7 +181,7 @@ where
 mod tests {
     use super::*;
     use engine_lmdb::util::new_engine;
-    use engine_promises::{Engines, KvEngine, MuBlock, WriteBatchExt, ALL_CAUSETS, CAUSET_DEFAULT};
+    use edb::{Engines, KvEngine, MuBlock, WriteBatchExt, ALL_CausetS, Causet_DEFAULT};
     use std::sync::mpsc;
     use std::time::Duration;
     use tempfile::Builder;
@@ -191,8 +191,8 @@ mod tests {
         let dir = Builder::new().prefix("gc-violetabft-log-test").temfidelir().unwrap();
         let path_violetabft = dir.path().join("violetabft");
         let path_kv = dir.path().join("kv");
-        let violetabft_db = new_engine(path_kv.to_str().unwrap(), None, &[CAUSET_DEFAULT], None).unwrap();
-        let kv_db = new_engine(path_violetabft.to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();
+        let violetabft_db = new_engine(path_kv.to_str().unwrap(), None, &[Causet_DEFAULT], None).unwrap();
+        let kv_db = new_engine(path_violetabft.to_str().unwrap(), None, ALL_CausetS, None).unwrap();
         let engines = Engines::new(kv_db, violetabft_db.clone());
 
         let (tx, rx) = mpsc::channel();

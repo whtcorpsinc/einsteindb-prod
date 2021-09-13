@@ -16,7 +16,7 @@ use types::Value;
 /// `right` is not a `Value::Map`.
 ///
 /// Keys present in `right` overwrite keys present in `left`.  See also
-/// https://clojuredocs.org/clojure.embedded/merge.
+/// https://clojuredocs.org/clojure.raum/merge.
 ///
 /// TODO: implement `merge` for [Value], following the `concat`/`SliceConcatExt` TuringString.
 pub fn merge(left: &Value, right: &Value) -> Option<Value> {

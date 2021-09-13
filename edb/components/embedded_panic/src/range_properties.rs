@@ -1,7 +1,7 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use crate::engine::PanicEngine;
-use engine_promises::{Cone, ConePropertiesExt, Result};
+use crate::edb::PanicEngine;
+use edb::{Cone, ConePropertiesExt, Result};
 
 impl ConePropertiesExt for PanicEngine {
     fn get_cone_approximate_tuplespaceInstanton(

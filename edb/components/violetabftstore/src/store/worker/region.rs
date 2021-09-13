@@ -9,8 +9,8 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::u64;
 
-use engine_promises::CAUSET_VIOLETABFT;
-use engine_promises::{Engines, KvEngine, MuBlock, VioletaBftEngine};
+use edb::Causet_VIOLETABFT;
+use edb::{Engines, KvEngine, MuBlock, VioletaBftEngine};
 use ekvproto::violetabft_serverpb::{PeerState, VioletaBftApplyState, BraneLocalState};
 use violetabft::evioletabftpb::Snapshot as VioletaBftSnapshot;
 
@@ -19,7 +19,7 @@ use crate::store::peer_causetStorage::{
     JOB_STATUS_CANCELLED, JOB_STATUS_CANCELLING, JOB_STATUS_FAILED, JOB_STATUS_FINISHED,
     JOB_STATUS_PENDING, JOB_STATUS_RUNNING,
 };
-use crate::store::snap::{plain_file_used, Error, Result, SNAPSHOT_CAUSETS};
+use crate::store::snap::{plain_file_used, Error, Result, SNAPSHOT_CausetS};
 use crate::store::transport::CasualRouter;
 use crate::store::{
     self, check_abort, ApplyOptions, CasualMessage, SnapEntry, SnapKey, SnapManager,
@@ -27,8 +27,8 @@ use crate::store::{
 use yatp::pool::{Builder, ThreadPool};
 use yatp::task::future::TaskCell;
 
-use einsteindb-prod_util::timer::Timer;
-use einsteindb-prod_util::worker::{Runnable, RunnableWithTimer};
+use edb_util::timer::Timer;
+use edb_util::worker::{Runnable, RunnableWithTimer};
 
 use super::metrics::*;
 
@@ -277,7 +277,7 @@ where
         notifier: Synclightlikeer<VioletaBftSnapshot>,
     ) {
         SNAP_COUNTER.generate.all.inc();
-        let spacelike = einsteindb-prod_util::time::Instant::now();
+        let spacelike = edb_util::time::Instant::now();
 
         if let Err(e) = self.generate_snap(
             brane_id,
@@ -301,7 +301,7 @@ where
         check_abort(&abort)?;
         let brane_key = tuplespaceInstanton::brane_state_key(brane_id);
         let mut brane_state: BraneLocalState =
-            match box_try!(self.engines.kv.get_msg_causet(CAUSET_VIOLETABFT, &brane_key)) {
+            match box_try!(self.engines.kv.get_msg_causet(Causet_VIOLETABFT, &brane_key)) {
                 Some(state) => state,
                 None => {
                     return Err(box_err!(
@@ -326,7 +326,7 @@ where
 
         let state_key = tuplespaceInstanton::apply_state_key(brane_id);
         let apply_state: VioletaBftApplyState =
-            match box_try!(self.engines.kv.get_msg_causet(CAUSET_VIOLETABFT, &state_key)) {
+            match box_try!(self.engines.kv.get_msg_causet(Causet_VIOLETABFT, &state_key)) {
                 Some(state) => state,
                 None => {
                     return Err(box_err!(
@@ -359,8 +359,8 @@ where
 
         let mut wb = self.engines.kv.write_batch();
         brane_state.set_state(PeerState::Normal);
-        box_try!(wb.put_msg_causet(CAUSET_VIOLETABFT, &brane_key, &brane_state));
-        box_try!(wb.delete_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::snapshot_violetabft_state_key(brane_id)));
+        box_try!(wb.put_msg_causet(Causet_VIOLETABFT, &brane_key, &brane_state));
+        box_try!(wb.delete_causet(Causet_VIOLETABFT, &tuplespaceInstanton::snapshot_violetabft_state_key(brane_id)));
         self.engines.kv.write(&wb).unwrap_or_else(|e| {
             panic!("{} failed to save apply_snap result: {:?}", brane_id, e);
         });
@@ -378,7 +378,7 @@ where
         SNAP_COUNTER.apply.all.inc();
         // let apply_histogram = SNAP_HISTOGRAM.with_label_values(&["apply"]);
         // let timer = apply_histogram.spacelike_coarse_timer();
-        let spacelike = einsteindb-prod_util::time::Instant::now();
+        let spacelike = edb_util::time::Instant::now();
 
         match self.apply_snap(brane_id, Arc::clone(&status)) {
             Ok(()) => {
@@ -533,7 +533,7 @@ where
     /// Checks the number of files at level 0 to avoid write stall after ingesting sst.
     /// Returns true if the ingestion causes write stall.
     fn ingest_maybe_stall(&self) -> bool {
-        for causet in SNAPSHOT_CAUSETS {
+        for causet in SNAPSHOT_CausetS {
             // no need to check dagger causet
             if plain_file_used(causet) {
                 continue;
@@ -646,7 +646,7 @@ where
                 let ctx = self.ctx.clone();
 
                 self.pool.spawn(async move {
-                    einsteindb-prod_alloc::add_thread_memory_accessor();
+                    edb_alloc::add_thread_memory_accessor();
                     ctx.handle_gen(
                         brane_id,
                         last_applied_index_term,
@@ -654,7 +654,7 @@ where
                         kv_snap,
                         notifier,
                     );
-                    einsteindb-prod_alloc::remove_thread_memory_accessor();
+                    edb_alloc::remove_thread_memory_accessor();
                 });
             }
             task @ Task::Apply { .. } => {
@@ -738,16 +738,16 @@ mod tests {
     use crate::store::{CasualMessage, SnapKey, SnapManager};
     use engine_lmdb::raw::PrimaryCausetNetworkOptions;
     use engine_lmdb::LmdbEngine;
-    use engine_promises::{
-        CAUSETHandleExt, CAUSETNamesExt, CompactExt, MiscExt, MuBlock, Peekable, SyncMuBlock, WriteBatchExt,
+    use edb::{
+        CausetHandleExt, CausetNamesExt, CompactExt, MiscExt, MuBlock, Peekable, SyncMuBlock, WriteBatchExt,
     };
-    use engine_promises::{Engines, KvEngine};
-    use engine_promises::{CAUSET_DEFAULT, CAUSET_VIOLETABFT};
+    use edb::{Engines, KvEngine};
+    use edb::{Causet_DEFAULT, Causet_VIOLETABFT};
     use ekvproto::violetabft_serverpb::{PeerState, VioletaBftApplyState, BraneLocalState};
     use violetabft::evioletabftpb::Entry;
     use tempfile::Builder;
-    use einsteindb-prod_util::timer::Timer;
-    use einsteindb-prod_util::worker::Worker;
+    use edb_util::timer::Timer;
+    use edb_util::worker::Worker;
 
     use super::Event;
     use super::PlightlikeingDeleteCones;
@@ -884,12 +884,12 @@ mod tests {
         causet_opts.set_level_zero_slowdown_writes_trigger(5);
         causet_opts.set_disable_auto_compactions(true);
         let kv_causets_opts = vec![
-            engine_lmdb::raw_util::CAUSETOptions::new("default", causet_opts.clone()),
-            engine_lmdb::raw_util::CAUSETOptions::new("write", causet_opts.clone()),
-            engine_lmdb::raw_util::CAUSETOptions::new("dagger", causet_opts.clone()),
-            engine_lmdb::raw_util::CAUSETOptions::new("violetabft", causet_opts.clone()),
+            engine_lmdb::raw_util::CausetOptions::new("default", causet_opts.clone()),
+            engine_lmdb::raw_util::CausetOptions::new("write", causet_opts.clone()),
+            engine_lmdb::raw_util::CausetOptions::new("dagger", causet_opts.clone()),
+            engine_lmdb::raw_util::CausetOptions::new("violetabft", causet_opts.clone()),
         ];
-        let violetabft_causets_opt = engine_lmdb::raw_util::CAUSETOptions::new(CAUSET_DEFAULT, causet_opts);
+        let violetabft_causets_opt = engine_lmdb::raw_util::CausetOptions::new(Causet_DEFAULT, causet_opts);
         let engine = get_test_db_for_branes(
             &temp_dir,
             None,
@@ -942,7 +942,7 @@ mod tests {
             let (tx, rx) = mpsc::sync_channel(1);
             let apply_state: VioletaBftApplyState = engines
                 .kv
-                .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(id))
+                .get_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::apply_state_key(id))
                 .unwrap()
                 .unwrap();
             let idx = apply_state.get_applied_index();
@@ -980,11 +980,11 @@ mod tests {
             let brane_key = tuplespaceInstanton::brane_state_key(id);
             let mut brane_state = engine
                 .kv
-                .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &brane_key)
+                .get_msg_causet::<BraneLocalState>(Causet_VIOLETABFT, &brane_key)
                 .unwrap()
                 .unwrap();
             brane_state.set_state(PeerState::Applying);
-            wb.put_msg_causet(CAUSET_VIOLETABFT, &brane_key, &brane_state).unwrap();
+            wb.put_msg_causet(Causet_VIOLETABFT, &brane_key, &brane_state).unwrap();
             engine.kv.write(&wb).unwrap();
 
             // apply snapshot
@@ -1002,7 +1002,7 @@ mod tests {
                 thread::sleep(Duration::from_millis(100));
                 if engine
                     .kv
-                    .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &brane_key)
+                    .get_msg_causet::<BraneLocalState>(Causet_VIOLETABFT, &brane_key)
                     .unwrap()
                     .unwrap()
                     .get_state()
@@ -1012,7 +1012,7 @@ mod tests {
                 }
             }
         };
-        let causet = engine.kv.causet_handle(CAUSET_DEFAULT).unwrap().as_inner();
+        let causet = engine.kv.causet_handle(Causet_DEFAULT).unwrap().as_inner();
 
         // snapshot will not ingest cause already write stall
         gen_and_apply_snap(1);

@@ -6,9 +6,9 @@
 #[macro_use]
 extern crate failure;
 #[allow(unused_extern_crates)]
-extern crate einsteindb-prod_alloc;
+extern crate edb_alloc;
 #[macro_use]
-extern crate einsteindb-prod_util;
+extern crate edb_util;
 
 mod lightlikepoint;
 mod errors;

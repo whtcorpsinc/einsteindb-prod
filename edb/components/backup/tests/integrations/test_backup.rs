@@ -14,34 +14,34 @@ use grpcio::{ChannelBuilder, Environment};
 
 use backup::Task;
 use concurrency_manager::ConcurrencyManager;
-use engine_promises::IterOptions;
-use engine_promises::{CfName, CAUSET_DEFAULT, CAUSET_WRITE, DATA_KEY_PREFIX_LEN};
+use edb::IterOptions;
+use edb::{CfName, Causet_DEFAULT, Causet_WRITE, DATA_KEY_PREFIX_LEN};
 use external_causetStorage::*;
 use ekvproto::backup::*;
 use ekvproto::import_sstpb::*;
 use ekvproto::kvrpcpb::*;
 use ekvproto::violetabft_cmdpb::{CmdType, VioletaBftCmdRequest, VioletaBftRequestHeader, Request};
-use ekvproto::einsteindb-prodpb::EINSTEINDBClient;
+use ekvproto::edbpb::EINSTEINDBClient;
 use fidel_client::FidelClient;
 use tempfile::Builder;
 use test_violetabftstore::*;
 use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
 use milevadb_query_common::causetStorage::{IntervalCone, Cone};
-use einsteindb-prod::config::BackupConfig;
-use einsteindb-prod::interlock::checksum_crc64_xor;
-use einsteindb-prod::interlock::posetdag::EinsteinDBStorage;
-use einsteindb-prod::causetStorage::kv::Engine;
-use einsteindb-prod::causetStorage::SnapshotStore;
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::file::calc_crc32_bytes;
-use einsteindb-prod_util::worker::Worker;
-use einsteindb-prod_util::HandyRwLock;
+use edb::config::BackupConfig;
+use edb::interlock::checksum_crc64_xor;
+use edb::interlock::posetdag::EinsteinDBStorage;
+use edb::causetStorage::kv::Engine;
+use edb::causetStorage::SnapshotStore;
+use edb_util::collections::HashMap;
+use edb_util::file::calc_crc32_bytes;
+use edb_util::worker::Worker;
+use edb_util::HandyRwLock;
 use txn_types::TimeStamp;
 
 struct TestSuite {
     cluster: Cluster<ServerCluster>,
     lightlikepoints: HashMap<u64, Worker<Task>>,
-    einsteindb-prod_cli: EINSTEINDBClient,
+    edb_cli: EINSTEINDBClient,
     context: Context,
     ts: TimeStamp,
 
@@ -108,12 +108,12 @@ impl TestSuite {
 
         let env = Arc::new(Environment::new(1));
         let channel = ChannelBuilder::new(env.clone()).connect(&leader_addr);
-        let einsteindb-prod_cli = EINSTEINDBClient::new(channel);
+        let edb_cli = EINSTEINDBClient::new(channel);
 
         TestSuite {
             cluster,
             lightlikepoints,
-            einsteindb-prod_cli,
+            edb_cli,
             context,
             ts: TimeStamp::zero(),
             _env: env,
@@ -137,9 +137,9 @@ impl TestSuite {
         request.set_key(k);
         request.set_value(v);
         request.set_causet(causet);
-        let mut response = self.einsteindb-prod_cli.raw_put(&request).unwrap();
+        let mut response = self.edb_cli.raw_put(&request).unwrap();
         retry_req!(
-            self.einsteindb-prod_cli.raw_put(&request).unwrap(),
+            self.edb_cli.raw_put(&request).unwrap(),
             !response.has_brane_error() && response.error.is_empty(),
             response,
             10,   // retry 10 times
@@ -160,9 +160,9 @@ impl TestSuite {
         prewrite_req.primary_lock = pk;
         prewrite_req.spacelike_version = ts.into_inner();
         prewrite_req.lock_ttl = prewrite_req.spacelike_version + 1;
-        let mut prewrite_resp = self.einsteindb-prod_cli.kv_prewrite(&prewrite_req).unwrap();
+        let mut prewrite_resp = self.edb_cli.kv_prewrite(&prewrite_req).unwrap();
         retry_req!(
-            self.einsteindb-prod_cli.kv_prewrite(&prewrite_req).unwrap(),
+            self.edb_cli.kv_prewrite(&prewrite_req).unwrap(),
             !prewrite_resp.has_brane_error() && prewrite_resp.errors.is_empty(),
             prewrite_resp,
             10,   // retry 10 times
@@ -186,9 +186,9 @@ impl TestSuite {
         commit_req.spacelike_version = spacelike_ts.into_inner();
         commit_req.set_tuplespaceInstanton(tuplespaceInstanton.into_iter().collect());
         commit_req.commit_version = commit_ts.into_inner();
-        let mut commit_resp = self.einsteindb-prod_cli.kv_commit(&commit_req).unwrap();
+        let mut commit_resp = self.edb_cli.kv_commit(&commit_req).unwrap();
         retry_req!(
-            self.einsteindb-prod_cli.kv_commit(&commit_req).unwrap(),
+            self.edb_cli.kv_commit(&commit_req).unwrap(),
             !commit_resp.has_brane_error() && !commit_resp.has_error(),
             commit_resp,
             10,   // retry 10 times
@@ -309,12 +309,12 @@ impl TestSuite {
     }
 }
 
-// Extrat CAUSET name from sst name.
+// Extrat Causet name from sst name.
 fn name_to_causet(name: &str) -> CfName {
-    if name.contains(CAUSET_DEFAULT) {
-        CAUSET_DEFAULT
-    } else if name.contains(CAUSET_WRITE) {
-        CAUSET_WRITE
+    if name.contains(Causet_DEFAULT) {
+        Causet_DEFAULT
+    } else if name.contains(Causet_WRITE) {
+        Causet_WRITE
     } else {
         unreachable!()
     }
@@ -361,8 +361,8 @@ fn test_backup_and_import() {
     assert!(!resps1[0].get_files().is_empty());
 
     // Delete all data, there should be no backup files.
-    suite.cluster.must_delete_cone_causet(CAUSET_DEFAULT, b"", b"");
-    suite.cluster.must_delete_cone_causet(CAUSET_WRITE, b"", b"");
+    suite.cluster.must_delete_cone_causet(Causet_DEFAULT, b"", b"");
+    suite.cluster.must_delete_cone_causet(Causet_WRITE, b"", b"");
     // Backup file should have same contents.
     // backup ts + 1 avoid file already exist.
     let rx = suite.backup(
@@ -499,7 +499,7 @@ fn test_backup_rawkv() {
     let mut suite = TestSuite::new(3);
     let key_count = 60;
 
-    let causet = String::from(CAUSET_DEFAULT);
+    let causet = String::from(Causet_DEFAULT);
     for i in 0..key_count {
         let (k, v) = suite.gen_raw_kv(i);
         suite.must_raw_put(k.clone().into_bytes(), v.clone().into_bytes(), causet.clone());
@@ -522,7 +522,7 @@ fn test_backup_rawkv() {
     assert!(!resps1[0].get_files().is_empty());
 
     // Delete all data, there should be no backup files.
-    suite.cluster.must_delete_cone_causet(CAUSET_DEFAULT, b"", b"");
+    suite.cluster.must_delete_cone_causet(Causet_DEFAULT, b"", b"");
     // Backup file should have same contents.
     // backup ts + 1 avoid file already exist.
     let rx = suite.backup_raw(
@@ -599,7 +599,7 @@ fn test_backup_rawkv() {
 fn test_backup_raw_meta() {
     let mut suite = TestSuite::new(3);
     let key_count: u64 = 60;
-    let causet = String::from(CAUSET_DEFAULT);
+    let causet = String::from(Causet_DEFAULT);
 
     for i in 0..key_count {
         let (k, v) = suite.gen_raw_kv(i);
@@ -608,7 +608,7 @@ fn test_backup_raw_meta() {
     let backup_ts = suite.alloc_ts();
     // TuplespaceInstanton are order by lexicographical order, 'a'-'z' will cover all.
     let (admin_checksum, admin_total_kvs, admin_total_bytes) =
-        suite.raw_kv_checksum("a".to_owned(), "z".to_owned(), CAUSET_DEFAULT);
+        suite.raw_kv_checksum("a".to_owned(), "z".to_owned(), Causet_DEFAULT);
 
     // Push down backup request.
     let tmp = Builder::new().temfidelir().unwrap();

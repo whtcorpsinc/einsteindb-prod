@@ -10,9 +10,9 @@ extern crate quick_error;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
-extern crate einsteindb-prod_util;
+extern crate edb_util;
 #[allow(unused_extern_crates)]
-extern crate einsteindb-prod_alloc;
+extern crate edb_alloc;
 
 mod config;
 mod errors;

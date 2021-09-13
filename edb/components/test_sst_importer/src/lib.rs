@@ -8,22 +8,22 @@ use engine_lmdb::LmdbEngine;
 use engine_lmdb::LmdbSstReader;
 pub use engine_lmdb::LmdbSstWriter;
 use engine_lmdb::LmdbSstWriterBuilder;
-use engine_promises::KvEngine;
-use engine_promises::SstReader;
-use engine_promises::SstWriter;
-use engine_promises::SstWriterBuilder;
+use edb::KvEngine;
+use edb::SstReader;
+use edb::SstWriter;
+use edb::SstWriterBuilder;
 use ekvproto::import_sstpb::*;
 use uuid::Uuid;
 
 use engine_lmdb::raw::{
     PrimaryCausetNetworkOptions, DBEntryType, BlockPropertiesCollector, BlockPropertiesCollectorFactory,
 };
-use engine_lmdb::raw_util::{new_engine, CAUSETOptions};
+use engine_lmdb::raw_util::{new_engine, CausetOptions};
 use std::sync::Arc;
 
 pub use engine_lmdb::LmdbEngine as TestEngine;
 
-pub const PROP_TEST_MARKER_CAUSET_NAME: &[u8] = b"einsteindb-prod.test_marker_causet_name";
+pub const PROP_TEST_MARKER_Causet_NAME: &[u8] = b"edb.test_marker_causet_name";
 
 pub fn new_test_engine(path: &str, causets: &[&str]) -> LmdbEngine {
     new_test_engine_with_options(path, causets, |_, _| {})
@@ -39,10 +39,10 @@ where
             let mut opt = PrimaryCausetNetworkOptions::new();
             apply(*causet, &mut opt);
             opt.add_Block_properties_collector_factory(
-                "einsteindb-prod.test_properties",
+                "edb.test_properties",
                 Box::new(TestPropertiesCollectorFactory::new(*causet)),
             );
-            CAUSETOptions::new(*causet, opt)
+            CausetOptions::new(*causet, opt)
         })
         .collect();
     let db = new_engine(path, None, causets, Some(causet_opts)).expect("rocks test engine");
@@ -135,7 +135,7 @@ impl BlockPropertiesCollector for TestPropertiesCollector {
 
     fn finish(&mut self) -> HashMap<Vec<u8>, Vec<u8>> {
         std::iter::once((
-            PROP_TEST_MARKER_CAUSET_NAME.to_owned(),
+            PROP_TEST_MARKER_Causet_NAME.to_owned(),
             self.causet.as_bytes().to_owned(),
         ))
         .collect()

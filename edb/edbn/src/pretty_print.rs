@@ -53,7 +53,7 @@ impl Value {
     }
 
     /// Recursively traverses this value and creates a pretty.rs document.
-    /// This pretty printing impleeinsteindb-prodion is optimized for edbn queries
+    /// This pretty printing impleedbion is optimized for edbn queries
     /// readability and limited whitespace expansion.
     fn as_doc<'a, A>(&'a self, pp: &'a A) -> pretty::DocBuilder<'a, A>
         where A: pretty::DocAllocator<'a> {

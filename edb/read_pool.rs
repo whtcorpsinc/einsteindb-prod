@@ -9,7 +9,7 @@ use ekvproto::kvrpcpb::CommandPri;
 use prometheus::IntGauge;
 use std::future::Future;
 use std::sync::{Arc, Mutex};
-use einsteindb-prod_util::yatp_pool::{self, FuturePool, PoolTicker, YatpPoolBuilder};
+use edb_util::yatp_pool::{self, FuturePool, PoolTicker, YatpPoolBuilder};
 use yatp::queue::Extras;
 use yatp::task::future::TaskCell;
 use yatp::Remote;
@@ -247,7 +247,7 @@ mod metrics {
 
     lazy_static! {
         pub static ref UNIFIED_READ_POOL_RUNNING_TASKS: IntGaugeVec = register_int_gauge_vec!(
-            "einsteindb-prod_unified_read_pool_running_tasks",
+            "edb_unified_read_pool_running_tasks",
             "The number of running tasks in the unified read pool",
             &["name"]
         )

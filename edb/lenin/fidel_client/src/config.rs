@@ -1,7 +1,7 @@
 // Copyright 2020 WHTCORPS INC Project Authors. Licensed Under Apache-2.0
 
 use std::error::Error;
-use einsteindb-prod_util::config::ReadableDuration;
+use edb_util::config::ReadableDuration;
 
 /// The configuration for a FIDel Client.
 ///

@@ -1,10 +1,10 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use crate::engine::LmdbEngine;
+use crate::edb::LmdbEngine;
 use crate::properties::{get_cone_entries_and_versions, ConeProperties};
-use engine_promises::{
-    CAUSETHandleExt, MiscExt, Cone, ConePropertiesExt, Result, BlockProperties,
-    BlockPropertiesCollection, BlockPropertiesExt, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_WRITE, LARGE_CAUSETS,
+use edb::{
+    CausetHandleExt, MiscExt, Cone, ConePropertiesExt, Result, BlockProperties,
+    BlockPropertiesCollection, BlockPropertiesExt, Causet_DEFAULT, Causet_DAGGER, Causet_WRITE, LARGE_CausetS,
 };
 use std::path::Path;
 
@@ -16,7 +16,7 @@ impl ConePropertiesExt for LmdbEngine {
         large_memory_barrier: u64,
     ) -> Result<u64> {
         // try to get from ConeProperties first.
-        match self.get_cone_approximate_tuplespaceInstanton_causet(CAUSET_WRITE, cone, brane_id, large_memory_barrier) {
+        match self.get_cone_approximate_tuplespaceInstanton_causet(Causet_WRITE, cone, brane_id, large_memory_barrier) {
             Ok(v) => {
                 return Ok(v);
             }
@@ -28,7 +28,7 @@ impl ConePropertiesExt for LmdbEngine {
 
         let spacelike = &cone.spacelike_key;
         let lightlike = &cone.lightlike_key;
-        let causet = box_try!(self.causet_handle(CAUSET_WRITE));
+        let causet = box_try!(self.causet_handle(Causet_WRITE));
         let (_, tuplespaceInstanton) = get_cone_entries_and_versions(self, causet, &spacelike, &lightlike).unwrap_or_default();
         Ok(tuplespaceInstanton)
     }
@@ -88,12 +88,12 @@ impl ConePropertiesExt for LmdbEngine {
         large_memory_barrier: u64,
     ) -> Result<u64> {
         let mut size = 0;
-        for causetname in LARGE_CAUSETS {
+        for causetname in LARGE_CausetS {
             size += self
                 .get_cone_approximate_size_causet(causetname, cone, brane_id, large_memory_barrier)
-                // CAUSET_DAGGER doesn't have ConeProperties until v4.0, so we swallow the error for
+                // Causet_DAGGER doesn't have ConeProperties until v4.0, so we swallow the error for
                 // backward compatibility.
-                .or_else(|e| if causetname == &CAUSET_DAGGER { Ok(0) } else { Err(e) })?;
+                .or_else(|e| if causetname == &Causet_DAGGER { Ok(0) } else { Err(e) })?;
         }
         Ok(size)
     }
@@ -156,16 +156,16 @@ impl ConePropertiesExt for LmdbEngine {
     ) -> Result<Vec<Vec<u8>>> {
         let get_causet_size = |causet: &str| self.get_cone_approximate_size_causet(causet, cone, brane_id, 0);
         let causets = [
-            (CAUSET_DEFAULT, box_try!(get_causet_size(CAUSET_DEFAULT))),
-            (CAUSET_WRITE, box_try!(get_causet_size(CAUSET_WRITE))),
-            // CAUSET_DAGGER doesn't have ConeProperties until v4.0, so we swallow the error for
+            (Causet_DEFAULT, box_try!(get_causet_size(Causet_DEFAULT))),
+            (Causet_WRITE, box_try!(get_causet_size(Causet_WRITE))),
+            // Causet_DAGGER doesn't have ConeProperties until v4.0, so we swallow the error for
             // backward compatibility.
-            (CAUSET_DAGGER, get_causet_size(CAUSET_DAGGER).unwrap_or(0)),
+            (Causet_DAGGER, get_causet_size(Causet_DAGGER).unwrap_or(0)),
         ];
 
         let total_size: u64 = causets.iter().map(|(_, s)| s).sum();
         if total_size == 0 {
-            return Err(box_err!("all CAUSETs are empty"));
+            return Err(box_err!("all Causets are empty"));
         }
 
         let (causet, causet_size) = causets.iter().max_by_key(|(_, s)| s).unwrap();
@@ -280,13 +280,13 @@ impl ConePropertiesExt for LmdbEngine {
     ) -> Result<Option<Vec<u8>>> {
         let get_causet_size = |causet: &str| self.get_cone_approximate_size_causet(causet, cone, brane_id, 0);
 
-        let default_causet_size = box_try!(get_causet_size(CAUSET_DEFAULT));
-        let write_causet_size = box_try!(get_causet_size(CAUSET_WRITE));
+        let default_causet_size = box_try!(get_causet_size(Causet_DEFAULT));
+        let write_causet_size = box_try!(get_causet_size(Causet_WRITE));
 
         let middle_by_causet = if default_causet_size >= write_causet_size {
-            CAUSET_DEFAULT
+            Causet_DEFAULT
         } else {
-            CAUSET_WRITE
+            Causet_WRITE
         };
 
         self.get_cone_approximate_middle_causet(middle_by_causet, cone, brane_id)
@@ -324,13 +324,13 @@ impl ConePropertiesExt for LmdbEngine {
 
     fn divide_cone(&self, cone: Cone, brane_id: u64, parts: usize) -> Result<Vec<Vec<u8>>> {
         let default_causet_size =
-            self.get_cone_approximate_tuplespaceInstanton_causet(CAUSET_DEFAULT, cone, brane_id, 0)?;
-        let write_causet_size = self.get_cone_approximate_tuplespaceInstanton_causet(CAUSET_WRITE, cone, brane_id, 0)?;
+            self.get_cone_approximate_tuplespaceInstanton_causet(Causet_DEFAULT, cone, brane_id, 0)?;
+        let write_causet_size = self.get_cone_approximate_tuplespaceInstanton_causet(Causet_WRITE, cone, brane_id, 0)?;
 
         let causet = if default_causet_size >= write_causet_size {
-            CAUSET_DEFAULT
+            Causet_DEFAULT
         } else {
-            CAUSET_WRITE
+            Causet_WRITE
         };
 
         self.divide_cone_causet(causet, cone, brane_id, parts)

@@ -8,12 +8,12 @@ use crossbeam::channel;
 use ekvproto::violetabft_serverpb::{PeerState, VioletaBftMessage, BraneLocalState, StoreIdent};
 use protobuf::Message;
 use violetabft::evioletabftpb::MessageType;
-use einsteindb-prod_util::config::*;
+use edb_util::config::*;
 
 use engine_lmdb::raw::WriBlock;
 use engine_lmdb::Compat;
-use engine_promises::{Iterable, Peekable};
-use engine_promises::{SyncMuBlock, CAUSET_VIOLETABFT};
+use edb::{Iterable, Peekable};
+use edb::{SyncMuBlock, Causet_VIOLETABFT};
 use test_violetabftstore::*;
 
 fn test_tombstone<T: Simulator>(cluster: &mut Cluster<T>) {
@@ -139,7 +139,7 @@ fn test_fast_destroy<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.stop_node(3);
 
     let key = tuplespaceInstanton::brane_state_key(1);
-    let state: BraneLocalState = engine_3.c().get_msg_causet(CAUSET_VIOLETABFT, &key).unwrap().unwrap();
+    let state: BraneLocalState = engine_3.c().get_msg_causet(Causet_VIOLETABFT, &key).unwrap().unwrap();
     assert_eq!(state.get_state(), PeerState::Tombstone);
 
     // Force add some dirty data.
@@ -233,7 +233,7 @@ fn test_server_readd_peer() {
     test_readd_peer(&mut cluster);
 }
 
-// Simulate a case that einsteindb-prod exit before a removed peer clean up its stale meta.
+// Simulate a case that edb exit before a removed peer clean up its stale meta.
 #[test]
 fn test_server_stale_meta() {
     let count = 3;
@@ -251,14 +251,14 @@ fn test_server_stale_meta() {
     let engine_3 = cluster.get_engine(3);
     let mut state: BraneLocalState = engine_3
         .c()
-        .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(1))
+        .get_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::brane_state_key(1))
         .unwrap()
         .unwrap();
     state.set_state(PeerState::Tombstone);
 
     engine_3
         .c()
-        .put_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(1), &state)
+        .put_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::brane_state_key(1), &state)
         .unwrap();
     cluster.clear_lightlike_filters();
 
@@ -321,7 +321,7 @@ fn test_safe_tombstone_gc() {
     let mut state: Option<BraneLocalState> = None;
     let timer = Instant::now();
     while timer.elapsed() < Duration::from_secs(5) {
-        state = cluster.get_engine(4).c().get_msg_causet(CAUSET_VIOLETABFT, &key).unwrap();
+        state = cluster.get_engine(4).c().get_msg_causet(Causet_VIOLETABFT, &key).unwrap();
         if state.is_some() {
             break;
         }

@@ -10,7 +10,7 @@ use fidelpb::Expr;
 use milevadb_query_datatype::expr::EvalConfig;
 use milevadb_query_normal_executors::{FreeDaemon, TopNFreeDaemon};
 use milevadb_query_vec_executors::BatchTopNFreeDaemon;
-use einsteindb-prod::causetStorage::Statistics;
+use edb::causetStorage::Statistics;
 
 use crate::util::bencher::Bencher;
 use crate::util::executor_descriptor::top_n;

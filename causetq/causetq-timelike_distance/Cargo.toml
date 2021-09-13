@@ -1,5 +1,5 @@
 [package]
-name = "einsteindb-prod_causetq_projector"
+name = "edb_causetq_projector"
 version = "0.0.1"
 workspace = ".."
 
@@ -14,14 +14,14 @@ indexmap = "1"
 version = "0.13"
 features = ["limits"]
 
-[dependencies.embedded_promises]
-path = "../embedded-promises"
+[dependencies.raum_promises]
+path = "../raum-promises"
 
 [dependencies.edbn]
 path = "../edbn"
 
-[dependencies.einsteindb-prod_embedded]
-path = "../embedded"
+[dependencies.edb_raum]
+path = "../raum"
 
 [dependencies.einstein_db]
 path = "../edb"
@@ -29,10 +29,10 @@ path = "../edb"
 [dependencies.edb_promises]
 path = "../edb-promises"
 
-[dependencies.einsteindb-prod_causetq_parityfilter]
+[dependencies.edb_causetq_parityfilter]
 path = "../causetq-parityfilter"
 
-[dependencies.einsteindb-prod_causetq_pull]
+[dependencies.edb_causetq_pull]
 path = "../causetq-pull"
 
 [dependencies.causetq_pull_promises]
@@ -41,8 +41,8 @@ path = "../causetq-pull-promises"
 [dependencies.causetq_projector_promises]
 path = "../causetq-projector-promises"
 
-[dependencies.einsteindb-prod_causetq_sql]
+[dependencies.edb_causetq_sql]
 path = "../causetq-allegrosql"
 
-[dev-dependencies.einsteindb-prod_sql]
+[dev-dependencies.edb_sql]
 path = "../allegrosql"

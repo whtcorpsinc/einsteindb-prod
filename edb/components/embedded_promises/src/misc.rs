@@ -5,20 +5,20 @@
 //!
 //! FIXME: Things here need to be moved elsewhere.
 
-use crate::causet_defs::CAUSET_DAGGER;
-use crate::causet_names::CAUSETNamesExt;
+use crate::causet_defs::Causet_DAGGER;
+use crate::causet_names::CausetNamesExt;
 use crate::errors::Result;
 use crate::iterable::{Iterable, Iteron};
 use crate::options::IterOptions;
 use crate::cone::Cone;
 use crate::write_batch::{MuBlock, WriteBatchExt};
 
-use einsteindb-prod_util::keybuilder::KeyBuilder;
+use edb_util::keybuilder::KeyBuilder;
 
 // FIXME: Find somewhere else to put this?
 pub const MAX_DELETE_BATCH_COUNT: usize = 512;
 
-pub trait MiscExt: Iterable + WriteBatchExt + CAUSETNamesExt {
+pub trait MiscExt: Iterable + WriteBatchExt + CausetNamesExt {
     fn is_titan(&self) -> bool {
         false
     }
@@ -60,7 +60,7 @@ pub trait MiscExt: Iterable + WriteBatchExt + CAUSETNamesExt {
         use_delete_cone: bool,
     ) -> Result<()> {
         let mut wb = self.write_batch();
-        if use_delete_cone && causet != CAUSET_DAGGER {
+        if use_delete_cone && causet != Causet_DAGGER {
             wb.delete_cone_causet(causet, spacelike_key, lightlike_key)?;
         } else {
             let spacelike = KeyBuilder::from_slice(spacelike_key, 0, 0);

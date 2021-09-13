@@ -1,14 +1,14 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::engine::LmdbEngine;
+use crate::edb::LmdbEngine;
 use crate::util;
-use engine_promises::DecodeProperties;
-use engine_promises::Cone;
-use engine_promises::{Error, Result};
-use engine_promises::{
+use edb::DecodeProperties;
+use edb::Cone;
+use edb::{Error, Result};
+use edb::{
     BlockProperties, BlockPropertiesCollectionIter, BlockPropertiesKey, UserCollectedProperties,
 };
-use engine_promises::{BlockPropertiesCollection, BlockPropertiesExt};
+use edb::{BlockPropertiesCollection, BlockPropertiesExt};
 use lmdb::Block_properties_rc as raw;
 use std::ops::Deref;
 
@@ -21,7 +21,7 @@ impl BlockPropertiesExt for LmdbEngine {
 
     fn get_properties_of_Blocks_in_cone(
         &self,
-        causet: &Self::CAUSETHandle,
+        causet: &Self::CausetHandle,
         cones: &[Cone],
     ) -> Result<Self::BlockPropertiesCollection> {
         // FIXME: extra allocation
@@ -117,8 +117,8 @@ impl UserCollectedProperties for LmdbUserCollectedProperties {
 }
 
 impl DecodeProperties for LmdbUserCollectedProperties {
-    fn decode(&self, k: &str) -> einsteindb-prod_util::codec::Result<&[u8]> {
+    fn decode(&self, k: &str) -> edb_util::codec::Result<&[u8]> {
         self.get(k.as_bytes())
-            .ok_or(einsteindb-prod_util::codec::Error::KeyNotFound)
+            .ok_or(edb_util::codec::Error::KeyNotFound)
     }
 }

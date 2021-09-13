@@ -1,6 +1,6 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use engine_promises::DBVector;
+use edb::DBVector;
 use lmdb::DBVector as RawDBVector;
 use std::fmt::{self, Debug, Formatter};
 use std::ops::Deref;

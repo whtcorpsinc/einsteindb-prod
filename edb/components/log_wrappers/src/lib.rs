@@ -5,7 +5,7 @@
 #[macro_use]
 extern crate slog;
 #[allow(unused_extern_crates)]
-extern crate einsteindb-prod_alloc;
+extern crate edb_alloc;
 
 pub mod test_util;
 

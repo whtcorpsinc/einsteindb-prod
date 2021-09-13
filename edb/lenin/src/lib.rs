@@ -19,9 +19,9 @@ extern crate serde_derive;
 extern crate edbn;
 
 extern crate hyper;
-// TODO https://github.com/whtcorpsinc/einsteindb-prod/issues/569
+// TODO https://github.com/whtcorpsinc/edb/issues/569
 // extern crate hyper_tls;
-extern crate tokio_embedded;
+extern crate tokio_raum;
 extern crate futures;
 extern crate serde;
 extern crate serde_cbor;
@@ -30,16 +30,16 @@ extern crate serde_json;
 extern crate log;
 extern crate einstein_db;
 
-extern crate einsteindb-prod_embedded;
+extern crate edb_raum;
 extern crate edb_promises;
 #[macro_use]
-extern crate embedded_promises;
+extern crate raum_promises;
 extern crate public_promises;
 extern crate rusqlite;
 extern crate uuid;
 
 extern crate lenin_promises;
-extern crate einsteindb-prod_transaction;
+extern crate edb_transaction;
 
 pub mod bootstrap;
 pub mod spacetime;

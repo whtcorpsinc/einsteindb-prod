@@ -13,13 +13,13 @@
 // this module will get warnings otherwise).
 #![allow(dead_code)]
 
-use embedded_promises::{
+use raum_promises::{
     Attribute,
     SolitonId,
     MinkowskiValueType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     SchemaReplicant,
 };
 
@@ -31,7 +31,7 @@ use causetq_parityfilter_promises::errors::{
     ParityFilterError,
 };
 
-use einsteindb-prod_causetq_parityfilter::{
+use edb_causetq_parityfilter::{
     ConjoiningGerunds,
     KnownCauset,
     CausetQInputs,

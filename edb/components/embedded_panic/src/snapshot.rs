@@ -1,8 +1,8 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use crate::db_vector::PanicDBVector;
-use crate::engine::PanicEngine;
-use engine_promises::{
+use crate::edb::PanicEngine;
+use edb::{
     IterOptions, Iterable, Iteron, Peekable, ReadOptions, Result, SeekKey, Snapshot,
 };
 use std::ops::Deref;

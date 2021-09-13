@@ -18,12 +18,12 @@ milevadb_query_datatype = { path = "../milevadb_query_datatype" }
 milevadb_query_common = { path = "../milevadb_query_common" }
 milevadb_query_vec_expr = { path = "../milevadb_query_vec_expr" }
 milevadb_query_vec_aggr = { path = "../milevadb_query_vec_aggr" }
-einsteindb-prod_util = { path = "../einsteindb-prod_util" }
+edb_util = { path = "../edb_util" }
 fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
 fail = "0.3"
 
 [deplightlikeencies.yatp]
-git = "https://github.com/einsteindb-prod/yatp.git"
+git = "https://github.com/edb/yatp.git"
 
 [dev-deplightlikeencies]
 failure = "0.1"

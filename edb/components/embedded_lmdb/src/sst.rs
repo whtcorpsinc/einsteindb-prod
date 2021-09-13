@@ -1,13 +1,13 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::Embedded::LmdbEmbedded;
+use crate::Raum::LmdbRaum;
 use crate::options::LmdbReadOptions;
-use embedded_promises::Error;
-use embedded_promises::IterOptions;
-use embedded_promises::{CausetName, CAUSET_DEFAULT};
-use embedded_promises::{ExternalSstFileInfo, SstCompressionType, SstWriter, SstWriterBuilder};
-use embedded_promises::{Iterable, Result, SstExt, SstReader};
-use embedded_promises::{Iteron, SeekKey};
+use raum_promises::Error;
+use raum_promises::IterOptions;
+use raum_promises::{CausetName, Causet_DEFAULT};
+use raum_promises::{ExternalSstFileInfo, SstCompressionType, SstWriter, SstWriterBuilder};
+use raum_promises::{Iterable, Result, SstExt, SstReader};
+use raum_promises::{Iteron, SeekKey};
 use lmdb::lmdb::supported_compression;
 use lmdb::DBCompressionType;
 use lmdb::DBIterator;
@@ -19,10 +19,10 @@ use std::rc::Rc;
 use std::sync::Arc;
 // FIXME: Move LmdbSeekKey into a common module since
 // it's shared between multiple Iterons
-use crate::Embedded_Iteron::LmdbSeekKey;
+use crate::Raum_Iteron::LmdbSeekKey;
 use std::path::PathBuf;
 
-impl SstExt for LmdbEmbedded {
+impl SstExt for LmdbRaum {
     type SstReader = LmdbSstReader;
     type SstWriter = LmdbSstWriter;
     type SstWriterBuilder = LmdbSstWriterBuilder;
@@ -86,20 +86,20 @@ unsafe impl lightlike for LmdbSstIterator {}
 impl Iteron for LmdbSstIterator {
     fn seek(&mut self, key: SeekKey) -> Result<bool> {
         let k: LmdbSeekKey = key.into();
-        self.0.seek(k.into_raw()).map_err(Error::Embedded)
+        self.0.seek(k.into_raw()).map_err(Error::Raum)
     }
 
     fn seek_for_prev(&mut self, key: SeekKey) -> Result<bool> {
         let k: LmdbSeekKey = key.into();
-        self.0.seek_for_prev(k.into_raw()).map_err(Error::Embedded)
+        self.0.seek_for_prev(k.into_raw()).map_err(Error::Raum)
     }
 
     fn prev(&mut self) -> Result<bool> {
-        self.0.prev().map_err(Error::Embedded)
+        self.0.prev().map_err(Error::Raum)
     }
 
     fn next(&mut self) -> Result<bool> {
-        self.0.next().map_err(Error::Embedded)
+        self.0.next().map_err(Error::Raum)
     }
 
     fn key(&self) -> &[u8] {
@@ -111,7 +111,7 @@ impl Iteron for LmdbSstIterator {
     }
 
     fn valid(&self) -> Result<bool> {
-        self.0.valid().map_err(Error::Embedded)
+        self.0.valid().map_err(Error::Raum)
     }
 }
 
@@ -123,7 +123,7 @@ pub struct LmdbSstWriterBuilder {
     compression_level: i32,
 }
 
-impl SstWriterBuilder<LmdbEmbedded> for LmdbSstWriterBuilder {
+impl SstWriterBuilder<LmdbRaum> for LmdbSstWriterBuilder {
     fn new() -> Self {
         LmdbSstWriterBuilder {
             causet: None,
@@ -134,7 +134,7 @@ impl SstWriterBuilder<LmdbEmbedded> for LmdbSstWriterBuilder {
         }
     }
 
-    fn set_db(mut self, db: &LmdbEmbedded) -> Self {
+    fn set_db(mut self, db: &LmdbRaum) -> Self {
         self.db = Some(db.as_inner().clone());
         self
     }
@@ -164,8 +164,8 @@ impl SstWriterBuilder<LmdbEmbedded> for LmdbSstWriterBuilder {
         let mut io_options = if let Some(db) = self.db.as_ref() {
             env = db.env();
             let handle = db
-                .causet_handle(self.causet.unwrap_or(CAUSET_DEFAULT))
-                .ok_or_else(|| format!("CAUSET {:?} is not found", self.causet))?;
+                .causet_handle(self.causet.unwrap_or(Causet_DEFAULT))
+                .ok_or_else(|| format!("Causet {:?} is not found", self.causet))?;
             db.get_options_causet(handle)
         } else {
             PrimaryCausetNetworkOptions::new()
@@ -238,12 +238,12 @@ impl SstWriter for LmdbSstWriter {
 
     fn finish_read(mut self) -> Result<(Self::ExternalSstFileInfo, Self::ExternalSstFileReader)> {
         let env = self.env.take().ok_or_else(|| {
-            Error::Embedded("failed to read sequential file no env provided".to_owned())
+            Error::Raum("failed to read sequential file no env provided".to_owned())
         })?;
         let sst_info = self.writer.finish()?;
         let p = sst_info.file_path();
         let path = p.as_os_str().to_str().ok_or_else(|| {
-            Error::Embedded(format!(
+            Error::Raum(format!(
                 "failed to sequential file bad path {}",
                 p.display()
             ))
@@ -320,20 +320,20 @@ fn to_rocks_compression_type(ct: SstCompressionType) -> DBCompressionType {
 #[causet(test)]
 mod tests {
     use super::*;
-    use crate::util::new_default_Embedded;
+    use crate::util::new_default_Raum;
     use std::io::Read;
     use tempfile::Builder;
 
     #[test]
     fn test_smoke() {
         let path = Builder::new().temfidelir().unwrap();
-        let Embedded = new_default_Embedded(path.path().to_str().unwrap()).unwrap();
+        let Raum = new_default_Raum(path.path().to_str().unwrap()).unwrap();
         let (k, v) = (b"foo", b"bar");
 
         let p = path.path().join("sst");
         let mut writer = LmdbSstWriterBuilder::new()
-            .set_causet(CAUSET_DEFAULT)
-            .set_db(&Embedded)
+            .set_causet(Causet_DEFAULT)
+            .set_db(&Raum)
             .build(p.as_os_str().to_str().unwrap())
             .unwrap();
         writer.put(k, v).unwrap();
@@ -347,8 +347,8 @@ mod tests {
         let p = path.path().join("inmem.sst");
         let mut writer = LmdbSstWriterBuilder::new()
             .set_in_memory(true)
-            .set_causet(CAUSET_DEFAULT)
-            .set_db(&Embedded)
+            .set_causet(Causet_DEFAULT)
+            .set_db(&Raum)
             .build(p.as_os_str().to_str().unwrap())
             .unwrap();
         writer.put(k, v).unwrap();

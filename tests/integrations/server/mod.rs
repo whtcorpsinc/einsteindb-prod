@@ -16,8 +16,8 @@ use grpcio::*;
 use ekvproto::interlock::*;
 use ekvproto::kvrpcpb::*;
 use ekvproto::violetabft_serverpb::{Done, VioletaBftMessage, SnapshotSoliton};
-use ekvproto::einsteindb-prodpb::{
-    create_einsteindb-prod, BatchCommandsRequest, BatchCommandsResponse, BatchVioletaBftMessage, EINSTEINDB,
+use ekvproto::edbpb::{
+    create_edb, BatchCommandsRequest, BatchCommandsResponse, BatchVioletaBftMessage, EINSTEINDB,
 };
 
 macro_rules! unary_call {
@@ -350,7 +350,7 @@ where
 
     let mut sb = ServerBuilder::new(Arc::clone(&env))
         .channel_args(channel_args)
-        .register_service(create_einsteindb-prod(kv));
+        .register_service(create_edb(kv));
     sb = security_mgr.bind(sb, ip, port);
     sb.build()
 }

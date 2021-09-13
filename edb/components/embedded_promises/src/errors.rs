@@ -34,10 +34,10 @@ quick_error! {
             cause(err.as_ref())
             display("{:?}", err)
         }
-        CAUSETName(name: String) {
-            display("CAUSET {} not found", name)
+        CausetName(name: String) {
+            display("Causet {} not found", name)
         }
-        Codec(err: einsteindb-prod_util::codec::Error) {
+        Codec(err: edb_util::codec::Error) {
             from()
             cause(err)
             display("Codec {}", err)
@@ -62,7 +62,7 @@ impl ErrorCodeExt for Error {
             Error::NotInCone(_, _, _, _) => error_code::engine::NOT_IN_RANGE,
             Error::Protobuf(_) => error_code::engine::PROTOBUF,
             Error::Io(_) => error_code::engine::IO,
-            Error::CAUSETName(_) => error_code::engine::CAUSET_NAME,
+            Error::CausetName(_) => error_code::engine::Causet_NAME,
             Error::Codec(_) => error_code::engine::CODEC,
             Error::Other(_) => error_code::UNKNOWN,
             Error::EntriesUnavailable => error_code::engine::DATALOSS,

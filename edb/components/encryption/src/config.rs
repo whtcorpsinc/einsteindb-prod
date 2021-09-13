@@ -1,7 +1,7 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use ekvproto::encryptionpb::EncryptionMethod;
-use einsteindb-prod_util::config::ReadableDuration;
+use edb_util::config::ReadableDuration;
 
 #[causet(test)]
 use crate::master_key::Backlightlike;

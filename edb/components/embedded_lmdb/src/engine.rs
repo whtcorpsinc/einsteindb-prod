@@ -5,7 +5,7 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
-use engine_promises::{
+use edb::{
     Error, IterOptions, Iterable, KvEngine, Peekable, ReadOptions, Result, SyncMuBlock,
 };
 use lmdb::{DBIterator, WriBlock, DB};
@@ -185,7 +185,7 @@ impl SyncMuBlock for LmdbEngine {
 #[causet(test)]
 mod tests {
     use crate::raw_util;
-    use engine_promises::{Iterable, KvEngine, Peekable, SyncMuBlock};
+    use edb::{Iterable, KvEngine, Peekable, SyncMuBlock};
     use ekvproto::metapb::Brane;
     use std::sync::Arc;
     use tempfile::Builder;

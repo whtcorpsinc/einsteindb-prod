@@ -4,17 +4,17 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 
-use engine_promises::CAUSET_WRITE;
+use edb::Causet_WRITE;
 use ekvproto::metapb::Brane;
 use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use fidel_client::FidelClient;
 use violetabft::evioletabftpb::MessageType;
 use violetabftstore::store::util::is_vote_msg;
 use violetabftstore::Result;
-use einsteindb-prod_util::HandyRwLock;
+use edb_util::HandyRwLock;
 
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::{ReadableDuration, ReadableSize};
+use edb_util::config::{ReadableDuration, ReadableSize};
 
 #[test]
 fn test_follower_slow_split() {
@@ -168,7 +168,7 @@ fn gen_split_brane() -> (Brane, Brane, Brane) {
 
     assert_eq!(brane, target);
 
-    let max_key = put_causet_till_size(&mut cluster, CAUSET_WRITE, brane_max_size, &mut cone);
+    let max_key = put_causet_till_size(&mut cluster, Causet_WRITE, brane_max_size, &mut cone);
 
     let left = fidel_client.get_brane(b"").unwrap();
     let right = fidel_client.get_brane(&max_key).unwrap();

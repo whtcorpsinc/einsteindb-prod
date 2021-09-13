@@ -12,13 +12,13 @@ use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use violetabft::evioletabftpb::MessageType;
 
 use engine_lmdb::Compat;
-use engine_promises::{Iterable, Peekable, CAUSET_WRITE};
+use edb::{Iterable, Peekable, Causet_WRITE};
 use tuplespaceInstanton::data_key;
 use fidel_client::FidelClient;
 use violetabftstore::store::{Callback, WriteResponse};
 use violetabftstore::Result;
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::*;
+use edb_util::config::*;
 
 pub const REGION_MAX_SIZE: u64 = 50000;
 pub const REGION_SPLIT_SIZE: u64 = 30000;
@@ -173,7 +173,7 @@ fn test_auto_split_brane<T: Simulator>(cluster: &mut Cluster<T>) {
 
     let max_key = put_causet_till_size(
         cluster,
-        CAUSET_WRITE,
+        Causet_WRITE,
         REGION_MAX_SIZE - REGION_SPLIT_SIZE + check_size_diff,
         &mut cone,
     );

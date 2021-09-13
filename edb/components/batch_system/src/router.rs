@@ -6,9 +6,9 @@ use crossbeam::channel::{lightlikeError, TrylightlikeError};
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::lru::LruCache;
-use einsteindb-prod_util::Either;
+use edb_util::collections::HashMap;
+use edb_util::lru::LruCache;
+use edb_util::Either;
 
 enum CheckDoResult<T> {
     NotExist,

@@ -9,20 +9,20 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
-use engine_promises::Result;
+use edb::Result;
 use lmdb::load_latest_options;
 use lmdb::{CPrimaryCausetNetworkDescriptor, PrimaryCausetNetworkOptions, DBOptions, Env, DB};
 
-use engine_promises::CAUSET_DEFAULT;
+use edb::Causet_DEFAULT;
 
-pub struct CAUSETOptions<'a> {
+pub struct CausetOptions<'a> {
     causet: &'a str,
     options: PrimaryCausetNetworkOptions,
 }
 
-impl<'a> CAUSETOptions<'a> {
-    pub fn new(causet: &'a str, options: PrimaryCausetNetworkOptions) -> CAUSETOptions<'a> {
-        CAUSETOptions { causet, options }
+impl<'a> CausetOptions<'a> {
+    pub fn new(causet: &'a str, options: PrimaryCausetNetworkOptions) -> CausetOptions<'a> {
+        CausetOptions { causet, options }
     }
 }
 
@@ -30,7 +30,7 @@ pub fn new_engine(
     path: &str,
     db_opts: Option<DBOptions>,
     causets: &[&str],
-    opts: Option<Vec<CAUSETOptions<'_>>>,
+    opts: Option<Vec<CausetOptions<'_>>>,
 ) -> Result<DB> {
     let mut db_opts = match db_opts {
         Some(opt) => opt,
@@ -42,7 +42,7 @@ pub fn new_engine(
         None => {
             let mut default_causets_opts = Vec::with_capacity(causets.len());
             for causet in causets {
-                default_causets_opts.push(CAUSETOptions::new(*causet, PrimaryCausetNetworkOptions::new()));
+                default_causets_opts.push(CausetOptions::new(*causet, PrimaryCausetNetworkOptions::new()));
             }
             default_causets_opts
         }
@@ -54,7 +54,7 @@ pub fn new_engine(
 /// PrimaryCauset families are small, HashMap isn't necessary.
 fn adjust_dynamic_level_bytes(
     causet_descs: &[CPrimaryCausetNetworkDescriptor],
-    causet_options: &mut CAUSETOptions<'_>,
+    causet_options: &mut CausetOptions<'_>,
 ) {
     if let Some(ref causet_desc) = causet_descs
         .iter()
@@ -82,7 +82,7 @@ fn adjust_dynamic_level_bytes(
 pub fn new_engine_opt(
     path: &str,
     mut db_opt: DBOptions,
-    causets_opts: Vec<CAUSETOptions<'_>>,
+    causets_opts: Vec<CausetOptions<'_>>,
 ) -> Result<DB> {
     // Creates a new db if it doesn't exist.
     if !db_exist(path) {
@@ -90,13 +90,13 @@ pub fn new_engine_opt(
 
         let mut causets_v = vec![];
         let mut causet_opts_v = vec![];
-        if let Some(x) = causets_opts.iter().find(|x| x.causet == CAUSET_DEFAULT) {
+        if let Some(x) = causets_opts.iter().find(|x| x.causet == Causet_DEFAULT) {
             causets_v.push(x.causet);
             causet_opts_v.push(x.options.clone());
         }
         let mut db = DB::open_causet(db_opt, path, causets_v.into_iter().zip(causet_opts_v).collect())?;
         for x in causets_opts {
-            if x.causet == CAUSET_DEFAULT {
+            if x.causet == Causet_DEFAULT {
                 continue;
             }
             db.create_causet((x.causet, x.options))?;
@@ -147,7 +147,7 @@ pub fn new_engine_opt(
         causets_v.push(causet);
         match causets_opts.iter().find(|x| x.causet == *causet) {
             Some(x) => {
-                let mut tmp = CAUSETOptions::new(x.causet, x.options.clone());
+                let mut tmp = CausetOptions::new(x.causet, x.options.clone());
                 adjust_dynamic_level_bytes(&causet_descs, &mut tmp);
                 causets_opts_v.push(tmp.options);
             }
@@ -163,7 +163,7 @@ pub fn new_engine_opt(
     //    for causet in existed.iter().filter(|x| needed.iter().find(|y| y == x).is_none()) {
     for causet in causets_diff(&existed, &needed) {
         // Never drop default PrimaryCauset families.
-        if causet != CAUSET_DEFAULT {
+        if causet != Causet_DEFAULT {
             db.drop_causet(causet)?;
         }
     }
@@ -210,7 +210,7 @@ fn causets_diff<'a>(a: &[&'a str], b: &[&str]) -> Vec<&'a str> {
 #[causet(test)]
 mod tests {
     use super::*;
-    use engine_promises::CAUSET_DEFAULT;
+    use edb::Causet_DEFAULT;
     use lmdb::{PrimaryCausetNetworkOptions, DBOptions, DB};
     use tempfile::Builder;
 
@@ -239,43 +239,43 @@ mod tests {
         let path_str = path.path().to_str().unwrap();
 
         // create db when db not exist
-        let mut causets_opts = vec![CAUSETOptions::new(CAUSET_DEFAULT, PrimaryCausetNetworkOptions::new())];
+        let mut causets_opts = vec![CausetOptions::new(Causet_DEFAULT, PrimaryCausetNetworkOptions::new())];
         let mut opts = PrimaryCausetNetworkOptions::new();
         opts.set_level_compaction_dynamic_level_bytes(true);
-        causets_opts.push(CAUSETOptions::new("causet_dynamic_level_bytes", opts.clone()));
+        causets_opts.push(CausetOptions::new("causet_dynamic_level_bytes", opts.clone()));
         {
             let mut db = new_engine_opt(path_str, DBOptions::new(), causets_opts).unwrap();
-            PrimaryCauset_families_must_eq(path_str, vec![CAUSET_DEFAULT, "causet_dynamic_level_bytes"]);
+            PrimaryCauset_families_must_eq(path_str, vec![Causet_DEFAULT, "causet_dynamic_level_bytes"]);
             check_dynamic_level_bytes(&mut db);
         }
 
         // add causet1.
         let causets_opts = vec![
-            CAUSETOptions::new(CAUSET_DEFAULT, opts.clone()),
-            CAUSETOptions::new("causet_dynamic_level_bytes", opts.clone()),
-            CAUSETOptions::new("causet1", opts),
+            CausetOptions::new(Causet_DEFAULT, opts.clone()),
+            CausetOptions::new("causet_dynamic_level_bytes", opts.clone()),
+            CausetOptions::new("causet1", opts),
         ];
         {
             let mut db = new_engine_opt(path_str, DBOptions::new(), causets_opts).unwrap();
-            PrimaryCauset_families_must_eq(path_str, vec![CAUSET_DEFAULT, "causet_dynamic_level_bytes", "causet1"]);
+            PrimaryCauset_families_must_eq(path_str, vec![Causet_DEFAULT, "causet_dynamic_level_bytes", "causet1"]);
             check_dynamic_level_bytes(&mut db);
         }
 
         // drop causet1.
         let causets_opts = vec![
-            CAUSETOptions::new(CAUSET_DEFAULT, PrimaryCausetNetworkOptions::new()),
-            CAUSETOptions::new("causet_dynamic_level_bytes", PrimaryCausetNetworkOptions::new()),
+            CausetOptions::new(Causet_DEFAULT, PrimaryCausetNetworkOptions::new()),
+            CausetOptions::new("causet_dynamic_level_bytes", PrimaryCausetNetworkOptions::new()),
         ];
         {
             let mut db = new_engine_opt(path_str, DBOptions::new(), causets_opts).unwrap();
-            PrimaryCauset_families_must_eq(path_str, vec![CAUSET_DEFAULT, "causet_dynamic_level_bytes"]);
+            PrimaryCauset_families_must_eq(path_str, vec![Causet_DEFAULT, "causet_dynamic_level_bytes"]);
             check_dynamic_level_bytes(&mut db);
         }
 
         // never drop default causet
         let causets_opts = vec![];
         new_engine_opt(path_str, DBOptions::new(), causets_opts).unwrap();
-        PrimaryCauset_families_must_eq(path_str, vec![CAUSET_DEFAULT]);
+        PrimaryCauset_families_must_eq(path_str, vec![Causet_DEFAULT]);
     }
 
     fn PrimaryCauset_families_must_eq(path: &str, excepted: Vec<&str>) {
@@ -290,7 +290,7 @@ mod tests {
     }
 
     fn check_dynamic_level_bytes(db: &mut DB) {
-        let causet_default = db.causet_handle(CAUSET_DEFAULT).unwrap();
+        let causet_default = db.causet_handle(Causet_DEFAULT).unwrap();
         let tmp_causet_opts = db.get_options_causet(causet_default);
         assert!(!tmp_causet_opts.get_level_compaction_dynamic_level_bytes());
         let causet_test = db.causet_handle("causet_dynamic_level_bytes").unwrap();

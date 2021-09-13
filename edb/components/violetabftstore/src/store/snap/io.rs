@@ -8,13 +8,13 @@ use encryption::{
     encryption_method_from_db_encryption_method, DataKeyManager, DecrypterReader, EncrypterWriter,
     Iv,
 };
-use engine_promises::{
+use edb::{
     CfName, EncryptionKeyManager, Error as EngineError, ImportExt, IngestExternalFileOptions,
     Iterable, KvEngine, MuBlock, SstWriter, SstWriterBuilder,
 };
 use ekvproto::encryptionpb::EncryptionMethod;
-use einsteindb-prod_util::codec::bytes::{BytesEncoder, CompactBytesFromFileDecoder};
-use einsteindb-prod_util::time::Limiter;
+use edb_util::codec::bytes::{BytesEncoder, CompactBytesFromFileDecoder};
+use edb_util::time::Limiter;
 
 use super::Error;
 
@@ -240,11 +240,11 @@ mod tests {
 
     use super::*;
     use crate::store::snap::tests::*;
-    use crate::store::snap::SNAPSHOT_CAUSETS;
+    use crate::store::snap::SNAPSHOT_CausetS;
     use engine_lmdb::{Compat, LmdbEngine, LmdbSnapshot};
-    use engine_promises::CAUSET_DEFAULT;
+    use edb::Causet_DEFAULT;
     use tempfile::Builder;
-    use einsteindb-prod_util::time::Limiter;
+    use edb_util::time::Limiter;
 
     struct TestStaleDetector;
     impl StaleDetector for TestStaleDetector {
@@ -269,7 +269,7 @@ mod tests {
                 let db1 = open_test_empty_db(&dir1.path(), db_opt, None).unwrap();
 
                 let snap = LmdbSnapshot::new(Arc::clone(&db));
-                for causet in SNAPSHOT_CAUSETS {
+                for causet in SNAPSHOT_CausetS {
                     let snap_causet_dir = Builder::new().prefix("test-snap-causet").temfidelir().unwrap();
                     let plain_file_path = snap_causet_dir.path().join("plain");
                     let stats = build_plain_causet_file::<LmdbEngine>(
@@ -310,7 +310,7 @@ mod tests {
 
                 // Scan tuplespaceInstanton from db
                 let mut tuplespaceInstanton_in_db: HashMap<_, Vec<_>> = HashMap::new();
-                for causet in SNAPSHOT_CAUSETS {
+                for causet in SNAPSHOT_CausetS {
                     snap.scan_causet(
                         causet,
                         &tuplespaceInstanton::data_key(b"a"),
@@ -347,7 +347,7 @@ mod tests {
                     &sst_file_path.to_str().unwrap(),
                     engine,
                     &engine.snapshot(),
-                    CAUSET_DEFAULT,
+                    Causet_DEFAULT,
                     b"a",
                     b"z",
                     &limiter,
@@ -366,7 +366,7 @@ mod tests {
                     .temfidelir()
                     .unwrap();
                 let db1 = open_test_empty_db(&dir1.path(), db_opt, None).unwrap();
-                apply_sst_causet_file(&sst_file_path.to_str().unwrap(), db1.c(), CAUSET_DEFAULT).unwrap();
+                apply_sst_causet_file(&sst_file_path.to_str().unwrap(), db1.c(), Causet_DEFAULT).unwrap();
                 assert_eq_db(&db, &db1);
             }
         }

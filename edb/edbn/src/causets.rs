@@ -8,7 +8,11 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-//! This module defines embedded types that support the transaction processor.
+//! This module defines raum types that support the transaction processor.
+
+use std::fs::File;
+use std::pin::Pin;
+use std::sync::Arc;
 
 use std::collections::BTreeMap;
 use std::fmt;

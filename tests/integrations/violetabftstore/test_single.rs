@@ -2,9 +2,9 @@
 
 use std::time::Duration;
 
-use engine_promises::{CfName, CAUSET_DEFAULT, CAUSET_WRITE};
+use edb::{CfName, Causet_DEFAULT, Causet_WRITE};
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::*;
+use edb_util::config::*;
 
 // TODO add epoch not match test cases.
 
@@ -129,9 +129,9 @@ fn test_node_use_delete_cone() {
     let mut cluster = new_node_cluster(0, 1);
     cluster.causet.violetabft_store.use_delete_cone = true;
     cluster.run();
-    test_delete_cone(&mut cluster, CAUSET_DEFAULT);
-    // Prefix bloom filter is always enabled in the Write CAUSET.
-    test_delete_cone(&mut cluster, CAUSET_WRITE);
+    test_delete_cone(&mut cluster, Causet_DEFAULT);
+    // Prefix bloom filter is always enabled in the Write Causet.
+    test_delete_cone(&mut cluster, Causet_WRITE);
 }
 
 #[test]
@@ -139,9 +139,9 @@ fn test_node_not_use_delete_cone() {
     let mut cluster = new_node_cluster(0, 1);
     cluster.causet.violetabft_store.use_delete_cone = false;
     cluster.run();
-    test_delete_cone(&mut cluster, CAUSET_DEFAULT);
-    // Prefix bloom filter is always enabled in the Write CAUSET.
-    test_delete_cone(&mut cluster, CAUSET_WRITE);
+    test_delete_cone(&mut cluster, Causet_DEFAULT);
+    // Prefix bloom filter is always enabled in the Write Causet.
+    test_delete_cone(&mut cluster, Causet_WRITE);
 }
 
 #[test]

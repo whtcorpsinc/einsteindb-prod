@@ -4,9 +4,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use grpcio::{ChannelBuilder, Environment};
-use ekvproto::{kvrpcpb::*, einsteindb-prodpb::EINSTEINDBClient};
+use ekvproto::{kvrpcpb::*, edbpb::EINSTEINDBClient};
 use test_violetabftstore::*;
-use einsteindb-prod_util::{collections::HashMap, HandyRwLock};
+use edb_util::{collections::HashMap, HandyRwLock};
 
 // In theory, violetabft can propose conf change as long as there is no plightlikeing one. Replicas
 // don't apply logs synchronously, so it's possible the old leader is removed before the new

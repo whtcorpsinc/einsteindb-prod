@@ -1,7 +1,7 @@
 // Copyright 2020 WHTCORPS INC Project Authors. Licensed Under Apache-2.0
 
 #[macro_use]
-extern crate einsteindb-prod_util;
+extern crate edb_util;
 #[macro_use]
 extern crate slog_global;
 

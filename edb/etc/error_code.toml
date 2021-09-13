@@ -133,8 +133,8 @@ error = 'KV-Engine-IO'
 description = ''
 workaround = ''
 
-[error.KV-Engine-CAUSETName]
-error = 'KV-Engine-CAUSETName'
+[error.KV-Engine-CausetName]
+error = 'KV-Engine-CausetName'
 description = ''
 workaround = ''
 
@@ -438,8 +438,8 @@ error = 'KV-CausetStorage-KeyTooLarge'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-InvalidCAUSET]
-error = 'KV-CausetStorage-InvalidCAUSET'
+[error.KV-CausetStorage-InvalidCauset]
+error = 'KV-CausetStorage-InvalidCauset'
 description = ''
 workaround = ''
 

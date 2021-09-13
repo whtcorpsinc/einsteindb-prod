@@ -1,8 +1,8 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use einsteindb-prod::causetStorage::tail_pointer::tests::*;
-use einsteindb-prod::causetStorage::txn::tests::must_commit;
-use einsteindb-prod::causetStorage::TestEngineBuilder;
+use edb::causetStorage::tail_pointer::tests::*;
+use edb::causetStorage::txn::tests::must_commit;
+use edb::causetStorage::TestEngineBuilder;
 
 #[test]
 fn test_txn_failpoints() {

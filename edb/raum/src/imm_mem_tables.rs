@@ -14,7 +14,7 @@ use std::collections::{
     BTreeSet,
 };
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     MinkowskiType,
 };

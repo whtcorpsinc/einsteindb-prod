@@ -70,7 +70,7 @@ mod tests {
     use milevadb_query_datatype::codec::datum;
     use milevadb_query_datatype::codec::datum::Datum;
     use milevadb_query_datatype::expr::EvalContext;
-    use einsteindb-prod_util::collections::HashMap;
+    use edb_util::collections::HashMap;
 
     impl CmSketch {
         fn query(&self, bytes: &[u8]) -> u32 {
@@ -133,7 +133,7 @@ mod tests {
         assert_eq!(hash_result.1, 0x4F9D8BB3E4BC3164);
 
         let hash_result = CmSketch::hash("€€€€€€€€€€".as_bytes());
-        assert_eq!(hash_result.0, 0xCECAUSETEB77375EEF6F);
+        assert_eq!(hash_result.0, 0xCECausetEB77375EEF6F);
         assert_eq!(hash_result.1, 0xE9830BC26869E2C6);
     }
 

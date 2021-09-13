@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::{f64, i64};
 
 use num::promises::Pow;
-use einsteindb-prod_util::file::calc_crc32_bytes;
+use edb_util::file::calc_crc32_bytes;
 
 use crate::ScalarFunc;
 use milevadb_query_datatype::codec::mysql::{Decimal, RoundMode, DEFAULT_FSP};

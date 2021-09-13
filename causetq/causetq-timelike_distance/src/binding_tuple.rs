@@ -8,7 +8,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use embedded_promises::{
+use raum_promises::{
     ConstrainedEntsConstraint,
 };
 
@@ -41,7 +41,7 @@ impl ConstrainedEntsConstraintTuple for Vec<ConstrainedEntsConstraint> {
     }
 }
 
-// TODO: generate these repetitive impleeinsteindb-prodions with a little macro.
+// TODO: generate these repetitive impleedbions with a little macro.
 impl ConstrainedEntsConstraintTuple for (ConstrainedEntsConstraint,) {
     fn from_ConstrainedEnts_vec(expected: usize, vec: Option<Vec<ConstrainedEntsConstraint>>) -> Result<Option<Self>> {
         if expected != 1 {

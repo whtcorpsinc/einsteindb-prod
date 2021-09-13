@@ -83,7 +83,7 @@ pub use self::path_expr::{parse_json_path_expr, PathExpression};
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::str;
-use einsteindb-prod_util::is_even;
+use edb_util::is_even;
 
 use super::super::datum::Datum;
 use super::super::{Error, Result};
@@ -205,7 +205,7 @@ impl<'a> JsonRef<'a> {
     }
 }
 
-/// Json implements type json used in einsteindb-prod by Binary Json.
+/// Json implements type json used in edb by Binary Json.
 /// The Binary Json format from `MySQL` 5.7 is in the following link:
 /// (https://github.com/mysql/mysql-server/blob/5.7/sql/json_binary.h#L52)
 /// The only difference is that we use large `object` or large `array` for

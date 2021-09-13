@@ -21,7 +21,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_with;
 #[macro_use]
-extern crate einsteindb-prod_util;
+extern crate edb_util;
 
 #[causet(test)]
 extern crate test;

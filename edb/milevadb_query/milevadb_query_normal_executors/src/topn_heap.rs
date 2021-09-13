@@ -180,7 +180,7 @@ mod tests {
     use milevadb_query_datatype::codec::Block::EventColsDict;
     use milevadb_query_datatype::codec::Datum;
     use milevadb_query_datatype::expr::EvalContext;
-    use einsteindb-prod_util::collections::HashMap;
+    use edb_util::collections::HashMap;
 
     use super::*;
 

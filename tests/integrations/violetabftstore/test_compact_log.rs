@@ -3,11 +3,11 @@
 use ekvproto::violetabft_serverpb::{VioletaBftApplyState, VioletaBftTruncatedState};
 
 use engine_lmdb::LmdbEngine;
-use engine_promises::{Engines, Peekable, CAUSET_VIOLETABFT};
+use edb::{Engines, Peekable, Causet_VIOLETABFT};
 use violetabftstore::store::*;
 use test_violetabftstore::*;
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::config::*;
+use edb_util::collections::HashMap;
+use edb_util::config::*;
 
 fn get_violetabft_msg_or_default<M: protobuf::Message + Default>(
     engines: &Engines<LmdbEngine, LmdbEngine>,
@@ -15,7 +15,7 @@ fn get_violetabft_msg_or_default<M: protobuf::Message + Default>(
 ) -> M {
     engines
         .kv
-        .get_msg_causet(CAUSET_VIOLETABFT, key)
+        .get_msg_causet(Causet_VIOLETABFT, key)
         .unwrap()
         .unwrap_or_default()
 }

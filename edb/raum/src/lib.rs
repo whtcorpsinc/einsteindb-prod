@@ -15,11 +15,11 @@ extern crate indexmap;
 extern crate ordered_float;
 extern crate uuid;
 
-extern crate embedded_promises;
+extern crate raum_promises;
 
 extern crate edbn;
 
-use embedded_promises::{
+use raum_promises::{
     Attribute,
     SolitonId,
     KnownSolitonId,
@@ -253,7 +253,7 @@ mod test {
 
     use std::str::FromStr;
 
-    use embedded_promises::{
+    use raum_promises::{
         attribute,
         MinkowskiType,
     };

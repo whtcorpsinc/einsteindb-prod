@@ -43,7 +43,7 @@ crc32fast = "1.2"
 crossbeam = "0.7.2"
 engine_lmdb = { path = "../engine_lmdb" }
 encryption = { path = "../encryption" }
-engine_promises = { path = "../engine_promises" }
+edb = { path = "../edb" }
 error_code = { path = "../error_code" }
 fail = "0.3"
 openssl = "0.10"
@@ -74,19 +74,19 @@ smallvec = "1.4"
 sst_importer = { path = "../sst_importer" }
 tempfile = "3.0"
 milevadb_query_datatype = { path = "../milevadb_query_datatype" }
-einsteindb-prod_alloc = { path = "../einsteindb-prod_alloc" }
-einsteindb-prod_util = { path = "../einsteindb-prod_util" }
+edb_alloc = { path = "../edb_alloc" }
+edb_util = { path = "../edb_util" }
 time = "0.1"
 tokio = { version = "0.2", features = ["sync", "rt-threaded"] }
 txn_types = { path = "../txn_types" }
 uuid = { version = "0.8.1", features = ["serde", "v4"] }
 
 [deplightlikeencies.prometheus-static-metric]
-git = "https://github.com/einsteindb-prod/rust-prometheus.git"
+git = "https://github.com/edb/rust-prometheus.git"
 rev = "fd122caa03de8e7e5e4fae9372583aebf19e39f6"
 
 [deplightlikeencies.yatp]
-git = "https://github.com/einsteindb-prod/yatp.git"
+git = "https://github.com/edb/yatp.git"
 
 [dev-deplightlikeencies]
 panic_hook = { path = "../panic_hook" }

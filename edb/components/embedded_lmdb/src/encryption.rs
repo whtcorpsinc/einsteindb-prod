@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::raw::Env;
 use encryption::{self, DataKeyManager};
-use engine_promises::{EncryptionKeyManager, EncryptionMethod, FileEncryptionInfo};
+use edb::{EncryptionKeyManager, EncryptionMethod, FileEncryptionInfo};
 use lmdb::{
     DBEncryptionMethod, EncryptionKeyManager as DBEncryptionKeyManager,
     FileEncryptionInfo as DBFileEncryptionInfo,

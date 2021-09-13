@@ -10,9 +10,9 @@ use fidelpb::{ChecksumAlgorithm, ChecksumRequest, ChecksumResponse, ChecksumScan
 use test_interlock::*;
 use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
 use milevadb_query_common::causetStorage::Cone;
-use einsteindb-prod::interlock::posetdag::EinsteinDBStorage;
-use einsteindb-prod::interlock::*;
-use einsteindb-prod::causetStorage::{Engine, SnapshotStore};
+use edb::interlock::posetdag::EinsteinDBStorage;
+use edb::interlock::*;
+use edb::causetStorage::{Engine, SnapshotStore};
 use txn_types::TimeStamp;
 
 fn new_checksum_request(cone: KeyCone, scan_on: ChecksumScanOn) -> Request {

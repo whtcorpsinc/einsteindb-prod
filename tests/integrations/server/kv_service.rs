@@ -4,15 +4,15 @@ use futures::executor::block_on;
 use futures::{SinkExt, StreamExt};
 use grpcio::*;
 use ekvproto::kvrpcpb::*;
-use ekvproto::einsteindb-prodpb::EINSTEINDBClient;
-use ekvproto::einsteindb-prodpb::*;
+use ekvproto::edbpb::EINSTEINDBClient;
+use ekvproto::edbpb::*;
 use fidel_client::FidelClient;
 use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::Duration;
 use test_violetabftstore::new_server_cluster;
-use einsteindb-prod::server::service::batch_commands_request;
-use einsteindb-prod_util::HandyRwLock;
+use edb::server::service::batch_commands_request;
+use edb_util::HandyRwLock;
 
 #[test]
 fn test_batch_commands() {

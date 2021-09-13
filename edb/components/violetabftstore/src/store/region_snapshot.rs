@@ -1,6 +1,6 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
-use engine_promises::{
+use edb::{
     IterOptions, KvEngine, Peekable, ReadOptions, Result as EngineResult, Snapshot,
 };
 use ekvproto::metapb::Brane;
@@ -10,14 +10,14 @@ use std::sync::Arc;
 
 use crate::store::{util, PeerStorage};
 use crate::{Error, Result};
-use engine_promises::util::check_key_in_cone;
-use engine_promises::VioletaBftEngine;
-use engine_promises::CAUSET_VIOLETABFT;
-use engine_promises::{Error as EngineError, Iterable, Iteron};
+use edb::util::check_key_in_cone;
+use edb::VioletaBftEngine;
+use edb::Causet_VIOLETABFT;
+use edb::{Error as EngineError, Iterable, Iteron};
 use tuplespaceInstanton::DATA_PREFIX_KEY;
-use einsteindb-prod_util::keybuilder::KeyBuilder;
-use einsteindb-prod_util::metrics::CRITICAL_ERROR;
-use einsteindb-prod_util::{panic_when_unexpected_key_or_data, set_panic_mark};
+use edb_util::keybuilder::KeyBuilder;
+use edb_util::metrics::CRITICAL_ERROR;
+use edb_util::{panic_when_unexpected_key_or_data, set_panic_mark};
 
 /// Snapshot of a brane.
 ///
@@ -84,7 +84,7 @@ where
     fn get_apply_index_from_causetStorage(&self) -> Result<u64> {
         let apply_state: Option<VioletaBftApplyState> = self
             .snap
-            .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(self.brane.get_id()))?;
+            .get_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::apply_state_key(self.brane.get_id()))?;
         match apply_state {
             Some(s) => {
                 let apply_index = s.get_applied_index();
@@ -384,11 +384,11 @@ mod tests {
 
     use engine_lmdb::util::new_temp_engine;
     use engine_lmdb::{LmdbEngine, LmdbSnapshot};
-    use engine_promises::{CompactExt, Engines, MiscExt, Peekable, SyncMuBlock};
+    use edb::{CompactExt, Engines, MiscExt, Peekable, SyncMuBlock};
     use tuplespaceInstanton::data_key;
     use ekvproto::metapb::{Peer, Brane};
     use tempfile::Builder;
-    use einsteindb-prod_util::worker;
+    use edb_util::worker;
 
     use super::*;
 

@@ -22,12 +22,12 @@ use uuid::{Builder as UuidBuilder, Uuid};
 
 use encryption::DataKeyManager;
 use engine_lmdb::{encryption::get_env, LmdbSstReader};
-use engine_promises::{
+use edb::{
     EncryptionKeyManager, IngestExternalFileOptions, Iteron, KvEngine, SeekKey, SstExt,
-    SstReader, SstWriter, CAUSET_DEFAULT, CAUSET_WRITE,
+    SstReader, SstWriter, Causet_DEFAULT, Causet_WRITE,
 };
 use external_causetStorage::{block_on_external_io, create_causetStorage, url_of_backlightlike, READ_BUF_SIZE};
-use einsteindb-prod_util::time::Limiter;
+use edb_util::time::Limiter;
 use txn_types::{is_short_value, Key, TimeStamp, Write as KvWrite, WriteRef, WriteType};
 
 use super::{Error, Result};
@@ -373,7 +373,7 @@ impl SSTImporter {
                     })?
                     .applightlike_ts(TimeStamp::new(rewrite_rule.new_timestamp))
                     .into_encoded();
-                if meta.get_causet_name() == CAUSET_WRITE {
+                if meta.get_causet_name() == Causet_WRITE {
                     let mut write = WriteRef::parse(iter.value()).map_err(|e| {
                         Error::BadFormat(format!(
                             "write {}: {}",
@@ -423,11 +423,11 @@ impl SSTImporter {
         meta: SstMeta,
     ) -> Result<SSTWriter<E>> {
         let mut default_meta = meta.clone();
-        default_meta.set_causet_name(CAUSET_DEFAULT.to_owned());
+        default_meta.set_causet_name(Causet_DEFAULT.to_owned());
         let default_path = self.dir.join(&default_meta)?;
 
         let mut write_meta = meta;
-        write_meta.set_causet_name(CAUSET_WRITE.to_owned());
+        write_meta.set_causet_name(Causet_WRITE.to_owned());
         let write_path = self.dir.join(&write_meta)?;
         Ok(SSTWriter::new(
             default,
@@ -839,15 +839,15 @@ mod tests {
 
     use std::f64::INFINITY;
 
-    use engine_promises::{collect, name_to_causet, Iterable, Iteron, SeekKey, CAUSET_DEFAULT, DATA_CAUSETS};
-    use engine_promises::{Error as TraitError, SstWriterBuilder, BlockPropertiesExt};
-    use engine_promises::{
+    use edb::{collect, name_to_causet, Iterable, Iteron, SeekKey, Causet_DEFAULT, DATA_CausetS};
+    use edb::{Error as TraitError, SstWriterBuilder, BlockPropertiesExt};
+    use edb::{
         ExternalSstFileInfo, SstExt, BlockProperties, BlockPropertiesCollection,
         UserCollectedProperties,
     };
     use tempfile::Builder;
     use test_sst_importer::{
-        new_sst_reader, new_sst_writer, new_test_engine, LmdbSstWriter, PROP_TEST_MARKER_CAUSET_NAME,
+        new_sst_reader, new_sst_writer, new_test_engine, LmdbSstWriter, PROP_TEST_MARKER_Causet_NAME,
     };
     use txn_types::{Value, WriteType};
 
@@ -885,7 +885,7 @@ mod tests {
         // Test ImportDir::ingest()
 
         let db_path = temp_dir.path().join("db");
-        let db = new_test_engine(db_path.to_str().unwrap(), &[CAUSET_DEFAULT]);
+        let db = new_test_engine(db_path.to_str().unwrap(), &[Causet_DEFAULT]);
 
         let cases = vec![(0, 10), (5, 15), (10, 20), (0, 100)];
 
@@ -969,7 +969,7 @@ mod tests {
         let uuid = Uuid::new_v4();
         meta.set_uuid(uuid.as_bytes().to_vec());
         meta.set_brane_id(1);
-        meta.set_causet_name(CAUSET_DEFAULT.to_owned());
+        meta.set_causet_name(Causet_DEFAULT.to_owned());
         meta.mut_brane_epoch().set_conf_ver(2);
         meta.mut_brane_epoch().set_version(3);
 
@@ -997,7 +997,7 @@ mod tests {
         let mut meta = SstMeta::default();
         let uuid = Uuid::new_v4();
         meta.set_uuid(uuid.as_bytes().to_vec());
-        meta.set_causet_name(CAUSET_DEFAULT.to_owned());
+        meta.set_causet_name(Causet_DEFAULT.to_owned());
         meta.set_length(sst_info.file_size());
         meta.set_brane_id(4);
         meta.mut_brane_epoch().set_conf_ver(5);
@@ -1077,7 +1077,7 @@ mod tests {
         let mut meta = SstMeta::default();
         let uuid = Uuid::new_v4();
         meta.set_uuid(uuid.as_bytes().to_vec());
-        meta.set_causet_name(CAUSET_DEFAULT.to_owned());
+        meta.set_causet_name(Causet_DEFAULT.to_owned());
         meta.set_length(sst_info.file_size());
         meta.set_brane_id(4);
         meta.mut_brane_epoch().set_conf_ver(5);
@@ -1123,7 +1123,7 @@ mod tests {
         let mut meta = SstMeta::default();
         let uuid = Uuid::new_v4();
         meta.set_uuid(uuid.as_bytes().to_vec());
-        meta.set_causet_name(CAUSET_WRITE.to_owned());
+        meta.set_causet_name(Causet_WRITE.to_owned());
         meta.set_length(sst_info.file_size());
         meta.set_brane_id(4);
         meta.mut_brane_epoch().set_conf_ver(5);
@@ -1151,7 +1151,7 @@ mod tests {
     ) -> Result<<TestEngine as SstExt>::SstWriter> {
         let temp_dir = Builder::new().prefix("test_import_dir").temfidelir().unwrap();
         let db_path = temp_dir.path().join("db");
-        let db = new_test_engine(db_path.to_str().unwrap(), DATA_CAUSETS);
+        let db = new_test_engine(db_path.to_str().unwrap(), DATA_CausetS);
         let sst_writer = <TestEngine as SstExt>::SstWriterBuilder::new()
             .set_db(&db)
             .set_causet(name_to_causet(meta.get_causet_name()).unwrap())
@@ -1390,7 +1390,7 @@ mod tests {
 
     #[test]
     fn test_download_sst_then_ingest() {
-        for causet in &[CAUSET_DEFAULT, CAUSET_WRITE] {
+        for causet in &[Causet_DEFAULT, Causet_WRITE] {
             // creates a sample SST file.
             let (_ext_sst_dir, backlightlike, mut meta) = create_sample_external_sst_file().unwrap();
             meta.set_causet_name((*causet).to_string());
@@ -1417,7 +1417,7 @@ mod tests {
 
             // performs the ingest
             let ingest_dir = tempfile::temfidelir().unwrap();
-            let db = new_test_engine(ingest_dir.path().to_str().unwrap(), DATA_CAUSETS);
+            let db = new_test_engine(ingest_dir.path().to_str().unwrap(), DATA_CausetS);
 
             meta.set_length(0); // disable validation.
             meta.set_crc32(0);
@@ -1445,7 +1445,7 @@ mod tests {
                 assert!(!v.user_collected_properties().is_empty());
                 assert_eq!(
                     v.user_collected_properties()
-                        .get(PROP_TEST_MARKER_CAUSET_NAME)
+                        .get(PROP_TEST_MARKER_Causet_NAME)
                         .unwrap(),
                     causet.as_bytes()
                 );
@@ -1623,17 +1623,17 @@ mod tests {
         let importer = SSTImporter::new(&importer_dir, None).unwrap();
         let name = importer.get_path(&meta);
         let db_path = importer_dir.path().join("db");
-        let db = new_test_engine(db_path.to_str().unwrap(), DATA_CAUSETS);
+        let db = new_test_engine(db_path.to_str().unwrap(), DATA_CausetS);
         let default = <TestEngine as SstExt>::SstWriterBuilder::new()
             .set_in_memory(true)
             .set_db(&db)
-            .set_causet(CAUSET_DEFAULT)
+            .set_causet(Causet_DEFAULT)
             .build(&name.to_str().unwrap())
             .unwrap();
         let write = <TestEngine as SstExt>::SstWriterBuilder::new()
             .set_in_memory(true)
             .set_db(&db)
-            .set_causet(CAUSET_WRITE)
+            .set_causet(Causet_WRITE)
             .build(&name.to_str().unwrap())
             .unwrap();
 

@@ -15,8 +15,8 @@ use ekvproto::interlock::KeyCone;
 use fidelpb::FreeDaemon as PbFreeDaemon;
 
 use test_interlock::*;
-use einsteindb-prod::interlock::RequestHandler;
-use einsteindb-prod::causetStorage::{LmdbEngine, CausetStore as TxnStore};
+use edb::interlock::RequestHandler;
+use edb::causetStorage::{LmdbEngine, CausetStore as TxnStore};
 
 use std::marker::PhantomData;
 
@@ -41,11 +41,11 @@ pub fn build_dag_handler<TargetTxnStore: TxnStore + 'static>(
     let mut posetdag = PosetDagRequest::default();
     posetdag.set_executors(executors.to_vec().into());
 
-    einsteindb-prod::interlock::posetdag::PosetDagHandlerBuilder::new(
+    edb::interlock::posetdag::PosetDagHandlerBuilder::new(
         black_box(posetdag),
         black_box(cones.to_vec()),
         black_box(ToTxnStore::<TargetTxnStore>::to_store(store)),
-        einsteindb-prod_util::deadline::Deadline::from_now(std::time::Duration::from_secs(10)),
+        edb_util::deadline::Deadline::from_now(std::time::Duration::from_secs(10)),
         64,
         false,
         false,

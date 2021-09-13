@@ -195,11 +195,11 @@ impl fmt::Display for NamespaceableName {
 // `derive(Deserialize)` since `unsafe` code depends on `self.boundary` being a valid index).
 //
 // We'd also like for users consuming our serialized data as e.g. JSON not to have to learn how we
-// store NamespaceableName internally, since it's very much an impleeinsteindb-prodion detail.
+// store NamespaceableName internally, since it's very much an impleedbion detail.
 //
 // We achieve both of these by implemeting a type that can serialize in way that's both user-
 // friendly and automatic (e.g. `derive`d), and just pass all work off to it in our custom
-// impleeinsteindb-prodion of Serialize and Deserialize.
+// impleedbion of Serialize and Deserialize.
 #[cfg(feature = "serde_support")]
 #[cfg_attr(feature = "serde_support", serde(rename = "NamespaceableName"))]
 #[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]

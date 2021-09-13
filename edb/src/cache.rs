@@ -78,13 +78,13 @@ use failure::{
 
 use rusqlite;
 
-use embedded_promises::{
+use raum_promises::{
     ConstrainedEntsConstraint,
     SolitonId,
     MinkowskiType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     CachedAttributes,
     HasSchemaReplicant,
     SchemaReplicant,
@@ -92,11 +92,11 @@ use einsteindb-prod_embedded::{
     ValueRc,
 };
 
-use einsteindb-prod_embedded::util::{
+use edb_raum::util::{
     Either,
 };
 
-use einsteindb-prod_sql::{
+use edb_sql::{
     CausetQBuilder,
     SQLiteCausetQBuilder,
     SQLCausetQ,

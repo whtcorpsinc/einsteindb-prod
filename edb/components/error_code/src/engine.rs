@@ -7,7 +7,7 @@ define_error_codes!(
     NOT_IN_RANGE => ("NotInCone", "", ""),
     PROTOBUF => ("Protobuf", "", ""),
     IO => ("IO", "", ""),
-    CAUSET_NAME => ("CAUSETName", "", ""),
+    Causet_NAME => ("CausetName", "", ""),
     CODEC => ("Codec", "", ""),
     DATALOSS => ("DataLoss", "", ""),
     DATACOMPACTED => ("DataCompacted", "", "")

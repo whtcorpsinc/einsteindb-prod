@@ -9,11 +9,11 @@ failure = "0.1.1"
 [dependencies.edbn]
 path = "../edbn"
 
-[dependencies.einsteindb-prod_embedded]
-path = "../embedded"
+[dependencies.edb_raum]
+path = "../raum"
 
-[dependencies.embedded_promises]
-path = "../embedded-promises"
+[dependencies.raum_promises]
+path = "../raum-promises"
 
 [dependencies.causetq_parityfilter_promises]
 path = "../causetq-parityfilter-promises"

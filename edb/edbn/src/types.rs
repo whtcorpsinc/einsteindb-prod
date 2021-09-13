@@ -44,7 +44,7 @@ pub enum Value {
     Vector(Vec<Value>),
     // We're using a LinkedList here instead of a Vec or VecDeque because the
     // LinkedList is faster for appending (which we do a lot of).
-    // See https://github.com/whtcorpsinc/einsteindb-prod/issues/231
+    // See https://github.com/whtcorpsinc/edb/issues/231
     List(LinkedList<Value>),
     // We're using BTree{Set, Map} rather than Hash{Set, Map} because the BTree variants
     // implement Hash. The Hash variants don't in order to preserve O(n) hashing
@@ -489,7 +489,7 @@ macro_rules! def_common_value_methods {
 }
 
 /// Compares Value or SpannedValue instances and returns Ordering.
-/// Used in `Ord` impleeinsteindb-prodions.
+/// Used in `Ord` impleedbions.
 macro_rules! def_common_value_ord {
     ( $t:tt, $value:expr, $other:expr ) => {
         match ($value, $other) {
@@ -515,7 +515,7 @@ macro_rules! def_common_value_ord {
 
 /// Converts a Value or SpannedValue to string, given a formatter.
 // TODO: Make sure float syntax is correct, handle NaN and escaping.
-// See https://github.com/whtcorpsinc/einsteindb-prod/issues/232
+// See https://github.com/whtcorpsinc/edb/issues/232
 macro_rules! def_common_value_display {
     ( $t:tt, $value:expr, $f:expr ) => {
         match *$value {

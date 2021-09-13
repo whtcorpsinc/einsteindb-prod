@@ -4,13 +4,13 @@ use violetabftstore::router::VioletaBftStoreBlackHole;
 use std::f64::INFINITY;
 use std::sync::mpsc::channel;
 use std::time::Duration;
-use einsteindb-prod::config::{ConfigController, Module, EINSTEINDBConfig};
-use einsteindb-prod::server::gc_worker::GcConfig;
-use einsteindb-prod::server::gc_worker::{GcTask, GcWorker};
-use einsteindb-prod::causetStorage::kv::TestEngineBuilder;
-use einsteindb-prod_util::config::ReadableSize;
-use einsteindb-prod_util::time::Limiter;
-use einsteindb-prod_util::worker::FutureInterlock_Semaphore;
+use edb::config::{ConfigController, Module, EINSTEINDBConfig};
+use edb::server::gc_worker::GcConfig;
+use edb::server::gc_worker::{GcTask, GcWorker};
+use edb::causetStorage::kv::TestEngineBuilder;
+use edb_util::config::ReadableSize;
+use edb_util::time::Limiter;
+use edb_util::worker::FutureInterlock_Semaphore;
 
 #[test]
 fn test_gc_config_validate() {
@@ -25,7 +25,7 @@ fn test_gc_config_validate() {
 fn setup_causet_controller(
     causet: EINSTEINDBConfig,
 ) -> (
-    GcWorker<einsteindb-prod::causetStorage::kv::LmdbEngine, VioletaBftStoreBlackHole>,
+    GcWorker<edb::causetStorage::kv::LmdbEngine, VioletaBftStoreBlackHole>,
     ConfigController,
 ) {
     let engine = TestEngineBuilder::new().build().unwrap();

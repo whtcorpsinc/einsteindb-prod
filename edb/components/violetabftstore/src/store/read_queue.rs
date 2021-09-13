@@ -7,11 +7,11 @@ use crate::store::fsm::apply;
 use crate::store::metrics::*;
 use crate::store::{Callback, Config};
 
-use engine_promises::Snapshot;
+use edb::Snapshot;
 use ekvproto::violetabft_cmdpb::VioletaBftCmdRequest;
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::time::{duration_to_sec, monotonic_raw_now};
-use einsteindb-prod_util::MustConsumeVec;
+use edb_util::collections::HashMap;
+use edb_util::time::{duration_to_sec, monotonic_raw_now};
+use edb_util::MustConsumeVec;
 use time::Timespec;
 use uuid::Uuid;
 

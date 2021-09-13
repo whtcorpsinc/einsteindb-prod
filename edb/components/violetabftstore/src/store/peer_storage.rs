@@ -8,8 +8,8 @@ use std::sync::Arc;
 use std::time::Instant;
 use std::{cmp, error, u64};
 
-use engine_promises::CAUSET_VIOLETABFT;
-use engine_promises::{Engines, KvEngine, MuBlock, Peekable};
+use edb::Causet_VIOLETABFT;
+use edb::{Engines, KvEngine, MuBlock, Peekable};
 use tuplespaceInstanton::{self, enc_lightlike_key, enc_spacelike_key};
 use ekvproto::metapb::{self, Brane};
 use ekvproto::violetabft_serverpb::{
@@ -23,9 +23,9 @@ use crate::store::fsm::GenSnapTask;
 use crate::store::util;
 use crate::store::ProposalContext;
 use crate::{Error, Result};
-use engine_promises::{VioletaBftEngine, VioletaBftLogBatch};
+use edb::{VioletaBftEngine, VioletaBftLogBatch};
 use into_other::into_other;
-use einsteindb-prod_util::worker::Interlock_Semaphore;
+use edb_util::worker::Interlock_Semaphore;
 
 use super::metrics::*;
 use super::worker::BraneTask;
@@ -149,7 +149,7 @@ impl EntryCache {
         // Cache either is empty or contains latest log. Hence we don't need to fetch log
         // from lmdb anymore.
         assert!(lightlike_idx == limit_idx || fetched_size > max_size);
-        let (first, second) = einsteindb-prod_util::slices_in_cone(&self.cache, spacelike_idx, lightlike_idx);
+        let (first, second) = edb_util::slices_in_cone(&self.cache, spacelike_idx, lightlike_idx);
         ents.extlightlike_from_slice(first);
         ents.extlightlike_from_slice(second);
     }
@@ -388,7 +388,7 @@ impl InvokeContext {
         snapshot_violetabft_state.set_last_index(snapshot_index);
 
         kv_wb.put_msg_causet(
-            CAUSET_VIOLETABFT,
+            Causet_VIOLETABFT,
             &tuplespaceInstanton::snapshot_violetabft_state_key(self.brane_id),
             &snapshot_violetabft_state,
         )?;
@@ -398,7 +398,7 @@ impl InvokeContext {
     #[inline]
     pub fn save_apply_state_to(&self, kv_wb: &mut impl MuBlock) -> Result<()> {
         kv_wb.put_msg_causet(
-            CAUSET_VIOLETABFT,
+            Causet_VIOLETABFT,
             &tuplespaceInstanton::apply_state_key(self.brane_id),
             &self.apply_state,
         )?;
@@ -413,7 +413,7 @@ pub fn recover_from_applying_state<EK: KvEngine, ER: VioletaBftEngine>(
 ) -> Result<()> {
     let snapshot_violetabft_state_key = tuplespaceInstanton::snapshot_violetabft_state_key(brane_id);
     let snapshot_violetabft_state: VioletaBftLocalState =
-        match box_try!(engines.kv.get_msg_causet(CAUSET_VIOLETABFT, &snapshot_violetabft_state_key)) {
+        match box_try!(engines.kv.get_msg_causet(Causet_VIOLETABFT, &snapshot_violetabft_state_key)) {
             Some(state) => state,
             None => {
                 return Err(box_err!(
@@ -490,7 +490,7 @@ fn init_apply_state<EK: KvEngine, ER: VioletaBftEngine>(
     Ok(
         match engines
             .kv
-            .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane.get_id()))?
+            .get_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane.get_id()))?
         {
             Some(s) => s,
             None => {
@@ -1484,8 +1484,8 @@ where
     ER: VioletaBftEngine,
 {
     let t = Instant::now();
-    box_try!(kv_wb.delete_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id)));
-    box_try!(kv_wb.delete_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id)));
+    box_try!(kv_wb.delete_causet(Causet_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id)));
+    box_try!(kv_wb.delete_causet(Causet_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id)));
     box_try!(engines.violetabft.clean(brane_id, violetabft_state, violetabft_wb));
 
     info!(
@@ -1516,7 +1516,7 @@ where
     );
 
     let msg = kv_snap
-        .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id))
+        .get_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id))
         .map_err(into_other::<_, violetabft::Error>)?;
     let apply_state: VioletaBftApplyState = match msg {
         None => {
@@ -1539,7 +1539,7 @@ where
     defer!(mgr.deregister(&key, &SnapEntry::Generating));
 
     let state: BraneLocalState = kv_snap
-        .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(key.brane_id))
+        .get_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::brane_state_key(key.brane_id))
         .and_then(|res| match res {
             None => Err(box_err!("brane {} could not find brane info", brane_id)),
             Some(state) => Ok(state),
@@ -1605,7 +1605,7 @@ pub fn write_initial_apply_state<T: MuBlock>(kv_wb: &mut T, brane_id: u64) -> Re
         .mut_truncated_state()
         .set_term(VIOLETABFT_INIT_LOG_TERM);
 
-    kv_wb.put_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id), &apply_state)?;
+    kv_wb.put_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id), &apply_state)?;
     Ok(())
 }
 
@@ -1628,7 +1628,7 @@ pub fn write_peer_state<T: MuBlock>(
         "brane_id" => brane_id,
         "state" => ?brane_state,
     );
-    kv_wb.put_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id), &brane_state)?;
+    kv_wb.put_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id), &brane_state)?;
     Ok(())
 }
 
@@ -1641,9 +1641,9 @@ mod tests {
     use crate::store::{bootstrap_store, initial_brane, prepare_bootstrap_cluster};
     use engine_lmdb::util::new_engine;
     use engine_lmdb::{LmdbEngine, LmdbSnapshot, LmdbWriteBatch};
-    use engine_promises::Engines;
-    use engine_promises::{Iterable, SyncMuBlock, WriteBatchExt};
-    use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT};
+    use edb::Engines;
+    use edb::{Iterable, SyncMuBlock, WriteBatchExt};
+    use edb::{ALL_CausetS, Causet_DEFAULT};
     use ekvproto::violetabft_serverpb::VioletaBftSnapshotData;
     use violetabft::evioletabftpb::HardState;
     use violetabft::evioletabftpb::{ConfState, Entry};
@@ -1655,7 +1655,7 @@ mod tests {
     use std::sync::*;
     use std::time::Duration;
     use tempfile::{Builder, TempDir};
-    use einsteindb-prod_util::worker::{Interlock_Semaphore, Worker};
+    use edb_util::worker::{Interlock_Semaphore, Worker};
 
     use super::*;
 
@@ -1663,9 +1663,9 @@ mod tests {
         sched: Interlock_Semaphore<BraneTask<LmdbSnapshot>>,
         path: &TempDir,
     ) -> PeerStorage<LmdbEngine, LmdbEngine> {
-        let kv_db = new_engine(path.path().to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();
+        let kv_db = new_engine(path.path().to_str().unwrap(), None, ALL_CausetS, None).unwrap();
         let violetabft_path = path.path().join(Path::new("violetabft"));
-        let violetabft_db = new_engine(violetabft_path.to_str().unwrap(), None, &[CAUSET_DEFAULT], None).unwrap();
+        let violetabft_db = new_engine(violetabft_path.to_str().unwrap(), None, &[Causet_DEFAULT], None).unwrap();
         let engines = Engines::new(kv_db, violetabft_db);
         bootstrap_store(&engines, 1, 1).unwrap();
 
@@ -1776,7 +1776,7 @@ mod tests {
             (5, Ok(5)),
         ];
         for (i, (idx, wterm)) in tests.drain(..).enumerate() {
-            let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
+            let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
             let sched = worker.interlock_semaphore();
             let store = new_causetStorage_from_ents(sched, &td, &ents);
@@ -1797,7 +1797,7 @@ mod tests {
         store
             .engines
             .kv
-            .scan_causet(CAUSET_VIOLETABFT, &meta_spacelike, &meta_lightlike, false, |_, _| {
+            .scan_causet(Causet_VIOLETABFT, &meta_spacelike, &meta_lightlike, false, |_, _| {
                 count += 1;
                 Ok(true)
             })
@@ -1810,7 +1810,7 @@ mod tests {
         store
             .engines
             .kv
-            .scan_causet(CAUSET_VIOLETABFT, &violetabft_spacelike, &violetabft_lightlike, false, |_, _| {
+            .scan_causet(Causet_VIOLETABFT, &violetabft_spacelike, &violetabft_lightlike, false, |_, _| {
                 count += 1;
                 Ok(true)
             })
@@ -1830,7 +1830,7 @@ mod tests {
 
     #[test]
     fn test_causetStorage_clear_meta() {
-        let td = Builder::new().prefix("einsteindb-prod-store").temfidelir().unwrap();
+        let td = Builder::new().prefix("edb-store").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
         let mut store = new_causetStorage_from_ents(sched, &td, &[new_entry(3, 3), new_entry(4, 4)]);
@@ -1908,7 +1908,7 @@ mod tests {
         ];
 
         for (i, (lo, hi, maxsize, wentries)) in tests.drain(..).enumerate() {
-            let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
+            let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
             let sched = worker.interlock_semaphore();
             let store = new_causetStorage_from_ents(sched, &td, &ents);
@@ -1932,7 +1932,7 @@ mod tests {
             (5, Ok(())),
         ];
         for (i, (idx, werr)) in tests.drain(..).enumerate() {
-            let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
+            let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
             let sched = worker.interlock_semaphore();
             let store = new_causetStorage_from_ents(sched, &td, &ents);
@@ -1960,7 +1960,7 @@ mod tests {
     ) -> Result<()> {
         let apply_state: VioletaBftApplyState = engines
             .kv
-            .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(gen_task.brane_id))
+            .get_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::apply_state_key(gen_task.brane_id))
             .unwrap()
             .unwrap();
         let idx = apply_state.get_applied_index();
@@ -1983,7 +1983,7 @@ mod tests {
         let mut cs = ConfState::default();
         cs.set_voters(vec![1, 2, 3]);
 
-        let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
+        let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let snap_dir = Builder::new().prefix("snap_dir").temfidelir().unwrap();
         let mgr = SnapManager::new(snap_dir.path().to_str().unwrap());
         let mut worker = Worker::new("brane-worker");
@@ -2146,7 +2146,7 @@ mod tests {
             ),
         ];
         for (i, (entries, wentries)) in tests.drain(..).enumerate() {
-            let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
+            let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
             let sched = worker.interlock_semaphore();
             let mut store = new_causetStorage_from_ents(sched, &td, &ents);
@@ -2162,7 +2162,7 @@ mod tests {
     #[test]
     fn test_causetStorage_cache_fetch() {
         let ents = vec![new_entry(3, 3), new_entry(4, 4), new_entry(5, 5)];
-        let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
+        let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
         let mut store = new_causetStorage_from_ents(sched, &td, &ents);
@@ -2205,7 +2205,7 @@ mod tests {
     #[test]
     fn test_causetStorage_cache_ufidelate() {
         let ents = vec![new_entry(3, 3), new_entry(4, 4), new_entry(5, 5)];
-        let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
+        let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
         let mut store = new_causetStorage_from_ents(sched, &td, &ents);
@@ -2299,7 +2299,7 @@ mod tests {
         let mut cs = ConfState::default();
         cs.set_voters(vec![1, 2, 3]);
 
-        let td1 = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
+        let td1 = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let snap_dir = Builder::new().prefix("snap").temfidelir().unwrap();
         let mgr = SnapManager::new(snap_dir.path().to_str().unwrap());
         let mut worker = Worker::new("snap-manager");
@@ -2327,7 +2327,7 @@ mod tests {
         assert_eq!(s1.truncated_term(), 3);
         worker.stop().unwrap().join().unwrap();
 
-        let td2 = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
+        let td2 = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let mut s2 = new_causetStorage(sched.clone(), &td2);
         assert_eq!(s2.first_index(), s2.applied_index() + 1);
         let mut ctx = InvokeContext::new(&s2);
@@ -2344,7 +2344,7 @@ mod tests {
         assert_eq!(s2.first_index(), s2.applied_index() + 1);
         validate_cache(&s2, &[]);
 
-        let td3 = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
+        let td3 = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let ents = &[new_entry(3, 3), new_entry(4, 3)];
         let mut s3 = new_causetStorage_from_ents(sched, &td3, ents);
         validate_cache(&s3, &ents[1..]);
@@ -2364,7 +2364,7 @@ mod tests {
 
     #[test]
     fn test_canceling_snapshot() {
-        let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
+        let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
         let mut s = new_causetStorage(sched, &td);
@@ -2410,7 +2410,7 @@ mod tests {
 
     #[test]
     fn test_try_finish_snapshot() {
-        let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
+        let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
         let mut s = new_causetStorage(sched, &td);
@@ -2486,12 +2486,12 @@ mod tests {
 
     #[test]
     fn test_validate_states() {
-        let td = Builder::new().prefix("einsteindb-prod-store-test").temfidelir().unwrap();
+        let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
-        let kv_db = new_engine(td.path().to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();
+        let kv_db = new_engine(td.path().to_str().unwrap(), None, ALL_CausetS, None).unwrap();
         let violetabft_path = td.path().join(Path::new("violetabft"));
-        let violetabft_db = new_engine(violetabft_path.to_str().unwrap(), None, &[CAUSET_DEFAULT], None).unwrap();
+        let violetabft_db = new_engine(violetabft_path.to_str().unwrap(), None, &[Causet_DEFAULT], None).unwrap();
         let engines = Engines::new(kv_db, violetabft_db);
         bootstrap_store(&engines, 1, 1).unwrap();
 
@@ -2549,7 +2549,7 @@ mod tests {
         let apply_state_key = tuplespaceInstanton::apply_state_key(1);
         engines
             .kv
-            .put_msg_causet(CAUSET_VIOLETABFT, &apply_state_key, &apply_state)
+            .put_msg_causet(Causet_VIOLETABFT, &apply_state_key, &apply_state)
             .unwrap();
         assert!(build_causetStorage().is_err());
 
@@ -2558,7 +2558,7 @@ mod tests {
         apply_state.set_commit_term(VIOLETABFT_INIT_LOG_TERM);
         engines
             .kv
-            .put_msg_causet(CAUSET_VIOLETABFT, &apply_state_key, &apply_state)
+            .put_msg_causet(Causet_VIOLETABFT, &apply_state_key, &apply_state)
             .unwrap();
         assert!(build_causetStorage().is_err());
 
@@ -2606,7 +2606,7 @@ mod tests {
         apply_state.set_last_commit_index(13);
         engines
             .kv
-            .put_msg_causet(CAUSET_VIOLETABFT, &apply_state_key, &apply_state)
+            .put_msg_causet(Causet_VIOLETABFT, &apply_state_key, &apply_state)
             .unwrap();
         assert!(build_causetStorage().is_err());
     }

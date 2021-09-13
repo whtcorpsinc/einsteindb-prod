@@ -2,7 +2,7 @@
 
 use std::vec::IntoIter;
 
-use engine_promises::CfName;
+use edb::CfName;
 use ekvproto::metapb::Brane;
 use ekvproto::fidelpb::CheckPolicy;
 use ekvproto::violetabft_cmdpb::{AdminRequest, AdminResponse, VioletaBftCmdRequest, VioletaBftCmdResponse, Request};

@@ -15,8 +15,8 @@ use std::{error, result, str, thread, time, u64};
 use encryption::{
     create_aes_ctr_crypter, encryption_method_from_db_encryption_method, DataKeyManager, Iv,
 };
-use engine_promises::{CfName, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_WRITE};
-use engine_promises::{EncryptionKeyManager, KvEngine};
+use edb::{CfName, Causet_DEFAULT, Causet_DAGGER, Causet_WRITE};
+use edb::{EncryptionKeyManager, KvEngine};
 use futures::executor::block_on;
 use futures_util::io::{AllowStdIo, AsyncWriteExt};
 use ekvproto::encryptionpb::EncryptionMethod;
@@ -29,17 +29,17 @@ use violetabft::evioletabftpb::Snapshot as VioletaBftSnapshot;
 use error_code::{self, ErrorCode, ErrorCodeExt};
 use tuplespaceInstanton::{enc_lightlike_key, enc_spacelike_key};
 use openssl::symm::{Cipher, Crypter, Mode};
-use einsteindb-prod_util::collections::{HashMap, HashMapEntry as Entry};
-use einsteindb-prod_util::file::{
+use edb_util::collections::{HashMap, HashMapEntry as Entry};
+use edb_util::file::{
     calc_crc32, calc_crc32_and_size, delete_file_if_exist, file_exists, get_file_size, sync_dir,
 };
-use einsteindb-prod_util::time::{duration_to_sec, Limiter};
-use einsteindb-prod_util::HandyRwLock;
+use edb_util::time::{duration_to_sec, Limiter};
+use edb_util::HandyRwLock;
 
 use crate::interlock::InterlockHost;
 use crate::store::metrics::{
-    CfNames, INGEST_SST_DURATION_SECONDS, SNAPSHOT_BUILD_TIME_HISTOGRAM, SNAPSHOT_CAUSET_KV_COUNT,
-    SNAPSHOT_CAUSET_SIZE,
+    CfNames, INGEST_SST_DURATION_SECONDS, SNAPSHOT_BUILD_TIME_HISTOGRAM, SNAPSHOT_Causet_KV_COUNT,
+    SNAPSHOT_Causet_SIZE,
 };
 use crate::store::peer_causetStorage::JOB_STATUS_CANCELLING;
 use crate::{Error as VioletaBftStoreError, Result as VioletaBftStoreResult};
@@ -47,12 +47,12 @@ use crate::{Error as VioletaBftStoreError, Result as VioletaBftStoreResult};
 #[path = "snap/io.rs"]
 pub mod snap_io;
 
-// Data in CAUSET_VIOLETABFT should be excluded for a snapshot.
-pub const SNAPSHOT_CAUSETS: &[CfName] = &[CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_WRITE];
-pub const SNAPSHOT_CAUSETS_ENUM_PAIR: &[(CfNames, CfName)] = &[
-    (CfNames::default, CAUSET_DEFAULT),
-    (CfNames::dagger, CAUSET_DAGGER),
-    (CfNames::write, CAUSET_WRITE),
+// Data in Causet_VIOLETABFT should be excluded for a snapshot.
+pub const SNAPSHOT_CausetS: &[CfName] = &[Causet_DEFAULT, Causet_DAGGER, Causet_WRITE];
+pub const SNAPSHOT_CausetS_ENUM_PAIR: &[(CfNames, CfName)] = &[
+    (CfNames::default, Causet_DEFAULT),
+    (CfNames::dagger, Causet_DAGGER),
+    (CfNames::write, Causet_WRITE),
 ];
 pub const SNAPSHOT_VERSION: u64 = 2;
 
@@ -98,10 +98,10 @@ impl ErrorCodeExt for Error {
     }
 }
 
-// CAUSET_DAGGER is relatively small, so we use plain file for performance issue.
+// Causet_DAGGER is relatively small, so we use plain file for performance issue.
 #[inline]
 pub fn plain_file_used(causet: &str) -> bool {
-    causet == CAUSET_DAGGER
+    causet == Causet_DAGGER
 }
 
 #[inline]
@@ -236,7 +236,7 @@ fn retry_delete_snapshot(mgr: &SnapManagerCore, key: &SnapKey, snap: &dyn Generi
 fn gen_snapshot_meta(causet_files: &[CfFile]) -> VioletaBftStoreResult<SnapshotMeta> {
     let mut meta = Vec::with_capacity(causet_files.len());
     for causet_file in causet_files {
-        if SNAPSHOT_CAUSETS.iter().find(|&causet| causet_file.causet == *causet).is_none() {
+        if SNAPSHOT_CausetS.iter().find(|&causet| causet_file.causet == *causet).is_none() {
             return Err(box_err!(
                 "failed to encode invalid snapshot causet {}",
                 causet_file.causet
@@ -371,8 +371,8 @@ impl Snap {
         let prefix = format!("{}_{}", snap_prefix, key);
         let display_path = Self::get_display_path(&dir_path, &prefix);
 
-        let mut causet_files = Vec::with_capacity(SNAPSHOT_CAUSETS.len());
-        for causet in SNAPSHOT_CAUSETS {
+        let mut causet_files = Vec::with_capacity(SNAPSHOT_CausetS.len());
+        for causet in SNAPSHOT_CausetS {
             let filename = format!("{}_{}{}", prefix, causet, SST_FILE_SUFFIX);
             let path = dir_path.join(&filename);
             let tmp_path = dir_path.join(format!("{}{}", filename, TMP_FILE_SUFFIX));
@@ -554,7 +554,7 @@ impl Snap {
         if snapshot_meta.get_causet_files().len() != self.causet_files.len() {
             return Err(box_err!(
                 "invalid causet number of snapshot meta, expect {}, got {}",
-                SNAPSHOT_CAUSETS.len(),
+                SNAPSHOT_CausetS.len(),
                 snapshot_meta.get_causet_files().len()
             ));
         }
@@ -595,7 +595,7 @@ impl Snap {
     }
 
     fn get_display_path(dir_path: impl AsRef<Path>, prefix: &str) -> String {
-        let causet_names = "(".to_owned() + &SNAPSHOT_CAUSETS.join("|") + ")";
+        let causet_names = "(".to_owned() + &SNAPSHOT_CausetS.join("|") + ")";
         format!(
             "{}/{}_{}{}",
             dir_path.as_ref().display(),
@@ -712,7 +712,7 @@ impl Snap {
         }
 
         let (begin_key, lightlike_key) = (enc_spacelike_key(brane), enc_lightlike_key(brane));
-        for (causet_enum, causet) in SNAPSHOT_CAUSETS_ENUM_PAIR {
+        for (causet_enum, causet) in SNAPSHOT_CausetS_ENUM_PAIR {
             self.switch_to_causet_file(causet)?;
             let causet_file = &mut self.causet_files[self.causet_index];
             let path = causet_file.tmp_path.to_str().unwrap();
@@ -742,10 +742,10 @@ impl Snap {
                 delete_file_if_exist(&causet_file.tmp_path).unwrap();
             }
 
-            SNAPSHOT_CAUSET_KV_COUNT
+            SNAPSHOT_Causet_KV_COUNT
                 .get(*causet_enum)
                 .observe(causet_stat.key_count as f64);
-            SNAPSHOT_CAUSET_SIZE
+            SNAPSHOT_Causet_SIZE
                 .get(*causet_enum)
                 .observe(causet_stat.total_size as f64);
             info!(
@@ -1521,11 +1521,11 @@ pub mod tests {
     use std::sync::{Arc, RwLock};
 
     use engine_lmdb::raw::{DBOptions, Env, DB};
-    use engine_lmdb::raw_util::CAUSETOptions;
+    use engine_lmdb::raw_util::CausetOptions;
     use engine_lmdb::{Compat, LmdbEngine, LmdbSnapshot};
-    use engine_promises::Engines;
-    use engine_promises::{Iterable, Peekable, SyncMuBlock};
-    use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
+    use edb::Engines;
+    use edb::{Iterable, Peekable, SyncMuBlock};
+    use edb::{ALL_CausetS, Causet_DEFAULT, Causet_DAGGER, Causet_VIOLETABFT, Causet_WRITE};
     use ekvproto::metapb::{Peer, Brane};
     use ekvproto::violetabft_serverpb::{
         VioletaBftApplyState, VioletaBftSnapshotData, BraneLocalState, SnapshotMeta,
@@ -1534,11 +1534,11 @@ pub mod tests {
 
     use protobuf::Message;
     use tempfile::{Builder, TempDir};
-    use einsteindb-prod_util::time::Limiter;
+    use edb_util::time::Limiter;
 
     use super::{
         ApplyOptions, GenericSnapshot, Snap, SnapEntry, SnapKey, SnapManager, SnapManagerBuilder,
-        SnapManagerCore, Snapshot, SnapshotStatistics, META_FILE_SUFFIX, SNAPSHOT_CAUSETS,
+        SnapManagerCore, Snapshot, SnapshotStatistics, META_FILE_SUFFIX, SNAPSHOT_CausetS,
         SNAP_GEN_PREFIX,
     };
 
@@ -1556,26 +1556,26 @@ pub mod tests {
     type DBBuilder = fn(
         p: &Path,
         db_opt: Option<DBOptions>,
-        causet_opts: Option<Vec<CAUSETOptions<'_>>>,
+        causet_opts: Option<Vec<CausetOptions<'_>>>,
     ) -> Result<Arc<DB>>;
 
     pub fn open_test_empty_db(
         path: &Path,
         db_opt: Option<DBOptions>,
-        causet_opts: Option<Vec<CAUSETOptions<'_>>>,
+        causet_opts: Option<Vec<CausetOptions<'_>>>,
     ) -> Result<Arc<DB>> {
         let p = path.to_str().unwrap();
-        let db = engine_lmdb::raw_util::new_engine(p, db_opt, ALL_CAUSETS, causet_opts).unwrap();
+        let db = engine_lmdb::raw_util::new_engine(p, db_opt, ALL_CausetS, causet_opts).unwrap();
         Ok(Arc::new(db))
     }
 
     pub fn open_test_db(
         path: &Path,
         db_opt: Option<DBOptions>,
-        causet_opts: Option<Vec<CAUSETOptions<'_>>>,
+        causet_opts: Option<Vec<CausetOptions<'_>>>,
     ) -> Result<Arc<DB>> {
         let p = path.to_str().unwrap();
-        let db = engine_lmdb::raw_util::new_engine(p, db_opt, ALL_CAUSETS, causet_opts).unwrap();
+        let db = engine_lmdb::raw_util::new_engine(p, db_opt, ALL_CausetS, causet_opts).unwrap();
         let db = Arc::new(db);
         let key = tuplespaceInstanton::data_key(TEST_KEY);
         // write some data into each causet
@@ -1591,9 +1591,9 @@ pub mod tests {
     pub fn get_test_db_for_branes(
         path: &TempDir,
         violetabft_db_opt: Option<DBOptions>,
-        violetabft_causet_opt: Option<CAUSETOptions<'_>>,
+        violetabft_causet_opt: Option<CausetOptions<'_>>,
         kv_db_opt: Option<DBOptions>,
-        kv_causet_opts: Option<Vec<CAUSETOptions<'_>>>,
+        kv_causet_opts: Option<Vec<CausetOptions<'_>>>,
         branes: &[u64],
     ) -> Result<Engines<LmdbEngine, LmdbEngine>> {
         let p = path.path();
@@ -1612,7 +1612,7 @@ pub mod tests {
             apply_entry.set_term(0);
             apply_state.mut_truncated_state().set_index(10);
             kv.c()
-                .put_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id), &apply_state)?;
+                .put_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id), &apply_state)?;
             violetabft.c()
                 .put_msg(&tuplespaceInstanton::violetabft_log_key(brane_id, 10), &apply_entry)?;
 
@@ -1621,7 +1621,7 @@ pub mod tests {
             let mut brane_state = BraneLocalState::default();
             brane_state.set_brane(brane);
             kv.c()
-                .put_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id), &brane_state)?;
+                .put_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id), &brane_state)?;
         }
         Ok(Engines {
             kv: kv.c().clone(),
@@ -1631,7 +1631,7 @@ pub mod tests {
 
     pub fn get_kv_count(snap: &LmdbSnapshot) -> usize {
         let mut kv_count = 0;
-        for causet in SNAPSHOT_CAUSETS {
+        for causet in SNAPSHOT_CausetS {
             snap.scan_causet(
                 causet,
                 &tuplespaceInstanton::data_key(b"a"),
@@ -1663,7 +1663,7 @@ pub mod tests {
 
     pub fn assert_eq_db(expected_db: &Arc<DB>, db: &Arc<DB>) {
         let key = tuplespaceInstanton::data_key(TEST_KEY);
-        for causet in SNAPSHOT_CAUSETS {
+        for causet in SNAPSHOT_CausetS {
             let p1: Option<Peer> = expected_db.c().get_msg_causet(causet, &key[..]).unwrap();
             if let Some(p1) = p1 {
                 let p2: Option<Peer> = db.c().get_msg_causet(causet, &key[..]).unwrap();
@@ -1700,8 +1700,8 @@ pub mod tests {
 
     #[test]
     fn test_gen_snapshot_meta() {
-        let mut causet_file = Vec::with_capacity(super::SNAPSHOT_CAUSETS.len());
-        for (i, causet) in super::SNAPSHOT_CAUSETS.iter().enumerate() {
+        let mut causet_file = Vec::with_capacity(super::SNAPSHOT_CausetS.len());
+        for (i, causet) in super::SNAPSHOT_CausetS.iter().enumerate() {
             let f = super::CfFile {
                 causet,
                 size: 100 * (i + 1) as u64,
@@ -1852,8 +1852,8 @@ pub mod tests {
             .temfidelir()
             .unwrap();
         let dst_db_path = dst_db_dir.path().to_str().unwrap();
-        // Change arbitrarily the causet order of ALL_CAUSETS at destination db.
-        let dst_causets = [CAUSET_WRITE, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT];
+        // Change arbitrarily the causet order of ALL_CausetS at destination db.
+        let dst_causets = [Causet_WRITE, Causet_DEFAULT, Causet_DAGGER, Causet_VIOLETABFT];
         let dst_db = Arc::new(
             engine_lmdb::raw_util::new_engine(dst_db_path, db_opt, &dst_causets, None).unwrap(),
         );

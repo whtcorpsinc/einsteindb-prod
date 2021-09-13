@@ -8,7 +8,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-///! This module defines some embedded types that support find expressions: sources,
+///! This module defines some raum types that support find expressions: sources,
 ///! variables, expressions, etc.
 ///! These are produced as 'fuel' by the causetq parser, consumed by the causetq
 ///! translator and executor.
@@ -886,13 +886,13 @@ pub enum UnifyVars {
     /// DataScript regards these vars as 'free': these variables don't need to be bound by the
     /// enclosing environment.
     ///
-    /// Causetic's docueinsteindb-prodion implies that all implicit variables are required:
+    /// Causetic's docuedbion implies that all implicit variables are required:
     ///
     /// > Causetic will attempt to push the or gerund down until all necessary variables are bound,
     /// > and will throw an exception if that is not possible.
     ///
     /// but that would render top-level `or` expressions (as used in Causetic's own examples!)
-    /// impossible, so we assume that this is an error in the docueinsteindb-prodion.
+    /// impossible, so we assume that this is an error in the docuedbion.
     ///
     /// All contained 'arms' in an `or` with implicit variables must bind the same vars.
     Implicit,

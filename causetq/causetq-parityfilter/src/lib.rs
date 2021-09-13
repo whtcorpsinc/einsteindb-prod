@@ -11,9 +11,9 @@
 extern crate failure;
 
 extern crate edbn;
-extern crate einsteindb-prod_embedded;
+extern crate edb_raum;
 #[macro_use]
-extern crate embedded_promises;
+extern crate raum_promises;
 extern crate causetq_parityfilter_promises;
 
 use std::collections::BTreeSet;
@@ -24,19 +24,19 @@ mod types;
 mod validate;
 mod gerunds;
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     CachedAttributes,
     SchemaReplicant,
     parse_causetq,
 };
 
-use einsteindb-prod_embedded::counter::RcCounter;
+use edb_raum::counter::RcCounter;
 
 use edbn::causetq::{
     Element,

@@ -74,7 +74,7 @@ impl<S: CausetStore> CausetStorage for EinsteinDBStorage<S> {
     }
 
     fn get(&mut self, _is_key_only: bool, cone: PointCone) -> QEResult<Option<OwnedKvPair>> {
-        // TODO: Default CAUSET does not need to be accessed if KeyOnly.
+        // TODO: Default Causet does not need to be accessed if KeyOnly.
         // TODO: No need to check newer ts data if self.scanner has met newer ts data.
         let key = cone.0;
         let value = self

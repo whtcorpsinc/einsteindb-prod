@@ -3,7 +3,7 @@
 use crate::store::{CasualMessage, PeerMsg, VioletaBftCommand, VioletaBftRouter, StoreMsg};
 use crate::{DiscardReason, Error, Result};
 use crossbeam::TrylightlikeError;
-use engine_promises::{KvEngine, VioletaBftEngine, Snapshot};
+use edb::{KvEngine, VioletaBftEngine, Snapshot};
 use ekvproto::violetabft_serverpb::VioletaBftMessage;
 use std::sync::mpsc;
 

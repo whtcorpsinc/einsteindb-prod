@@ -42,7 +42,7 @@ impl<K: KvEngine, R: VioletaBftEngine> MetricsFlusher<K, R> {
         let h = ThreadBuilder::new()
             .name("metrics-flusher".to_owned())
             .spawn(move || {
-                einsteindb-prod_alloc::add_thread_memory_accessor();
+                edb_alloc::add_thread_memory_accessor();
                 let mut last_reset = Instant::now();
                 while let Err(mpsc::RecvTimeoutError::Timeout) = rx.recv_timeout(interval) {
                     kv_db.flush_metrics("kv");
@@ -53,7 +53,7 @@ impl<K: KvEngine, R: VioletaBftEngine> MetricsFlusher<K, R> {
                         last_reset = Instant::now();
                     }
                 }
-                einsteindb-prod_alloc::remove_thread_memory_accessor();
+                edb_alloc::remove_thread_memory_accessor();
             })?;
 
         self.handle = Some(h);

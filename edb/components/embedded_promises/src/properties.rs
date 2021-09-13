@@ -3,8 +3,8 @@
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
-use einsteindb-prod_util::codec::number::{self, NumberEncoder};
-use einsteindb-prod_util::codec::Result;
+use edb_util::codec::number::{self, NumberEncoder};
+use edb_util::codec::Result;
 
 #[derive(Clone, Debug, Default)]
 pub struct IndexHandle {

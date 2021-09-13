@@ -7,12 +7,12 @@ use std::time;
 use ekvproto::kvrpcpb::Context;
 use violetabft::evioletabftpb::MessageType;
 
-use engine_promises::{CfName, IterOptions, CAUSET_DEFAULT};
+use edb::{CfName, IterOptions, Causet_DEFAULT};
 use test_violetabftstore::*;
-use einsteindb-prod::causetStorage::kv::*;
-use einsteindb-prod::causetStorage::CfStatistics;
-use einsteindb-prod_util::codec::bytes;
-use einsteindb-prod_util::HandyRwLock;
+use edb::causetStorage::kv::*;
+use edb::causetStorage::CfStatistics;
+use edb_util::codec::bytes;
+use edb_util::HandyRwLock;
 use txn_types::Key;
 
 #[test]
@@ -364,8 +364,8 @@ fn batch<E: Engine>(ctx: &Context, engine: &E) {
         .write(
             ctx,
             WriteData::from_modifies(vec![
-                Modify::Put(CAUSET_DEFAULT, Key::from_raw(b"x"), b"1".to_vec()),
-                Modify::Put(CAUSET_DEFAULT, Key::from_raw(b"y"), b"2".to_vec()),
+                Modify::Put(Causet_DEFAULT, Key::from_raw(b"x"), b"1".to_vec()),
+                Modify::Put(Causet_DEFAULT, Key::from_raw(b"y"), b"2".to_vec()),
             ]),
         )
         .unwrap();
@@ -376,8 +376,8 @@ fn batch<E: Engine>(ctx: &Context, engine: &E) {
         .write(
             ctx,
             WriteData::from_modifies(vec![
-                Modify::Delete(CAUSET_DEFAULT, Key::from_raw(b"x")),
-                Modify::Delete(CAUSET_DEFAULT, Key::from_raw(b"y")),
+                Modify::Delete(Causet_DEFAULT, Key::from_raw(b"x")),
+                Modify::Delete(Causet_DEFAULT, Key::from_raw(b"y")),
             ]),
         )
         .unwrap();

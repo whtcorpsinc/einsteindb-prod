@@ -7,10 +7,10 @@ use std::process;
 
 use clap::{crate_authors, App, Arg};
 use cmd::setup::{ensure_no_unrecognized_config, validate_and_persist_config};
-use einsteindb-prod::config::EINSTEINDBConfig;
+use edb::config::EINSTEINDBConfig;
 
 fn main() {
-    let version_info = einsteindb-prod::einsteindb-prod_version_info();
+    let version_info = edb::edb_version_info();
 
     let matches = App::new("EinsteinDB")
         .about("A distributed transactional key-value database powered by Rust and VioletaBft")
@@ -176,5 +176,5 @@ fn main() {
         process::exit(0)
     }
 
-    cmd::server::run_einsteindb-prod(config);
+    cmd::server::run_edb(config);
 }

@@ -5,14 +5,14 @@ use std::path::Path;
 
 use crate::properties::{ConeProperties, UserCollectedPropertiesDecoder};
 use crate::raw::EventListener;
-use engine_promises::CompactedEvent;
-use engine_promises::CompactionJobInfo;
+use edb::CompactedEvent;
+use edb::CompactionJobInfo;
 use lmdb::{
     CompactionJobInfo as RawCompactionJobInfo, CompactionReason, BlockPropertiesCollectionView,
 };
 use std::collections::BTreeMap;
 use std::collections::Bound::{Excluded, Included, Unbounded};
-use einsteindb-prod_util::collections::hash_set_with_capacity;
+use edb_util::collections::hash_set_with_capacity;
 
 pub struct LmdbCompactionJobInfo<'a>(&'a RawCompactionJobInfo);
 

@@ -15,6 +15,6 @@ extern crate failure_derive;
 extern crate rusqlite;
 
 extern crate edbn;
-extern crate embedded_promises;
+extern crate raum_promises;
 
 pub mod errors;

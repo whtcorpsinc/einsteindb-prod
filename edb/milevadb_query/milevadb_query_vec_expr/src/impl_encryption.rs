@@ -210,17 +210,17 @@ mod tests {
         let cases = vec![
             (Some(""), Some(0)),
             (
-                Some("0B000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D"),
+                Some("0B000000789CCB48causet_context9C95728Causet2FCA4901001A0B045D"),
                 Some(11),
             ),
             (
-                Some("0C000000789CCB48causet_context9C95728CAUSET2F32303402001D8004202E"),
+                Some("0C000000789CCB48causet_context9C95728Causet2F32303402001D8004202E"),
                 Some(12),
             ),
             (Some("020000000000"), Some(2)),
             (Some("0000000001"), Some(0)),
             (
-                Some("02000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D"),
+                Some("02000000789CCB48causet_context9C95728Causet2FCA4901001A0B045D"),
                 Some(2),
             ),
             (Some("010203"), Some(0)),

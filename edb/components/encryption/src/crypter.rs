@@ -1,6 +1,6 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use engine_promises::EncryptionMethod as DBEncryptionMethod;
+use edb::EncryptionMethod as DBEncryptionMethod;
 use ekvproto::encryptionpb::EncryptionMethod;
 use openssl::symm::{self, Cipher as OCipher};
 use rand::{rngs::OsRng, RngCore};

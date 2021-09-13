@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::engine::PanicEngine;
-use engine_promises::{MuBlock, Result, WriteBatch, WriteBatchExt, WriteOptions};
+use crate::edb::PanicEngine;
+use edb::{MuBlock, Result, WriteBatch, WriteBatchExt, WriteOptions};
 
 impl WriteBatchExt for PanicEngine {
     type WriteBatch = PanicWriteBatch;

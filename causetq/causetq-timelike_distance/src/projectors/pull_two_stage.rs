@@ -14,11 +14,11 @@ use std::iter::{
     once,
 };
 
-use einsteindb-prod_causetq_pull::{
+use edb_causetq_pull::{
     Puller,
 };
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
 };
 

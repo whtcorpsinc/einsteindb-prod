@@ -3,10 +3,10 @@
 use crate::errors::Result;
 use crate::properties::DecodeProperties;
 use crate::cone::Cone;
-use crate::CAUSETHandleExt;
+use crate::CausetHandleExt;
 use std::ops::Deref;
 
-pub trait BlockPropertiesExt: CAUSETHandleExt {
+pub trait BlockPropertiesExt: CausetHandleExt {
     type BlockPropertiesCollection: BlockPropertiesCollection<
         Self::BlockPropertiesCollectionIter,
         Self::BlockPropertiesKey,
@@ -24,7 +24,7 @@ pub trait BlockPropertiesExt: CAUSETHandleExt {
 
     fn get_properties_of_Blocks_in_cone(
         &self,
-        causet: &Self::CAUSETHandle,
+        causet: &Self::CausetHandle,
         cones: &[Cone],
     ) -> Result<Self::BlockPropertiesCollection>;
 

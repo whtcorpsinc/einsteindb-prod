@@ -14,7 +14,7 @@ use edb_promises::errors::{
     DbError,
 };
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
 };
 

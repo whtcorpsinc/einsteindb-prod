@@ -12,7 +12,7 @@ use std::collections::{
     BTreeSet,
 };
 
-use embedded_promises::{
+use raum_promises::{
     MinkowskiValueType,
     MinkowskiSet,
 };
@@ -130,7 +130,7 @@ impl SQLMinkowskiSet for MinkowskiSet {
 
 #[cfg(test)]
 mod tests {
-    use embedded_promises::{
+    use raum_promises::{
         MinkowskiValueType,
     };
     use sql_types::{

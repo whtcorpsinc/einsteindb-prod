@@ -21,8 +21,8 @@ features = ["limits"]
 [dependencies.edbn]
 path = "../edbn"
 
-[dependencies.embedded_promises]
-path = "../embedded-promises"
+[dependencies.raum_promises]
+path = "../raum-promises"
 
 [dependencies.edb_promises]
 path = "../edb-promises"
@@ -30,14 +30,14 @@ path = "../edb-promises"
 [dependencies.causetq_pull_promises]
 path = "../causetq-pull-promises"
 
-[dependencies.einsteindb-prod_causetq_parityfilter]
+[dependencies.edb_causetq_parityfilter]
 path = "../causetq-parityfilter"
 
-[dependencies.einsteindb-prod_causetq_sql]
+[dependencies.edb_causetq_sql]
 path = "../causetq-allegrosql"
 
-[dev-dependencies.einsteindb-prod_embedded]
-path = "../embedded"
+[dev-dependencies.edb_raum]
+path = "../raum"
 
-[dev-dependencies.einsteindb-prod_causetq_projector]
+[dev-dependencies.edb_causetq_projector]
 path = "../causetq-projector"

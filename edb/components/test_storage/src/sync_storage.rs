@@ -4,15 +4,15 @@ use futures::executor::block_on;
 use ekvproto::kvrpcpb::{Context, GetRequest, LockInfo};
 use violetabftstore::interlock::BraneInfoProvider;
 use violetabftstore::router::VioletaBftStoreBlackHole;
-use einsteindb-prod::server::gc_worker::{AutoGcConfig, GcConfig, GcSafePointProvider, GcWorker};
-use einsteindb-prod::causetStorage::config::Config;
-use einsteindb-prod::causetStorage::kv::LmdbEngine;
-use einsteindb-prod::causetStorage::lock_manager::DummyLockManager;
-use einsteindb-prod::causetStorage::{
+use edb::server::gc_worker::{AutoGcConfig, GcConfig, GcSafePointProvider, GcWorker};
+use edb::causetStorage::config::Config;
+use edb::causetStorage::kv::LmdbEngine;
+use edb::causetStorage::lock_manager::DummyLockManager;
+use edb::causetStorage::{
     txn::commands, Engine, PrewriteResult, Result, CausetStorage, TestEngineBuilder, TestStorageBuilder,
     TxnStatus,
 };
-use einsteindb-prod_util::collections::HashMap;
+use edb_util::collections::HashMap;
 use txn_types::{Key, KvPair, Mutation, TimeStamp, Value};
 
 /// A builder to build a `SyncTestStorage`.

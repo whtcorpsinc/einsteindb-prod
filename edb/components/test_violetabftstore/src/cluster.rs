@@ -19,8 +19,8 @@ use tempfile::TempDir;
 use encryption::DataKeyManager;
 use engine_lmdb::raw::DB;
 use engine_lmdb::{Compat, LmdbEngine, LmdbSnapshot};
-use engine_promises::{
-    CompactExt, Engines, Iterable, MiscExt, MuBlock, Peekable, WriteBatchExt, CAUSET_VIOLETABFT,
+use edb::{
+    CompactExt, Engines, Iterable, MiscExt, MuBlock, Peekable, WriteBatchExt, Causet_VIOLETABFT,
 };
 use fidel_client::FidelClient;
 use violetabftstore::store::fsm::store::{StoreMeta, PENDING_VOTES_CAP};
@@ -28,13 +28,13 @@ use violetabftstore::store::fsm::{create_violetabft_batch_system, VioletaBftBatc
 use violetabftstore::store::transport::CasualRouter;
 use violetabftstore::store::*;
 use violetabftstore::{Error, Result};
-use einsteindb-prod::config::EINSTEINDBConfig;
-use einsteindb-prod::server::Result as ServerResult;
-use einsteindb-prod_util::collections::{HashMap, HashSet};
-use einsteindb-prod_util::HandyRwLock;
+use edb::config::EINSTEINDBConfig;
+use edb::server::Result as ServerResult;
+use edb_util::collections::{HashMap, HashSet};
+use edb_util::HandyRwLock;
 
 use super::*;
-use einsteindb-prod_util::time::ThreadReadId;
+use edb_util::time::ThreadReadId;
 
 // We simulate 3 or 5 nodes, each has a store.
 // Sometimes, we use fixed id to test, which means the id
@@ -147,7 +147,7 @@ impl<T: Simulator> Cluster<T> {
     ) -> Cluster<T> {
         // TODO: In the future, maybe it's better to test both case where `use_delete_cone` is true and false
         Cluster {
-            causet: new_einsteindb-prod_config(id),
+            causet: new_edb_config(id),
             leaders: HashMap::default(),
             count,
             paths: vec![],
@@ -982,7 +982,7 @@ impl<T: Simulator> Cluster<T> {
         let key = tuplespaceInstanton::apply_state_key(brane_id);
         self.get_engine(store_id)
             .c()
-            .get_msg_causet::<VioletaBftApplyState>(engine_promises::CAUSET_VIOLETABFT, &key)
+            .get_msg_causet::<VioletaBftApplyState>(edb::Causet_VIOLETABFT, &key)
             .unwrap()
             .unwrap()
     }
@@ -1000,7 +1000,7 @@ impl<T: Simulator> Cluster<T> {
         self.get_engine(store_id)
             .c()
             .get_msg_causet::<BraneLocalState>(
-                engine_promises::CAUSET_VIOLETABFT,
+                edb::Causet_VIOLETABFT,
                 &tuplespaceInstanton::brane_state_key(brane_id),
             )
             .unwrap()
@@ -1039,12 +1039,12 @@ impl<T: Simulator> Cluster<T> {
         let mut kv_wb = self.engines[&store_id].kv.write_batch();
         self.engines[&store_id]
             .kv
-            .scan_causet(CAUSET_VIOLETABFT, &meta_spacelike, &meta_lightlike, false, |k, _| {
+            .scan_causet(Causet_VIOLETABFT, &meta_spacelike, &meta_lightlike, false, |k, _| {
                 kv_wb.delete(k).unwrap();
                 Ok(true)
             })
             .unwrap();
-        snap.scan_causet(CAUSET_VIOLETABFT, &meta_spacelike, &meta_lightlike, false, |k, v| {
+        snap.scan_causet(Causet_VIOLETABFT, &meta_spacelike, &meta_lightlike, false, |k, v| {
             kv_wb.put(k, v).unwrap();
             Ok(true)
         })
@@ -1056,12 +1056,12 @@ impl<T: Simulator> Cluster<T> {
         );
         self.engines[&store_id]
             .kv
-            .scan_causet(CAUSET_VIOLETABFT, &violetabft_spacelike, &violetabft_lightlike, false, |k, _| {
+            .scan_causet(Causet_VIOLETABFT, &violetabft_spacelike, &violetabft_lightlike, false, |k, _| {
                 kv_wb.delete(k).unwrap();
                 Ok(true)
             })
             .unwrap();
-        snap.scan_causet(CAUSET_VIOLETABFT, &violetabft_spacelike, &violetabft_lightlike, false, |k, v| {
+        snap.scan_causet(Causet_VIOLETABFT, &violetabft_spacelike, &violetabft_lightlike, false, |k, v| {
             kv_wb.put(k, v).unwrap();
             Ok(true)
         })
@@ -1143,7 +1143,7 @@ impl<T: Simulator> Cluster<T> {
     }
 
     // It's similar to `ask_split`, the difference is the msg, it lightlikes, is `Msg::SplitBrane`,
-    // and `brane` will not be embedded to that msg.
+    // and `brane` will not be raum to that msg.
     // Caller must ensure that the `split_key` is in the `brane`.
     pub fn split_brane(
         &mut self,

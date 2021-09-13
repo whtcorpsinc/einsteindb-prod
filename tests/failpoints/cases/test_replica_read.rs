@@ -3,7 +3,7 @@
 use crossbeam::channel;
 use engine_lmdb::raw::DB;
 use engine_lmdb::Compat;
-use engine_promises::{Peekable, CAUSET_VIOLETABFT};
+use edb::{Peekable, Causet_VIOLETABFT};
 use ekvproto::violetabft_serverpb::{PeerState, VioletaBftApplyState, VioletaBftMessage, BraneLocalState};
 use violetabft::evioletabftpb::MessageType;
 use std::mem;
@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use test_violetabftstore::*;
-use einsteindb-prod_util::HandyRwLock;
+use edb_util::HandyRwLock;
 
 #[test]
 fn test_wait_for_apply_index() {
@@ -228,7 +228,7 @@ fn test_read_applying_snapshot() {
     let brane_state: BraneLocalState = cluster
         .get_engine(3)
         .c()
-        .get_msg_causet(CAUSET_VIOLETABFT, &brane_key)
+        .get_msg_causet(Causet_VIOLETABFT, &brane_key)
         .unwrap()
         .unwrap();
     assert_eq!(brane_state.get_state(), PeerState::Applying);
@@ -358,7 +358,7 @@ fn must_truncated_to(engine: Arc<DB>, brane_id: u64, index: u64) {
     for _ in 1..300 {
         let apply_state: VioletaBftApplyState = engine
             .c()
-            .get_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id))
+            .get_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id))
             .unwrap()
             .unwrap();
         let truncated_index = apply_state.get_truncated_state().get_index();

@@ -12,7 +12,7 @@ protobuf-codec = [
   "fidel_client/protobuf-codec",
   "violetabft/protobuf-codec",
   "violetabftstore/protobuf-codec",
-  "einsteindb-prod/protobuf-codec",
+  "edb/protobuf-codec",
   "txn_types/protobuf-codec",
 ]
 prost-codec = [
@@ -22,23 +22,23 @@ prost-codec = [
   "fidel_client/prost-codec",
   "violetabft/prost-codec",
   "violetabftstore/prost-codec",
-  "einsteindb-prod/prost-codec",
+  "edb/prost-codec",
   "txn_types/prost-codec",
 ]
-tcmalloc = ["einsteindb-prod/tcmalloc"]
-jemalloc = ["einsteindb-prod/jemalloc"]
-mimalloc = ["einsteindb-prod/mimalloc"]
-porBlock = ["einsteindb-prod/porBlock"]
-sse = ["einsteindb-prod/sse"]
-mem-profiling = ["einsteindb-prod/mem-profiling"]
-failpoints = ["einsteindb-prod/failpoints"]
+tcmalloc = ["edb/tcmalloc"]
+jemalloc = ["edb/jemalloc"]
+mimalloc = ["edb/mimalloc"]
+porBlock = ["edb/porBlock"]
+sse = ["edb/sse"]
+mem-profiling = ["edb/mem-profiling"]
+failpoints = ["edb/failpoints"]
 
 [deplightlikeencies]
 bitflags = "1.0"
 crossbeam = "0.7"
 hex = "0.4"
 engine_lmdb = { path = "../engine_lmdb" }
-engine_promises = { path = "../engine_promises" }
+edb = { path = "../edb" }
 failure = "0.1"
 futures = "0.3"
 grpcio = { version = "0.6", default-features = false, features = ["openssl-vlightlikeored"] }
@@ -51,8 +51,8 @@ security = { path = "../security" }
 semver = "0.10"
 slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debug"] }
 slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global.git", rev = "0e23a5baff302a9d7bccd85f8f31e43339c2f2c1" }
-einsteindb-prod = { path = "../../", default-features = false }
-einsteindb-prod_util = { path = "../einsteindb-prod_util" }
+edb = { path = "../../", default-features = false }
+edb_util = { path = "../edb_util" }
 tokio = { version = "0.2", features = ["rt-threaded"]}
 txn_types = { path = "../txn_types" }
 concurrency_manager = { path = "../concurrency_manager" }
@@ -63,7 +63,7 @@ protobuf = "2.8"
 prost = "0.6"
 
 [dev-deplightlikeencies]
-engine_promises = { path = "../engine_promises" }
+edb = { path = "../edb" }
 tempfile = "3.0"
 test_violetabftstore = { path = "../test_violetabftstore" }
 test_util = { path = "../test_util" }

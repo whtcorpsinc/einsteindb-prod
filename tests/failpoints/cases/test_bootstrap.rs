@@ -2,7 +2,7 @@
 
 use std::sync::{Arc, RwLock};
 
-use engine_promises::Peekable;
+use edb::Peekable;
 use ekvproto::{metapb, violetabft_serverpb};
 use test_violetabftstore::*;
 

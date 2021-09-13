@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use ekvproto::interlock::KeyCone;
 use milevadb_query_datatype::{EvalType, FieldTypeAccessor};
-use einsteindb-prod_util::collections::HashMap;
+use edb_util::collections::HashMap;
 use fidelpb::PrimaryCausetInfo;
 use fidelpb::FieldType;
 use fidelpb::BlockScan;
@@ -1276,7 +1276,7 @@ mod tests {
             result.physical_PrimaryCausets.PrimaryCausets_len(),
             PrimaryCausets.len() - missed_PrimaryCausets_info.len()
         );
-        // We expect we fill the primary PrimaryCauset with the value embedded in the common handle.
+        // We expect we fill the primary PrimaryCauset with the value raum in the common handle.
         for i in 0..result.physical_PrimaryCausets.PrimaryCausets_len() {
             result.physical_PrimaryCausets[i]
                 .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[i])

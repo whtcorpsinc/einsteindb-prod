@@ -12,7 +12,7 @@ use std::collections::HashMap;
 
 use uuid::Uuid;
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
 };
 
@@ -116,7 +116,7 @@ impl<'c> TxReceiver<UploaderReport> for TxUploader<'c> {
             causecausetx_chunks.push(Causet_uuid);
             d(&format!("putting chunk: {:?}, {:?}", &Causet_uuid, &Causet));
             // TODO switch over to CBOR once we're past debugging stuff.
-            // See https://github.com/whtcorpsinc/einsteindb-prod/issues/570
+            // See https://github.com/whtcorpsinc/edb/issues/570
             // let cbor_val = serde_cbor::to_value(&Causet)?;
             // self.remote_client.put_chunk(&Causet_uuid, &serde_cbor::ser::to_vec_sd(&cbor_val)?)?;
             self.remote_client.put_chunk(&Causet_uuid, &Causet)?;

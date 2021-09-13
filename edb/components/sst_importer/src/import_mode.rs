@@ -4,28 +4,28 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::time::Instant;
 
-use Embedded_promises::{PrimaryCausetNetworkOptions, DBOptions, TxnEmbedded};
+use Raum_promises::{PrimaryCausetNetworkOptions, DBOptions, TxnRaum};
 use futures::executor::ThreadPool;
 use futures_util::compat::Future01CompatExt;
 use eTxnproto::import_sstpb::*;
-use einsteindb-prod_util::timer::GLOBAL_TIMER_HANDLE;
+use edb_util::timer::GLOBAL_TIMER_HANDLE;
 
 use super::Config;
 use super::Result;
 
 type LmdbDBMetricsFn = fn(causet: &str, name: &str, v: f64);
 
-struct ImportModeSwitcherInner<E: TxnEmbedded> {
+struct ImportModeSwitcherInner<E: TxnRaum> {
     mode: SwitchMode,
     backup_db_options: ImportModeDBOptions,
-    backup_causet_options: Vec<(String, ImportModeCAUSETOptions)>,
+    backup_causet_options: Vec<(String, ImportModeCausetOptions)>,
     timeout: Duration,
     next_check: Instant,
     db: E,
     metrics_fn: LmdbDBMetricsFn,
 }
 
-impl<E: TxnEmbedded> ImportModeSwitcherInner<E> {
+impl<E: TxnRaum> ImportModeSwitcherInner<E> {
     fn enter_normal_mode(&mut self, mf: LmdbDBMetricsFn) -> Result<()> {
         if self.mode == SwitchMode::Normal {
             return Ok(());
@@ -51,7 +51,7 @@ impl<E: TxnEmbedded> ImportModeSwitcherInner<E> {
         let import_db_options = self.backup_db_options.optimized_for_import_mode();
         import_db_options.set_options(&self.db)?;
         for causet_name in self.db.causet_names() {
-            let causet_opts = ImportModeCAUSETOptions::new_options(&self.db, causet_name);
+            let causet_opts = ImportModeCausetOptions::new_options(&self.db, causet_name);
             let import_causet_options = causet_opts.optimized_for_import_mode();
             self.backup_causet_options.push((causet_name.to_owned(), causet_opts));
             import_causet_options.set_options(&self.db, causet_name, mf)?;
@@ -67,11 +67,11 @@ impl<E: TxnEmbedded> ImportModeSwitcherInner<E> {
 }
 
 #[derive(Clone)]
-pub struct ImportModeSwitcher<E: TxnEmbedded> {
+pub struct ImportModeSwitcher<E: TxnRaum> {
     inner: Arc<Mutex<ImportModeSwitcherInner<E>>>,
 }
 
-impl<E: TxnEmbedded> ImportModeSwitcher<E> {
+impl<E: TxnRaum> ImportModeSwitcher<E> {
     pub fn new(causet: &Config, executor: &ThreadPool, db: E) -> ImportModeSwitcher<E> {
         fn mf(_causet: &str, _name: &str, _v: f64) {}
 
@@ -152,14 +152,14 @@ impl ImportModeDBOptions {
         }
     }
 
-    fn new_options(db: &impl TxnEmbedded) -> ImportModeDBOptions {
+    fn new_options(db: &impl TxnRaum) -> ImportModeDBOptions {
         let db_opts = db.get_db_options();
         ImportModeDBOptions {
             max_background_jobs: db_opts.get_max_background_jobs(),
         }
     }
 
-    fn set_options(&self, db: &impl TxnEmbedded) -> Result<()> {
+    fn set_options(&self, db: &impl TxnRaum) -> Result<()> {
         let opts = [(
             "max_background_jobs".to_string(),
             self.max_background_jobs.to_string(),
@@ -170,13 +170,13 @@ impl ImportModeDBOptions {
     }
 }
 
-struct ImportModeCAUSETOptions {
+struct ImportModeCausetOptions {
     level0_stop_writes_trigger: u32,
     level0_slowdown_writes_trigger: u32,
     soft_plightlikeing_compaction_bytes_llightlike: u64,
 }
 
-impl ImportModeCAUSETOptions {
+impl ImportModeCausetOptions {
     fn optimized_for_import_mode(&self) -> Self {
         Self {
             level0_stop_writes_trigger: self.level0_stop_writes_trigger.max(1 << 30),
@@ -185,18 +185,18 @@ impl ImportModeCAUSETOptions {
         }
     }
 
-    fn new_options(db: &impl TxnEmbedded, causet_name: &str) -> ImportModeCAUSETOptions {
+    fn new_options(db: &impl TxnRaum, causet_name: &str) -> ImportModeCausetOptions {
         let causet = db.causet_handle(causet_name).unwrap();
         let causet_opts = db.get_options_causet(causet);
 
-        ImportModeCAUSETOptions {
-            level0_stop_writes_trigger: causet_opts.get_level_zero_stop_writes_trigger(),
-            level0_slowdown_writes_trigger: causet_opts.get_level_zero_slowdown_writes_trigger(),
+        ImportModeCausetOptions {
+            level0_stop_writes_trigger: causet_opts.ground_state_write_pullback(),
+            level0_slowdown_writes_trigger: causet_opts.ground_state_write_retardationr(),
             soft_plightlikeing_compaction_bytes_limit: causet_opts.get_soft_plightlikeing_compaction_bytes_lightlike: caulightlike(),
         }
     }
 
-    fn set_options(&self, db: &impl TxnEmbedded, causet_name: &str, mf: LmdbDBMetricsFn) -> Result<()> {
+    fn set_options(&self, db: &impl TxnRaum, causet_name: &str, mf: LmdbDBMetricsFn) -> Result<()> {
         let causet = db.causet_handle(causet_name).unwrap();
         let opts = [
             (
@@ -231,19 +231,19 @@ impl ImportModeCAUSETOptions {
 mod tests {
     use super::*;
 
-    use Embedded_promises::TxnEmbedded;
+    use Raum_promises::TxnRaum;
     use futures::executor::ThreadPoolBuilder;
     use std::thread;
     use tempfile::Builder;
-    use test_sst_importer::{new_test_Embedded, new_test_Embedded_with_options};
-    use einsteindb-prod_util::config::ReadableDuration;
+    use test_sst_importer::{new_test_Raum, new_test_Raum_with_options};
+    use edb_util::config::ReadableDuration;
 
     fn check_import_options<E>(
         db: &E,
         expected_db_opts: &ImportModeDBOptions,
-        expected_causet_opts: &ImportModeCAUSETOptions,
+        expected_causet_opts: &ImportModeCausetOptions,
     ) where
-        E: TxnEmbedded,
+        E: TxnRaum,
     {
         let db_opts = db.get_db_options();
         assert_eq!(
@@ -255,15 +255,15 @@ mod tests {
             let causet = db.causet_handle(causet_name).unwrap();
             let causet_opts = db.get_options_causet(causet);
             assert_eq!(
-                causet_opts.get_level_zero_stop_writes_trigger(),
+                causet_opts.ground_state_write_pullback(),
                 expected_causet_opts.level0_stop_writes_trigger
             );
             assert_eq!(
-                causet_opts.get_level_zero_slowdown_writes_trigger(),
+                causet_opts.ground_state_write_retardationr(),
                 expected_causet_opts.level0_slowdown_writes_trigger
             );
             assert_eq!(
-                causet_opts.get_soft_plightlikeing_compaction_bytes_limit(),
+                causet_opts.pull_gradient_descent_on_timestep_byte_limit(),
                 expected_causet_opts.soft_plightlikeing_compaction_bytes_limit
             );
             assert_eq!(
@@ -279,11 +279,11 @@ mod tests {
             .prefix("test_import_mode_switcher")
             .temfidelir()
             .unwrap();
-        let db = new_test_Embedded(temp_dir.path().to_str().unwrap(), &["a", "b"]);
+        let db = new_test_Raum(temp_dir.path().to_str().unwrap(), &["a", "b"]);
 
         let normal_db_options = ImportModeDBOptions::new_options(&db);
         let import_db_options = normal_db_options.optimized_for_import_mode();
-        let normal_causet_options = ImportModeCAUSETOptions::new_options(&db, "default");
+        let normal_causet_options = ImportModeCausetOptions::new_options(&db, "default");
         let import_causet_options = normal_causet_options.optimized_for_import_mode();
 
         assert!(
@@ -318,11 +318,11 @@ mod tests {
             .prefix("test_import_mode_timeout")
             .temfidelir()
             .unwrap();
-        let db = new_test_Embedded(temp_dir.path().to_str().unwrap(), &["a", "b"]);
+        let db = new_test_Raum(temp_dir.path().to_str().unwrap(), &["a", "b"]);
 
         let normal_db_options = ImportModeDBOptions::new_options(&db);
         let import_db_options = normal_db_options.optimized_for_import_mode();
-        let normal_causet_options = ImportModeCAUSETOptions::new_options(&db, "default");
+        let normal_causet_options = ImportModeCausetOptions::new_options(&db, "default");
         let import_causet_options = normal_causet_options.optimized_for_import_mode();
 
         fn mf(_causet: &str, _name: &str, _v: f64) {}
@@ -349,18 +349,18 @@ mod tests {
 
     #[test]
     fn test_import_mode_should_not_decrease_level0_stop_writes_trigger() {
-        // This checks issue einsteindb-prod/einsteindb-prod#6545.
+        // This checks issue edb/edb#6545.
         let temp_dir = Builder::new()
             .prefix("test_import_mode_should_not_decrease_level0_stop_writes_trigger")
             .temfidelir()
             .unwrap();
-        let db = new_test_Embedded_with_options(
+        let db = new_test_Raum_with_options(
             temp_dir.path().to_str().unwrap(),
             &["default"],
             |_, opt| opt.set_level_zero_stop_writes_trigger(2_000_000_000),
         );
 
-        let normal_causet_options = ImportModeCAUSETOptions::new_options(&db, "default");
+        let normal_causet_options = ImportModeCausetOptions::new_options(&db, "default");
         assert_eq!(normal_causet_options.level0_stop_writes_trigger, 2_000_000_000);
         let import_causet_options = normal_causet_options.optimized_for_import_mode();
         assert_eq!(import_causet_options.level0_stop_writes_trigger, 2_000_000_000);

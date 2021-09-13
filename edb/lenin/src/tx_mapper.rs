@@ -11,7 +11,7 @@
 use rusqlite;
 use uuid::Uuid;
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
 };
 

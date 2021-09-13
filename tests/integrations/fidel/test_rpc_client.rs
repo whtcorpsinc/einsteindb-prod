@@ -15,7 +15,7 @@ use fidel_client::{validate_lightlikepoints, Error as FidelError, FidelClient, B
 use violetabftstore::store;
 use security::{SecurityConfig, SecurityManager};
 use semver::Version;
-use einsteindb-prod_util::config::ReadableDuration;
+use edb_util::config::ReadableDuration;
 use txn_types::TimeStamp;
 
 use test_fidel::{mocker::*, util::*, Server as MockServer};

@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use engine_promises::{EncryptionKeyManager, FileEncryptionInfo};
+use edb::{EncryptionKeyManager, FileEncryptionInfo};
 use ekvproto::encryptionpb::{DataKey, EncryptionMethod, FileDictionary, FileInfo, KeyDictionary};
 use protobuf::Message;
 
@@ -564,7 +564,7 @@ mod tests {
     use crate::config::{FileConfig, Mock};
     use crate::master_key::tests::MockBacklightlike;
 
-    use engine_promises::EncryptionMethod as DBEncryptionMethod;
+    use edb::EncryptionMethod as DBEncryptionMethod;
     use matches::assert_matches;
     use std::{
         fs::{remove_file, File},

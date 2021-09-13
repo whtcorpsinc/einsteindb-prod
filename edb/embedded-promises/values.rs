@@ -12,7 +12,7 @@
 
 /// Literal `Value` instances in the the "edb" namespace.
 ///
-/// Used through-out the transactor to match embedded EDB constructs.
+/// Used through-out the transactor to match raum EDB constructs.
 
 use edbn::types::Value;
 use edbn::symbols;
@@ -43,7 +43,7 @@ lazy_static_namespaced_keyword_value!(DB_CARDINALITY, "edb", "cardinality");
 lazy_static_namespaced_keyword_value!(DB_CARDINALITY_MANY, "edb.cardinality", "many");
 lazy_static_namespaced_keyword_value!(DB_CARDINALITY_ONE, "edb.cardinality", "one");
 lazy_static_namespaced_keyword_value!(DB_FULLTEXT, "edb", "fulltext");
-lazy_static_namespaced_keyword_value!(DB_CAUSETID, "edb", "causetid");
+lazy_static_namespaced_keyword_value!(DB_CausetID, "edb", "causetid");
 lazy_static_namespaced_keyword_value!(DB_INDEX, "edb", "index");
 lazy_static_namespaced_keyword_value!(DB_INSTALL_ATTRIBUTE, "edb.install", "attribute");
 lazy_static_namespaced_keyword_value!(DB_IS_COMPONENT, "edb", "isComponent");
@@ -60,6 +60,6 @@ lazy_static_namespaced_keyword_value!(DB_TYPE_STRING, "edb.type", "string");
 lazy_static_namespaced_keyword_value!(DB_TYPE_URI, "edb.type", "uri");
 lazy_static_namespaced_keyword_value!(DB_TYPE_UUID, "edb.type", "uuid");
 lazy_static_namespaced_keyword_value!(DB_UNIQUE, "edb", "unique");
-lazy_static_namespaced_keyword_value!(DB_UNIQUE_CAUSETIDITY, "edb.unique", "causetIdity");
+lazy_static_namespaced_keyword_value!(DB_UNIQUE_CausetIDITY, "edb.unique", "causetIdity");
 lazy_static_namespaced_keyword_value!(DB_UNIQUE_VALUE, "edb.unique", "value");
 lazy_static_namespaced_keyword_value!(DB_VALUE_TYPE, "edb", "valueType");

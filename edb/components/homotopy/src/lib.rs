@@ -4,7 +4,7 @@
 // interdeplightlikeencies. These are used to convert between error_promises::Error and
 // other Error's that error_promises can't deplightlike on.
 
-use engine_promises::Error as EnginePromisesError;
+use edb::Error as EnginePromisesError;
 use ekvproto::errorpb::Error as ProtoError;
 use violetabft::Error as VioletaBftError;
 

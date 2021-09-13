@@ -19,9 +19,9 @@ use violetabftstore::store::{
 };
 use violetabftstore::Result as VioletaBftStoreResult;
 use violetabftstore::{DiscardReason, Error, Result};
-use einsteindb-prod_util::collections::{HashMap, HashSet};
-use einsteindb-prod_util::time::ThreadReadId;
-use einsteindb-prod_util::{Either, HandyRwLock};
+use edb_util::collections::{HashMap, HashSet};
+use edb_util::time::ThreadReadId;
+use edb_util::{Either, HandyRwLock};
 
 pub fn check_messages(msgs: &[VioletaBftMessage]) -> Result<()> {
     if msgs.is_empty() {

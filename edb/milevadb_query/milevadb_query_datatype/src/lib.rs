@@ -16,12 +16,12 @@ extern crate num_derive;
 #[macro_use]
 extern crate static_assertions;
 #[macro_use(box_err, box_try, try_opt, error, warn)]
-extern crate einsteindb-prod_util;
+extern crate edb_util;
 
 #[macro_use]
 extern crate bitflags;
 #[allow(unused_extern_crates)]
-extern crate einsteindb-prod_alloc;
+extern crate edb_alloc;
 
 pub mod builder;
 pub mod def;

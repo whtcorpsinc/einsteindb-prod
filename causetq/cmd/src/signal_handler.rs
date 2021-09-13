@@ -5,11 +5,11 @@ pub use self::imp::wait_for_signal;
 #[causet(unix)]
 mod imp {
     use engine_lmdb::LmdbEngine;
-    use engine_promises::{Engines, MiscExt, VioletaBftEngine};
+    use edb::{Engines, MiscExt, VioletaBftEngine};
     use libc::c_int;
     use nix::sys::signal::{SIGHUP, SIGINT, SIGTERM, SIGUSR1, SIGUSR2};
     use signal::trap::Trap;
-    use einsteindb-prod_util::metrics;
+    use edb_util::metrics;
 
     #[allow(dead_code)]
     pub fn wait_for_signal<ER: VioletaBftEngine>(engines: Option<Engines<LmdbEngine, ER>>) {
@@ -38,7 +38,7 @@ mod imp {
 #[causet(not(unix))]
 mod imp {
     use engine_lmdb::LmdbEngine;
-    use engine_promises::Engines;
+    use edb::Engines;
 
     pub fn wait_for_signal(_: Option<Engines<LmdbEngine, LmdbEngine>>) {}
 }

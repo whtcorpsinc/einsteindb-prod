@@ -10,12 +10,12 @@ use ekvproto::violetabft_serverpb::*;
 use violetabft::evioletabftpb::{Message, MessageType};
 
 use engine_lmdb::Compat;
-use engine_promises::Peekable;
+use edb::Peekable;
 use violetabftstore::store::*;
 use violetabftstore::Result;
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::*;
-use einsteindb-prod_util::HandyRwLock;
+use edb_util::config::*;
+use edb_util::HandyRwLock;
 
 fn test_huge_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 1000;

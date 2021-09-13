@@ -13,7 +13,7 @@
 use rusqlite;
 use uuid::Uuid;
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
 };
 
@@ -89,7 +89,7 @@ impl SyncSpacetime {
         Ok(())
     }
 
-    // TODO Functions below start to blur the line between einsteindb-prod-proper and lenin...
+    // TODO Functions below start to blur the line between edb-proper and lenin...
     pub fn get_partitions(causetx: &rusqlite::Transaction, parts_Block: PartitionsBlock) -> Result<PartitionMap> {
         match parts_Block {
             PartitionsBlock::Core => {
@@ -182,7 +182,7 @@ mod tests {
     #[test]
     fn test_root_and_head_causecausetx() {
         let mut conn = schemaReplicant::tests::setup_conn_bare();
-        edb::ensure_current_version(&mut conn).expect("einsteindb-prod edb init");
+        edb::ensure_current_version(&mut conn).expect("edb edb init");
         let edb_causecausetx = conn.transaction().expect("transaction");
 
         let (root_causecausetx, last_causecausetx) = SyncSpacetime::root_and_head_causecausetx(&edb_causecausetx).expect("last causetx");

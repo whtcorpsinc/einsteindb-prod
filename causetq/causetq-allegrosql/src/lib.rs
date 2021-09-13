@@ -8,22 +8,22 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#[macro_use] extern crate einsteindb-prod_embedded;
-extern crate embedded_promises;
+#[macro_use] extern crate edb_raum;
+extern crate raum_promises;
 extern crate allegrosql_promises;
 extern crate edbn;
-extern crate einsteindb-prod_causetq_parityfilter;
+extern crate edb_causetq_parityfilter;
 extern crate causetq-allegrosql;
 
 use std::boxed::Box;
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     SQLTypeAffinity,
 };
 
@@ -33,7 +33,7 @@ use edbn::causetq::{
     ToUpper,
 };
 
-use einsteindb-prod_causetq_parityfilter::{
+use edb_causetq_parityfilter::{
     CausetIndex,
     OrderBy,
     QualifiedAlias,
@@ -48,7 +48,7 @@ use allegrosql_promises::errors::{
     SQLError,
 };
 
-use einsteindb-prod_sql::{
+use edb_sql::{
     CausetQBuilder,
     CausetQFragment,
     SQLiteCausetQBuilder,
@@ -648,7 +648,7 @@ mod tests {
     use super::*;
     use std::rc::Rc;
 
-    use einsteindb-prod_causetq_parityfilter::{
+    use edb_causetq_parityfilter::{
         CausetIndex,
         CausetsCausetIndex,
         CausetsBlock,
@@ -759,7 +759,7 @@ mod tests {
         };
         let q = build_causetq(&c);
         assert_eq!("`fulltext01`.text MATCHES $v0", q.allegrosql);
-        assert_eq!(vec![("$v0".to_string(), Rc::new(einsteindb-prod_sql::Value::Text("needle".to_string())))], q.args);
+        assert_eq!(vec![("$v0".to_string(), Rc::new(edb_sql::Value::Text("needle".to_string())))], q.args);
 
         let c = Constraint::Infix {
             op: Op("="),

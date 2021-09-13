@@ -3,11 +3,11 @@ use std::time::Duration;
 
 use security::SecurityManager;
 use test_violetabftstore::TestFidelClient;
-use einsteindb-prod::config::*;
-use einsteindb-prod::server::lock_manager::*;
-use einsteindb-prod::server::resolve::{Callback, StoreAddrResolver};
-use einsteindb-prod::server::{Error, Result};
-use einsteindb-prod_util::config::ReadableDuration;
+use edb::config::*;
+use edb::server::lock_manager::*;
+use edb::server::resolve::{Callback, StoreAddrResolver};
+use edb::server::{Error, Result};
+use edb_util::config::ReadableDuration;
 
 #[test]
 fn test_config_validate() {

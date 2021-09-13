@@ -15,19 +15,19 @@ use violetabft::evioletabftpb;
 use concurrency_manager::ConcurrencyManager;
 use engine_lmdb::raw::WriBlock;
 use engine_lmdb::Compat;
-use engine_promises::Peekable;
-use engine_promises::{MiscExt, SyncMuBlock, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
+use edb::Peekable;
+use edb::{MiscExt, SyncMuBlock, Causet_DEFAULT, Causet_DAGGER, Causet_VIOLETABFT, Causet_WRITE};
 use violetabftstore::interlock::InterlockHost;
 use violetabftstore::store::fsm::store::StoreMeta;
 use violetabftstore::store::{AutoSplitController, SnapManager};
 use tempfile::Builder;
 use test_violetabftstore::*;
-use einsteindb-prod::interlock::REQ_TYPE_DAG;
-use einsteindb-prod::import::SSTImporter;
-use einsteindb-prod::server::gc_worker::sync_gc;
-use einsteindb-prod::causetStorage::tail_pointer::{Dagger, LockType, TimeStamp};
-use einsteindb-prod_util::worker::{FutureWorker, Worker};
-use einsteindb-prod_util::HandyRwLock;
+use edb::interlock::REQ_TYPE_DAG;
+use edb::import::SSTImporter;
+use edb::server::gc_worker::sync_gc;
+use edb::causetStorage::tail_pointer::{Dagger, LockType, TimeStamp};
+use edb_util::worker::{FutureWorker, Worker};
+use edb_util::HandyRwLock;
 use txn_types::Key;
 
 #[test]
@@ -493,7 +493,7 @@ fn test_debug_get() {
 
     // Debug get
     let mut req = debugpb::GetRequest::default();
-    req.set_causet(CAUSET_DEFAULT.to_owned());
+    req.set_causet(Causet_DEFAULT.to_owned());
     req.set_db(debugpb::Db::Kv);
     req.set_key(key);
     let mut resp = debug_client.get(&req.clone()).unwrap();
@@ -574,12 +574,12 @@ fn test_debug_brane_info() {
     apply_state.set_applied_index(42);
     kv_engine
         .c()
-        .put_msg_causet(CAUSET_VIOLETABFT, &apply_state_key, &apply_state)
+        .put_msg_causet(Causet_VIOLETABFT, &apply_state_key, &apply_state)
         .unwrap();
     assert_eq!(
         kv_engine
             .c()
-            .get_msg_causet::<violetabft_serverpb::VioletaBftApplyState>(CAUSET_VIOLETABFT, &apply_state_key)
+            .get_msg_causet::<violetabft_serverpb::VioletaBftApplyState>(Causet_VIOLETABFT, &apply_state_key)
             .unwrap()
             .unwrap(),
         apply_state
@@ -590,12 +590,12 @@ fn test_debug_brane_info() {
     brane_state.set_state(violetabft_serverpb::PeerState::Tombstone);
     kv_engine
         .c()
-        .put_msg_causet(CAUSET_VIOLETABFT, &brane_state_key, &brane_state)
+        .put_msg_causet(Causet_VIOLETABFT, &brane_state_key, &brane_state)
         .unwrap();
     assert_eq!(
         kv_engine
             .c()
-            .get_msg_causet::<violetabft_serverpb::BraneLocalState>(CAUSET_VIOLETABFT, &brane_state_key)
+            .get_msg_causet::<violetabft_serverpb::BraneLocalState>(Causet_VIOLETABFT, &brane_state_key)
             .unwrap()
             .unwrap(),
         brane_state
@@ -634,10 +634,10 @@ fn test_debug_brane_size() {
     state.set_brane(brane);
     engine
         .c()
-        .put_msg_causet(CAUSET_VIOLETABFT, &brane_state_key, &state)
+        .put_msg_causet(Causet_VIOLETABFT, &brane_state_key, &state)
         .unwrap();
 
-    let causets = vec![CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_WRITE];
+    let causets = vec![Causet_DEFAULT, Causet_DAGGER, Causet_WRITE];
     // At lease 8 bytes for the WRITE causet.
     let (k, v) = (tuplespaceInstanton::data_key(b"kkkk_kkkk"), b"v");
     for causet in &causets {
@@ -723,7 +723,7 @@ fn test_debug_scan_tail_pointer() {
             TimeStamp::zero(),
         )
         .to_bytes();
-        let causet_handle = engine.causet_handle(CAUSET_DAGGER).unwrap();
+        let causet_handle = engine.causet_handle(Causet_DAGGER).unwrap();
         engine.put_causet(causet_handle, k.as_slice(), &v).unwrap();
     }
 

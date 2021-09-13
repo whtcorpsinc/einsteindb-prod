@@ -14,7 +14,7 @@ use milevadb_query_shared_expr::string::{
     encoded_size, line_wrap, strip_whitespace, trim, validate_target_len_for_pad, TrimDirection,
     BASE64_ENCODED_Soliton_LENGTH, BASE64_INPUT_Soliton_LENGTH,
 };
-use einsteindb-prod_util::try_opt_or;
+use edb_util::try_opt_or;
 
 use crate::ScalarFunc;
 use milevadb_query_datatype::codec::{datum, Datum};

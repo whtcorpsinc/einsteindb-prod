@@ -1,10 +1,10 @@
 [package]
-name = "embedded-promises"
+name = "raum-promises"
 version = "0.0.1"
 workspace = ".."
 
 [lib]
-name = "embedded_promises"
+name = "raum_promises"
 path = "lib.rs"
 
 [dependencies]

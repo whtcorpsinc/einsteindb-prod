@@ -1,10 +1,10 @@
 [package]
-name = "edb_promises"
+name = "edbn_promises"
 version = "0.0.1"
 workspace = ".."
 
 [lib]
-name = "edb_promises"
+name = "edbn_promises"
 path = "lib.rs"
 
 [features]
@@ -15,10 +15,10 @@ failure = "0.1.1"
 failure_derive = "0.1.1"
 
 [dependencies.edbn]
-path = "../edbn"
+path = "../edb/edbn"
 
-[dependencies.embedded_promises]
-path = "../embedded-promises"
+[dependencies.raum_promises]
+path = "../raum-promises"
 
 [dependencies.rusqlite]
 version = "0.24.2"

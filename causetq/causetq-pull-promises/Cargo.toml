@@ -11,8 +11,8 @@ path = "lib.rs"
 failure = "0.1.1"
 failure_derive = "0.1.1"
 
-[dependencies.embedded_promises]
-path = "../embedded-promises"
+[dependencies.raum_promises]
+path = "../raum-promises"
 
 [dependencies.edb_promises]
 path = "../edb-promises"

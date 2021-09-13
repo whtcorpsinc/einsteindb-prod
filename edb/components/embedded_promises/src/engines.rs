@@ -1,6 +1,6 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::engine::KvEngine;
+use crate::edb::KvEngine;
 use crate::errors::Result;
 use crate::options::WriteOptions;
 use crate::violetabft_engine::VioletaBftEngine;

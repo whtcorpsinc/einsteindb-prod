@@ -2,7 +2,7 @@
 
 use std::error::Error;
 use std::result::Result;
-use einsteindb-prod_util::config::ReadableDuration;
+use edb_util::config::ReadableDuration;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(default)]

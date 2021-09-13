@@ -48,7 +48,7 @@ pub fn run_prometheus(
     let handler = thread::Builder::new()
         .name("promepusher".to_owned())
         .spawn(move || {
-            einsteindb-prod_alloc::add_thread_memory_accessor();
+            edb_alloc::add_thread_memory_accessor();
             loop {
                 let metric_families = prometheus::gather();
 
@@ -85,7 +85,7 @@ pub fn dump() -> String {
 
 lazy_static! {
     pub static ref CRITICAL_ERROR: IntCounterVec = register_int_counter_vec!(
-        "einsteindb-prod_critical_error_total",
+        "edb_critical_error_total",
         "Counter of critical error.",
         &["type"]
     )

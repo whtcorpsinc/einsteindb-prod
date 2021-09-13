@@ -1,26 +1,26 @@
 // Copyright 2020 WHTCORPS INC Project Authors. Licensed Under Apache-2.0
 
-use engine_promises::{DecodeProperties, IndexHandles};
+use edb::{DecodeProperties, IndexHandles};
 use std::cmp;
 use std::collections::HashMap;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
 use std::u64;
 
-use engine_promises::KvEngine;
-use engine_promises::Cone;
-use engine_promises::{IndexHandle, BlockProperties, BlockPropertiesCollection};
+use edb::KvEngine;
+use edb::Cone;
+use edb::{IndexHandle, BlockProperties, BlockPropertiesCollection};
 use lmdb::{
     DBEntryType, BlockPropertiesCollector, BlockPropertiesCollectorFactory, NoetherBlobIndex,
     UserCollectedProperties,
 };
-use einsteindb-prod_util::codec::number::{self, NumberEncoder};
-use einsteindb-prod_util::codec::{Error, Result};
+use edb_util::codec::number::{self, NumberEncoder};
+use edb_util::codec::{Error, Result};
 use txn_types::{Key, TimeStamp, Write, WriteType};
 
-const PROP_TOTAL_SIZE: &str = "einsteindb-prod.total_size";
-const PROP_SIZE_INDEX: &str = "einsteindb-prod.size_index";
-const PROP_RANGE_INDEX: &str = "einsteindb-prod.cone_index";
+const PROP_TOTAL_SIZE: &str = "edb.total_size";
+const PROP_SIZE_INDEX: &str = "edb.size_index";
+const PROP_RANGE_INDEX: &str = "edb.cone_index";
 pub const DEFAULT_PROP_SIZE_INDEX_DISTANCE: u64 = 4 * 1024 * 1024;
 pub const DEFAULT_PROP_KEYS_INDEX_DISTANCE: u64 = 40 * 1024;
 
@@ -398,15 +398,15 @@ impl BlockPropertiesCollectorFactory for ConePropertiesCollectorFactory {
     }
 }
 
-const PROP_NUM_ERRORS: &str = "einsteindb-prod.num_errors";
-const PROP_MIN_TS: &str = "einsteindb-prod.min_ts";
-const PROP_MAX_TS: &str = "einsteindb-prod.max_ts";
-const PROP_NUM_ROWS: &str = "einsteindb-prod.num_rows";
-const PROP_NUM_PUTS: &str = "einsteindb-prod.num_puts";
-const PROP_NUM_DELETES: &str = "einsteindb-prod.num_deletes";
-const PROP_NUM_VERSIONS: &str = "einsteindb-prod.num_versions";
-const PROP_MAX_ROW_VERSIONS: &str = "einsteindb-prod.max_row_versions";
-const PROP_ROWS_INDEX: &str = "einsteindb-prod.rows_index";
+const PROP_NUM_ERRORS: &str = "edb.num_errors";
+const PROP_MIN_TS: &str = "edb.min_ts";
+const PROP_MAX_TS: &str = "edb.max_ts";
+const PROP_NUM_ROWS: &str = "edb.num_rows";
+const PROP_NUM_PUTS: &str = "edb.num_puts";
+const PROP_NUM_DELETES: &str = "edb.num_deletes";
+const PROP_NUM_VERSIONS: &str = "edb.num_versions";
+const PROP_MAX_ROW_VERSIONS: &str = "edb.max_row_versions";
+const PROP_ROWS_INDEX: &str = "edb.rows_index";
 const PROP_ROWS_INDEX_DISTANCE: u64 = 10000;
 
 #[derive(Clone, Debug, Default)]
@@ -588,7 +588,7 @@ impl BlockPropertiesCollectorFactory for MvccPropertiesCollectorFactory {
 
 pub fn get_cone_entries_and_versions<E>(
     engine: &E,
-    causet: &E::CAUSETHandle,
+    causet: &E::CausetHandle,
     spacelike: &[u8],
     lightlike: &[u8],
 ) -> Option<(u64, u64)>
@@ -632,9 +632,9 @@ mod tests {
     use test::Bencher;
 
     use crate::compat::Compat;
-    use crate::raw_util::CAUSETOptions;
-    use engine_promises::CAUSETHandleExt;
-    use engine_promises::{CAUSET_WRITE, LARGE_CAUSETS};
+    use crate::raw_util::CausetOptions;
+    use edb::CausetHandleExt;
+    use edb::{Causet_WRITE, LARGE_CausetS};
     use txn_types::{Key, Write, WriteType};
 
     use super::*;
@@ -806,10 +806,10 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(MvccPropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.tail_pointer-properties-collector", f);
-        let causets_opts = LARGE_CAUSETS
+        causet_opts.add_Block_properties_collector_factory("edb.tail_pointer-properties-collector", f);
+        let causets_opts = LARGE_CausetS
             .iter()
-            .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
+            .map(|causet| CausetOptions::new(causet, causet_opts.clone()))
             .collect();
         let db = Arc::new(crate::raw_util::new_engine_opt(path_str, db_opts, causets_opts).unwrap());
 
@@ -820,7 +820,7 @@ mod tests {
                     .applightlike_ts(2.into())
                     .as_encoded(),
             );
-            let write_causet = db.causet_handle(CAUSET_WRITE).unwrap();
+            let write_causet = db.causet_handle(Causet_WRITE).unwrap();
             db.put_causet(write_causet, &k1, b"v1").unwrap();
             db.delete_causet(write_causet, &k1).unwrap();
             let key = tuplespaceInstanton::data_key(
@@ -834,7 +834,7 @@ mod tests {
 
         let spacelike_tuplespaceInstanton = tuplespaceInstanton::data_key(&[]);
         let lightlike_tuplespaceInstanton = tuplespaceInstanton::data_lightlike_key(&[]);
-        let causet = db.c().causet_handle(CAUSET_WRITE).unwrap();
+        let causet = db.c().causet_handle(Causet_WRITE).unwrap();
         let (entries, versions) =
             get_cone_entries_and_versions(db.c(), causet, &spacelike_tuplespaceInstanton, &lightlike_tuplespaceInstanton).unwrap();
         assert_eq!(entries, (cases.len() * 2) as u64);

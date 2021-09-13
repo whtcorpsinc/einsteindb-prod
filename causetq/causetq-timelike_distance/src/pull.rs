@@ -13,14 +13,14 @@ use std::collections::{
     BTreeSet,
 };
 
-use embedded_promises::{
+use raum_promises::{
     ConstrainedEntsConstraint,
     SolitonId,
     StructuredMap,
     MinkowskiType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     SchemaReplicant,
     ValueRc,
 };
@@ -29,7 +29,7 @@ use edbn::causetq::{
     PullAttributeSpec,
 };
 
-use einsteindb-prod_causetq_pull::{
+use edb_causetq_pull::{
     Puller,
 };
 

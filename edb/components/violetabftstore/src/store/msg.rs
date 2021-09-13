@@ -3,7 +3,7 @@
 use std::fmt;
 use std::time::Instant;
 
-use engine_promises::{CompactedEvent, KvEngine, Snapshot};
+use edb::{CompactedEvent, KvEngine, Snapshot};
 use ekvproto::import_sstpb::SstMeta;
 use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
 use ekvproto::metapb;
@@ -19,7 +19,7 @@ use crate::store::fsm::apply::{CatchUpLogs, ChangeCmd};
 use crate::store::metrics::VioletaBftEventDurationType;
 use crate::store::util::TuplespaceInstantonInfoFormatter;
 use crate::store::SnapKey;
-use einsteindb-prod_util::escape;
+use edb_util::escape;
 
 use super::{AbstractPeer, BraneSnapshot};
 

@@ -61,7 +61,7 @@ where
     /// Set DB for the builder. The builder may need some config from the DB.
     fn set_db(self, db: &E) -> Self;
 
-    /// Set CAUSET for the builder. The builder may need some config from the CAUSET.
+    /// Set Causet for the builder. The builder may need some config from the Causet.
     fn set_causet(self, causet: CfName) -> Self;
 
     /// Set it to true, the builder builds a in-memory SST builder.

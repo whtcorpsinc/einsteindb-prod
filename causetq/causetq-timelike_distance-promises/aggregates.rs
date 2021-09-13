@@ -8,7 +8,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use embedded_promises::{
+use raum_promises::{
     MinkowskiValueType,
     MinkowskiSet,
 };
@@ -19,13 +19,13 @@ use edbn::causetq::{
     ToUpper,
 };
 
-use einsteindb-prod_causetq_parityfilter::{
+use edb_causetq_parityfilter::{
     CausetIndexName,
     ConjoiningGerunds,
     VariableCausetIndex,
 };
 
-use einsteindb-prod_causetq_sql::{
+use edb_causetq_sql::{
     CausetIndexOrExpression,
     Expression,
     Name,

@@ -2,12 +2,12 @@
 
 use std::cmp::Ordering;
 
-use engine_promises::{IterOptions, Iteron, KvEngine, SeekKey, CAUSET_WRITE};
+use edb::{IterOptions, Iteron, KvEngine, SeekKey, Causet_WRITE};
 use error_code::ErrorCodeExt;
 use ekvproto::metapb::Brane;
 use ekvproto::fidelpb::CheckPolicy;
 use milevadb_query_datatype::codec::Block as Block_codec;
-use einsteindb-prod_util::keybuilder::KeyBuilder;
+use edb_util::keybuilder::KeyBuilder;
 use txn_types::Key;
 
 use super::super::{
@@ -184,14 +184,14 @@ fn last_key_of_brane(db: &impl KvEngine, brane: &Brane) -> Result<Option<Vec<u8>
         Some(KeyBuilder::from_vec(lightlike_key, 0, 0)),
         false,
     );
-    let mut iter = box_try!(db.Iteron_causet_opt(CAUSET_WRITE, iter_opt));
+    let mut iter = box_try!(db.Iteron_causet_opt(Causet_WRITE, iter_opt));
 
     // the last key
     let found: Result<bool> = iter.seek(SeekKey::End).map_err(|e| box_err!(e));
     if found? {
         let key = iter.key().to_vec();
         last_key = Some(key);
-    } // else { No data in this CAUSET }
+    } // else { No data in this Causet }
 
     match last_key {
         Some(lk) => Ok(Some(lk)),
@@ -235,11 +235,11 @@ mod tests {
 
     use crate::store::{CasualMessage, SplitCheckRunner, SplitCheckTask};
     use engine_lmdb::util::new_engine;
-    use engine_promises::{SyncMuBlock, ALL_CAUSETS};
+    use edb::{SyncMuBlock, ALL_CausetS};
     use milevadb_query_datatype::codec::Block::{Block_PREFIX, Block_PREFIX_KEY_LEN};
-    use einsteindb-prod_util::codec::number::NumberEncoder;
-    use einsteindb-prod_util::config::ReadableSize;
-    use einsteindb-prod_util::worker::Runnable;
+    use edb_util::codec::number::NumberEncoder;
+    use edb_util::config::ReadableSize;
+    use edb_util::worker::Runnable;
     use txn_types::Key;
 
     use super::*;
@@ -260,7 +260,7 @@ mod tests {
             .prefix("test_last_key_of_brane")
             .temfidelir()
             .unwrap();
-        let engine = new_engine(path.path().to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();
+        let engine = new_engine(path.path().to_str().unwrap(), None, ALL_CausetS, None).unwrap();
 
         let mut brane = Brane::default();
         brane.set_id(1);
@@ -274,7 +274,7 @@ mod tests {
             let mut key = gen_Block_prefix(i);
             key.extlightlike_from_slice(padding);
             let k = tuplespaceInstanton::data_key(Key::from_raw(&key).as_encoded());
-            engine.put_causet(CAUSET_WRITE, &k, &k).unwrap();
+            engine.put_causet(Causet_WRITE, &k, &k).unwrap();
             data_tuplespaceInstanton.push(k)
         }
 
@@ -313,7 +313,7 @@ mod tests {
             .prefix("test_Block_check_semaphore")
             .temfidelir()
             .unwrap();
-        let engine = new_engine(path.path().to_str().unwrap(), None, ALL_CAUSETS, None).unwrap();
+        let engine = new_engine(path.path().to_str().unwrap(), None, ALL_CausetS, None).unwrap();
 
         let mut brane = Brane::default();
         brane.set_id(1);
@@ -396,7 +396,7 @@ mod tests {
             let mut key = gen_Block_prefix(i);
             key.extlightlike_from_slice(padding);
             let s = tuplespaceInstanton::data_key(Key::from_raw(&key).as_encoded());
-            engine.put_causet(CAUSET_WRITE, &s, &s).unwrap();
+            engine.put_causet(Causet_WRITE, &s, &s).unwrap();
         }
 
         check_cases(vec![
@@ -423,7 +423,7 @@ mod tests {
             let mut key = gen_Block_prefix(3);
             key.extlightlike_from_slice(format!("{:?}{}", padding, i).as_bytes());
             let s = tuplespaceInstanton::data_key(Key::from_raw(&key).as_encoded());
-            engine.put_causet(CAUSET_WRITE, &s, &s).unwrap();
+            engine.put_causet(Causet_WRITE, &s, &s).unwrap();
         }
 
         check_cases(vec![
@@ -444,10 +444,10 @@ mod tests {
             // m is less than t and is the prefix of meta tuplespaceInstanton.
             let key = format!("m{:?}{}", padding, i);
             let s = tuplespaceInstanton::data_key(Key::from_raw(key.as_bytes()).as_encoded());
-            engine.put_causet(CAUSET_WRITE, &s, &s).unwrap();
+            engine.put_causet(Causet_WRITE, &s, &s).unwrap();
             let key = format!("u{:?}{}", padding, i);
             let s = tuplespaceInstanton::data_key(Key::from_raw(key.as_bytes()).as_encoded());
-            engine.put_causet(CAUSET_WRITE, &s, &s).unwrap();
+            engine.put_causet(Causet_WRITE, &s, &s).unwrap();
         }
 
         check_cases(vec![

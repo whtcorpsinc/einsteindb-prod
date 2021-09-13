@@ -12,14 +12,14 @@
 
 /// Literal `SolitonId` values in the the "edb" namespace.
 ///
-/// Used through-out the transactor to match embedded EDB constructs.
+/// Used through-out the transactor to match raum EDB constructs.
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
 };
 
 // Added in SQL schemaReplicant v1.
-pub const DB_CAUSETID: SolitonId = 1;
+pub const DB_CausetID: SolitonId = 1;
 pub const DB_PART_DB: SolitonId = 2;
 pub const DB_TX_INSTANT: SolitonId = 3;
 pub const DB_INSTALL_PARTITION: SolitonId = 4;
@@ -54,7 +54,7 @@ pub const DB_TYPE_BYTES: SolitonId = 32;
 pub const DB_CARDINALITY_ONE: SolitonId = 33;
 pub const DB_CARDINALITY_MANY: SolitonId = 34;
 pub const DB_UNIQUE_VALUE: SolitonId = 35;
-pub const DB_UNIQUE_CAUSETIDITY: SolitonId = 36;
+pub const DB_UNIQUE_CausetIDITY: SolitonId = 36;
 pub const DB_DOC: SolitonId = 37;
 pub const DB_SCHEMA_VERSION: SolitonId = 38;
 pub const DB_SCHEMA_ATTRIBUTE: SolitonId = 39;
@@ -68,7 +68,7 @@ pub fn might_update_spacetime(attribute: SolitonId) -> bool {
     }
     match attribute {
         // CausetIds.
-        DB_CAUSETID |
+        DB_CausetID |
         // SchemaReplicant.
         DB_CARDINALITY |
         DB_FULLTEXT |
@@ -84,7 +84,7 @@ pub fn might_update_spacetime(attribute: SolitonId) -> bool {
 /// Return 'false' if the given attribute might be used to describe a schemaReplicant attribute.
 pub fn is_a_schemaReplicant_attribute(attribute: SolitonId) -> bool {
     match attribute {
-        DB_CAUSETID |
+        DB_CausetID |
         DB_CARDINALITY |
         DB_FULLTEXT |
         DB_INDEX |
@@ -98,9 +98,9 @@ pub fn is_a_schemaReplicant_attribute(attribute: SolitonId) -> bool {
 
 lazy_static! {
     /// Attributes that are "causetid related".  These might change the "causetIds" materialized view.
-    pub static ref CAUSETIDS_SQL_LIST: String = {
+    pub static ref CausetIDS_SQL_LIST: String = {
         format!("({})",
-                DB_CAUSETID)
+                DB_CausetID)
     };
 
     /// Attributes that are "schemaReplicant related".  These might change the "schemaReplicant" materialized view.
@@ -119,7 +119,7 @@ lazy_static! {
         format!("({}, {}, {}, {}, {}, {}, {})",
                 DB_CARDINALITY,
                 DB_FULLTEXT,
-                DB_CAUSETID,
+                DB_CausetID,
                 DB_INDEX,
                 DB_IS_COMPONENT,
                 DB_UNIQUE,

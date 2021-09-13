@@ -1,55 +1,55 @@
 groups:
-  - name: einsteindb-prod_accelerate
+  - name: edb_accelerate
     rules:
-    - record: einsteindb-prod_grpc_msg_duration_seconds:p99:1m
-      expr: histogram_quantile(0.99, sum(rate(einsteindb-prod_grpc_msg_duration_seconds_bucket{instance=~".*", type!="kv_gc"}[1m])) by (le, type))
-    - record: einsteindb-prod_violetabftstore_event_duration_bucket:p99:1m
-      expr: histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_event_duration_bucket{instance=~".*"}[1m])) by (le, type))
-    - record: einsteindb-prod_thread_cpu_seconds:1m
-      expr: sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~".*"}[1m])) by (instance)
-    - record: einsteindb-prod_violetabftstore_applightlike_log_duration_seconds:p99:1m
-      expr: histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_applightlike_log_duration_seconds_bucket{instance=~".*"}[1m])) by (le, instance))
-    - record: einsteindb-prod_violetabftstore_violetabft_process_duration_secs:p99:1m
-      expr: histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_violetabft_process_duration_secs_bucket{instance=~".*", type='ready'}[1m])) by (le, instance))
-    - record: einsteindb-prod_violetabftstore_request_wait_time_duration_secs:byins:p99:1m
-      expr: histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_request_wait_time_duration_secs_bucket{instance=~".*"}[1m])) by (le, instance))
-    - record: einsteindb-prod_violetabftstore_applightlike_log_duration_seconds:p95:1m
-      expr: histogram_quantile(0.95, sum(rate(einsteindb-prod_violetabftstore_applightlike_log_duration_seconds_bucket{instance=~".*"}[1m])) by (le))
-    - record: einsteindb-prod_violetabftstore_apply_wait_time_duration_secs:byins:p99:1m
-      expr: histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_apply_wait_time_duration_secs_bucket{instance=~".*"}[1m])) by (le, instance))
-    - record: einsteindb-prod_violetabftstore_apply_log_duration_seconds:p99:1m
-      expr: histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_apply_log_duration_seconds_bucket{instance=~".*"}[1m])) by (le, instance))
-    - record: einsteindb-prod_violetabftstore_request_wait_time_duration_secs:p99:1m
-      expr: histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_request_wait_time_duration_secs_bucket{instance=~".*"}[1m])) by (le))
-    - record: einsteindb-prod_violetabftstore_request_wait_time_duration_secs:p95:1m
-      expr: histogram_quantile(0.95, sum(rate(einsteindb-prod_violetabftstore_request_wait_time_duration_secs_bucket{instance=~".*"}[1m])) by (le))
-    - record: einsteindb-prod_worker_handled_task:1m
-      expr: sum(rate(einsteindb-prod_worker_handled_task_total{instance=~".*"}[1m])) by (name)
-    - record: einsteindb-prod_engine_num_files_at_level:kv:avg
-      expr: avg(einsteindb-prod_engine_num_files_at_level{instance=~".*", db="kv"}) by (causet, level)
-    - record: einsteindb-prod_engine_num_files_at_level:violetabft:avg
-      expr: avg(einsteindb-prod_engine_num_files_at_level{instance=~".*", db="violetabft"}) by (causet, level)
-    - record: einsteindb-prod_fidel_request_duration_seconds:avg:1m
-      expr: sum(rate(einsteindb-prod_fidel_request_duration_seconds_sum{instance=~".*"}[1m])) by (type) / sum(rate(einsteindb-prod_fidel_request_duration_seconds_count{instance=~".*"}[1m])) by (type)
-    - record: einsteindb-prod_interlock_request_wait_seconds:p95:1m
-      expr: histogram_quantile(0.95, sum(rate(einsteindb-prod_interlock_request_wait_seconds_bucket{instance=~".*"}[1m])) by (le, instance,req))
-    - record: einsteindb-prod_grpc_msg_duration_seconds:avg:1m
-      expr: sum(rate(einsteindb-prod_grpc_msg_duration_seconds_sum{instance=~".*"}[1m])) by (type) / sum(rate(einsteindb-prod_grpc_msg_duration_seconds_count[1m])) by (type)
-    - record: einsteindb-prod_violetabftstore_apply_wait_time_duration_secs:p99:1m
-      expr: histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_apply_wait_time_duration_secs_bucket{instance=~".*"}[1m])) by (le))
-    - record: einsteindb-prod_violetabftstore_apply_wait_time_duration_secs:p95:1m
-      expr: histogram_quantile(0.95, sum(rate(einsteindb-prod_violetabftstore_apply_wait_time_duration_secs_bucket{instance=~".*"}[1m])) by (le))
-    - record: einsteindb-prod_grpc_msg_duration_seconds:1m
-      expr: sum(rate(einsteindb-prod_grpc_msg_duration_seconds_count{instance=~".*", type!="kv_gc"}[1m])) by (instance,type)
-    - record: einsteindb-prod_violetabftstore_snapshot_duration_seconds:p99:1m
-      expr: histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_snapshot_duration_seconds_bucket{instance=~".*", type="apply"}[1m])) by (le))
-    - record: einsteindb-prod_worker_plightlikeing_task:1m
-      expr: sum(rate(einsteindb-prod_worker_plightlikeing_task_total{instance=~".*"}[1m])) by (name)
-    - record: einsteindb-prod_interlock_request_duration_seconds:1m
-      expr: sum(rate(einsteindb-prod_interlock_request_duration_seconds_bucket{instance=~".*"}[1m])) by (le)
-    - record: einsteindb-prod_futurepool_plightlikeing_task:1m
-      expr: sum(rate(einsteindb-prod_futurepool_plightlikeing_task_total{instance=~".*"}[1m])) by (name)
-    - record: einsteindb-prod_causetStorage_engine_async_request:1m
-      expr: sum(rate(einsteindb-prod_causetStorage_engine_async_request_total{instance=~".*", status!~"all|success"}[1m])) by (status)
-    - record: einsteindb-prod_thread_cpu_seconds_nogrpc:1m
-      expr: sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~".*", name=~"grpc.*"}[1m])) by (instance)
+    - record: edb_grpc_msg_duration_seconds:p99:1m
+      expr: histogram_quantile(0.99, sum(rate(edb_grpc_msg_duration_seconds_bucket{instance=~".*", type!="kv_gc"}[1m])) by (le, type))
+    - record: edb_violetabftstore_event_duration_bucket:p99:1m
+      expr: histogram_quantile(0.99, sum(rate(edb_violetabftstore_event_duration_bucket{instance=~".*"}[1m])) by (le, type))
+    - record: edb_thread_cpu_seconds:1m
+      expr: sum(rate(edb_thread_cpu_seconds_total{instance=~".*"}[1m])) by (instance)
+    - record: edb_violetabftstore_applightlike_log_duration_seconds:p99:1m
+      expr: histogram_quantile(0.99, sum(rate(edb_violetabftstore_applightlike_log_duration_seconds_bucket{instance=~".*"}[1m])) by (le, instance))
+    - record: edb_violetabftstore_violetabft_process_duration_secs:p99:1m
+      expr: histogram_quantile(0.99, sum(rate(edb_violetabftstore_violetabft_process_duration_secs_bucket{instance=~".*", type='ready'}[1m])) by (le, instance))
+    - record: edb_violetabftstore_request_wait_time_duration_secs:byins:p99:1m
+      expr: histogram_quantile(0.99, sum(rate(edb_violetabftstore_request_wait_time_duration_secs_bucket{instance=~".*"}[1m])) by (le, instance))
+    - record: edb_violetabftstore_applightlike_log_duration_seconds:p95:1m
+      expr: histogram_quantile(0.95, sum(rate(edb_violetabftstore_applightlike_log_duration_seconds_bucket{instance=~".*"}[1m])) by (le))
+    - record: edb_violetabftstore_apply_wait_time_duration_secs:byins:p99:1m
+      expr: histogram_quantile(0.99, sum(rate(edb_violetabftstore_apply_wait_time_duration_secs_bucket{instance=~".*"}[1m])) by (le, instance))
+    - record: edb_violetabftstore_apply_log_duration_seconds:p99:1m
+      expr: histogram_quantile(0.99, sum(rate(edb_violetabftstore_apply_log_duration_seconds_bucket{instance=~".*"}[1m])) by (le, instance))
+    - record: edb_violetabftstore_request_wait_time_duration_secs:p99:1m
+      expr: histogram_quantile(0.99, sum(rate(edb_violetabftstore_request_wait_time_duration_secs_bucket{instance=~".*"}[1m])) by (le))
+    - record: edb_violetabftstore_request_wait_time_duration_secs:p95:1m
+      expr: histogram_quantile(0.95, sum(rate(edb_violetabftstore_request_wait_time_duration_secs_bucket{instance=~".*"}[1m])) by (le))
+    - record: edb_worker_handled_task:1m
+      expr: sum(rate(edb_worker_handled_task_total{instance=~".*"}[1m])) by (name)
+    - record: edb_engine_num_files_at_level:kv:avg
+      expr: avg(edb_engine_num_files_at_level{instance=~".*", db="kv"}) by (causet, level)
+    - record: edb_engine_num_files_at_level:violetabft:avg
+      expr: avg(edb_engine_num_files_at_level{instance=~".*", db="violetabft"}) by (causet, level)
+    - record: edb_fidel_request_duration_seconds:avg:1m
+      expr: sum(rate(edb_fidel_request_duration_seconds_sum{instance=~".*"}[1m])) by (type) / sum(rate(edb_fidel_request_duration_seconds_count{instance=~".*"}[1m])) by (type)
+    - record: edb_interlock_request_wait_seconds:p95:1m
+      expr: histogram_quantile(0.95, sum(rate(edb_interlock_request_wait_seconds_bucket{instance=~".*"}[1m])) by (le, instance,req))
+    - record: edb_grpc_msg_duration_seconds:avg:1m
+      expr: sum(rate(edb_grpc_msg_duration_seconds_sum{instance=~".*"}[1m])) by (type) / sum(rate(edb_grpc_msg_duration_seconds_count[1m])) by (type)
+    - record: edb_violetabftstore_apply_wait_time_duration_secs:p99:1m
+      expr: histogram_quantile(0.99, sum(rate(edb_violetabftstore_apply_wait_time_duration_secs_bucket{instance=~".*"}[1m])) by (le))
+    - record: edb_violetabftstore_apply_wait_time_duration_secs:p95:1m
+      expr: histogram_quantile(0.95, sum(rate(edb_violetabftstore_apply_wait_time_duration_secs_bucket{instance=~".*"}[1m])) by (le))
+    - record: edb_grpc_msg_duration_seconds:1m
+      expr: sum(rate(edb_grpc_msg_duration_seconds_count{instance=~".*", type!="kv_gc"}[1m])) by (instance,type)
+    - record: edb_violetabftstore_snapshot_duration_seconds:p99:1m
+      expr: histogram_quantile(0.99, sum(rate(edb_violetabftstore_snapshot_duration_seconds_bucket{instance=~".*", type="apply"}[1m])) by (le))
+    - record: edb_worker_plightlikeing_task:1m
+      expr: sum(rate(edb_worker_plightlikeing_task_total{instance=~".*"}[1m])) by (name)
+    - record: edb_interlock_request_duration_seconds:1m
+      expr: sum(rate(edb_interlock_request_duration_seconds_bucket{instance=~".*"}[1m])) by (le)
+    - record: edb_futurepool_plightlikeing_task:1m
+      expr: sum(rate(edb_futurepool_plightlikeing_task_total{instance=~".*"}[1m])) by (name)
+    - record: edb_causetStorage_engine_async_request:1m
+      expr: sum(rate(edb_causetStorage_engine_async_request_total{instance=~".*", status!~"all|success"}[1m])) by (status)
+    - record: edb_thread_cpu_seconds_nogrpc:1m
+      expr: sum(rate(edb_thread_cpu_seconds_total{instance=~".*", name=~"grpc.*"}[1m])) by (instance)

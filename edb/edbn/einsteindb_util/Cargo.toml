@@ -1,5 +1,5 @@
 [package]
-name = "einsteindb-prod_util"
+name = "edb_util"
 version = "0.1.0"
 edition = "2018"
 publish = false
@@ -42,7 +42,7 @@ slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global
 slog-json = "2.3"
 slog-term = "2.4"
 sysinfo = "0.15.9"
-einsteindb-prod_alloc = { path = "../einsteindb-prod_alloc" }
+edb_alloc = { path = "../edb_alloc" }
 time = "0.2.24"
 fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
 tokio = { version = "1.0.2", features = ["rt-util"] }
@@ -55,11 +55,11 @@ protobuf = "2"
 
 
 [target.'causet(target_os = "linux")'.dependencies]
-procinfo = { git = "https://github.com/einsteindb-prod/procinfo-rs", rev = "5125fc1a69496b73b26b3c08b6e8afc3c665a56e" }
+procinfo = { git = "https://github.com/edb/procinfo-rs", rev = "5125fc1a69496b73b26b3c08b6e8afc3c665a56e" }
 procausets = "0.7"
 
 [dependencies.yatp]
-git = "https://github.com/einsteindb-prod/yatp.git"
+git = "https://github.com/edb/yatp.git"
 
 [dependencies]
 panic_hook = { path = "../panic_hook" }

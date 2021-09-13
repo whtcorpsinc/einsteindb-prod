@@ -1,10 +1,10 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
-use engine_promises::{KvEngine, Cone};
+use edb::{KvEngine, Cone};
 use ekvproto::metapb::Brane;
 use ekvproto::fidelpb::CheckPolicy;
 
-use einsteindb-prod_util::config::ReadableSize;
+use edb_util::config::ReadableSize;
 
 use super::super::error::Result;
 use super::super::{Interlock, KeyEntry, SemaphoreContext, SplitCheckSemaphore, SplitChecker};
@@ -125,7 +125,7 @@ pub fn get_brane_approximate_middle(
 /// and must spacelike with "z".
 ///
 /// FIXME the causet(test) here probably indicates that the test doesn't belong
-/// here. It should be a test of the engine_promises or engine_lmdb crates.
+/// here. It should be a test of the edb or engine_lmdb crates.
 #[causet(test)]
 fn get_brane_approximate_middle_causet(
     db: &impl KvEngine,
@@ -150,9 +150,9 @@ mod tests {
 
     use engine_lmdb::raw::WriBlock;
     use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions};
-    use engine_lmdb::raw_util::{new_engine_opt, CAUSETOptions};
+    use engine_lmdb::raw_util::{new_engine_opt, CausetOptions};
     use engine_lmdb::Compat;
-    use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, LARGE_CAUSETS};
+    use edb::{ALL_CausetS, Causet_DEFAULT, LARGE_CausetS};
     use ekvproto::metapb::Peer;
     use ekvproto::metapb::Brane;
     use ekvproto::fidelpb::CheckPolicy;
@@ -160,9 +160,9 @@ mod tests {
 
     use crate::store::{SplitCheckRunner, SplitCheckTask};
     use engine_lmdb::properties::ConePropertiesCollectorFactory;
-    use einsteindb-prod_util::config::ReadableSize;
-    use einsteindb-prod_util::escape;
-    use einsteindb-prod_util::worker::Runnable;
+    use edb_util::config::ReadableSize;
+    use edb_util::escape;
+    use edb_util::worker::Runnable;
     use txn_types::Key;
 
     use super::super::size::tests::must_split_at;
@@ -174,13 +174,13 @@ mod tests {
         let path = Builder::new().prefix("test-violetabftstore").temfidelir().unwrap();
         let path_str = path.path().to_str().unwrap();
         let db_opts = DBOptions::new();
-        let causets_opts = ALL_CAUSETS
+        let causets_opts = ALL_CausetS
             .iter()
             .map(|causet| {
                 let mut causet_opts = PrimaryCausetNetworkOptions::new();
                 let f = Box::new(ConePropertiesCollectorFactory::default());
-                causet_opts.add_Block_properties_collector_factory("einsteindb-prod.size-collector", f);
-                CAUSETOptions::new(causet, causet_opts)
+                causet_opts.add_Block_properties_collector_factory("edb.size-collector", f);
+                CausetOptions::new(causet, causet_opts)
             })
             .collect();
         let engine = Arc::new(new_engine_opt(path_str, db_opts, causets_opts).unwrap());
@@ -202,7 +202,7 @@ mod tests {
         );
 
         // so split key will be z0005
-        let causet_handle = engine.causet_handle(CAUSET_DEFAULT).unwrap();
+        let causet_handle = engine.causet_handle(Causet_DEFAULT).unwrap();
         for i in 0..11 {
             let k = format!("{:04}", i).into_bytes();
             let k = tuplespaceInstanton::data_key(Key::from_raw(&k).as_encoded());
@@ -237,15 +237,15 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.size-collector", f);
-        let causets_opts = LARGE_CAUSETS
+        causet_opts.add_Block_properties_collector_factory("edb.size-collector", f);
+        let causets_opts = LARGE_CausetS
             .iter()
-            .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
+            .map(|causet| CausetOptions::new(causet, causet_opts.clone()))
             .collect();
         let engine =
             Arc::new(engine_lmdb::raw_util::new_engine_opt(path, db_opts, causets_opts).unwrap());
 
-        let causet_handle = engine.causet_handle(CAUSET_DEFAULT).unwrap();
+        let causet_handle = engine.causet_handle(Causet_DEFAULT).unwrap();
         let mut big_value = Vec::with_capacity(256);
         big_value.extlightlike(iter::repeat(b'v').take(256));
         for i in 0..100 {
@@ -258,7 +258,7 @@ mod tests {
 
         let mut brane = Brane::default();
         brane.mut_peers().push(Peer::default());
-        let middle_key = get_brane_approximate_middle_causet(engine.c(), CAUSET_DEFAULT, &brane)
+        let middle_key = get_brane_approximate_middle_causet(engine.c(), Causet_DEFAULT, &brane)
             .unwrap()
             .unwrap();
 

@@ -1,7 +1,7 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 #[macro_use]
-extern crate einsteindb-prod_util;
+extern crate edb_util;
 #[causet(feature = "test-runner")]
 #[macro_use]
 extern crate derive_more;

@@ -3,7 +3,7 @@
 use rand::{thread_rng, RngCore};
 use test::Bencher;
 
-use einsteindb-prod_util::keybuilder::KeyBuilder;
+use edb_util::keybuilder::KeyBuilder;
 
 #[inline]
 fn gen_rand_str(len: usize) -> Vec<u8> {

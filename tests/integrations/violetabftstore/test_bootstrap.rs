@@ -10,15 +10,15 @@ use ekvproto::violetabft_serverpb::BraneLocalState;
 
 use concurrency_manager::ConcurrencyManager;
 use engine_lmdb::{Compat, LmdbEngine};
-use engine_promises::{Engines, Peekable, ALL_CAUSETS, CAUSET_VIOLETABFT};
+use edb::{Engines, Peekable, ALL_CausetS, Causet_VIOLETABFT};
 use violetabftstore::interlock::InterlockHost;
 use violetabftstore::store::fsm::store::StoreMeta;
 use violetabftstore::store::{bootstrap_store, fsm, AutoSplitController, SnapManager};
 use test_violetabftstore::*;
-use einsteindb-prod::import::SSTImporter;
-use einsteindb-prod::server::Node;
-use einsteindb-prod_util::config::VersionTrack;
-use einsteindb-prod_util::worker::{FutureWorker, Worker};
+use edb::import::SSTImporter;
+use edb::server::Node;
+use edb_util::config::VersionTrack;
+use edb_util::worker::{FutureWorker, Worker};
 
 fn test_bootstrap_idempotent<T: Simulator>(cluster: &mut Cluster<T>) {
     // assume that there is a node  bootstrap the cluster and add brane in fidel successfully
@@ -38,13 +38,13 @@ fn test_bootstrap_idempotent<T: Simulator>(cluster: &mut Cluster<T>) {
 fn test_node_bootstrap_with_prepared_data() {
     // create a node
     let fidel_client = Arc::new(TestFidelClient::new(0, false));
-    let causet = new_einsteindb-prod_config(0);
+    let causet = new_edb_config(0);
 
     let (_, system) = fsm::create_violetabft_batch_system(&causet.violetabft_store);
     let simulate_trans = SimulateTransport::new(ChannelTransport::new());
     let tmp_path = Builder::new().prefix("test_cluster").temfidelir().unwrap();
     let engine = Arc::new(
-        engine_lmdb::raw_util::new_engine(tmp_path.path().to_str().unwrap(), None, ALL_CAUSETS, None)
+        engine_lmdb::raw_util::new_engine(tmp_path.path().to_str().unwrap(), None, ALL_CausetS, None)
             .unwrap(),
     );
     let tmp_path_violetabft = tmp_path.path().join(Path::new("violetabft"));
@@ -83,7 +83,7 @@ fn test_node_bootstrap_with_prepared_data() {
     let brane_state_key = tuplespaceInstanton::brane_state_key(brane.get_id());
     assert!(engine
         .c()
-        .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &brane_state_key)
+        .get_msg_causet::<BraneLocalState>(Causet_VIOLETABFT, &brane_state_key)
         .unwrap()
         .is_some());
 
@@ -116,7 +116,7 @@ fn test_node_bootstrap_with_prepared_data() {
         .is_none());
     assert!(engine
         .c()
-        .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &brane_state_key)
+        .get_msg_causet::<BraneLocalState>(Causet_VIOLETABFT, &brane_state_key)
         .unwrap()
         .is_none());
     assert_eq!(fidel_client.get_branes_number() as u32, 1);

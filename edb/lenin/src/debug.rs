@@ -18,12 +18,12 @@ use edbn::entities::{
     SolitonIdOrCausetId,
 };
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     MinkowskiType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     HasSchemaReplicant,
     SchemaReplicant,
 };

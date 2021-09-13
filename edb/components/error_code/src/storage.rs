@@ -10,7 +10,7 @@ define_error_codes!(
     SCHED_TOO_BUSY => ("SchedTooBusy", "", ""),
     GC_WORKER_TOO_BUSY => ("GcWorkerTooBusy", "", ""),
     KEY_TOO_LARGE => ("KeyTooLarge", "", ""),
-    INVALID_CAUSET => ("InvalidCAUSET", "", ""),
+    INVALID_Causet => ("InvalidCauset", "", ""),
     PROTOBUF => ("Protobuf", "", ""),
     INVALID_TXN_TSO => ("INVALIDTXNTSO", "", ""),
     INVALID_REQ_RANGE => ("InvalidReqCone", "", ""),

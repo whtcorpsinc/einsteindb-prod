@@ -15,7 +15,7 @@ use super::*;
 use concurrency_manager::ConcurrencyManager;
 use encryption::DataKeyManager;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
-use engine_promises::{Engines, MiscExt, Peekable};
+use edb::{Engines, MiscExt, Peekable};
 use violetabftstore::interlock::config::SplitCheckConfigManager;
 use violetabftstore::interlock::InterlockHost;
 use violetabftstore::errors::Error as VioletaBftError;
@@ -26,14 +26,14 @@ use violetabftstore::store::fsm::{VioletaBftBatchSystem, VioletaBftRouter};
 use violetabftstore::store::SnapManagerBuilder;
 use violetabftstore::store::*;
 use violetabftstore::Result;
-use einsteindb-prod::config::{ConfigController, Module, EINSTEINDBConfig};
-use einsteindb-prod::import::SSTImporter;
-use einsteindb-prod::server::Node;
-use einsteindb-prod::server::Result as ServerResult;
-use einsteindb-prod_util::collections::{HashMap, HashSet};
-use einsteindb-prod_util::config::VersionTrack;
-use einsteindb-prod_util::time::ThreadReadId;
-use einsteindb-prod_util::worker::{FutureWorker, Worker};
+use edb::config::{ConfigController, Module, EINSTEINDBConfig};
+use edb::import::SSTImporter;
+use edb::server::Node;
+use edb::server::Result as ServerResult;
+use edb_util::collections::{HashMap, HashSet};
+use edb_util::config::VersionTrack;
+use edb_util::time::ThreadReadId;
+use edb_util::worker::{FutureWorker, Worker};
 
 pub struct ChannelTransportCore {
     snap_paths: HashMap<u64, (SnapManager, TempDir)>,

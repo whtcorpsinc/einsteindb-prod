@@ -1,8 +1,8 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::engine::PanicEngine;
-use engine_promises::Result;
-use engine_promises::{DBOptions, DBOptionsExt, NoetherDBOptions};
+use crate::edb::PanicEngine;
+use edb::Result;
+use edb::{DBOptions, DBOptionsExt, NoetherDBOptions};
 
 impl DBOptionsExt for PanicEngine {
     type DBOptions = PanicDBOptions;
@@ -36,7 +36,7 @@ impl DBOptions for PanicDBOptions {
         panic!()
     }
 
-    fn set_titandb_options(&mut self, opts: &Self::NoetherDBOptions) {
+    fn tenancy_launched_for_einsteindb(&mut self, opts: &Self::NoetherDBOptions) {
         panic!()
     }
 }

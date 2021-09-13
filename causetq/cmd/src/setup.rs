@@ -7,10 +7,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use chrono::Local;
 use clap::ArgMatches;
-use einsteindb-prod::config::{check_critical_config, persist_config, MetricConfig, EINSTEINDBConfig};
-use einsteindb-prod::causetStorage::config::DEFAULT_LMDB_SUB_DIR;
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::{self, config, logger};
+use edb::config::{check_critical_config, persist_config, MetricConfig, EINSTEINDBConfig};
+use edb::causetStorage::config::DEFAULT_LMDB_SUB_DIR;
+use edb_util::collections::HashMap;
+use edb_util::{self, config, logger};
 
 // A workaround for checking if log is initialized.
 pub static LOG_INITIALIZED: AtomicBool = AtomicBool::new(false);
@@ -225,11 +225,11 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
 
 #[allow(dead_code)]
 pub fn initial_metric(causet: &MetricConfig, node_id: Option<u64>) {
-    einsteindb-prod_util::metrics::monitor_process()
+    edb_util::metrics::monitor_process()
         .unwrap_or_else(|e| fatal!("failed to spacelike process monitor: {}", e));
-    einsteindb-prod_util::metrics::monitor_threads("einsteindb-prod")
+    edb_util::metrics::monitor_threads("edb")
         .unwrap_or_else(|e| fatal!("failed to spacelike thread monitor: {}", e));
-    einsteindb-prod_util::metrics::monitor_allocator_stats("einsteindb-prod")
+    edb_util::metrics::monitor_allocator_stats("edb")
         .unwrap_or_else(|e| fatal!("failed to monitor allocator stats: {}", e));
 
     if causet.interval.as_secs() == 0 || causet.address.is_empty() {
@@ -242,7 +242,7 @@ pub fn initial_metric(causet: &MetricConfig, node_id: Option<u64>) {
     }
 
     info!("spacelike prometheus client");
-    einsteindb-prod_util::metrics::run_prometheus(causet.interval.0, &causet.address, &push_job);
+    edb_util::metrics::run_prometheus(causet.interval.0, &causet.address, &push_job);
 }
 
 #[allow(dead_code)]

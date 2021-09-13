@@ -7,7 +7,7 @@
 //! crate, but only until the engine interface is completely abstracted.
 
 pub use lmdb::{
-    new_compaction_filter_raw, run_ldb_tool, BlockBasedOptions, CAUSETHandle, Cache,
+    new_compaction_filter_raw, run_ldb_tool, BlockBasedOptions, CausetHandle, Cache,
     PrimaryCausetNetworkOptions, CompactOptions, CompactionFilter, CompactionFilterContext,
     CompactionFilterFactory, CompactionJobInfo, CompactionPriority, DBBottommostLevelCompaction,
     DBCompactionFilter, DBCompactionStyle, DBCompressionType, DBEntryType, DBInfoLogLevel,

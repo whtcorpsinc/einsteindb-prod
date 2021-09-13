@@ -1,11 +1,11 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-//! Implementation of engine_promises for VioletaBftEngine
+//! Implementation of edb for VioletaBftEngine
 //!
 //! This is a work-in-progress attempt to abstract all the features needed by
 //! EinsteinDB to persist its data.
 //!
-//! The module structure here mirrors that in engine_promises where possible.
+//! The module structure here mirrors that in edb where possible.
 //!
 //! Because there are so many similarly named types across the EinsteinDB codebase,
 //! and so much "import renaming", this crate consistently explicitly names type
@@ -17,7 +17,7 @@
 #![causet_attr(test, feature(test))]
 
 #[macro_use]
-extern crate einsteindb-prod_util;
+extern crate edb_util;
 
 extern crate slog_global;
 

@@ -2,17 +2,17 @@
 
 use grpcio::{ChannelBuilder, Environment};
 use ekvproto::kvrpcpb::*;
-use ekvproto::einsteindb-prodpb::EINSTEINDBClient;
+use ekvproto::edbpb::EINSTEINDBClient;
 use std::sync::Arc;
 use test_violetabftstore::new_server_cluster;
-use einsteindb-prod_util::collections::HashSet;
-use einsteindb-prod_util::HandyRwLock;
+use edb_util::collections::HashSet;
+use edb_util::HandyRwLock;
 
 #[test]
 fn test_check_cn_success() {
     let mut cluster = new_server_cluster(0, 1);
     let mut allowed_cn = HashSet::default();
-    allowed_cn.insert("einsteindb-prod-server".to_owned());
+    allowed_cn.insert("edb-server".to_owned());
     cluster.causet.security = test_util::new_security_causet(Some(allowed_cn));
     cluster.run();
 

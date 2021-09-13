@@ -12,13 +12,13 @@ use ekvproto::violetabft_serverpb::{PeerState, BraneLocalState};
 use violetabft::evioletabftpb::MessageType;
 
 use engine_lmdb::Compat;
-use engine_promises::Peekable;
-use engine_promises::{CAUSET_VIOLETABFT, CAUSET_WRITE};
+use edb::Peekable;
+use edb::{Causet_VIOLETABFT, Causet_WRITE};
 use fidel_client::FidelClient;
 use violetabftstore::store::*;
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::*;
-use einsteindb-prod_util::HandyRwLock;
+use edb_util::config::*;
+use edb_util::HandyRwLock;
 
 /// Test if merge is working as expected in a general condition.
 #[test]
@@ -93,7 +93,7 @@ fn test_node_base_merge() {
             state = cluster
                 .get_engine(i)
                 .c()
-                .get_msg_causet(CAUSET_VIOLETABFT, &state_key)
+                .get_msg_causet(Causet_VIOLETABFT, &state_key)
                 .unwrap()
                 .unwrap();
             if state.get_state() == PeerState::Tombstone {
@@ -545,7 +545,7 @@ fn test_node_merge_brain_split() {
     let state: BraneLocalState = cluster
         .get_engine(3)
         .c()
-        .get_msg_causet(CAUSET_VIOLETABFT, &state_key)
+        .get_msg_causet(Causet_VIOLETABFT, &state_key)
         .unwrap()
         .unwrap();
     assert_eq!(state.get_state(), PeerState::Tombstone);
@@ -598,8 +598,8 @@ fn test_merge_approximate_size_and_tuplespaceInstanton() {
     cluster.run();
 
     let mut cone = 1..;
-    let middle_key = put_causet_till_size(&mut cluster, CAUSET_WRITE, 100, &mut cone);
-    let max_key = put_causet_till_size(&mut cluster, CAUSET_WRITE, 100, &mut cone);
+    let middle_key = put_causet_till_size(&mut cluster, Causet_WRITE, 100, &mut cone);
+    let max_key = put_causet_till_size(&mut cluster, Causet_WRITE, 100, &mut cone);
 
     let fidel_client = Arc::clone(&cluster.fidel_client);
     let brane = fidel_client.get_brane(b"").unwrap();
@@ -1189,7 +1189,7 @@ fn test_merge_remove_target_peer_isolated() {
 
 #[test]
 fn test_sync_max_ts_after_brane_merge() {
-    use einsteindb-prod::causetStorage::{Engine, Snapshot};
+    use edb::causetStorage::{Engine, Snapshot};
 
     let mut cluster = new_server_cluster(0, 3);
     configure_for_merge(&mut cluster);

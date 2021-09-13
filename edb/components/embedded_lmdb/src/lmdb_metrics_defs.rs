@@ -35,7 +35,7 @@ pub const LMDB_TITANDB_DISCARDABLE_RATIO_LE80_FILE: &str =
 pub const LMDB_TITANDB_DISCARDABLE_RATIO_LE100_FILE: &str =
     "lmdb.titandb.num-discardable-ratio-le100-file";
 
-pub const LMDB_CAUSETSTATS: &str = "lmdb.causetstats";
+pub const LMDB_CausetSTATS: &str = "lmdb.causetstats";
 pub const LMDB_IOSTALL_KEY: &[&str] = &[
     "io_stalls.level0_slowdown",
     "io_stalls.level0_numfiles",

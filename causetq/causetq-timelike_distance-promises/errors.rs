@@ -12,7 +12,7 @@ use std; // To refer to std::result::Result.
 
 use rusqlite;
 
-use embedded_promises::{
+use raum_promises::{
     MinkowskiSet,
 };
 use edb_promises::errors::DbError;

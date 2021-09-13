@@ -29,9 +29,9 @@ use violetabftstore::store::fsm::ObserveID;
 use violetabftstore::store::util::compare_brane_epoch;
 use violetabftstore::Error as VioletaBftStoreError;
 use resolved_ts::Resolver;
-use einsteindb-prod::causetStorage::txn::TxnEntry;
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::mpsc::batch::lightlikeer as Batchlightlikeer;
+use edb::causetStorage::txn::TxnEntry;
+use edb_util::collections::HashMap;
+use edb_util::mpsc::batch::lightlikeer as Batchlightlikeer;
 use txn_types::{Key, Dagger, LockType, TimeStamp, WriteRef, WriteType};
 
 use crate::lightlikepoint::{OldValueCache, OldValueCallback};
@@ -773,8 +773,8 @@ mod tests {
     use ekvproto::errorpb::Error as ErrorHeader;
     use ekvproto::metapb::Brane;
     use std::cell::Cell;
-    use einsteindb-prod::causetStorage::tail_pointer::test_util::*;
-    use einsteindb-prod_util::mpsc::batch::{self, BatchReceiver, VecCollector};
+    use edb::causetStorage::tail_pointer::test_util::*;
+    use edb_util::mpsc::batch::{self, BatchReceiver, VecCollector};
 
     #[test]
     fn test_error() {

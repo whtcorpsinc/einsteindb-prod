@@ -13,7 +13,7 @@ use milevadb_query_normal_executors::{FreeDaemon, HashAggFreeDaemon};
 use milevadb_query_vec_executors::interface::*;
 use milevadb_query_vec_executors::BatchFastHashAggregationFreeDaemon;
 use milevadb_query_vec_executors::BatchSlowHashAggregationFreeDaemon;
-use einsteindb-prod::causetStorage::Statistics;
+use edb::causetStorage::Statistics;
 
 use crate::util::bencher::Bencher;
 use crate::util::executor_descriptor::hash_aggregate;

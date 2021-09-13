@@ -6,12 +6,12 @@ use concurrency_manager::ConcurrencyManager;
 use ekvproto::kvrpcpb::Context;
 
 use milevadb_query_datatype::codec::Datum;
-use einsteindb-prod::config::CoprReadPoolConfig;
-use einsteindb-prod::interlock::{readpool_impl, node};
-use einsteindb-prod::read_pool::ReadPool;
-use einsteindb-prod::server::Config;
-use einsteindb-prod::causetStorage::kv::LmdbEngine;
-use einsteindb-prod::causetStorage::{Engine, TestEngineBuilder};
+use edb::config::CoprReadPoolConfig;
+use edb::interlock::{readpool_impl, node};
+use edb::read_pool::ReadPool;
+use edb::server::Config;
+use edb::causetStorage::kv::LmdbEngine;
+use edb::causetStorage::{Engine, TestEngineBuilder};
 
 #[derive(Clone)]
 pub struct ProductBlock(Block);

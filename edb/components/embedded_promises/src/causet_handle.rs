@@ -4,14 +4,14 @@ use crate::causet_options::PrimaryCausetNetworkOptions;
 use crate::errors::Result;
 
 
-pub trait CAUSETHandleExt {
+pub trait CausetHandleExt {
 
-    type CAUSETHandle: CAUSETHandle;
+    type CausetHandle: CausetHandle;
     type PrimaryCausetNetworkOptions: PrimaryCausetNetworkOptions;
 
-    fn causet_handle(&self, name: &str) -> Result<&Self::CAUSETHandle>;
-    fn get_options_causet(&self, causet: &Self::CAUSETHandle) -> Self::PrimaryCausetNetworkOptions;
-    fn set_options_causet(&self, causet: &Self::CAUSETHandle, options: &[(&str, &str)]) -> Result<()>;
+    fn causet_handle(&self, name: &str) -> Result<&Self::CausetHandle>;
+    fn get_options_causet(&self, causet: &Self::CausetHandle) -> Self::PrimaryCausetNetworkOptions;
+    fn set_options_causet(&self, causet: &Self::CausetHandle, options: &[(&str, &str)]) -> Result<()>;
 }
 
-pub trait CAUSETHandle {}
+pub trait CausetHandle {}

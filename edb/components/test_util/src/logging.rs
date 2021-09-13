@@ -46,7 +46,7 @@ impl CaseTraceLogger {
             return Ok(());
         }
 
-        let tag = einsteindb-prod_util::get_tag_from_thread_name().map_or_else(|| "".to_owned(), |s| s + " ");
+        let tag = edb_util::get_tag_from_thread_name().map_or_else(|| "".to_owned(), |s| s + " ");
         let t = time::now();
         let time_str = time::strftime("%Y/%m/%d %H:%M:%S.%f", &t).unwrap();
         write!(
@@ -96,7 +96,7 @@ impl Drop for CaseTraceLogger {
 // A help function to initial logger.
 pub fn init_log_for_test() {
     let output = env::var("LOG_FILE").ok();
-    let level = einsteindb-prod_util::logger::get_level_by_string(
+    let level = edb_util::logger::get_level_by_string(
         &env::var("LOG_LEVEL").unwrap_or_else(|_| "debug".to_owned()),
     )
     .unwrap();
@@ -122,7 +122,7 @@ pub fn init_log_for_test() {
     //       and hook the slog_async logger to every test cases.
     //
     // [1]: https://github.com/rust-lang/rfcs/blob/master/text/2318-custom-test-frameworks.md
-    einsteindb-prod_util::logger::init_log(
+    edb_util::logger::init_log(
         drainer,
         level,
         false, // disable async drainer

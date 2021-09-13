@@ -10,12 +10,12 @@ use rand::random;
 
 use ekvproto::kvrpcpb::{Context, LockInfo};
 
-use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER};
+use edb::{Causet_DEFAULT, Causet_DAGGER};
 use test_causetStorage::*;
-use einsteindb-prod::server::gc_worker::DEFAULT_GC_BATCH_KEYS;
-use einsteindb-prod::causetStorage::tail_pointer::MAX_TXN_WRITE_SIZE;
-use einsteindb-prod::causetStorage::txn::RESOLVE_LOCK_BATCH_SIZE;
-use einsteindb-prod::causetStorage::Engine;
+use edb::server::gc_worker::DEFAULT_GC_BATCH_KEYS;
+use edb::causetStorage::tail_pointer::MAX_TXN_WRITE_SIZE;
+use edb::causetStorage::txn::RESOLVE_LOCK_BATCH_SIZE;
+use edb::causetStorage::Engine;
 use txn_types::{Key, Mutation, TimeStamp};
 
 #[test]
@@ -750,18 +750,18 @@ fn test_txn_store_rawkv() {
 #[test]
 fn test_txn_store_rawkv_causet() {
     let store = AssertionStorage::default();
-    store.raw_put_ok(CAUSET_DEFAULT.to_string(), b"k1".to_vec(), b"v1".to_vec());
-    store.raw_get_ok(CAUSET_DEFAULT.to_string(), b"k1".to_vec(), Some(b"v1".to_vec()));
+    store.raw_put_ok(Causet_DEFAULT.to_string(), b"k1".to_vec(), b"v1".to_vec());
+    store.raw_get_ok(Causet_DEFAULT.to_string(), b"k1".to_vec(), Some(b"v1".to_vec()));
     store.raw_get_ok("".to_string(), b"k1".to_vec(), Some(b"v1".to_vec()));
-    store.raw_get_ok(CAUSET_DAGGER.to_string(), b"k1".to_vec(), None);
+    store.raw_get_ok(Causet_DAGGER.to_string(), b"k1".to_vec(), None);
 
     store.raw_put_ok("".to_string(), b"k2".to_vec(), b"v2".to_vec());
-    store.raw_put_ok(CAUSET_DAGGER.to_string(), b"k3".to_vec(), b"v3".to_vec());
-    store.raw_get_ok(CAUSET_DEFAULT.to_string(), b"k2".to_vec(), Some(b"v2".to_vec()));
-    store.raw_get_ok(CAUSET_DAGGER.to_string(), b"k3".to_vec(), Some(b"v3".to_vec()));
-    store.raw_get_ok(CAUSET_DEFAULT.to_string(), b"k3".to_vec(), None);
+    store.raw_put_ok(Causet_DAGGER.to_string(), b"k3".to_vec(), b"v3".to_vec());
+    store.raw_get_ok(Causet_DEFAULT.to_string(), b"k2".to_vec(), Some(b"v2".to_vec()));
+    store.raw_get_ok(Causet_DAGGER.to_string(), b"k3".to_vec(), Some(b"v3".to_vec()));
+    store.raw_get_ok(Causet_DEFAULT.to_string(), b"k3".to_vec(), None);
     store.raw_scan_ok(
-        CAUSET_DEFAULT.to_string(),
+        Causet_DEFAULT.to_string(),
         b"".to_vec(),
         3,
         vec![(b"k1", b"v1"), (b"k2", b"v2")],

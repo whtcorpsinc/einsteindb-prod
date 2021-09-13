@@ -18,8 +18,8 @@ use std::{cmp, usize};
 use batch_system::{BasicMailbox, BatchRouter, BatchSystem, Fsm, HandlerBuilder, PollHandler};
 use crossbeam::channel::{TryRecvError, TrylightlikeError};
 use engine_lmdb::{PerfContext, PerfLevel};
-use engine_promises::{KvEngine, VioletaBftEngine, Snapshot, WriteBatch};
-use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
+use edb::{KvEngine, VioletaBftEngine, Snapshot, WriteBatch};
+use edb::{ALL_CausetS, Causet_DEFAULT, Causet_DAGGER, Causet_VIOLETABFT, Causet_WRITE};
 use ekvproto::import_sstpb::SstMeta;
 use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
 use ekvproto::metapb::{Peer as PeerMeta, PeerRole, Brane, BraneEpoch};
@@ -32,12 +32,12 @@ use ekvproto::violetabft_serverpb::{
 };
 use violetabft::evioletabftpb::{ConfChange, ConfChangeType, Entry, EntryType, Snapshot as VioletaBftSnapshot};
 use sst_importer::SSTImporter;
-use einsteindb-prod_util::collections::{HashMap, HashMapEntry, HashSet};
-use einsteindb-prod_util::config::{Tracker, VersionTrack};
-use einsteindb-prod_util::mpsc::{loose_bounded, LooseBoundedlightlikeer, Receiver};
-use einsteindb-prod_util::time::{duration_to_sec, Instant};
-use einsteindb-prod_util::worker::Interlock_Semaphore;
-use einsteindb-prod_util::{escape, Either, MustConsumeVec};
+use edb_util::collections::{HashMap, HashMapEntry, HashSet};
+use edb_util::config::{Tracker, VersionTrack};
+use edb_util::mpsc::{loose_bounded, LooseBoundedlightlikeer, Receiver};
+use edb_util::time::{duration_to_sec, Instant};
+use edb_util::worker::Interlock_Semaphore;
+use edb_util::{escape, Either, MustConsumeVec};
 use time::Timespec;
 use uuid::Builder as UuidBuilder;
 
@@ -445,7 +445,7 @@ where
     pub fn write_to_db(&mut self) -> bool {
         let need_sync = self.sync_log_hint;
         if self.kv_wb.as_ref().map_or(false, |wb| !wb.is_empty()) {
-            let mut write_opts = engine_promises::WriteOptions::new();
+            let mut write_opts = edb::WriteOptions::new();
             write_opts.set_sync(need_sync);
             self.kv_wb()
                 .write_to_engine(&self.engine, &write_opts)
@@ -879,7 +879,7 @@ where
 
     fn write_apply_state<W: WriteBatch<EK>>(&self, wb: &mut W) {
         wb.put_msg_causet(
-            CAUSET_VIOLETABFT,
+            Causet_VIOLETABFT,
             &tuplespaceInstanton::apply_state_key(self.brane.get_id()),
             &self.apply_state,
         )
@@ -1342,7 +1342,7 @@ where
         if !req.get_put().get_causet().is_empty() {
             let causet = req.get_put().get_causet();
             // TODO: don't allow write preseved causets.
-            if causet == CAUSET_DAGGER {
+            if causet == Causet_DAGGER {
                 self.metrics.lock_causet_written_bytes += key.len() as u64;
                 self.metrics.lock_causet_written_bytes += value.len() as u64;
             }
@@ -1392,7 +1392,7 @@ where
                 )
             });
 
-            if causet == CAUSET_DAGGER {
+            if causet == Causet_DAGGER {
                 // delete is a kind of write for Lmdb.
                 self.metrics.lock_causet_written_bytes += key.len() as u64;
             } else {
@@ -1441,9 +1441,9 @@ where
         let resp = Response::default();
         let mut causet = req.get_delete_cone().get_causet();
         if causet.is_empty() {
-            causet = CAUSET_DEFAULT;
+            causet = Causet_DEFAULT;
         }
-        if ALL_CAUSETS.iter().find(|x| **x == causet).is_none() {
+        if ALL_CausetS.iter().find(|x| **x == causet).is_none() {
             return Err(box_err!("invalid delete cone command, causet: {:?}", causet));
         }
 
@@ -1867,7 +1867,7 @@ where
             let brane_state_key = tuplespaceInstanton::brane_state_key(*brane_id);
             match ctx
                 .engine
-                .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &brane_state_key)
+                .get_msg_causet::<BraneLocalState>(Causet_VIOLETABFT, &brane_state_key)
             {
                 Ok(None) => (),
                 Ok(Some(state)) => {
@@ -2085,7 +2085,7 @@ where
         self.ready_source_brane_id = 0;
 
         let brane_state_key = tuplespaceInstanton::brane_state_key(source_brane_id);
-        let state: BraneLocalState = match ctx.engine.get_msg_causet(CAUSET_VIOLETABFT, &brane_state_key) {
+        let state: BraneLocalState = match ctx.engine.get_msg_causet(Causet_VIOLETABFT, &brane_state_key) {
             Ok(Some(s)) => s,
             e => panic!(
                 "{} failed to get branes state of {:?}: {:?}",
@@ -2156,7 +2156,7 @@ where
     ) -> Result<(AdminResponse, ApplyResult<EK::Snapshot>)> {
         PEER_ADMIN_CMD_COUNTER.rollback_merge.all.inc();
         let brane_state_key = tuplespaceInstanton::brane_state_key(self.brane_id());
-        let state: BraneLocalState = match ctx.engine.get_msg_causet(CAUSET_VIOLETABFT, &brane_state_key) {
+        let state: BraneLocalState = match ctx.engine.get_msg_causet(Causet_VIOLETABFT, &brane_state_key) {
             Ok(Some(s)) => s,
             e => panic!("{} failed to get branes state: {:?}", self.tag, e),
         };
@@ -2312,7 +2312,7 @@ fn check_sst_for_ingestion(sst: &SstMeta, brane: &Brane) -> Result<()> {
     }
 
     let causet_name = sst.get_causet_name();
-    if causet_name != CAUSET_DEFAULT && causet_name != CAUSET_WRITE {
+    if causet_name != Causet_DEFAULT && causet_name != Causet_WRITE {
         return Err(box_err!("invalid causet name {}", causet_name));
     }
 
@@ -3491,7 +3491,7 @@ mod tests {
     use crate::store::peer_causetStorage::VIOLETABFT_INIT_LOG_INDEX;
     use crate::store::util::{new_learner_peer, new_peer};
     use engine_lmdb::{util::new_engine, LmdbEngine, LmdbSnapshot, LmdbWriteBatch};
-    use engine_promises::{Peekable as PeekableTrait, WriteBatchExt};
+    use edb::{Peekable as PeekableTrait, WriteBatchExt};
     use ekvproto::metapb::{self, BraneEpoch};
     use ekvproto::violetabft_cmdpb::*;
     use protobuf::Message;
@@ -3500,8 +3500,8 @@ mod tests {
 
     use crate::store::{Config, BraneTask};
     use test_sst_importer::*;
-    use einsteindb-prod_util::config::VersionTrack;
-    use einsteindb-prod_util::worker::dummy_interlock_semaphore;
+    use edb_util::config::VersionTrack;
+    use edb_util::worker::dummy_interlock_semaphore;
 
     use super::*;
 
@@ -3510,7 +3510,7 @@ mod tests {
         let engine = new_engine(
             path.path().join("db").to_str().unwrap(),
             None,
-            ALL_CAUSETS,
+            ALL_CausetS,
             None,
         )
         .unwrap();
@@ -3815,7 +3815,7 @@ mod tests {
         let apply_state_key = tuplespaceInstanton::apply_state_key(2);
         let apply_state = match snapshot_rx.recv_timeout(Duration::from_secs(3)) {
             Ok(Some(BraneTask::Gen { kv_snap, .. })) => kv_snap
-                .get_msg_causet(CAUSET_VIOLETABFT, &apply_state_key)
+                .get_msg_causet(Causet_VIOLETABFT, &apply_state_key)
                 .unwrap()
                 .unwrap(),
             e => panic!("unexpected apply result: {:?}", e),
@@ -4129,7 +4129,7 @@ mod tests {
         fetch_apply_res(&rx);
 
         let put_entry = EntryBuilder::new(2, 2)
-            .put_causet(CAUSET_DAGGER, b"k1", b"v1")
+            .put_causet(Causet_DAGGER, b"k1", b"v1")
             .epoch(1, 3)
             .build();
         router.schedule_task(
@@ -4146,7 +4146,7 @@ mod tests {
         assert_eq!(apply_res.metrics.size_diff_hint, 5);
         assert_eq!(apply_res.metrics.lock_causet_written_bytes, 5);
         assert_eq!(
-            engine.get_value_causet(CAUSET_DAGGER, &dk_k1).unwrap().unwrap(),
+            engine.get_value_causet(Causet_DAGGER, &dk_k1).unwrap().unwrap(),
             b"v1"
         );
 
@@ -4201,8 +4201,8 @@ mod tests {
 
         let put_entry = EntryBuilder::new(5, 3)
             .delete(b"k1")
-            .delete_causet(CAUSET_DAGGER, b"k1")
-            .delete_causet(CAUSET_WRITE, b"k1")
+            .delete_causet(Causet_DAGGER, b"k1")
+            .delete_causet(Causet_WRITE, b"k1")
             .epoch(1, 3)
             .build();
         router.schedule_task(
@@ -4270,9 +4270,9 @@ mod tests {
         fetch_apply_res(&rx);
 
         let delete_cone_entry = EntryBuilder::new(8, 3)
-            .delete_cone_causet(CAUSET_DEFAULT, b"", b"k5")
-            .delete_cone_causet(CAUSET_DAGGER, b"", b"k5")
-            .delete_cone_causet(CAUSET_WRITE, b"", b"k5")
+            .delete_cone_causet(Causet_DEFAULT, b"", b"k5")
+            .delete_cone_causet(Causet_DAGGER, b"", b"k5")
+            .delete_cone_causet(Causet_WRITE, b"", b"k5")
             .epoch(1, 3)
             .build();
         router.schedule_task(
@@ -4511,7 +4511,7 @@ mod tests {
         fetch_apply_res(&rx);
         let (capture_tx, capture_rx) = mpsc::channel();
         let put_entry = EntryBuilder::new(3, 2)
-            .put_causet(CAUSET_DAGGER, b"k1", b"v1")
+            .put_causet(Causet_DAGGER, b"k1", b"v1")
             .epoch(1, 3)
             .build();
         router.schedule_task(
@@ -4605,11 +4605,11 @@ mod tests {
         // Check uuid and causet name
         assert!(check_sst_for_ingestion(&sst, &brane).is_err());
         sst.set_uuid(Uuid::new_v4().as_bytes().to_vec());
-        sst.set_causet_name(CAUSET_DEFAULT.to_owned());
+        sst.set_causet_name(Causet_DEFAULT.to_owned());
         check_sst_for_ingestion(&sst, &brane).unwrap();
         sst.set_causet_name("test".to_owned());
         assert!(check_sst_for_ingestion(&sst, &brane).is_err());
-        sst.set_causet_name(CAUSET_WRITE.to_owned());
+        sst.set_causet_name(Causet_WRITE.to_owned());
         check_sst_for_ingestion(&sst, &brane).unwrap();
 
         // Check brane id
@@ -4658,7 +4658,7 @@ mod tests {
     impl<'a> SplitResultChecker<'a> {
         fn check(&self, spacelike: &[u8], lightlike: &[u8], id: u64, children: &[u64], check_initial: bool) {
             let key = tuplespaceInstanton::brane_state_key(id);
-            let state: BraneLocalState = self.engine.get_msg_causet(CAUSET_VIOLETABFT, &key).unwrap().unwrap();
+            let state: BraneLocalState = self.engine.get_msg_causet(Causet_VIOLETABFT, &key).unwrap().unwrap();
             assert_eq!(state.get_state(), PeerState::Normal);
             assert_eq!(state.get_brane().get_id(), id);
             assert_eq!(state.get_brane().get_spacelike_key(), spacelike);
@@ -4682,7 +4682,7 @@ mod tests {
             }
             let key = tuplespaceInstanton::apply_state_key(id);
             let initial_state: VioletaBftApplyState =
-                self.engine.get_msg_causet(CAUSET_VIOLETABFT, &key).unwrap().unwrap();
+                self.engine.get_msg_causet(Causet_VIOLETABFT, &key).unwrap().unwrap();
             assert_eq!(initial_state.get_applied_index(), VIOLETABFT_INIT_LOG_INDEX);
             assert_eq!(
                 initial_state.get_truncated_state().get_index(),

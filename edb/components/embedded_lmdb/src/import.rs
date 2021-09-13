@@ -1,9 +1,9 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::engine::LmdbEngine;
-use engine_promises::ImportExt;
-use engine_promises::IngestExternalFileOptions;
-use engine_promises::Result;
+use crate::edb::LmdbEngine;
+use edb::ImportExt;
+use edb::IngestExternalFileOptions;
+use edb::Result;
 use lmdb::set_external_sst_file_global_seq_no;
 use lmdb::IngestExternalFileOptions as RawIngestExternalFileOptions;
 use std::fs::File;
@@ -14,7 +14,7 @@ impl ImportExt for LmdbEngine {
 
     fn ingest_external_file_causet(
         &self,
-        causet: &Self::CAUSETHandle,
+        causet: &Self::CausetHandle,
         opts: &Self::IngestExternalFileOptions,
         files: &[&str],
     ) -> Result<()> {
@@ -33,7 +33,7 @@ impl ImportExt for LmdbEngine {
     // TODO: rename it to `reset_global_seq`.
     fn validate_sst_for_ingestion<P: AsRef<Path>>(
         &self,
-        causet: &Self::CAUSETHandle,
+        causet: &Self::CausetHandle,
         path: P,
         _expected_size: u64,
         _expected_checksum: u32,

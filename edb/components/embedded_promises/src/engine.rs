@@ -4,15 +4,15 @@ use std::fmt::Debug;
 
 use crate::*;
 
-/// A EinsteinDB key-value store
+/// An EinsteinDB key-value store
 pub trait KvEngine:
     Peekable
     + SyncMuBlock
     + Iterable
     + WriteBatchExt
     + DBOptionsExt
-    + CAUSETNamesExt
-    + CAUSETHandleExt
+    + CausetNamesExt
+    + CausetHandleExt
     + ImportExt
     + SstExt
     + BlockPropertiesExt

@@ -5,16 +5,16 @@ use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 
 use engine_lmdb::LmdbEngine;
-use engine_promises::{IterOptions, KvEngine, ReadOptions, CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_WRITE};
+use edb::{IterOptions, KvEngine, ReadOptions, Causet_DEFAULT, Causet_DAGGER, Causet_WRITE};
 use ekvproto::metapb::{Peer, Brane};
 use violetabft::StateRole;
 use violetabftstore::interlock::*;
 use violetabftstore::store::fsm::ObserveID;
 use violetabftstore::store::BraneSnapshot;
 use violetabftstore::Error as VioletaBftStoreError;
-use einsteindb-prod::causetStorage::{Cursor, ScanMode, Snapshot as EngineSnapshot, Statistics};
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::worker::Interlock_Semaphore;
+use edb::causetStorage::{Cursor, ScanMode, Snapshot as EngineSnapshot, Statistics};
+use edb_util::collections::HashMap;
+use edb_util::worker::Interlock_Semaphore;
 use txn_types::{Key, Dagger, MutationType, Value, WriteRef, WriteType};
 
 use crate::lightlikepoint::{Deregister, OldValueCache, Task};
@@ -215,7 +215,7 @@ impl<S: EngineSnapshot> OldValueReader<S> {
         let mut iter_opts = IterOptions::default();
         iter_opts.set_fill_cache(false);
         let write_cursor = snapshot
-            .iter_causet(CAUSET_WRITE, iter_opts, ScanMode::Mixed)
+            .iter_causet(Causet_WRITE, iter_opts, ScanMode::Mixed)
             .unwrap();
         Self {
             snapshot,
@@ -231,7 +231,7 @@ impl<S: EngineSnapshot> OldValueReader<S> {
         let mut opts = ReadOptions::new();
         opts.set_fill_cache(false);
         self.snapshot
-            .get_causet_opt(opts, CAUSET_DEFAULT, &key)
+            .get_causet_opt(opts, Causet_DEFAULT, &key)
             .unwrap()
             .map(|v| v.deref().to_vec())
     }
@@ -243,7 +243,7 @@ impl<S: EngineSnapshot> OldValueReader<S> {
         let key_slice = key.as_encoded();
         let user_key = Key::from_encoded_slice(Key::truncate_ts_for(key_slice).unwrap());
 
-        match self.snapshot.get_causet_opt(opts, CAUSET_DAGGER, &user_key).unwrap() {
+        match self.snapshot.get_causet_opt(opts, Causet_DAGGER, &user_key).unwrap() {
             Some(v) => {
                 let dagger = Dagger::parse(v.deref()).unwrap();
                 dagger.ts == Key::decode_ts_from(key_slice).unwrap()
@@ -311,13 +311,13 @@ mod tests {
     use ekvproto::metapb::Brane;
     use ekvproto::violetabft_cmdpb::*;
     use std::time::Duration;
-    use einsteindb-prod::causetStorage::kv::TestEngineBuilder;
-    use einsteindb-prod::causetStorage::tail_pointer::tests::*;
-    use einsteindb-prod::causetStorage::txn::tests::*;
+    use edb::causetStorage::kv::TestEngineBuilder;
+    use edb::causetStorage::tail_pointer::tests::*;
+    use edb::causetStorage::txn::tests::*;
 
     #[test]
     fn test_register_and_deregister() {
-        let (interlock_semaphore, rx) = einsteindb-prod_util::worker::dummy_interlock_semaphore();
+        let (interlock_semaphore, rx) = edb_util::worker::dummy_interlock_semaphore();
         let semaphore = causet_contextSemaphore::new(interlock_semaphore);
         let observe_id = ObserveID::new();
         let engine = TestEngineBuilder::new().build().unwrap().get_lmdb();

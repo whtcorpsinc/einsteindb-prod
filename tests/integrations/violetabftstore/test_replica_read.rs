@@ -13,8 +13,8 @@ use fidel_client::FidelClient;
 use violetabft::evioletabftpb::MessageType;
 use violetabftstore::Result;
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::*;
-use einsteindb-prod_util::HandyRwLock;
+use edb_util::config::*;
+use edb_util::HandyRwLock;
 
 #[derive(Default)]
 struct CommitToFilter {

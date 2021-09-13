@@ -45,7 +45,7 @@ extern crate more_asserts;
 #[macro_use]
 extern crate vlog;
 #[macro_use]
-extern crate einsteindb-prod_util;
+extern crate edb_util;
 #[macro_use]
 extern crate failure;
 
@@ -61,8 +61,8 @@ pub mod read_pool;
 pub mod server;
 pub mod causetStorage;
 
-/// Returns the einsteindb-prod version information.
-pub fn einsteindb-prod_version_info() -> String {
+/// Returns the edb version information.
+pub fn edb_version_info() -> String {
     let fallback = "Unknown (env var does not exist when building)";
     format!(
         "\nRelease Version:   {}\
@@ -86,10 +86,10 @@ pub fn einsteindb-prod_version_info() -> String {
     )
 }
 
-/// Prints the einsteindb-prod version information to the standard output.
-pub fn log_einsteindb-prod_info() {
+/// Prints the edb version information to the standard output.
+pub fn log_edb_info() {
     info!("Welcome to EinsteinDB");
-    for line in einsteindb-prod_version_info().lines().filter(|s| !s.is_empty()) {
+    for line in edb_version_info().lines().filter(|s| !s.is_empty()) {
         info!("{}", line);
     }
 }

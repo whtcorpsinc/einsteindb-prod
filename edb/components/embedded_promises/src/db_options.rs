@@ -18,7 +18,7 @@ pub trait DBOptions {
     fn get_max_background_jobs(&self) -> i32;
     fn get_rate_bytes_per_sec(&self) -> Option<i64>;
     fn set_rate_bytes_per_sec(&mut self, rate_bytes_per_sec: i64) -> Result<()>;
-    fn set_titandb_options(&mut self, opts: &Self::NoetherDBOptions);
+    fn tenancy_launched_for_einsteindb(&mut self, opts: &Self::NoetherDBOptions);
 }
 
 /// Noether-specefic options

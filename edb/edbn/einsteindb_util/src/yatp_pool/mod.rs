@@ -86,7 +86,7 @@ impl<T: PoolTicker> Runner for YatpPoolRunner<T> {
         if let Some(f) = self.after_spacelike.take() {
             f();
         }
-        einsteindb-prod_alloc::add_thread_memory_accessor()
+        edb_alloc::add_thread_memory_accessor()
     }
 
     fn handle(&mut self, local: &mut Local<Self::TaskCell>, task_cell: Self::TaskCell) -> bool {
@@ -112,7 +112,7 @@ impl<T: PoolTicker> Runner for YatpPoolRunner<T> {
         }
         self.ticker.on_tick();
         self.inner.lightlike(local);
-        einsteindb-prod_alloc::remove_thread_memory_accessor()
+        edb_alloc::remove_thread_memory_accessor()
     }
 }
 

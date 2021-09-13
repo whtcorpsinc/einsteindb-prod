@@ -12,14 +12,14 @@ use ekvproto::violetabft_cmdpb::VioletaBftCmdResponse;
 use violetabft::evioletabftpb::MessageType;
 
 use engine_lmdb::Compat;
-use engine_promises::Peekable;
+use edb::Peekable;
 use violetabftstore::router::VioletaBftStoreRouter;
 use violetabftstore::store::*;
 use violetabftstore::Result;
 use rand::RngCore;
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::*;
-use einsteindb-prod_util::HandyRwLock;
+use edb_util::config::*;
+use edb_util::HandyRwLock;
 
 fn test_multi_base<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.run();

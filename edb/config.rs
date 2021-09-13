@@ -32,7 +32,7 @@ use crate::server::CONFIG_LMDB_GAUGE;
 use crate::causetStorage::config::{Config as StorageConfig, DEFAULT_DATA_DIR, DEFAULT_LMDB_SUB_DIR};
 use engine_lmdb::config::{self as rocks_config, BlobRunMode, CompressionType, LogLevel};
 use engine_lmdb::properties::MvccPropertiesCollectorFactory;
-use engine_lmdb::raw_util::CAUSETOptions;
+use engine_lmdb::raw_util::CausetOptions;
 use engine_lmdb::util::{
     FixedPrefixSliceTransform, FixedSuffixSliceTransform, NoopSliceTransform,
 };
@@ -40,8 +40,8 @@ use engine_lmdb::{
     VioletaBftDBLogger, ConePropertiesCollectorFactory, LmdbEngine, LmdbEventListener, LmdbdbLogger,
     DEFAULT_PROP_KEYS_INDEX_DISTANCE, DEFAULT_PROP_SIZE_INDEX_DISTANCE,
 };
-use engine_promises::{CAUSETHandleExt, PrimaryCausetNetworkOptions as PrimaryCausetNetworkOptionsTrait, DBOptionsExt};
-use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_VER_DEFAULT, CAUSET_WRITE};
+use edb::{CausetHandleExt, PrimaryCausetNetworkOptions as PrimaryCausetNetworkOptionsTrait, DBOptionsExt};
+use edb::{Causet_DEFAULT, Causet_DAGGER, Causet_VIOLETABFT, Causet_VER_DEFAULT, Causet_WRITE};
 use tuplespaceInstanton::brane_violetabft_prefix_len;
 use fidel_client::Config as FidelConfig;
 use violetabft_log_engine::VioletaBftEngineConfig as RawVioletaBftEngineConfig;
@@ -50,29 +50,29 @@ use violetabftstore::interlock::Config as CopConfig;
 use violetabftstore::store::Config as VioletaBftstoreConfig;
 use violetabftstore::store::SplitConfig;
 use security::SecurityConfig;
-use einsteindb-prod_util::config::{
+use edb_util::config::{
     self, LogFormat, OptionReadableSize, ReadableDuration, ReadableSize, TomlWriter, GB, MB,
 };
-use einsteindb-prod_util::sys::sys_quota::SysQuota;
-use einsteindb-prod_util::time::duration_to_sec;
-use einsteindb-prod_util::yatp_pool;
+use edb_util::sys::sys_quota::SysQuota;
+use edb_util::time::duration_to_sec;
+use edb_util::yatp_pool;
 
-const LOCKCAUSET_MIN_MEM: usize = 256 * MB as usize;
-const LOCKCAUSET_MAX_MEM: usize = GB as usize;
+const LOCKCauset_MIN_MEM: usize = 256 * MB as usize;
+const LOCKCauset_MAX_MEM: usize = GB as usize;
 const VIOLETABFT_MIN_MEM: usize = 256 * MB as usize;
 const VIOLETABFT_MAX_MEM: usize = 2 * GB as usize;
-const LAST_CONFIG_FILE: &str = "last_einsteindb-prod.toml";
-const TMP_CONFIG_FILE: &str = "tmp_einsteindb-prod.toml";
+const LAST_CONFIG_FILE: &str = "last_edb.toml";
+const TMP_CONFIG_FILE: &str = "tmp_edb.toml";
 const MAX_BLOCK_SIZE: usize = 32 * MB as usize;
 
 fn memory_mb_for_causet(is_violetabft_db: bool, causet: &str) -> usize {
     let total_mem = SysQuota::new().memory_limit_in_bytes();
     let (ratio, min, max) = match (is_violetabft_db, causet) {
-        (true, CAUSET_DEFAULT) => (0.02, VIOLETABFT_MIN_MEM, VIOLETABFT_MAX_MEM),
-        (false, CAUSET_DEFAULT) => (0.25, 0, usize::MAX),
-        (false, CAUSET_DAGGER) => (0.02, LOCKCAUSET_MIN_MEM, LOCKCAUSET_MAX_MEM),
-        (false, CAUSET_WRITE) => (0.15, 0, usize::MAX),
-        (false, CAUSET_VER_DEFAULT) => (0.25, 0, usize::MAX),
+        (true, Causet_DEFAULT) => (0.02, VIOLETABFT_MIN_MEM, VIOLETABFT_MAX_MEM),
+        (false, Causet_DEFAULT) => (0.25, 0, usize::MAX),
+        (false, Causet_DAGGER) => (0.02, LOCKCauset_MIN_MEM, LOCKCauset_MAX_MEM),
+        (false, Causet_WRITE) => (0.15, 0, usize::MAX),
+        (false, Causet_VER_DEFAULT) => (0.25, 0, usize::MAX),
         _ => unreachable!(),
     };
     let mut size = (total_mem as f64 * ratio) as usize;
@@ -436,7 +436,7 @@ impl Default for DefaultCfConfig {
     fn default() -> DefaultCfConfig {
         DefaultCfConfig {
             block_size: ReadableSize::kb(64),
-            block_cache_size: ReadableSize::mb(memory_mb_for_causet(false, CAUSET_DEFAULT) as u64),
+            block_cache_size: ReadableSize::mb(memory_mb_for_causet(false, Causet_DEFAULT) as u64),
             disable_block_cache: false,
             cache_index_and_filter_blocks: true,
             pin_l0_filter_and_index_blocks: true,
@@ -488,8 +488,8 @@ impl DefaultCfConfig {
             prop_size_index_distance: self.prop_size_index_distance,
             prop_tuplespaceInstanton_index_distance: self.prop_tuplespaceInstanton_index_distance,
         });
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.cone-properties-collector", f);
-        causet_opts.set_titandb_options(&self.titan.build_opts());
+        causet_opts.add_Block_properties_collector_factory("edb.cone-properties-collector", f);
+        causet_opts.tenancy_launched_for_einsteindb(&self.titan.build_opts());
         causet_opts
     }
 }
@@ -503,7 +503,7 @@ impl Default for WriteCfConfig {
         titan.blob_run_mode = BlobRunMode::ReadOnly;
         WriteCfConfig {
             block_size: ReadableSize::kb(64),
-            block_cache_size: ReadableSize::mb(memory_mb_for_causet(false, CAUSET_WRITE) as u64),
+            block_cache_size: ReadableSize::mb(memory_mb_for_causet(false, Causet_WRITE) as u64),
             disable_block_cache: false,
             cache_index_and_filter_blocks: true,
             pin_l0_filter_and_index_blocks: true,
@@ -560,13 +560,13 @@ impl WriteCfConfig {
         causet_opts.set_memBlock_prefix_bloom_size_ratio(0.1);
         // Collects user defined properties.
         let f = Box::new(MvccPropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.tail_pointer-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("edb.tail_pointer-properties-collector", f);
         let f = Box::new(ConePropertiesCollectorFactory {
             prop_size_index_distance: self.prop_size_index_distance,
             prop_tuplespaceInstanton_index_distance: self.prop_tuplespaceInstanton_index_distance,
         });
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.cone-properties-collector", f);
-        causet_opts.set_titandb_options(&self.titan.build_opts());
+        causet_opts.add_Block_properties_collector_factory("edb.cone-properties-collector", f);
+        causet_opts.tenancy_launched_for_einsteindb(&self.titan.build_opts());
         causet_opts
             .set_compaction_filter_factory(
                 "write_compaction_filter_factory",
@@ -586,7 +586,7 @@ impl Default for LockCfConfig {
         titan.blob_run_mode = BlobRunMode::ReadOnly;
         LockCfConfig {
             block_size: ReadableSize::kb(16),
-            block_cache_size: ReadableSize::mb(memory_mb_for_causet(false, CAUSET_DAGGER) as u64),
+            block_cache_size: ReadableSize::mb(memory_mb_for_causet(false, Causet_DAGGER) as u64),
             disable_block_cache: false,
             cache_index_and_filter_blocks: true,
             pin_l0_filter_and_index_blocks: true,
@@ -634,9 +634,9 @@ impl LockCfConfig {
             prop_size_index_distance: self.prop_size_index_distance,
             prop_tuplespaceInstanton_index_distance: self.prop_tuplespaceInstanton_index_distance,
         });
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.cone-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("edb.cone-properties-collector", f);
         causet_opts.set_memBlock_prefix_bloom_size_ratio(0.1);
-        causet_opts.set_titandb_options(&self.titan.build_opts());
+        causet_opts.tenancy_launched_for_einsteindb(&self.titan.build_opts());
         causet_opts
     }
 }
@@ -695,7 +695,7 @@ impl VioletaBftCfConfig {
             .set_prefix_extractor("NoopSliceTransform", f)
             .unwrap();
         causet_opts.set_memBlock_prefix_bloom_size_ratio(0.1);
-        causet_opts.set_titandb_options(&self.titan.build_opts());
+        causet_opts.tenancy_launched_for_einsteindb(&self.titan.build_opts());
         causet_opts
     }
 }
@@ -706,7 +706,7 @@ impl Default for VersionCfConfig {
     fn default() -> VersionCfConfig {
         VersionCfConfig {
             block_size: ReadableSize::kb(64),
-            block_cache_size: ReadableSize::mb(memory_mb_for_causet(false, CAUSET_VER_DEFAULT) as u64),
+            block_cache_size: ReadableSize::mb(memory_mb_for_causet(false, Causet_VER_DEFAULT) as u64),
             disable_block_cache: false,
             cache_index_and_filter_blocks: true,
             pin_l0_filter_and_index_blocks: true,
@@ -758,8 +758,8 @@ impl VersionCfConfig {
             prop_size_index_distance: self.prop_size_index_distance,
             prop_tuplespaceInstanton_index_distance: self.prop_tuplespaceInstanton_index_distance,
         });
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.cone-properties-collector", f);
-        causet_opts.set_titandb_options(&self.titan.build_opts());
+        causet_opts.add_Block_properties_collector_factory("edb.cone-properties-collector", f);
+        causet_opts.tenancy_launched_for_einsteindb(&self.titan.build_opts());
         causet_opts
     }
 }
@@ -967,29 +967,29 @@ impl DbConfig {
         opts.set_info_log(LmdbdbLogger::default());
         opts.set_info_log_level(self.info_log_level.into());
         if self.titan.enabled {
-            opts.set_titandb_options(&self.titan.build_opts());
+            opts.tenancy_launched_for_einsteindb(&self.titan.build_opts());
         }
         opts
     }
 
-    pub fn build_causet_opts(&self, cache: &Option<Cache>) -> Vec<CAUSETOptions<'_>> {
+    pub fn build_causet_opts(&self, cache: &Option<Cache>) -> Vec<CausetOptions<'_>> {
         vec![
-            CAUSETOptions::new(CAUSET_DEFAULT, self.defaultcauset.build_opt(cache)),
-            CAUSETOptions::new(CAUSET_DAGGER, self.lockcauset.build_opt(cache)),
-            CAUSETOptions::new(CAUSET_WRITE, self.writecauset.build_opt(cache)),
-            // TODO: remove CAUSET_VIOLETABFT.
-            CAUSETOptions::new(CAUSET_VIOLETABFT, self.violetabftcauset.build_opt(cache)),
-            CAUSETOptions::new(CAUSET_VER_DEFAULT, self.ver_defaultcauset.build_opt(cache)),
+            CausetOptions::new(Causet_DEFAULT, self.defaultcauset.build_opt(cache)),
+            CausetOptions::new(Causet_DAGGER, self.lockcauset.build_opt(cache)),
+            CausetOptions::new(Causet_WRITE, self.writecauset.build_opt(cache)),
+            // TODO: remove Causet_VIOLETABFT.
+            CausetOptions::new(Causet_VIOLETABFT, self.violetabftcauset.build_opt(cache)),
+            CausetOptions::new(Causet_VER_DEFAULT, self.ver_defaultcauset.build_opt(cache)),
         ]
     }
 
-    pub fn build_causet_opts_v2(&self, cache: &Option<Cache>) -> Vec<CAUSETOptions<'_>> {
+    pub fn build_causet_opts_v2(&self, cache: &Option<Cache>) -> Vec<CausetOptions<'_>> {
         vec![
-            CAUSETOptions::new(CAUSET_DEFAULT, self.defaultcauset.build_opt(cache)),
-            CAUSETOptions::new(CAUSET_DAGGER, self.lockcauset.build_opt(cache)),
-            CAUSETOptions::new(CAUSET_WRITE, self.writecauset.build_opt(cache)),
-            CAUSETOptions::new(CAUSET_VIOLETABFT, self.violetabftcauset.build_opt(cache)),
-            CAUSETOptions::new(CAUSET_VER_DEFAULT, self.ver_defaultcauset.build_opt(cache)),
+            CausetOptions::new(Causet_DEFAULT, self.defaultcauset.build_opt(cache)),
+            CausetOptions::new(Causet_DAGGER, self.lockcauset.build_opt(cache)),
+            CausetOptions::new(Causet_WRITE, self.writecauset.build_opt(cache)),
+            CausetOptions::new(Causet_VIOLETABFT, self.violetabftcauset.build_opt(cache)),
+            CausetOptions::new(Causet_VER_DEFAULT, self.ver_defaultcauset.build_opt(cache)),
         ]
     }
 
@@ -1012,11 +1012,11 @@ impl DbConfig {
     }
 
     fn write_into_metrics(&self) {
-        write_into_metrics!(self.defaultcauset, CAUSET_DEFAULT, CONFIG_LMDB_GAUGE);
-        write_into_metrics!(self.lockcauset, CAUSET_DAGGER, CONFIG_LMDB_GAUGE);
-        write_into_metrics!(self.writecauset, CAUSET_WRITE, CONFIG_LMDB_GAUGE);
-        write_into_metrics!(self.violetabftcauset, CAUSET_VIOLETABFT, CONFIG_LMDB_GAUGE);
-        write_into_metrics!(self.ver_defaultcauset, CAUSET_VER_DEFAULT, CONFIG_LMDB_GAUGE);
+        write_into_metrics!(self.defaultcauset, Causet_DEFAULT, CONFIG_LMDB_GAUGE);
+        write_into_metrics!(self.lockcauset, Causet_DAGGER, CONFIG_LMDB_GAUGE);
+        write_into_metrics!(self.writecauset, Causet_WRITE, CONFIG_LMDB_GAUGE);
+        write_into_metrics!(self.violetabftcauset, Causet_VIOLETABFT, CONFIG_LMDB_GAUGE);
+        write_into_metrics!(self.ver_defaultcauset, Causet_VER_DEFAULT, CONFIG_LMDB_GAUGE);
     }
 }
 
@@ -1026,7 +1026,7 @@ impl Default for VioletaBftDefaultCfConfig {
     fn default() -> VioletaBftDefaultCfConfig {
         VioletaBftDefaultCfConfig {
             block_size: ReadableSize::kb(64),
-            block_cache_size: ReadableSize::mb(memory_mb_for_causet(true, CAUSET_DEFAULT) as u64),
+            block_cache_size: ReadableSize::mb(memory_mb_for_causet(true, Causet_DEFAULT) as u64),
             disable_block_cache: false,
             cache_index_and_filter_blocks: true,
             pin_l0_filter_and_index_blocks: true,
@@ -1078,7 +1078,7 @@ impl VioletaBftDefaultCfConfig {
         causet_opts
             .set_memBlock_insert_hint_prefix_extractor("VioletaBftPrefixSliceTransform", f)
             .unwrap();
-        causet_opts.set_titandb_options(&self.titan.build_opts());
+        causet_opts.tenancy_launched_for_einsteindb(&self.titan.build_opts());
         causet_opts
     }
 }
@@ -1214,14 +1214,14 @@ impl VioletaBftDbConfig {
         opts.set_wal_bytes_per_sync(self.wal_bytes_per_sync.0 as u64);
         // TODO maybe create a new env for violetabft engine
         if self.titan.enabled {
-            opts.set_titandb_options(&self.titan.build_opts());
+            opts.tenancy_launched_for_einsteindb(&self.titan.build_opts());
         }
 
         opts
     }
 
-    pub fn build_causet_opts(&self, cache: &Option<Cache>) -> Vec<CAUSETOptions<'_>> {
-        vec![CAUSETOptions::new(CAUSET_DEFAULT, self.defaultcauset.build_opt(cache))]
+    pub fn build_causet_opts(&self, cache: &Option<Cache>) -> Vec<CausetOptions<'_>> {
+        vec![CausetOptions::new(Causet_DEFAULT, self.defaultcauset.build_opt(cache))]
     }
 
     fn validate(&mut self) -> Result<(), Box<dyn Error>> {
@@ -1320,7 +1320,7 @@ impl DBConfigManger {
         }
         let handle = self.db.causet_handle(causet)?;
         let opt = self.db.get_options_causet(handle);
-        opt.set_block_cache_capacity(size.0)?;
+        opt.serialize_capacity(size.0)?;
         // Write config to metric
         CONFIG_LMDB_GAUGE
             .with_label_values(&[causet, "block_cache_size"])
@@ -1336,12 +1336,12 @@ impl DBConfigManger {
 
     fn validate_causet(&self, causet: &str) -> Result<(), Box<dyn Error>> {
         match (self.db_type, causet) {
-            (DBType::Kv, CAUSET_DEFAULT)
-            | (DBType::Kv, CAUSET_WRITE)
-            | (DBType::Kv, CAUSET_DAGGER)
-            | (DBType::Kv, CAUSET_VIOLETABFT)
-            | (DBType::Kv, CAUSET_VER_DEFAULT)
-            | (DBType::VioletaBft, CAUSET_DEFAULT) => Ok(()),
+            (DBType::Kv, Causet_DEFAULT)
+            | (DBType::Kv, Causet_WRITE)
+            | (DBType::Kv, Causet_DAGGER)
+            | (DBType::Kv, Causet_VIOLETABFT)
+            | (DBType::Kv, Causet_VER_DEFAULT)
+            | (DBType::VioletaBft, Causet_DEFAULT) => Ok(()),
             _ => Err(format!("invalid causet {:?} for db {:?}", causet, self.db_type).into()),
         }
     }
@@ -1442,7 +1442,7 @@ impl Default for MetricConfig {
         MetricConfig {
             interval: ReadableDuration::secs(15),
             address: "".to_owned(),
-            job: "einsteindb-prod".to_owned(),
+            job: "edb".to_owned(),
         }
     }
 }
@@ -1453,7 +1453,7 @@ pub mod log_level_serde {
         Deserialize, Deserializer, Serialize, Serializer,
     };
     use slog::Level;
-    use einsteindb-prod_util::logger::{get_level_by_string, get_string_by_level};
+    use edb_util::logger::{get_level_by_string, get_string_by_level};
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Level, D::Error>
     where
@@ -2242,7 +2242,7 @@ impl EINSTEINDBConfig {
                 Path::new(&self.lmdb.titan.dirname).to_path_buf()
             };
             if let Err(e) =
-                einsteindb-prod_util::config::check_data_dir_empty(titandb_path.to_str().unwrap(), "blob")
+                edb_util::config::check_data_dir_empty(titandb_path.to_str().unwrap(), "blob")
             {
                 return Err(format!(
                     "check: titandb-data-dir-empty; err: \"{}\"; \
@@ -2392,7 +2392,7 @@ impl EINSTEINDBConfig {
         }
 
         if last_causet.causetStorage.data_dir != self.causetStorage.data_dir {
-            // In einsteindb-prod 3.0 the default value of causetStorage.data-dir changed
+            // In edb 3.0 the default value of causetStorage.data-dir changed
             // from "" to "./"
             let using_default_after_upgrade =
                 last_causet.causetStorage.data_dir.is_empty() && self.causetStorage.data_dir == DEFAULT_DATA_DIR;
@@ -2477,7 +2477,7 @@ impl EINSTEINDBConfig {
 
 /// Prevents launching with an incompatible configuration
 ///
-/// Loads the previously-loaded configuration from `last_einsteindb-prod.toml`,
+/// Loads the previously-loaded configuration from `last_edb.toml`,
 /// compares key configuration items and fails if they are not
 /// identical.
 pub fn check_critical_config(config: &EINSTEINDBConfig) -> Result<(), String> {
@@ -2500,7 +2500,7 @@ fn get_last_config(data_dir: &str) -> Option<EINSTEINDBConfig> {
     None
 }
 
-/// Persists config to `last_einsteindb-prod.toml`
+/// Persists config to `last_edb.toml`
 pub fn persist_config(config: &EINSTEINDBConfig) -> Result<(), String> {
     let store_path = Path::new(&config.causetStorage.data_dir);
     let last_causet_path = store_path.join(LAST_CONFIG_FILE);
@@ -2826,40 +2826,40 @@ mod tests {
     use super::*;
     use crate::causetStorage::config::StorageConfigManger;
     use engine_lmdb::raw_util::new_engine_opt;
-    use engine_promises::DBOptions as DBOptionsTrait;
+    use edb::DBOptions as DBOptionsTrait;
     use violetabft_log_engine::RecoveryMode;
     use slog::Level;
     use std::sync::Arc;
 
     #[test]
     fn test_check_critical_causet_with() {
-        let mut einsteindb-prod_causet = EINSTEINDBConfig::default();
+        let mut edb_causet = EINSTEINDBConfig::default();
         let mut last_causet = EINSTEINDBConfig::default();
-        assert!(einsteindb-prod_causet.check_critical_causet_with(&last_causet).is_ok());
+        assert!(edb_causet.check_critical_causet_with(&last_causet).is_ok());
 
-        einsteindb-prod_causet.lmdb.wal_dir = "/data/wal_dir".to_owned();
-        assert!(einsteindb-prod_causet.check_critical_causet_with(&last_causet).is_err());
+        edb_causet.lmdb.wal_dir = "/data/wal_dir".to_owned();
+        assert!(edb_causet.check_critical_causet_with(&last_causet).is_err());
 
         last_causet.lmdb.wal_dir = "/data/wal_dir".to_owned();
-        assert!(einsteindb-prod_causet.check_critical_causet_with(&last_causet).is_ok());
+        assert!(edb_causet.check_critical_causet_with(&last_causet).is_ok());
 
-        einsteindb-prod_causet.violetabftdb.wal_dir = "/violetabft/wal_dir".to_owned();
-        assert!(einsteindb-prod_causet.check_critical_causet_with(&last_causet).is_err());
+        edb_causet.violetabftdb.wal_dir = "/violetabft/wal_dir".to_owned();
+        assert!(edb_causet.check_critical_causet_with(&last_causet).is_err());
 
         last_causet.violetabftdb.wal_dir = "/violetabft/wal_dir".to_owned();
-        assert!(einsteindb-prod_causet.check_critical_causet_with(&last_causet).is_ok());
+        assert!(edb_causet.check_critical_causet_with(&last_causet).is_ok());
 
-        einsteindb-prod_causet.causetStorage.data_dir = "/data1".to_owned();
-        assert!(einsteindb-prod_causet.check_critical_causet_with(&last_causet).is_err());
+        edb_causet.causetStorage.data_dir = "/data1".to_owned();
+        assert!(edb_causet.check_critical_causet_with(&last_causet).is_err());
 
         last_causet.causetStorage.data_dir = "/data1".to_owned();
-        assert!(einsteindb-prod_causet.check_critical_causet_with(&last_causet).is_ok());
+        assert!(edb_causet.check_critical_causet_with(&last_causet).is_ok());
 
-        einsteindb-prod_causet.violetabft_store.violetabftdb_path = "/violetabft_path".to_owned();
-        assert!(einsteindb-prod_causet.check_critical_causet_with(&last_causet).is_err());
+        edb_causet.violetabft_store.violetabftdb_path = "/violetabft_path".to_owned();
+        assert!(edb_causet.check_critical_causet_with(&last_causet).is_err());
 
         last_causet.violetabft_store.violetabftdb_path = "/violetabft_path".to_owned();
-        assert!(einsteindb-prod_causet.check_critical_causet_with(&last_causet).is_ok());
+        assert!(edb_causet.check_critical_causet_with(&last_causet).is_ok());
     }
 
     #[test]
@@ -2892,19 +2892,19 @@ mod tests {
         let file = path_buf.as_path();
         let (s1, s2) = ("/xxx/wal_dir".to_owned(), "/yyy/wal_dir".to_owned());
 
-        let mut einsteindb-prod_causet = EINSTEINDBConfig::default();
+        let mut edb_causet = EINSTEINDBConfig::default();
 
-        einsteindb-prod_causet.lmdb.wal_dir = s1.clone();
-        einsteindb-prod_causet.violetabftdb.wal_dir = s2.clone();
-        einsteindb-prod_causet.write_to_file(file).unwrap();
+        edb_causet.lmdb.wal_dir = s1.clone();
+        edb_causet.violetabftdb.wal_dir = s2.clone();
+        edb_causet.write_to_file(file).unwrap();
         let causet_from_file = EINSTEINDBConfig::from_file(file, None);
         assert_eq!(causet_from_file.lmdb.wal_dir, s1);
         assert_eq!(causet_from_file.violetabftdb.wal_dir, s2);
 
         // write critical config when exist.
-        einsteindb-prod_causet.lmdb.wal_dir = s2.clone();
-        einsteindb-prod_causet.violetabftdb.wal_dir = s1.clone();
-        einsteindb-prod_causet.write_to_file(file).unwrap();
+        edb_causet.lmdb.wal_dir = s2.clone();
+        edb_causet.violetabftdb.wal_dir = s1.clone();
+        edb_causet.write_to_file(file).unwrap();
         let causet_from_file = EINSTEINDBConfig::from_file(file, None);
         assert_eq!(causet_from_file.lmdb.wal_dir, s2);
         assert_eq!(causet_from_file.violetabftdb.wal_dir, s1);
@@ -2918,38 +2918,38 @@ mod tests {
             .unwrap();
         let path = root_path.path().join("not_exist_dir");
 
-        let mut einsteindb-prod_causet = EINSTEINDBConfig::default();
-        einsteindb-prod_causet.causetStorage.data_dir = path.as_path().to_str().unwrap().to_owned();
-        assert!(persist_config(&einsteindb-prod_causet).is_ok());
+        let mut edb_causet = EINSTEINDBConfig::default();
+        edb_causet.causetStorage.data_dir = path.as_path().to_str().unwrap().to_owned();
+        assert!(persist_config(&edb_causet).is_ok());
     }
 
     #[test]
     fn test_keepalive_check() {
-        let mut einsteindb-prod_causet = EINSTEINDBConfig::default();
-        einsteindb-prod_causet.fidel.lightlikepoints = vec!["".to_owned()];
-        let dur = einsteindb-prod_causet.violetabft_store.violetabft_heartbeat_interval();
-        einsteindb-prod_causet.server.grpc_keepalive_time = ReadableDuration(dur);
-        assert!(einsteindb-prod_causet.validate().is_err());
-        einsteindb-prod_causet.server.grpc_keepalive_time = ReadableDuration(dur * 2);
-        einsteindb-prod_causet.validate().unwrap();
+        let mut edb_causet = EINSTEINDBConfig::default();
+        edb_causet.fidel.lightlikepoints = vec!["".to_owned()];
+        let dur = edb_causet.violetabft_store.violetabft_heartbeat_interval();
+        edb_causet.server.grpc_keepalive_time = ReadableDuration(dur);
+        assert!(edb_causet.validate().is_err());
+        edb_causet.server.grpc_keepalive_time = ReadableDuration(dur * 2);
+        edb_causet.validate().unwrap();
     }
 
     #[test]
     fn test_block_size() {
-        let mut einsteindb-prod_causet = EINSTEINDBConfig::default();
-        einsteindb-prod_causet.fidel.lightlikepoints = vec!["".to_owned()];
-        einsteindb-prod_causet.lmdb.defaultcauset.block_size = ReadableSize::gb(10);
-        einsteindb-prod_causet.lmdb.lockcauset.block_size = ReadableSize::gb(10);
-        einsteindb-prod_causet.lmdb.writecauset.block_size = ReadableSize::gb(10);
-        einsteindb-prod_causet.lmdb.violetabftcauset.block_size = ReadableSize::gb(10);
-        einsteindb-prod_causet.violetabftdb.defaultcauset.block_size = ReadableSize::gb(10);
-        assert!(einsteindb-prod_causet.validate().is_err());
-        einsteindb-prod_causet.lmdb.defaultcauset.block_size = ReadableSize::kb(10);
-        einsteindb-prod_causet.lmdb.lockcauset.block_size = ReadableSize::kb(10);
-        einsteindb-prod_causet.lmdb.writecauset.block_size = ReadableSize::kb(10);
-        einsteindb-prod_causet.lmdb.violetabftcauset.block_size = ReadableSize::kb(10);
-        einsteindb-prod_causet.violetabftdb.defaultcauset.block_size = ReadableSize::kb(10);
-        einsteindb-prod_causet.validate().unwrap();
+        let mut edb_causet = EINSTEINDBConfig::default();
+        edb_causet.fidel.lightlikepoints = vec!["".to_owned()];
+        edb_causet.lmdb.defaultcauset.block_size = ReadableSize::gb(10);
+        edb_causet.lmdb.lockcauset.block_size = ReadableSize::gb(10);
+        edb_causet.lmdb.writecauset.block_size = ReadableSize::gb(10);
+        edb_causet.lmdb.violetabftcauset.block_size = ReadableSize::gb(10);
+        edb_causet.violetabftdb.defaultcauset.block_size = ReadableSize::gb(10);
+        assert!(edb_causet.validate().is_err());
+        edb_causet.lmdb.defaultcauset.block_size = ReadableSize::kb(10);
+        edb_causet.lmdb.lockcauset.block_size = ReadableSize::kb(10);
+        edb_causet.lmdb.writecauset.block_size = ReadableSize::kb(10);
+        edb_causet.lmdb.violetabftcauset.block_size = ReadableSize::kb(10);
+        edb_causet.violetabftdb.defaultcauset.block_size = ReadableSize::kb(10);
+        edb_causet.validate().unwrap();
     }
 
     #[test]
@@ -3150,11 +3150,11 @@ mod tests {
         );
 
         // ufidelate some configs on default causet
-        let defaultcauset = db.causet_handle(CAUSET_DEFAULT).unwrap();
+        let defaultcauset = db.causet_handle(Causet_DEFAULT).unwrap();
         let causet_opts = db.get_options_causet(defaultcauset);
         assert_eq!(causet_opts.get_disable_auto_compactions(), false);
         assert_eq!(causet_opts.get_target_file_size_base(), ReadableSize::mb(64).0);
-        assert_eq!(causet_opts.get_block_cache_capacity(), ReadableSize::mb(8).0);
+        assert_eq!(causet_opts.pull_upper_bound_release_buffer(), ReadableSize::mb(8).0);
 
         let mut change = HashMap::new();
         change.insert(
@@ -3174,7 +3174,7 @@ mod tests {
         let causet_opts = db.get_options_causet(defaultcauset);
         assert_eq!(causet_opts.get_disable_auto_compactions(), true);
         assert_eq!(causet_opts.get_target_file_size_base(), ReadableSize::mb(32).0);
-        assert_eq!(causet_opts.get_block_cache_capacity(), ReadableSize::mb(256).0);
+        assert_eq!(causet_opts.pull_upper_bound_release_buffer(), ReadableSize::mb(256).0);
 
         // Can not ufidelate block cache through causetStorage module
         // when shared block cache is disabled
@@ -3199,10 +3199,10 @@ mod tests {
             .ufidelate_config("causetStorage.block-cache.capacity", "256MB")
             .unwrap();
 
-        let defaultcauset = db.causet_handle(CAUSET_DEFAULT).unwrap();
+        let defaultcauset = db.causet_handle(Causet_DEFAULT).unwrap();
         let defaultcauset_opts = db.get_options_causet(defaultcauset);
         assert_eq!(
-            defaultcauset_opts.get_block_cache_capacity(),
+            defaultcauset_opts.pull_upper_bound_release_buffer(),
             ReadableSize::mb(256).0
         );
     }

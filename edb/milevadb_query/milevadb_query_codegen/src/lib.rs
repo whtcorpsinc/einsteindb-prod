@@ -4,9 +4,9 @@
 //! subsystem.
 //!
 //! For an overview of the interlock architecture, see the documentation on
-//! [einsteindb-prod/src/interlock](https://github.com/einsteindb-prod/einsteindb-prod/blob/master/src/interlock/mod.rs).
+//! [edb/src/interlock](https://github.com/edb/edb/blob/master/src/interlock/mod.rs).
 //!
-//! This crate exports a custom derive for [`AggrFunction`](https://github.com/einsteindb-prod/einsteindb-prod/blob/master/components/milevadb_query_vec_aggr/src/mod.rs)
+//! This crate exports a custom derive for [`AggrFunction`](https://github.com/edb/edb/blob/master/components/milevadb_query_vec_aggr/src/mod.rs)
 //! and an attribute macro called `rpn_fn` for use on functions which provide
 //! interlock functionality. `rpn_fn` is documented in the [rpn_function](rpn_function.rs)
 //! module.

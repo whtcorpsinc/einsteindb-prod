@@ -92,7 +92,7 @@
 //!   Example:
 //!
 //!   ```ignore
-//!   // in engine_promises
+//!   // in edb
 //!
 //!   trait WriteBatchExt {
 //!       type WriteBatch: WriteBatch;
@@ -162,8 +162,8 @@
 //! ## 1) Migrating the `engine` abstractions
 //!
 //! The engine crate was an earlier attempt to abstract the causetStorage engine. Much
-//! of its structure is duplicated near-identically in engine_promises, the
-//! difference being that engine_promises has no Lmdb deplightlikeencies. Having no
+//! of its structure is duplicated near-identically in edb, the
+//! difference being that edb has no Lmdb deplightlikeencies. Having no
 //! Lmdb deplightlikeencies makes it trivial to guarantee that the abstractions are
 //! truly abstract.
 //!
@@ -172,7 +172,7 @@
 //!
 //! During this stage, we will eliminate the wrappers from `engine` to reduce
 //! code duplication. We do this by identifying a small subsystem within
-//! `engine`, duplicating it within `engine_promises` and `engine_lmdb`, deleting
+//! `engine`, duplicating it within `edb` and `engine_lmdb`, deleting
 //! the code from `engine`, and fixing all the callers to work with the
 //! abstracted implementation.
 //!
@@ -185,14 +185,14 @@
 //!
 //! EinsteinDB uses reexported `rust-lmdb` APIs via the `engine` crate. During this
 //! stage we need to identify each of these APIs, duplicate them generically in
-//! the `engine_promises` and `engine_lmdb` crate, and convert all callers to use
+//! the `edb` and `engine_lmdb` crate, and convert all callers to use
 //! the `engine_lmdb` crate instead.
 //!
 //! At the lightlike of this phase the `engine` crate will be deleted.
 //!
 //! ## 3) "Pulling up" the generic abstractions through EINSTEINDB
 //!
-//! With all of EinsteinDB using the `engine_promises` promises in conjunction with the
+//! With all of EinsteinDB using the `edb` promises in conjunction with the
 //! concrete `engine_lmdb` types, we can push generic type parameters up
 //! through the application. Then we will remove the concrete `engine_lmdb`
 //! deplightlikeency from EinsteinDB so that it is impossible to re-introduce
@@ -217,7 +217,7 @@
 //!
 //! - Port modules with the fewest Lmdb deplightlikeencies at a time, modifying
 //!   those modules's callers to convert to and from the engine promises as
-//!   needed. Move in and out of the engine_promises world with the
+//!   needed. Move in and out of the edb world with the
 //!   `Lmdb::from_ref` and `Lmdb::as_inner` methods.
 //!
 //! - Down follow the type system too far "down the rabbit hole". When you see
@@ -236,7 +236,7 @@
 //!   `TraitExt` trait to "mixin" to the `KvEngine` trait.
 //!
 //! - Port methods directly from the existing `engine` crate by re-implementing
-//!   it in engine_promises and engine_lmdb, replacing all the callers with calls
+//!   it in edb and engine_lmdb, replacing all the callers with calls
 //!   into the promises, then delete the versions in the `engine` crate.
 //!
 //! - Use the .c() method from engine_lmdb::compat::Compat to get a
@@ -245,11 +245,11 @@
 //!
 //! - Use `IntoOther` to adapt between error types of deplightlikeencies that are not
 //!   themselves interdeplightlikeent. E.g. violetabft::Error can be created from
-//!   engine_promises::Error even though neither `violetabft` tor `engine_promises` know
+//!   edb::Error even though neither `violetabft` tor `edb` know
 //!   about each other.
 //!
 //! - "Plain old data" types in `engine` can be moved directly into
-//!   `engine_promises` and reexported from `engine` to ease the transition.
+//!   `edb` and reexported from `engine` to ease the transition.
 //!   Likewise `engine_lmdb` can temporarily call code from inside `engine`.
 #![feature(min_specialization)]
 #![recursion_limit = "200"]
@@ -257,7 +257,7 @@
 #[macro_use]
 extern crate quick_error;
 #[allow(unused_extern_crates)]
-extern crate einsteindb-prod_alloc;
+extern crate edb_alloc;
 #[macro_use]
 extern crate slog_global;
 
@@ -280,7 +280,7 @@ pub use crate::db_options::*;
 mod db_vector;
 pub use crate::db_vector::*;
 mod engine;
-pub use crate::engine::*;
+pub use crate::edb::*;
 mod import;
 pub use import::*;
 mod misc;

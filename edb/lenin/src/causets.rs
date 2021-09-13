@@ -12,7 +12,7 @@ use edbn::{
     Keyword,
 };
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     MinkowskiType,
 };

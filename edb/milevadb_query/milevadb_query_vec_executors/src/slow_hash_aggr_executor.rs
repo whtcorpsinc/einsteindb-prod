@@ -6,8 +6,8 @@ use std::ptr::NonNull;
 use std::sync::Arc;
 
 use milevadb_query_datatype::{EvalType, FieldTypeAccessor};
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::collections::HashMapEntry;
+use edb_util::collections::HashMap;
+use edb_util::collections::HashMapEntry;
 use fidelpb::Aggregation;
 use fidelpb::{Expr, FieldType};
 

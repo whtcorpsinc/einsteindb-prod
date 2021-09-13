@@ -20,7 +20,7 @@ milevadb_query_codegen = { path = "../milevadb_query_codegen" }
 milevadb_query_datatype = { path = "../milevadb_query_datatype" }
 milevadb_query_common = { path = "../milevadb_query_common" }
 milevadb_query_shared_expr = { path = "../milevadb_query_shared_expr" }
-einsteindb-prod_util = { path = "../einsteindb-prod_util" }
+edb_util = { path = "../edb_util" }
 fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
 twoway = "0.2.0"
 uuid = { version = "0.8.1", features = ["v4"] }

@@ -1,9 +1,9 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use grpcio::{ChannelBuilder, Environment};
-use ekvproto::{kvrpcpb::*, metapb, einsteindb-prodpb::EINSTEINDBClient};
+use ekvproto::{kvrpcpb::*, metapb, edbpb::EINSTEINDBClient};
 use test_violetabftstore::*;
-use einsteindb-prod_util::{collections::HashMap, HandyRwLock};
+use edb_util::{collections::HashMap, HandyRwLock};
 
 use std::sync::Arc;
 
@@ -120,7 +120,7 @@ fn test_applied_lock_collector() {
         assert!(must_check_lock_semaphore(c, safe_point, true).is_empty());
     });
 
-    // Dagger semaphore should only collect values in dagger CAUSET.
+    // Dagger semaphore should only collect values in dagger Causet.
     let key = b"key0";
     must_kv_prewrite(
         &leader_client,

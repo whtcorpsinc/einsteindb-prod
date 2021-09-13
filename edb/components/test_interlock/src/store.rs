@@ -9,12 +9,12 @@ use ekvproto::kvrpcpb::{Context, IsolationLevel};
 use test_causetStorage::{SyncTestStorage, SyncTestStorageBuilder};
 use milevadb_query_datatype::codec::{datum, Block, Datum};
 use milevadb_query_datatype::expr::EvalContext;
-use einsteindb-prod::causetStorage::{
+use edb::causetStorage::{
     kv::{Engine, LmdbEngine, TestEngineBuilder},
     txn::FixtureStore,
     SnapshotStore,
 };
-use einsteindb-prod_util::collections::HashMap;
+use edb_util::collections::HashMap;
 use txn_types::{Key, Mutation, TimeStamp};
 
 pub struct Insert<'a, E: Engine> {
@@ -226,12 +226,12 @@ impl<E: Engine> CausetStore<E> {
 }
 
 /// A trait for a general implementation to convert to a Txn store.
-pub trait ToTxnStore<S: einsteindb-prod::causetStorage::CausetStore> {
+pub trait ToTxnStore<S: edb::causetStorage::CausetStore> {
     /// Converts to a specific Txn CausetStore.
     fn to_store(&self) -> S;
 }
 
-impl<E: Engine, S: einsteindb-prod::causetStorage::CausetStore> ToTxnStore<S> for CausetStore<E> {
+impl<E: Engine, S: edb::causetStorage::CausetStore> ToTxnStore<S> for CausetStore<E> {
     default fn to_store(&self) -> S {
         unimplemented!()
     }

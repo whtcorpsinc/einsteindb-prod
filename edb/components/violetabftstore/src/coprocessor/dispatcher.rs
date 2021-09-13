@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
 
-use engine_promises::{CfName, KvEngine};
+use edb::{CfName, KvEngine};
 use ekvproto::metapb::Brane;
 use ekvproto::fidelpb::CheckPolicy;
 use ekvproto::violetabft_cmdpb::{ComputeHashRequest, VioletaBftCmdRequest};

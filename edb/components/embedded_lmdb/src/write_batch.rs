@@ -2,10 +2,10 @@
 
 use std::sync::Arc;
 
-use crate::engine::LmdbEngine;
+use crate::edb::LmdbEngine;
 use crate::options::LmdbWriteOptions;
 use crate::util::get_causet_handle;
-use engine_promises::{self, Error, MuBlock, Result, WriteBatchExt, WriteOptions};
+use edb::{self, Error, MuBlock, Result, WriteBatchExt, WriteOptions};
 use lmdb::{WriBlock, WriteBatch as RawWriteBatch, DB};
 
 const WRITE_BATCH_MAX_BATCH: usize = 16;
@@ -91,7 +91,7 @@ impl LmdbWriteBatch {
     }
 }
 
-impl engine_promises::WriteBatch<LmdbEngine> for LmdbWriteBatch {
+impl edb::WriteBatch<LmdbEngine> for LmdbWriteBatch {
     fn with_capacity(e: &LmdbEngine, cap: usize) -> LmdbWriteBatch {
         e.write_batch_with_cap(cap)
     }
@@ -214,7 +214,7 @@ impl LmdbWriteBatchVec {
     }
 }
 
-impl engine_promises::WriteBatch<LmdbEngine> for LmdbWriteBatchVec {
+impl edb::WriteBatch<LmdbEngine> for LmdbWriteBatchVec {
     fn with_capacity(e: &LmdbEngine, cap: usize) -> LmdbWriteBatchVec {
         LmdbWriteBatchVec::new(e.as_inner().clone(), WRITE_BATCH_LIMIT, cap)
     }
@@ -313,7 +313,7 @@ mod tests {
     use super::super::util::new_engine_opt;
     use super::super::LmdbDBOptions;
     use super::*;
-    use engine_promises::WriteBatch;
+    use edb::WriteBatch;
     use lmdb::DBOptions as RawDBOptions;
     use tempfile::Builder;
 

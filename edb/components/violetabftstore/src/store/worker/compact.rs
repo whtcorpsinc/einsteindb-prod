@@ -5,11 +5,11 @@ use std::error;
 use std::fmt::{self, Display, Formatter};
 use std::time::Instant;
 
-use engine_promises::KvEngine;
-use engine_promises::CAUSET_WRITE;
-use einsteindb-prod_util::worker::Runnable;
+use edb::KvEngine;
+use edb::Causet_WRITE;
+use edb_util::worker::Runnable;
 
-use super::metrics::COMPACT_RANGE_CAUSET;
+use super::metrics::COMPACT_RANGE_Causet;
 use engine_lmdb::properties::get_cone_entries_and_versions;
 
 type Key = Vec<u8>;
@@ -101,7 +101,7 @@ where
         lightlike_key: Option<&[u8]>,
     ) -> Result<(), Error> {
         let timer = Instant::now();
-        let compact_cone_timer = COMPACT_RANGE_CAUSET
+        let compact_cone_timer = COMPACT_RANGE_Causet
             .with_label_values(&[causet_name])
             .spacelike_coarse_timer();
         box_try!(self
@@ -197,7 +197,7 @@ fn collect_cones_need_compact(
     // contains too many Lmdb tombstones. EinsteinDB will merge multiple neighboring cones
     // that need compacting into a single cone.
     let mut cones_need_compact = VecDeque::new();
-    let causet = box_try!(engine.causet_handle(CAUSET_WRITE));
+    let causet = box_try!(engine.causet_handle(Causet_WRITE));
     let mut compact_spacelike = None;
     let mut compact_lightlike = None;
     for cone in cones.windows(2) {
@@ -251,11 +251,11 @@ mod tests {
     use engine_lmdb::raw::WriBlock;
     use engine_lmdb::raw::DB;
     use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions};
-    use engine_lmdb::raw_util::{new_engine, new_engine_opt, CAUSETOptions};
+    use engine_lmdb::raw_util::{new_engine, new_engine_opt, CausetOptions};
     use engine_lmdb::util::get_causet_handle;
     use engine_lmdb::Compat;
-    use engine_promises::{CAUSETHandleExt, MuBlock, WriteBatchExt};
-    use engine_promises::{CAUSET_DEFAULT, CAUSET_DAGGER, CAUSET_VIOLETABFT, CAUSET_WRITE};
+    use edb::{CausetHandleExt, MuBlock, WriteBatchExt};
+    use edb::{Causet_DEFAULT, Causet_DAGGER, Causet_VIOLETABFT, Causet_WRITE};
     use tempfile::Builder;
 
     use engine_lmdb::get_cone_entries_and_versions;
@@ -274,18 +274,18 @@ mod tests {
             .prefix("compact-cone-test")
             .temfidelir()
             .unwrap();
-        let db = new_engine(path.path().to_str().unwrap(), None, &[CAUSET_DEFAULT], None).unwrap();
+        let db = new_engine(path.path().to_str().unwrap(), None, &[Causet_DEFAULT], None).unwrap();
         let db = Arc::new(db);
 
         let mut runner = Runner::new(db.c().clone());
 
-        let handle = get_causet_handle(&db, CAUSET_DEFAULT).unwrap();
+        let handle = get_causet_handle(&db, Causet_DEFAULT).unwrap();
 
         // Generate the first SST file.
         let mut wb = db.c().write_batch();
         for i in 0..1000 {
             let k = format!("key_{}", i);
-            wb.put_causet(CAUSET_DEFAULT, k.as_bytes(), b"whatever content")
+            wb.put_causet(Causet_DEFAULT, k.as_bytes(), b"whatever content")
                 .unwrap();
         }
         db.c().write(&wb).unwrap();
@@ -295,7 +295,7 @@ mod tests {
         let mut wb = db.c().write_batch();
         for i in 0..1000 {
             let k = format!("key_{}", i);
-            wb.put_causet(CAUSET_DEFAULT, k.as_bytes(), b"whatever content")
+            wb.put_causet(Causet_DEFAULT, k.as_bytes(), b"whatever content")
                 .unwrap();
         }
         db.c().write(&wb).unwrap();
@@ -308,7 +308,7 @@ mod tests {
 
         // Schedule compact cone task.
         runner.run(Task::Compact {
-            causet_name: String::from(CAUSET_DEFAULT),
+            causet_name: String::from(Causet_DEFAULT),
             spacelike_key: None,
             lightlike_key: None,
         });
@@ -322,7 +322,7 @@ mod tests {
     }
 
     fn tail_pointer_put(db: &DB, k: &[u8], v: &[u8], spacelike_ts: TimeStamp, commit_ts: TimeStamp) {
-        let causet = get_causet_handle(db, CAUSET_WRITE).unwrap();
+        let causet = get_causet_handle(db, Causet_WRITE).unwrap();
         let k = Key::from_encoded(data_key(k)).applightlike_ts(commit_ts);
         let w = Write::new(WriteType::Put, spacelike_ts, Some(v.to_vec()));
         db.put_causet(causet, k.as_encoded(), &w.as_ref().to_bytes())
@@ -330,7 +330,7 @@ mod tests {
     }
 
     fn delete(db: &DB, k: &[u8], commit_ts: TimeStamp) {
-        let causet = get_causet_handle(db, CAUSET_WRITE).unwrap();
+        let causet = get_causet_handle(db, Causet_WRITE).unwrap();
         let k = Key::from_encoded(data_key(k)).applightlike_ts(commit_ts);
         db.delete_causet(causet, k.as_encoded()).unwrap();
     }
@@ -340,12 +340,12 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(8);
         let f = Box::new(MvccPropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.test-collector", f);
+        causet_opts.add_Block_properties_collector_factory("edb.test-collector", f);
         let causets_opts = vec![
-            CAUSETOptions::new(CAUSET_DEFAULT, PrimaryCausetNetworkOptions::new()),
-            CAUSETOptions::new(CAUSET_VIOLETABFT, PrimaryCausetNetworkOptions::new()),
-            CAUSETOptions::new(CAUSET_DAGGER, PrimaryCausetNetworkOptions::new()),
-            CAUSETOptions::new(CAUSET_WRITE, causet_opts),
+            CausetOptions::new(Causet_DEFAULT, PrimaryCausetNetworkOptions::new()),
+            CausetOptions::new(Causet_VIOLETABFT, PrimaryCausetNetworkOptions::new()),
+            CausetOptions::new(Causet_DAGGER, PrimaryCausetNetworkOptions::new()),
+            CausetOptions::new(Causet_WRITE, causet_opts),
         ];
         Arc::new(new_engine_opt(path, db_opts, causets_opts).unwrap())
     }
@@ -354,8 +354,8 @@ mod tests {
     fn test_check_space_redundancy() {
         let tmp_dir = Builder::new().prefix("test").temfidelir().unwrap();
         let engine = open_db(tmp_dir.path().to_str().unwrap());
-        let causet = get_causet_handle(&engine, CAUSET_WRITE).unwrap();
-        let causet2 = engine.c().causet_handle(CAUSET_WRITE).unwrap();
+        let causet = get_causet_handle(&engine, Causet_WRITE).unwrap();
+        let causet2 = engine.c().causet_handle(Causet_WRITE).unwrap();
 
         // tail_pointer_put 0..5
         for i in 0..5 {

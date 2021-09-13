@@ -23,10 +23,10 @@ extern crate tabwriter;
 extern crate time;
 
 #[macro_use] extern crate edbn;
-#[macro_use] extern crate einsteindb-prod_embedded;
+#[macro_use] extern crate edb_raum;
 extern crate edb_promises;
-#[macro_use] extern crate embedded_promises;
-extern crate einsteindb-prod_sql;
+#[macro_use] extern crate raum_promises;
+extern crate edb_sql;
 
 use std::iter::repeat;
 

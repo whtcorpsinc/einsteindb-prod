@@ -6,15 +6,15 @@ use std::time::Duration;
 
 use grpcio::*;
 use ekvproto::kvrpcpb::{self, Context, Op, PrewriteRequest, RawPutRequest};
-use ekvproto::einsteindb-prodpb::EINSTEINDBClient;
+use ekvproto::edbpb::EINSTEINDBClient;
 
 use errors::extract_brane_error;
 use test_violetabftstore::{must_get_equal, must_get_none, new_peer, new_server_cluster};
-use einsteindb-prod::causetStorage::kv::{Error as KvError, ErrorInner as KvErrorInner};
-use einsteindb-prod::causetStorage::lock_manager::DummyLockManager;
-use einsteindb-prod::causetStorage::txn::{commands, Error as TxnError, ErrorInner as TxnErrorInner};
-use einsteindb-prod::causetStorage::{self, test_util::*, *};
-use einsteindb-prod_util::{collections::HashMap, HandyRwLock};
+use edb::causetStorage::kv::{Error as KvError, ErrorInner as KvErrorInner};
+use edb::causetStorage::lock_manager::DummyLockManager;
+use edb::causetStorage::txn::{commands, Error as TxnError, ErrorInner as TxnErrorInner};
+use edb::causetStorage::{self, test_util::*, *};
+use edb_util::{collections::HashMap, HandyRwLock};
 use txn_types::Key;
 use txn_types::{Mutation, TimeStamp};
 

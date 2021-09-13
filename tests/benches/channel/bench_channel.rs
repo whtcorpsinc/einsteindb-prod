@@ -7,7 +7,7 @@ use test::Bencher;
 use crossbeam::channel;
 use futures::executor::block_on;
 use futures::stream::StreamExt;
-use einsteindb-prod_util::mpsc;
+use edb_util::mpsc;
 
 #[bench]
 fn bench_thread_channel(b: &mut Bencher) {

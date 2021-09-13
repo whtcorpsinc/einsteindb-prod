@@ -180,7 +180,7 @@
 
 [causetStorage]
 ## The path to Lmdb directory.
-# data-dir = "/tmp/einsteindb-prod/store"
+# data-dir = "/tmp/edb/store"
 
 ## The number of slots in Interlock_Semaphore latches, which controls write concurrency.
 ## In most cases you can use the default value. When importing data, you can set it to a larger
@@ -189,7 +189,7 @@
 
 ## Interlock_Semaphore's worker pool size, i.e. the number of write threads.
 ## It should be less than total CPU cores. When there are frequent write operations, set it to a
-## higher value. More specifically, you can run `top -H -p einsteindb-prod-pid` to check whether the threads
+## higher value. More specifically, you can run `top -H -p edb-pid` to check whether the threads
 ## named `sched-worker-pool` are busy.
 # interlock_semaphore-worker-pool-size = 4
 
@@ -410,7 +410,7 @@
 ## persistent causetStorage. See https://github.com/facebook/lmdb/wiki/How-to-persist-in-memory-Lmdb-database .
 ## If there are two disks on the machine, storing Lmdb data and WAL logs on different disks can
 ## improve performance.
-# wal-dir = "/tmp/einsteindb-prod/store"
+# wal-dir = "/tmp/edb/store"
 
 ## The following two fields affect how archived WAL will be deleted.
 ## 1. If both values are set to 0, logs will be deleted ASAP and will not get into the archive.

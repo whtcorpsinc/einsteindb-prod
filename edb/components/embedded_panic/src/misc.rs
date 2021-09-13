@@ -1,7 +1,7 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use crate::engine::PanicEngine;
-use engine_promises::{MiscExt, Cone, Result};
+use crate::edb::PanicEngine;
+use edb::{MiscExt, Cone, Result};
 
 impl MiscExt for PanicEngine {
     fn flush(&self, sync: bool) -> Result<()> {

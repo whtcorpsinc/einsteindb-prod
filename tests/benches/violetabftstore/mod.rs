@@ -6,7 +6,7 @@ use std::sync::Arc;
 use criterion::{Bencher, Criterion};
 use engine_lmdb::raw::DB;
 use engine_lmdb::Compat;
-use engine_promises::{MuBlock, WriteBatchExt};
+use edb::{MuBlock, WriteBatchExt};
 use test_violetabftstore::*;
 use test_util::*;
 
@@ -177,7 +177,7 @@ impl fmt::Debug for ServerClusterFactory {
 }
 
 fn main() {
-    einsteindb-prod_util::config::check_max_open_fds(4096).unwrap();
+    edb_util::config::check_max_open_fds(4096).unwrap();
 
     let mut criterion = Criterion::default().configure_from_args().sample_size(10);
     bench_violetabft_cluster(&mut criterion, NodeClusterFactory {}, "violetabftstore::node");

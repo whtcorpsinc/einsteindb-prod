@@ -2,7 +2,7 @@
 
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Mutex;
-use einsteindb-prod_util::collections::HashMap;
+use edb_util::collections::HashMap;
 
 use ekvproto::metapb::{Peer, Brane, CausetStore, StoreState};
 use ekvproto::fidelpb::*;

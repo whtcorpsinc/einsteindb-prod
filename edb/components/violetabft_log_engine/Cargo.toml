@@ -18,8 +18,8 @@ prost-codec = [
 ]
 
 [deplightlikeencies]
-engine_promises = { path = "../engine_promises" }
-einsteindb-prod_util = { path = "../einsteindb-prod_util" }
+edb = { path = "../edb" }
+edb_util = { path = "../edb_util" }
 hex = "0.4"
 tuplespaceInstanton = { path = "../tuplespaceInstanton" }
 num_cpus = "1"
@@ -34,5 +34,5 @@ serde_derive = "1.0"
 coarsetime = "0.1"
 ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
 violetabft = { version = "0.6.0-alpha", default-features = false }
-violetabft-engine = { git = "https://github.com/einsteindb-prod/violetabft-engine"}
+violetabft-engine = { git = "https://github.com/edb/violetabft-engine"}
 protobuf = "2"

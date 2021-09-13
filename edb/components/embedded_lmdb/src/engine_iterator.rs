@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use engine_promises::{self, Error, Result};
+use edb::{self, Error, Result};
 use lmdb::{DBIterator, SeekKey as RawSeekKey, DB};
 
 // FIXME: Would prefer using &DB instead of Arc<DB>.  As elsewhere in
@@ -15,13 +15,13 @@ impl LmdbEngineIterator {
     }
 }
 
-impl engine_promises::Iteron for LmdbEngineIterator {
-    fn seek(&mut self, key: engine_promises::SeekKey) -> Result<bool> {
+impl edb::Iteron for LmdbEngineIterator {
+    fn seek(&mut self, key: edb::SeekKey) -> Result<bool> {
         let k: LmdbSeekKey = key.into();
         self.0.seek(k.into_raw()).map_err(Error::Engine)
     }
 
-    fn seek_for_prev(&mut self, key: engine_promises::SeekKey) -> Result<bool> {
+    fn seek_for_prev(&mut self, key: edb::SeekKey) -> Result<bool> {
         let k: LmdbSeekKey = key.into();
         self.0.seek_for_prev(k.into_raw()).map_err(Error::Engine)
     }
@@ -55,12 +55,12 @@ impl<'a> LmdbSeekKey<'a> {
     }
 }
 
-impl<'a> From<engine_promises::SeekKey<'a>> for LmdbSeekKey<'a> {
-    fn from(key: engine_promises::SeekKey<'a>) -> Self {
+impl<'a> From<edb::SeekKey<'a>> for LmdbSeekKey<'a> {
+    fn from(key: edb::SeekKey<'a>) -> Self {
         let k = match key {
-            engine_promises::SeekKey::Start => RawSeekKey::Start,
-            engine_promises::SeekKey::End => RawSeekKey::End,
-            engine_promises::SeekKey::Key(k) => RawSeekKey::Key(k),
+            edb::SeekKey::Start => RawSeekKey::Start,
+            edb::SeekKey::End => RawSeekKey::End,
+            edb::SeekKey::Key(k) => RawSeekKey::Key(k),
         };
         LmdbSeekKey(k)
     }

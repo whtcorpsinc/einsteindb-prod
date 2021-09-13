@@ -3,7 +3,7 @@
 use std::fs;
 use std::path::Path;
 
-use engine_promises::{CacheStats, VioletaBftEngine, VioletaBftLogBatch as VioletaBftLogBatchTrait, Result};
+use edb::{CacheStats, VioletaBftEngine, VioletaBftLogBatch as VioletaBftLogBatchTrait, Result};
 use ekvproto::violetabft_serverpb::VioletaBftLocalState;
 use violetabft::evioletabftpb::Entry;
 use violetabft_engine::{EntryExt, Error as VioletaBftEngineError, LogBatch, VioletaBftLogEngine as RawVioletaBftEngine};
@@ -158,7 +158,7 @@ impl VioletaBftEngine for VioletaBftLogEngine {
     /// Flush current cache stats.
     fn flush_stats(&self) -> Option<CacheStats> {
         let stat = self.0.flush_stats();
-        Some(engine_promises::CacheStats {
+        Some(edb::CacheStats {
             hit: stat.hit,
             miss: stat.miss,
             cache_size: stat.cache_size,
@@ -175,13 +175,13 @@ impl VioletaBftEngine for VioletaBftLogEngine {
     }
 }
 
-fn transfer_error(e: VioletaBftEngineError) -> engine_promises::Error {
+fn transfer_error(e: VioletaBftEngineError) -> edb::Error {
     match e {
-        VioletaBftEngineError::StorageCompacted => engine_promises::Error::EntriesCompacted,
-        VioletaBftEngineError::StorageUnavailable => engine_promises::Error::EntriesUnavailable,
+        VioletaBftEngineError::StorageCompacted => edb::Error::EntriesCompacted,
+        VioletaBftEngineError::StorageUnavailable => edb::Error::EntriesUnavailable,
         e => {
             let e = box_err!(e);
-            engine_promises::Error::Other(e)
+            edb::Error::Other(e)
         }
     }
 }

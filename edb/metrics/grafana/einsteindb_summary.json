@@ -106,7 +106,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(einsteindb-prod_engine_size_bytes{instance=~\"$instance\"}) by (instance)",
+              "expr": "sum(edb_engine_size_bytes{instance=~\"$instance\"}) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -203,7 +203,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(einsteindb-prod_store_size_bytes{instance=~\"$instance\", type=\"available\"}) by (instance)",
+              "expr": "sum(edb_store_size_bytes{instance=~\"$instance\", type=\"available\"}) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -300,7 +300,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(einsteindb-prod_store_size_bytes{instance=~\"$instance\", type=\"capacity\"}) by (instance)",
+              "expr": "sum(edb_store_size_bytes{instance=~\"$instance\", type=\"capacity\"}) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -397,7 +397,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -688,7 +688,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_engine_flow_bytes{instance=~\"$instance\", db=\"kv\", type=\"wal_file_bytes\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_engine_flow_bytes{instance=~\"$instance\", db=\"kv\", type=\"wal_file_bytes\"}[1m])) by (instance)",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 2,
@@ -697,7 +697,7 @@
               "step": 10
             },
             {
-              "expr": "sum(rate(einsteindb-prod_engine_flow_bytes{instance=~\"$instance\", db=\"kv\", type=~\"bytes_read|iter_bytes_read\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_engine_flow_bytes{instance=~\"$instance\", db=\"kv\", type=~\"bytes_read|iter_bytes_read\"}[1m])) by (instance)",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 2,
@@ -796,7 +796,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_grpc_msg_duration_seconds_count{instance=~\"$instance\", type!=\"kv_gc\"}[1m])) by (instance,type)",
+              "expr": "sum(rate(edb_grpc_msg_duration_seconds_count{instance=~\"$instance\", type!=\"kv_gc\"}[1m])) by (instance,type)",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 2,
@@ -896,7 +896,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_grpc_msg_fail_total{instance=~\"$instance\", type!=\"kv_gc\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_grpc_msg_fail_total{instance=~\"$instance\", type!=\"kv_gc\"}[1m])) by (instance)",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 2,
@@ -905,14 +905,14 @@
               "step": 10
             },
             {
-              "expr": "sum(delta(einsteindb-prod_fidel_heartbeat_message_total{instance=~\"$instance\", type=\"noop\"}[1m])) by (instance) < 1",
+              "expr": "sum(delta(edb_fidel_heartbeat_message_total{instance=~\"$instance\", type=\"noop\"}[1m])) by (instance) < 1",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}-fidel-heartbeat",
               "refId": "B"
             },
             {
-              "expr": "sum(rate(einsteindb-prod_critical_error_total{instance=~\"$instance\"}[1m])) by (instance, type)",
+              "expr": "sum(rate(edb_critical_error_total{instance=~\"$instance\"}[1m])) by (instance, type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}-{{type}}",
@@ -1013,7 +1013,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(einsteindb-prod_violetabftstore_brane_count{instance=~\"$instance\", type=\"leader\"}) by (instance)",
+              "expr": "sum(edb_violetabftstore_brane_count{instance=~\"$instance\", type=\"leader\"}) by (instance)",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 2,
@@ -1022,7 +1022,7 @@
               "step": 10
             },
             {
-              "expr": "delta(einsteindb-prod_violetabftstore_brane_count{instance=~\"$instance\", type=\"leader\"}[30s]) < -10",
+              "expr": "delta(edb_violetabftstore_brane_count{instance=~\"$instance\", type=\"leader\"}[30s]) < -10",
               "format": "time_series",
               "hide": true,
               "intervalFactor": 2,
@@ -1117,7 +1117,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(einsteindb-prod_violetabftstore_brane_count{instance=~\"$instance\", type=\"brane\"}) by (instance)",
+              "expr": "sum(edb_violetabftstore_brane_count{instance=~\"$instance\", type=\"brane\"}) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -1252,7 +1252,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_critical_error_total{instance=~\"$instance\"}[1m])) by (instance, type)",
+              "expr": "sum(rate(edb_critical_error_total{instance=~\"$instance\"}[1m])) by (instance, type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}-{{type}}",
@@ -1355,7 +1355,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_interlock_semaphore_too_busy_total{instance=~\"$instance\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_interlock_semaphore_too_busy_total{instance=~\"$instance\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "interlock_semaphore-{{instance}}",
@@ -1364,7 +1364,7 @@
               "step": 4
             },
             {
-              "expr": "sum(rate(einsteindb-prod_channel_full_total{instance=~\"$instance\"}[1m])) by (instance, type)",
+              "expr": "sum(rate(edb_channel_full_total{instance=~\"$instance\"}[1m])) by (instance, type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "channelfull-{{instance}}-{{type}}",
@@ -1373,7 +1373,7 @@
               "step": 4
             },
             {
-              "expr": "sum(rate(einsteindb-prod_interlock_request_error{instance=~\"$instance\", type='full'}[1m])) by (instance)",
+              "expr": "sum(rate(edb_interlock_request_error{instance=~\"$instance\", type='full'}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "interlock-{{instance}}",
@@ -1382,7 +1382,7 @@
               "step": 4
             },
             {
-              "expr": "avg(einsteindb-prod_engine_write_stall{instance=~\"$instance\", type=\"write_stall_percentile99\"}) by (instance)",
+              "expr": "avg(edb_engine_write_stall{instance=~\"$instance\", type=\"write_stall_percentile99\"}) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "stall-{{instance}}",
@@ -1514,11 +1514,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_server_report_failure_msg_total{instance=~\"$instance\"}[1m])) by (type,instance,store_id)",
+              "expr": "sum(rate(edb_server_report_failure_msg_total{instance=~\"$instance\"}[1m])) by (type,instance,store_id)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} - {{type}} - to - {{store_id}}",
-              "metric": "einsteindb-prod_server_violetabft_store_msg_total",
+              "metric": "edb_server_violetabft_store_msg_total",
               "refId": "A",
               "step": 10
             }
@@ -1622,7 +1622,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_causetStorage_engine_async_request_total{instance=~\"$instance\", status!~\"success|all\"}[1m])) by (instance, status)",
+              "expr": "sum(rate(edb_causetStorage_engine_async_request_total{instance=~\"$instance\", status!~\"success|all\"}[1m])) by (instance, status)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}-{{status}}",
@@ -1722,7 +1722,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_interlock_semaphore_stage_total{instance=~\"$instance\", stage=~\"snapshot_err|prepare_write_err\"}[1m])) by (instance, stage)",
+              "expr": "sum(rate(edb_interlock_semaphore_stage_total{instance=~\"$instance\", stage=~\"snapshot_err|prepare_write_err\"}[1m])) by (instance, stage)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}-{{stage}}",
@@ -1822,7 +1822,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_interlock_request_error{instance=~\"$instance\"}[1m])) by (instance, reason)",
+              "expr": "sum(rate(edb_interlock_request_error{instance=~\"$instance\"}[1m])) by (instance, reason)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}-{{reason}}",
@@ -1922,7 +1922,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_grpc_msg_fail_total{instance=~\"$instance\"}[1m])) by (instance, type)",
+              "expr": "sum(rate(edb_grpc_msg_fail_total{instance=~\"$instance\"}[1m])) by (instance, type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}-{{type}}",
@@ -2027,7 +2027,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(delta(einsteindb-prod_violetabftstore_brane_count{instance=~\"$instance\", type=\"leader\"}[1m])) by (instance)",
+              "expr": "sum(delta(edb_violetabftstore_brane_count{instance=~\"$instance\", type=\"leader\"}[1m])) by (instance)",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 2,
@@ -2131,7 +2131,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(einsteindb-prod_violetabftstore_leader_missing{instance=~\"$instance\"}) by (instance)",
+              "expr": "sum(edb_violetabftstore_leader_missing{instance=~\"$instance\"}) by (instance)",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 2,
@@ -2242,7 +2242,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(einsteindb-prod_engine_size_bytes{instance=~\"$instance\"}) by (type)",
+              "expr": "sum(edb_engine_size_bytes{instance=~\"$instance\"}) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{type}}",
@@ -2254,7 +2254,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "CAUSET size",
+          "title": "Causet size",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -2339,7 +2339,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(einsteindb-prod_engine_size_bytes{instance=~\"$instance\"}) by (instance)",
+              "expr": "sum(edb_engine_size_bytes{instance=~\"$instance\"}) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -2405,7 +2405,7 @@
                 "query": {
                   "datasourceId": 1,
                   "model": {
-                    "expr": "sum(rate(einsteindb-prod_channel_full_total{instance=~\"$instance\"}[1m])) by (instance, type)",
+                    "expr": "sum(rate(edb_channel_full_total{instance=~\"$instance\"}[1m])) by (instance, type)",
                     "intervalFactor": 2,
                     "leglightlikeFormat": "{{instance}} - {{type}}",
                     "metric": "",
@@ -2479,7 +2479,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_channel_full_total{instance=~\"$instance\"}[1m])) by (instance, type)",
+              "expr": "sum(rate(edb_channel_full_total{instance=~\"$instance\"}[1m])) by (instance, type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} - {{type}}",
@@ -2617,7 +2617,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb-prod_violetabftstore_brane_size_bucket{instance=~\"$instance\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(edb_violetabftstore_brane_size_bucket{instance=~\"$instance\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "99%",
@@ -2626,7 +2626,7 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(einsteindb-prod_violetabftstore_brane_size_bucket{instance=~\"$instance\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(edb_violetabftstore_brane_size_bucket{instance=~\"$instance\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "95%",
@@ -2635,7 +2635,7 @@
               "step": 10
             },
             {
-              "expr": "sum(rate(einsteindb-prod_violetabftstore_brane_size_sum{instance=~\"$instance\"}[1m])) / sum(rate(einsteindb-prod_violetabftstore_brane_size_count{instance=~\"$instance\"}[1m])) ",
+              "expr": "sum(rate(edb_violetabftstore_brane_size_sum{instance=~\"$instance\"}[1m])) / sum(rate(edb_violetabftstore_brane_size_count{instance=~\"$instance\"}[1m])) ",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "avg",
@@ -2745,11 +2745,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_grpc_msg_duration_seconds_count{instance=~\"$instance\", type!=\"kv_gc\"}[1m])) by (type)",
+              "expr": "sum(rate(edb_grpc_msg_duration_seconds_count{instance=~\"$instance\", type!=\"kv_gc\"}[1m])) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{type}}",
-              "metric": "einsteindb-prod_grpc_msg_duration_seconds_bucket",
+              "metric": "edb_grpc_msg_duration_seconds_bucket",
               "refId": "A",
               "step": 10
             }
@@ -2837,11 +2837,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_grpc_msg_fail_total{instance=~\"$instance\", type!=\"kv_gc\"}[1m])) by (type)",
+              "expr": "sum(rate(edb_grpc_msg_fail_total{instance=~\"$instance\", type!=\"kv_gc\"}[1m])) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{type}}",
-              "metric": "einsteindb-prod_grpc_msg_fail_total",
+              "metric": "edb_grpc_msg_fail_total",
               "refId": "A",
               "step": 10
             }
@@ -2933,7 +2933,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(einsteindb-prod_grpc_msg_duration_seconds_bucket{instance=~\"$instance\", type!=\"kv_gc\"}[1m])) by (le, type))",
+              "expr": "histogram_quantile(0.99, sum(rate(edb_grpc_msg_duration_seconds_bucket{instance=~\"$instance\", type!=\"kv_gc\"}[1m])) by (le, type))",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 2,
@@ -3028,7 +3028,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_grpc_msg_duration_seconds_sum{instance=~\"$instance\"}[1m])) by (type) / sum(rate(einsteindb-prod_grpc_msg_duration_seconds_count[1m])) by (type)",
+              "expr": "sum(rate(edb_grpc_msg_duration_seconds_sum{instance=~\"$instance\"}[1m])) by (type) / sum(rate(edb_grpc_msg_duration_seconds_count[1m])) by (type)",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 2,
@@ -3109,10 +3109,10 @@
                 "query": {
                   "datasourceId": 1,
                   "model": {
-                    "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"violetabftstore_.*\"}[1m])) by (instance)",
+                    "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"violetabftstore_.*\"}[1m])) by (instance)",
                     "intervalFactor": 2,
                     "leglightlikeFormat": "{{instance}}",
-                    "metric": "einsteindb-prod_thread_cpu_seconds_total",
+                    "metric": "edb_thread_cpu_seconds_total",
                     "refId": "A",
                     "step": 20
                   },
@@ -3185,11 +3185,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"violetabftstore_.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"violetabftstore_.*\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
-              "metric": "einsteindb-prod_thread_cpu_seconds_total",
+              "metric": "edb_thread_cpu_seconds_total",
               "refId": "A",
               "step": 4
             }
@@ -3326,11 +3326,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"apply_[0-9]+\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"apply_[0-9]+\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
-              "metric": "einsteindb-prod_thread_cpu_seconds_total",
+              "metric": "edb_thread_cpu_seconds_total",
               "refId": "A",
               "step": 4
             }
@@ -3469,11 +3469,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"sched_.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"sched_.*\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
-              "metric": "einsteindb-prod_thread_cpu_seconds_total",
+              "metric": "edb_thread_cpu_seconds_total",
               "refId": "A",
               "step": 4
             }
@@ -3607,7 +3607,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"grpc.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"grpc.*\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -3747,7 +3747,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"cop_normal.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"cop_normal.*\"}[1m])) by (instance)",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 2,
@@ -3756,7 +3756,7 @@
               "step": 4
             },
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"cop_high.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"cop_high.*\"}[1m])) by (instance)",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 2,
@@ -3765,7 +3765,7 @@
               "step": 4
             },
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"cop_low.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"cop_low.*\"}[1m])) by (instance)",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 2,
@@ -3908,29 +3908,29 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"store_read_norm.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"store_read_norm.*\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} - normal",
-              "metric": "einsteindb-prod_thread_cpu_seconds_total",
+              "metric": "edb_thread_cpu_seconds_total",
               "refId": "A",
               "step": 4
             },
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"store_read_high.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"store_read_high.*\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} - high",
-              "metric": "einsteindb-prod_thread_cpu_seconds_total",
+              "metric": "edb_thread_cpu_seconds_total",
               "refId": "B",
               "step": 4
             },
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"store_read_low.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"store_read_low.*\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} - low",
-              "metric": "einsteindb-prod_thread_cpu_seconds_total",
+              "metric": "edb_thread_cpu_seconds_total",
               "refId": "C",
               "step": 4
             }
@@ -4032,11 +4032,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"split_check\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"split_check\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
-              "metric": "einsteindb-prod_thread_cpu_seconds_total",
+              "metric": "edb_thread_cpu_seconds_total",
               "refId": "A",
               "step": 4
             }
@@ -4130,11 +4130,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"lmdb.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"lmdb.*\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
-              "metric": "einsteindb-prod_thread_cpu_seconds_total",
+              "metric": "edb_thread_cpu_seconds_total",
               "refId": "A",
               "step": 4
             }
@@ -4239,7 +4239,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"gc_worker.*\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"gc_worker.*\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
@@ -4337,11 +4337,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"snapshot_worker\"}[1m])) by (instance)",
+              "expr": "sum(rate(edb_thread_cpu_seconds_total{instance=~\"$instance\", name=~\"snapshot_worker\"}[1m])) by (instance)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
-              "metric": "einsteindb-prod_thread_cpu_seconds_total",
+              "metric": "edb_thread_cpu_seconds_total",
               "refId": "A",
               "step": 4
             }
@@ -4445,7 +4445,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_fidel_request_duration_seconds_count{instance=~\"$instance\"}[1m])) by (type)",
+              "expr": "sum(rate(edb_fidel_request_duration_seconds_count{instance=~\"$instance\"}[1m])) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{ type }}",
@@ -4536,7 +4536,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_fidel_request_duration_seconds_sum{instance=~\"$instance\"}[1m])) by (type) / sum(rate(einsteindb-prod_fidel_request_duration_seconds_count{instance=~\"$instance\"}[1m])) by (type)",
+              "expr": "sum(rate(edb_fidel_request_duration_seconds_sum{instance=~\"$instance\"}[1m])) by (type) / sum(rate(edb_fidel_request_duration_seconds_count{instance=~\"$instance\"}[1m])) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{ type }}",
@@ -4627,7 +4627,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_fidel_heartbeat_message_total{instance=~\"$instance\"}[1m])) by (type)",
+              "expr": "sum(rate(edb_fidel_heartbeat_message_total{instance=~\"$instance\"}[1m])) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{ type }}",
@@ -4718,7 +4718,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(einsteindb-prod_fidel_validate_peer_total{instance=~\"$instance\"}[1m])) by (type)",
+              "expr": "sum(rate(edb_fidel_validate_peer_total{instance=~\"$instance\"}[1m])) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{ type }}",
@@ -4791,7 +4791,7 @@
         "multi": true,
         "name": "db",
         "options": [],
-        "query": "label_values(einsteindb-prod_engine_block_cache_size_bytes, db)",
+        "query": "label_values(edb_engine_block_cache_size_bytes, db)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -4813,7 +4813,7 @@
         "multi": true,
         "name": "command",
         "options": [],
-        "query": "label_values(einsteindb-prod_causetStorage_command_total, type)",
+        "query": "label_values(edb_causetStorage_command_total, type)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -4835,7 +4835,7 @@
         "multi": false,
         "name": "instance",
         "options": [],
-        "query": "label_values(einsteindb-prod_engine_size_bytes, instance)",
+        "query": "label_values(edb_engine_size_bytes, instance)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,

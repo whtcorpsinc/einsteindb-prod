@@ -10,8 +10,8 @@ use ekvproto::metapb::Peer;
 
 use rand::Rng;
 
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::config::Tracker;
+use edb_util::collections::HashMap;
+use edb_util::config::Tracker;
 
 use txn_types::Key;
 

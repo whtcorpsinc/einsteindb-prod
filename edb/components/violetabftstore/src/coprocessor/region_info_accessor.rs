@@ -11,13 +11,13 @@ use super::{
     BoxBraneChangeSemaphore, BoxRoleSemaphore, Interlock, InterlockHost, SemaphoreContext,
     BraneChangeEvent, BraneChangeSemaphore, Result, RoleSemaphore,
 };
-use engine_promises::KvEngine;
+use edb::KvEngine;
 use tuplespaceInstanton::{data_lightlike_key, data_key};
 use ekvproto::metapb::Brane;
 use violetabft::StateRole;
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::timer::Timer;
-use einsteindb-prod_util::worker::{Builder as WorkerBuilder, Runnable, RunnableWithTimer, Interlock_Semaphore, Worker};
+use edb_util::collections::HashMap;
+use edb_util::timer::Timer;
+use edb_util::worker::{Builder as WorkerBuilder, Runnable, RunnableWithTimer, Interlock_Semaphore, Worker};
 
 /// `BraneInfoAccessor` is used to collect all branes' information on this EinsteinDB into a collection
 /// so that other parts of EinsteinDB can get brane information from it. It registers a semaphore to

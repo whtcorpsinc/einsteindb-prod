@@ -10,7 +10,7 @@ use std::string::ToString;
 use std::{cmp, i32, i64, mem, u32, u64};
 
 use codec::prelude::*;
-use einsteindb-prod_util::escape;
+use edb_util::escape;
 
 use crate::codec::convert::{self, ConvertTo};
 use crate::codec::data_type::*;

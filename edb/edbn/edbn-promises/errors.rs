@@ -27,7 +27,7 @@ use edbn::entities::{
     TempId,
 };
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     KnownSolitonId,
     MinkowskiType,

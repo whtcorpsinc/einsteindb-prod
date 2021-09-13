@@ -300,13 +300,13 @@ mod tests {
         let cases = vec![
             (
                 "hello world",
-                "0B000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D",
+                "0B000000789CCB48causet_context9C95728Causet2FCA4901001A0B045D",
             ),
             ("", ""),
             // compressed string lightlikes with space
             (
                 "hello wor012",
-                "0C000000789CCB48causet_context9C95728CAUSET2F32303402001D8004202E",
+                "0C000000789CCB48causet_context9C95728Causet2F32303402001D8004202E",
             ),
         ];
         for (s, exp) in cases {
@@ -324,16 +324,16 @@ mod tests {
         let cases = vec![
             ("", Datum::Bytes(b"".to_vec())),
             (
-                "0B000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D",
+                "0B000000789CCB48causet_context9C95728Causet2FCA4901001A0B045D",
                 Datum::Bytes(b"hello world".to_vec()),
             ),
             (
-                "0C000000789CCB48causet_context9C95728CAUSET2F32303402001D8004202E",
+                "0C000000789CCB48causet_context9C95728Causet2F32303402001D8004202E",
                 Datum::Bytes(b"hello wor012".to_vec()),
             ),
             // length is greater than the string
             (
-                "12000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D",
+                "12000000789CCB48causet_context9C95728Causet2FCA4901001A0B045D",
                 Datum::Bytes(b"hello world".to_vec()),
             ),
             ("010203", Datum::Null),
@@ -343,7 +343,7 @@ mod tests {
             ("0000000001", Datum::Null),
             // length is less than the string
             (
-                "02000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D",
+                "02000000789CCB48causet_context9C95728Causet2FCA4901001A0B045D",
                 Datum::Null,
             ),
         ];
@@ -358,11 +358,11 @@ mod tests {
     fn test_uncompressed_length() {
         let cases = vec![
             ("", 0),
-            ("0B000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D", 11),
-            ("0C000000789CCB48causet_context9C95728CAUSET2F32303402001D8004202E", 12),
+            ("0B000000789CCB48causet_context9C95728Causet2FCA4901001A0B045D", 11),
+            ("0C000000789CCB48causet_context9C95728Causet2F32303402001D8004202E", 12),
             ("020000000000", 2),
             ("0000000001", 0),
-            ("02000000789CCB48causet_context9C95728CAUSET2FCA4901001A0B045D", 2),
+            ("02000000789CCB48causet_context9C95728Causet2FCA4901001A0B045D", 2),
             ("010203", 0),
             ("01020304", 0),
         ];

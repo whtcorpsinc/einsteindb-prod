@@ -3,7 +3,7 @@
 use ekvproto::kvrpcpb::Context;
 
 use test_violetabftstore::{new_server_cluster, Cluster, ServerCluster, SimulateEngine};
-use einsteindb-prod_util::HandyRwLock;
+use edb_util::HandyRwLock;
 
 use super::*;
 

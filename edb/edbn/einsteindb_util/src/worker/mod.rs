@@ -249,7 +249,7 @@ fn poll<R: RunnableWithTimer>(
     batch_size: usize,
     mut timer: Timer<R::TimeoutTask>,
 ) {
-    einsteindb-prod_alloc::add_thread_memory_accessor();
+    edb_alloc::add_thread_memory_accessor();
     let current_thread = thread::current();
     let name = current_thread.name().unwrap();
     let metrics_plightlikeing_task_count = WORKER_PENDING_TASK_VEC.with_label_values(&[name]);
@@ -284,7 +284,7 @@ fn poll<R: RunnableWithTimer>(
         runner.on_tick();
     }
     runner.shutdown();
-    einsteindb-prod_alloc::remove_thread_memory_accessor();
+    edb_alloc::remove_thread_memory_accessor();
 }
 
 /// Fills buffer with next task batch coming from `rx`.

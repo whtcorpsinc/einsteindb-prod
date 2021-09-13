@@ -41,7 +41,7 @@ pub fn pi() -> Result<Option<Real>> {
 #[rpn_fn]
 #[inline]
 pub fn crc32(arg: BytesRef) -> Result<Option<Int>> {
-    Ok(Some(i64::from(einsteindb-prod_util::file::calc_crc32_bytes(&arg))))
+    Ok(Some(i64::from(edb_util::file::calc_crc32_bytes(&arg))))
 }
 
 #[inline]

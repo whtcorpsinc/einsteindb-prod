@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use fail::fail_point;
 use ekvproto::interlock::KeyCone;
 use milevadb_query_datatype::{EvalType, FieldTypeAccessor};
-use einsteindb-prod_util::deadline::Deadline;
+use edb_util::deadline::Deadline;
 use fidelpb::StreamResponse;
 use fidelpb::{self, ExecType, FreeDaemonExecutionSummary, FieldType};
 use fidelpb::{Soliton, PosetDagRequest, EncodeType, SelectResponse};

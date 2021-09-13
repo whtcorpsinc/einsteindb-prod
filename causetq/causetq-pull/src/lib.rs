@@ -54,8 +54,8 @@ extern crate failure;
 extern crate rusqlite;
 
 extern crate edbn;
-extern crate einsteindb-prod_embedded;
-extern crate embedded_promises;
+extern crate edb_raum;
+extern crate raum_promises;
 extern crate edb;
 extern crate causetq_pull_promises;
 
@@ -68,14 +68,14 @@ use std::iter::{
     once,
 };
 
-use embedded_promises::{
+use raum_promises::{
     ConstrainedEntsConstraint,
     SolitonId,
     MinkowskiType,
     StructuredMap,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     Cloned,
     HasSchemaReplicant,
     Keyword,

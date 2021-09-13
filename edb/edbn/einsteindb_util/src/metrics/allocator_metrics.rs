@@ -32,7 +32,7 @@ impl Collector for AllocStatsCollector {
     }
 
     fn collect(&self) -> Vec<MetricNetwork> {
-        if let Ok(Some(stats)) = einsteindb-prod_alloc::fetch_stats() {
+        if let Ok(Some(stats)) = edb_alloc::fetch_stats() {
             for stat in stats {
                 self.metrics.with_label_values(&[stat.0]).set(stat.1 as i64);
             }

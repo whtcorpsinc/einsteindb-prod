@@ -40,9 +40,9 @@ impl From<Box<dyn std::error::Error + lightlike + Sync>> for EvaluateError {
     }
 }
 
-impl From<einsteindb-prod_util::deadline::DeadlineError> for EvaluateError {
+impl From<edb_util::deadline::DeadlineError> for EvaluateError {
     #[inline]
-    fn from(_: einsteindb-prod_util::deadline::DeadlineError) -> Self {
+    fn from(_: edb_util::deadline::DeadlineError) -> Self {
         EvaluateError::DeadlineExceeded
     }
 }

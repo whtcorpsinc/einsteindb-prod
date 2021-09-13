@@ -10,7 +10,7 @@
 
 use std; // To refer to std::result::Result.
 
-use embedded_promises::{
+use raum_promises::{
     MinkowskiValueType,
     MinkowskiSet,
 };

@@ -9,22 +9,22 @@
 // specific language governing permissions and limitations under the License.
 
 extern crate edbn;
-extern crate einsteindb-prod_embedded;
-extern crate embedded_promises;
-extern crate einsteindb-prod_causetq_parityfilter;
+extern crate edb_raum;
+extern crate raum_promises;
+extern crate edb_causetq_parityfilter;
 extern crate causetq_parityfilter_promises;
 
 mod utils;
 
 use std::collections::BTreeMap;
 
-use embedded_promises::{
+use raum_promises::{
     Attribute,
     MinkowskiValueType,
     MinkowskiType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     SchemaReplicant,
 };
 
@@ -39,7 +39,7 @@ use causetq_parityfilter_promises::errors::{
     ConstrainedEntsConstraintError,
 };
 
-use einsteindb-prod_causetq_parityfilter::{
+use edb_causetq_parityfilter::{
     ComputedBlock,
     KnownCauset,
     CausetQInputs,

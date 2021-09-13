@@ -24,7 +24,7 @@ pub use crate::db_options::*;
 mod db_vector;
 pub use crate::db_vector::*;
 mod engine;
-pub use crate::engine::*;
+pub use crate::edb::*;
 mod import;
 pub use import::*;
 mod misc;

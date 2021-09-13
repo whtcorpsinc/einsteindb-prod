@@ -7,7 +7,7 @@ extern crate derive_more;
 #[macro_use]
 extern crate failure;
 #[allow(unused_extern_crates)]
-extern crate einsteindb-prod_alloc;
+extern crate edb_alloc;
 
 use byteorder::{BigEndian, ByteOrder};
 

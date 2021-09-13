@@ -6,7 +6,7 @@ use crate::prelude::*;
 use crate::{EvalType, FieldTypeFlag, FieldTypeTp};
 use codec::buffer::{BufferReader, BufferWriter};
 use codec::number::{NumberDecoder, NumberEncoder};
-use einsteindb-prod_util::buffer_vec::BufferVec;
+use edb_util::buffer_vec::BufferVec;
 use fidelpb::FieldType;
 
 use super::{Error, Result};
@@ -834,7 +834,7 @@ impl PrimaryCauset {
     }
 
     #[causet(test)]
-    pub fn decode(buf: &mut einsteindb-prod_util::codec::BytesSlice<'_>, tp: FieldTypeTp) -> Result<PrimaryCauset> {
+    pub fn decode(buf: &mut edb_util::codec::BytesSlice<'_>, tp: FieldTypeTp) -> Result<PrimaryCauset> {
         let length = buf.read_u32_le()? as usize;
         let mut col = PrimaryCauset::new(tp, length);
         col.length = length;

@@ -3,11 +3,11 @@
 use std::io::Error as IoError;
 use std::{error, result};
 
-use engine_promises::Error as EnginePromisesError;
+use edb::Error as EnginePromisesError;
 use ekvproto::errorpb::Error as ErrorHeader;
-use einsteindb-prod::causetStorage::kv::{Error as EngineError, ErrorInner as EngineErrorInner};
-use einsteindb-prod::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
-use einsteindb-prod::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
+use edb::causetStorage::kv::{Error as EngineError, ErrorInner as EngineErrorInner};
+use edb::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
+use edb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
 use txn_types::Error as TxnTypesError;
 
 /// The error type for causet_context.

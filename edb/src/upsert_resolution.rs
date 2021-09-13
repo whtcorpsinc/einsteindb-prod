@@ -11,7 +11,7 @@
 #![allow(dead_code)]
 
 //! This module implements the upsert resolution algorithm described at
-//! https://github.com/whtcorpsinc/einsteindb-prod/wiki/Transacting:-upsert-resolution-algorithm.
+//! https://github.com/whtcorpsinc/edb/wiki/Transacting:-upsert-resolution-algorithm.
 
 use std::collections::{
     BTreeMap,
@@ -38,16 +38,16 @@ use internal_types::{
     MinkowskiTypeOr,
 };
 
-use einsteindb-prod_embedded::util::Either::*;
+use edb_raum::util::Either::*;
 
-use embedded_promises::{
+use raum_promises::{
     attribute,
     Attribute,
     SolitonId,
     MinkowskiType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     SchemaReplicant,
 };
 use edbn::entities::OpType;
@@ -280,7 +280,7 @@ impl Generation {
         // the instanton of an `[a v]` upsert, including when the value CausetIndex `v` is itself a tempid.
         let mut uf = unionfind::UnionFind::new(temp_ids.len());
 
-        // The union-find impleeinsteindb-prodion from petgraph operates on contiguous indices, so we need to
+        // The union-find impleedbion from petgraph operates on contiguous indices, so we need to
         // maintain the map from our tempids to indices ourselves.
         let temp_ids: BTreeMap<TempIdHandle, usize> = temp_ids.into_iter().enumerate().map(|(i, tempid)| (tempid, i)).collect();
 

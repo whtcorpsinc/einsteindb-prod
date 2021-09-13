@@ -6,7 +6,7 @@ use futures::{FutureExt, SinkExt, StreamExt, TryFutureExt};
 use grpcio::{self, *};
 use ekvproto::backup::*;
 use security::{check_common_name, SecurityManager};
-use einsteindb-prod_util::worker::*;
+use edb_util::worker::*;
 
 use super::Task;
 
@@ -94,9 +94,9 @@ mod tests {
     use crate::lightlikepoint::tests::*;
     use external_causetStorage::make_local_backlightlike;
     use security::*;
-    use einsteindb-prod::causetStorage::tail_pointer::tests::*;
-    use einsteindb-prod::causetStorage::txn::tests::must_commit;
-    use einsteindb-prod_util::mpsc::Receiver;
+    use edb::causetStorage::tail_pointer::tests::*;
+    use edb::causetStorage::txn::tests::must_commit;
+    use edb_util::mpsc::Receiver;
     use txn_types::TimeStamp;
 
     fn new_rpc_suite() -> (Server, BackupClient, Receiver<Option<Task>>) {

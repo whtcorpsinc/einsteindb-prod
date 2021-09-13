@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use encryption::EncryptionConfig;
 use grpcio::{ChannelCredentials, ChannelCredentialsBuilder};
 use security::SecurityConfig;
-use einsteindb-prod_util::collections::HashSet;
+use edb_util::collections::HashSet;
 
 pub fn new_security_causet(cn: Option<HashSet<String>>) -> SecurityConfig {
     let p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

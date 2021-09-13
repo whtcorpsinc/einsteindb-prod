@@ -11,9 +11,9 @@
 #![allow(dead_code)]
 
 //! This module implements the transaction application algorithm described at
-//! https://github.com/whtcorpsinc/einsteindb-prod/wiki/Transacting and its children pages.
+//! https://github.com/whtcorpsinc/edb/wiki/Transacting and its children pages.
 //!
-//! The impleeinsteindb-prodion proceeds in four main stages, labeled "Pipeline stage 1" through "Pipeline
+//! The impleedbion proceeds in four main stages, labeled "Pipeline stage 1" through "Pipeline
 //! stage 4".  _Pipeline_ may be a misnomer, since the stages as written **cannot** be interleaved
 //! in parallel.  That is, a single transacted instanton cannot flow through all the stages without its
 //! sibling entities.
@@ -22,7 +22,7 @@
 //! lookup refs and tempids, respectively) operate _in bulk_ to minimize the number of expensive
 //! SQLite queries by processing many in one SQLite invocation.  Pipeline stage 2 doesn't need to
 //! operate like this: it is easy to handle each transacted instanton independently of all the others
-//! (and earlier, less efficient, impleeinsteindb-prodions did this).  However, Pipeline stage 3 appears to
+//! (and earlier, less efficient, impleedbions did this).  However, Pipeline stage 3 appears to
 //! require processing multiple elements at the same time, since there can be arbitrarily complex
 //! graph relationships between tempids.  Pipeline stage 4 (inserting elements into the SQL store)
 //! could also be expressed as an independent operation per transacted instanton, but there are
@@ -30,9 +30,9 @@
 //! Therefore, some multi-instanton processing is required, and a per-instanton pipeline becomes less
 //! attractive.
 //!
-//! A note on the types in the impleeinsteindb-prodion.  The pipeline stages are strongly typed: each stage
+//! A note on the types in the impleedbion.  The pipeline stages are strongly typed: each stage
 //! accepts and produces a subset of the previous.  We hope this will reduce errors as data moves
-//! through the system.  In contrast the Clojure impleeinsteindb-prodion rewrote the fundamental instanton type
+//! through the system.  In contrast the Clojure impleedbion rewrote the fundamental instanton type
 //! in place and suffered bugs where particular code paths missed cases.
 //!
 //! The type hierarchy accepts `Instanton` instances from the transaction parser and flows `Term`
@@ -87,9 +87,9 @@ use internal_types::{
     replace_lookup_ref,
 };
 
-use einsteindb-prod_embedded::util::Either;
+use edb_raum::util::Either;
 
-use embedded_promises::{
+use raum_promises::{
     attribute,
     Attribute,
     SolitonId,
@@ -99,7 +99,7 @@ use embedded_promises::{
     now,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     DateTime,
     SchemaReplicant,
     TxReport,
@@ -272,7 +272,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
         struct InProcess<'a> {
             partition_map: &'a PartitionMap,
             schemaReplicant: &'a SchemaReplicant,
-            einsteindb-prod_id_count: i64,
+            edb_id_count: i64,
             causecausetx_id: KnownSolitonId,
             temp_ids: InternSet<TempId>,
             lookup_refs: InternSet<AVPair>,
@@ -283,7 +283,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                 InProcess {
                     partition_map,
                     schemaReplicant,
-                    einsteindb-prod_id_count: 0,
+                    edb_id_count: 0,
                     causecausetx_id,
                     temp_ids: InternSet::new(),
                     lookup_refs: InternSet::new(),
@@ -319,9 +319,9 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
 
             /// Allocate private internal tempids reserved for EinsteinDB.  Internal tempids just need to be
             /// unique within one transaction; they should never escape a transaction.
-            fn allocate_einsteindb-prod_id<W: TransacBlockValue>(&mut self) -> entmod::InstantonPlace<W> {
-                self.einsteindb-prod_id_count += 1;
-                entmod::InstantonPlace::TempId(TempId::Internal(self.einsteindb-prod_id_count).into())
+            fn allocate_edb_id<W: TransacBlockValue>(&mut self) -> entmod::InstantonPlace<W> {
+                self.edb_id_count += 1;
+                entmod::InstantonPlace::TempId(TempId::Internal(self.edb_id_count).into())
             }
 
             fn instanton_e_into_term_e<W: TransacBlockValue>(&mut self, x: entmod::InstantonPlace<W>) -> Result<KnownSolitonIdOr<LookupRefOrTempId>> {
@@ -435,7 +435,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                 Instanton::MapNotation(mut map_notation) => {
                     // :edb/id is optional; if it's not given, we generate a special internal tempid
                     // to use for upserting.  This tempid will not be reported in the TxReport.
-                    let edb_id: entmod::InstantonPlace<V> = remove_edb_id(&mut map_notation)?.unwrap_or_else(|| in_process.allocate_einsteindb-prod_id());
+                    let edb_id: entmod::InstantonPlace<V> = remove_edb_id(&mut map_notation)?.unwrap_or_else(|| in_process.allocate_edb_id());
 
                     // We're not nested, so :edb/isComponent is not relevant.  We just explode the
                     // map notation.
@@ -543,7 +543,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
                                 // to use for upserting.  This tempid will not be reported in the TxReport.
                                 let edb_id: Option<entmod::InstantonPlace<V>> = remove_edb_id(&mut map_notation)?;
                                 let mut dangling = edb_id.is_none();
-                                let edb_id: entmod::InstantonPlace<V> = edb_id.unwrap_or_else(|| in_process.allocate_einsteindb-prod_id());
+                                let edb_id: entmod::InstantonPlace<V> = edb_id.unwrap_or_else(|| in_process.allocate_edb_id());
 
                                 // We're nested, so we want to ensure we're not creating "dangling"
                                 // entities that can't be reached.  If we're :edb/isComponent, then this
@@ -623,7 +623,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
 
     /// Transact the given `entities` against the store.
     ///
-    /// This approach is explained in https://github.com/whtcorpsinc/einsteindb-prod/wiki/Transacting.
+    /// This approach is explained in https://github.com/whtcorpsinc/edb/wiki/Transacting.
     // TODO: move this to the transactor layer.
     pub fn transact_entities<I, V: TransacBlockValue>(&mut self, entities: I) -> Result<TxReport>
     where I: IntoIterator<Item=Instanton<V>> {
@@ -722,7 +722,7 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
             assert!(tempids.contains_key(&**tempid));
         }
 
-        // Any internal tempid has been allocated by the system and is a private impleeinsteindb-prodion
+        // Any internal tempid has been allocated by the system and is a private impleedbion
         // detail; it shouldn't be exposed in the final transaction report.
         let tempids = tempids.into_iter().filter_map(|(tempid, e)| tempid.into_external().map(|s| (s, e.0))).collect();
 
@@ -811,11 +811,11 @@ impl<'conn, 'a, W> Tx<'conn, 'a, W> where W: TransactWatcher {
 
         match action {
             TransactorAction::Materialize => {
-                self.store.materialize_einsteindb-prod_transaction(self.causecausetx_id)?;
+                self.store.materialize_edb_transaction(self.causecausetx_id)?;
             },
             TransactorAction::MaterializeAndCommit => {
-                self.store.materialize_einsteindb-prod_transaction(self.causecausetx_id)?;
-                self.store.commit_einsteindb-prod_transaction(self.causecausetx_id)?;
+                self.store.materialize_edb_transaction(self.causecausetx_id)?;
+                self.store.commit_edb_transaction(self.causecausetx_id)?;
             }
         }
 
@@ -878,7 +878,7 @@ where W: TransactWatcher {
 /// If you want this work to occur inside a SQLite transaction, establish one on the connection
 /// prior to calling this function.
 ///
-/// This approach is explained in https://github.com/whtcorpsinc/einsteindb-prod/wiki/Transacting.
+/// This approach is explained in https://github.com/whtcorpsinc/edb/wiki/Transacting.
 // TODO: move this to the transactor layer.
 pub fn transact<'conn, 'a, I, V, W>(conn: &'conn rusqlite::Connection,
                                  partition_map: PartitionMap,

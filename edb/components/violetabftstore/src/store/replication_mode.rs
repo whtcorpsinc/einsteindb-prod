@@ -2,7 +2,7 @@
 
 use ekvproto::metapb;
 use ekvproto::replication_modepb::{ReplicationMode, ReplicationStatus};
-use einsteindb-prod_util::collections::{HashMap, HashMapEntry};
+use edb_util::collections::{HashMap, HashMapEntry};
 
 /// A registry that maps store to a group.
 ///

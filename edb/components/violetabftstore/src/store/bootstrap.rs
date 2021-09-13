@@ -5,8 +5,8 @@ use super::peer_causetStorage::{
 };
 use super::util::new_peer;
 use crate::Result;
-use engine_promises::{Engines, KvEngine, MuBlock, VioletaBftEngine};
-use engine_promises::{CAUSET_DEFAULT, CAUSET_VIOLETABFT};
+use edb::{Engines, KvEngine, MuBlock, VioletaBftEngine};
+use edb::{Causet_DEFAULT, Causet_VIOLETABFT};
 
 use ekvproto::metapb;
 use ekvproto::violetabft_serverpb::{VioletaBftLocalState, BraneLocalState, StoreIdent};
@@ -52,7 +52,7 @@ where
 {
     let mut ident = StoreIdent::default();
 
-    if !is_cone_empty(&engines.kv, CAUSET_DEFAULT, tuplespaceInstanton::MIN_KEY, tuplespaceInstanton::MAX_KEY)? {
+    if !is_cone_empty(&engines.kv, Causet_DEFAULT, tuplespaceInstanton::MIN_KEY, tuplespaceInstanton::MAX_KEY)? {
         return Err(box_err!("kv store is not empty and has already had data."));
     }
 
@@ -76,7 +76,7 @@ pub fn prepare_bootstrap_cluster(
 
     let mut wb = engines.kv.write_batch();
     box_try!(wb.put_msg(tuplespaceInstanton::PREPARE_BOOTSTRAP_KEY, brane));
-    box_try!(wb.put_msg_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane.get_id()), &state));
+    box_try!(wb.put_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane.get_id()), &state));
     write_initial_apply_state(&mut wb, brane.get_id())?;
     engines.kv.write(&wb)?;
     engines.sync_kv()?;
@@ -101,8 +101,8 @@ pub fn clear_prepare_bootstrap_cluster(
     let mut wb = engines.kv.write_batch();
     box_try!(wb.delete(tuplespaceInstanton::PREPARE_BOOTSTRAP_KEY));
     // should clear violetabft initial state too.
-    box_try!(wb.delete_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id)));
-    box_try!(wb.delete_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id)));
+    box_try!(wb.delete_causet(Causet_VIOLETABFT, &tuplespaceInstanton::brane_state_key(brane_id)));
+    box_try!(wb.delete_causet(Causet_VIOLETABFT, &tuplespaceInstanton::apply_state_key(brane_id)));
     engines.kv.write(&wb)?;
     engines.sync_kv()?;
     Ok(())
@@ -122,8 +122,8 @@ mod tests {
     use tempfile::Builder;
 
     use super::*;
-    use engine_promises::Engines;
-    use engine_promises::{Peekable, CAUSET_DEFAULT};
+    use edb::Engines;
+    use edb::{Peekable, Causet_DEFAULT};
 
     #[test]
     fn test_bootstrap() {
@@ -132,12 +132,12 @@ mod tests {
         let kv_engine = engine_lmdb::util::new_engine(
             path.path().to_str().unwrap(),
             None,
-            &[CAUSET_DEFAULT, CAUSET_VIOLETABFT],
+            &[Causet_DEFAULT, Causet_VIOLETABFT],
             None,
         )
         .unwrap();
         let violetabft_engine =
-            engine_lmdb::util::new_engine(violetabft_path.to_str().unwrap(), None, &[CAUSET_DEFAULT], None)
+            engine_lmdb::util::new_engine(violetabft_path.to_str().unwrap(), None, &[Causet_DEFAULT], None)
                 .unwrap();
         let engines = Engines::new(kv_engine.clone(), violetabft_engine.clone());
         let brane = initial_brane(1, 1, 1);
@@ -151,11 +151,11 @@ mod tests {
             .unwrap()
             .is_some());
         assert!(kv_engine
-            .get_value_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::brane_state_key(1))
+            .get_value_causet(Causet_VIOLETABFT, &tuplespaceInstanton::brane_state_key(1))
             .unwrap()
             .is_some());
         assert!(kv_engine
-            .get_value_causet(CAUSET_VIOLETABFT, &tuplespaceInstanton::apply_state_key(1))
+            .get_value_causet(Causet_VIOLETABFT, &tuplespaceInstanton::apply_state_key(1))
             .unwrap()
             .is_some());
         assert!(violetabft_engine
@@ -167,14 +167,14 @@ mod tests {
         assert!(clear_prepare_bootstrap_cluster(&engines, 1).is_ok());
         assert!(is_cone_empty(
             &kv_engine,
-            CAUSET_VIOLETABFT,
+            Causet_VIOLETABFT,
             &tuplespaceInstanton::brane_meta_prefix(1),
             &tuplespaceInstanton::brane_meta_prefix(2)
         )
         .unwrap());
         assert!(is_cone_empty(
             &violetabft_engine,
-            CAUSET_DEFAULT,
+            Causet_DEFAULT,
             &tuplespaceInstanton::brane_violetabft_prefix(1),
             &tuplespaceInstanton::brane_violetabft_prefix(2)
         )

@@ -3,7 +3,7 @@
 #![feature(box_TuringStrings)]
 
 #[macro_use]
-extern crate einsteindb-prod_util;
+extern crate edb_util;
 
 mod assert_causetStorage;
 mod sync_causetStorage;

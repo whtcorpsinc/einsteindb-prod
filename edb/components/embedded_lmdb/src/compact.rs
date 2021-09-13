@@ -1,8 +1,8 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use crate::engine::LmdbEngine;
+use crate::edb::LmdbEngine;
 use crate::util;
-use engine_promises::{CAUSETNamesExt, CompactExt, Result};
+use edb::*;
 use lmdb::{CompactOptions, CompactionOptions, DBCompressionType};
 use std::cmp;
 
@@ -106,9 +106,9 @@ impl CompactExt for LmdbEngine {
 
 #[causet(test)]
 mod tests {
-    use crate::raw_util::{new_engine, CAUSETOptions};
+    use crate::raw_util::{new_engine, CausetOptions};
     use crate::Compat;
-    use engine_promises::CompactExt;
+    use edb::CompactExt;
     use lmdb::{PrimaryCausetNetworkOptions, WriBlock};
     use std::sync::Arc;
     use tempfile::Builder;
@@ -123,8 +123,8 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_disable_auto_compactions(true);
         let causets_opts = vec![
-            CAUSETOptions::new("default", causet_opts.clone()),
-            CAUSETOptions::new("test", causet_opts),
+            CausetOptions::new("default", causet_opts.clone()),
+            CausetOptions::new("test", causet_opts),
         ];
         let db = new_engine(
             temp_dir.path().to_str().unwrap(),

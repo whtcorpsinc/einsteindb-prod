@@ -7,9 +7,9 @@ use crate::causetStorage::{FlowStatsReporter, Statistics};
 use ekvproto::metapb;
 use violetabftstore::store::util::build_key_cone;
 use violetabftstore::store::ReadStats;
-use einsteindb-prod_util::collections::HashMap;
+use edb_util::collections::HashMap;
 
-use crate::server::metrics::{GcTuplespaceInstantonCAUSET, GcTuplespaceInstantonDetail};
+use crate::server::metrics::{GcTuplespaceInstantonCauset, GcTuplespaceInstantonDetail};
 use prometheus::*;
 use prometheus_static_metric::*;
 
@@ -24,7 +24,7 @@ make_auto_flush_static_metric! {
         test,
     }
 
-    pub label_enum CAUSET {
+    pub label_enum Causet {
         default,
         dagger,
         write,
@@ -86,14 +86,14 @@ make_auto_flush_static_metric! {
 
     pub struct CoprScanDetails : LocalIntCounter {
         "req" => ReqTag,
-        "causet" => CAUSET,
+        "causet" => Causet,
         "tag" => ScanKind,
     }
 }
 
 lazy_static! {
     pub static ref COPR_REQ_HISTOGRAM_VEC: HistogramVec = register_histogram_vec!(
-        "einsteindb-prod_interlock_request_duration_seconds",
+        "edb_interlock_request_duration_seconds",
         "Bucketed histogram of interlock request duration",
         &["req"],
         exponential_buckets(0.0005, 2.0, 20).unwrap()
@@ -102,7 +102,7 @@ lazy_static! {
     pub static ref COPR_REQ_HISTOGRAM_STATIC: CoprReqHistogram =
         auto_flush_from!(COPR_REQ_HISTOGRAM_VEC, CoprReqHistogram);
     pub static ref COPR_REQ_HANDLE_TIME: HistogramVec = register_histogram_vec!(
-        "einsteindb-prod_interlock_request_handle_seconds",
+        "edb_interlock_request_handle_seconds",
         "Bucketed histogram of interlock handle request duration",
         &["req"],
         exponential_buckets(0.0005, 2.0, 20).unwrap()
@@ -111,7 +111,7 @@ lazy_static! {
     pub static ref COPR_REQ_HANDLE_TIME_STATIC: CoprReqHistogram =
         auto_flush_from!(COPR_REQ_HANDLE_TIME, CoprReqHistogram);
     pub static ref COPR_REQ_WAIT_TIME: HistogramVec = register_histogram_vec!(
-        "einsteindb-prod_interlock_request_wait_seconds",
+        "edb_interlock_request_wait_seconds",
         "Bucketed histogram of interlock request wait duration",
         &["req", "type"],
         exponential_buckets(0.0005, 2.0, 20).unwrap()
@@ -120,7 +120,7 @@ lazy_static! {
     pub static ref COPR_REQ_WAIT_TIME_STATIC: ReqWaitHistogram =
         auto_flush_from!(COPR_REQ_WAIT_TIME, ReqWaitHistogram);
     pub static ref COPR_REQ_HANDLER_BUILD_TIME: HistogramVec = register_histogram_vec!(
-        "einsteindb-prod_interlock_request_handler_build_seconds",
+        "edb_interlock_request_handler_build_seconds",
         "Bucketed histogram of interlock request handler build duration",
         &["req"],
         exponential_buckets(0.0005, 2.0, 20).unwrap()
@@ -129,13 +129,13 @@ lazy_static! {
     pub static ref COPR_REQ_HANDLER_BUILD_TIME_STATIC: CoprReqHistogram =
         auto_flush_from!(COPR_REQ_HANDLER_BUILD_TIME, CoprReqHistogram);
     pub static ref COPR_REQ_ERROR: IntCounterVec = register_int_counter_vec!(
-        "einsteindb-prod_interlock_request_error",
+        "edb_interlock_request_error",
         "Total number of push down request error.",
         &["reason"]
     )
     .unwrap();
     pub static ref COPR_SCAN_KEYS: HistogramVec = register_histogram_vec!(
-        "einsteindb-prod_interlock_scan_tuplespaceInstanton",
+        "edb_interlock_scan_tuplespaceInstanton",
         "Bucketed histogram of interlock per request scan tuplespaceInstanton",
         &["req", "kind"],
         exponential_buckets(1.0, 2.0, 20).unwrap()
@@ -144,15 +144,15 @@ lazy_static! {
     pub static ref COPR_SCAN_KEYS_STATIC: CoprScanTuplespaceInstantonHistogram =
         auto_flush_from!(COPR_SCAN_KEYS, CoprScanTuplespaceInstantonHistogram);
     pub static ref COPR_SCAN_DETAILS: IntCounterVec = register_int_counter_vec!(
-        "einsteindb-prod_interlock_scan_details",
-        "Bucketed counter of interlock scan details for each CAUSET",
+        "edb_interlock_scan_details",
+        "Bucketed counter of interlock scan details for each Causet",
         &["req", "causet", "tag"]
     )
     .unwrap();
     pub static ref COPR_SCAN_DETAILS_STATIC: CoprScanDetails =
         auto_flush_from!(COPR_SCAN_DETAILS, CoprScanDetails);
     pub static ref COPR_LMDB_PERF_COUNTER: IntCounterVec = register_int_counter_vec!(
-        "einsteindb-prod_interlock_lmdb_perf",
+        "edb_interlock_lmdb_perf",
         "Total number of Lmdb internal operations from PerfContext",
         &["req", "metric"]
     )
@@ -160,26 +160,26 @@ lazy_static! {
     pub static ref COPR_LMDB_PERF_COUNTER_STATIC: PerfCounter =
         auto_flush_from!(COPR_LMDB_PERF_COUNTER, PerfCounter);
     pub static ref COPR_DAG_REQ_COUNT: IntCounterVec = register_int_counter_vec!(
-        "einsteindb-prod_interlock_dag_request_count",
+        "edb_interlock_dag_request_count",
         "Total number of DAG requests",
         &["vec_type"]
     )
     .unwrap();
     pub static ref COPR_RESP_SIZE: IntCounter = register_int_counter!(
-        "einsteindb-prod_interlock_response_bytes",
+        "edb_interlock_response_bytes",
         "Total bytes of response body"
     )
     .unwrap();
     pub static ref COPR_ACQUIRE_SEMAPHORE_TYPE: CoprAcquireSemaphoreTypeCounterVec =
         register_static_int_counter_vec!(
             CoprAcquireSemaphoreTypeCounterVec,
-            "einsteindb-prod_interlock_acquire_semaphore_type",
+            "edb_interlock_acquire_semaphore_type",
             "The acquire type of the interlock semaphore",
             &["type"],
         )
         .unwrap();
     pub static ref COPR_WAITING_FOR_SEMAPHORE: IntGauge = register_int_gauge!(
-        "einsteindb-prod_interlock_waiting_for_semaphore",
+        "edb_interlock_waiting_for_semaphore",
         "The number of tasks waiting for the semaphore"
     )
     .unwrap();
@@ -212,12 +212,12 @@ thread_local! {
     );
 }
 
-impl Into<CAUSET> for GcTuplespaceInstantonCAUSET {
-    fn into(self) -> CAUSET {
+impl Into<Causet> for GcTuplespaceInstantonCauset {
+    fn into(self) -> Causet {
         match self {
-            GcTuplespaceInstantonCAUSET::default => CAUSET::default,
-            GcTuplespaceInstantonCAUSET::dagger => CAUSET::dagger,
-            GcTuplespaceInstantonCAUSET::write => CAUSET::write,
+            GcTuplespaceInstantonCauset::default => Causet::default,
+            GcTuplespaceInstantonCauset::dagger => Causet::dagger,
+            GcTuplespaceInstantonCauset::write => Causet::write,
         }
     }
 }

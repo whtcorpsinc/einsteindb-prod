@@ -15,7 +15,7 @@ use einstein_db::{
     TypedSQLValue,
 };
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     MinkowskiType,
 };

@@ -67,13 +67,13 @@ use edbn;
 use causetids;
 use edb_promises::errors::Result;
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     HasSchemaReplicant,
     SQLMinkowskiValueType,
     TxReport,
@@ -318,7 +318,7 @@ pub fn dump_sql_causetq(conn: &rusqlite::Connection, allegrosql: &str, params: &
 }
 
 // A connection that doesn't try to be clever about possibly sharing its `SchemaReplicant`.  Compare to
-// `einsteindb-prod::Conn`.
+// `edb::Conn`.
 pub struct TestConn {
     pub sqlite: rusqlite::Connection,
     pub partition_map: PartitionMap,

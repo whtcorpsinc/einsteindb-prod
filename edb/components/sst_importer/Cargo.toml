@@ -24,7 +24,7 @@ prost-codec = [
 crc32fast = "1.2"
 encryption = { path = "../encryption" }
 engine_lmdb = { path = "../engine_lmdb" }
-engine_promises = { path = "../engine_promises" }
+edb = { path = "../edb" }
 error_code = { path = "../error_code" }
 external_causetStorage = { path = "../external_causetStorage" }
 futures = "0.3"
@@ -40,8 +40,8 @@ serde = "1.0"
 serde_derive = "1.0"
 slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debug"] }
 slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global.git", rev = "0e23a5baff302a9d7bccd85f8f31e43339c2f2c1" }
-einsteindb-prod_alloc = { path = "../einsteindb-prod_alloc" }
-einsteindb-prod_util = { path = "../einsteindb-prod_util" }
+edb_alloc = { path = "../edb_alloc" }
+edb_util = { path = "../edb_util" }
 tokio = { version = "0.2.13", features = ["time", "rt-threaded", "macros"] }
 txn_types = { path = "../txn_types" }
 uuid = { version = "0.8.1", features = ["serde", "v4"] }

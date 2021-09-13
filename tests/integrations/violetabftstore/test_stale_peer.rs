@@ -10,8 +10,8 @@ use ekvproto::violetabft_serverpb::{PeerState, BraneLocalState};
 use violetabft::evioletabftpb::MessageType;
 
 use engine_lmdb::Compat;
-use engine_promises::Peekable;
-use engine_promises::CAUSET_VIOLETABFT;
+use edb::Peekable;
+use edb::Causet_VIOLETABFT;
 use test_violetabftstore::*;
 
 /// A helper function for testing the behaviour of the gc of stale peer
@@ -79,7 +79,7 @@ fn test_stale_peer_out_of_brane<T: Simulator>(cluster: &mut Cluster<T>) {
     let state_key = tuplespaceInstanton::brane_state_key(1);
     let state: BraneLocalState = engine_2
         .c()
-        .get_msg_causet(CAUSET_VIOLETABFT, &state_key)
+        .get_msg_causet(Causet_VIOLETABFT, &state_key)
         .unwrap()
         .unwrap();
     assert_eq!(state.get_state(), PeerState::Tombstone);
@@ -171,7 +171,7 @@ fn test_stale_peer_without_data<T: Simulator>(cluster: &mut Cluster<T>, right_de
     let state_key = tuplespaceInstanton::brane_state_key(new_brane_id);
     let state: BraneLocalState = engine3
         .c()
-        .get_msg_causet(CAUSET_VIOLETABFT, &state_key)
+        .get_msg_causet(Causet_VIOLETABFT, &state_key)
         .unwrap()
         .unwrap();
     assert_eq!(state.get_state(), PeerState::Tombstone);
@@ -253,7 +253,7 @@ fn test_stale_learner() {
     let state_key = tuplespaceInstanton::brane_state_key(r1);
     let state: BraneLocalState = engine3
         .c()
-        .get_msg_causet(CAUSET_VIOLETABFT, &state_key)
+        .get_msg_causet(Causet_VIOLETABFT, &state_key)
         .unwrap()
         .unwrap();
     assert_eq!(state.get_state(), PeerState::Tombstone);

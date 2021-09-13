@@ -5,7 +5,7 @@ use std::collections::BinaryHeap;
 use std::fmt::{self, Display, Formatter};
 use std::mem;
 
-use engine_promises::{CfName, IterOptions, Iterable, Iteron, KvEngine, CAUSET_WRITE, LARGE_CAUSETS};
+use edb::{CfName, IterOptions, Iterable, Iteron, KvEngine, Causet_WRITE, LARGE_CausetS};
 use ekvproto::metapb::Brane;
 use ekvproto::metapb::BraneEpoch;
 use ekvproto::fidelpb::CheckPolicy;
@@ -16,8 +16,8 @@ use crate::interlock::SplitCheckerHost;
 use crate::store::{Callback, CasualMessage, CasualRouter};
 use crate::Result;
 use configuration::{ConfigChange, Configuration};
-use einsteindb-prod_util::keybuilder::KeyBuilder;
-use einsteindb-prod_util::worker::Runnable;
+use edb_util::keybuilder::KeyBuilder;
+use edb_util::worker::Runnable;
 
 use super::metrics::*;
 
@@ -44,7 +44,7 @@ impl KeyEntry {
     }
 
     pub fn is_commit_version(&self) -> bool {
-        self.causet == CAUSET_WRITE
+        self.causet == Causet_WRITE
     }
 
     pub fn entry_size(&self) -> usize {
@@ -272,7 +272,7 @@ where
         let timer = CHECK_SPILT_HISTOGRAM.spacelike_coarse_timer();
         MergedIterator::<<E as Iterable>::Iteron>::new(
             &self.engine,
-            LARGE_CAUSETS,
+            LARGE_CausetS,
             spacelike_key,
             lightlike_key,
             false,

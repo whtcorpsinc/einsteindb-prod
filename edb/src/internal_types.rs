@@ -18,7 +18,7 @@ use std::collections::{
     HashMap,
 };
 
-use embedded_promises::{
+use raum_promises::{
     Attribute,
     SolitonId,
     KnownSolitonId,
@@ -26,7 +26,7 @@ use embedded_promises::{
     MinkowskiValueType,
 };
 
-use einsteindb-prod_embedded::util::Either;
+use edb_raum::util::Either;
 
 use edbn;
 use edbn::{

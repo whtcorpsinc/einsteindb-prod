@@ -5,14 +5,14 @@ use std::time::Instant;
 
 use engine_lmdb::raw::DB;
 use engine_lmdb::{LmdbEngine, LmdbSstWriter, LmdbSstWriterBuilder};
-use engine_promises::{CfName, CAUSET_DEFAULT, CAUSET_WRITE};
-use engine_promises::{ExternalSstFileInfo, SstCompressionType, SstWriter, SstWriterBuilder};
+use edb::{CfName, Causet_DEFAULT, Causet_WRITE};
+use edb::{ExternalSstFileInfo, SstCompressionType, SstWriter, SstWriterBuilder};
 use external_causetStorage::ExternalStorage;
 use futures_util::io::AllowStdIo;
 use ekvproto::backup::File;
-use einsteindb-prod::interlock::checksum_crc64_xor;
-use einsteindb-prod::causetStorage::txn::TxnEntry;
-use einsteindb-prod_util::{self, box_err, file::Sha256Reader, time::Limiter};
+use edb::interlock::checksum_crc64_xor;
+use edb::causetStorage::txn::TxnEntry;
+use edb_util::{self, box_err, file::Sha256Reader, time::Limiter};
 use txn_types::KvPair;
 
 use crate::metrics::*;
@@ -129,14 +129,14 @@ impl BackupWriter {
     ) -> Result<BackupWriter> {
         let default = LmdbSstWriterBuilder::new()
             .set_in_memory(true)
-            .set_causet(CAUSET_DEFAULT)
+            .set_causet(Causet_DEFAULT)
             .set_db(LmdbEngine::from_ref(&db))
             .set_compression_type(compression_type)
             .set_compression_level(compression_level)
             .build(name)?;
         let write = LmdbSstWriterBuilder::new()
             .set_in_memory(true)
-            .set_causet(CAUSET_WRITE)
+            .set_causet(Causet_WRITE)
             .set_db(LmdbEngine::from_ref(&db))
             .set_compression_type(compression_type)
             .set_compression_level(compression_level)
@@ -189,7 +189,7 @@ impl BackupWriter {
             // Save default causet contents.
             let default = self.default.save_and_build_file(
                 &self.name,
-                CAUSET_DEFAULT,
+                Causet_DEFAULT,
                 self.limiter.clone(),
                 causetStorage,
             )?;
@@ -199,7 +199,7 @@ impl BackupWriter {
             // Save write causet contents.
             let write = self.write.save_and_build_file(
                 &self.name,
-                CAUSET_WRITE,
+                Causet_WRITE,
                 self.limiter.clone(),
                 causetStorage,
             )?;
@@ -289,20 +289,20 @@ impl BackupRawKVWriter {
 #[causet(test)]
 mod tests {
     use super::*;
-    use engine_promises::Iterable;
+    use edb::Iterable;
     use std::collections::BTreeMap;
     use std::f64::INFINITY;
     use std::path::Path;
     use tempfile::TempDir;
-    use einsteindb-prod::causetStorage::TestEngineBuilder;
+    use edb::causetStorage::TestEngineBuilder;
 
-    type CfKvs<'a> = (engine_promises::CfName, &'a [(&'a [u8], &'a [u8])]);
+    type CfKvs<'a> = (edb::CfName, &'a [(&'a [u8], &'a [u8])]);
 
-    fn check_sst(ssts: &[(engine_promises::CfName, &Path)], kvs: &[CfKvs]) {
+    fn check_sst(ssts: &[(edb::CfName, &Path)], kvs: &[CfKvs]) {
         let temp = TempDir::new().unwrap();
         let rocks = TestEngineBuilder::new()
             .path(temp.path())
-            .causets(&[engine_promises::CAUSET_DEFAULT, engine_promises::CAUSET_WRITE])
+            .causets(&[edb::Causet_DEFAULT, edb::Causet_WRITE])
             .build()
             .unwrap();
         let db = rocks.get_lmdb();
@@ -340,9 +340,9 @@ mod tests {
         let rocks = TestEngineBuilder::new()
             .path(temp.path())
             .causets(&[
-                engine_promises::CAUSET_DEFAULT,
-                engine_promises::CAUSET_DAGGER,
-                engine_promises::CAUSET_WRITE,
+                edb::Causet_DEFAULT,
+                edb::Causet_DAGGER,
+                edb::Causet_WRITE,
             ])
             .build()
             .unwrap();
@@ -374,11 +374,11 @@ mod tests {
         assert_eq!(files.len(), 1);
         check_sst(
             &[(
-                engine_promises::CAUSET_WRITE,
+                edb::Causet_WRITE,
                 &temp.path().join(files[0].get_name()),
             )],
             &[(
-                engine_promises::CAUSET_WRITE,
+                edb::Causet_WRITE,
                 &[(&tuplespaceInstanton::data_key(&[b'a']), &[b'a'])],
             )],
         );
@@ -409,21 +409,21 @@ mod tests {
         check_sst(
             &[
                 (
-                    engine_promises::CAUSET_DEFAULT,
+                    edb::Causet_DEFAULT,
                     &temp.path().join(files[0].get_name()),
                 ),
                 (
-                    engine_promises::CAUSET_WRITE,
+                    edb::Causet_WRITE,
                     &temp.path().join(files[1].get_name()),
                 ),
             ],
             &[
                 (
-                    engine_promises::CAUSET_DEFAULT,
+                    edb::Causet_DEFAULT,
                     &[(&tuplespaceInstanton::data_key(&[b'a']), &[b'a'])],
                 ),
                 (
-                    engine_promises::CAUSET_WRITE,
+                    edb::Causet_WRITE,
                     &[
                         (&tuplespaceInstanton::data_key(&[b'a']), &[b'a']),
                         (&tuplespaceInstanton::data_key(&[b'b']), &[]),

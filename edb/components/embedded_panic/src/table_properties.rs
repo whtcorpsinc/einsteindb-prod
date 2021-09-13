@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::engine::PanicEngine;
-use engine_promises::{
+use crate::edb::PanicEngine;
+use edb::{
     DecodeProperties, Cone, Result, BlockProperties, BlockPropertiesCollection,
     BlockPropertiesCollectionIter, BlockPropertiesExt, BlockPropertiesKey, UserCollectedProperties,
 };
@@ -16,7 +16,7 @@ impl BlockPropertiesExt for PanicEngine {
 
     fn get_properties_of_Blocks_in_cone(
         &self,
-        causet: &Self::CAUSETHandle,
+        causet: &Self::CausetHandle,
         cones: &[Cone],
     ) -> Result<Self::BlockPropertiesCollection> {
         panic!()
@@ -98,7 +98,7 @@ impl UserCollectedProperties for PanicUserCollectedProperties {
 }
 
 impl DecodeProperties for PanicUserCollectedProperties {
-    fn decode(&self, k: &str) -> einsteindb-prod_util::codec::Result<&[u8]> {
+    fn decode(&self, k: &str) -> edb_util::codec::Result<&[u8]> {
         panic!()
     }
 }

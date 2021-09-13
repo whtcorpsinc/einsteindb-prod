@@ -7,8 +7,8 @@ use std::time::Instant;
 use std::{cmp, u64};
 
 use batch_system::{BasicMailbox, Fsm};
-use engine_promises::CAUSET_VIOLETABFT;
-use engine_promises::{Engines, KvEngine, VioletaBftEngine, WriteBatchExt};
+use edb::Causet_VIOLETABFT;
+use edb::{Engines, KvEngine, VioletaBftEngine, WriteBatchExt};
 use error_code::ErrorCodeExt;
 use ekvproto::errorpb;
 use ekvproto::import_sstpb::SstMeta;
@@ -28,11 +28,11 @@ use protobuf::Message;
 use violetabft::evioletabftpb::{ConfChangeType, MessageType};
 use violetabft::{self, SnapshotStatus, INVALID_INDEX, NO_LIMIT};
 use violetabft::{Ready, StateRole};
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::mpsc::{self, LooseBoundedlightlikeer, Receiver};
-use einsteindb-prod_util::time::duration_to_sec;
-use einsteindb-prod_util::worker::{Interlock_Semaphore, Stopped};
-use einsteindb-prod_util::{escape, is_zero_duration, Either};
+use edb_util::collections::HashMap;
+use edb_util::mpsc::{self, LooseBoundedlightlikeer, Receiver};
+use edb_util::time::duration_to_sec;
+use edb_util::worker::{Interlock_Semaphore, Stopped};
+use edb_util::{escape, is_zero_duration, Either};
 
 use crate::interlock::BraneChangeEvent;
 use crate::store::cmd_resp::{bind_term, new_error};
@@ -550,7 +550,7 @@ where
 
                 if is_learner(&self.fsm.peer.peer) {
                     // FIXME: should use `bcast_check_stale_peer_message` instead.
-                    // lightlikeing a new enum type msg to a old einsteindb-prod may cause panic during rolling ufidelate
+                    // lightlikeing a new enum type msg to a old edb may cause panic during rolling ufidelate
                     // we should change the protobuf behavior and check if properly handled in all place
                     self.fsm.peer.bcast_wake_up_message(&mut self.ctx);
                 }
@@ -2170,7 +2170,7 @@ where
             .ctx
             .engines
             .kv
-            .get_msg_causet::<BraneLocalState>(CAUSET_VIOLETABFT, &state_key)?
+            .get_msg_causet::<BraneLocalState>(Causet_VIOLETABFT, &state_key)?
         {
             if util::is_epoch_stale(
                 target_brane.get_brane_epoch(),

@@ -5,12 +5,12 @@ use crate::AllocStats;
 use libc::{self, c_char, c_void};
 use std::collections::HashMap;
 use std::{ptr, slice, sync::Mutex, thread};
-use einsteindb-prod_jemalloc_ctl::{epoch, stats, Error};
-use einsteindb-prod_jemalloc_sys::malloc_stats_print;
+use einsteindb_alloc::jemalloc_ctl::{epoch, stats, Error};
+use einsteindb_alloc::jemalloc_sys::malloc_stats_print;
 
-pub type Allocator = einsteindb-prod_jemallocator::Jemalloc;
+pub type Allocator = einsteindb_alloc::jemallocator::Jemalloc;
 pub const fn allocator() -> Allocator {
-    einsteindb-prod_jemallocator::Jemalloc
+    einsteindb_alloc::jemallocator::Jemalloc
 }
 
 lazy_static! {
@@ -124,7 +124,7 @@ mod profiling {
     pub fn activate_prof() -> ProfResult<()> {
         info!("spacelike profiler");
         unsafe {
-            if let Err(e) = einsteindb-prod_jemalloc_ctl::raw::ufidelate(PROF_ACTIVE, true) {
+            if let Err(e) = einsteindb_alloc::jemalloc_ctl::raw::ufidelate(PROF_ACTIVE, true) {
                 error!("failed to activate profiling: {}", e);
                 return Err(ProfError::JemallocError(format!(
                     "failed to activate profiling: {}",
@@ -138,7 +138,7 @@ mod profiling {
     pub fn deactivate_prof() -> ProfResult<()> {
         info!("stop profiler");
         unsafe {
-            if let Err(e) = einsteindb-prod_jemalloc_ctl::raw::ufidelate(PROF_ACTIVE, false) {
+            if let Err(e) = einsteindb_alloc::jemalloc_ctl::raw::ufidelate(PROF_ACTIVE, false) {
                 error!("failed to deactivate profiling: {}", e);
                 return Err(ProfError::JemallocError(format!(
                     "failed to deactivate profiling: {}",
@@ -153,7 +153,7 @@ mod profiling {
     pub fn dump_prof(path: &str) -> ProfResult<()> {
         let mut bytes = CString::new(path)?.into_bytes_with_nul();
         let ptr = bytes.as_mut_ptr() as *mut c_char;
-        let res = unsafe { einsteindb-prod_jemalloc_ctl::raw::ufidelate(PROF_DUMP, ptr) };
+        let res = unsafe { einsteindb_alloc::jemalloc_ctl::raw::ufidelate(PROF_DUMP, ptr) };
         match res {
             Err(e) => {
                 error!("failed to dump the profile to {:?}: {}", path, e);
@@ -177,7 +177,7 @@ mod profiling {
         const OPT_PROF: &'static [u8] = b"opt.prof\0";
 
         fn is_profiling_on() -> bool {
-            match unsafe { einsteindb-prod_jemalloc_ctl::raw::read(OPT_PROF) } {
+            match unsafe { einsteindb_alloc::jemalloc_ctl::raw::read(OPT_PROF) } {
                 Err(e) => {
                     // Shouldn't be possible since mem-profiling is set
                     panic!("is_profiling_on: {:?}", e);
@@ -188,7 +188,7 @@ mod profiling {
 
         // Only trigger this test with jemallocs `opt.prof` set to
         // true ala `MALLOC_CONF="prof:true"`. It can be run by
-        // passing `-- --ignored` to `cargo test -p einsteindb-prod_alloc`.
+        // passing `-- --ignored` to `cargo test -p einsteindb_alloc::alloc`.
         //
         // TODO: could probably unignore this by running a second
         // copy of the execuBlock with MALLOC_CONF set.

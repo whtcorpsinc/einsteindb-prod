@@ -11,7 +11,7 @@ use error_code::{self, ErrorCode, ErrorCodeExt};
 use futures::channel::oneshot::Canceled;
 use grpcio::Error as GrpcError;
 use ekvproto::import_sstpb;
-use einsteindb-prod_util::codec::Error as CodecError;
+use edb_util::codec::Error as CodecError;
 use uuid::Error as UuidError;
 
 use crate::metrics::*;
@@ -22,7 +22,7 @@ pub fn error_inc(err: &Error) {
         Error::Grpc(..) => "grpc",
         Error::Uuid(..) => "uuid",
         Error::Lmdb(..) => "lmdb",
-        Error::EnginePromises(..) => "engine_promises",
+        Error::EnginePromises(..) => "edb",
         Error::ParseIntError(..) => "parse_int",
         Error::FileExists(..) => "file_exists",
         Error::FileCorrupted(..) => "file_corrupt",
@@ -66,7 +66,7 @@ quick_error! {
             from()
             display("Lmdb {}", msg)
         }
-        EnginePromises(err: engine_promises::Error) {
+        EnginePromises(err: edb::Error) {
             from()
             display("Engine {:?}", err)
         }

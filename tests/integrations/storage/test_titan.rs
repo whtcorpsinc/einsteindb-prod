@@ -11,9 +11,9 @@ use engine_lmdb::util::get_causet_handle;
 use engine_lmdb::util::new_temp_engine;
 use engine_lmdb::LmdbEngine;
 use engine_lmdb::{Compat, LmdbSnapshot, LmdbSstWriterBuilder};
-use engine_promises::{
-    CompactExt, Engines, KvEngine, MiscExt, SstWriter, SstWriterBuilder, ALL_CAUSETS, CAUSET_DEFAULT,
-    CAUSET_WRITE,
+use edb::{
+    CompactExt, Engines, KvEngine, MiscExt, SstWriter, SstWriterBuilder, ALL_CausetS, Causet_DEFAULT,
+    Causet_WRITE,
 };
 use tuplespaceInstanton::data_key;
 use ekvproto::metapb::{Peer, Brane};
@@ -21,11 +21,11 @@ use violetabftstore::store::BraneSnapshot;
 use violetabftstore::store::{apply_sst_causet_file, build_sst_causet_file};
 use tempfile::Builder;
 use test_violetabftstore::*;
-use einsteindb-prod::config::EINSTEINDBConfig;
-use einsteindb-prod::causetStorage::tail_pointer::ScannerBuilder;
-use einsteindb-prod::causetStorage::txn::Scanner;
-use einsteindb-prod_util::config::{ReadableDuration, ReadableSize};
-use einsteindb-prod_util::time::Limiter;
+use edb::config::EINSTEINDBConfig;
+use edb::causetStorage::tail_pointer::ScannerBuilder;
+use edb::causetStorage::txn::Scanner;
+use edb_util::config::{ReadableDuration, ReadableSize};
+use edb_util::time::Limiter;
 use txn_types::{Key, Write, WriteType};
 
 #[test]
@@ -46,7 +46,7 @@ fn test_turnoff_titan() {
             )
             .is_ok());
     }
-    cluster.must_flush_causet(CAUSET_DEFAULT, true);
+    cluster.must_flush_causet(Causet_DEFAULT, true);
     for i in 0..size {
         assert!(cluster
             .put(
@@ -55,7 +55,7 @@ fn test_turnoff_titan() {
             )
             .is_ok());
     }
-    cluster.must_flush_causet(CAUSET_DEFAULT, true);
+    cluster.must_flush_causet(Causet_DEFAULT, true);
     for i in cluster.get_node_ids().into_iter() {
         let db = cluster.get_engine(i);
         assert_eq!(
@@ -89,7 +89,7 @@ fn test_turnoff_titan() {
     assert_eq!(cluster.must_get(b"k1"), None);
     for i in cluster.get_node_ids().into_iter() {
         let db = cluster.get_engine(i);
-        let handle = get_causet_handle(&db, CAUSET_DEFAULT).unwrap();
+        let handle = get_causet_handle(&db, Causet_DEFAULT).unwrap();
         let mut opt = Vec::new();
         opt.push(("blob_run_mode", "kFallback"));
         assert!(db.set_options_causet(handle, &opt).is_ok());
@@ -168,7 +168,7 @@ fn test_delete_files_in_cone_for_titan() {
             engine_lmdb::raw_util::new_engine(
                 path.path().to_str().unwrap(),
                 Some(kv_db_opts),
-                ALL_CAUSETS,
+                ALL_CausetS,
                 Some(kv_causets_opts),
             )
             .unwrap(),
@@ -177,7 +177,7 @@ fn test_delete_files_in_cone_for_titan() {
             engine_lmdb::raw_util::new_engine(
                 violetabft_path.to_str().unwrap(),
                 None,
-                &[CAUSET_DEFAULT],
+                &[Causet_DEFAULT],
                 None,
             )
             .unwrap(),
@@ -191,8 +191,8 @@ fn test_delete_files_in_cone_for_titan() {
     let commit_ts = 8.into();
     let write = Write::new(WriteType::Put, spacelike_ts, None);
     let db = &engines.kv.as_inner();
-    let default_causet = db.causet_handle(CAUSET_DEFAULT).unwrap();
-    let write_causet = db.causet_handle(CAUSET_WRITE).unwrap();
+    let default_causet = db.causet_handle(Causet_DEFAULT).unwrap();
+    let write_causet = db.causet_handle(Causet_WRITE).unwrap();
     db.put_causet(
         &default_causet,
         &data_key(Key::from_raw(b"a").applightlike_ts(spacelike_ts).as_encoded()),
@@ -348,7 +348,7 @@ fn test_delete_files_in_cone_for_titan() {
         &default_sst_file_path.to_str().unwrap(),
         &engines.kv,
         &engines.kv.snapshot(),
-        CAUSET_DEFAULT,
+        Causet_DEFAULT,
         b"",
         b"{",
         &limiter,
@@ -358,7 +358,7 @@ fn test_delete_files_in_cone_for_titan() {
         &write_sst_file_path.to_str().unwrap(),
         &engines.kv,
         &engines.kv.snapshot(),
-        CAUSET_WRITE,
+        Causet_WRITE,
         b"",
         b"{",
         &limiter,
@@ -374,13 +374,13 @@ fn test_delete_files_in_cone_for_titan() {
     apply_sst_causet_file(
         &default_sst_file_path.to_str().unwrap(),
         &engines1.kv,
-        CAUSET_DEFAULT,
+        Causet_DEFAULT,
     )
     .unwrap();
     apply_sst_causet_file(
         &write_sst_file_path.to_str().unwrap(),
         &engines1.kv,
-        CAUSET_WRITE,
+        Causet_WRITE,
     )
     .unwrap();
 

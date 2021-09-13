@@ -9,11 +9,11 @@
 // specific language governing permissions and limitations under the License.
 
 extern crate edbn;
-extern crate einsteindb-prod_embedded;
-extern crate embedded_promises;
-extern crate einsteindb-prod_causetq_parityfilter;
-extern crate einsteindb-prod_causetq_projector;
-extern crate einsteindb-prod_sql;
+extern crate edb_raum;
+extern crate raum_promises;
+extern crate edb_causetq_parityfilter;
+extern crate edb_causetq_projector;
+extern crate edb_sql;
 
 use std::collections::BTreeMap;
 
@@ -25,18 +25,18 @@ use edbn::causetq::{
     ToUpper,
 };
 
-use embedded_promises::{
+use raum_promises::{
     Attribute,
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     SchemaReplicant,
 };
 
-use einsteindb-prod_causetq_parityfilter::{
+use edb_causetq_parityfilter::{
     KnownCauset,
     CausetQInputs,
     algebrize,
@@ -44,16 +44,16 @@ use einsteindb-prod_causetq_parityfilter::{
     parse_find_string,
 };
 
-use einsteindb-prod_causetq_projector::{
+use edb_causetq_projector::{
     MinkowskiProjector,
 };
 
-use einsteindb-prod_causetq_projector::translate::{
+use edb_causetq_projector::translate::{
     GreedoidSelect,
     causetq_to_select,
 };
 
-use einsteindb-prod_sql::SQLCausetQ;
+use edb_sql::SQLCausetQ;
 
 /// Produce the appropriate `ToUpper` for the provided valid ?-prefixed name.
 /// This lives here because we can't re-export macros:
@@ -144,8 +144,8 @@ fn prepopulated_schemaReplicant() -> SchemaReplicant {
     prepopulated_typed_schemaReplicant(MinkowskiValueType::String)
 }
 
-fn make_arg(name: &'static str, value: &'static str) -> (String, Rc<einsteindb-prod_sql::Value>) {
-    (name.to_string(), Rc::new(einsteindb-prod_sql::Value::Text(value.to_string())))
+fn make_arg(name: &'static str, value: &'static str) -> (String, Rc<edb_sql::Value>) {
+    (name.to_string(), Rc::new(edb_sql::Value::Text(value.to_string())))
 }
 
 #[test]
@@ -919,12 +919,12 @@ fn test_not_with_ground() {
 fn test_fulltext() {
     let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Double);
 
-    let causetq = r#"[:find ?instanton ?value ?causetx ?sembedded :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sembedded]]]]"#;
+    let causetq = r#"[:find ?instanton ?value ?causetx ?sraum :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sraum]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
                                      `Causets01`.causetx AS `?causetx`, \
-                                     0e0 AS `?sembedded` \
+                                     0e0 AS `?sraum` \
                      FROM `fulltext_values` AS `fulltext_values00`, \
                           `causets` AS `Causets01` \
                      WHERE `Causets01`.a = 100 \
@@ -932,9 +932,9 @@ fn test_fulltext() {
                        AND `fulltext_values00`.text MATCH $v0");
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
-    let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sembedded]]]]"#;
+    let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sraum]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
-    // Observe that the computed Block isn't dropped, even though `?sembedded` isn't bound in the final conjoining gerund.
+    // Observe that the computed Block isn't dropped, even though `?sraum` isn't bound in the final conjoining gerund.
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
                                      `Causets01`.causetx AS `?causetx` \
@@ -947,7 +947,7 @@ fn test_fulltext() {
 
     let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx _]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
-    // Observe that the computed Block isn't included at all when `?sembedded` isn't bound.
+    // Observe that the computed Block isn't included at all when `?sraum` isn't bound.
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
                                      `Causets01`.causetx AS `?causetx` \
@@ -958,7 +958,7 @@ fn test_fulltext() {
                        AND `fulltext_values00`.text MATCH $v0");
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
-    let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sembedded]]] [?instanton :foo/bar ?sembedded]]"#;
+    let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sraum]]] [?instanton :foo/bar ?sraum]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
@@ -974,7 +974,7 @@ fn test_fulltext() {
                        AND `Causets01`.e = `Causets02`.e");
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
-    let causetq = r#"[:find ?instanton ?value ?causetx :where [?instanton :foo/bar ?sembedded] [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sembedded]]]]"#;
+    let causetq = r#"[:find ?instanton ?value ?causetx :where [?instanton :foo/bar ?sraum] [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sraum]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?instanton`, \
                                      `fulltext_values01`.text AS `?value`, \
@@ -1312,7 +1312,7 @@ fn test_causecausetx_data() {
     assert_eq!(args, vec![]);
 
     // This is awkward since the bundles Block is queried twice, once to list transaction IDs
-    // and a second time to extract data.  https://github.com/whtcorpsinc/einsteindb-prod/issues/644 tracks
+    // and a second time to extract data.  https://github.com/whtcorpsinc/edb/issues/644 tracks
     // improving this, perhaps by optimizing certain combinations of functions and ConstrainedEntss.
     let causetq = r#"[:find ?e ?a ?v ?causetx ?added :where [(causetx-ids $ 1000 2000) [[?causetx]]] [(causetx-data $ ?causetx) [[?e ?a ?v _ ?added]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);

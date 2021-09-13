@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::sync::{Arc, Mutex};
 
-use engine_promises::{KvEngine, Cone};
+use edb::{KvEngine, Cone};
 use error_code::ErrorCodeExt;
 use ekvproto::metapb::Brane;
 use ekvproto::fidelpb::CheckPolicy;
@@ -256,10 +256,10 @@ pub mod tests {
     use crate::store::{CasualMessage, KeyEntry, SplitCheckRunner, SplitCheckTask};
     use engine_lmdb::properties::ConePropertiesCollectorFactory;
     use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions, WriBlock};
-    use engine_lmdb::raw_util::{new_engine_opt, CAUSETOptions};
+    use engine_lmdb::raw_util::{new_engine_opt, CausetOptions};
     use engine_lmdb::{Compat, LmdbEngine};
-    use engine_promises::CAUSET_DAGGER;
-    use engine_promises::{CfName, ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_WRITE, LARGE_CAUSETS};
+    use edb::Causet_DAGGER;
+    use edb::{CfName, ALL_CausetS, Causet_DEFAULT, Causet_WRITE, LARGE_CausetS};
     use ekvproto::metapb::Peer;
     use ekvproto::metapb::Brane;
     use ekvproto::fidelpb::CheckPolicy;
@@ -270,9 +270,9 @@ pub mod tests {
         u64,
     };
     use tempfile::Builder;
-    use einsteindb-prod_util::collections::HashSet;
-    use einsteindb-prod_util::config::ReadableSize;
-    use einsteindb-prod_util::worker::Runnable;
+    use edb_util::collections::HashSet;
+    use edb_util::config::ReadableSize;
+    use edb_util::worker::Runnable;
     use txn_types::Key;
 
     use super::*;
@@ -324,15 +324,15 @@ pub mod tests {
         let causets_with_cone_prop = HashSet::from_iter(causets_with_cone_prop.iter().cloned());
         let mut causet_opt = PrimaryCausetNetworkOptions::new();
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opt.add_Block_properties_collector_factory("einsteindb-prod.cone-collector", f);
+        causet_opt.add_Block_properties_collector_factory("edb.cone-collector", f);
 
-        let causets_opts = ALL_CAUSETS
+        let causets_opts = ALL_CausetS
             .iter()
             .map(|causet| {
                 if causets_with_cone_prop.contains(causet) {
-                    CAUSETOptions::new(causet, causet_opt.clone())
+                    CausetOptions::new(causet, causet_opt.clone())
                 } else {
-                    CAUSETOptions::new(causet, PrimaryCausetNetworkOptions::new())
+                    CausetOptions::new(causet, PrimaryCausetNetworkOptions::new())
                 }
             })
             .collect();
@@ -439,10 +439,10 @@ pub mod tests {
 
     #[test]
     fn test_split_check() {
-        test_split_check_impl(&[CAUSET_DEFAULT, CAUSET_WRITE], CAUSET_DEFAULT);
-        test_split_check_impl(&[CAUSET_DEFAULT, CAUSET_WRITE], CAUSET_WRITE);
-        for causet in LARGE_CAUSETS {
-            test_split_check_impl(LARGE_CAUSETS, causet);
+        test_split_check_impl(&[Causet_DEFAULT, Causet_WRITE], Causet_DEFAULT);
+        test_split_check_impl(&[Causet_DEFAULT, Causet_WRITE], Causet_WRITE);
+        for causet in LARGE_CausetS {
+            test_split_check_impl(LARGE_CausetS, causet);
         }
     }
 
@@ -453,15 +453,15 @@ pub mod tests {
         let db_opts = DBOptions::new();
         let mut causet_opt = PrimaryCausetNetworkOptions::new();
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opt.add_Block_properties_collector_factory("einsteindb-prod.cone-collector", f);
+        causet_opt.add_Block_properties_collector_factory("edb.cone-collector", f);
 
-        let causets_opts = ALL_CAUSETS
+        let causets_opts = ALL_CausetS
             .iter()
             .map(|causet| {
-                if causet != &CAUSET_DAGGER {
-                    CAUSETOptions::new(causet, causet_opt.clone())
+                if causet != &Causet_DAGGER {
+                    CausetOptions::new(causet, causet_opt.clone())
                 } else {
-                    CAUSETOptions::new(causet, PrimaryCausetNetworkOptions::new())
+                    CausetOptions::new(causet, PrimaryCausetNetworkOptions::new())
                 }
             })
             .collect();
@@ -489,7 +489,7 @@ pub mod tests {
             causet.clone(),
         );
 
-        for causet in LARGE_CAUSETS {
+        for causet in LARGE_CausetS {
             let causet_handle = engine.causet_handle(causet).unwrap();
             for i in 0..7 {
                 let s = tuplespaceInstanton::data_key(format!("{:04}", i).as_bytes());
@@ -508,9 +508,9 @@ pub mod tests {
         drop(runnable);
 
         // Reopen the engine and all causets have cone properties.
-        let causets_opts = ALL_CAUSETS
+        let causets_opts = ALL_CausetS
             .iter()
-            .map(|causet| CAUSETOptions::new(causet, PrimaryCausetNetworkOptions::new()))
+            .map(|causet| CausetOptions::new(causet, PrimaryCausetNetworkOptions::new()))
             .collect();
         let engine = Arc::new(new_engine_opt(path_str, DBOptions::new(), causets_opts).unwrap());
 
@@ -521,8 +521,8 @@ pub mod tests {
             causet,
         );
 
-        // Flush a sst of CAUSET_DAGGER with cone properties.
-        let causet_handle = engine.causet_handle(CAUSET_DAGGER).unwrap();
+        // Flush a sst of Causet_DAGGER with cone properties.
+        let causet_handle = engine.causet_handle(Causet_DAGGER).unwrap();
         for i in 7..15 {
             let s = tuplespaceInstanton::data_key(format!("{:04}", i).as_bytes());
             engine.put_causet(&causet_handle, &s, &s).unwrap();
@@ -541,7 +541,7 @@ pub mod tests {
         let brane = Brane::default();
         let mut ctx = SemaphoreContext::new(&brane);
         loop {
-            let data = KeyEntry::new(b"zxxxx".to_vec(), 0, 4, CAUSET_WRITE);
+            let data = KeyEntry::new(b"zxxxx".to_vec(), 0, 4, Causet_WRITE);
             if SplitChecker::<LmdbEngine>::on_kv(&mut checker, &mut ctx, &data) {
                 break;
             }
@@ -556,7 +556,7 @@ pub mod tests {
         let brane = Brane::default();
         let mut ctx = SemaphoreContext::new(&brane);
         for _ in 0..2 {
-            let data = KeyEntry::new(b"zxxxx".to_vec(), 0, 5, CAUSET_WRITE);
+            let data = KeyEntry::new(b"zxxxx".to_vec(), 0, 5, Causet_WRITE);
             if SplitChecker::<LmdbEngine>::on_kv(&mut checker, &mut ctx, &data) {
                 break;
             }
@@ -589,9 +589,9 @@ pub mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
 
-        let causets_opts = LARGE_CAUSETS
+        let causets_opts = LARGE_CausetS
             .iter()
-            .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
+            .map(|causet| CausetOptions::new(causet, causet_opts.clone()))
             .collect();
         let engine =
             Arc::new(engine_lmdb::raw_util::new_engine_opt(path, db_opts, causets_opts).unwrap());
@@ -602,7 +602,7 @@ pub mod tests {
             true
         );
 
-        let causet_handle = engine.causet_handle(CAUSET_DEFAULT).unwrap();
+        let causet_handle = engine.causet_handle(Causet_DEFAULT).unwrap();
         let mut big_value = Vec::with_capacity(256);
         big_value.extlightlike(iter::repeat(b'v').take(256));
         for i in 0..100 {
@@ -628,10 +628,10 @@ pub mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.size-collector", f);
-        let causets_opts = LARGE_CAUSETS
+        causet_opts.add_Block_properties_collector_factory("edb.size-collector", f);
+        let causets_opts = LARGE_CausetS
             .iter()
-            .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
+            .map(|causet| CausetOptions::new(causet, causet_opts.clone()))
             .collect();
         let engine =
             Arc::new(engine_lmdb::raw_util::new_engine_opt(path, db_opts, causets_opts).unwrap());
@@ -736,7 +736,7 @@ pub mod tests {
 
     #[test]
     fn test_get_approximate_split_tuplespaceInstanton() {
-        for causet in LARGE_CAUSETS {
+        for causet in LARGE_CausetS {
             test_get_approximate_split_tuplespaceInstanton_impl(*causet);
         }
     }
@@ -752,10 +752,10 @@ pub mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.cone-collector", f);
-        let causets_opts = LARGE_CAUSETS
+        causet_opts.add_Block_properties_collector_factory("edb.cone-collector", f);
+        let causets_opts = LARGE_CausetS
             .iter()
-            .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
+            .map(|causet| CausetOptions::new(causet, causet_opts.clone()))
             .collect();
         let db =
             Arc::new(engine_lmdb::raw_util::new_engine_opt(path_str, db_opts, causets_opts).unwrap());
@@ -763,7 +763,7 @@ pub mod tests {
         let cases = [("a", 1024), ("b", 2048), ("c", 4096)];
         let causet_size = 2 + 1024 + 2 + 2048 + 2 + 4096;
         for &(key, vlen) in &cases {
-            for causetname in LARGE_CAUSETS {
+            for causetname in LARGE_CausetS {
                 let k1 = tuplespaceInstanton::data_key(key.as_bytes());
                 let v1 = vec![0; vlen as usize];
                 assert_eq!(k1.len(), 2);
@@ -775,8 +775,8 @@ pub mod tests {
 
         let brane = make_brane(1, vec![], vec![]);
         let size = get_brane_approximate_size(db.c(), &brane, 0).unwrap();
-        assert_eq!(size, causet_size * LARGE_CAUSETS.len() as u64);
-        for causetname in LARGE_CAUSETS {
+        assert_eq!(size, causet_size * LARGE_CausetS.len() as u64);
+        for causetname in LARGE_CausetS {
             let size = get_brane_approximate_size_causet(db.c(), causetname, &brane, 0).unwrap();
             assert_eq!(size, causet_size);
         }
@@ -793,10 +793,10 @@ pub mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_disable_auto_compactions(true);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.cone-collector", f);
-        let causets_opts = LARGE_CAUSETS
+        causet_opts.add_Block_properties_collector_factory("edb.cone-collector", f);
+        let causets_opts = LARGE_CausetS
             .iter()
-            .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
+            .map(|causet| CausetOptions::new(causet, causet_opts.clone()))
             .collect();
         let db =
             Arc::new(engine_lmdb::raw_util::new_engine_opt(path_str, db_opts, causets_opts).unwrap());
@@ -835,10 +835,10 @@ pub mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_disable_auto_compactions(true);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.cone-collector", f);
-        let causets_opts = LARGE_CAUSETS
+        causet_opts.add_Block_properties_collector_factory("edb.cone-collector", f);
+        let causets_opts = LARGE_CausetS
             .iter()
-            .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
+            .map(|causet| CausetOptions::new(causet, causet_opts.clone()))
             .collect();
         let db =
             Arc::new(engine_lmdb::raw_util::new_engine_opt(path_str, db_opts, causets_opts).unwrap());

@@ -28,16 +28,16 @@ features = ["limits"]
 [dependencies.edbn]
 path = "../edbn"
 
-[dependencies.einsteindb-prod_embedded]
-path = "../embedded"
+[dependencies.edb_raum]
+path = "../raum"
 
-[dependencies.embedded_promises]
-path = "../embedded-promises"
+[dependencies.raum_promises]
+path = "../raum-promises"
 
 [dependencies.edb_promises]
 path = "../edb-promises"
 
-[dependencies.einsteindb-prod_sql]
+[dependencies.edb_sql]
 path = "../allegrosql"
 
 # Should be dev-dependencies.

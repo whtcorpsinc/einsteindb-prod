@@ -17,13 +17,13 @@ use edb_promises::errors::{
     Result,
 };
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     KnownSolitonId,
     MinkowskiType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     SchemaReplicant,
 };
 

@@ -23,7 +23,7 @@ prost-codec = [
 [deplightlikeencies]
 crc32fast = "1.2"
 engine_lmdb = { path = "../engine_lmdb" }
-engine_promises = { path = "../engine_promises" }
+edb = { path = "../edb" }
 tuplespaceInstanton = { path = "../tuplespaceInstanton" }
 ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
 uuid = { version = "0.8.1", features = ["serde", "v4"] }

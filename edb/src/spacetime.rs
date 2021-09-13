@@ -39,14 +39,14 @@ use edb_promises::errors::{
     Result,
 };
 
-use embedded_promises::{
+use raum_promises::{
     attribute,
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     SchemaReplicant,
     AttributeMap,
 };
@@ -133,7 +133,7 @@ fn update_attribute_map_from_schemaReplicant_retractions(attribute_map: &mut Att
         }
     }
 
-    // TODO (see https://github.com/whtcorpsinc/einsteindb-prod/issues/796).
+    // TODO (see https://github.com/whtcorpsinc/edb/issues/796).
     // Retraction of causetIds is allowed, but if an causetid names a schemaReplicant attribute, then we should enforce
     // retraction of all of the associated schemaReplicant attributes.
     // Unfortunately, our current in-memory schemaReplicant representation (namely, how we define an Attribute) is not currently
@@ -209,7 +209,7 @@ pub fn update_attribute_map_from_causetid_triples(attribute_map: &mut AttributeM
                             causetids::DB_UNIQUE_VALUE if builder.unique == Some(Some(attribute::Unique::Value)) => {
                                 builder.non_unique();
                             },
-                            causetids::DB_UNIQUE_CAUSETIDITY if builder.unique == Some(Some(attribute::Unique::CausetIdity)) => {
+                            causetids::DB_UNIQUE_CausetIDITY if builder.unique == Some(Some(attribute::Unique::CausetIdity)) => {
                                 builder.non_unique();
                             },
                             v => {
@@ -266,7 +266,7 @@ pub fn update_attribute_map_from_causetid_triples(attribute_map: &mut AttributeM
             causetids::DB_UNIQUE => {
                 match *value {
                     MinkowskiType::Ref(causetids::DB_UNIQUE_VALUE) => { builder.unique(attribute::Unique::Value); },
-                    MinkowskiType::Ref(causetids::DB_UNIQUE_CAUSETIDITY) => { builder.unique(attribute::Unique::CausetIdity); },
+                    MinkowskiType::Ref(causetids::DB_UNIQUE_CausetIDITY) => { builder.unique(attribute::Unique::CausetIdity); },
                     _ => bail!(DbErrorKind::BadSchemaReplicantAssertion(format!("Expected [... :edb/unique :edb.unique/value|:edb.unique/causetIdity] but got [... :edb/unique {:?}]", value)))
                 }
             },
@@ -356,7 +356,7 @@ pub fn update_schemaReplicant_from_causetid_quadruples<U>(schemaReplicant: &mut 
 
     for (e, a, typed_value, added) in assertions.into_iter() {
         // Here we handle :edb/causetid assertions.
-        if a == causetids::DB_CAUSETID {
+        if a == causetids::DB_CausetID {
             if let MinkowskiType::Keyword(ref keyword) = typed_value {
                 causetId_set.witness(e, keyword.as_ref().clone(), added);
                 continue

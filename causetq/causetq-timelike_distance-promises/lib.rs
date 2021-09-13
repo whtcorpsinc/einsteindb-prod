@@ -14,14 +14,14 @@ extern crate failure_derive;
 extern crate rusqlite;
 
 #[macro_use]
-extern crate embedded_promises;
+extern crate raum_promises;
 extern crate edb_promises;
 extern crate edbn;
 extern crate causetq_pull_promises;
 
 // TODO we only want to import a *_promises here, this is a smell.
-extern crate einsteindb-prod_causetq_parityfilter;
-extern crate einsteindb-prod_causetq_sql;
+extern crate edb_causetq_parityfilter;
+extern crate edb_causetq_sql;
 
 pub mod errors;
 pub mod aggregates;

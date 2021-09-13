@@ -3,7 +3,7 @@
 use lmdb::{
     ReadOptions as RawReadOptions, BlockFilter, BlockProperties, WriteOptions as RawWriteOptions,
 };
-use einsteindb-prod_util::codec::number;
+use edb_util::codec::number;
 
 pub struct LmdbReadOptions(RawReadOptions);
 
@@ -13,16 +13,16 @@ impl LmdbReadOptions {
     }
 }
 
-impl From<engine_promises::ReadOptions> for LmdbReadOptions {
-    fn from(opts: engine_promises::ReadOptions) -> Self {
+impl From<edb::ReadOptions> for LmdbReadOptions {
+    fn from(opts: edb::ReadOptions) -> Self {
         let mut r = RawReadOptions::default();
         r.fill_cache(opts.fill_cache());
         LmdbReadOptions(r)
     }
 }
 
-impl From<&engine_promises::ReadOptions> for LmdbReadOptions {
-    fn from(opts: &engine_promises::ReadOptions) -> Self {
+impl From<&edb::ReadOptions> for LmdbReadOptions {
+    fn from(opts: &edb::ReadOptions) -> Self {
         opts.clone().into()
     }
 }
@@ -35,28 +35,28 @@ impl LmdbWriteOptions {
     }
 }
 
-impl From<engine_promises::WriteOptions> for LmdbWriteOptions {
-    fn from(opts: engine_promises::WriteOptions) -> Self {
+impl From<edb::WriteOptions> for LmdbWriteOptions {
+    fn from(opts: edb::WriteOptions) -> Self {
         let mut r = RawWriteOptions::default();
         r.set_sync(opts.sync());
         LmdbWriteOptions(r)
     }
 }
 
-impl From<&engine_promises::WriteOptions> for LmdbWriteOptions {
-    fn from(opts: &engine_promises::WriteOptions) -> Self {
+impl From<&edb::WriteOptions> for LmdbWriteOptions {
+    fn from(opts: &edb::WriteOptions) -> Self {
         opts.clone().into()
     }
 }
 
-impl From<engine_promises::IterOptions> for LmdbReadOptions {
-    fn from(opts: engine_promises::IterOptions) -> Self {
+impl From<edb::IterOptions> for LmdbReadOptions {
+    fn from(opts: edb::IterOptions) -> Self {
         let r = build_read_opts(opts);
         LmdbReadOptions(r)
     }
 }
 
-fn build_read_opts(iter_opts: engine_promises::IterOptions) -> RawReadOptions {
+fn build_read_opts(iter_opts: edb::IterOptions) -> RawReadOptions {
     let mut opts = RawReadOptions::new();
     opts.fill_cache(iter_opts.fill_cache());
     if iter_opts.key_only() {
@@ -108,8 +108,8 @@ impl BlockFilter for TsFilter {
 
         if let Some(hint_min_ts) = self.hint_min_ts {
             // TODO avoid hard code after refactor MvccProperties from
-            // einsteindb-prod/src/violetabftstore/interlock/ into some component about engine.
-            if let Some(mut p) = user_props.get("einsteindb-prod.max_ts") {
+            // edb/src/violetabftstore/interlock/ into some component about engine.
+            if let Some(mut p) = user_props.get("edb.max_ts") {
                 if let Ok(get_max) = number::decode_u64(&mut p) {
                     if get_max < hint_min_ts {
                         return false;
@@ -120,8 +120,8 @@ impl BlockFilter for TsFilter {
 
         if let Some(hint_max_ts) = self.hint_max_ts {
             // TODO avoid hard code after refactor MvccProperties from
-            // einsteindb-prod/src/violetabftstore/interlock/ into some component about engine.
-            if let Some(mut p) = user_props.get("einsteindb-prod.min_ts") {
+            // edb/src/violetabftstore/interlock/ into some component about engine.
+            if let Some(mut p) = user_props.get("edb.min_ts") {
                 if let Ok(get_min) = number::decode_u64(&mut p) {
                     if get_min > hint_max_ts {
                         return false;

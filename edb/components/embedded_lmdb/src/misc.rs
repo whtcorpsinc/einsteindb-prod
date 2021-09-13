@@ -1,8 +1,8 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use crate::engine::LmdbEngine;
+use crate::edb::LmdbEngine;
 use crate::util;
-use engine_promises::{CAUSETNamesExt, MiscExt, Cone, Result, ALL_CAUSETS};
+use edb::{CausetNamesExt, MiscExt, Cone, Result, ALL_CausetS};
 use lmdb::Cone as LmdbCone;
 
 impl MiscExt for LmdbEngine {
@@ -44,7 +44,7 @@ impl MiscExt for LmdbEngine {
         let handle = util::get_causet_handle(self.as_inner(), causet)?;
         if let Some(n) = util::get_causet_num_files_at_level(self.as_inner(), handle, 0) {
             let options = self.as_inner().get_options_causet(handle);
-            let slowdown_trigger = options.get_level_zero_slowdown_writes_trigger();
+            let slowdown_trigger = options.ground_state_write_retardationr();
             // Leave enough buffer to tolerate heavy write workload,
             // which may flush some memBlocks in a short time.
             if n > u64::from(slowdown_trigger) / 2 {
@@ -56,7 +56,7 @@ impl MiscExt for LmdbEngine {
 
     fn get_engine_used_size(&self) -> Result<u64> {
         let mut used_size: u64 = 0;
-        for causet in ALL_CAUSETS {
+        for causet in ALL_CausetS {
             let handle = util::get_causet_handle(self.as_inner(), causet)?;
             used_size += util::get_engine_causet_used_size(self.as_inner(), handle);
         }
@@ -99,7 +99,7 @@ impl MiscExt for LmdbEngine {
 
     fn dump_stats(&self) -> Result<String> {
         const LMDB_DB_STATS_KEY: &str = "lmdb.dbstats";
-        const LMDB_CAUSET_STATS_KEY: &str = "lmdb.causetstats";
+        const LMDB_Causet_STATS_KEY: &str = "lmdb.causetstats";
 
         let mut s = Vec::with_capacity(1024);
         // common lmdb stats.
@@ -107,7 +107,7 @@ impl MiscExt for LmdbEngine {
             let handler = util::get_causet_handle(self.as_inner(), name)?;
             if let Some(v) = self
                 .as_inner()
-                .get_property_value_causet(handler, LMDB_CAUSET_STATS_KEY)
+                .get_property_value_causet(handler, LMDB_Causet_STATS_KEY)
             {
                 s.extlightlike_from_slice(v.as_bytes());
             }
@@ -145,15 +145,15 @@ impl MiscExt for LmdbEngine {
 mod tests {
     use tempfile::Builder;
 
-    use crate::engine::LmdbEngine;
+    use crate::edb::LmdbEngine;
     use crate::raw::DB;
     use crate::raw::{PrimaryCausetNetworkOptions, DBOptions};
-    use crate::raw_util::{new_engine_opt, CAUSETOptions};
+    use crate::raw_util::{new_engine_opt, CausetOptions};
     use std::sync::Arc;
 
     use super::*;
-    use engine_promises::ALL_CAUSETS;
-    use engine_promises::{Iterable, Iteron, MuBlock, SeekKey, SyncMuBlock, WriteBatchExt};
+    use edb::ALL_CausetS;
+    use edb::{Iterable, Iteron, MuBlock, SeekKey, SyncMuBlock, WriteBatchExt};
 
     fn check_data(db: &LmdbEngine, causets: &[&str], expected: &[(&[u8], &[u8])]) {
         for causet in causets {
@@ -175,9 +175,9 @@ mod tests {
             .unwrap();
         let path_str = path.path().to_str().unwrap();
 
-        let causets_opts = ALL_CAUSETS
+        let causets_opts = ALL_CausetS
             .iter()
-            .map(|causet| CAUSETOptions::new(causet, PrimaryCausetNetworkOptions::new()))
+            .map(|causet| CausetOptions::new(causet, PrimaryCausetNetworkOptions::new()))
             .collect();
         let db = new_engine_opt(path_str, DBOptions::new(), causets_opts).unwrap();
         let db = Arc::new(db);
@@ -204,19 +204,19 @@ mod tests {
         }
         let kvs_left: Vec<(&[u8], &[u8])> = vec![(kvs[0].0, kvs[0].1), (kvs[3].0, kvs[3].1)];
         for &(k, v) in kvs.as_slice() {
-            for causet in ALL_CAUSETS {
+            for causet in ALL_CausetS {
                 wb.put_causet(causet, k, v).unwrap();
             }
         }
         db.write(&wb).unwrap();
-        check_data(&db, ALL_CAUSETS, kvs.as_slice());
+        check_data(&db, ALL_CausetS, kvs.as_slice());
 
         // Delete all in ["k2", "k4").
         let spacelike = b"k2";
         let lightlike = b"k4";
         db.delete_all_in_cone(spacelike, lightlike, use_delete_cone)
             .unwrap();
-        check_data(&db, ALL_CAUSETS, kvs_left.as_slice());
+        check_data(&db, ALL_CausetS, kvs_left.as_slice());
     }
 
     #[test]
@@ -237,12 +237,12 @@ mod tests {
             .unwrap();
         let path_str = path.path().to_str().unwrap();
 
-        let causets_opts = ALL_CAUSETS
+        let causets_opts = ALL_CausetS
             .iter()
             .map(|causet| {
                 let mut causet_opts = PrimaryCausetNetworkOptions::new();
                 causet_opts.set_level_zero_file_num_compaction_trigger(1);
-                CAUSETOptions::new(causet, causet_opts)
+                CausetOptions::new(causet, causet_opts)
             })
             .collect();
         let db = new_engine_opt(path_str, DBOptions::new(), causets_opts).unwrap();
@@ -256,16 +256,16 @@ mod tests {
             kvs.push((key, b"value"));
         }
         let kvs_left: Vec<(&[u8], &[u8])> = vec![(kvs[0].0, kvs[0].1), (kvs[3].0, kvs[3].1)];
-        for causet in ALL_CAUSETS {
+        for causet in ALL_CausetS {
             for &(k, v) in kvs.as_slice() {
                 db.put_causet(causet, k, v).unwrap();
                 db.flush_causet(causet, true).unwrap();
             }
         }
-        check_data(&db, ALL_CAUSETS, kvs.as_slice());
+        check_data(&db, ALL_CausetS, kvs.as_slice());
 
         db.delete_all_files_in_cone(b"k2", b"k4").unwrap();
-        check_data(&db, ALL_CAUSETS, kvs_left.as_slice());
+        check_data(&db, ALL_CausetS, kvs_left.as_slice());
     }
 
     #[test]

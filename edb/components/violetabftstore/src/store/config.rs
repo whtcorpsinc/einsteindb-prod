@@ -10,11 +10,11 @@ use batch_system::Config as BatchSystemConfig;
 use configuration::{ConfigChange, ConfigManager, ConfigValue, Configuration};
 use engine_lmdb::config as rocks_config;
 use engine_lmdb::PerfLevel;
-use einsteindb-prod_util::config::{ReadableDuration, ReadableSize, VersionTrack};
+use edb_util::config::{ReadableDuration, ReadableSize, VersionTrack};
 
 lazy_static! {
     pub static ref CONFIG_VIOLETABFTSTORE_GAUGE: prometheus::GaugeVec = register_gauge_vec!(
-        "einsteindb-prod_config_violetabftstore",
+        "edb_config_violetabftstore",
         "Config information of violetabftstore",
         &["name"]
     )

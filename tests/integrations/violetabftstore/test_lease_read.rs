@@ -12,12 +12,12 @@ use ekvproto::violetabft_serverpb::VioletaBftLocalState;
 use violetabft::evioletabftpb::{ConfChangeType, MessageType};
 
 use engine_lmdb::{Compat, LmdbSnapshot};
-use engine_promises::Peekable;
+use edb::Peekable;
 use fidel_client::FidelClient;
 use violetabftstore::store::{Callback, BraneSnapshot};
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::*;
-use einsteindb-prod_util::HandyRwLock;
+use edb_util::config::*;
+use edb_util::HandyRwLock;
 
 // A helper function for testing the lease reads and lease renewing.
 // The leader keeps a record of its leader lease, and uses the system's

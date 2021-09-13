@@ -40,7 +40,7 @@ where
 /// - U+005B (LEFT SQUARE BRACKET)
 /// - U+005D (RIGHT SQUARE BRACKET)
 ///
-/// [RFC: Unified Log Format]: (https://github.com/einsteindb-prod/rfcs/blob/master/text/2018-12-19-unified-log-format.md)
+/// [RFC: Unified Log Format]: (https://github.com/edb/rfcs/blob/master/text/2018-12-19-unified-log-format.md)
 ///
 #[inline]
 fn need_json_encode(bytes: &[u8]) -> bool {
@@ -56,7 +56,7 @@ fn need_json_encode(bytes: &[u8]) -> bool {
 /// If there is no character [`need json encode`], it writes the data into the writer directly.
 /// Else, it serializes the given data structure as JSON into a writer.
 ///
-/// [RFC: Unified Log Format]: (https://github.com/einsteindb-prod/rfcs/blob/master/text/2018-12-19-unified-log-format.md)
+/// [RFC: Unified Log Format]: (https://github.com/edb/rfcs/blob/master/text/2018-12-19-unified-log-format.md)
 /// [`need json encode`]: #method.need_json_encode
 ///
 pub fn write_escaped_str<W>(writer: &mut W, value: &str) -> io::Result<()>

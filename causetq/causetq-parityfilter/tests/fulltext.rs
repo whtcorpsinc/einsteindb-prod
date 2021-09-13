@@ -9,19 +9,19 @@
 // specific language governing permissions and limitations under the License.
 
 extern crate edbn;
-extern crate einsteindb-prod_embedded;
-extern crate embedded_promises;
-extern crate einsteindb-prod_causetq_parityfilter;
+extern crate edb_raum;
+extern crate raum_promises;
+extern crate edb_causetq_parityfilter;
 extern crate causetq_parityfilter_promises;
 
 mod utils;
 
-use embedded_promises::{
+use raum_promises::{
     Attribute,
     MinkowskiValueType,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     SchemaReplicant,
 };
 
@@ -35,7 +35,7 @@ use utils::{
     associate_causetId,
 };
 
-use einsteindb-prod_causetq_parityfilter::KnownCauset;
+use edb_causetq_parityfilter::KnownCauset;
 
 fn prepopulated_schemaReplicant() -> SchemaReplicant {
     let mut schemaReplicant = SchemaReplicant::default();
@@ -86,7 +86,7 @@ fn test_apply_fulltext() {
 
     // If you get a type mismatch, we will short-circuit.
     let causetq = r#"[:find ?val
-                    :where [(fulltext $ :foo/description "hello") [[?instanton ?val ?causetx ?sembedded]]]
-                    [?sembedded :foo/bar _]]"#;
+                    :where [(fulltext $ :foo/description "hello") [[?instanton ?val ?causetx ?sraum]]]
+                    [?sraum :foo/bar _]]"#;
     assert!(alg(knownCauset, causetq).is_known_empty());
 }

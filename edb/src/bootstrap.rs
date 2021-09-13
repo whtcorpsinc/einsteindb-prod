@@ -21,12 +21,12 @@ use causetids;
 use edb::TypedSQLValue;
 use edbn::entities::Instanton;
 
-use embedded_promises::{
+use raum_promises::{
     MinkowskiType,
     values,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     CausetIdMap,
     SchemaReplicant,
 };
@@ -41,12 +41,12 @@ pub const TX0: i64 = 0x10000000;
 /// This is the start of the :edb.part/user partition.
 pub const USER0: i64 = 0x10000;
 
-// Corresponds to the version of the :edb.schemaReplicant/embedded vocabulary.
+// Corresponds to the version of the :edb.schemaReplicant/raum vocabulary.
 pub const CORE_SCHEMA_VERSION: u32 = 1;
 
 lazy_static! {
-    static ref V1_CAUSETIDS: [(symbols::Keyword, i64); 40] = {
-            [(ns_keyword!("edb", "causetid"),             causetids::DB_CAUSETID),
+    static ref V1_CausetIDS: [(symbols::Keyword, i64); 40] = {
+            [(ns_keyword!("edb", "causetid"),             causetids::DB_CausetID),
              (ns_keyword!("edb.part", "edb"),           causetids::DB_PART_DB),
              (ns_keyword!("edb", "causecausetxInstant"),         causetids::DB_TX_INSTANT),
              (ns_keyword!("edb.install", "partition"), causetids::DB_INSTALL_PARTITION),
@@ -81,16 +81,16 @@ lazy_static! {
              (ns_keyword!("edb.cardinality", "one"),   causetids::DB_CARDINALITY_ONE),
              (ns_keyword!("edb.cardinality", "many"),  causetids::DB_CARDINALITY_MANY),
              (ns_keyword!("edb.unique", "value"),      causetids::DB_UNIQUE_VALUE),
-             (ns_keyword!("edb.unique", "causetIdity"),   causetids::DB_UNIQUE_CAUSETIDITY),
+             (ns_keyword!("edb.unique", "causetIdity"),   causetids::DB_UNIQUE_CausetIDITY),
              (ns_keyword!("edb", "doc"),               causetids::DB_DOC),
              (ns_keyword!("edb.schemaReplicant", "version"),    causetids::DB_SCHEMA_VERSION),
              (ns_keyword!("edb.schemaReplicant", "attribute"),  causetids::DB_SCHEMA_ATTRIBUTE),
-             (ns_keyword!("edb.schemaReplicant", "embedded"),       causetids::DB_SCHEMA_CORE),
+             (ns_keyword!("edb.schemaReplicant", "raum"),       causetids::DB_SCHEMA_CORE),
         ]
     };
 
     pub static ref V1_PARTS: [(symbols::Keyword, i64, i64, i64, bool); 3] = {
-            [(ns_keyword!("edb.part", "edb"), 0, USER0 - 1, (1 + V1_CAUSETIDS.len()) as i64, false),
+            [(ns_keyword!("edb.part", "edb"), 0, USER0 - 1, (1 + V1_CausetIDS.len()) as i64, false),
              (ns_keyword!("edb.part", "user"), USER0, TX0 - 1, USER0, true),
              (ns_keyword!("edb.part", "causetx"), TX0, i64::max_value(), TX0, false),
         ]
@@ -168,20 +168,20 @@ lazy_static! {
     };
 }
 
-/// Convert (causetid, solitonId) pairs into [:edb/add CAUSETID :edb/causetid CAUSETID] `Value` instances.
+/// Convert (causetid, solitonId) pairs into [:edb/add CausetID :edb/causetid CausetID] `Value` instances.
 fn causetIds_to_assertions(causetIds: &[(symbols::Keyword, i64)]) -> Vec<Value> {
     causetIds
         .into_iter()
         .map(|&(ref causetid, _)| {
             let value = Value::Keyword(causetid.clone());
-            Value::Vector(vec![values::DB_ADD.clone(), value.clone(), values::DB_CAUSETID.clone(), value.clone()])
+            Value::Vector(vec![values::DB_ADD.clone(), value.clone(), values::DB_CausetID.clone(), value.clone()])
         })
         .collect()
 }
 
-/// Convert an causetid list into [:edb/add :edb.schemaReplicant/embedded :edb.schemaReplicant/attribute CAUSETID] `Value` instances.
+/// Convert an causetid list into [:edb/add :edb.schemaReplicant/raum :edb.schemaReplicant/attribute CausetID] `Value` instances.
 fn schemaReplicant_attrs_to_assertions(version: u32, causetIds: &[symbols::Keyword]) -> Vec<Value> {
-    let schemaReplicant_embedded = Value::Keyword(ns_keyword!("edb.schemaReplicant", "embedded"));
+    let schemaReplicant_raum = Value::Keyword(ns_keyword!("edb.schemaReplicant", "raum"));
     let schemaReplicant_attr = Value::Keyword(ns_keyword!("edb.schemaReplicant", "attribute"));
     let schemaReplicant_version = Value::Keyword(ns_keyword!("edb.schemaReplicant", "version"));
     causetIds
@@ -189,12 +189,12 @@ fn schemaReplicant_attrs_to_assertions(version: u32, causetIds: &[symbols::Keywo
         .map(|causetid| {
             let value = Value::Keyword(causetid.clone());
             Value::Vector(vec![values::DB_ADD.clone(),
-                               schemaReplicant_embedded.clone(),
+                               schemaReplicant_raum.clone(),
                                schemaReplicant_attr.clone(),
                                value])
         })
         .chain(::std::iter::once(Value::Vector(vec![values::DB_ADD.clone(),
-                                             schemaReplicant_embedded.clone(),
+                                             schemaReplicant_raum.clone(),
                                              schemaReplicant_version,
                                              Value::Integer(version as i64)])))
         .collect()
@@ -254,7 +254,7 @@ fn symbolic_schemaReplicant_to_triples(causetId_map: &CausetIdMap, symbolic_sche
     Ok(triples)
 }
 
-/// Convert {CAUSETID {:key :value ...} ...} to [[:edb/add CAUSETID :key :value] ...].
+/// Convert {CausetID {:key :value ...} ...} to [[:edb/add CausetID :key :value] ...].
 fn symbolic_schemaReplicant_to_assertions(symbolic_schemaReplicant: &Value) -> Result<Vec<Value>> {
     // Failure here is a coding error, not a runtime error.
     let mut assertions: Vec<Value> = vec![];
@@ -286,7 +286,7 @@ pub(crate) fn bootstrap_partition_map() -> PartitionMap {
 }
 
 pub(crate) fn bootstrap_causetId_map() -> CausetIdMap {
-    V1_CAUSETIDS.iter()
+    V1_CausetIDS.iter()
              .map(|&(ref causetid, solitonId)| (causetid.clone(), solitonId))
              .collect()
 }
@@ -300,7 +300,7 @@ pub(crate) fn bootstrap_schemaReplicant() -> SchemaReplicant {
 pub(crate) fn bootstrap_entities() -> Vec<Instanton<edbn::ValueAndSpan>> {
     let bootstrap_assertions: Value = Value::Vector([
         symbolic_schemaReplicant_to_assertions(&V1_SYMBOLIC_SCHEMA).expect("symbolic schemaReplicant"),
-        causetIds_to_assertions(&V1_CAUSETIDS[..]),
+        causetIds_to_assertions(&V1_CausetIDS[..]),
         schemaReplicant_attrs_to_assertions(CORE_SCHEMA_VERSION, V1_CORE_SCHEMA.as_ref()),
     ].concat());
 

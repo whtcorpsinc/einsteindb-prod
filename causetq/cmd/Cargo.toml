@@ -4,16 +4,16 @@ version = "0.0.1"
 license = "Apache-2.0"
 edition = "2018"
 publish = false
-default-run = "einsteindb-prod-server"
+default-run = "edb-server"
 
 [features]
-tcmalloc = ["einsteindb-prod/tcmalloc"]
-jemalloc = ["einsteindb-prod/jemalloc"]
-mimalloc = ["einsteindb-prod/mimalloc"]
-porBlock = ["einsteindb-prod/porBlock"]
-sse = ["einsteindb-prod/sse"]
-mem-profiling = ["einsteindb-prod/mem-profiling"]
-failpoints = ["einsteindb-prod/failpoints"]
+tcmalloc = ["edb/tcmalloc"]
+jemalloc = ["edb/jemalloc"]
+mimalloc = ["edb/mimalloc"]
+porBlock = ["edb/porBlock"]
+sse = ["edb/sse"]
+mem-profiling = ["edb/mem-profiling"]
+failpoints = ["edb/failpoints"]
 protobuf-codec = [
   "backup/protobuf-codec",
   "grpcio/protobuf-codec",
@@ -22,7 +22,7 @@ protobuf-codec = [
   "fidel_client/protobuf-codec",
   "violetabft/protobuf-codec",
   "violetabftstore/protobuf-codec",
-  "einsteindb-prod/protobuf-codec",
+  "edb/protobuf-codec",
   "txn_types/protobuf-codec",
   "causet_context/protobuf-codec",
   "violetabft_log_engine/protobuf-codec"
@@ -35,7 +35,7 @@ prost-codec = [
   "fidel_client/prost-codec",
   "violetabft/prost-codec",
   "violetabftstore/prost-codec",
-  "einsteindb-prod/prost-codec",
+  "edb/prost-codec",
   "txn_types/prost-codec",
   "causet_context/prost-codec",
   "violetabft_log_engine/prost-codec"
@@ -45,10 +45,10 @@ prost-codec = [
 name = "cmd"
 
 [[bin]]
-name = "einsteindb-prod-server"
+name = "edb-server"
 
 [[bin]]
-name = "einsteindb-prod-ctl"
+name = "edb-ctl"
 
 [deplightlikeencies]
 backup = { path = "../components/backup", default-features = false }
@@ -58,7 +58,7 @@ clap = "2.32"
 concurrency_manager = { path = "../components/concurrency_manager" }
 encryption = { path = "../components/encryption" }
 engine_lmdb = { path = "../components/engine_lmdb" }
-engine_promises = { path = "../components/engine_promises" }
+edb = { path = "../components/edb" }
 error_code = { path = "../components/error_code" }
 fs2 = "0.4"
 futures = "0.3"
@@ -82,15 +82,15 @@ security = { path = "../components/security" }
 serde_json = "1.0"
 slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debug"] }
 slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global.git", rev = "0e23a5baff302a9d7bccd85f8f31e43339c2f2c1" }
-einsteindb-prod = { path = "../", default-features = false }
-einsteindb-prod_alloc = { path = "../components/einsteindb-prod_alloc" }
-einsteindb-prod_util = { path = "../components/einsteindb-prod_util" }
+edb = { path = "../", default-features = false }
+edb_alloc = { path = "../components/edb_alloc" }
+edb_util = { path = "../components/edb_util" }
 toml = "0.4"
 txn_types = { path = "../components/txn_types" }
 vlog = "0.1.4"
 
 [deplightlikeencies.yatp]
-git = "https://github.com/einsteindb-prod/yatp.git"
+git = "https://github.com/edb/yatp.git"
 
 [target.'causet(unix)'.deplightlikeencies]
 signal = "0.6"

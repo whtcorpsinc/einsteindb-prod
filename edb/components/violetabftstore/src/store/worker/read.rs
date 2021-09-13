@@ -24,10 +24,10 @@ use crate::store::{
 };
 use crate::Result;
 
-use engine_promises::{KvEngine, VioletaBftEngine};
-use einsteindb-prod_util::collections::HashMap;
-use einsteindb-prod_util::time::monotonic_raw_now;
-use einsteindb-prod_util::time::{Instant, ThreadReadId};
+use edb::{KvEngine, VioletaBftEngine};
+use edb_util::collections::HashMap;
+use edb_util::time::monotonic_raw_now;
+use edb_util::time::{Instant, ThreadReadId};
 
 use super::metrics::*;
 use crate::store::fsm::store::StoreMeta;
@@ -695,8 +695,8 @@ mod tests {
     use crate::store::util::Lease;
     use crate::store::Callback;
     use engine_lmdb::{LmdbEngine, LmdbSnapshot};
-    use engine_promises::ALL_CAUSETS;
-    use einsteindb-prod_util::time::monotonic_raw_now;
+    use edb::ALL_CausetS;
+    use edb_util::time::monotonic_raw_now;
 
     use super::*;
 
@@ -711,7 +711,7 @@ mod tests {
         Receiver<VioletaBftCommand<LmdbSnapshot>>,
     ) {
         let path = Builder::new().prefix(path).temfidelir().unwrap();
-        let db = engine_lmdb::util::new_engine(path.path().to_str().unwrap(), None, ALL_CAUSETS, None)
+        let db = engine_lmdb::util::new_engine(path.path().to_str().unwrap(), None, ALL_CausetS, None)
             .unwrap();
         let (ch, rx) = sync_channel(1);
         let mut reader = LocalReader::new(db, store_meta, ch);

@@ -1,11 +1,11 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use criterion::{black_box, BatchSize, Bencher, Criterion};
-use engine_promises::CAUSET_DEFAULT;
+use edb::Causet_DEFAULT;
 use ekvproto::kvrpcpb::Context;
 use test_causetStorage::SyncTestStorageBuilder;
 use test_util::KvGenerator;
-use einsteindb-prod::causetStorage::kv::Engine;
+use edb::causetStorage::kv::Engine;
 use txn_types::{Key, Mutation};
 
 use super::{BenchConfig, EngineFactory, DEFAULT_ITERATIONS};
@@ -25,7 +25,7 @@ fn causetStorage_raw_get<E: Engine, F: EngineFactory<E>>(b: &mut Bencher, config
         },
         |(data, store)| {
             for (context, key) in data {
-                black_box(store.raw_get(context, CAUSET_DEFAULT.to_owned(), key).unwrap());
+                black_box(store.raw_get(context, Causet_DEFAULT.to_owned(), key).unwrap());
             }
         },
         BatchSize::SmallInput,

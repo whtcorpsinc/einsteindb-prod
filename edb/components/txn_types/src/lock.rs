@@ -6,8 +6,8 @@ use crate::{Error, ErrorInner, Result};
 use byteorder::ReadBytesExt;
 use ekvproto::kvrpcpb::{LockInfo, Op};
 use std::{borrow::Cow, mem::size_of};
-use einsteindb-prod_util::codec::bytes::{self, BytesEncoder};
-use einsteindb-prod_util::codec::number::{self, NumberEncoder, MAX_VAR_I64_LEN, MAX_VAR_U64_LEN};
+use edb_util::codec::bytes::{self, BytesEncoder};
+use edb_util::codec::number::{self, NumberEncoder, MAX_VAR_I64_LEN, MAX_VAR_U64_LEN};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LockType {
@@ -75,7 +75,7 @@ pub struct Dagger {
     pub secondaries: Vec<Vec<u8>>,
     // In some rare cases, a protected rollback may happen when there's already another
     // transaction's dagger on the key. In this case, if the other transaction uses calculated
-    // timestamp as commit_ts, the protected rollback record may be overwritten. Checking Write CAUSET
+    // timestamp as commit_ts, the protected rollback record may be overwritten. Checking Write Causet
     // while committing is relatively expensive. So the solution is putting the ts of the rollback
     // to the dagger.
     pub rollback_ts: Vec<TimeStamp>,

@@ -1,7 +1,7 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use crate::engine::PanicEngine;
-use engine_promises::{CompactExt, CompactedEvent, Result};
+use crate::edb::PanicEngine;
+use edb::{CompactExt, CompactedEvent, Result};
 use std::collections::BTreeMap;
 
 impl CompactExt for PanicEngine {

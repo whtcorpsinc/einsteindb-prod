@@ -14,7 +14,7 @@ use grpcio::{
     CertificateRequestType, Channel, ChannelBuilder, ChannelCredentialsBuilder, RpcContext,
     ServerBuilder, ServerCredentialsBuilder, ServerCredentialsFetcher,
 };
-use einsteindb-prod_util::collections::HashSet;
+use edb_util::collections::HashSet;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(default)]

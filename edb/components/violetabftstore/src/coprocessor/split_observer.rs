@@ -1,7 +1,7 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
 use super::{AdminSemaphore, Interlock, SemaphoreContext, Result as CopResult};
-use einsteindb-prod_util::codec::bytes::{self, encode_bytes};
+use edb_util::codec::bytes::{self, encode_bytes};
 
 use crate::store::util;
 use ekvproto::metapb::Brane;
@@ -158,7 +158,7 @@ mod tests {
     use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, SplitRequest};
     use milevadb_query_datatype::codec::{datum, Block, Datum};
     use milevadb_query_datatype::expr::EvalContext;
-    use einsteindb-prod_util::codec::bytes::encode_bytes;
+    use edb_util::codec::bytes::encode_bytes;
 
     fn new_split_request(key: &[u8]) -> AdminRequest {
         let mut req = AdminRequest::default();

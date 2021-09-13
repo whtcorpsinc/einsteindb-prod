@@ -1,7 +1,7 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use crate::store::{CasualMessage, CasualRouter};
-use engine_promises::{KvEngine, Cone};
+use edb::{KvEngine, Cone};
 use error_code::ErrorCodeExt;
 use ekvproto::{metapb::Brane, fidelpb::CheckPolicy};
 use std::marker::PhantomData;
@@ -219,23 +219,23 @@ mod tests {
     };
     use engine_lmdb::raw::DB;
     use engine_lmdb::raw::{PrimaryCausetNetworkOptions, DBOptions, WriBlock};
-    use engine_lmdb::raw_util::{new_engine_opt, CAUSETOptions};
+    use engine_lmdb::raw_util::{new_engine_opt, CausetOptions};
     use engine_lmdb::Compat;
-    use engine_promises::{ALL_CAUSETS, CAUSET_DEFAULT, CAUSET_WRITE, LARGE_CAUSETS};
+    use edb::{ALL_CausetS, Causet_DEFAULT, Causet_WRITE, LARGE_CausetS};
     use ekvproto::metapb::{Peer, Brane};
     use ekvproto::fidelpb::CheckPolicy;
     use std::cmp;
     use std::sync::{mpsc, Arc};
     use std::u64;
     use tempfile::Builder;
-    use einsteindb-prod_util::worker::Runnable;
+    use edb_util::worker::Runnable;
     use txn_types::{Key, TimeStamp, Write, WriteType};
 
     use super::*;
 
     fn put_data(engine: &DB, mut spacelike_idx: u64, lightlike_idx: u64, fill_short_value: bool) {
-        let write_causet = engine.causet_handle(CAUSET_WRITE).unwrap();
-        let default_causet = engine.causet_handle(CAUSET_DEFAULT).unwrap();
+        let write_causet = engine.causet_handle(Causet_WRITE).unwrap();
+        let default_causet = engine.causet_handle(Causet_DEFAULT).unwrap();
         let write_value = if fill_short_value {
             Write::new(
                 WriteType::Put,
@@ -273,11 +273,11 @@ mod tests {
         let db_opts = DBOptions::new();
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.cone-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("edb.cone-properties-collector", f);
 
-        let causets_opts = ALL_CAUSETS
+        let causets_opts = ALL_CausetS
             .iter()
-            .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
+            .map(|causet| CausetOptions::new(causet, causet_opts.clone()))
             .collect();
         let engine = Arc::new(new_engine_opt(path_str, db_opts, causets_opts).unwrap());
 
@@ -380,10 +380,10 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.cone-properties-collector", f);
-        let causets_opts = LARGE_CAUSETS
+        causet_opts.add_Block_properties_collector_factory("edb.cone-properties-collector", f);
+        let causets_opts = LARGE_CausetS
             .iter()
-            .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
+            .map(|causet| CausetOptions::new(causet, causet_opts.clone()))
             .collect();
         let db =
             Arc::new(engine_lmdb::raw_util::new_engine_opt(path_str, db_opts, causets_opts).unwrap());
@@ -398,12 +398,12 @@ mod tests {
             let write_v = Write::new(WriteType::Put, TimeStamp::zero(), None)
                 .as_ref()
                 .to_bytes();
-            let write_causet = db.causet_handle(CAUSET_WRITE).unwrap();
+            let write_causet = db.causet_handle(Causet_WRITE).unwrap();
             db.put_causet(write_causet, &key, &write_v).unwrap();
             db.flush_causet(write_causet, true).unwrap();
 
             let default_v = vec![0; vlen as usize];
-            let default_causet = db.causet_handle(CAUSET_DEFAULT).unwrap();
+            let default_causet = db.causet_handle(Causet_DEFAULT).unwrap();
             db.put_causet(default_causet, &key, &default_v).unwrap();
             db.flush_causet(default_causet, true).unwrap();
         }
@@ -425,18 +425,18 @@ mod tests {
         let mut causet_opts = PrimaryCausetNetworkOptions::new();
         causet_opts.set_level_zero_file_num_compaction_trigger(10);
         let f = Box::new(MvccPropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.tail_pointer-properties-collector", f);
+        causet_opts.add_Block_properties_collector_factory("edb.tail_pointer-properties-collector", f);
         let f = Box::new(ConePropertiesCollectorFactory::default());
-        causet_opts.add_Block_properties_collector_factory("einsteindb-prod.cone-properties-collector", f);
-        let causets_opts = LARGE_CAUSETS
+        causet_opts.add_Block_properties_collector_factory("edb.cone-properties-collector", f);
+        let causets_opts = LARGE_CausetS
             .iter()
-            .map(|causet| CAUSETOptions::new(causet, causet_opts.clone()))
+            .map(|causet| CausetOptions::new(causet, causet_opts.clone()))
             .collect();
         let db =
             Arc::new(engine_lmdb::raw_util::new_engine_opt(path_str, db_opts, causets_opts).unwrap());
 
-        let write_causet = db.causet_handle(CAUSET_WRITE).unwrap();
-        let default_causet = db.causet_handle(CAUSET_DEFAULT).unwrap();
+        let write_causet = db.causet_handle(Causet_WRITE).unwrap();
+        let default_causet = db.causet_handle(Causet_DEFAULT).unwrap();
         // size >= 4194304 will insert a new point in cone properties
         // 3 points will be inserted into cone properties
         let cases = [("a", 4194304), ("b", 4194304), ("c", 4194304)];

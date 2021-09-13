@@ -3,10 +3,10 @@
 use std::sync::Arc;
 use std::{thread, time};
 
-use engine_promises::MiscExt;
+use edb::MiscExt;
 use fidel_client::FidelClient;
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::*;
+use edb_util::config::*;
 
 fn flush<T: Simulator>(cluster: &mut Cluster<T>) {
     for engines in cluster.engines.values() {

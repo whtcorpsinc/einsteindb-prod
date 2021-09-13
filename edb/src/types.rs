@@ -24,15 +24,15 @@ use std::ops::{
     Range,
 };
 
-extern crate einsteindb-prod_embedded;
+extern crate edb_raum;
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-pub use self::einsteindb-prod_embedded::{
+pub use self::edb_raum::{
     DateTime,
     SchemaReplicant,
     Utc,
@@ -120,7 +120,7 @@ impl FromIterator<(String, Partition)> for PartitionMap {
 
 /// Represents the spacetime required to causetq from, or apply bundles to, a EinsteinDB store.
 ///
-/// See https://github.com/whtcorpsinc/einsteindb-prod/wiki/Thoughts:-modeling-edb-conn-in-Rust.
+/// See https://github.com/whtcorpsinc/edb/wiki/Thoughts:-modeling-edb-conn-in-Rust.
 #[derive(Clone,Debug,Default,Eq,Hash,Ord,PartialOrd,PartialEq)]
 pub struct EDB {
     /// Map partition name->`Partition`.

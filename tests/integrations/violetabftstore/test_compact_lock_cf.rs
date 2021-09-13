@@ -1,13 +1,13 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
 use engine_lmdb::raw::DBStatisticsTickerType;
-use engine_promises::{MiscExt, CAUSET_DAGGER};
+use edb::{MiscExt, Causet_DAGGER};
 use test_violetabftstore::*;
-use einsteindb-prod_util::config::*;
+use edb_util::config::*;
 
 fn flush<T: Simulator>(cluster: &mut Cluster<T>) {
     for engines in cluster.engines.values() {
-        engines.kv.flush_causet(CAUSET_DAGGER, true).unwrap();
+        engines.kv.flush_causet(Causet_DAGGER, true).unwrap();
     }
 }
 
@@ -39,7 +39,7 @@ fn test_compact_lock_causet<T: Simulator>(cluster: &mut Cluster<T>) {
     // Write 40 bytes, not reach lock_causet_compact_bytes_memory_barrier, so there is no compaction.
     for i in 0..5 {
         let (k, v) = (format!("k{}", i), format!("value{}", i));
-        cluster.must_put_causet(CAUSET_DAGGER, k.as_bytes(), v.as_bytes());
+        cluster.must_put_causet(Causet_DAGGER, k.as_bytes(), v.as_bytes());
     }
     // Generate one sst, if there are datas only in one memBlock, no compactions will be triggered.
     flush(cluster);
@@ -48,7 +48,7 @@ fn test_compact_lock_causet<T: Simulator>(cluster: &mut Cluster<T>) {
     // so there is no compaction.
     for i in 5..10 {
         let (k, v) = (format!("k{}", i), format!("value{}", i));
-        cluster.must_put_causet(CAUSET_DAGGER, k.as_bytes(), v.as_bytes());
+        cluster.must_put_causet(Causet_DAGGER, k.as_bytes(), v.as_bytes());
     }
     // Generate another sst.
     flush_then_check(cluster, interval, false);
@@ -56,7 +56,7 @@ fn test_compact_lock_causet<T: Simulator>(cluster: &mut Cluster<T>) {
     // Write more 50 bytes, reach lock_causet_compact_bytes_memory_barrier.
     for i in 10..15 {
         let (k, v) = (format!("k{}", i), format!("value{}", i));
-        cluster.must_put_causet(CAUSET_DAGGER, k.as_bytes(), v.as_bytes());
+        cluster.must_put_causet(Causet_DAGGER, k.as_bytes(), v.as_bytes());
     }
     flush_then_check(cluster, interval, true);
 }

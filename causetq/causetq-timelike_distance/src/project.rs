@@ -16,16 +16,16 @@ use indexmap::{
     IndexSet,
 };
 
-use embedded_promises::{
+use raum_promises::{
     MinkowskiSet,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     SQLMinkowskiValueType,
     SQLMinkowskiSet,
 };
 
-use einsteindb-prod_embedded::util::{
+use edb_raum::util::{
     Either,
 };
 
@@ -35,7 +35,7 @@ use edbn::causetq::{
     ToUpper,
 };
 
-use einsteindb-prod_causetq_parityfilter::{
+use edb_causetq_parityfilter::{
     AlgebraicCausetQ,
     CausetIndexName,
     ConjoiningGerunds,
@@ -44,7 +44,7 @@ use einsteindb-prod_causetq_parityfilter::{
 };
 
 
-use einsteindb-prod_causetq_sql::{
+use edb_causetq_sql::{
     CausetIndexOrExpression,
     GroupBy,
     Name,

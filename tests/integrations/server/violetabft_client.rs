@@ -9,11 +9,11 @@ use grpcio::{
     ClientStreamingSink, Environment, RequestStream, RpcContext, RpcStatus, RpcStatusCode, Server,
 };
 use ekvproto::violetabft_serverpb::{Done, VioletaBftMessage};
-use ekvproto::einsteindb-prodpb::BatchVioletaBftMessage;
+use ekvproto::edbpb::BatchVioletaBftMessage;
 use violetabft::evioletabftpb::Entry;
 use violetabftstore::router::VioletaBftStoreBlackHole;
 use security::{SecurityConfig, SecurityManager};
-use einsteindb-prod::server::{load_statistics::ThreadLoad, Config, VioletaBftClient};
+use edb::server::{load_statistics::ThreadLoad, Config, VioletaBftClient};
 
 use super::{mock_kv_service, MockKv, MockKvService};
 

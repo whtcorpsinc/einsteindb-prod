@@ -14,5 +14,5 @@ mod writebatch;
 
 #[bench]
 fn _bench_check_requirement(_: &mut test::Bencher) {
-    einsteindb-prod_util::config::check_max_open_fds(4096).unwrap();
+    edb_util::config::check_max_open_fds(4096).unwrap();
 }

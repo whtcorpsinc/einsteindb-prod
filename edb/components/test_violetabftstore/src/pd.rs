@@ -26,10 +26,10 @@ use tuplespaceInstanton::{self, data_key, enc_lightlike_key, enc_spacelike_key};
 use fidel_client::{Error, Key, FidelClient, FidelFuture, BraneInfo, BraneStat, Result};
 use violetabftstore::store::util::{check_key_in_brane, is_learner};
 use violetabftstore::store::{INIT_EPOCH_CONF_VER, INIT_EPOCH_VER};
-use einsteindb-prod_util::collections::{HashMap, HashMapEntry, HashSet};
-use einsteindb-prod_util::time::UnixSecs;
-use einsteindb-prod_util::timer::GLOBAL_TIMER_HANDLE;
-use einsteindb-prod_util::{Either, HandyRwLock};
+use edb_util::collections::{HashMap, HashMapEntry, HashSet};
+use edb_util::time::UnixSecs;
+use edb_util::timer::GLOBAL_TIMER_HANDLE;
+use edb_util::{Either, HandyRwLock};
 use txn_types::TimeStamp;
 
 use super::*;

@@ -14,14 +14,14 @@ use std::fmt::{
     Formatter,
 };
 
-use embedded_promises::{
+use raum_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
     MinkowskiSet,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     ValueRc,
 };
 

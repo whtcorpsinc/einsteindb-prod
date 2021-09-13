@@ -7,7 +7,7 @@ use protobuf::{self, Message};
 use rand::{thread_rng, RngCore};
 use test::Bencher;
 
-use einsteindb-prod_util::collections::HashMap;
+use edb_util::collections::HashMap;
 
 #[inline]
 fn gen_rand_str(len: usize) -> Vec<u8> {
@@ -22,7 +22,7 @@ fn generate_requests(map: &HashMap<&[u8], &[u8]>) -> Vec<Request> {
     for (key, value) in map {
         let mut r = Request::default();
         r.set_cmd_type(CmdType::Put);
-        r.mut_put().set_causet("einsteindb-prod".to_owned());
+        r.mut_put().set_causet("edb".to_owned());
         r.mut_put().set_key(key.to_vec());
         r.mut_put().set_value(value.to_vec());
         reqs.push(r);

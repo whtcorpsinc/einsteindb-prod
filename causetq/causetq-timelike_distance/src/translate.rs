@@ -8,13 +8,13 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use embedded_promises::{
+use raum_promises::{
     MinkowskiType,
     MinkowskiValueType,
     MinkowskiSet,
 };
 
-use einsteindb-prod_embedded::{
+use edb_raum::{
     SchemaReplicant,
     SQLTypeAffinity,
     SQLMinkowskiValueType,
@@ -22,7 +22,7 @@ use einsteindb-prod_embedded::{
     MinkowskiValueTypeTag,
 };
 
-use einsteindb-prod_embedded::util::{
+use edb_raum::util::{
     Either,
 };
 
@@ -30,7 +30,7 @@ use edbn::causetq::{
     Limit,
 };
 
-use einsteindb-prod_causetq_parityfilter::{
+use edb_causetq_parityfilter::{
     AlgebraicCausetQ,
     CausetIndexAlternation,
     CausetIndexConstraint,
@@ -57,7 +57,7 @@ use ::{
     causetq_projection,
 };
 
-use einsteindb-prod_causetq_sql::{
+use edb_causetq_sql::{
     CausetIndexOrExpression,
     Constraint,
     FromGerund,

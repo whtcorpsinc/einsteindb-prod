@@ -15,7 +15,7 @@ use std;
 use futures::{future, Future, Stream};
 use hyper;
 // TODO: enable TLS support; hurdle is cross-compiling openssl for Android.
-// See https://github.com/whtcorpsinc/einsteindb-prod/issues/569
+// See https://github.com/whtcorpsinc/edb/issues/569
 // use hyper_tls;
 use hyper::{
     Method,
@@ -26,10 +26,10 @@ use hyper::{
 use hyper::header::{
     ContentType,
 };
-// TODO: https://github.com/whtcorpsinc/einsteindb-prod/issues/570
+// TODO: https://github.com/whtcorpsinc/edb/issues/570
 // use serde_cbor;
 use serde_json;
-use tokio_embedded::reactor::Core;
+use tokio_raum::reactor::Core;
 use uuid::Uuid;
 
 use public_promises::errors::{
@@ -94,12 +94,12 @@ impl RemoteClient {
     // this and use PhantomData markers or somesuch.
     // But for now, we get code duplication.
     fn get_uuid(&self, uri: String) -> Result<Uuid> {
-        let mut embedded = Core::new()?;
-        // TODO https://github.com/whtcorpsinc/einsteindb-prod/issues/569
+        let mut raum = Core::new()?;
+        // TODO https://github.com/whtcorpsinc/edb/issues/569
         // let client = hyper::Client::configure()
-        //     .connector(hyper_tls::HttpsConnector::new(4, &embedded.handle()).unwrap())
-        //     .build(&embedded.handle());
-        let client = hyper::Client::new(&embedded.handle());
+        //     .connector(hyper_tls::HttpsConnector::new(4, &raum.handle()).unwrap())
+        //     .build(&raum.handle());
+        let client = hyper::Client::new(&raum.handle());
 
         d(&format!("client"));
 
@@ -119,19 +119,19 @@ impl RemoteClient {
 
         d(&format!("running..."));
 
-        let head_json = embedded.run(work)?;
+        let head_json = raum.run(work)?;
         d(&format!("got head: {:?}", &head_json.head));
         Ok(head_json.head)
     }
 
     fn put<T>(&self, uri: String, payload: T, expected: StatusCode) -> Result<()>
     where hyper::Body: std::convert::From<T>, {
-        let mut embedded = Core::new()?;
-        // TODO https://github.com/whtcorpsinc/einsteindb-prod/issues/569
+        let mut raum = Core::new()?;
+        // TODO https://github.com/whtcorpsinc/edb/issues/569
         // let client = hyper::Client::configure()
-        //     .connector(hyper_tls::HttpsConnector::new(4, &embedded.handle()).unwrap())
-        //     .build(&embedded.handle());
-        let client = hyper::Client::new(&embedded.handle());
+        //     .connector(hyper_tls::HttpsConnector::new(4, &raum.handle()).unwrap())
+        //     .build(&raum.handle());
+        let client = hyper::Client::new(&raum.handle());
 
         let uri = uri.parse()?;
 
@@ -152,17 +152,17 @@ impl RemoteClient {
             }
         });
 
-        embedded.run(put)?;
+        raum.run(put)?;
         Ok(())
     }
 
     fn get_bundles(&self, parent_uuid: &Uuid) -> Result<Vec<Uuid>> {
-        let mut embedded = Core::new()?;
-        // TODO https://github.com/whtcorpsinc/einsteindb-prod/issues/569
+        let mut raum = Core::new()?;
+        // TODO https://github.com/whtcorpsinc/edb/issues/569
         // let client = hyper::Client::configure()
-        //     .connector(hyper_tls::HttpsConnector::new(4, &embedded.handle()).unwrap())
-        //     .build(&embedded.handle());
-        let client = hyper::Client::new(&embedded.handle());
+        //     .connector(hyper_tls::HttpsConnector::new(4, &raum.handle()).unwrap())
+        //     .build(&raum.handle());
+        let client = hyper::Client::new(&raum.handle());
 
         d(&format!("client"));
 
@@ -184,18 +184,18 @@ impl RemoteClient {
 
         d(&format!("running..."));
 
-        let bundles_json = embedded.run(work)?;
+        let bundles_json = raum.run(work)?;
         d(&format!("got bundles: {:?}", &bundles_json.bundles));
         Ok(bundles_json.bundles)
     }
 
     fn get_chunks(&self, transaction_uuid: &Uuid) -> Result<Vec<Uuid>> {
-        let mut embedded = Core::new()?;
-        // TODO https://github.com/whtcorpsinc/einsteindb-prod/issues/569
+        let mut raum = Core::new()?;
+        // TODO https://github.com/whtcorpsinc/edb/issues/569
         // let client = hyper::Client::configure()
-        //     .connector(hyper_tls::HttpsConnector::new(4, &embedded.handle()).unwrap())
-        //     .build(&embedded.handle());
-        let client = hyper::Client::new(&embedded.handle());
+        //     .connector(hyper_tls::HttpsConnector::new(4, &raum.handle()).unwrap())
+        //     .build(&raum.handle());
+        let client = hyper::Client::new(&raum.handle());
 
         d(&format!("client"));
 
@@ -217,18 +217,18 @@ impl RemoteClient {
 
         d(&format!("running..."));
 
-        let transaction_json = embedded.run(work)?;
+        let transaction_json = raum.run(work)?;
         d(&format!("got transaction chunks: {:?}", &transaction_json.chunks));
         Ok(transaction_json.chunks)
     }
 
     fn get_chunk(&self, chunk_uuid: &Uuid) -> Result<TxPart> {
-        let mut embedded = Core::new()?;
-        // TODO https://github.com/whtcorpsinc/einsteindb-prod/issues/569
+        let mut raum = Core::new()?;
+        // TODO https://github.com/whtcorpsinc/edb/issues/569
         // let client = hyper::Client::configure()
-        //     .connector(hyper_tls::HttpsConnector::new(4, &embedded.handle()).unwrap())
-        //     .build(&embedded.handle());
-        let client = hyper::Client::new(&embedded.handle());
+        //     .connector(hyper_tls::HttpsConnector::new(4, &raum.handle()).unwrap())
+        //     .build(&raum.handle());
+        let client = hyper::Client::new(&raum.handle());
 
         d(&format!("client"));
 
@@ -250,7 +250,7 @@ impl RemoteClient {
 
         d(&format!("running..."));
 
-        let chunk = embedded.run(work)?;
+        let chunk = raum.run(work)?;
         d(&format!("got transaction chunk: {:?}", &chunk));
         Ok(chunk)
     }
