@@ -2,7 +2,7 @@
 
 use std::fmt;
 use std::sync::Arc;
-use edb_util::collections::HashSet;
+use violetabftstore::interlock::::collections::HashSet;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct TimeStamp(u64);

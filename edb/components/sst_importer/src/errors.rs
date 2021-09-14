@@ -10,8 +10,8 @@ use encryption::Error as EncryptionError;
 use error_code::{self, ErrorCode, ErrorCodeExt};
 use futures::channel::oneshot::Canceled;
 use grpcio::Error as GrpcError;
-use ekvproto::import_sstpb;
-use edb_util::codec::Error as CodecError;
+use ekvproto::import_sst_timeshare;
+use violetabftstore::interlock::::codec::Error as CodecError;
 use uuid::Error as UuidError;
 
 use crate::metrics::*;
@@ -28,7 +28,7 @@ pub fn error_inc(err: &Error) {
         Error::FileCorrupted(..) => "file_corrupt",
         Error::InvalidSSTPath(..) => "invalid_sst",
         Error::Engine(..) => "engine",
-        Error::CannotReadExternalStorage(..) => "read_external_causetStorage",
+        Error::CannotReadExternalStorage(..) => "read_external_causet_storage",
         Error::WrongKeyPrefix(..) => "wrong_prefix",
         Error::BadFormat(..) => "bad_format",
         Error::Encryption(..) => "encryption",
@@ -119,9 +119,9 @@ quick_error! {
 
 pub type Result<T> = result::Result<T, Error>;
 
-impl From<Error> for import_sstpb::Error {
-    fn from(e: Error) -> import_sstpb::Error {
-        let mut err = import_sstpb::Error::default();
+impl From<Error> for import_sst_timeshare::Error {
+    fn from(e: Error) -> import_sst_timeshare::Error {
+        let mut err = import_sst_timeshare::Error::default();
         err.set_message(format!("{}", e));
         err
     }

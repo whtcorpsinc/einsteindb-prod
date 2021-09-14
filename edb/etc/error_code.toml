@@ -403,143 +403,143 @@ error = 'KV-SSTImporter-BadFormat'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-Timeout]
-error = 'KV-CausetStorage-Timeout'
+[error.KV-causet_storage-Timeout]
+error = 'KV-causet_storage-Timeout'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-EmptyRequest]
-error = 'KV-CausetStorage-EmptyRequest'
+[error.KV-causet_storage-EmptyRequest]
+error = 'KV-causet_storage-EmptyRequest'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-Closed]
-error = 'KV-CausetStorage-Closed'
+[error.KV-causet_storage-Closed]
+error = 'KV-causet_storage-Closed'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-Io]
-error = 'KV-CausetStorage-Io'
+[error.KV-causet_storage-Io]
+error = 'KV-causet_storage-Io'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-SchedTooBusy]
-error = 'KV-CausetStorage-SchedTooBusy'
+[error.KV-causet_storage-SchedTooBusy]
+error = 'KV-causet_storage-SchedTooBusy'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-GcWorkerTooBusy]
-error = 'KV-CausetStorage-GcWorkerTooBusy'
+[error.KV-causet_storage-GcWorkerTooBusy]
+error = 'KV-causet_storage-GcWorkerTooBusy'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-KeyTooLarge]
-error = 'KV-CausetStorage-KeyTooLarge'
+[error.KV-causet_storage-KeyTooLarge]
+error = 'KV-causet_storage-KeyTooLarge'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-InvalidCauset]
-error = 'KV-CausetStorage-InvalidCauset'
+[error.KV-causet_storage-InvalidCauset]
+error = 'KV-causet_storage-InvalidCauset'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-Protobuf]
-error = 'KV-CausetStorage-Protobuf'
+[error.KV-causet_storage-Protobuf]
+error = 'KV-causet_storage-Protobuf'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-INVALIDTXNTSO]
-error = 'KV-CausetStorage-INVALIDTXNTSO'
+[error.KV-causet_storage-INVALIDTXNTSO]
+error = 'KV-causet_storage-INVALIDTXNTSO'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-InvalidReqCone]
-error = 'KV-CausetStorage-InvalidReqCone'
+[error.KV-causet_storage-InvalidReqCone]
+error = 'KV-causet_storage-InvalidReqCone'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-BadFormatLock]
-error = 'KV-CausetStorage-BadFormatLock'
+[error.KV-causet_storage-BadFormatLock]
+error = 'KV-causet_storage-BadFormatLock'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-BadFormatWrite]
-error = 'KV-CausetStorage-BadFormatWrite'
+[error.KV-causet_storage-BadFormatWrite]
+error = 'KV-causet_storage-BadFormatWrite'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-KeyIsLocked]
-error = 'KV-CausetStorage-KeyIsLocked'
+[error.KV-causet_storage-KeyIsLocked]
+error = 'KV-causet_storage-KeyIsLocked'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-MaxTimestampNotSynced]
-error = 'KV-CausetStorage-MaxTimestampNotSynced'
+[error.KV-causet_storage-MaxTimestampNotSynced]
+error = 'KV-causet_storage-MaxTimestampNotSynced'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-Committed]
-error = 'KV-CausetStorage-Committed'
+[error.KV-causet_storage-Committed]
+error = 'KV-causet_storage-Committed'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-PessimisticLockRolledBack]
-error = 'KV-CausetStorage-PessimisticLockRolledBack'
+[error.KV-causet_storage-PessimisticLockRolledBack]
+error = 'KV-causet_storage-PessimisticLockRolledBack'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-TxnLockNotFound]
-error = 'KV-CausetStorage-TxnLockNotFound'
+[error.KV-causet_storage-TxnLockNotFound]
+error = 'KV-causet_storage-TxnLockNotFound'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-TxnNotFound]
-error = 'KV-CausetStorage-TxnNotFound'
+[error.KV-causet_storage-TxnNotFound]
+error = 'KV-causet_storage-TxnNotFound'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-LockTypeNotMatch]
-error = 'KV-CausetStorage-LockTypeNotMatch'
+[error.KV-causet_storage-LockTypeNotMatch]
+error = 'KV-causet_storage-LockTypeNotMatch'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-WriteConflict]
-error = 'KV-CausetStorage-WriteConflict'
+[error.KV-causet_storage-WriteConflict]
+error = 'KV-causet_storage-WriteConflict'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-Deadlock]
-error = 'KV-CausetStorage-Deadlock'
+[error.KV-causet_storage-Deadlock]
+error = 'KV-causet_storage-Deadlock'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-AlreadyExist]
-error = 'KV-CausetStorage-AlreadyExist'
+[error.KV-causet_storage-AlreadyExist]
+error = 'KV-causet_storage-AlreadyExist'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-DefaultNotFound]
-error = 'KV-CausetStorage-DefaultNotFound'
+[error.KV-causet_storage-DefaultNotFound]
+error = 'KV-causet_storage-DefaultNotFound'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-CommitTsExpired]
-error = 'KV-CausetStorage-CommitTsExpired'
+[error.KV-causet_storage-CommitTsExpired]
+error = 'KV-causet_storage-CommitTsExpired'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-KeyVersion]
-error = 'KV-CausetStorage-KeyVersion'
+[error.KV-causet_storage-KeyVersion]
+error = 'KV-causet_storage-KeyVersion'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-PessimisticLockNotFound]
-error = 'KV-CausetStorage-PessimisticLockNotFound'
+[error.KV-causet_storage-PessimisticLockNotFound]
+error = 'KV-causet_storage-PessimisticLockNotFound'
 description = ''
 workaround = ''
 
-[error.KV-CausetStorage-Unknown]
-error = 'KV-CausetStorage-Unknown'
+[error.KV-causet_storage-Unknown]
+error = 'KV-causet_storage-Unknown'
 description = ''
 workaround = ''
 

@@ -1,7 +1,7 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 define_error_codes!(
-    "KV-CausetStorage-",
+    "KV-causet_storage-",
 
     TIMEOUT => ("Timeout", "", ""),
     EMPTY_REQUEST => ("EmptyRequest", "", ""),

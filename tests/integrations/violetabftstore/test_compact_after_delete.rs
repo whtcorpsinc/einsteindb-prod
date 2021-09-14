@@ -8,8 +8,8 @@ use std::sync::mpsc;
 use std::sync::Mutex;
 use std::time::Duration;
 use test_violetabftstore::*;
-use edb::causetStorage::tail_pointer::{TimeStamp, Write, WriteType};
-use edb_util::config::*;
+use edb::causet_storage::tail_pointer::{TimeStamp, Write, WriteType};
+use violetabftstore::interlock::::config::*;
 use txn_types::Key;
 
 fn gen_tail_pointer_put_kv(

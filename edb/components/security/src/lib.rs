@@ -14,7 +14,7 @@ use grpcio::{
     CertificateRequestType, Channel, ChannelBuilder, ChannelCredentialsBuilder, RpcContext,
     ServerBuilder, ServerCredentialsBuilder, ServerCredentialsFetcher,
 };
-use edb_util::collections::HashSet;
+use violetabftstore::interlock::::collections::HashSet;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
@@ -105,7 +105,7 @@ impl SecurityConfig {
     }
 
     /// Determine if the cert file has been modified.
-    /// If modified, ufidelate the timestamp of this modification.
+    /// If modified, fidelio the timestamp of this modification.
     fn is_modified(&self, last: &mut Option<SystemTime>) -> Result<bool, Box<dyn Error>> {
         let this = fs::metadata(&self.cert_path)?.modified()?;
         if let Some(last) = last {
@@ -178,7 +178,7 @@ struct Fetcher {
 }
 
 impl ServerCredentialsFetcher for Fetcher {
-    // Retrieves ufidelated credentials. When returning `None` or
+    // Retrieves fideliod credentials. When returning `None` or
     // error, gRPC will continue to use the previous certificates
     // returned by the method.
     fn fetch(&self) -> Result<Option<ServerCredentialsBuilder>, Box<dyn Error>> {

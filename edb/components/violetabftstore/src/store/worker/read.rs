@@ -8,10 +8,10 @@ use std::time::Duration;
 
 use crossbeam::atomic::AtomicCell;
 use crossbeam::TrylightlikeError;
-use ekvproto::errorpb;
-use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
-use ekvproto::metapb;
-use ekvproto::violetabft_cmdpb::{
+use ekvproto::error_timeshare;
+use ekvproto::kvrpc_timeshare::ExtraOp as TxnExtraOp;
+use ekvproto::meta_timeshare;
+use ekvproto::violetabft_cmd_timeshare::{
     CmdType, VioletaBftCmdRequest, VioletaBftCmdResponse, ReadIndexResponse, Request, Response,
 };
 use time::Timespec;
@@ -25,9 +25,9 @@ use crate::store::{
 use crate::Result;
 
 use edb::{KvEngine, VioletaBftEngine};
-use edb_util::collections::HashMap;
-use edb_util::time::monotonic_raw_now;
-use edb_util::time::{Instant, ThreadReadId};
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::time::monotonic_raw_now;
+use violetabftstore::interlock::::time::{Instant, ThreadReadId};
 
 use super::metrics::*;
 use crate::store::fsm::store::StoreMeta;
@@ -35,7 +35,7 @@ use crate::store::fsm::store::StoreMeta;
 pub trait ReadFreeDaemon<E: KvEngine> {
     fn get_engine(&self) -> &E;
     fn get_snapshot(&mut self, ts: Option<ThreadReadId>) -> Arc<E::Snapshot>;
-    fn get_value(&self, req: &Request, brane: &metapb::Brane) -> Result<Response> {
+    fn get_value(&self, req: &Request, brane: &meta_timeshare::Brane) -> Result<Response> {
         let key = req.get_get().get_key();
         // brane key cone has no data prefix, so we must use origin key to check.
         util::check_key_in_brane(key, brane)?;
@@ -75,7 +75,7 @@ pub trait ReadFreeDaemon<E: KvEngine> {
     fn execute(
         &mut self,
         msg: &VioletaBftCmdRequest,
-        brane: &Arc<metapb::Brane>,
+        brane: &Arc<meta_timeshare::Brane>,
         read_index: Option<u64>,
         mut ts: Option<ThreadReadId>,
     ) -> ReadResponse<E::Snapshot> {
@@ -135,7 +135,7 @@ pub trait ReadFreeDaemon<E: KvEngine> {
 /// A read only pushdown_causet of `Peer`.
 #[derive(Clone, Debug)]
 pub struct Readpushdown_causet {
-    brane: Arc<metapb::Brane>,
+    brane: Arc<meta_timeshare::Brane>,
     peer_id: u64,
     term: u64,
     applied_index_term: u64,
@@ -175,7 +175,7 @@ impl Readpushdown_causet {
         self.last_valid_ts = monotonic_raw_now();
     }
 
-    pub fn ufidelate(&mut self, progress: Progress) {
+    pub fn fidelio(&mut self, progress: Progress) {
         self.fresh_valid_ts();
         match progress {
             Progress::Brane(brane) => {
@@ -230,14 +230,14 @@ impl Display for Readpushdown_causet {
 
 #[derive(Debug)]
 pub enum Progress {
-    Brane(metapb::Brane),
+    Brane(meta_timeshare::Brane),
     Term(u64),
     AppliedIndexTerm(u64),
     LeaderLease(RemoteLease),
 }
 
 impl Progress {
-    pub fn brane(brane: metapb::Brane) -> Progress {
+    pub fn brane(brane: meta_timeshare::Brane) -> Progress {
         Progress::Brane(brane)
     }
 
@@ -320,7 +320,7 @@ where
     fn redirect(&mut self, mut cmd: VioletaBftCommand<E::Snapshot>) {
         debug!("localreader redirects command"; "command" => ?cmd);
         let brane_id = cmd.request.get_header().get_brane_id();
-        let mut err = errorpb::Error::default();
+        let mut err = error_timeshare::Error::default();
         match self.router.lightlike(cmd) {
             Ok(()) => return,
             Err(TrylightlikeError::Full(c)) => {
@@ -688,7 +688,7 @@ mod tests {
     use std::sync::mpsc::*;
     use std::thread;
 
-    use ekvproto::violetabft_cmdpb::*;
+    use ekvproto::violetabft_cmd_timeshare::*;
     use tempfile::{Builder, TempDir};
     use time::Duration;
 
@@ -696,7 +696,7 @@ mod tests {
     use crate::store::Callback;
     use engine_lmdb::{LmdbEngine, LmdbSnapshot};
     use edb::ALL_CausetS;
-    use edb_util::time::monotonic_raw_now;
+    use violetabftstore::interlock::::time::monotonic_raw_now;
 
     use super::*;
 
@@ -719,11 +719,11 @@ mod tests {
         (path, reader, rx)
     }
 
-    fn new_peers(store_id: u64, pr_ids: Vec<u64>) -> Vec<metapb::Peer> {
+    fn new_peers(store_id: u64, pr_ids: Vec<u64>) -> Vec<meta_timeshare::Peer> {
         pr_ids
             .into_iter()
             .map(|id| {
-                let mut pr = metapb::Peer::default();
+                let mut pr = meta_timeshare::Peer::default();
                 pr.set_store_id(store_id);
                 pr.set_id(id);
                 pr
@@ -772,12 +772,12 @@ mod tests {
         // from "" to "",
         // epoch 1, 1,
         // term 6.
-        let mut brane1 = metapb::Brane::default();
+        let mut brane1 = meta_timeshare::Brane::default();
         brane1.set_id(1);
         let prs = new_peers(store_id, vec![2, 3, 4]);
         brane1.set_peers(prs.clone().into());
         let epoch13 = {
-            let mut ep = metapb::BraneEpoch::default();
+            let mut ep = meta_timeshare::BraneEpoch::default();
             ep.set_conf_ver(1);
             ep.set_version(3);
             ep
@@ -834,7 +834,7 @@ mod tests {
         let pg = Progress::applied_index_term(term6);
         {
             let mut meta = store_meta.dagger().unwrap();
-            meta.readers.get_mut(&1).unwrap().ufidelate(pg);
+            meta.readers.get_mut(&1).unwrap().fidelio(pg);
         }
         let task =
             VioletaBftCommand::<LmdbSnapshot>::new(cmd.clone(), Callback::Read(Box::new(move |_| {})));
@@ -878,7 +878,7 @@ mod tests {
         assert_eq!(reader.metrics.rejected_by_store_id_mismatch, 1);
         assert_eq!(reader.metrics.rejected_by_cache_miss, 3);
 
-        // metapb::Peer id mismatch.
+        // meta_timeshare::Peer id mismatch.
         let mut cmd_peer_id = cmd.clone();
         cmd_peer_id
             .mut_header()
@@ -964,11 +964,11 @@ mod tests {
             meta.readers
                 .get_mut(&1)
                 .unwrap()
-                .ufidelate(Progress::term(term6 + 3));
+                .fidelio(Progress::term(term6 + 3));
             meta.readers
                 .get_mut(&1)
                 .unwrap()
-                .ufidelate(Progress::applied_index_term(term6 + 3));
+                .fidelio(Progress::applied_index_term(term6 + 3));
         }
         reader.propose_violetabft_command(
             None,

@@ -1,5 +1,5 @@
 [package]
-name = "external_causetStorage"
+name = "external_causet_storage"
 version = "0.0.1"
 edition = "2018"
 publish = false

@@ -1,14 +1,14 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::Raum::LmdbRaum;
-use raum_promises::DBOptions;
-use raum_promises::DBOptionsExt;
-use raum_promises::Result;
-use raum_promises::NoetherDBOptions;
+use crate::allegro::Lmdballegro;
+use allegro_promises::DBOptions;
+use allegro_promises::DBOptionsExt;
+use allegro_promises::Result;
+use allegro_promises::NoetherDBOptions;
 use lmdb::DBOptions as RawDBOptions;
 use lmdb::NoetherDBOptions as RawNoetherDBOptions;
 
-impl DBOptionsExt for LmdbRaum {
+impl DBOptionsExt for Lmdballegro {
     type DBOptions = LmdbDBOptions;
 
     fn get_db_options(&self) -> Self::DBOptions {

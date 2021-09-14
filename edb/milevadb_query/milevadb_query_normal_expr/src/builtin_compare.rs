@@ -490,7 +490,7 @@ mod tests {
     use milevadb_query_datatype::codec::Datum;
     use milevadb_query_datatype::expr::EvalConfig;
     use milevadb_query_datatype::expr::{EvalContext, Flag, SqlMode};
-    use fidelpb::{Expr, ExprType, ScalarFuncSig};
+    use fidel_timeshare::{Expr, ExprType, ScalarFuncSig};
 
     #[test]
     fn test_cmp_i64_with_unsigned_flag() {

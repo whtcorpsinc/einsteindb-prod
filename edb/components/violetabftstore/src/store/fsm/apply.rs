@@ -20,24 +20,24 @@ use crossbeam::channel::{TryRecvError, TrylightlikeError};
 use engine_lmdb::{PerfContext, PerfLevel};
 use edb::{KvEngine, VioletaBftEngine, Snapshot, WriteBatch};
 use edb::{ALL_CausetS, Causet_DEFAULT, Causet_DAGGER, Causet_VIOLETABFT, Causet_WRITE};
-use ekvproto::import_sstpb::SstMeta;
-use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
-use ekvproto::metapb::{Peer as PeerMeta, PeerRole, Brane, BraneEpoch};
-use ekvproto::violetabft_cmdpb::{
+use ekvproto::import_sst_timeshare::SstMeta;
+use ekvproto::kvrpc_timeshare::ExtraOp as TxnExtraOp;
+use ekvproto::meta_timeshare::{Peer as PeerMeta, PeerRole, Brane, BraneEpoch};
+use ekvproto::violetabft_cmd_timeshare::{
     AdminCmdType, AdminRequest, AdminResponse, ChangePeerRequest, CmdType, CommitMergeRequest,
     VioletaBftCmdRequest, VioletaBftCmdResponse, Request, Response,
 };
-use ekvproto::violetabft_serverpb::{
+use ekvproto::violetabft_server_timeshare::{
     MergeState, PeerState, VioletaBftApplyState, VioletaBftTruncatedState, BraneLocalState,
 };
-use violetabft::evioletabftpb::{ConfChange, ConfChangeType, Entry, EntryType, Snapshot as VioletaBftSnapshot};
+use violetabft::evioletabft_timeshare::{ConfChange, ConfChangeType, Entry, EntryType, Snapshot as VioletaBftSnapshot};
 use sst_importer::SSTImporter;
-use edb_util::collections::{HashMap, HashMapEntry, HashSet};
-use edb_util::config::{Tracker, VersionTrack};
-use edb_util::mpsc::{loose_bounded, LooseBoundedlightlikeer, Receiver};
-use edb_util::time::{duration_to_sec, Instant};
-use edb_util::worker::Interlock_Semaphore;
-use edb_util::{escape, Either, MustConsumeVec};
+use violetabftstore::interlock::::collections::{HashMap, HashMapEntry, HashSet};
+use violetabftstore::interlock::::config::{Tracker, VersionTrack};
+use violetabftstore::interlock::::mpsc::{loose_bounded, LooseBoundedlightlikeer, Receiver};
+use violetabftstore::interlock::::time::{duration_to_sec, Instant};
+use violetabftstore::interlock::::worker::Interlock_Semaphore;
+use violetabftstore::interlock::::{escape, Either, MustConsumeVec};
 use time::Timespec;
 use uuid::Builder as UuidBuilder;
 
@@ -46,7 +46,7 @@ use crate::store::fsm::VioletaBftPollerBuilder;
 use crate::store::metrics::*;
 use crate::store::msg::{Callback, PeerMsg, ReadResponse, SignificantMsg};
 use crate::store::peer::Peer;
-use crate::store::peer_causetStorage::{
+use crate::store::peer_causet_storage::{
     self, write_initial_apply_state, write_peer_state, ENTRY_MEM_SIZE,
 };
 use crate::store::util::{
@@ -425,13 +425,13 @@ where
         if self.last_applied_index < pushdown_causet.apply_state.get_applied_index() {
             pushdown_causet.write_apply_state(self.kv_wb.as_mut().unwrap());
         }
-        // last_applied_index doesn't need to be ufidelated, set persistent to true will
+        // last_applied_index doesn't need to be fideliod, set persistent to true will
         // force it call `prepare_for` automatically.
         self.commit_opt(pushdown_causet, true);
     }
 
     fn commit_opt(&mut self, pushdown_causet: &mut Applypushdown_causet<EK>, persistent: bool) {
-        pushdown_causet.ufidelate_metrics(self);
+        pushdown_causet.fidelio_metrics(self);
         if persistent {
             self.write_to_db();
             self.prepare_for(pushdown_causet);
@@ -872,7 +872,7 @@ where
         }
     }
 
-    fn ufidelate_metrics<W: WriteBatch<EK>>(&mut self, apply_ctx: &ApplyContext<EK, W>) {
+    fn fidelio_metrics<W: WriteBatch<EK>>(&mut self, apply_ctx: &ApplyContext<EK, W>) {
         self.metrics.written_bytes += apply_ctx.delta_bytes();
         self.metrics.written_tuplespaceInstanton += apply_ctx.delta_tuplespaceInstanton();
     }
@@ -1704,7 +1704,7 @@ where
             PeerState::Normal
         };
         if let Err(e) = write_peer_state(ctx.kv_wb_mut(), &brane, state, None) {
-            panic!("{} failed to ufidelate brane state: {:?}", self.tag, e);
+            panic!("{} failed to fidelio brane state: {:?}", self.tag, e);
         }
 
         let mut resp = AdminResponse::default();
@@ -1924,7 +1924,7 @@ where
                 });
         }
         write_peer_state(kv_wb_mut, &derived, PeerState::Normal, None).unwrap_or_else(|e| {
-            panic!("{} fails to ufidelate brane {:?}: {:?}", self.tag, derived, e)
+            panic!("{} fails to fidelio brane {:?}: {:?}", self.tag, derived, e)
         });
         let mut resp = AdminResponse::default();
         resp.mut_splits().set_branes(branes.clone().into());
@@ -1958,7 +1958,7 @@ where
         let prepare_merge = req.get_prepare_merge();
         let index = prepare_merge.get_min_index();
         let exec_ctx = ctx.exec_ctx.as_ref().unwrap();
-        let first_index = peer_causetStorage::first_index(&exec_ctx.apply_state);
+        let first_index = peer_causet_storage::first_index(&exec_ctx.apply_state);
         if index < first_index {
             // We filter `CompactLog` command before.
             panic!(
@@ -2170,7 +2170,7 @@ where
         );
         let mut brane = self.brane.clone();
         let version = brane.get_brane_epoch().get_version();
-        // Ufidelate version to avoid duplicated rollback requests.
+        // fidelio version to avoid duplicated rollback requests.
         brane.mut_brane_epoch().set_version(version + 1);
         let kv_wb_mut = ctx.kv_wb.as_mut().unwrap();
         write_peer_state(kv_wb_mut, &brane, PeerState::Normal, None).unwrap_or_else(|e| {
@@ -2201,7 +2201,7 @@ where
         let compact_index = req.get_compact_log().get_compact_index();
         let resp = AdminResponse::default();
         let apply_state = &mut ctx.exec_ctx.as_mut().unwrap().apply_state;
-        let first_index = peer_causetStorage::first_index(apply_state);
+        let first_index = peer_causet_storage::first_index(apply_state);
         if compact_index <= first_index {
             debug!(
                 "compact index <= first index, no need to compact";
@@ -2337,7 +2337,7 @@ fn check_sst_for_ingestion(sst: &SstMeta, brane: &Brane) -> Result<()> {
     Ok(())
 }
 
-/// Ufidelates the `state` with given `compact_index` and `compact_term`.
+/// fidelios the `state` with given `compact_index` and `compact_term`.
 ///
 /// Remember the VioletaBft log is not deleted here.
 pub fn compact_violetabft_log(
@@ -2638,7 +2638,7 @@ where
             Msg::Registration(ref r) => {
                 write!(f, "[brane {}] Reg {:?}", r.brane.get_id(), r.apply_state)
             }
-            Msg::LogsUpToDate(_) => write!(f, "logs are ufidelated"),
+            Msg::LogsUpToDate(_) => write!(f, "logs are fideliod"),
             Msg::Noop => write!(f, "noop"),
             Msg::Destroy(ref d) => write!(f, "[brane {}] destroy", d.brane_id),
             Msg::Snapshot(GenSnapTask { brane_id, .. }) => {
@@ -2965,7 +2965,7 @@ where
 
             apply_ctx.flush();
             // For now, it's more like last_flush_apply_index.
-            // TODO: Ufidelate it only when `flush()` returns true.
+            // TODO: fidelio it only when `flush()` returns true.
             self.pushdown_causet.last_sync_apply_index = applied_index;
         }
 
@@ -3488,20 +3488,20 @@ mod tests {
 
     use crate::interlock::*;
     use crate::store::msg::WriteResponse;
-    use crate::store::peer_causetStorage::VIOLETABFT_INIT_LOG_INDEX;
+    use crate::store::peer_causet_storage::VIOLETABFT_INIT_LOG_INDEX;
     use crate::store::util::{new_learner_peer, new_peer};
     use engine_lmdb::{util::new_engine, LmdbEngine, LmdbSnapshot, LmdbWriteBatch};
     use edb::{Peekable as PeekableTrait, WriteBatchExt};
-    use ekvproto::metapb::{self, BraneEpoch};
-    use ekvproto::violetabft_cmdpb::*;
+    use ekvproto::meta_timeshare::{self, BraneEpoch};
+    use ekvproto::violetabft_cmd_timeshare::*;
     use protobuf::Message;
     use tempfile::{Builder, TempDir};
     use uuid::Uuid;
 
     use crate::store::{Config, BraneTask};
     use test_sst_importer::*;
-    use edb_util::config::VersionTrack;
-    use edb_util::worker::dummy_interlock_semaphore;
+    use violetabftstore::interlock::::config::VersionTrack;
+    use violetabftstore::interlock::::worker::dummy_interlock_semaphore;
 
     use super::*;
 
@@ -4651,7 +4651,7 @@ mod tests {
 
     struct SplitResultChecker<'a> {
         engine: LmdbEngine,
-        origin_peers: &'a [metapb::Peer],
+        origin_peers: &'a [meta_timeshare::Peer],
         epoch: Rc<RefCell<BraneEpoch>>,
     }
 
@@ -4668,7 +4668,7 @@ mod tests {
                 .iter()
                 .zip(children)
                 .map(|(p, new_id)| {
-                    let mut new_peer = metapb::Peer::clone(p);
+                    let mut new_peer = meta_timeshare::Peer::clone(p);
                     new_peer.set_id(*new_id);
                     new_peer
                 })

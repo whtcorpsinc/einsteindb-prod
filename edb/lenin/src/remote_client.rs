@@ -29,7 +29,7 @@ use hyper::header::{
 // TODO: https://github.com/whtcorpsinc/edb/issues/570
 // use serde_cbor;
 use serde_json;
-use tokio_raum::reactor::Core;
+use tokio_allegro::reactor::Core;
 use uuid::Uuid;
 
 use public_promises::errors::{
@@ -94,12 +94,12 @@ impl RemoteClient {
     // this and use PhantomData markers or somesuch.
     // But for now, we get code duplication.
     fn get_uuid(&self, uri: String) -> Result<Uuid> {
-        let mut raum = Core::new()?;
+        let mut allegro = Core::new()?;
         // TODO https://github.com/whtcorpsinc/edb/issues/569
         // let client = hyper::Client::configure()
-        //     .connector(hyper_tls::HttpsConnector::new(4, &raum.handle()).unwrap())
-        //     .build(&raum.handle());
-        let client = hyper::Client::new(&raum.handle());
+        //     .connector(hyper_tls::HttpsConnector::new(4, &allegro.handle()).unwrap())
+        //     .build(&allegro.handle());
+        let client = hyper::Client::new(&allegro.handle());
 
         d(&format!("client"));
 
@@ -119,19 +119,19 @@ impl RemoteClient {
 
         d(&format!("running..."));
 
-        let head_json = raum.run(work)?;
+        let head_json = allegro.run(work)?;
         d(&format!("got head: {:?}", &head_json.head));
         Ok(head_json.head)
     }
 
     fn put<T>(&self, uri: String, payload: T, expected: StatusCode) -> Result<()>
     where hyper::Body: std::convert::From<T>, {
-        let mut raum = Core::new()?;
+        let mut allegro = Core::new()?;
         // TODO https://github.com/whtcorpsinc/edb/issues/569
         // let client = hyper::Client::configure()
-        //     .connector(hyper_tls::HttpsConnector::new(4, &raum.handle()).unwrap())
-        //     .build(&raum.handle());
-        let client = hyper::Client::new(&raum.handle());
+        //     .connector(hyper_tls::HttpsConnector::new(4, &allegro.handle()).unwrap())
+        //     .build(&allegro.handle());
+        let client = hyper::Client::new(&allegro.handle());
 
         let uri = uri.parse()?;
 
@@ -152,17 +152,17 @@ impl RemoteClient {
             }
         });
 
-        raum.run(put)?;
+        allegro.run(put)?;
         Ok(())
     }
 
     fn get_bundles(&self, parent_uuid: &Uuid) -> Result<Vec<Uuid>> {
-        let mut raum = Core::new()?;
+        let mut allegro = Core::new()?;
         // TODO https://github.com/whtcorpsinc/edb/issues/569
         // let client = hyper::Client::configure()
-        //     .connector(hyper_tls::HttpsConnector::new(4, &raum.handle()).unwrap())
-        //     .build(&raum.handle());
-        let client = hyper::Client::new(&raum.handle());
+        //     .connector(hyper_tls::HttpsConnector::new(4, &allegro.handle()).unwrap())
+        //     .build(&allegro.handle());
+        let client = hyper::Client::new(&allegro.handle());
 
         d(&format!("client"));
 
@@ -184,18 +184,18 @@ impl RemoteClient {
 
         d(&format!("running..."));
 
-        let bundles_json = raum.run(work)?;
+        let bundles_json = allegro.run(work)?;
         d(&format!("got bundles: {:?}", &bundles_json.bundles));
         Ok(bundles_json.bundles)
     }
 
     fn get_chunks(&self, transaction_uuid: &Uuid) -> Result<Vec<Uuid>> {
-        let mut raum = Core::new()?;
+        let mut allegro = Core::new()?;
         // TODO https://github.com/whtcorpsinc/edb/issues/569
         // let client = hyper::Client::configure()
-        //     .connector(hyper_tls::HttpsConnector::new(4, &raum.handle()).unwrap())
-        //     .build(&raum.handle());
-        let client = hyper::Client::new(&raum.handle());
+        //     .connector(hyper_tls::HttpsConnector::new(4, &allegro.handle()).unwrap())
+        //     .build(&allegro.handle());
+        let client = hyper::Client::new(&allegro.handle());
 
         d(&format!("client"));
 
@@ -217,18 +217,18 @@ impl RemoteClient {
 
         d(&format!("running..."));
 
-        let transaction_json = raum.run(work)?;
+        let transaction_json = allegro.run(work)?;
         d(&format!("got transaction chunks: {:?}", &transaction_json.chunks));
         Ok(transaction_json.chunks)
     }
 
     fn get_chunk(&self, chunk_uuid: &Uuid) -> Result<TxPart> {
-        let mut raum = Core::new()?;
+        let mut allegro = Core::new()?;
         // TODO https://github.com/whtcorpsinc/edb/issues/569
         // let client = hyper::Client::configure()
-        //     .connector(hyper_tls::HttpsConnector::new(4, &raum.handle()).unwrap())
-        //     .build(&raum.handle());
-        let client = hyper::Client::new(&raum.handle());
+        //     .connector(hyper_tls::HttpsConnector::new(4, &allegro.handle()).unwrap())
+        //     .build(&allegro.handle());
+        let client = hyper::Client::new(&allegro.handle());
 
         d(&format!("client"));
 
@@ -250,7 +250,7 @@ impl RemoteClient {
 
         d(&format!("running..."));
 
-        let chunk = raum.run(work)?;
+        let chunk = allegro.run(work)?;
         d(&format!("got transaction chunk: {:?}", &chunk));
         Ok(chunk)
     }

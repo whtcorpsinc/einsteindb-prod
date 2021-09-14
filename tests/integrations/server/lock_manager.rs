@@ -5,12 +5,12 @@ use std::thread;
 use std::time::Duration;
 
 use grpcio::{ChannelBuilder, Environment};
-use ekvproto::kvrpcpb::*;
-use ekvproto::metapb::{Peer, Brane};
-use ekvproto::edbpb::EINSTEINDBClient;
+use ekvproto::kvrpc_timeshare::*;
+use ekvproto::meta_timeshare::{Peer, Brane};
+use ekvproto::edb_timeshare::EINSTEINDBClient;
 
 use test_violetabftstore::*;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::HandyRwLock;
 
 fn must_deadlock(client: &EINSTEINDBClient, ctx: Context, key1: &[u8], ts: u64) {
     let key1 = key1.to_vec();

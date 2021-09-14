@@ -1,10 +1,10 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use edb::{KvEngine, Cone};
-use ekvproto::metapb::Brane;
-use ekvproto::fidelpb::CheckPolicy;
+use ekvproto::meta_timeshare::Brane;
+use ekvproto::fidel_timeshare::CheckPolicy;
 
-use edb_util::config::ReadableSize;
+use violetabftstore::interlock::::config::ReadableSize;
 
 use super::super::error::Result;
 use super::super::{Interlock, KeyEntry, SemaphoreContext, SplitCheckSemaphore, SplitChecker};
@@ -153,16 +153,16 @@ mod tests {
     use engine_lmdb::raw_util::{new_engine_opt, CausetOptions};
     use engine_lmdb::Compat;
     use edb::{ALL_CausetS, Causet_DEFAULT, LARGE_CausetS};
-    use ekvproto::metapb::Peer;
-    use ekvproto::metapb::Brane;
-    use ekvproto::fidelpb::CheckPolicy;
+    use ekvproto::meta_timeshare::Peer;
+    use ekvproto::meta_timeshare::Brane;
+    use ekvproto::fidel_timeshare::CheckPolicy;
     use tempfile::Builder;
 
     use crate::store::{SplitCheckRunner, SplitCheckTask};
     use engine_lmdb::properties::ConePropertiesCollectorFactory;
-    use edb_util::config::ReadableSize;
-    use edb_util::escape;
-    use edb_util::worker::Runnable;
+    use violetabftstore::interlock::::config::ReadableSize;
+    use violetabftstore::interlock::::escape;
+    use violetabftstore::interlock::::worker::Runnable;
     use txn_types::Key;
 
     use super::super::size::tests::must_split_at;

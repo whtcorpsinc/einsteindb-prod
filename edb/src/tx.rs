@@ -66,8 +66,8 @@ use edbn::{
     Keyword,
 };
 use causetids;
-use edb_promises::errors as errors;
-use edb_promises::errors::{
+use causetq_pull_promises::errors as errors;
+use causetq_pull_promises::errors::{
     DbErrorKind,
     Result,
 };
@@ -87,9 +87,9 @@ use internal_types::{
     replace_lookup_ref,
 };
 
-use edb_raum::util::Either;
+use edb_allegro::util::Either;
 
-use raum_promises::{
+use allegro_promises::{
     attribute,
     Attribute,
     SolitonId,
@@ -99,7 +99,7 @@ use raum_promises::{
     now,
 };
 
-use edb_raum::{
+use edb_allegro::{
     DateTime,
     SchemaReplicant,
     TxReport,

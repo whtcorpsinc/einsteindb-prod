@@ -7,10 +7,10 @@ use futures::executor::block_on;
 use futures::{future, TryStreamExt};
 use grpcio::{Error, RpcStatusCode};
 use ekvproto::interlock::*;
-use ekvproto::kvrpcpb::*;
-use ekvproto::violetabft_serverpb::*;
-use ekvproto::{debugpb, metapb, violetabft_serverpb};
-use violetabft::evioletabftpb;
+use ekvproto::kvrpc_timeshare::*;
+use ekvproto::violetabft_server_timeshare::*;
+use ekvproto::{debug_timeshare, meta_timeshare, violetabft_server_timeshare};
+use violetabft::evioletabft_timeshare;
 
 use concurrency_manager::ConcurrencyManager;
 use engine_lmdb::raw::WriBlock;
@@ -25,9 +25,9 @@ use test_violetabftstore::*;
 use edb::interlock::REQ_TYPE_DAG;
 use edb::import::SSTImporter;
 use edb::server::gc_worker::sync_gc;
-use edb::causetStorage::tail_pointer::{Dagger, LockType, TimeStamp};
-use edb_util::worker::{FutureWorker, Worker};
-use edb_util::HandyRwLock;
+use edb::causet_storage::tail_pointer::{Dagger, LockType, TimeStamp};
+use violetabftstore::interlock::::worker::{FutureWorker, Worker};
+use violetabftstore::interlock::::HandyRwLock;
 use txn_types::Key;
 
 #[test]
@@ -265,7 +265,7 @@ fn test_tail_pointer_rollback_and_cleanup() {
 
 #[test]
 fn test_tail_pointer_resolve_lock_gc_and_delete() {
-    use ekvproto::kvrpcpb::*;
+    use ekvproto::kvrpc_timeshare::*;
 
     let (cluster, client, ctx) = must_new_cluster_and_kv_client();
     let (k, v) = (b"key".to_vec(), b"value".to_vec());
@@ -492,9 +492,9 @@ fn test_debug_get() {
     assert_eq!(engine.get(&key).unwrap().unwrap(), v);
 
     // Debug get
-    let mut req = debugpb::GetRequest::default();
+    let mut req = debug_timeshare::GetRequest::default();
     req.set_causet(Causet_DEFAULT.to_owned());
-    req.set_db(debugpb::Db::Kv);
+    req.set_db(debug_timeshare::Db::Kv);
     req.set_key(key);
     let mut resp = debug_client.get(&req.clone()).unwrap();
     assert_eq!(resp.take_value(), v);
@@ -516,25 +516,25 @@ fn test_debug_violetabft_log() {
     let engine = cluster.get_violetabft_engine(store_id);
     let (brane_id, log_index) = (200, 200);
     let key = tuplespaceInstanton::violetabft_log_key(brane_id, log_index);
-    let mut entry = evioletabftpb::Entry::default();
+    let mut entry = evioletabft_timeshare::Entry::default();
     entry.set_term(1);
     entry.set_index(1);
-    entry.set_entry_type(evioletabftpb::EntryType::EntryNormal);
+    entry.set_entry_type(evioletabft_timeshare::EntryType::EntryNormal);
     entry.set_data(vec![42]);
     engine.c().put_msg(&key, &entry).unwrap();
     assert_eq!(
-        engine.c().get_msg::<evioletabftpb::Entry>(&key).unwrap().unwrap(),
+        engine.c().get_msg::<evioletabft_timeshare::Entry>(&key).unwrap().unwrap(),
         entry
     );
 
     // Debug violetabft_log
-    let mut req = debugpb::VioletaBftLogRequest::default();
+    let mut req = debug_timeshare::VioletaBftLogRequest::default();
     req.set_brane_id(brane_id);
     req.set_log_index(log_index);
     let resp = debug_client.violetabft_log(&req).unwrap();
-    assert_ne!(resp.get_entry(), &evioletabftpb::Entry::default());
+    assert_ne!(resp.get_entry(), &evioletabft_timeshare::Entry::default());
 
-    let mut req = debugpb::VioletaBftLogRequest::default();
+    let mut req = debug_timeshare::VioletaBftLogRequest::default();
     req.set_brane_id(brane_id + 1);
     req.set_log_index(brane_id + 1);
     match debug_client.violetabft_log(&req).unwrap_err() {
@@ -554,7 +554,7 @@ fn test_debug_brane_info() {
 
     let brane_id = 100;
     let violetabft_state_key = tuplespaceInstanton::violetabft_state_key(brane_id);
-    let mut violetabft_state = violetabft_serverpb::VioletaBftLocalState::default();
+    let mut violetabft_state = violetabft_server_timeshare::VioletaBftLocalState::default();
     violetabft_state.set_last_index(42);
     violetabft_engine
         .c()
@@ -563,14 +563,14 @@ fn test_debug_brane_info() {
     assert_eq!(
         violetabft_engine
             .c()
-            .get_msg::<violetabft_serverpb::VioletaBftLocalState>(&violetabft_state_key)
+            .get_msg::<violetabft_server_timeshare::VioletaBftLocalState>(&violetabft_state_key)
             .unwrap()
             .unwrap(),
         violetabft_state
     );
 
     let apply_state_key = tuplespaceInstanton::apply_state_key(brane_id);
-    let mut apply_state = violetabft_serverpb::VioletaBftApplyState::default();
+    let mut apply_state = violetabft_server_timeshare::VioletaBftApplyState::default();
     apply_state.set_applied_index(42);
     kv_engine
         .c()
@@ -579,15 +579,15 @@ fn test_debug_brane_info() {
     assert_eq!(
         kv_engine
             .c()
-            .get_msg_causet::<violetabft_serverpb::VioletaBftApplyState>(Causet_VIOLETABFT, &apply_state_key)
+            .get_msg_causet::<violetabft_server_timeshare::VioletaBftApplyState>(Causet_VIOLETABFT, &apply_state_key)
             .unwrap()
             .unwrap(),
         apply_state
     );
 
     let brane_state_key = tuplespaceInstanton::brane_state_key(brane_id);
-    let mut brane_state = violetabft_serverpb::BraneLocalState::default();
-    brane_state.set_state(violetabft_serverpb::PeerState::Tombstone);
+    let mut brane_state = violetabft_server_timeshare::BraneLocalState::default();
+    brane_state.set_state(violetabft_server_timeshare::PeerState::Tombstone);
     kv_engine
         .c()
         .put_msg_causet(Causet_VIOLETABFT, &brane_state_key, &brane_state)
@@ -595,14 +595,14 @@ fn test_debug_brane_info() {
     assert_eq!(
         kv_engine
             .c()
-            .get_msg_causet::<violetabft_serverpb::BraneLocalState>(Causet_VIOLETABFT, &brane_state_key)
+            .get_msg_causet::<violetabft_server_timeshare::BraneLocalState>(Causet_VIOLETABFT, &brane_state_key)
             .unwrap()
             .unwrap(),
         brane_state
     );
 
     // Debug brane_info
-    let mut req = debugpb::BraneInfoRequest::default();
+    let mut req = debug_timeshare::BraneInfoRequest::default();
     req.set_brane_id(brane_id);
     let mut resp = debug_client.brane_info(&req.clone()).unwrap();
     assert_eq!(resp.take_violetabft_local_state(), violetabft_state);
@@ -626,7 +626,7 @@ fn test_debug_brane_size() {
     // Put some data.
     let brane_id = 100;
     let brane_state_key = tuplespaceInstanton::brane_state_key(brane_id);
-    let mut brane = metapb::Brane::default();
+    let mut brane = meta_timeshare::Brane::default();
     brane.set_id(brane_id);
     brane.set_spacelike_key(b"a".to_vec());
     brane.set_lightlike_key(b"z".to_vec());
@@ -645,7 +645,7 @@ fn test_debug_brane_size() {
         engine.put_causet(causet_handle, k.as_slice(), v).unwrap();
     }
 
-    let mut req = debugpb::BraneSizeRequest::default();
+    let mut req = debug_timeshare::BraneSizeRequest::default();
     req.set_brane_id(brane_id);
     req.set_causets(causets.iter().map(|s| (*s).to_string()).collect());
     let entries: Vec<_> = debug_client
@@ -675,25 +675,25 @@ fn test_debug_fail_point() {
 
     let (fp, act) = ("violetabft_between_save", "off");
 
-    let mut inject_req = debugpb::InjectFailPointRequest::default();
+    let mut inject_req = debug_timeshare::InjectFailPointRequest::default();
     inject_req.set_name(fp.to_owned());
     inject_req.set_actions(act.to_owned());
     debug_client.inject_fail_point(&inject_req).unwrap();
 
     let resp = debug_client
-        .list_fail_points(&debugpb::ListFailPointsRequest::default())
+        .list_fail_points(&debug_timeshare::ListFailPointsRequest::default())
         .unwrap();
     let entries = resp.get_entries();
     assert!(entries
         .iter()
         .any(|e| e.get_name() == fp && e.get_actions() == act));
 
-    let mut recover_req = debugpb::RecoverFailPointRequest::default();
+    let mut recover_req = debug_timeshare::RecoverFailPointRequest::default();
     recover_req.set_name(fp.to_owned());
     debug_client.recover_fail_point(&recover_req).unwrap();
 
     let resp = debug_client
-        .list_fail_points(&debugpb::ListFailPointsRequest::default())
+        .list_fail_points(&debug_timeshare::ListFailPointsRequest::default())
         .unwrap();
     let entries = resp.get_entries();
     assert!(entries
@@ -727,7 +727,7 @@ fn test_debug_scan_tail_pointer() {
         engine.put_causet(causet_handle, k.as_slice(), &v).unwrap();
     }
 
-    let mut req = debugpb::ScanMvccRequest::default();
+    let mut req = debug_timeshare::ScanMvccRequest::default();
     req.set_from_key(tuplespaceInstanton::data_key(b"m"));
     req.set_to_key(tuplespaceInstanton::data_key(b"n"));
     req.set_limit(1);

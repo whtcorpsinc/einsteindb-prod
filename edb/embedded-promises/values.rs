@@ -12,7 +12,7 @@
 
 /// Literal `Value` instances in the the "edb" namespace.
 ///
-/// Used through-out the transactor to match raum EDB constructs.
+/// Used through-out the transactor to match allegro EDB constructs.
 
 use edbn::types::Value;
 use edbn::symbols;

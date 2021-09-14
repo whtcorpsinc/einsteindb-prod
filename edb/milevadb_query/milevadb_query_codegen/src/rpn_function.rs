@@ -61,12 +61,12 @@
 //! ### `extra_validator`
 //!
 //! A function name for custom validation code to be run when an operation is
-//! validated. The validator function should have the signature `&fidelpb::Expr -> Result<()>`.
+//! validated. The validator function should have the signature `&fidel_timeshare::Expr -> Result<()>`.
 //! E.g., `#[rpn_fn(raw_varg, extra_validator = json_object_validator)]`
 //!
 //! ### `metadata_type`
 //!
-//! The type of the metadata structure defined in fidelpb.
+//! The type of the metadata structure defined in fidel_timeshare.
 //! If `metadata_mapper` is not specified, the protobuf metadata structure will be used as the metadata directly.
 //!
 //! ### `metadata_mapper`
@@ -74,11 +74,11 @@
 //! A function name to construct a new metadata or transform a protobuf metadata structure into a desired form.
 //! The function signatures varies according to the existence of `metadata_mapper` and `metadata_type` as follows.
 //!
-//! - `metadata_mapper ` exists, `metadata_type` missing: `fn(&mut fidelpb::Expr) -> T`
+//! - `metadata_mapper ` exists, `metadata_type` missing: `fn(&mut fidel_timeshare::Expr) -> T`
 //!
 //! Constructs a new metadata in type `T`.
 //!
-//! - `metadata_mapper ` exists, `metadata_type` exists: `fn(MetaDataType, &mut fidelpb::Expr) -> T`
+//! - `metadata_mapper ` exists, `metadata_type` exists: `fn(MetaDataType, &mut fidel_timeshare::Expr) -> T`
 //!
 //! Transforms a protobuf metadata type `MetaDataType` specified by `metadata_type` into a new type `T`.
 //!
@@ -714,7 +714,7 @@ impl ValidatorFnGenerator {
         let inners = self.tokens;
         quote! {
             fn validate #impl_generics (
-                expr: &fidelpb::Expr
+                expr: &fidel_timeshare::Expr
             ) -> milevadb_query_common::Result<()> #where_gerund {
                 use milevadb_query_datatype::codec::data_type::Evaluable;
                 use crate::function;
@@ -749,7 +749,7 @@ fn generate_init_metadata_fn(
         (None, None) => quote! { Ok(Box::new(())) },
     };
     quote! {
-        fn init_metadata #impl_generics (expr: &mut ::fidelpb::Expr)
+        fn init_metadata #impl_generics (expr: &mut ::fidel_timeshare::Expr)
             -> Result<Box<dyn std::any::Any + lightlike>> #where_gerund {
             #fn_body
         }
@@ -789,7 +789,7 @@ fn generate_metadata_type_checker(
                     output_rows: usize,
                     args: &[crate::RpnStackNode<'_>],
                     extra: &mut crate::RpnFnCallExtra<'_>,
-                    expr: &mut ::fidelpb::Expr,
+                    expr: &mut ::fidel_timeshare::Expr,
                 ) #where_gerund {
                     for row_index in 0..output_rows {
                         let metadata = #metadata_expr;
@@ -1741,10 +1741,10 @@ mod tests_normal {
                     )
                     .eval(Null, ctx, output_rows, args, extra, metadata)
                 }
-                fn init_metadata(expr: &mut ::fidelpb::Expr) -> Result<Box<dyn std::any::Any + lightlike>> {
+                fn init_metadata(expr: &mut ::fidel_timeshare::Expr) -> Result<Box<dyn std::any::Any + lightlike>> {
                     Ok(Box::new(()))
                 }
-                fn validate(expr: &fidelpb::Expr) -> milevadb_query_common::Result<()> {
+                fn validate(expr: &fidel_timeshare::Expr) -> milevadb_query_common::Result<()> {
                     use milevadb_query_datatype::codec::data_type::Evaluable;
                     use crate::function;
                     function::validate_expr_return_type(expr, <Decimal as EvaluableRet>::EVAL_TYPE)?;
@@ -1915,13 +1915,13 @@ mod tests_normal {
                     <ArgConstructor<&'_ A::X, _>>::new(0usize, Foo_Evaluator::<A, B>(std::marker::PhantomData))
                         .eval(Null, ctx, output_rows, args, extra, metadata)
                 }
-                fn init_metadata<A: M, B>(expr: &mut ::fidelpb::Expr) -> Result<Box<dyn std::any::Any + lightlike>>
+                fn init_metadata<A: M, B>(expr: &mut ::fidel_timeshare::Expr) -> Result<Box<dyn std::any::Any + lightlike>>
                 where
                     B: N<A>
                 {
                     Ok(Box::new(()))
                 }
-                fn validate<A: M, B>(expr: &fidelpb::Expr) -> milevadb_query_common::Result<()>
+                fn validate<A: M, B>(expr: &fidel_timeshare::Expr) -> milevadb_query_common::Result<()>
                 where
                     B: N<A>
                 {

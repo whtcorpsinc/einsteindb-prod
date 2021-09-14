@@ -1,7 +1,7 @@
 // Copyright 2020 WHTCORPS INC Project Authors. Licensed Under Apache-2.0
 
 use murmur3::murmur3_x64_128;
-use edb_util::collections::HashSet;
+use violetabftstore::interlock::::collections::HashSet;
 
 /// `FmSketch` is used to count the approximate number of distinct
 /// elements in multiset.
@@ -30,8 +30,8 @@ impl FmSketch {
         self.insert_hash_value(hash);
     }
 
-    pub fn into_proto(self) -> fidelpb::FmSketch {
-        let mut proto = fidelpb::FmSketch::default();
+    pub fn into_proto(self) -> fidel_timeshare::FmSketch {
+        let mut proto = fidel_timeshare::FmSketch::default();
         proto.set_mask(self.mask);
         let hash = self.hash_set.into_iter().collect();
         proto.set_hashset(hash);

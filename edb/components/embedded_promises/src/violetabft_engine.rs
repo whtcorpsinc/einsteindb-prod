@@ -1,6 +1,6 @@
 use crate::*;
-use ekvproto::violetabft_serverpb::VioletaBftLocalState;
-use violetabft::evioletabftpb::Entry;
+use ekvproto::violetabft_server_timeshare::VioletaBftLocalState;
+use violetabft::evioletabft_timeshare::Entry;
 
 pub trait VioletaBftEngine: Clone + Sync + lightlike + 'static {
     type LogBatch: VioletaBftLogBatch;
@@ -46,12 +46,12 @@ pub trait VioletaBftEngine: Clone + Sync + lightlike + 'static {
 
     /// Applightlike some log entries and retrun written bytes.
     ///
-    /// Note: `VioletaBftLocalState` won't be ufidelated in this call.
+    /// Note: `VioletaBftLocalState` won't be fideliod in this call.
     fn applightlike(&self, violetabft_group_id: u64, entries: Vec<Entry>) -> Result<usize>;
 
     /// Applightlike some log entries and retrun written bytes.
     ///
-    /// Note: `VioletaBftLocalState` won't be ufidelated in this call.
+    /// Note: `VioletaBftLocalState` won't be fideliod in this call.
     fn applightlike_slice(&self, violetabft_group_id: u64, entries: &[Entry]) -> Result<usize> {
         self.applightlike(violetabft_group_id, entries.to_vec())
     }
@@ -86,10 +86,10 @@ pub trait VioletaBftEngine: Clone + Sync + lightlike + 'static {
 }
 
 pub trait VioletaBftLogBatch: lightlike {
-    /// Note: `VioletaBftLocalState` won't be ufidelated in this call.
+    /// Note: `VioletaBftLocalState` won't be fideliod in this call.
     fn applightlike(&mut self, violetabft_group_id: u64, entries: Vec<Entry>) -> Result<()>;
 
-    /// Note: `VioletaBftLocalState` won't be ufidelated in this call.
+    /// Note: `VioletaBftLocalState` won't be fideliod in this call.
     fn applightlike_slice(&mut self, violetabft_group_id: u64, entries: &[Entry]) -> Result<()> {
         self.applightlike(violetabft_group_id, entries.to_vec())
     }

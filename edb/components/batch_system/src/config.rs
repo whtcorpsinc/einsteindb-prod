@@ -1,6 +1,6 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use edb_util::config::ReadableDuration;
+use violetabftstore::interlock::::config::ReadableDuration;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(default)]

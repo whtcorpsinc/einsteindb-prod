@@ -315,10 +315,10 @@ lazy_static! {
             "Total number of GC violetabft log."
         ).unwrap();
 
-    pub static ref UFIDelATE_REGION_SIZE_BY_COMPACTION_COUNTER: IntCounter =
+    pub static ref fidelio_REGION_SIZE_BY_COMPACTION_COUNTER: IntCounter =
         register_int_counter!(
-            "ufidelate_brane_size_count_by_compaction",
-            "Total number of ufidelate brane size caused by compaction."
+            "fidelio_brane_size_count_by_compaction",
+            "Total number of fidelio brane size caused by compaction."
         ).unwrap();
 
     pub static ref COMPACTION_RELATED_REGION_COUNT: HistogramVec =

@@ -21,7 +21,7 @@ use std::collections::{
 use indexmap;
 use petgraph::unionfind;
 
-use edb_promises::errors::{
+use causetq_pull_promises::errors::{
     DbErrorKind,
     Result,
 };
@@ -38,16 +38,16 @@ use internal_types::{
     MinkowskiTypeOr,
 };
 
-use edb_raum::util::Either::*;
+use edb_allegro::util::Either::*;
 
-use raum_promises::{
+use allegro_promises::{
     attribute,
     Attribute,
     SolitonId,
     MinkowskiType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SchemaReplicant,
 };
 use edbn::entities::OpType;

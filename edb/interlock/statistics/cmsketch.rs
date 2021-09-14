@@ -44,9 +44,9 @@ impl CmSketch {
         }
     }
 
-    pub fn into_proto(self) -> fidelpb::CmSketch {
-        let mut proto = fidelpb::CmSketch::default();
-        let mut events = vec![fidelpb::CmSketchEvent::default(); self.depth];
+    pub fn into_proto(self) -> fidel_timeshare::CmSketch {
+        let mut proto = fidel_timeshare::CmSketch::default();
+        let mut events = vec![fidel_timeshare::CmSketchEvent::default(); self.depth];
         for (i, Evcausetidx) in self.Block.iter().enumerate() {
             events[i].set_counters(Evcausetidx.to_vec());
         }
@@ -70,7 +70,7 @@ mod tests {
     use milevadb_query_datatype::codec::datum;
     use milevadb_query_datatype::codec::datum::Datum;
     use milevadb_query_datatype::expr::EvalContext;
-    use edb_util::collections::HashMap;
+    use violetabftstore::interlock::::collections::HashMap;
 
     impl CmSketch {
         fn query(&self, bytes: &[u8]) -> u32 {

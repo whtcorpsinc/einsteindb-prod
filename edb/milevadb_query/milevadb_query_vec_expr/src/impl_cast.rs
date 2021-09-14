@@ -8,7 +8,7 @@ use std::num::IntErrorKind;
 use num_promises::identities::Zero;
 use milevadb_query_codegen::rpn_fn;
 use milevadb_query_datatype::*;
-use fidelpb::{Expr, FieldType};
+use fidel_timeshare::{Expr, FieldType};
 
 use crate::types::RpnExpressionBuilder;
 use crate::{RpnExpressionNode, RpnFnCallExtra, RpnFnMeta};
@@ -216,7 +216,7 @@ pub fn get_cast_fn_rpn_node(
         func_meta,
         args_len: 1,
         field_type: to_field_type,
-        metadata: Box::new(fidelpb::InUnionMetadata::default()),
+        metadata: Box::new(fidel_timeshare::InUnionMetadata::default()),
     })
 }
 
@@ -245,10 +245,10 @@ pub fn map_cast_func(expr: &Expr) -> Result<RpnFnMeta> {
 // - cast_duration_as_int_or_uint -> cast_any_as_any<Duration, Int>
 // - cast_json_as_int -> cast_any_as_any<Json, Int>
 
-#[rpn_fn(nullable, capture = [metadata], metadata_type = fidelpb::InUnionMetadata)]
+#[rpn_fn(nullable, capture = [metadata], metadata_type = fidel_timeshare::InUnionMetadata)]
 #[inline]
 fn cast_signed_int_as_unsigned_int(
-    metadata: &fidelpb::InUnionMetadata,
+    metadata: &fidel_timeshare::InUnionMetadata,
     val: Option<&Int>,
 ) -> Result<Option<Int>> {
     match val {
@@ -273,11 +273,11 @@ fn cast_int_as_int_others(val: Option<&Int>) -> Result<Option<Int>> {
     }
 }
 
-#[rpn_fn(nullable, capture = [ctx, metadata], metadata_type = fidelpb::InUnionMetadata)]
+#[rpn_fn(nullable, capture = [ctx, metadata], metadata_type = fidel_timeshare::InUnionMetadata)]
 #[inline]
 fn cast_real_as_uint(
     ctx: &mut EvalContext,
-    metadata: &fidelpb::InUnionMetadata,
+    metadata: &fidel_timeshare::InUnionMetadata,
     val: Option<&Real>,
 ) -> Result<Option<Int>> {
     match val {
@@ -299,12 +299,12 @@ fn cast_real_as_uint(
     }
 }
 
-#[rpn_fn(nullable, capture = [ctx, extra, metadata], metadata_type = fidelpb::InUnionMetadata)]
+#[rpn_fn(nullable, capture = [ctx, extra, metadata], metadata_type = fidel_timeshare::InUnionMetadata)]
 #[inline]
 fn cast_string_as_int(
     ctx: &mut EvalContext,
     extra: &RpnFnCallExtra,
-    metadata: &fidelpb::InUnionMetadata,
+    metadata: &fidel_timeshare::InUnionMetadata,
     val: Option<BytesRef>,
 ) -> Result<Option<Int>> {
     match val {
@@ -383,11 +383,11 @@ fn cast_binary_string_as_int(ctx: &mut EvalContext, val: Option<BytesRef>) -> Re
     }
 }
 
-#[rpn_fn(nullable, capture = [ctx, metadata], metadata_type = fidelpb::InUnionMetadata)]
+#[rpn_fn(nullable, capture = [ctx, metadata], metadata_type = fidel_timeshare::InUnionMetadata)]
 #[inline]
 fn cast_decimal_as_uint(
     ctx: &mut EvalContext,
-    metadata: &fidelpb::InUnionMetadata,
+    metadata: &fidel_timeshare::InUnionMetadata,
     val: Option<&Decimal>,
 ) -> Result<Option<Int>> {
     match val {
@@ -432,10 +432,10 @@ fn cast_signed_int_as_signed_real(val: Option<&Int>) -> Result<Option<Real>> {
     }
 }
 
-#[rpn_fn(nullable, capture = [metadata], metadata_type = fidelpb::InUnionMetadata)]
+#[rpn_fn(nullable, capture = [metadata], metadata_type = fidel_timeshare::InUnionMetadata)]
 #[inline]
 fn cast_signed_int_as_unsigned_real(
-    metadata: &fidelpb::InUnionMetadata,
+    metadata: &fidel_timeshare::InUnionMetadata,
     val: Option<&Int>,
 ) -> Result<Option<Real>> {
     match val {
@@ -468,10 +468,10 @@ fn cast_real_as_signed_real(val: Option<&Real>) -> Result<Option<Real>> {
     Ok(val.cloned())
 }
 
-#[rpn_fn(nullable, capture = [metadata], metadata_type = fidelpb::InUnionMetadata)]
+#[rpn_fn(nullable, capture = [metadata], metadata_type = fidel_timeshare::InUnionMetadata)]
 #[inline]
 fn cast_real_as_unsigned_real(
-    metadata: &fidelpb::InUnionMetadata,
+    metadata: &fidel_timeshare::InUnionMetadata,
     val: Option<&Real>,
 ) -> Result<Option<Real>> {
     match val {
@@ -521,12 +521,12 @@ fn cast_binary_string_as_signed_real(
     }
 }
 
-#[rpn_fn(nullable, capture = [ctx, extra, metadata], metadata_type = fidelpb::InUnionMetadata)]
+#[rpn_fn(nullable, capture = [ctx, extra, metadata], metadata_type = fidel_timeshare::InUnionMetadata)]
 #[inline]
 fn cast_string_as_unsigned_real(
     ctx: &mut EvalContext,
     extra: &RpnFnCallExtra,
-    metadata: &fidelpb::InUnionMetadata,
+    metadata: &fidel_timeshare::InUnionMetadata,
     val: Option<BytesRef>,
 ) -> Result<Option<Real>> {
     match val {
@@ -559,11 +559,11 @@ fn cast_binary_string_as_unsigned_real(
     }
 }
 
-#[rpn_fn(nullable, capture = [ctx, metadata], metadata_type = fidelpb::InUnionMetadata)]
+#[rpn_fn(nullable, capture = [ctx, metadata], metadata_type = fidel_timeshare::InUnionMetadata)]
 #[inline]
 fn cast_decimal_as_unsigned_real(
     ctx: &mut EvalContext,
-    metadata: &fidelpb::InUnionMetadata,
+    metadata: &fidel_timeshare::InUnionMetadata,
     val: Option<&Decimal>,
 ) -> Result<Option<Real>> {
     match val {
@@ -706,12 +706,12 @@ fn cast_unsigned_int_as_signed_or_unsigned_decimal(
     }
 }
 
-#[rpn_fn(nullable, capture = [ctx, extra, metadata], metadata_type = fidelpb::InUnionMetadata)]
+#[rpn_fn(nullable, capture = [ctx, extra, metadata], metadata_type = fidel_timeshare::InUnionMetadata)]
 #[inline]
 fn cast_signed_int_as_unsigned_decimal(
     ctx: &mut EvalContext,
     extra: &RpnFnCallExtra,
-    metadata: &fidelpb::InUnionMetadata,
+    metadata: &fidel_timeshare::InUnionMetadata,
     val: Option<&i64>,
 ) -> Result<Option<Decimal>> {
     match val {
@@ -731,12 +731,12 @@ fn cast_signed_int_as_unsigned_decimal(
     }
 }
 
-#[rpn_fn(nullable, capture = [ctx, extra, metadata], metadata_type = fidelpb::InUnionMetadata)]
+#[rpn_fn(nullable, capture = [ctx, extra, metadata], metadata_type = fidel_timeshare::InUnionMetadata)]
 #[inline]
 fn cast_real_as_decimal(
     ctx: &mut EvalContext,
     extra: &RpnFnCallExtra,
-    metadata: &fidelpb::InUnionMetadata,
+    metadata: &fidel_timeshare::InUnionMetadata,
     val: Option<&Real>,
 ) -> Result<Option<Decimal>> {
     match val {
@@ -757,12 +757,12 @@ fn cast_real_as_decimal(
     }
 }
 
-#[rpn_fn(nullable, capture = [ctx, extra, metadata], metadata_type = fidelpb::InUnionMetadata)]
+#[rpn_fn(nullable, capture = [ctx, extra, metadata], metadata_type = fidel_timeshare::InUnionMetadata)]
 #[inline]
 fn cast_string_as_unsigned_decimal(
     ctx: &mut EvalContext,
     extra: &RpnFnCallExtra,
-    metadata: &fidelpb::InUnionMetadata,
+    metadata: &fidel_timeshare::InUnionMetadata,
     val: Option<BytesRef>,
 ) -> Result<Option<Decimal>> {
     match val {
@@ -801,12 +801,12 @@ fn cast_decimal_as_signed_decimal(
     }
 }
 
-#[rpn_fn(nullable, capture = [ctx, extra, metadata], metadata_type = fidelpb::InUnionMetadata)]
+#[rpn_fn(nullable, capture = [ctx, extra, metadata], metadata_type = fidel_timeshare::InUnionMetadata)]
 #[inline]
 fn cast_decimal_as_unsigned_decimal(
     ctx: &mut EvalContext,
     extra: &RpnFnCallExtra,
-    metadata: &fidelpb::InUnionMetadata,
+    metadata: &fidel_timeshare::InUnionMetadata,
     val: Option<&Decimal>,
 ) -> Result<Option<Decimal>> {
     match val {
@@ -1285,7 +1285,7 @@ mod tests {
     use milevadb_query_datatype::expr::Flag;
     use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
     use milevadb_query_datatype::{Collation, FieldTypeFlag, FieldTypeTp, UNSPECIFIED_LENGTH};
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     fn test_none_with_ctx_and_extra<F, Input, Ret>(func: F)
     where
@@ -1323,7 +1323,7 @@ mod tests {
 
     fn test_none_with_metadata<F, Input, Ret>(func: F)
     where
-        F: Fn(&fidelpb::InUnionMetadata, Option<Input>) -> Result<Option<Ret>>,
+        F: Fn(&fidel_timeshare::InUnionMetadata, Option<Input>) -> Result<Option<Ret>>,
     {
         let metadata = make_metadata(true);
         let r = func(&metadata, None).unwrap();
@@ -1332,7 +1332,7 @@ mod tests {
 
     fn test_none_with_ctx_and_metadata<F, Input, Ret>(func: F)
     where
-        F: Fn(&mut EvalContext, &fidelpb::InUnionMetadata, Option<Input>) -> Result<Option<Ret>>,
+        F: Fn(&mut EvalContext, &fidel_timeshare::InUnionMetadata, Option<Input>) -> Result<Option<Ret>>,
     {
         let mut ctx = EvalContext::default();
         let metadata = make_metadata(true);
@@ -1345,7 +1345,7 @@ mod tests {
         F: Fn(
             &mut EvalContext,
             &RpnFnCallExtra,
-            &fidelpb::InUnionMetadata,
+            &fidel_timeshare::InUnionMetadata,
             Option<Input>,
         ) -> Result<Option<Ret>>,
     {
@@ -1372,7 +1372,7 @@ mod tests {
         truncate_as_warning: bool,
         should_clip_to_zero: bool,
         in_insert_stmt: bool,
-        in_ufidelate_or_delete_stmt: bool,
+        in_fidelio_or_delete_stmt: bool,
     }
 
     impl Default for CtxConfig {
@@ -1382,7 +1382,7 @@ mod tests {
                 truncate_as_warning: false,
                 should_clip_to_zero: false,
                 in_insert_stmt: false,
-                in_ufidelate_or_delete_stmt: false,
+                in_fidelio_or_delete_stmt: false,
             }
         }
     }
@@ -1402,16 +1402,16 @@ mod tests {
             if config.in_insert_stmt {
                 flag |= Flag::IN_INSERT_STMT;
             }
-            if config.in_ufidelate_or_delete_stmt {
-                flag |= Flag::IN_UFIDelATE_OR_DELETE_STMT;
+            if config.in_fidelio_or_delete_stmt {
+                flag |= Flag::IN_fidelio_OR_DELETE_STMT;
             }
             let causet = Arc::new(EvalConfig::from_flag(flag));
             EvalContext::new(causet)
         }
     }
 
-    fn make_metadata(in_union: bool) -> fidelpb::InUnionMetadata {
-        let mut metadata = fidelpb::InUnionMetadata::default();
+    fn make_metadata(in_union: bool) -> fidel_timeshare::InUnionMetadata {
+        let mut metadata = fidel_timeshare::InUnionMetadata::default();
         metadata.set_in_union(in_union);
         metadata
     }
@@ -3856,7 +3856,7 @@ mod tests {
         FnCast: Fn(
             &mut EvalContext,
             &RpnFnCallExtra,
-            &fidelpb::InUnionMetadata,
+            &fidel_timeshare::InUnionMetadata,
             Option<&T>,
         ) -> Result<Option<Decimal>>,
         FnToStr: Fn(&T) -> String,
@@ -3888,7 +3888,7 @@ mod tests {
             // (
             // origin, origin_flen, origin_decimal, res_flen, res_decimal, is_unsigned,
             // expect, warning_err_code,
-            // (InInsertStmt || InUfidelateStmt || InDeleteStmt), overflow_as_warning, truncate_as_warning
+            // (InInsertStmt || InfidelioStmt || InDeleteStmt), overflow_as_warning, truncate_as_warning
             // )
             //
             // The origin_flen, origin_decimal here is
@@ -4169,7 +4169,7 @@ mod tests {
                     }
                 };
 
-                let ctx_in_dml_flag = vec![Flag::IN_INSERT_STMT, Flag::IN_UFIDelATE_OR_DELETE_STMT];
+                let ctx_in_dml_flag = vec![Flag::IN_INSERT_STMT, Flag::IN_fidelio_OR_DELETE_STMT];
                 for in_dml_flag in ctx_in_dml_flag {
                     let (res_flen, res_decimal) = (res_flen as isize, res_decimal as isize);
                     let rft = FieldTypeConfig {
@@ -4186,7 +4186,7 @@ mod tests {
                         overflow_as_warning,
                         truncate_as_warning,
                         in_insert_stmt: in_dml_flag == Flag::IN_INSERT_STMT,
-                        in_ufidelate_or_delete_stmt: in_dml_flag == Flag::IN_UFIDelATE_OR_DELETE_STMT,
+                        in_fidelio_or_delete_stmt: in_dml_flag == Flag::IN_fidelio_OR_DELETE_STMT,
                         ..CtxConfig::default()
                     }
                     .into();
@@ -4197,7 +4197,7 @@ mod tests {
                         overflow_as_warning,
                         truncate_as_warning,
                         in_insert_stmt: in_dml_flag == Flag::IN_INSERT_STMT,
-                        in_ufidelate_or_delete_stmt: in_dml_flag == Flag::IN_UFIDelATE_OR_DELETE_STMT,
+                        in_fidelio_or_delete_stmt: in_dml_flag == Flag::IN_fidelio_OR_DELETE_STMT,
                         ..CtxConfig::default()
                     }
                     .into();

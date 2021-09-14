@@ -492,7 +492,7 @@ deplightlikeencies = [
  "slog-global",
  "sysinfo",
  "edb_alloc",
- "edb_util",
+ "violetabftstore::interlock::",
  "time",
 ]
 
@@ -508,7 +508,7 @@ deplightlikeencies = [
  "slog",
  "slog-global",
  "edb_alloc",
- "edb_util",
+ "violetabftstore::interlock::",
  "time",
 ]
 
@@ -522,7 +522,7 @@ deplightlikeencies = [
  "slog",
  "slog-global",
  "edb_alloc",
- "edb_util",
+ "violetabftstore::interlock::",
 ]
 
 [[package]]
@@ -2292,7 +2292,7 @@ deplightlikeencies = [
 ]
 
 [[package]]
-name = "edb_util"
+name = "violetabftstore::interlock::"
 version = "0.1.0"
 deplightlikeencies = [
  "async-speed-limit",

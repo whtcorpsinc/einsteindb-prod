@@ -8,9 +8,9 @@ use futures::{FutureExt, StreamExt, TryStreamExt};
 use grpcio::{
     ClientStreamingSink, Environment, RequestStream, RpcContext, RpcStatus, RpcStatusCode, Server,
 };
-use ekvproto::violetabft_serverpb::{Done, VioletaBftMessage};
-use ekvproto::edbpb::BatchVioletaBftMessage;
-use violetabft::evioletabftpb::Entry;
+use ekvproto::violetabft_server_timeshare::{Done, VioletaBftMessage};
+use ekvproto::edb_timeshare::BatchVioletaBftMessage;
+use violetabft::evioletabft_timeshare::Entry;
 use violetabftstore::router::VioletaBftStoreBlackHole;
 use security::{SecurityConfig, SecurityManager};
 use edb::server::{load_statistics::ThreadLoad, Config, VioletaBftClient};

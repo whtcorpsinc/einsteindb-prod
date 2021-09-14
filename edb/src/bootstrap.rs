@@ -11,7 +11,7 @@
 #![allow(dead_code)]
 
 use edbn;
-use edb_promises::errors::{
+use causetq_pull_promises::errors::{
     DbErrorKind,
     Result,
 };
@@ -21,12 +21,12 @@ use causetids;
 use edb::TypedSQLValue;
 use edbn::entities::Instanton;
 
-use raum_promises::{
+use allegro_promises::{
     MinkowskiType,
     values,
 };
 
-use edb_raum::{
+use edb_allegro::{
     CausetIdMap,
     SchemaReplicant,
 };
@@ -41,7 +41,7 @@ pub const TX0: i64 = 0x10000000;
 /// This is the start of the :edb.part/user partition.
 pub const USER0: i64 = 0x10000;
 
-// Corresponds to the version of the :edb.schemaReplicant/raum vocabulary.
+// Corresponds to the version of the :edb.schemaReplicant/allegro vocabulary.
 pub const CORE_SCHEMA_VERSION: u32 = 1;
 
 lazy_static! {
@@ -85,7 +85,7 @@ lazy_static! {
              (ns_keyword!("edb", "doc"),               causetids::DB_DOC),
              (ns_keyword!("edb.schemaReplicant", "version"),    causetids::DB_SCHEMA_VERSION),
              (ns_keyword!("edb.schemaReplicant", "attribute"),  causetids::DB_SCHEMA_ATTRIBUTE),
-             (ns_keyword!("edb.schemaReplicant", "raum"),       causetids::DB_SCHEMA_CORE),
+             (ns_keyword!("edb.schemaReplicant", "allegro"),       causetids::DB_SCHEMA_CORE),
         ]
     };
 
@@ -179,9 +179,9 @@ fn causetIds_to_assertions(causetIds: &[(symbols::Keyword, i64)]) -> Vec<Value> 
         .collect()
 }
 
-/// Convert an causetid list into [:edb/add :edb.schemaReplicant/raum :edb.schemaReplicant/attribute CausetID] `Value` instances.
+/// Convert an causetid list into [:edb/add :edb.schemaReplicant/allegro :edb.schemaReplicant/attribute CausetID] `Value` instances.
 fn schemaReplicant_attrs_to_assertions(version: u32, causetIds: &[symbols::Keyword]) -> Vec<Value> {
-    let schemaReplicant_raum = Value::Keyword(ns_keyword!("edb.schemaReplicant", "raum"));
+    let schemaReplicant_allegro = Value::Keyword(ns_keyword!("edb.schemaReplicant", "allegro"));
     let schemaReplicant_attr = Value::Keyword(ns_keyword!("edb.schemaReplicant", "attribute"));
     let schemaReplicant_version = Value::Keyword(ns_keyword!("edb.schemaReplicant", "version"));
     causetIds
@@ -189,12 +189,12 @@ fn schemaReplicant_attrs_to_assertions(version: u32, causetIds: &[symbols::Keywo
         .map(|causetid| {
             let value = Value::Keyword(causetid.clone());
             Value::Vector(vec![values::DB_ADD.clone(),
-                               schemaReplicant_raum.clone(),
+                               schemaReplicant_allegro.clone(),
                                schemaReplicant_attr.clone(),
                                value])
         })
         .chain(::std::iter::once(Value::Vector(vec![values::DB_ADD.clone(),
-                                             schemaReplicant_raum.clone(),
+                                             schemaReplicant_allegro.clone(),
                                              schemaReplicant_version,
                                              Value::Integer(version as i64)])))
         .collect()

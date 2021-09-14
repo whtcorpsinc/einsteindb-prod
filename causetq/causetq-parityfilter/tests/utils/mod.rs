@@ -13,13 +13,13 @@
 // this module will get warnings otherwise).
 #![allow(dead_code)]
 
-use raum_promises::{
+use allegro_promises::{
     Attribute,
     SolitonId,
     MinkowskiValueType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SchemaReplicant,
 };
 

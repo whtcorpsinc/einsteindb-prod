@@ -4,14 +4,14 @@ use std::fmt;
 use std::time::Instant;
 
 use edb::{CompactedEvent, KvEngine, Snapshot};
-use ekvproto::import_sstpb::SstMeta;
-use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
-use ekvproto::metapb;
-use ekvproto::metapb::BraneEpoch;
-use ekvproto::fidelpb::CheckPolicy;
-use ekvproto::violetabft_cmdpb::{VioletaBftCmdRequest, VioletaBftCmdResponse};
-use ekvproto::violetabft_serverpb::VioletaBftMessage;
-use ekvproto::replication_modepb::ReplicationStatus;
+use ekvproto::import_sst_timeshare::SstMeta;
+use ekvproto::kvrpc_timeshare::ExtraOp as TxnExtraOp;
+use ekvproto::meta_timeshare;
+use ekvproto::meta_timeshare::BraneEpoch;
+use ekvproto::fidel_timeshare::CheckPolicy;
+use ekvproto::violetabft_cmd_timeshare::{VioletaBftCmdRequest, VioletaBftCmdResponse};
+use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
+use ekvproto::replication_mode_timeshare::ReplicationStatus;
 use violetabft::SnapshotStatus;
 
 use crate::store::fsm::apply::TaskRes as ApplyTaskRes;
@@ -19,7 +19,7 @@ use crate::store::fsm::apply::{CatchUpLogs, ChangeCmd};
 use crate::store::metrics::VioletaBftEventDurationType;
 use crate::store::util::TuplespaceInstantonInfoFormatter;
 use crate::store::SnapKey;
-use edb_util::escape;
+use violetabftstore::interlock::::escape;
 
 use super::{AbstractPeer, BraneSnapshot};
 
@@ -197,7 +197,7 @@ pub enum MergeResultKind {
 }
 
 /// Some significant messages sent to violetabftstore. VioletaBftstore will dispatch these messages to VioletaBft
-/// groups to ufidelate some important internal status.
+/// groups to fidelio some important internal status.
 #[derive(Debug)]
 pub enum SignificantMsg<SK>
 where
@@ -222,7 +222,7 @@ where
     /// Result of the fact that the brane is merged.
     MergeResult {
         target_brane_id: u64,
-        target: metapb::Peer,
+        target: meta_timeshare::Peer,
         result: MergeResultKind,
     },
     StoreResolved {
@@ -387,7 +387,7 @@ pub enum PeerMsg<EK: KvEngine> {
     /// Ask brane to report a heartbeat to FIDel.
     HeartbeatFidel,
     /// Asks brane to change replication mode.
-    UfidelateReplicationMode,
+    fidelioReplicationMode,
 }
 
 impl<EK: KvEngine> fmt::Debug for PeerMsg<EK> {
@@ -406,7 +406,7 @@ impl<EK: KvEngine> fmt::Debug for PeerMsg<EK> {
             PeerMsg::Noop => write!(fmt, "Noop"),
             PeerMsg::CasualMessage(msg) => write!(fmt, "CasualMessage {:?}", msg),
             PeerMsg::HeartbeatFidel => write!(fmt, "HeartbeatFidel"),
-            PeerMsg::UfidelateReplicationMode => write!(fmt, "UfidelateReplicationMode"),
+            PeerMsg::fidelioReplicationMode => write!(fmt, "fidelioReplicationMode"),
         }
     }
 }
@@ -435,14 +435,14 @@ where
     CompactedEvent(EK::CompactedEvent),
     Tick(StoreTick),
     Start {
-        store: metapb::CausetStore,
+        store: meta_timeshare::CausetStore,
     },
 
     /// Message only used for test.
     #[causet(any(test, feature = "testexport"))]
     Validate(Box<dyn FnOnce(&crate::store::Config) + lightlike>),
-    /// Asks the store to ufidelate replication mode.
-    UfidelateReplicationMode(ReplicationStatus),
+    /// Asks the store to fidelio replication mode.
+    fidelioReplicationMode(ReplicationStatus),
 }
 
 impl<EK> fmt::Debug for StoreMsg<EK>
@@ -469,7 +469,7 @@ where
             StoreMsg::Start { ref store } => write!(fmt, "Start store {:?}", store),
             #[causet(any(test, feature = "testexport"))]
             StoreMsg::Validate(_) => write!(fmt, "Validate config"),
-            StoreMsg::UfidelateReplicationMode(_) => write!(fmt, "UfidelateReplicationMode"),
+            StoreMsg::fidelioReplicationMode(_) => write!(fmt, "fidelioReplicationMode"),
         }
     }
 }

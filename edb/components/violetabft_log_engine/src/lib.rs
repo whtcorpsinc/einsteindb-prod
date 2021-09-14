@@ -17,7 +17,7 @@
 #![causet_attr(test, feature(test))]
 
 #[macro_use]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
 extern crate slog_global;
 

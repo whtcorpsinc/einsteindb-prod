@@ -12,7 +12,7 @@ use engine_lmdb::config::{BlobRunMode, CompressionType, LogLevel, PerfLevel};
 use engine_lmdb::raw::{
     CompactionPriority, DBCompactionStyle, DBCompressionType, DBRateLimiterMode, DBRecoveryMode,
 };
-use ekvproto::encryptionpb::EncryptionMethod;
+use ekvproto::encryption_timeshare::EncryptionMethod;
 use fidel_client::Config as FidelConfig;
 use violetabftstore::interlock::{Config as CopConfig, ConsistencyCheckMethod};
 use violetabftstore::store::Config as VioletaBftstoreConfig;
@@ -23,9 +23,9 @@ use edb::server::config::GrpcCompressionType;
 use edb::server::gc_worker::GcConfig;
 use edb::server::lock_manager::Config as PessimisticTxnConfig;
 use edb::server::Config as ServerConfig;
-use edb::causetStorage::config::{BlockCacheConfig, Config as StorageConfig};
-use edb_util::collections::HashSet;
-use edb_util::config::{LogFormat, OptionReadableSize, ReadableDuration, ReadableSize};
+use edb::causet_storage::config::{BlockCacheConfig, Config as StorageConfig};
+use violetabftstore::interlock::::collections::HashSet;
+use violetabftstore::interlock::::config::{LogFormat, OptionReadableSize, ReadableDuration, ReadableSize};
 
 mod dynamic;
 mod test_config_client;
@@ -102,7 +102,7 @@ fn test_serde_custom_edb_config() {
             stack_size: ReadableSize::mb(20),
             max_tasks_per_worker: 2200,
         },
-        causetStorage: StorageReadPoolConfig {
+        causet_storage: StorageReadPoolConfig {
             use_unified_pool: Some(true),
             high_concurrency: 1,
             normal_concurrency: 3,
@@ -590,7 +590,7 @@ fn test_serde_custom_edb_config() {
     };
     value.violetabft_engine.enable = true;
     value.violetabft_engine.mut_config().dir = "test-dir".to_owned();
-    value.causetStorage = StorageConfig {
+    value.causet_storage = StorageConfig {
         data_dir: "/var".to_owned(),
         gc_ratio_memory_barrier: 1.2,
         max_key_size: 8192,
@@ -727,7 +727,7 @@ fn test_readpool_default_config() {
 #[test]
 fn test_do_not_use_unified_readpool_with_legacy_config() {
     let content = r#"
-        [readpool.causetStorage]
+        [readpool.causet_storage]
         normal-concurrency = 1
 
         [readpool.interlock]
@@ -741,12 +741,12 @@ fn test_do_not_use_unified_readpool_with_legacy_config() {
 fn test_block_cache_backward_compatible() {
     let content = read_file_in_project_dir("integrations/config/test-cache-compatible.toml");
     let mut causet: EINSTEINDBConfig = toml::from_str(&content).unwrap();
-    assert!(causet.causetStorage.block_cache.shared);
-    assert!(causet.causetStorage.block_cache.capacity.0.is_none());
+    assert!(causet.causet_storage.block_cache.shared);
+    assert!(causet.causet_storage.block_cache.capacity.0.is_none());
     causet.compatible_adjust();
-    assert!(causet.causetStorage.block_cache.capacity.0.is_some());
+    assert!(causet.causet_storage.block_cache.capacity.0.is_some());
     assert_eq!(
-        causet.causetStorage.block_cache.capacity.0.unwrap().0,
+        causet.causet_storage.block_cache.capacity.0.unwrap().0,
         causet.lmdb.defaultcauset.block_cache_size.0
             + causet.lmdb.writecauset.block_cache_size.0
             + causet.lmdb.lockcauset.block_cache_size.0

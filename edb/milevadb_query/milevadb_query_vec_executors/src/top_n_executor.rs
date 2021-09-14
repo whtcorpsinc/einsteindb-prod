@@ -5,11 +5,11 @@ use std::collections::BinaryHeap;
 use std::ptr::NonNull;
 use std::sync::Arc;
 
-use fidelpb::{Expr, FieldType, TopN};
+use fidel_timeshare::{Expr, FieldType, TopN};
 
 use crate::interface::*;
 use crate::util::*;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::codec::data_type::*;
@@ -356,8 +356,8 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchTopNFreeDaemon<Src> {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.src.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.src.collect_causet_storage_stats(dest);
     }
 
     #[inline]

@@ -1,13 +1,13 @@
 // Copyright 2020 WHTCORPS INC Project Authors. Licensed Under Apache-2.0
 
-use ekvproto::violetabft_cmdpb::{CmdType, VioletaBftCmdRequest, Request};
-use violetabft::evioletabftpb::Entry;
+use ekvproto::violetabft_cmd_timeshare::{CmdType, VioletaBftCmdRequest, Request};
+use violetabft::evioletabft_timeshare::Entry;
 
 use protobuf::{self, Message};
 use rand::{thread_rng, RngCore};
 use test::Bencher;
 
-use edb_util::collections::HashMap;
+use violetabftstore::interlock::::collections::HashMap;
 
 #[inline]
 fn gen_rand_str(len: usize) -> Vec<u8> {

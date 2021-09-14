@@ -5,17 +5,17 @@ use std::sync::*;
 use std::thread;
 use std::time::*;
 
-use ekvproto::metapb::Brane;
-use ekvproto::violetabft_serverpb::{PeerState, VioletaBftMessage, BraneLocalState};
-use violetabft::evioletabftpb::MessageType;
+use ekvproto::meta_timeshare::Brane;
+use ekvproto::violetabft_server_timeshare::{PeerState, VioletaBftMessage, BraneLocalState};
+use violetabft::evioletabft_timeshare::MessageType;
 
 use engine_lmdb::Compat;
 use edb::{Peekable, Causet_VIOLETABFT};
 use fidel_client::FidelClient;
 use violetabftstore::store::*;
 use test_violetabftstore::*;
-use edb_util::config::*;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::config::*;
+use violetabftstore::interlock::::HandyRwLock;
 
 /// Test if merge is rollback as expected.
 #[test]
@@ -659,7 +659,7 @@ fn test_node_merge_respacelike_after_apply_premerge_before_apply_compact_log() {
     for i in 0..6 {
         cluster.must_put(format!("k1{}", i).as_bytes(), b"v1");
     }
-    // Prevent on_apply_res to ufidelate merge_state in Peer
+    // Prevent on_apply_res to fidelio merge_state in Peer
     // If not, almost everything cannot propose including compact log
     let on_apply_res_fp = "on_apply_res";
     fail::causet(on_apply_res_fp, "return()").unwrap();
@@ -1033,7 +1033,7 @@ fn test_node_merge_write_data_to_source_brane_after_merging() {
     fail::causet(on_has_merge_target_fp, "return").unwrap();
 
     cluster.clear_lightlike_filters();
-    // On store 3, now the right brane is ufidelated by snapshot not applying logs
+    // On store 3, now the right brane is fideliod by snapshot not applying logs
     // so the left brane still exist.
     // Wait for left brane to rollback merge (in previous wrong implementation)
     sleep_ms(200);

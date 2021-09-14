@@ -1,13 +1,13 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
-use ekvproto::violetabft_serverpb::{VioletaBftApplyState, VioletaBftTruncatedState};
+use ekvproto::violetabft_server_timeshare::{VioletaBftApplyState, VioletaBftTruncatedState};
 
 use engine_lmdb::LmdbEngine;
 use edb::{Engines, Peekable, Causet_VIOLETABFT};
 use violetabftstore::store::*;
 use test_violetabftstore::*;
-use edb_util::collections::HashMap;
-use edb_util::config::*;
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::config::*;
 
 fn get_violetabft_msg_or_default<M: protobuf::Message + Default>(
     engines: &Engines<LmdbEngine, LmdbEngine>,

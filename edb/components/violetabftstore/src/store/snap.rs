@@ -19,29 +19,29 @@ use edb::{CfName, Causet_DEFAULT, Causet_DAGGER, Causet_WRITE};
 use edb::{EncryptionKeyManager, KvEngine};
 use futures::executor::block_on;
 use futures_util::io::{AllowStdIo, AsyncWriteExt};
-use ekvproto::encryptionpb::EncryptionMethod;
-use ekvproto::metapb::Brane;
-use ekvproto::violetabft_serverpb::VioletaBftSnapshotData;
-use ekvproto::violetabft_serverpb::{SnapshotCfFile, SnapshotMeta};
+use ekvproto::encryption_timeshare::EncryptionMethod;
+use ekvproto::meta_timeshare::Brane;
+use ekvproto::violetabft_server_timeshare::VioletaBftSnapshotData;
+use ekvproto::violetabft_server_timeshare::{SnapshotCfFile, SnapshotMeta};
 use protobuf::Message;
-use violetabft::evioletabftpb::Snapshot as VioletaBftSnapshot;
+use violetabft::evioletabft_timeshare::Snapshot as VioletaBftSnapshot;
 
 use error_code::{self, ErrorCode, ErrorCodeExt};
 use tuplespaceInstanton::{enc_lightlike_key, enc_spacelike_key};
 use openssl::symm::{Cipher, Crypter, Mode};
-use edb_util::collections::{HashMap, HashMapEntry as Entry};
-use edb_util::file::{
+use violetabftstore::interlock::::collections::{HashMap, HashMapEntry as Entry};
+use violetabftstore::interlock::::file::{
     calc_crc32, calc_crc32_and_size, delete_file_if_exist, file_exists, get_file_size, sync_dir,
 };
-use edb_util::time::{duration_to_sec, Limiter};
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::time::{duration_to_sec, Limiter};
+use violetabftstore::interlock::::HandyRwLock;
 
 use crate::interlock::InterlockHost;
 use crate::store::metrics::{
     CfNames, INGEST_SST_DURATION_SECONDS, SNAPSHOT_BUILD_TIME_HISTOGRAM, SNAPSHOT_Causet_KV_COUNT,
     SNAPSHOT_Causet_SIZE,
 };
-use crate::store::peer_causetStorage::JOB_STATUS_CANCELLING;
+use crate::store::peer_causet_storage::JOB_STATUS_CANCELLING;
 use crate::{Error as VioletaBftStoreError, Result as VioletaBftStoreResult};
 
 #[path = "snap/io.rs"]
@@ -183,7 +183,7 @@ where
 /// It's used in these scenarios:
 ///   1. build local snapshot
 ///   2. read local snapshot and then replicate it to remote violetabftstores
-///   3. receive snapshot from remote violetabftstore and write it to local causetStorage
+///   3. receive snapshot from remote violetabftstore and write it to local causet_storage
 ///   4. apply snapshot
 ///   5. snapshot gc
 pub trait Snapshot<EK: KvEngine>: GenericSnapshot {
@@ -1021,7 +1021,7 @@ impl Write for Snap {
 
             file_for_recving
                 .write_digest
-                .ufidelate(&next_buf[0..write_len]);
+                .fidelio(&next_buf[0..write_len]);
             file_for_recving.written_size += write_len as u64;
             written_bytes += write_len;
 
@@ -1032,7 +1032,7 @@ impl Write for Snap {
             } else {
                 let (cipher, crypter) = file_for_recving.encrypter.as_mut().unwrap();
                 let mut encrypt_buffer = vec![0; write_len + cipher.block_size()];
-                let mut bytes = crypter.ufidelate(&next_buf[0..write_len], &mut encrypt_buffer)?;
+                let mut bytes = crypter.fidelio(&next_buf[0..write_len], &mut encrypt_buffer)?;
                 if switch {
                     bytes += crypter.finalize(&mut encrypt_buffer)?;
                 }
@@ -1526,15 +1526,15 @@ pub mod tests {
     use edb::Engines;
     use edb::{Iterable, Peekable, SyncMuBlock};
     use edb::{ALL_CausetS, Causet_DEFAULT, Causet_DAGGER, Causet_VIOLETABFT, Causet_WRITE};
-    use ekvproto::metapb::{Peer, Brane};
-    use ekvproto::violetabft_serverpb::{
+    use ekvproto::meta_timeshare::{Peer, Brane};
+    use ekvproto::violetabft_server_timeshare::{
         VioletaBftApplyState, VioletaBftSnapshotData, BraneLocalState, SnapshotMeta,
     };
-    use violetabft::evioletabftpb::Entry;
+    use violetabft::evioletabft_timeshare::Entry;
 
     use protobuf::Message;
     use tempfile::{Builder, TempDir};
-    use edb_util::time::Limiter;
+    use violetabftstore::interlock::::time::Limiter;
 
     use super::{
         ApplyOptions, GenericSnapshot, Snap, SnapEntry, SnapKey, SnapManager, SnapManagerBuilder,
@@ -1543,7 +1543,7 @@ pub mod tests {
     };
 
     use crate::interlock::InterlockHost;
-    use crate::store::peer_causetStorage::JOB_STATUS_RUNNING;
+    use crate::store::peer_causet_storage::JOB_STATUS_RUNNING;
     use crate::store::{INIT_EPOCH_CONF_VER, INIT_EPOCH_VER};
     use crate::Result;
 

@@ -78,13 +78,13 @@ use failure::{
 
 use rusqlite;
 
-use raum_promises::{
+use allegro_promises::{
     ConstrainedEntsConstraint,
     SolitonId,
     MinkowskiType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     CachedAttributes,
     HasSchemaReplicant,
     SchemaReplicant,
@@ -92,7 +92,7 @@ use edb_raum::{
     ValueRc,
 };
 
-use edb_raum::util::{
+use edb_allegro::util::{
     Either,
 };
 
@@ -110,7 +110,7 @@ use edb::{
     TypedSQLValue,
 };
 
-use edb_promises::errors::{
+use causetq_pull_promises::errors::{
     DbError,
     DbErrorKind,
     Result,

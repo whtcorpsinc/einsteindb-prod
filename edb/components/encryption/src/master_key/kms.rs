@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use futures::future::{self, TryFutureExt};
-use ekvproto::encryptionpb::EncryptedContent;
+use ekvproto::encryption_timeshare::EncryptedContent;
 use rusoto_core::request::DispatchSignedRequest;
 use rusoto_core::request::HttpClient;
 use rusoto_core::RusotoError;
@@ -155,12 +155,12 @@ struct Inner {
 }
 
 impl Inner {
-    fn maybe_ufidelate_backlightlike(&mut self, ciphertext_key: Option<&Vec<u8>>) -> Result<()> {
+    fn maybe_fidelio_backlightlike(&mut self, ciphertext_key: Option<&Vec<u8>>) -> Result<()> {
         let http_dispatcher = HttpClient::new().unwrap();
-        self.maybe_ufidelate_backlightlike_with(ciphertext_key, http_dispatcher)
+        self.maybe_fidelio_backlightlike_with(ciphertext_key, http_dispatcher)
     }
 
-    fn maybe_ufidelate_backlightlike_with<D>(
+    fn maybe_fidelio_backlightlike_with<D>(
         &mut self,
         ciphertext_key: Option<&Vec<u8>>,
         dispatcher: D,
@@ -215,7 +215,7 @@ impl KmsBacklightlike {
 
     fn encrypt_content(&self, plaintext: &[u8], iv: Iv) -> Result<EncryptedContent> {
         let mut inner = self.inner.dagger().unwrap();
-        inner.maybe_ufidelate_backlightlike(None)?;
+        inner.maybe_fidelio_backlightlike(None)?;
         let mut content = inner
             .backlightlike
             .as_ref()
@@ -267,7 +267,7 @@ impl KmsBacklightlike {
         if ciphertext_key.is_none() {
             return Err(box_err!("KMS ciphertext key not found"));
         }
-        inner.maybe_ufidelate_backlightlike(ciphertext_key)?;
+        inner.maybe_fidelio_backlightlike(ciphertext_key)?;
         inner.backlightlike.as_ref().unwrap().decrypt_content(content)
     }
 }
@@ -327,7 +327,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ufidelate_backlightlike() {
+    fn test_fidelio_backlightlike() {
         let config = KmsConfig {
             key_id: "test_key_id".to_string(),
             brane: "ap-southeast-2".to_string(),
@@ -346,28 +346,28 @@ mod tests {
             cached_ciphertext_key: vec![],
         };
 
-        // Ufidelate mem backlightlike
+        // fidelio mem backlightlike
         let dispatcher =
             MockRequestDispatcher::with_status(200).with_json_body(GenerateDataKeyResponse {
                 ciphertext_blob: Some(ciphertext_key1.to_vec().into()),
                 key_id: Some("test_key_id".to_string()),
                 plaintext: Some(plaintext_key.to_vec().into()),
             });
-        inner.maybe_ufidelate_backlightlike_with(None, dispatcher).unwrap();
+        inner.maybe_fidelio_backlightlike_with(None, dispatcher).unwrap();
         assert!(inner.backlightlike.is_some());
         assert_eq!(inner.cached_ciphertext_key, ciphertext_key1.to_vec());
 
-        // Do not ufidelate mem backlightlike if ciphertext_key is None.
+        // Do not fidelio mem backlightlike if ciphertext_key is None.
         let dispatcher =
             MockRequestDispatcher::with_status(200).with_json_body(GenerateDataKeyResponse {
                 ciphertext_blob: Some(plaintext_key.to_vec().into()),
                 key_id: Some("test_key_id".to_string()),
                 plaintext: Some(plaintext_key.to_vec().into()),
             });
-        inner.maybe_ufidelate_backlightlike_with(None, dispatcher).unwrap();
+        inner.maybe_fidelio_backlightlike_with(None, dispatcher).unwrap();
         assert_eq!(inner.cached_ciphertext_key, ciphertext_key1.to_vec());
 
-        // Do not ufidelate mem backlightlike if cached_ciphertext_key equals to ciphertext_key.
+        // Do not fidelio mem backlightlike if cached_ciphertext_key equals to ciphertext_key.
         let dispatcher =
             MockRequestDispatcher::with_status(200).with_json_body(GenerateDataKeyResponse {
                 ciphertext_blob: Some(ciphertext_key2.to_vec().into()),
@@ -375,11 +375,11 @@ mod tests {
                 plaintext: Some(plaintext_key.to_vec().into()),
             });
         inner
-            .maybe_ufidelate_backlightlike_with(Some(&ciphertext_key1.to_vec()), dispatcher)
+            .maybe_fidelio_backlightlike_with(Some(&ciphertext_key1.to_vec()), dispatcher)
             .unwrap();
         assert_eq!(inner.cached_ciphertext_key, ciphertext_key1.to_vec());
 
-        // Ufidelate mem backlightlike if cached_ciphertext_key does not equal to ciphertext_key.
+        // fidelio mem backlightlike if cached_ciphertext_key does not equal to ciphertext_key.
         let dispatcher =
             MockRequestDispatcher::with_status(200).with_json_body(GenerateDataKeyResponse {
                 ciphertext_blob: Some(ciphertext_key2.to_vec().into()),
@@ -387,7 +387,7 @@ mod tests {
                 plaintext: Some(plaintext_key.to_vec().into()),
             });
         inner
-            .maybe_ufidelate_backlightlike_with(Some(&ciphertext_key2.to_vec()), dispatcher)
+            .maybe_fidelio_backlightlike_with(Some(&ciphertext_key2.to_vec()), dispatcher)
             .unwrap();
         assert!(inner.backlightlike.is_some());
         assert_eq!(inner.cached_ciphertext_key, ciphertext_key2.to_vec());

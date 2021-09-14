@@ -11,13 +11,13 @@ use std::{cmp, error, u64};
 use edb::Causet_VIOLETABFT;
 use edb::{Engines, KvEngine, MuBlock, Peekable};
 use tuplespaceInstanton::{self, enc_lightlike_key, enc_spacelike_key};
-use ekvproto::metapb::{self, Brane};
-use ekvproto::violetabft_serverpb::{
+use ekvproto::meta_timeshare::{self, Brane};
+use ekvproto::violetabft_server_timeshare::{
     MergeState, PeerState, VioletaBftApplyState, VioletaBftLocalState, VioletaBftSnapshotData, BraneLocalState,
 };
 use protobuf::Message;
-use violetabft::evioletabftpb::{ConfState, Entry, HardState, Snapshot};
-use violetabft::{self, Error as VioletaBftError, VioletaBftState, Ready, CausetStorage, StorageError};
+use violetabft::evioletabft_timeshare::{ConfState, Entry, HardState, Snapshot};
+use violetabft::{self, Error as VioletaBftError, VioletaBftState, Ready, causet_storage, StorageError};
 
 use crate::store::fsm::GenSnapTask;
 use crate::store::util;
@@ -25,7 +25,7 @@ use crate::store::ProposalContext;
 use crate::{Error, Result};
 use edb::{VioletaBftEngine, VioletaBftLogBatch};
 use into_other::into_other;
-use edb_util::worker::Interlock_Semaphore;
+use violetabftstore::interlock::::worker::Interlock_Semaphore;
 
 use super::metrics::*;
 use super::worker::BraneTask;
@@ -149,7 +149,7 @@ impl EntryCache {
         // Cache either is empty or contains latest log. Hence we don't need to fetch log
         // from lmdb anymore.
         assert!(lightlike_idx == limit_idx || fetched_size > max_size);
-        let (first, second) = edb_util::slices_in_cone(&self.cache, spacelike_idx, lightlike_idx);
+        let (first, second) = violetabftstore::interlock::::slices_in_cone(&self.cache, spacelike_idx, lightlike_idx);
         ents.extlightlike_from_slice(first);
         ents.extlightlike_from_slice(second);
     }
@@ -162,7 +162,7 @@ impl EntryCache {
             let first_index = entries[0].get_index();
             if cache_last_index >= first_index {
                 if self.cache.front().unwrap().get_index() >= first_index {
-                    self.ufidelate_mem_size_change_before_clear();
+                    self.fidelio_mem_size_change_before_clear();
                     self.cache.clear();
                 } else {
                     let left = self.cache.len() - (cache_last_index - first_index + 1) as usize;
@@ -201,7 +201,7 @@ impl EntryCache {
                 self.mem_size_change -= drained_cache_entries_size;
             } else {
                 spacelike_idx = len - self.cache.len();
-                self.ufidelate_mem_size_change_before_clear();
+                self.fidelio_mem_size_change_before_clear();
                 self.cache.clear();
             }
         }
@@ -234,7 +234,7 @@ impl EntryCache {
         if self.cache.len() < SHRINK_CACHE_CAPACITY && self.cache.capacity() > SHRINK_CACHE_CAPACITY
         {
             let old_capacity = self.cache.capacity();
-            // So the peer causetStorage doesn't have much writes since the proposal of compaction,
+            // So the peer causet_storage doesn't have much writes since the proposal of compaction,
             // we can consider this peer is going to be inactive.
             self.cache.shrink_to_fit();
             self.mem_size_change += self
@@ -242,7 +242,7 @@ impl EntryCache {
         }
     }
 
-    fn ufidelate_mem_size_change_before_clear(&mut self) {
+    fn fidelio_mem_size_change_before_clear(&mut self) {
         self.mem_size_change -= self
             .cache
             .iter()
@@ -317,7 +317,7 @@ where
     fn set_sync_log(&mut self, sync: bool);
 }
 
-fn causetStorage_error<E>(error: E) -> violetabft::Error
+fn causet_storage_error<E>(error: E) -> violetabft::Error
 where
     E: Into<Box<dyn error::Error + lightlike + Sync>>,
 {
@@ -326,15 +326,15 @@ where
 
 impl From<Error> for VioletaBftError {
     fn from(err: Error) -> VioletaBftError {
-        causetStorage_error(err)
+        causet_storage_error(err)
     }
 }
 
 pub struct ApplySnapResult {
     // prev_brane is the brane before snapshot applied.
-    pub prev_brane: metapb::Brane,
-    pub brane: metapb::Brane,
-    pub destroyed_branes: Vec<metapb::Brane>,
+    pub prev_brane: meta_timeshare::Brane,
+    pub brane: meta_timeshare::Brane,
+    pub destroyed_branes: Vec<meta_timeshare::Brane>,
 }
 
 /// Returned by `PeerStorage::handle_violetabft_ready`, used for recording changed status of
@@ -349,7 +349,7 @@ pub struct InvokeContext {
     /// The old brane is stored here if there is a snapshot.
     pub snap_brane: Option<Brane>,
     /// The branes whose cone are overlapped with this brane
-    pub destroyed_branes: Vec<metapb::Brane>,
+    pub destroyed_branes: Vec<meta_timeshare::Brane>,
 }
 
 impl InvokeContext {
@@ -588,7 +588,7 @@ where
     pub engines: Engines<EK, ER>,
 
     peer_id: u64,
-    brane: metapb::Brane,
+    brane: meta_timeshare::Brane,
     violetabft_state: VioletaBftLocalState,
     apply_state: VioletaBftApplyState,
     applied_index_term: u64,
@@ -605,7 +605,7 @@ where
     pub tag: String,
 }
 
-impl<EK, ER> CausetStorage for PeerStorage<EK, ER>
+impl<EK, ER> causet_storage for PeerStorage<EK, ER>
 where
     EK: KvEngine,
     ER: VioletaBftEngine,
@@ -647,13 +647,13 @@ where
 {
     pub fn new(
         engines: Engines<EK, ER>,
-        brane: &metapb::Brane,
+        brane: &meta_timeshare::Brane,
         brane_sched: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
         peer_id: u64,
         tag: String,
     ) -> Result<PeerStorage<EK, ER>> {
         debug!(
-            "creating causetStorage on specified path";
+            "creating causet_storage on specified path";
             "brane_id" => brane.get_id(),
             "peer_id" => peer_id,
             "path" => ?engines.kv.path(),
@@ -714,14 +714,14 @@ where
 
     fn check_cone(&self, low: u64, high: u64) -> violetabft::Result<()> {
         if low > high {
-            return Err(causetStorage_error(format!(
+            return Err(causet_storage_error(format!(
                 "low: {} is greater that high: {}",
                 low, high
             )));
         } else if low <= self.truncated_index() {
             return Err(VioletaBftError::CausetStore(StorageError::Compacted));
         } else if high > self.last_index() + 1 {
-            return Err(causetStorage_error(format!(
+            return Err(causet_storage_error(format!(
                 "entries' high {} is out of bound lastindex {}",
                 high,
                 self.last_index()
@@ -740,7 +740,7 @@ where
         if let Some(ref cache) = self.cache {
             let cache_low = cache.first_index().unwrap_or(u64::MAX);
             if high <= cache_low {
-                cache.miss.ufidelate(|m| m + 1);
+                cache.miss.fidelio(|m| m + 1);
                 self.engines.violetabft.fetch_entries_to(
                     brane_id,
                     low,
@@ -751,7 +751,7 @@ where
                 return Ok(ents);
             }
             let begin_idx = if low < cache_low {
-                cache.miss.ufidelate(|m| m + 1);
+                cache.miss.fidelio(|m| m + 1);
                 let fetched_count = self.engines.violetabft.fetch_entries_to(
                     brane_id,
                     low,
@@ -767,7 +767,7 @@ where
             } else {
                 low
             };
-            cache.hit.ufidelate(|h| h + 1);
+            cache.hit.fidelio(|h| h + 1);
             let fetched_size = ents.iter().fold(0, |acc, e| acc + e.compute_size());
             cache.fetch_entries_to(begin_idx, high, fetched_size as u64, max_size, &mut ents);
         } else {
@@ -849,11 +849,11 @@ where
         self.apply_state.get_truncated_state().get_term()
     }
 
-    pub fn brane(&self) -> &metapb::Brane {
+    pub fn brane(&self) -> &meta_timeshare::Brane {
         &self.brane
     }
 
-    pub fn set_brane(&mut self, brane: metapb::Brane) {
+    pub fn set_brane(&mut self, brane: meta_timeshare::Brane) {
         self.brane = brane;
     }
 
@@ -982,7 +982,7 @@ where
     }
 
     // Applightlike the given entries to the violetabft log using previous last index or self.last_index.
-    // Return the new last index for later ufidelate. After we commit in engine, we can set last_index
+    // Return the new last index for later fidelio. After we commit in engine, we can set last_index
     // to the return one.
     pub fn applightlike<H: HandleVioletaBftReadyContext<EK::WriteBatch, ER::LogBatch>>(
         &mut self,
@@ -1093,7 +1093,7 @@ where
         snap: &Snapshot,
         kv_wb: &mut EK::WriteBatch,
         violetabft_wb: &mut ER::LogBatch,
-        destroy_branes: &[metapb::Brane],
+        destroy_branes: &[meta_timeshare::Brane],
     ) -> Result<()> {
         info!(
             "begin to apply snapshot";
@@ -1146,7 +1146,7 @@ where
             "state" => ?ctx.apply_state,
         );
 
-        fail_point!("before_apply_snap_ufidelate_brane", |_| { Ok(()) });
+        fail_point!("before_apply_snap_fidelio_brane", |_| { Ok(()) });
 
         ctx.snap_brane = Some(brane);
         Ok(())
@@ -1180,8 +1180,8 @@ where
     /// Delete all data that is not covered by `new_brane`.
     fn clear_extra_data(
         &self,
-        old_brane: &metapb::Brane,
-        new_brane: &metapb::Brane,
+        old_brane: &meta_timeshare::Brane,
+        new_brane: &meta_timeshare::Brane,
     ) -> Result<()> {
         let (old_spacelike_key, old_lightlike_key) = (enc_spacelike_key(old_brane), enc_lightlike_key(old_brane));
         let (new_spacelike_key, new_lightlike_key) = (enc_spacelike_key(new_brane), enc_lightlike_key(new_brane));
@@ -1216,7 +1216,7 @@ where
         self.engines.violetabft.clone()
     }
 
-    /// Check whether the causetStorage has finished applying snapshot.
+    /// Check whether the causet_storage has finished applying snapshot.
     #[inline]
     pub fn is_applying_snapshot(&self) -> bool {
         match *self.snap_state.borrow() {
@@ -1234,7 +1234,7 @@ where
         }
     }
 
-    /// Check if the causetStorage is applying a snapshot.
+    /// Check if the causet_storage is applying a snapshot.
     #[inline]
     pub fn check_applying_snap(&mut self) -> CheckApplyingSnapStatus {
         let mut res = CheckApplyingSnapStatus::Idle;
@@ -1342,14 +1342,14 @@ where
     ///
     /// This function only write data to `ready_ctx`'s `WriteBatch`. It's caller's duty to write
     /// it explicitly to disk. If it's flushed to disk successfully, `post_ready` should be called
-    /// to ufidelate the memory states properly.
+    /// to fidelio the memory states properly.
     // Using `&Ready` here to make sure `Ready` struct is not modified in this function. This is
     // a requirement to advance the ready object properly later.
     pub fn handle_violetabft_ready<H: HandleVioletaBftReadyContext<EK::WriteBatch, ER::LogBatch>>(
         &mut self,
         ready_ctx: &mut H,
         ready: &Ready,
-        destroy_branes: Vec<metapb::Brane>,
+        destroy_branes: Vec<meta_timeshare::Brane>,
     ) -> Result<InvokeContext> {
         let mut ctx = InvokeContext::new(self);
         let snapshot_index = if ready.snapshot().is_empty() {
@@ -1401,12 +1401,12 @@ where
         Ok(ctx)
     }
 
-    /// Ufidelate the memory state after ready changes are flushed to disk successfully.
+    /// fidelio the memory state after ready changes are flushed to disk successfully.
     pub fn post_ready(&mut self, ctx: InvokeContext) -> Option<ApplySnapResult> {
         self.violetabft_state = ctx.violetabft_state;
         self.apply_state = ctx.apply_state;
         self.last_term = ctx.last_term;
-        // If we apply snapshot ok, we should ufidelate some infos like applied index too.
+        // If we apply snapshot ok, we should fidelio some infos like applied index too.
         let snap_brane = match ctx.snap_brane {
             Some(r) => r,
             None => return None,
@@ -1520,7 +1520,7 @@ where
         .map_err(into_other::<_, violetabft::Error>)?;
     let apply_state: VioletaBftApplyState = match msg {
         None => {
-            return Err(causetStorage_error(format!(
+            return Err(causet_storage_error(format!(
                 "could not load violetabft state of brane {}",
                 brane_id
             )));
@@ -1547,7 +1547,7 @@ where
         .map_err(into_other::<_, violetabft::Error>)?;
 
     if state.get_state() != PeerState::Normal {
-        return Err(causetStorage_error(format!(
+        return Err(causet_storage_error(format!(
             "snap job for {} seems stale, skip.",
             brane_id
         )));
@@ -1611,7 +1611,7 @@ pub fn write_initial_apply_state<T: MuBlock>(kv_wb: &mut T, brane_id: u64) -> Re
 
 pub fn write_peer_state<T: MuBlock>(
     kv_wb: &mut T,
-    brane: &metapb::Brane,
+    brane: &meta_timeshare::Brane,
     state: PeerState,
     merge_state: Option<MergeState>,
 ) -> Result<()> {
@@ -1644,9 +1644,9 @@ mod tests {
     use edb::Engines;
     use edb::{Iterable, SyncMuBlock, WriteBatchExt};
     use edb::{ALL_CausetS, Causet_DEFAULT};
-    use ekvproto::violetabft_serverpb::VioletaBftSnapshotData;
-    use violetabft::evioletabftpb::HardState;
-    use violetabft::evioletabftpb::{ConfState, Entry};
+    use ekvproto::violetabft_server_timeshare::VioletaBftSnapshotData;
+    use violetabft::evioletabft_timeshare::HardState;
+    use violetabft::evioletabft_timeshare::{ConfState, Entry};
     use violetabft::{Error as VioletaBftError, StorageError};
     use std::cell::RefCell;
     use std::path::Path;
@@ -1655,11 +1655,11 @@ mod tests {
     use std::sync::*;
     use std::time::Duration;
     use tempfile::{Builder, TempDir};
-    use edb_util::worker::{Interlock_Semaphore, Worker};
+    use violetabftstore::interlock::::worker::{Interlock_Semaphore, Worker};
 
     use super::*;
 
-    fn new_causetStorage(
+    fn new_causet_storage(
         sched: Interlock_Semaphore<BraneTask<LmdbSnapshot>>,
         path: &TempDir,
     ) -> PeerStorage<LmdbEngine, LmdbEngine> {
@@ -1708,12 +1708,12 @@ mod tests {
         }
     }
 
-    fn new_causetStorage_from_ents(
+    fn new_causet_storage_from_ents(
         sched: Interlock_Semaphore<BraneTask<LmdbSnapshot>>,
         path: &TempDir,
         ents: &[Entry],
     ) -> PeerStorage<LmdbEngine, LmdbEngine> {
-        let mut store = new_causetStorage(sched, path);
+        let mut store = new_causet_storage(sched, path);
         let mut kv_wb = store.engines.kv.write_batch();
         let mut ctx = InvokeContext::new(&store);
         let mut ready_ctx = ReadyContext::new(&store);
@@ -1766,7 +1766,7 @@ mod tests {
     }
 
     #[test]
-    fn test_causetStorage_term() {
+    fn test_causet_storage_term() {
         let ents = vec![new_entry(3, 3), new_entry(4, 4), new_entry(5, 5)];
 
         let mut tests = vec![
@@ -1779,7 +1779,7 @@ mod tests {
             let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
             let sched = worker.interlock_semaphore();
-            let store = new_causetStorage_from_ents(sched, &td, &ents);
+            let store = new_causet_storage_from_ents(sched, &td, &ents);
             let t = store.term(idx);
             if wterm != t {
                 panic!("#{}: expect res {:?}, got {:?}", i, wterm, t);
@@ -1829,11 +1829,11 @@ mod tests {
     }
 
     #[test]
-    fn test_causetStorage_clear_meta() {
+    fn test_causet_storage_clear_meta() {
         let td = Builder::new().prefix("edb-store").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
-        let mut store = new_causetStorage_from_ents(sched, &td, &[new_entry(3, 3), new_entry(4, 4)]);
+        let mut store = new_causet_storage_from_ents(sched, &td, &[new_entry(3, 3), new_entry(4, 4)]);
         applightlike_ents(&mut store, &[new_entry(5, 5), new_entry(6, 6)]);
 
         assert_eq!(6, get_meta_key_count(&store));
@@ -1848,7 +1848,7 @@ mod tests {
     }
 
     #[test]
-    fn test_causetStorage_entries() {
+    fn test_causet_storage_entries() {
         let ents = vec![
             new_entry(3, 3),
             new_entry(4, 4),
@@ -1911,7 +1911,7 @@ mod tests {
             let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
             let sched = worker.interlock_semaphore();
-            let store = new_causetStorage_from_ents(sched, &td, &ents);
+            let store = new_causet_storage_from_ents(sched, &td, &ents);
             let e = store.entries(lo, hi, maxsize);
             if e != wentries {
                 panic!("#{}: expect entries {:?}, got {:?}", i, wentries, e);
@@ -1923,7 +1923,7 @@ mod tests {
     // so we don't test them here.
 
     #[test]
-    fn test_causetStorage_compact() {
+    fn test_causet_storage_compact() {
         let ents = vec![new_entry(3, 3), new_entry(4, 4), new_entry(5, 5)];
         let mut tests = vec![
             (2, Err(VioletaBftError::CausetStore(StorageError::Compacted))),
@@ -1935,7 +1935,7 @@ mod tests {
             let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
             let sched = worker.interlock_semaphore();
-            let store = new_causetStorage_from_ents(sched, &td, &ents);
+            let store = new_causet_storage_from_ents(sched, &td, &ents);
             let mut ctx = InvokeContext::new(&store);
             let res = store
                 .term(idx)
@@ -1978,7 +1978,7 @@ mod tests {
     }
 
     #[test]
-    fn test_causetStorage_create_snapshot() {
+    fn test_causet_storage_create_snapshot() {
         let ents = vec![new_entry(3, 3), new_entry(4, 4), new_entry(5, 5)];
         let mut cs = ConfState::default();
         cs.set_voters(vec![1, 2, 3]);
@@ -1988,7 +1988,7 @@ mod tests {
         let mgr = SnapManager::new(snap_dir.path().to_str().unwrap());
         let mut worker = Worker::new("brane-worker");
         let sched = worker.interlock_semaphore();
-        let mut s = new_causetStorage_from_ents(sched.clone(), &td, &ents);
+        let mut s = new_causet_storage_from_ents(sched.clone(), &td, &ents);
         let (router, _) = mpsc::sync_channel(100);
         let runner = BraneRunner::new(
             s.engines.clone(),
@@ -2112,7 +2112,7 @@ mod tests {
     }
 
     #[test]
-    fn test_causetStorage_applightlike() {
+    fn test_causet_storage_applightlike() {
         let ents = vec![new_entry(3, 3), new_entry(4, 4), new_entry(5, 5)];
         let mut tests = vec![
             (
@@ -2149,7 +2149,7 @@ mod tests {
             let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
             let worker = Worker::new("snap-manager");
             let sched = worker.interlock_semaphore();
-            let mut store = new_causetStorage_from_ents(sched, &td, &ents);
+            let mut store = new_causet_storage_from_ents(sched, &td, &ents);
             applightlike_ents(&mut store, &entries);
             let li = store.last_index();
             let actual_entries = store.entries(4, li + 1, u64::max_value()).unwrap();
@@ -2160,12 +2160,12 @@ mod tests {
     }
 
     #[test]
-    fn test_causetStorage_cache_fetch() {
+    fn test_causet_storage_cache_fetch() {
         let ents = vec![new_entry(3, 3), new_entry(4, 4), new_entry(5, 5)];
         let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
-        let mut store = new_causetStorage_from_ents(sched, &td, &ents);
+        let mut store = new_causet_storage_from_ents(sched, &td, &ents);
         store.cache.as_mut().unwrap().cache.clear();
         // empty cache should fetch data from lmdb directly.
         let mut res = store.entries(4, 6, u64::max_value()).unwrap();
@@ -2203,12 +2203,12 @@ mod tests {
     }
 
     #[test]
-    fn test_causetStorage_cache_ufidelate() {
+    fn test_causet_storage_cache_fidelio() {
         let ents = vec![new_entry(3, 3), new_entry(4, 4), new_entry(5, 5)];
         let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
-        let mut store = new_causetStorage_from_ents(sched, &td, &ents);
+        let mut store = new_causet_storage_from_ents(sched, &td, &ents);
         store.cache.as_mut().unwrap().cache.clear();
 
         // initial cache
@@ -2289,7 +2289,7 @@ mod tests {
     }
 
     #[test]
-    fn test_causetStorage_apply_snapshot() {
+    fn test_causet_storage_apply_snapshot() {
         let ents = vec![
             new_entry(3, 3),
             new_entry(4, 4),
@@ -2304,7 +2304,7 @@ mod tests {
         let mgr = SnapManager::new(snap_dir.path().to_str().unwrap());
         let mut worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
-        let s1 = new_causetStorage_from_ents(sched.clone(), &td1, &ents);
+        let s1 = new_causet_storage_from_ents(sched.clone(), &td1, &ents);
         let (router, _) = mpsc::sync_channel(100);
         let runner = BraneRunner::new(
             s1.engines.clone(),
@@ -2328,7 +2328,7 @@ mod tests {
         worker.stop().unwrap().join().unwrap();
 
         let td2 = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
-        let mut s2 = new_causetStorage(sched.clone(), &td2);
+        let mut s2 = new_causet_storage(sched.clone(), &td2);
         assert_eq!(s2.first_index(), s2.applied_index() + 1);
         let mut ctx = InvokeContext::new(&s2);
         assert_ne!(ctx.last_term, snap1.get_metadata().get_term());
@@ -2346,7 +2346,7 @@ mod tests {
 
         let td3 = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let ents = &[new_entry(3, 3), new_entry(4, 3)];
-        let mut s3 = new_causetStorage_from_ents(sched, &td3, ents);
+        let mut s3 = new_causet_storage_from_ents(sched, &td3, ents);
         validate_cache(&s3, &ents[1..]);
         let mut ctx = InvokeContext::new(&s3);
         assert_ne!(ctx.last_term, snap1.get_metadata().get_term());
@@ -2367,7 +2367,7 @@ mod tests {
         let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
-        let mut s = new_causetStorage(sched, &td);
+        let mut s = new_causet_storage(sched, &td);
 
         // PENDING can be canceled directly.
         s.snap_state = RefCell::new(SnapState::Applying(Arc::new(AtomicUsize::new(
@@ -2413,7 +2413,7 @@ mod tests {
         let td = Builder::new().prefix("edb-store-test").temfidelir().unwrap();
         let worker = Worker::new("snap-manager");
         let sched = worker.interlock_semaphore();
-        let mut s = new_causetStorage(sched, &td);
+        let mut s = new_causet_storage(sched, &td);
 
         // PENDING can be finished.
         let mut snap_state = SnapState::Applying(Arc::new(AtomicUsize::new(JOB_STATUS_PENDING)));
@@ -2497,10 +2497,10 @@ mod tests {
 
         let brane = initial_brane(1, 1, 1);
         prepare_bootstrap_cluster(&engines, &brane).unwrap();
-        let build_causetStorage = || -> Result<PeerStorage<LmdbEngine, LmdbEngine>> {
+        let build_causet_storage = || -> Result<PeerStorage<LmdbEngine, LmdbEngine>> {
             PeerStorage::new(engines.clone(), &brane, sched.clone(), 0, "".to_owned())
         };
-        let mut s = build_causetStorage().unwrap();
+        let mut s = build_causet_storage().unwrap();
         let mut violetabft_state = VioletaBftLocalState::default();
         violetabft_state.set_last_index(VIOLETABFT_INIT_LOG_INDEX);
         violetabft_state.mut_hard_state().set_term(VIOLETABFT_INIT_LOG_TERM);
@@ -2518,7 +2518,7 @@ mod tests {
             .unwrap();
         violetabft_state.mut_hard_state().set_commit(12);
         engines.violetabft.put_msg(&violetabft_state_key, &violetabft_state).unwrap();
-        assert!(build_causetStorage().is_err());
+        assert!(build_causet_storage().is_err());
 
         let log_key = tuplespaceInstanton::violetabft_log_key(1, 20);
         engines
@@ -2527,13 +2527,13 @@ mod tests {
             .unwrap();
         violetabft_state.set_last_index(20);
         engines.violetabft.put_msg(&violetabft_state_key, &violetabft_state).unwrap();
-        s = build_causetStorage().unwrap();
+        s = build_causet_storage().unwrap();
         let initial_state = s.initial_state().unwrap();
         assert_eq!(initial_state.hard_state, *violetabft_state.get_hard_state());
 
         // Missing last log is invalid.
         engines.violetabft.delete(&log_key).unwrap();
-        assert!(build_causetStorage().is_err());
+        assert!(build_causet_storage().is_err());
         engines
             .violetabft
             .put_msg(&log_key, &new_entry(20, VIOLETABFT_INIT_LOG_TERM))
@@ -2551,7 +2551,7 @@ mod tests {
             .kv
             .put_msg_causet(Causet_VIOLETABFT, &apply_state_key, &apply_state)
             .unwrap();
-        assert!(build_causetStorage().is_err());
+        assert!(build_causet_storage().is_err());
 
         // It should not recover if corresponding log doesn't exist.
         apply_state.set_commit_index(14);
@@ -2560,7 +2560,7 @@ mod tests {
             .kv
             .put_msg_causet(Causet_VIOLETABFT, &apply_state_key, &apply_state)
             .unwrap();
-        assert!(build_causetStorage().is_err());
+        assert!(build_causet_storage().is_err());
 
         let log_key = tuplespaceInstanton::violetabft_log_key(1, 14);
         engines
@@ -2568,7 +2568,7 @@ mod tests {
             .put_msg(&log_key, &new_entry(14, VIOLETABFT_INIT_LOG_TERM))
             .unwrap();
         violetabft_state.mut_hard_state().set_commit(14);
-        s = build_causetStorage().unwrap();
+        s = build_causet_storage().unwrap();
         let initial_state = s.initial_state().unwrap();
         assert_eq!(initial_state.hard_state, *violetabft_state.get_hard_state());
 
@@ -2577,7 +2577,7 @@ mod tests {
             .violetabft
             .put_msg(&log_key, &new_entry(14, VIOLETABFT_INIT_LOG_TERM - 1))
             .unwrap();
-        assert!(build_causetStorage().is_err());
+        assert!(build_causet_storage().is_err());
 
         // hard state term miss match is invalid.
         engines
@@ -2586,7 +2586,7 @@ mod tests {
             .unwrap();
         violetabft_state.mut_hard_state().set_term(VIOLETABFT_INIT_LOG_TERM - 1);
         engines.violetabft.put_msg(&violetabft_state_key, &violetabft_state).unwrap();
-        assert!(build_causetStorage().is_err());
+        assert!(build_causet_storage().is_err());
 
         // last index < recorded_commit_index is invalid.
         violetabft_state.mut_hard_state().set_term(VIOLETABFT_INIT_LOG_TERM);
@@ -2597,7 +2597,7 @@ mod tests {
             .put_msg(&log_key, &new_entry(13, VIOLETABFT_INIT_LOG_TERM))
             .unwrap();
         engines.violetabft.put_msg(&violetabft_state_key, &violetabft_state).unwrap();
-        assert!(build_causetStorage().is_err());
+        assert!(build_causet_storage().is_err());
 
         // last_commit_index > commit_index is invalid.
         violetabft_state.set_last_index(20);
@@ -2608,6 +2608,6 @@ mod tests {
             .kv
             .put_msg_causet(Causet_VIOLETABFT, &apply_state_key, &apply_state)
             .unwrap();
-        assert!(build_causetStorage().is_err());
+        assert!(build_causet_storage().is_err());
     }
 }

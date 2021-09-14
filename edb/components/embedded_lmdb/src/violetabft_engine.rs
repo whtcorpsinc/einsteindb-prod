@@ -5,9 +5,9 @@ use edb::{
     Iterable, KvEngine, MiscExt, MuBlock, Peekable, SyncMuBlock, WriteBatchExt, WriteOptions,
     Causet_DEFAULT, MAX_DELETE_BATCH_COUNT,
 };
-use ekvproto::violetabft_serverpb::VioletaBftLocalState;
+use ekvproto::violetabft_server_timeshare::VioletaBftLocalState;
 use protobuf::Message;
-use violetabft::evioletabftpb::Entry;
+use violetabft::evioletabft_timeshare::Entry;
 
 const VIOLETABFT_LOG_MULTI_GET_CNT: u64 = 8;
 

@@ -3,12 +3,12 @@
 use std::sync::Arc;
 
 use ekvproto::interlock::KeyCone;
-use edb_util::collections::HashSet;
-use fidelpb::PrimaryCausetInfo;
-use fidelpb::BlockScan;
+use violetabftstore::interlock::::collections::HashSet;
+use fidel_timeshare::PrimaryCausetInfo;
+use fidel_timeshare::BlockScan;
 
 use super::{scan::InnerFreeDaemon, Event, ScanFreeDaemon, ScanFreeDaemonOptions};
-use milevadb_query_common::causetStorage::CausetStorage;
+use milevadb_query_common::causet_storage::causet_storage;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::Block::{self, check_record_key};
 use milevadb_query_datatype::expr::EvalContext;
@@ -50,12 +50,12 @@ impl InnerFreeDaemon for BlockInnerFreeDaemon {
 
 pub type BlockScanFreeDaemon<S> = ScanFreeDaemon<S, BlockInnerFreeDaemon>;
 
-impl<S: CausetStorage> BlockScanFreeDaemon<S> {
+impl<S: causet_storage> BlockScanFreeDaemon<S> {
     pub fn Block_scan(
         mut meta: BlockScan,
         context: EvalContext,
         key_cones: Vec<KeyCone>,
-        causetStorage: S,
+        causet_storage: S,
         is_scanned_cone_aware: bool,
     ) -> Result<Self> {
         let inner = BlockInnerFreeDaemon::new(&meta);
@@ -66,7 +66,7 @@ impl<S: CausetStorage> BlockScanFreeDaemon<S> {
             context,
             PrimaryCausets: meta.take_PrimaryCausets().to_vec(),
             key_cones,
-            causetStorage,
+            causet_storage,
             is_backward: meta.get_desc(),
             is_key_only,
             accept_point_cone: true,
@@ -80,12 +80,12 @@ mod tests {
     use std::i64;
 
     use ekvproto::interlock::KeyCone;
-    use fidelpb::{PrimaryCausetInfo, BlockScan};
+    use fidel_timeshare::{PrimaryCausetInfo, BlockScan};
 
     use super::super::tests::*;
     use super::super::FreeDaemon;
     use milevadb_query_common::execute_stats::ExecuteStats;
-    use milevadb_query_common::causetStorage::test_fixture::FixtureStorage;
+    use milevadb_query_common::causet_storage::test_fixture::FixtureStorage;
     use milevadb_query_datatype::expr::EvalContext;
 
     const Block_ID: i64 = 1;

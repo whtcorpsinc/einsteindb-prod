@@ -58,7 +58,7 @@ make_auto_flush_static_metric! {
         tuplespaceInstanton_overwritten,
         tuplespaceInstanton_read,
         tuplespaceInstanton_relocated,
-        tuplespaceInstanton_ufidelated,
+        tuplespaceInstanton_fideliod,
         tuplespaceInstanton_written,
         memBlock_hit,
         memBlock_miss,
@@ -308,8 +308,8 @@ pub fn flush_engine_ticker_metrics(t: TickerType, value: u64, name: &str) {
         TickerType::NumberTuplespaceInstantonRead => {
             STORE_ENGINE_FLOW.get(name_enum).tuplespaceInstanton_read.inc_by(v);
         }
-        TickerType::NumberTuplespaceInstantonUfidelated => {
-            STORE_ENGINE_FLOW.get(name_enum).tuplespaceInstanton_ufidelated.inc_by(v);
+        TickerType::NumberTuplespaceInstantonfideliod => {
+            STORE_ENGINE_FLOW.get(name_enum).tuplespaceInstanton_fideliod.inc_by(v);
         }
         TickerType::BytesWritten => {
             STORE_ENGINE_FLOW.get(name_enum).bytes_written.inc_by(v);

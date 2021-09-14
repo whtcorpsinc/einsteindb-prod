@@ -29,7 +29,7 @@ use crate::server::gc_worker::WriteCompactionFilterFactory;
 use crate::server::lock_manager::Config as PessimisticTxnConfig;
 use crate::server::Config as ServerConfig;
 use crate::server::CONFIG_LMDB_GAUGE;
-use crate::causetStorage::config::{Config as StorageConfig, DEFAULT_DATA_DIR, DEFAULT_LMDB_SUB_DIR};
+use crate::causet_storage::config::{Config as StorageConfig, DEFAULT_DATA_DIR, DEFAULT_LMDB_SUB_DIR};
 use engine_lmdb::config::{self as rocks_config, BlobRunMode, CompressionType, LogLevel};
 use engine_lmdb::properties::MvccPropertiesCollectorFactory;
 use engine_lmdb::raw_util::CausetOptions;
@@ -50,12 +50,12 @@ use violetabftstore::interlock::Config as CopConfig;
 use violetabftstore::store::Config as VioletaBftstoreConfig;
 use violetabftstore::store::SplitConfig;
 use security::SecurityConfig;
-use edb_util::config::{
+use violetabftstore::interlock::::config::{
     self, LogFormat, OptionReadableSize, ReadableDuration, ReadableSize, TomlWriter, GB, MB,
 };
-use edb_util::sys::sys_quota::SysQuota;
-use edb_util::time::duration_to_sec;
-use edb_util::yatp_pool;
+use violetabftstore::interlock::::sys::sys_quota::SysQuota;
+use violetabftstore::interlock::::time::duration_to_sec;
+use violetabftstore::interlock::::yatp_pool;
 
 const LOCKCauset_MIN_MEM: usize = 256 * MB as usize;
 const LOCKCauset_MAX_MEM: usize = GB as usize;
@@ -1315,7 +1315,7 @@ impl DBConfigManger {
         self.validate_causet(causet)?;
         if self.shared_block_cache {
             return Err("shared block cache is enabled, change cache size through \
-                 block-cache.capacity in causetStorage module instead"
+                 block-cache.capacity in causet_storage module instead"
                 .into());
         }
         let handle = self.db.causet_handle(causet)?;
@@ -1453,7 +1453,7 @@ pub mod log_level_serde {
         Deserialize, Deserializer, Serialize, Serializer,
     };
     use slog::Level;
-    use edb_util::logger::{get_level_by_string, get_string_by_level};
+    use violetabftstore::interlock::::logger::{get_level_by_string, get_string_by_level};
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Level, D::Error>
     where
@@ -1749,7 +1749,7 @@ const DEFAULT_READPOOL_MAX_TASKS_PER_WORKER: usize = 2 * 1000;
 const MIN_READPOOL_STACK_SIZE_MB: u64 = 2;
 const DEFAULT_READPOOL_STACK_SIZE_MB: u64 = 10;
 
-readpool_config!(StorageReadPoolConfig, causetStorage_read_pool_test, "causetStorage");
+readpool_config!(StorageReadPoolConfig, causet_storage_read_pool_test, "causet_storage");
 
 impl Default for StorageReadPoolConfig {
     fn default() -> Self {
@@ -1772,14 +1772,14 @@ impl Default for StorageReadPoolConfig {
 
 impl StorageReadPoolConfig {
     pub fn use_unified_pool(&self) -> bool {
-        // The causetStorage module does not use the unified pool by default.
+        // The causet_storage module does not use the unified pool by default.
         self.use_unified_pool.unwrap_or(false)
     }
 
     pub fn adjust_use_unified_pool(&mut self) {
         if self.use_unified_pool.is_none() {
-            // The causetStorage module does not use the unified pool by default.
-            info!("readpool.causetStorage.use-unified-pool is not set, set to false by default");
+            // The causet_storage module does not use the unified pool by default.
+            info!("readpool.causet_storage.use-unified-pool is not set, set to false by default");
             self.use_unified_pool = Some(false);
         }
     }
@@ -1837,17 +1837,17 @@ impl CoprReadPoolConfig {
 #[serde(rename_all = "kebab-case")]
 pub struct ReadPoolConfig {
     pub unified: UnifiedReadPoolConfig,
-    pub causetStorage: StorageReadPoolConfig,
+    pub causet_storage: StorageReadPoolConfig,
     pub interlock: CoprReadPoolConfig,
 }
 
 impl ReadPoolConfig {
     pub fn is_unified_pool_enabled(&self) -> bool {
-        self.causetStorage.use_unified_pool() || self.interlock.use_unified_pool()
+        self.causet_storage.use_unified_pool() || self.interlock.use_unified_pool()
     }
 
     pub fn adjust_use_unified_pool(&mut self) {
-        self.causetStorage.adjust_use_unified_pool();
+        self.causet_storage.adjust_use_unified_pool();
         self.interlock.adjust_use_unified_pool();
     }
 
@@ -1855,7 +1855,7 @@ impl ReadPoolConfig {
         if self.is_unified_pool_enabled() {
             self.unified.validate()?;
         }
-        self.causetStorage.validate()?;
+        self.causet_storage.validate()?;
         self.interlock.validate()?;
         Ok(())
     }
@@ -1875,11 +1875,11 @@ mod readpool_tests {
             max_tasks_per_worker: 0,
         };
         assert!(unified.validate().is_err());
-        let causetStorage = StorageReadPoolConfig {
+        let causet_storage = StorageReadPoolConfig {
             use_unified_pool: Some(false),
             ..Default::default()
         };
-        assert!(causetStorage.validate().is_ok());
+        assert!(causet_storage.validate().is_ok());
         let interlock = CoprReadPoolConfig {
             use_unified_pool: Some(false),
             ..Default::default()
@@ -1887,28 +1887,28 @@ mod readpool_tests {
         assert!(interlock.validate().is_ok());
         let causet = ReadPoolConfig {
             unified,
-            causetStorage,
+            causet_storage,
             interlock,
         };
         assert!(!causet.is_unified_pool_enabled());
         assert!(causet.validate().is_ok());
 
-        // CausetStorage and interlock config must be valid when yatp is not used.
+        // causet_storage and interlock config must be valid when yatp is not used.
         let unified = UnifiedReadPoolConfig::default();
         assert!(unified.validate().is_ok());
-        let causetStorage = StorageReadPoolConfig {
+        let causet_storage = StorageReadPoolConfig {
             use_unified_pool: Some(false),
             high_concurrency: 0,
             ..Default::default()
         };
-        assert!(causetStorage.validate().is_err());
+        assert!(causet_storage.validate().is_err());
         let interlock = CoprReadPoolConfig {
             use_unified_pool: Some(false),
             ..Default::default()
         };
         let invalid_causet = ReadPoolConfig {
             unified,
-            causetStorage,
+            causet_storage,
             interlock,
         };
         assert!(!invalid_causet.is_unified_pool_enabled());
@@ -1924,16 +1924,16 @@ mod readpool_tests {
             ..Default::default()
         };
         assert!(unified.validate().is_err());
-        let causetStorage = StorageReadPoolConfig {
+        let causet_storage = StorageReadPoolConfig {
             use_unified_pool: Some(true),
             ..Default::default()
         };
-        assert!(causetStorage.validate().is_ok());
+        assert!(causet_storage.validate().is_ok());
         let interlock = CoprReadPoolConfig::default();
         assert!(interlock.validate().is_ok());
         let mut causet = ReadPoolConfig {
             unified,
-            causetStorage,
+            causet_storage,
             interlock,
         };
         causet.adjust_use_unified_pool();
@@ -1943,13 +1943,13 @@ mod readpool_tests {
 
     #[test]
     fn test_is_unified() {
-        let causetStorage = StorageReadPoolConfig::default();
-        assert!(!causetStorage.use_unified_pool());
+        let causet_storage = StorageReadPoolConfig::default();
+        assert!(!causet_storage.use_unified_pool());
         let interlock = CoprReadPoolConfig::default();
         assert!(interlock.use_unified_pool());
 
         let mut causet = ReadPoolConfig {
-            causetStorage,
+            causet_storage,
             interlock,
             ..Default::default()
         };
@@ -1961,32 +1961,32 @@ mod readpool_tests {
 
     #[test]
     fn test_partially_unified() {
-        let causetStorage = StorageReadPoolConfig {
+        let causet_storage = StorageReadPoolConfig {
             use_unified_pool: Some(false),
             low_concurrency: 0,
             ..Default::default()
         };
-        assert!(!causetStorage.use_unified_pool());
+        assert!(!causet_storage.use_unified_pool());
         let interlock = CoprReadPoolConfig {
             use_unified_pool: Some(true),
             ..Default::default()
         };
         assert!(interlock.use_unified_pool());
         let mut causet = ReadPoolConfig {
-            causetStorage,
+            causet_storage,
             interlock,
             ..Default::default()
         };
         assert!(causet.is_unified_pool_enabled());
         assert!(causet.validate().is_err());
-        causet.causetStorage.low_concurrency = 1;
+        causet.causet_storage.low_concurrency = 1;
         assert!(causet.validate().is_ok());
 
-        let causetStorage = StorageReadPoolConfig {
+        let causet_storage = StorageReadPoolConfig {
             use_unified_pool: Some(true),
             ..Default::default()
         };
-        assert!(causetStorage.use_unified_pool());
+        assert!(causet_storage.use_unified_pool());
         let interlock = CoprReadPoolConfig {
             use_unified_pool: Some(false),
             low_concurrency: 0,
@@ -1994,7 +1994,7 @@ mod readpool_tests {
         };
         assert!(!interlock.use_unified_pool());
         let mut causet = ReadPoolConfig {
-            causetStorage,
+            causet_storage,
             interlock,
             ..Default::default()
         };
@@ -2089,7 +2089,7 @@ pub struct EINSTEINDBConfig {
     pub server: ServerConfig,
 
     #[config(submodule)]
-    pub causetStorage: StorageConfig,
+    pub causet_storage: StorageConfig,
 
     #[config(skip)]
     pub fidel: FidelConfig,
@@ -2156,7 +2156,7 @@ impl Default for EINSTEINDBConfig {
             lmdb: DbConfig::default(),
             violetabftdb: VioletaBftDbConfig::default(),
             violetabft_engine: VioletaBftEngineConfig::default(),
-            causetStorage: StorageConfig::default(),
+            causet_storage: StorageConfig::default(),
             security: SecurityConfig::default(),
             import: ImportConfig::default(),
             backup: BackupConfig::default(),
@@ -2172,12 +2172,12 @@ impl EINSTEINDBConfig {
     // TODO: change to validate(&self)
     pub fn validate(&mut self) -> Result<(), Box<dyn Error>> {
         self.readpool.validate()?;
-        self.causetStorage.validate()?;
+        self.causet_storage.validate()?;
 
         self.violetabft_store.brane_split_check_diff = self.interlock.brane_split_size / 16;
 
         if self.causet_path.is_empty() {
-            self.causet_path = Path::new(&self.causetStorage.data_dir)
+            self.causet_path = Path::new(&self.causet_storage.data_dir)
                 .join(LAST_CONFIG_FILE)
                 .to_str()
                 .unwrap()
@@ -2186,7 +2186,7 @@ impl EINSTEINDBConfig {
 
         if !self.violetabft_engine.enable {
             let default_violetabftdb_path =
-                config::canonicalize_sub_path(&self.causetStorage.data_dir, "violetabft")?;
+                config::canonicalize_sub_path(&self.causet_storage.data_dir, "violetabft")?;
             if self.violetabft_store.violetabftdb_path.is_empty() {
                 self.violetabft_store.violetabftdb_path = default_violetabftdb_path;
             } else if self.violetabft_store.violetabftdb_path != default_violetabftdb_path {
@@ -2195,7 +2195,7 @@ impl EINSTEINDBConfig {
             }
         } else {
             let default_er_path =
-                config::canonicalize_sub_path(&self.causetStorage.data_dir, "violetabft-engine")?;
+                config::canonicalize_sub_path(&self.causet_storage.data_dir, "violetabft-engine")?;
             if self.violetabft_engine.config.dir.is_empty() {
                 self.violetabft_engine.config.dir = default_er_path;
             } else if self.violetabft_engine.config.dir != default_er_path {
@@ -2205,10 +2205,10 @@ impl EINSTEINDBConfig {
         }
 
         let kv_db_path =
-            config::canonicalize_sub_path(&self.causetStorage.data_dir, DEFAULT_LMDB_SUB_DIR)?;
+            config::canonicalize_sub_path(&self.causet_storage.data_dir, DEFAULT_LMDB_SUB_DIR)?;
 
         if kv_db_path == self.violetabft_store.violetabftdb_path {
-            return Err("violetabft_store.violetabftdb_path can not same with causetStorage.data_dir/db".into());
+            return Err("violetabft_store.violetabftdb_path can not same with causet_storage.data_dir/db".into());
         }
         if !self.violetabft_engine.enable {
             if LmdbEngine::exists(&kv_db_path)
@@ -2242,7 +2242,7 @@ impl EINSTEINDBConfig {
                 Path::new(&self.lmdb.titan.dirname).to_path_buf()
             };
             if let Err(e) =
-                edb_util::config::check_data_dir_empty(titandb_path.to_str().unwrap(), "blob")
+                violetabftstore::interlock::::config::check_data_dir_empty(titandb_path.to_str().unwrap(), "blob")
             {
                 return Err(format!(
                     "check: titandb-data-dir-empty; err: \"{}\"; \
@@ -2359,7 +2359,7 @@ impl EINSTEINDBConfig {
         // When shared block cache is enabled, if its capacity is set, it overrides individual
         // block cache sizes. Otherwise use the sum of block cache size of all PrimaryCauset families
         // as the shared cache size.
-        let cache_causet = &mut self.causetStorage.block_cache;
+        let cache_causet = &mut self.causet_storage.block_cache;
         if cache_causet.shared && cache_causet.capacity.0.is_none() {
             cache_causet.capacity.0 = Some(ReadableSize {
                 0: self.lmdb.defaultcauset.block_cache_size.0
@@ -2391,17 +2391,17 @@ impl EINSTEINDBConfig {
             ));
         }
 
-        if last_causet.causetStorage.data_dir != self.causetStorage.data_dir {
-            // In edb 3.0 the default value of causetStorage.data-dir changed
+        if last_causet.causet_storage.data_dir != self.causet_storage.data_dir {
+            // In edb 3.0 the default value of causet_storage.data-dir changed
             // from "" to "./"
             let using_default_after_upgrade =
-                last_causet.causetStorage.data_dir.is_empty() && self.causetStorage.data_dir == DEFAULT_DATA_DIR;
+                last_causet.causet_storage.data_dir.is_empty() && self.causet_storage.data_dir == DEFAULT_DATA_DIR;
 
             if !using_default_after_upgrade {
                 return Err(format!(
-                    "causetStorage data dir have been changed, former data dir is {}, \
+                    "causet_storage data dir have been changed, former data dir is {}, \
                      current data dir is {}, please check if it is expected.",
-                    last_causet.causetStorage.data_dir, self.causetStorage.data_dir
+                    last_causet.causet_storage.data_dir, self.causet_storage.data_dir
                 ));
             }
         }
@@ -2469,7 +2469,7 @@ impl EINSTEINDBConfig {
     pub fn with_tmp() -> Result<(EINSTEINDBConfig, tempfile::TempDir), IoError> {
         let tmp = tempfile::temfidelir()?;
         let mut causet = EINSTEINDBConfig::default();
-        causet.causetStorage.data_dir = tmp.path().display().to_string();
+        causet.causet_storage.data_dir = tmp.path().display().to_string();
         causet.causet_path = tmp.path().join(LAST_CONFIG_FILE).display().to_string();
         Ok((causet, tmp))
     }
@@ -2483,7 +2483,7 @@ impl EINSTEINDBConfig {
 pub fn check_critical_config(config: &EINSTEINDBConfig) -> Result<(), String> {
     // Check current critical configurations with last time, if there are some
     // changes, user must guarantee relevant works have been done.
-    if let Some(mut causet) = get_last_config(&config.causetStorage.data_dir) {
+    if let Some(mut causet) = get_last_config(&config.causet_storage.data_dir) {
         causet.compatible_adjust();
         let _ = causet.validate();
         config.check_critical_causet_with(&causet)?;
@@ -2502,7 +2502,7 @@ fn get_last_config(data_dir: &str) -> Option<EINSTEINDBConfig> {
 
 /// Persists config to `last_edb.toml`
 pub fn persist_config(config: &EINSTEINDBConfig) -> Result<(), String> {
-    let store_path = Path::new(&config.causetStorage.data_dir);
+    let store_path = Path::new(&config.causet_storage.data_dir);
     let last_causet_path = store_path.join(LAST_CONFIG_FILE);
     let tmp_causet_path = store_path.join(TMP_CONFIG_FILE);
 
@@ -2697,7 +2697,7 @@ pub enum Module {
     Lmdbdb,
     VioletaBftdb,
     VioletaBftEngine,
-    CausetStorage,
+    causet_storage,
     Security,
     Encryption,
     Import,
@@ -2721,7 +2721,7 @@ impl From<&str> for Module {
             "lmdb" => Module::Lmdbdb,
             "violetabftdb" => Module::VioletaBftdb,
             "violetabft_engine" => Module::VioletaBftEngine,
-            "causetStorage" => Module::CausetStorage,
+            "causet_storage" => Module::causet_storage,
             "security" => Module::Security,
             "import" => Module::Import,
             "backup" => Module::Backup,
@@ -2756,35 +2756,35 @@ impl ConfigController {
         }
     }
 
-    pub fn ufidelate(&self, change: HashMap<String, String>) -> CfgResult<()> {
+    pub fn fidelio(&self, change: HashMap<String, String>) -> CfgResult<()> {
         let diff = to_config_change(change.clone())?;
         {
             let mut incoming = self.get_current();
-            incoming.ufidelate(diff.clone());
+            incoming.fidelio(diff.clone());
             incoming.validate()?;
         }
         let mut inner = self.inner.write().unwrap();
-        let mut to_ufidelate = HashMap::with_capacity(diff.len());
+        let mut to_fidelio = HashMap::with_capacity(diff.len());
         for (name, change) in diff.into_iter() {
             match change {
                 ConfigValue::Module(change) => {
-                    // ufidelate a submodule's config only if changes had been sucessfully
+                    // fidelio a submodule's config only if changes had been sucessfully
                     // dispatched to corresponding config manager, to avoid dispatch change twice
                     if let Some(mgr) = inner.config_mgrs.get_mut(&Module::from(name.as_str())) {
                         if let Err(e) = mgr.dispatch(change.clone()) {
-                            inner.current.ufidelate(to_ufidelate);
+                            inner.current.fidelio(to_fidelio);
                             return Err(e);
                         }
                     }
-                    to_ufidelate.insert(name, ConfigValue::Module(change));
+                    to_fidelio.insert(name, ConfigValue::Module(change));
                 }
                 _ => {
-                    let _ = to_ufidelate.insert(name, change);
+                    let _ = to_fidelio.insert(name, change);
                 }
             }
         }
-        debug!("all config change had been dispatched"; "change" => ?to_ufidelate);
-        inner.current.ufidelate(to_ufidelate);
+        debug!("all config change had been dispatched"; "change" => ?to_fidelio);
+        inner.current.fidelio(to_fidelio);
         // Write change to the config file
         let content = {
             let change = to_toml_encode(change)?;
@@ -2801,10 +2801,10 @@ impl ConfigController {
         Ok(())
     }
 
-    pub fn ufidelate_config(&self, name: &str, value: &str) -> CfgResult<()> {
+    pub fn fidelio_config(&self, name: &str, value: &str) -> CfgResult<()> {
         let mut m = HashMap::new();
         m.insert(name.to_owned(), value.to_owned());
-        self.ufidelate(m)
+        self.fidelio(m)
     }
 
     pub fn register(&self, module: Module, causet_mgr: Box<dyn ConfigManager>) {
@@ -2824,7 +2824,7 @@ mod tests {
     use tempfile::Builder;
 
     use super::*;
-    use crate::causetStorage::config::StorageConfigManger;
+    use crate::causet_storage::config::StorageConfigManger;
     use engine_lmdb::raw_util::new_engine_opt;
     use edb::DBOptions as DBOptionsTrait;
     use violetabft_log_engine::RecoveryMode;
@@ -2849,10 +2849,10 @@ mod tests {
         last_causet.violetabftdb.wal_dir = "/violetabft/wal_dir".to_owned();
         assert!(edb_causet.check_critical_causet_with(&last_causet).is_ok());
 
-        edb_causet.causetStorage.data_dir = "/data1".to_owned();
+        edb_causet.causet_storage.data_dir = "/data1".to_owned();
         assert!(edb_causet.check_critical_causet_with(&last_causet).is_err());
 
-        last_causet.causetStorage.data_dir = "/data1".to_owned();
+        last_causet.causet_storage.data_dir = "/data1".to_owned();
         assert!(edb_causet.check_critical_causet_with(&last_causet).is_ok());
 
         edb_causet.violetabft_store.violetabftdb_path = "/violetabft_path".to_owned();
@@ -2865,7 +2865,7 @@ mod tests {
     #[test]
     fn test_last_causet_modified() {
         let (mut causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-        let store_path = Path::new(&causet.causetStorage.data_dir);
+        let store_path = Path::new(&causet.causet_storage.data_dir);
         let last_causet_path = store_path.join(LAST_CONFIG_FILE);
 
         causet.write_to_file(&last_causet_path).unwrap();
@@ -2919,7 +2919,7 @@ mod tests {
         let path = root_path.path().join("not_exist_dir");
 
         let mut edb_causet = EINSTEINDBConfig::default();
-        edb_causet.causetStorage.data_dir = path.as_path().to_str().unwrap().to_owned();
+        edb_causet.causet_storage.data_dir = path.as_path().to_str().unwrap().to_owned();
         assert!(persist_config(&edb_causet).is_ok());
     }
 
@@ -3093,21 +3093,21 @@ mod tests {
     fn new_engines(causet: EINSTEINDBConfig) -> (LmdbEngine, ConfigController) {
         let engine = LmdbEngine::from_db(Arc::new(
             new_engine_opt(
-                &causet.causetStorage.data_dir,
+                &causet.causet_storage.data_dir,
                 causet.lmdb.build_opt(),
                 causet.lmdb
-                    .build_causet_opts(&causet.causetStorage.block_cache.build_shared_cache()),
+                    .build_causet_opts(&causet.causet_storage.block_cache.build_shared_cache()),
             )
             .unwrap(),
         ));
 
-        let (shared, causet_controller) = (causet.causetStorage.block_cache.shared, ConfigController::new(causet));
+        let (shared, causet_controller) = (causet.causet_storage.block_cache.shared, ConfigController::new(causet));
         causet_controller.register(
             Module::Lmdbdb,
             Box::new(DBConfigManger::new(engine.clone(), DBType::Kv, shared)),
         );
         causet_controller.register(
-            Module::CausetStorage,
+            Module::causet_storage,
             Box::new(StorageConfigManger::new(engine.clone(), shared)),
         );
         (engine, causet_controller)
@@ -3121,20 +3121,20 @@ mod tests {
         causet.lmdb.defaultcauset.target_file_size_base = ReadableSize::mb(64);
         causet.lmdb.defaultcauset.block_cache_size = ReadableSize::mb(8);
         causet.lmdb.rate_bytes_per_sec = ReadableSize::mb(64);
-        causet.causetStorage.block_cache.shared = false;
+        causet.causet_storage.block_cache.shared = false;
         causet.validate().unwrap();
         let (db, causet_controller) = new_engines(causet);
 
-        // ufidelate max_background_jobs
+        // fidelio max_background_jobs
         let db_opts = db.get_db_options();
         assert_eq!(db_opts.get_max_background_jobs(), 2);
 
         causet_controller
-            .ufidelate_config("lmdb.max-background-jobs", "8")
+            .fidelio_config("lmdb.max-background-jobs", "8")
             .unwrap();
         assert_eq!(db.get_db_options().get_max_background_jobs(), 8);
 
-        // ufidelate rate_bytes_per_sec
+        // fidelio rate_bytes_per_sec
         let db_opts = db.get_db_options();
         assert_eq!(
             db_opts.get_rate_bytes_per_sec().unwrap(),
@@ -3142,14 +3142,14 @@ mod tests {
         );
 
         causet_controller
-            .ufidelate_config("lmdb.rate-bytes-per-sec", "128MB")
+            .fidelio_config("lmdb.rate-bytes-per-sec", "128MB")
             .unwrap();
         assert_eq!(
             db.get_db_options().get_rate_bytes_per_sec().unwrap(),
             ReadableSize::mb(128).0 as i64
         );
 
-        // ufidelate some configs on default causet
+        // fidelio some configs on default causet
         let defaultcauset = db.causet_handle(Causet_DEFAULT).unwrap();
         let causet_opts = db.get_options_causet(defaultcauset);
         assert_eq!(causet_opts.get_disable_auto_compactions(), false);
@@ -3169,34 +3169,34 @@ mod tests {
             "lmdb.defaultcauset.block-cache-size".to_owned(),
             "256MB".to_owned(),
         );
-        causet_controller.ufidelate(change).unwrap();
+        causet_controller.fidelio(change).unwrap();
 
         let causet_opts = db.get_options_causet(defaultcauset);
         assert_eq!(causet_opts.get_disable_auto_compactions(), true);
         assert_eq!(causet_opts.get_target_file_size_base(), ReadableSize::mb(32).0);
         assert_eq!(causet_opts.pull_upper_bound_release_buffer(), ReadableSize::mb(256).0);
 
-        // Can not ufidelate block cache through causetStorage module
+        // Can not fidelio block cache through causet_storage module
         // when shared block cache is disabled
         assert!(causet_controller
-            .ufidelate_config("causetStorage.block-cache.capacity", "512MB")
+            .fidelio_config("causet_storage.block-cache.capacity", "512MB")
             .is_err());
     }
 
     #[test]
     fn test_change_shared_block_cache() {
         let (mut causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
-        causet.causetStorage.block_cache.shared = true;
+        causet.causet_storage.block_cache.shared = true;
         causet.validate().unwrap();
         let (db, causet_controller) = new_engines(causet);
 
-        // Can not ufidelate shared block cache through lmdb module
+        // Can not fidelio shared block cache through lmdb module
         assert!(causet_controller
-            .ufidelate_config("lmdb.defaultcauset.block-cache-size", "256MB")
+            .fidelio_config("lmdb.defaultcauset.block-cache-size", "256MB")
             .is_err());
 
         causet_controller
-            .ufidelate_config("causetStorage.block-cache.capacity", "256MB")
+            .fidelio_config("causet_storage.block-cache.capacity", "256MB")
             .unwrap();
 
         let defaultcauset = db.causet_handle(Causet_DEFAULT).unwrap();
@@ -3246,23 +3246,23 @@ mod tests {
     #[test]
     fn test_readpool_compatible_adjust_config() {
         let content = r#"
-        [readpool.causetStorage]
+        [readpool.causet_storage]
         [readpool.interlock]
         "#;
         let mut causet: EINSTEINDBConfig = toml::from_str(content).unwrap();
         causet.compatible_adjust();
-        assert_eq!(causet.readpool.causetStorage.use_unified_pool, Some(false));
+        assert_eq!(causet.readpool.causet_storage.use_unified_pool, Some(false));
         assert_eq!(causet.readpool.interlock.use_unified_pool, Some(true));
 
         let content = r#"
-        [readpool.causetStorage]
+        [readpool.causet_storage]
         stack-size = "10MB"
         [readpool.interlock]
         normal-concurrency = 1
         "#;
         let mut causet: EINSTEINDBConfig = toml::from_str(content).unwrap();
         causet.compatible_adjust();
-        assert_eq!(causet.readpool.causetStorage.use_unified_pool, Some(false));
+        assert_eq!(causet.readpool.causet_storage.use_unified_pool, Some(false));
         assert_eq!(causet.readpool.interlock.use_unified_pool, Some(false));
     }
 
@@ -3334,7 +3334,7 @@ mod tests {
         causet.validate().unwrap();
         assert_eq!(
             causet.violetabft_engine.config.dir,
-            config::canonicalize_sub_path(&causet.causetStorage.data_dir, "violetabft-engine").unwrap()
+            config::canonicalize_sub_path(&causet.causet_storage.data_dir, "violetabft-engine").unwrap()
         );
     }
 }

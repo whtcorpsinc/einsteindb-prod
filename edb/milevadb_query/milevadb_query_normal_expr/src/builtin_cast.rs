@@ -455,7 +455,7 @@ impl ScalarFunc {
         let val = try_opt!(self.children[0].eval_time(ctx, Evcausetidx));
         let mut val = val.into_owned();
         val.round_frac(ctx, self.field_type.decimal() as i8)?;
-        // TODO: milevadb only ufidelate tp when tp is Date
+        // TODO: milevadb only fidelio tp when tp is Date
         val.set_time_type(self.field_type.as_accessor().tp().try_into()?)?;
         Ok(Some(Cow::Owned(val)))
     }
@@ -754,7 +754,7 @@ mod tests {
     use std::{i64, u64};
 
     use milevadb_query_datatype::{self, FieldTypeAccessor, FieldTypeFlag, FieldTypeTp};
-    use fidelpb::{Expr, FieldType, ScalarFuncSig};
+    use fidel_timeshare::{Expr, FieldType, ScalarFuncSig};
 
     use chrono::Utc;
 

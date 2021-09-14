@@ -10,7 +10,7 @@ use std::string::ToString;
 use std::{cmp, i32, i64, mem, u32, u64};
 
 use codec::prelude::*;
-use edb_util::escape;
+use violetabftstore::interlock::::escape;
 
 use crate::codec::convert::{self, ConvertTo};
 use crate::codec::data_type::*;

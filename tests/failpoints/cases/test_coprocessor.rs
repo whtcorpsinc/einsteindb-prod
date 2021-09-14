@@ -1,11 +1,11 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use ekvproto::kvrpcpb::{Context, IsolationLevel};
+use ekvproto::kvrpc_timeshare::{Context, IsolationLevel};
 use protobuf::Message;
-use fidelpb::SelectResponse;
+use fidel_timeshare::SelectResponse;
 
 use test_interlock::*;
-use test_causetStorage::*;
+use test_causet_storage::*;
 
 #[test]
 fn test_deadline() {
@@ -46,9 +46,9 @@ fn test_deadline_3() {
 
     let product = ProductBlock::new();
     let (_, lightlikepoint) = {
-        let engine = edb::causetStorage::TestEngineBuilder::new().build().unwrap();
+        let engine = edb::causet_storage::TestEngineBuilder::new().build().unwrap();
         let mut causet = edb::server::Config::default();
-        causet.lightlike_point_request_max_handle_duration = edb_util::config::ReadableDuration::secs(1);
+        causet.lightlike_point_request_max_handle_duration = violetabftstore::interlock::::config::ReadableDuration::secs(1);
         init_data_with_details(Context::default(), engine, &product, &data, true, &causet)
     };
     let req = DAGSelect::from(&product).build();
@@ -129,7 +129,7 @@ fn test_snapshot_failed_2() {
 }
 
 #[test]
-fn test_causetStorage_error() {
+fn test_causet_storage_error() {
     let data = vec![(1, Some("name:0"), 2), (2, Some("name:4"), 3)];
 
     let product = ProductBlock::new();

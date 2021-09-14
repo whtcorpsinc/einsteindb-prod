@@ -1,7 +1,7 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
 use std::cmp::Ordering;
-use fidelpb::ExprType;
+use fidel_timeshare::ExprType;
 
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::mysql::Decimal;
@@ -32,8 +32,8 @@ pub fn build_aggr_func(tp: ExprType) -> Result<Box<dyn AggrFunc>> {
 
 /// `AggrFunc` is used to execute aggregate operations.
 pub trait AggrFunc: lightlike {
-    /// `ufidelate` is used for ufidelate aggregate context.
-    fn ufidelate(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()>;
+    /// `fidelio` is used for fidelio aggregate context.
+    fn fidelio(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()>;
     /// `calc` calculates the aggregated result and push it to collector.
     fn calc(&mut self, collector: &mut Vec<Datum>) -> Result<()>;
 }
@@ -43,7 +43,7 @@ struct AggBitAnd {
 }
 
 impl AggrFunc for AggBitAnd {
-    fn ufidelate(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
+    fn fidelio(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
         if args.len() != 1 {
             return Err(other_err!(
                 "bit_and only support one PrimaryCauset, but got {}",
@@ -73,7 +73,7 @@ struct AggBitOr {
 }
 
 impl AggrFunc for AggBitOr {
-    fn ufidelate(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
+    fn fidelio(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
         if args.len() != 1 {
             return Err(other_err!(
                 "bit_or only support one PrimaryCauset, but got {}",
@@ -103,7 +103,7 @@ struct AggBitXor {
 }
 
 impl AggrFunc for AggBitXor {
-    fn ufidelate(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
+    fn fidelio(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
         if args.len() != 1 {
             return Err(other_err!(
                 "bit_xor only support one PrimaryCauset, but got {}",
@@ -133,7 +133,7 @@ struct Count {
 }
 
 impl AggrFunc for Count {
-    fn ufidelate(&mut self, _: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
+    fn fidelio(&mut self, _: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
         for arg in args {
             if *arg == Datum::Null {
                 return Ok(());
@@ -154,7 +154,7 @@ struct First {
 }
 
 impl AggrFunc for First {
-    fn ufidelate(&mut self, _: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
+    fn fidelio(&mut self, _: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
         if self.e.is_some() {
             return Ok(());
         }
@@ -214,7 +214,7 @@ impl Sum {
 }
 
 impl AggrFunc for Sum {
-    fn ufidelate(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
+    fn fidelio(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
         self.add_asssign(ctx, args)?;
         Ok(())
     }
@@ -238,7 +238,7 @@ struct Avg {
 }
 
 impl AggrFunc for Avg {
-    fn ufidelate(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
+    fn fidelio(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
         if self.sum.add_asssign(ctx, args)? {
             self.cnt += 1;
         }
@@ -263,7 +263,7 @@ impl Extremum {
 }
 
 impl AggrFunc for Extremum {
-    fn ufidelate(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
+    fn fidelio(&mut self, ctx: &mut EvalContext, args: &mut Vec<Datum>) -> Result<()> {
         if args.len() != 1 {
             return Err(other_err!(
                 "max/min only support one PrimaryCauset, but got {}",
@@ -304,8 +304,8 @@ mod tests {
         let v1 = Datum::I64(i64::MAX);
         let v2 = Datum::I64(12);
         let res = Decimal::from(i64::MAX).add(&Decimal::from(12)).unwrap();
-        sum.ufidelate(&mut ctx, &mut vec![v1]).unwrap();
-        sum.ufidelate(&mut ctx, &mut vec![v2]).unwrap();
+        sum.fidelio(&mut ctx, &mut vec![v1]).unwrap();
+        sum.fidelio(&mut ctx, &mut vec![v2]).unwrap();
         let v = sum.res.take().unwrap();
         assert_eq!(v, Datum::Dec(res));
     }
@@ -317,8 +317,8 @@ mod tests {
         let v1 = Datum::U64(u64::MAX);
         let v2 = Datum::U64(12);
         let res = Decimal::from(u64::MAX).add(&Decimal::from(12)).unwrap();
-        sum.ufidelate(&mut ctx, &mut vec![v1]).unwrap();
-        sum.ufidelate(&mut ctx, &mut vec![v2]).unwrap();
+        sum.fidelio(&mut ctx, &mut vec![v1]).unwrap();
+        sum.fidelio(&mut ctx, &mut vec![v2]).unwrap();
         let v = sum.res.take().unwrap();
         assert_eq!(v, Datum::Dec(res));
     }
@@ -336,7 +336,7 @@ mod tests {
         ];
         let res = 123.09 + 12.1;
         for v in data {
-            sum.ufidelate(&mut ctx, &mut vec![v]).unwrap();
+            sum.fidelio(&mut ctx, &mut vec![v]).unwrap();
         }
         let v = sum.res.take().unwrap();
         assert_eq!(v, Datum::F64(res));
@@ -369,7 +369,7 @@ mod tests {
         ];
 
         for v in data {
-            aggr.ufidelate(&mut ctx, &mut vec![v]).unwrap();
+            aggr.fidelio(&mut ctx, &mut vec![v]).unwrap();
         }
         assert_eq!(aggr.c, 0);
     }
@@ -392,7 +392,7 @@ mod tests {
         ];
 
         for v in data {
-            aggr.ufidelate(&mut ctx, &mut vec![v]).unwrap();
+            aggr.fidelio(&mut ctx, &mut vec![v]).unwrap();
         }
         assert_eq!(aggr.c, 31);
     }
@@ -415,7 +415,7 @@ mod tests {
         ];
 
         for v in data {
-            aggr.ufidelate(&mut ctx, &mut vec![v]).unwrap();
+            aggr.fidelio(&mut ctx, &mut vec![v]).unwrap();
         }
         assert_eq!(aggr.c, 3);
     }

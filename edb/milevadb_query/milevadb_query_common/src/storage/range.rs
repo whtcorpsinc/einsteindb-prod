@@ -11,7 +11,7 @@ pub enum Cone {
 }
 
 impl Cone {
-    pub fn from_pb_cone(mut cone: KeyCone, accept_point_cone: bool) -> Self {
+    pub fn from__timeshare_cone(mut cone: KeyCone, accept_point_cone: bool) -> Self {
         if accept_point_cone && crate::util::is_point(&cone) {
             Cone::Point(PointCone(cone.take_spacelike()))
         } else {

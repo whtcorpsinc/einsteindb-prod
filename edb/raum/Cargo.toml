@@ -1,5 +1,5 @@
 [package]
-name = "raum"
+name = "allegro"
 version = "0.0.1"
 workspace = ".."
 
@@ -11,8 +11,8 @@ indexmap = "1"
 ordered-float = { version = "0.5", features = ["serde"] }
 uuid = { version = "0.5", features = ["v4", "serde"] }
 
-[dependencies.raum_promises]
-path = "../raum-promises"
+[dependencies.allegro_promises]
+path = "../allegro-promises"
 
 [dependencies.edbn]
 path = "../edbn"

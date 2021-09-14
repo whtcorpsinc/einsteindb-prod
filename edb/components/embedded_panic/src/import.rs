@@ -1,10 +1,10 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::Raum::PanicRaum;
-use Raum_promises::{ImportExt, IngestExternalFileOptions, Result};
+use crate::allegro::Panicallegro;
+use allegro_promises::{ImportExt, IngestExternalFileOptions, Result};
 use std::path::Path;
 
-impl ImportExt for PanicRaum {
+impl ImportExt for Panicallegro {
     type IngestExternalFileOptions = PanicIngestExternalFileOptions;
 
     fn ingest_external_file_causet(

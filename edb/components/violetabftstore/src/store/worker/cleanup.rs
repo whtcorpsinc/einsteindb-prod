@@ -8,7 +8,7 @@ use super::compact::{Runner as CompactRunner, Task as CompactTask};
 use crate::store::StoreRouter;
 use edb::KvEngine;
 use fidel_client::FidelClient;
-use edb_util::worker::Runnable;
+use violetabftstore::interlock::::worker::Runnable;
 
 pub enum Task {
     Compact(CompactTask),

@@ -6,7 +6,7 @@ use crossbeam::channel::*;
 use std::sync::atomic::*;
 use std::sync::Arc;
 use std::time::Duration;
-use edb_util::mpsc;
+use violetabftstore::interlock::::mpsc;
 
 fn counter_closure(counter: &Arc<AtomicUsize>) -> Message {
     let c = counter.clone();

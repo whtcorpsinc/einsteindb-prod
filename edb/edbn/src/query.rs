@@ -8,7 +8,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-///! This module defines some raum types that support find expressions: sources,
+///! This module defines some allegro types that support find expressions: sources,
 ///! variables, expressions, etc.
 ///! These are produced as 'fuel' by the causetq parser, consumed by the causetq
 ///! translator and executor.

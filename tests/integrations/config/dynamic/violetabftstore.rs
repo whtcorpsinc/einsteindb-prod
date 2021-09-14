@@ -4,7 +4,7 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 
 use engine_lmdb::LmdbEngine;
-use ekvproto::violetabft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
 use violetabftstore::interlock::InterlockHost;
 use violetabftstore::store::config::{Config, VioletaBftstoreConfigManager};
 use violetabftstore::store::fsm::StoreMeta;
@@ -18,8 +18,8 @@ use concurrency_manager::ConcurrencyManager;
 use edb::{Engines, ALL_CausetS};
 use tempfile::TempDir;
 use test_violetabftstore::TestFidelClient;
-use edb_util::config::VersionTrack;
-use edb_util::worker::{FutureWorker, Worker};
+use violetabftstore::interlock::::config::VersionTrack;
+use violetabftstore::interlock::::worker::{FutureWorker, Worker};
 
 #[derive(Clone)]
 struct MockTransport;
@@ -129,12 +129,12 @@ where
 }
 
 #[test]
-fn test_ufidelate_violetabftstore_config() {
+fn test_fidelio_violetabftstore_config() {
     let (mut config, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
     config.validate().unwrap();
     let (causet_controller, router, _, mut system) = spacelike_violetabftstore(config.clone(), &_dir);
 
-    // dispatch ufidelated config
+    // dispatch fideliod config
     let change = {
         let mut m = std::collections::HashMap::new();
         m.insert("violetabftstore.messages-per-tick".to_owned(), "12345".to_owned());
@@ -144,9 +144,9 @@ fn test_ufidelate_violetabftstore_config() {
         );
         m
     };
-    causet_controller.ufidelate(change).unwrap();
+    causet_controller.fidelio(change).unwrap();
 
-    // config should be ufidelated
+    // config should be fideliod
     let mut violetabft_store = config.violetabft_store;
     violetabft_store.messages_per_tick = 12345;
     violetabft_store.violetabft_log_gc_memory_barrier = 54321;

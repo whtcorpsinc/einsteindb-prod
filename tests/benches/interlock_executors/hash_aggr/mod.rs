@@ -5,8 +5,8 @@ mod util;
 use criterion::measurement::Measurement;
 
 use milevadb_query_datatype::FieldTypeTp;
-use fidelpb::{ExprType, ScalarFuncSig};
-use fidelpb_helper::ExprDefBuilder;
+use fidel_timeshare::{ExprType, ScalarFuncSig};
+use fidel_timeshare_helper::ExprDefBuilder;
 
 use crate::util::{BenchCase, FixtureBuilder};
 

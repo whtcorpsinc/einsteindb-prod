@@ -2,7 +2,7 @@
 
 use configuration::{ConfigChange, ConfigManager, Configuration};
 use std::sync::Arc;
-use edb_util::config::VersionTrack;
+use violetabftstore::interlock::::config::VersionTrack;
 
 const DEFAULT_DETECT_TIMES: u64 = 10;
 const DEFAULT_SAMPLE_THRESHOLD: i32 = 100;
@@ -66,7 +66,7 @@ impl ConfigManager for SplitConfigManager {
         {
             let change = change.clone();
             self.0
-                .ufidelate(move |causet: &mut SplitConfig| causet.ufidelate(change));
+                .fidelio(move |causet: &mut SplitConfig| causet.fidelio(change));
         }
         info!(
             "split hub config changed";

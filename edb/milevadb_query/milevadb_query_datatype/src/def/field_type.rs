@@ -2,12 +2,12 @@
 
 use std::fmt;
 
-use fidelpb::PrimaryCausetInfo;
-use fidelpb::FieldType;
+use fidel_timeshare::PrimaryCausetInfo;
+use fidel_timeshare::FieldType;
 
 use crate::error::DataTypeError;
 
-/// Valid values of `fidelpb::FieldType::tp` and `fidelpb::PrimaryCausetInfo::tp`.
+/// Valid values of `fidel_timeshare::FieldType::tp` and `fidel_timeshare::PrimaryCausetInfo::tp`.
 ///
 /// `FieldType` is the field type of a PrimaryCauset defined by schemaReplicant.
 ///
@@ -95,8 +95,8 @@ impl From<FieldTypeTp> for PrimaryCausetInfo {
     }
 }
 
-/// Valid values of `fidelpb::FieldType::collate` and
-/// `fidelpb::PrimaryCausetInfo::collation`.
+/// Valid values of `fidel_timeshare::FieldType::collate` and
+/// `fidel_timeshare::PrimaryCausetInfo::collation`.
 ///
 /// Legacy Utf8Bin collator (was the default) does not pad. For compatibility,
 /// all new collation with padding behavior is negative.

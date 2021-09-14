@@ -3,7 +3,7 @@
 use std::sync::{Arc, RwLock};
 
 use edb::Peekable;
-use ekvproto::{metapb, violetabft_serverpb};
+use ekvproto::{meta_timeshare, violetabft_server_timeshare};
 use test_violetabftstore::*;
 
 fn test_bootstrap_half_way_failure(fp: &str) {
@@ -18,7 +18,7 @@ fn test_bootstrap_half_way_failure(fp: &str) {
     let engines = cluster.dbs[0].clone();
     let ident = engines
         .kv
-        .get_msg::<violetabft_serverpb::StoreIdent>(tuplespaceInstanton::STORE_IDENT_KEY)
+        .get_msg::<violetabft_server_timeshare::StoreIdent>(tuplespaceInstanton::STORE_IDENT_KEY)
         .unwrap()
         .unwrap();
     let store_id = ident.get_store_id();
@@ -31,7 +31,7 @@ fn test_bootstrap_half_way_failure(fp: &str) {
 
     assert!(engines
         .kv
-        .get_msg::<metapb::Brane>(tuplespaceInstanton::PREPARE_BOOTSTRAP_KEY)
+        .get_msg::<meta_timeshare::Brane>(tuplespaceInstanton::PREPARE_BOOTSTRAP_KEY)
         .unwrap()
         .is_none());
 

@@ -9,9 +9,9 @@ use std::{mem, thread, time, usize};
 
 use crossbeam::channel::TrylightlikeError;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
-use ekvproto::violetabft_cmdpb::VioletaBftCmdRequest;
-use ekvproto::violetabft_serverpb::VioletaBftMessage;
-use violetabft::evioletabftpb::MessageType;
+use ekvproto::violetabft_cmd_timeshare::VioletaBftCmdRequest;
+use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
+use violetabft::evioletabft_timeshare::MessageType;
 use violetabftstore::router::{LocalReadRouter, VioletaBftStoreRouter};
 use violetabftstore::store::{
     Callback, CasualMessage, CasualRouter, PeerMsg, ProposalRouter, VioletaBftCommand, SignificantMsg,
@@ -19,9 +19,9 @@ use violetabftstore::store::{
 };
 use violetabftstore::Result as VioletaBftStoreResult;
 use violetabftstore::{DiscardReason, Error, Result};
-use edb_util::collections::{HashMap, HashSet};
-use edb_util::time::ThreadReadId;
-use edb_util::{Either, HandyRwLock};
+use violetabftstore::interlock::::collections::{HashMap, HashSet};
+use violetabftstore::interlock::::time::ThreadReadId;
+use violetabftstore::interlock::::{Either, HandyRwLock};
 
 pub fn check_messages(msgs: &[VioletaBftMessage]) -> Result<()> {
     if msgs.is_empty() {

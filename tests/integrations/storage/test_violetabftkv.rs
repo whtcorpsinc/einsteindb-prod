@@ -4,15 +4,15 @@ use std::sync::Arc;
 use std::thread;
 use std::time;
 
-use ekvproto::kvrpcpb::Context;
-use violetabft::evioletabftpb::MessageType;
+use ekvproto::kvrpc_timeshare::Context;
+use violetabft::evioletabft_timeshare::MessageType;
 
 use edb::{CfName, IterOptions, Causet_DEFAULT};
 use test_violetabftstore::*;
-use edb::causetStorage::kv::*;
-use edb::causetStorage::CfStatistics;
-use edb_util::codec::bytes;
-use edb_util::HandyRwLock;
+use edb::causet_storage::kv::*;
+use edb::causet_storage::CfStatistics;
+use violetabftstore::interlock::::codec::bytes;
+use violetabftstore::interlock::::HandyRwLock;
 use txn_types::Key;
 
 #[test]
@@ -26,20 +26,20 @@ fn test_violetabftkv() {
 
     let brane = cluster.get_brane(b"");
     let leader_id = cluster.leader_of_brane(brane.get_id()).unwrap();
-    let causetStorage = cluster.sim.rl().causetStorages[&leader_id.get_id()].clone();
+    let causet_storage = cluster.sim.rl().causet_storages[&leader_id.get_id()].clone();
 
     let mut ctx = Context::default();
     ctx.set_brane_id(brane.get_id());
     ctx.set_brane_epoch(brane.get_brane_epoch().clone());
     ctx.set_peer(brane.get_peers()[0].clone());
 
-    get_put(&ctx, &causetStorage);
-    batch(&ctx, &causetStorage);
-    seek(&ctx, &causetStorage);
-    near_seek(&ctx, &causetStorage);
-    causet(&ctx, &causetStorage);
-    empty_write(&ctx, &causetStorage);
-    wrong_context(&ctx, &causetStorage);
+    get_put(&ctx, &causet_storage);
+    batch(&ctx, &causet_storage);
+    seek(&ctx, &causet_storage);
+    near_seek(&ctx, &causet_storage);
+    causet(&ctx, &causet_storage);
+    empty_write(&ctx, &causet_storage);
+    wrong_context(&ctx, &causet_storage);
     // TODO: test multiple node
 }
 
@@ -57,7 +57,7 @@ fn test_read_leader_in_lease() {
 
     let brane = cluster.get_brane(b"");
     let leader = cluster.leader_of_brane(brane.get_id()).unwrap();
-    let causetStorage = cluster.sim.rl().causetStorages[&leader.get_id()].clone();
+    let causet_storage = cluster.sim.rl().causet_storages[&leader.get_id()].clone();
 
     let mut ctx = Context::default();
     ctx.set_brane_id(brane.get_id());
@@ -65,14 +65,14 @@ fn test_read_leader_in_lease() {
     ctx.set_peer(leader.clone());
 
     // write some data
-    assert_none(&ctx, &causetStorage, k2);
-    must_put(&ctx, &causetStorage, k2, v2);
+    assert_none(&ctx, &causet_storage, k2);
+    must_put(&ctx, &causet_storage, k2, v2);
 
     // isolate leader
     cluster.add_lightlike_filter(IsolationFilterFactory::new(leader.get_store_id()));
 
     // leader still in lease, check if can read on leader
-    assert_eq!(can_read(&ctx, &causetStorage, k2, v2), true);
+    assert_eq!(can_read(&ctx, &causet_storage, k2, v2), true);
 }
 
 #[test]
@@ -89,7 +89,7 @@ fn test_read_index_on_replica() {
 
     let brane = cluster.get_brane(b"");
     let leader = cluster.leader_of_brane(brane.get_id()).unwrap();
-    let causetStorage = cluster.sim.rl().causetStorages[&leader.get_id()].clone();
+    let causet_storage = cluster.sim.rl().causet_storages[&leader.get_id()].clone();
 
     let mut ctx = Context::default();
     ctx.set_brane_id(brane.get_id());
@@ -98,8 +98,8 @@ fn test_read_index_on_replica() {
 
     // write some data
     let peers = brane.get_peers();
-    assert_none(&ctx, &causetStorage, k2);
-    must_put(&ctx, &causetStorage, k2, v2);
+    assert_none(&ctx, &causet_storage, k2);
+    must_put(&ctx, &causet_storage, k2, v2);
 
     // read on follower
     let mut follower_peer = None;
@@ -145,7 +145,7 @@ fn test_read_on_replica() {
 
     let brane = cluster.get_brane(b"");
     let leader = cluster.leader_of_brane(brane.get_id()).unwrap();
-    let leader_causetStorage = cluster.sim.rl().causetStorages[&leader.get_id()].clone();
+    let leader_causet_storage = cluster.sim.rl().causet_storages[&leader.get_id()].clone();
 
     let mut leader_ctx = Context::default();
     leader_ctx.set_brane_id(brane.get_id());
@@ -154,8 +154,8 @@ fn test_read_on_replica() {
 
     // write some data
     let peers = brane.get_peers();
-    assert_none(&leader_ctx, &leader_causetStorage, k2);
-    must_put(&leader_ctx, &leader_causetStorage, k2, v2);
+    assert_none(&leader_ctx, &leader_causet_storage, k2);
+    must_put(&leader_ctx, &leader_causet_storage, k2, v2);
 
     // read on follower
     let mut follower_peer = None;
@@ -174,19 +174,19 @@ fn test_read_on_replica() {
     follower_ctx.set_brane_epoch(brane.get_brane_epoch().clone());
     follower_ctx.set_peer(follower_peer.as_ref().unwrap().clone());
     follower_ctx.set_replica_read(true);
-    let follower_causetStorage = cluster.sim.rl().causetStorages[&follower_id].clone();
-    assert_has(&follower_ctx, &follower_causetStorage, k2, v2);
+    let follower_causet_storage = cluster.sim.rl().causet_storages[&follower_id].clone();
+    assert_has(&follower_ctx, &follower_causet_storage, k2, v2);
 
-    must_put(&leader_ctx, &leader_causetStorage, k3, v3);
-    assert_has(&follower_ctx, &follower_causetStorage, k3, v3);
+    must_put(&leader_ctx, &leader_causet_storage, k3, v3);
+    assert_has(&follower_ctx, &follower_causet_storage, k3, v3);
 
     cluster.stop_node(follower_id);
-    must_put(&leader_ctx, &leader_causetStorage, k4, v4);
+    must_put(&leader_ctx, &leader_causet_storage, k4, v4);
     cluster.run_node(follower_id).unwrap();
-    let follower_causetStorage = cluster.sim.rl().causetStorages[&follower_id].clone();
+    let follower_causet_storage = cluster.sim.rl().causet_storages[&follower_id].clone();
     // sleep to ensure the follower has received a heartbeat from the leader
     thread::sleep(time::Duration::from_millis(300));
-    assert_has(&follower_ctx, &follower_causetStorage, k4, v4);
+    assert_has(&follower_ctx, &follower_causet_storage, k4, v4);
 }
 
 #[test]

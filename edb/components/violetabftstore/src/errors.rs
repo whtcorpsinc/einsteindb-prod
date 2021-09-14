@@ -11,8 +11,8 @@ use prost::{DecodeError, EncodeError};
 use protobuf::ProtobufError;
 
 use error_code::{self, ErrorCode, ErrorCodeExt};
-use ekvproto::{errorpb, metapb};
-use edb_util::codec;
+use ekvproto::{error_timeshare, meta_timeshare};
+use violetabftstore::interlock::::codec;
 
 use super::interlock::Error as CopError;
 use super::store::SnapError;
@@ -45,10 +45,10 @@ quick_error! {
         BraneNotInitialized(brane_id: u64) {
             display("brane {} not initialized yet", brane_id)
         }
-        NotLeader(brane_id: u64, leader: Option<metapb::Peer>) {
+        NotLeader(brane_id: u64, leader: Option<meta_timeshare::Peer>) {
             display("peer is not leader for brane {}, leader may {:?}", brane_id, leader)
         }
-        KeyNotInBrane(key: Vec<u8>, brane: metapb::Brane) {
+        KeyNotInBrane(key: Vec<u8>, brane: meta_timeshare::Brane) {
             display("key {} is not in brane key cone [{}, {}) for brane {}",
                     hex::encode_upper(key),
                     hex::encode_upper(brane.get_spacelike_key()),
@@ -109,7 +109,7 @@ quick_error! {
         Timeout(msg: String) {
             display("Timeout {}", msg)
         }
-        EpochNotMatch(msg: String, new_branes: Vec<metapb::Brane>) {
+        EpochNotMatch(msg: String, new_branes: Vec<meta_timeshare::Brane>) {
             display("EpochNotMatch {}", msg)
         }
         StaleCommand {
@@ -142,74 +142,74 @@ quick_error! {
 
 pub type Result<T> = result::Result<T, Error>;
 
-impl From<Error> for errorpb::Error {
-    fn from(err: Error) -> errorpb::Error {
-        let mut errorpb = errorpb::Error::default();
-        errorpb.set_message(format!("{}", err));
+impl From<Error> for error_timeshare::Error {
+    fn from(err: Error) -> error_timeshare::Error {
+        let mut error_timeshare = error_timeshare::Error::default();
+        error_timeshare.set_message(format!("{}", err));
 
         match err {
             Error::BraneNotFound(brane_id) => {
-                errorpb.mut_brane_not_found().set_brane_id(brane_id);
+                error_timeshare.mut_brane_not_found().set_brane_id(brane_id);
             }
             Error::NotLeader(brane_id, leader) => {
                 if let Some(leader) = leader {
-                    errorpb.mut_not_leader().set_leader(leader);
+                    error_timeshare.mut_not_leader().set_leader(leader);
                 }
-                errorpb.mut_not_leader().set_brane_id(brane_id);
+                error_timeshare.mut_not_leader().set_brane_id(brane_id);
             }
             Error::VioletaBftEntryTooLarge(brane_id, entry_size) => {
-                errorpb.mut_violetabft_entry_too_large().set_brane_id(brane_id);
-                errorpb
+                error_timeshare.mut_violetabft_entry_too_large().set_brane_id(brane_id);
+                error_timeshare
                     .mut_violetabft_entry_too_large()
                     .set_entry_size(entry_size);
             }
             Error::StoreNotMatch(to_store_id, my_store_id) => {
-                errorpb
+                error_timeshare
                     .mut_store_not_match()
                     .set_request_store_id(to_store_id);
-                errorpb
+                error_timeshare
                     .mut_store_not_match()
                     .set_actual_store_id(my_store_id);
             }
             Error::KeyNotInBrane(key, brane) => {
-                errorpb.mut_key_not_in_brane().set_key(key);
-                errorpb
+                error_timeshare.mut_key_not_in_brane().set_key(key);
+                error_timeshare
                     .mut_key_not_in_brane()
                     .set_brane_id(brane.get_id());
-                errorpb
+                error_timeshare
                     .mut_key_not_in_brane()
                     .set_spacelike_key(brane.get_spacelike_key().to_vec());
-                errorpb
+                error_timeshare
                     .mut_key_not_in_brane()
                     .set_lightlike_key(brane.get_lightlike_key().to_vec());
             }
             Error::EpochNotMatch(_, new_branes) => {
-                let mut e = errorpb::EpochNotMatch::default();
+                let mut e = error_timeshare::EpochNotMatch::default();
                 e.set_current_branes(new_branes.into());
-                errorpb.set_epoch_not_match(e);
+                error_timeshare.set_epoch_not_match(e);
             }
             Error::StaleCommand => {
-                errorpb.set_stale_command(errorpb::StaleCommand::default());
+                error_timeshare.set_stale_command(error_timeshare::StaleCommand::default());
             }
             Error::Transport(reason) if reason == DiscardReason::Full => {
-                let mut server_is_busy_err = errorpb::ServerIsBusy::default();
+                let mut server_is_busy_err = error_timeshare::ServerIsBusy::default();
                 server_is_busy_err.set_reason(VIOLETABFTSTORE_IS_BUSY.to_owned());
-                errorpb.set_server_is_busy(server_is_busy_err);
+                error_timeshare.set_server_is_busy(server_is_busy_err);
             }
             Error::Engine(edb::Error::NotInCone(key, brane_id, spacelike_key, lightlike_key)) => {
-                errorpb.mut_key_not_in_brane().set_key(key);
-                errorpb.mut_key_not_in_brane().set_brane_id(brane_id);
-                errorpb
+                error_timeshare.mut_key_not_in_brane().set_key(key);
+                error_timeshare.mut_key_not_in_brane().set_brane_id(brane_id);
+                error_timeshare
                     .mut_key_not_in_brane()
                     .set_spacelike_key(spacelike_key.to_vec());
-                errorpb
+                error_timeshare
                     .mut_key_not_in_brane()
                     .set_lightlike_key(lightlike_key.to_vec());
             }
             _ => {}
         };
 
-        errorpb
+        error_timeshare
     }
 }
 

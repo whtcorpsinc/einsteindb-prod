@@ -44,12 +44,12 @@ pub fn setup_for_ci() {
     if env::var("PANIC_ABORT").is_ok() {
         // Panics as aborts, it's helpful for debugging,
         // but also stops tests immediately.
-        edb_util::set_panic_hook(true, "./");
+        violetabftstore::interlock::::set_panic_hook(true, "./");
     }
 
-    edb_util::check_environment_variables();
+    violetabftstore::interlock::::check_environment_variables();
 
-    if let Err(e) = edb_util::config::check_max_open_fds(4096) {
+    if let Err(e) = violetabftstore::interlock::::config::check_max_open_fds(4096) {
         panic!(
             "To run test, please make sure the maximum number of open file descriptors not \
              less than 4096: {:?}",

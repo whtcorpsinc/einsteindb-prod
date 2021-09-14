@@ -13,19 +13,19 @@ use futures::sink::SinkExt;
 use futures::stream::{StreamExt, TryStreamExt};
 
 use grpcio::{CallOption, EnvBuilder, Result as GrpcResult, WriteFlags};
-use ekvproto::metapb;
-use ekvproto::fidelpb::{self, Member};
-use ekvproto::replication_modepb::{BraneReplicationStatus, ReplicationStatus};
+use ekvproto::meta_timeshare;
+use ekvproto::fidel_timeshare::{self, Member};
+use ekvproto::replication_mode_timeshare::{BraneReplicationStatus, ReplicationStatus};
 use security::SecurityManager;
-use edb_util::time::duration_to_sec;
-use edb_util::{Either, HandyRwLock};
+use violetabftstore::interlock::::time::duration_to_sec;
+use violetabftstore::interlock::::{Either, HandyRwLock};
 use txn_types::TimeStamp;
 
 use super::metrics::*;
 use super::util::{check_resp_header, sync_request, validate_lightlikepoints, Inner, LeaderClient};
 use super::{ClusterVersion, Config, FidelFuture, UnixSecs};
 use super::{Error, FidelClient, BraneInfo, BraneStat, Result, REQUEST_TIMEOUT};
-use edb_util::timer::GLOBAL_TIMER_HANDLE;
+use violetabftstore::interlock::::timer::GLOBAL_TIMER_HANDLE;
 
 const CQ_COUNT: usize = 1;
 const CLIENT_PREFIX: &str = "fidel";
@@ -62,10 +62,10 @@ impl RpcClient {
                         )),
                     };
 
-                    // spawn a background future to ufidelate FIDel information periodically
-                    let duration = causet.ufidelate_interval.0;
+                    // spawn a background future to fidelio FIDel information periodically
+                    let duration = causet.fidelio_interval.0;
                     let client = Arc::downgrade(&rpc_client.leader_client);
-                    let ufidelate_loop = async move {
+                    let fidelio_loop = async move {
                         loop {
                             let ok = GLOBAL_TIMER_HANDLE
                                 .delay(Instant::now() + duration)
@@ -82,8 +82,8 @@ impl RpcClient {
                                 Some(cli) => {
                                     let req = cli.reconnect().await;
                                     if req.is_err() {
-                                        warn!("ufidelate FIDel information failed");
-                                        // will ufidelate later anyway
+                                        warn!("fidelio FIDel information failed");
+                                        // will fidelio later anyway
                                     }
                                 }
                                 // if the client has been dropped, we can stop
@@ -97,7 +97,7 @@ impl RpcClient {
                         .inner
                         .rl()
                         .client_stub
-                        .spawn(ufidelate_loop);
+                        .spawn(fidelio_loop);
 
                     return Ok(rpc_client);
                 }
@@ -113,8 +113,8 @@ impl RpcClient {
     }
 
     /// Creates a new request header.
-    fn header(&self) -> fidelpb::RequestHeader {
-        let mut header = fidelpb::RequestHeader::default();
+    fn header(&self) -> fidel_timeshare::RequestHeader {
+        let mut header = fidel_timeshare::RequestHeader::default();
         header.set_cluster_id(self.cluster_id);
         header
     }
@@ -140,12 +140,12 @@ impl RpcClient {
     }
 
     /// Gets given key's Brane and Brane's leader from FIDel.
-    fn get_brane_and_leader(&self, key: &[u8]) -> Result<(metapb::Brane, Option<metapb::Peer>)> {
+    fn get_brane_and_leader(&self, key: &[u8]) -> Result<(meta_timeshare::Brane, Option<meta_timeshare::Peer>)> {
         let _timer = FIDel_REQUEST_HISTOGRAM_VEC
             .with_label_values(&["get_brane"])
             .spacelike_coarse_timer();
 
-        let mut req = fidelpb::GetBraneRequest::default();
+        let mut req = fidel_timeshare::GetBraneRequest::default();
         req.set_header(self.header());
         req.set_brane_key(key.to_vec());
 
@@ -186,14 +186,14 @@ impl FidelClient for RpcClient {
 
     fn bootstrap_cluster(
         &self,
-        stores: metapb::CausetStore,
-        brane: metapb::Brane,
+        stores: meta_timeshare::CausetStore,
+        brane: meta_timeshare::Brane,
     ) -> Result<Option<ReplicationStatus>> {
         let _timer = FIDel_REQUEST_HISTOGRAM_VEC
             .with_label_values(&["bootstrap_cluster"])
             .spacelike_coarse_timer();
 
-        let mut req = fidelpb::BootstrapRequest::default();
+        let mut req = fidel_timeshare::BootstrapRequest::default();
         req.set_header(self.header());
         req.set_store(stores);
         req.set_brane(brane);
@@ -210,7 +210,7 @@ impl FidelClient for RpcClient {
             .with_label_values(&["is_cluster_bootstrapped"])
             .spacelike_coarse_timer();
 
-        let mut req = fidelpb::IsBootstrappedRequest::default();
+        let mut req = fidel_timeshare::IsBootstrappedRequest::default();
         req.set_header(self.header());
 
         let resp = sync_request(&self.leader_client, LEADER_CHANGE_RETRY, |client| {
@@ -226,7 +226,7 @@ impl FidelClient for RpcClient {
             .with_label_values(&["alloc_id"])
             .spacelike_coarse_timer();
 
-        let mut req = fidelpb::AllocIdRequest::default();
+        let mut req = fidel_timeshare::AllocIdRequest::default();
         req.set_header(self.header());
 
         let resp = sync_request(&self.leader_client, LEADER_CHANGE_RETRY, |client| {
@@ -237,12 +237,12 @@ impl FidelClient for RpcClient {
         Ok(resp.get_id())
     }
 
-    fn put_store(&self, store: metapb::CausetStore) -> Result<Option<ReplicationStatus>> {
+    fn put_store(&self, store: meta_timeshare::CausetStore) -> Result<Option<ReplicationStatus>> {
         let _timer = FIDel_REQUEST_HISTOGRAM_VEC
             .with_label_values(&["put_store"])
             .spacelike_coarse_timer();
 
-        let mut req = fidelpb::PutStoreRequest::default();
+        let mut req = fidel_timeshare::PutStoreRequest::default();
         req.set_header(self.header());
         req.set_store(store);
 
@@ -254,12 +254,12 @@ impl FidelClient for RpcClient {
         Ok(resp.replication_status.take())
     }
 
-    fn get_store(&self, store_id: u64) -> Result<metapb::CausetStore> {
+    fn get_store(&self, store_id: u64) -> Result<meta_timeshare::CausetStore> {
         let _timer = FIDel_REQUEST_HISTOGRAM_VEC
             .with_label_values(&["get_store"])
             .spacelike_coarse_timer();
 
-        let mut req = fidelpb::GetStoreRequest::default();
+        let mut req = fidel_timeshare::GetStoreRequest::default();
         req.set_header(self.header());
         req.set_store_id(store_id);
 
@@ -269,19 +269,19 @@ impl FidelClient for RpcClient {
         check_resp_header(resp.get_header())?;
 
         let store = resp.take_store();
-        if store.get_state() != metapb::StoreState::Tombstone {
+        if store.get_state() != meta_timeshare::StoreState::Tombstone {
             Ok(store)
         } else {
             Err(Error::StoreTombstone(format!("{:?}", store)))
         }
     }
 
-    fn get_all_stores(&self, exclude_tombstone: bool) -> Result<Vec<metapb::CausetStore>> {
+    fn get_all_stores(&self, exclude_tombstone: bool) -> Result<Vec<meta_timeshare::CausetStore>> {
         let _timer = FIDel_REQUEST_HISTOGRAM_VEC
             .with_label_values(&["get_all_stores"])
             .spacelike_coarse_timer();
 
-        let mut req = fidelpb::GetAllStoresRequest::default();
+        let mut req = fidel_timeshare::GetAllStoresRequest::default();
         req.set_header(self.header());
         req.set_exclude_tombstone_stores(exclude_tombstone);
 
@@ -293,12 +293,12 @@ impl FidelClient for RpcClient {
         Ok(resp.take_stores().into())
     }
 
-    fn get_cluster_config(&self) -> Result<metapb::Cluster> {
+    fn get_cluster_config(&self) -> Result<meta_timeshare::Cluster> {
         let _timer = FIDel_REQUEST_HISTOGRAM_VEC
             .with_label_values(&["get_cluster_config"])
             .spacelike_coarse_timer();
 
-        let mut req = fidelpb::GetClusterConfigRequest::default();
+        let mut req = fidel_timeshare::GetClusterConfigRequest::default();
         req.set_header(self.header());
 
         let mut resp = sync_request(&self.leader_client, LEADER_CHANGE_RETRY, |client| {
@@ -309,7 +309,7 @@ impl FidelClient for RpcClient {
         Ok(resp.take_cluster())
     }
 
-    fn get_brane(&self, key: &[u8]) -> Result<metapb::Brane> {
+    fn get_brane(&self, key: &[u8]) -> Result<meta_timeshare::Brane> {
         self.get_brane_and_leader(key).map(|x| x.0)
     }
 
@@ -318,14 +318,14 @@ impl FidelClient for RpcClient {
             .map(|x| BraneInfo::new(x.0, x.1))
     }
 
-    fn get_brane_by_id(&self, brane_id: u64) -> FidelFuture<Option<metapb::Brane>> {
+    fn get_brane_by_id(&self, brane_id: u64) -> FidelFuture<Option<meta_timeshare::Brane>> {
         let timer = Instant::now();
 
-        let mut req = fidelpb::GetBraneByIdRequest::default();
+        let mut req = fidel_timeshare::GetBraneByIdRequest::default();
         req.set_header(self.header());
         req.set_brane_id(brane_id);
 
-        let executor = move |client: &RwLock<Inner>, req: fidelpb::GetBraneByIdRequest| {
+        let executor = move |client: &RwLock<Inner>, req: fidel_timeshare::GetBraneByIdRequest| {
             let handler = client
                 .rl()
                 .client_stub
@@ -355,14 +355,14 @@ impl FidelClient for RpcClient {
     fn brane_heartbeat(
         &self,
         term: u64,
-        brane: metapb::Brane,
-        leader: metapb::Peer,
+        brane: meta_timeshare::Brane,
+        leader: meta_timeshare::Peer,
         brane_stat: BraneStat,
         replication_status: Option<BraneReplicationStatus>,
     ) -> FidelFuture<()> {
         FIDel_HEARTBEAT_COUNTER_VEC.with_label_values(&["lightlike"]).inc();
 
-        let mut req = fidelpb::BraneHeartbeatRequest::default();
+        let mut req = fidel_timeshare::BraneHeartbeatRequest::default();
         req.set_term(term);
         req.set_header(self.header());
         req.set_brane(brane);
@@ -378,12 +378,12 @@ impl FidelClient for RpcClient {
         if let Some(s) = replication_status {
             req.set_replication_status(s);
         }
-        let mut interval = fidelpb::TimeInterval::default();
+        let mut interval = fidel_timeshare::TimeInterval::default();
         interval.set_spacelike_timestamp(brane_stat.last_report_ts.into_inner());
         interval.set_lightlike_timestamp(UnixSecs::now().into_inner());
         req.set_interval(interval);
 
-        let executor = |client: &RwLock<Inner>, req: fidelpb::BraneHeartbeatRequest| {
+        let executor = |client: &RwLock<Inner>, req: fidel_timeshare::BraneHeartbeatRequest| {
             let mut inner = client.wl();
             if let Either::Right(ref lightlikeer) = inner.hb_lightlikeer {
                 let ret = lightlikeer
@@ -425,19 +425,19 @@ impl FidelClient for RpcClient {
 
     fn handle_brane_heartbeat_response<F>(&self, _: u64, f: F) -> FidelFuture<()>
     where
-        F: Fn(fidelpb::BraneHeartbeatResponse) + lightlike + 'static,
+        F: Fn(fidel_timeshare::BraneHeartbeatResponse) + lightlike + 'static,
     {
         self.leader_client.handle_brane_heartbeat_response(f)
     }
 
-    fn ask_split(&self, brane: metapb::Brane) -> FidelFuture<fidelpb::AskSplitResponse> {
+    fn ask_split(&self, brane: meta_timeshare::Brane) -> FidelFuture<fidel_timeshare::AskSplitResponse> {
         let timer = Instant::now();
 
-        let mut req = fidelpb::AskSplitRequest::default();
+        let mut req = fidel_timeshare::AskSplitRequest::default();
         req.set_header(self.header());
         req.set_brane(brane);
 
-        let executor = move |client: &RwLock<Inner>, req: fidelpb::AskSplitRequest| {
+        let executor = move |client: &RwLock<Inner>, req: fidel_timeshare::AskSplitRequest| {
             let handler = client
                 .rl()
                 .client_stub
@@ -461,17 +461,17 @@ impl FidelClient for RpcClient {
 
     fn ask_batch_split(
         &self,
-        brane: metapb::Brane,
+        brane: meta_timeshare::Brane,
         count: usize,
-    ) -> FidelFuture<fidelpb::AskBatchSplitResponse> {
+    ) -> FidelFuture<fidel_timeshare::AskBatchSplitResponse> {
         let timer = Instant::now();
 
-        let mut req = fidelpb::AskBatchSplitRequest::default();
+        let mut req = fidel_timeshare::AskBatchSplitRequest::default();
         req.set_header(self.header());
         req.set_brane(brane);
         req.set_split_count(count as u32);
 
-        let executor = move |client: &RwLock<Inner>, req: fidelpb::AskBatchSplitRequest| {
+        let executor = move |client: &RwLock<Inner>, req: fidel_timeshare::AskBatchSplitRequest| {
             let handler = client
                 .rl()
                 .client_stub
@@ -495,17 +495,17 @@ impl FidelClient for RpcClient {
 
     fn store_heartbeat(
         &self,
-        mut stats: fidelpb::StoreStats,
-    ) -> FidelFuture<fidelpb::StoreHeartbeatResponse> {
+        mut stats: fidel_timeshare::StoreStats,
+    ) -> FidelFuture<fidel_timeshare::StoreHeartbeatResponse> {
         let timer = Instant::now();
 
-        let mut req = fidelpb::StoreHeartbeatRequest::default();
+        let mut req = fidel_timeshare::StoreHeartbeatRequest::default();
         req.set_header(self.header());
         stats
             .mut_interval()
             .set_lightlike_timestamp(UnixSecs::now().into_inner());
         req.set_stats(stats);
-        let executor = move |client: &RwLock<Inner>, req: fidelpb::StoreHeartbeatRequest| {
+        let executor = move |client: &RwLock<Inner>, req: fidel_timeshare::StoreHeartbeatRequest| {
             let cluster_version = client.rl().cluster_version.clone();
             let handler = client
                 .rl()
@@ -532,14 +532,14 @@ impl FidelClient for RpcClient {
             .execute()
     }
 
-    fn report_batch_split(&self, branes: Vec<metapb::Brane>) -> FidelFuture<()> {
+    fn report_batch_split(&self, branes: Vec<meta_timeshare::Brane>) -> FidelFuture<()> {
         let timer = Instant::now();
 
-        let mut req = fidelpb::ReportBatchSplitRequest::default();
+        let mut req = fidel_timeshare::ReportBatchSplitRequest::default();
         req.set_header(self.header());
         req.set_branes(branes.into());
 
-        let executor = move |client: &RwLock<Inner>, req: fidelpb::ReportBatchSplitRequest| {
+        let executor = move |client: &RwLock<Inner>, req: fidel_timeshare::ReportBatchSplitRequest| {
             let handler = client
                 .rl()
                 .client_stub
@@ -567,7 +567,7 @@ impl FidelClient for RpcClient {
             .with_label_values(&["scatter_brane"])
             .spacelike_coarse_timer();
 
-        let mut req = fidelpb::ScatterBraneRequest::default();
+        let mut req = fidel_timeshare::ScatterBraneRequest::default();
         req.set_header(self.header());
         req.set_brane_id(brane.get_id());
         if let Some(leader) = brane.leader.take() {
@@ -588,10 +588,10 @@ impl FidelClient for RpcClient {
     fn get_gc_safe_point(&self) -> FidelFuture<u64> {
         let timer = Instant::now();
 
-        let mut req = fidelpb::GetGcSafePointRequest::default();
+        let mut req = fidel_timeshare::GetGcSafePointRequest::default();
         req.set_header(self.header());
 
-        let executor = move |client: &RwLock<Inner>, req: fidelpb::GetGcSafePointRequest| {
+        let executor = move |client: &RwLock<Inner>, req: fidel_timeshare::GetGcSafePointRequest| {
             let option = CallOption::default().timeout(Duration::from_secs(REQUEST_TIMEOUT));
             let handler = client
                 .rl()
@@ -615,12 +615,12 @@ impl FidelClient for RpcClient {
             .execute()
     }
 
-    fn get_store_stats(&self, store_id: u64) -> Result<fidelpb::StoreStats> {
+    fn get_store_stats(&self, store_id: u64) -> Result<fidel_timeshare::StoreStats> {
         let _timer = FIDel_REQUEST_HISTOGRAM_VEC
             .with_label_values(&["get_store"])
             .spacelike_coarse_timer();
 
-        let mut req = fidelpb::GetStoreRequest::default();
+        let mut req = fidel_timeshare::GetStoreRequest::default();
         req.set_header(self.header());
         req.set_store_id(store_id);
 
@@ -630,19 +630,19 @@ impl FidelClient for RpcClient {
         check_resp_header(resp.get_header())?;
 
         let store = resp.get_store();
-        if store.get_state() != metapb::StoreState::Tombstone {
+        if store.get_state() != meta_timeshare::StoreState::Tombstone {
             Ok(resp.take_stats())
         } else {
             Err(Error::StoreTombstone(format!("{:?}", store)))
         }
     }
 
-    fn get_operator(&self, brane_id: u64) -> Result<fidelpb::GetOperatorResponse> {
+    fn get_operator(&self, brane_id: u64) -> Result<fidel_timeshare::GetOperatorResponse> {
         let _timer = FIDel_REQUEST_HISTOGRAM_VEC
             .with_label_values(&["get_operator"])
             .spacelike_coarse_timer();
 
-        let mut req = fidelpb::GetOperatorRequest::default();
+        let mut req = fidel_timeshare::GetOperatorRequest::default();
         req.set_header(self.header());
         req.set_brane_id(brane_id);
 
@@ -659,10 +659,10 @@ impl FidelClient for RpcClient {
     fn get_tso(&self) -> FidelFuture<TimeStamp> {
         let timer = Instant::now();
 
-        let mut req = fidelpb::TsoRequest::default();
+        let mut req = fidel_timeshare::TsoRequest::default();
         req.set_count(1);
         req.set_header(self.header());
-        let executor = move |client: &RwLock<Inner>, req: fidelpb::TsoRequest| {
+        let executor = move |client: &RwLock<Inner>, req: fidel_timeshare::TsoRequest| {
             let cli = client.read().unwrap();
             let (mut req_sink, mut resp_stream) = cli
                 .client_stub

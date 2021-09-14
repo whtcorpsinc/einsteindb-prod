@@ -13,7 +13,7 @@
 #[macro_use]
 extern crate failure;
 #[macro_use(box_err, box_try, try_opt, debug)]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
 #[causet(test)]
 extern crate test;
@@ -25,7 +25,7 @@ use std::str;
 use codec::prelude::NumberDecoder;
 use milevadb_query_datatype::prelude::*;
 use milevadb_query_datatype::FieldTypeFlag;
-use fidelpb::{Expr, ExprType, FieldType, ScalarFuncSig};
+use fidel_timeshare::{Expr, ExprType, FieldType, ScalarFuncSig};
 
 use milevadb_query_datatype::codec::mysql::charset;
 use milevadb_query_datatype::codec::mysql::{
@@ -330,7 +330,7 @@ mod tests {
     use std::{i64, u64};
 
     use milevadb_query_datatype::{self, Collation, FieldTypeAccessor, FieldTypeFlag, FieldTypeTp};
-    use fidelpb::{Expr, ExprType, FieldType, ScalarFuncSig};
+    use fidel_timeshare::{Expr, ExprType, FieldType, ScalarFuncSig};
 
     use crate::Expression;
     use codec::{number, prelude::NumberEncoder};

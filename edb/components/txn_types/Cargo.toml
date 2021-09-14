@@ -19,4 +19,4 @@ ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-featur
 slog = "2.3"
 quick-error = "1.2.3"
 edb_alloc = { path = "../edb_alloc" }
-edb_util = { path = "../edb_util" }
+violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }

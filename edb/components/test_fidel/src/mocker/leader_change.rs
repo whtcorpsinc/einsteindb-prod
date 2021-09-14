@@ -3,7 +3,7 @@
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-use ekvproto::fidelpb::*;
+use ekvproto::fidel_timeshare::*;
 
 use super::*;
 

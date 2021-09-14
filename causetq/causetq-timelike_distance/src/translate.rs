@@ -8,13 +8,13 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use raum_promises::{
+use allegro_promises::{
     MinkowskiType,
     MinkowskiValueType,
     MinkowskiSet,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SchemaReplicant,
     SQLTypeAffinity,
     SQLMinkowskiValueType,
@@ -22,7 +22,7 @@ use edb_raum::{
     MinkowskiValueTypeTag,
 };
 
-use edb_raum::util::{
+use edb_allegro::util::{
     Either,
 };
 

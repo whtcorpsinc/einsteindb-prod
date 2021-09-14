@@ -11,7 +11,7 @@ extern crate edb_alloc;
 
 use byteorder::{BigEndian, ByteOrder};
 
-use ekvproto::metapb::Brane;
+use ekvproto::meta_timeshare::Brane;
 use std::mem;
 
 pub mod rewrite;
@@ -295,7 +295,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 mod tests {
     use super::*;
     use byteorder::{BigEndian, WriteBytesExt};
-    use ekvproto::metapb::{Peer, Brane};
+    use ekvproto::meta_timeshare::{Peer, Brane};
     use std::cmp::Ordering;
 
     #[test]

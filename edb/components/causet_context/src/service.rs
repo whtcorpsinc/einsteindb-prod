@@ -11,14 +11,14 @@ use grpcio::{
     DuplexSink, Error as GrpcError, RequestStream, Result as GrpcResult, RpcContext, RpcStatus,
     RpcStatusCode, WriteFlags,
 };
-use ekvproto::causet_contextpb::{
+use ekvproto::causet_context_timeshare::{
     ChangeData, ChangeDataEvent, ChangeDataRequest, Compatibility, Event, ResolvedTs,
 };
 use protobuf::Message;
 use security::{check_common_name, SecurityManager};
-use edb_util::collections::HashMap;
-use edb_util::mpsc::batch::{self, BatchReceiver, lightlikeer as Batchlightlikeer, VecCollector};
-use edb_util::worker::*;
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::mpsc::batch::{self, BatchReceiver, lightlikeer as Batchlightlikeer, VecCollector};
+use violetabftstore::interlock::::worker::*;
 
 use crate::pushdown_causet::{Downstream, DownstreamID};
 use crate::lightlikepoint::{Deregister, Task};
@@ -361,12 +361,12 @@ impl ChangeData for Service {
 #[causet(test)]
 mod tests {
     #[causet(feature = "prost-codec")]
-    use ekvproto::causet_contextpb::event::{
+    use ekvproto::causet_context_timeshare::event::{
         Entries as EventEntries, Event as Event_oneof_event, Event as EventEvent,
     };
-    use ekvproto::causet_contextpb::{ChangeDataEvent, Event, ResolvedTs};
+    use ekvproto::causet_context_timeshare::{ChangeDataEvent, Event, ResolvedTs};
     #[causet(not(feature = "prost-codec"))]
-    use ekvproto::causet_contextpb::{EventEntries, EventEvent, Event_oneof_event};
+    use ekvproto::causet_context_timeshare::{EventEntries, EventEvent, Event_oneof_event};
 
     use crate::service::{causet_contextEvent, EventBatcher, causet_context_MAX_RESP_SIZE};
 

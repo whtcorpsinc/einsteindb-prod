@@ -6,8 +6,8 @@ use std::fmt::{self, Debug, Display, Formatter};
 use std::{i64, str};
 
 use crate::FieldTypeTp;
-use edb_util::codec::BytesSlice;
-use edb_util::escape;
+use violetabftstore::interlock::::codec::BytesSlice;
+use violetabftstore::interlock::::escape;
 
 use super::mysql::{
     self, parse_json_path_expr, Decimal, DecimalDecoder, DecimalEncoder, Duration, Json,

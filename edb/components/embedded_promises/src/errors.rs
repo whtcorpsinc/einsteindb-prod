@@ -10,7 +10,7 @@ quick_error! {
         // Engine uses plain string as the error.
         Engine(msg: String) {
             from()
-            display("CausetStorage Engine {}", msg)
+            display("causet_storage Engine {}", msg)
         }
 
         NotInCone( key: Vec<u8>, brane_id: u64, spacelike: Vec<u8>, lightlike: Vec<u8>) {
@@ -37,7 +37,7 @@ quick_error! {
         CausetName(name: String) {
             display("Causet {} not found", name)
         }
-        Codec(err: edb_util::codec::Error) {
+        Codec(err: violetabftstore::interlock::::codec::Error) {
             from()
             cause(err)
             display("Codec {}", err)

@@ -8,9 +8,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use chrono::Local;
 use clap::ArgMatches;
 use edb::config::{check_critical_config, persist_config, MetricConfig, EINSTEINDBConfig};
-use edb::causetStorage::config::DEFAULT_LMDB_SUB_DIR;
-use edb_util::collections::HashMap;
-use edb_util::{self, config, logger};
+use edb::causet_storage::config::DEFAULT_LMDB_SUB_DIR;
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::{self, config, logger};
 
 // A workaround for checking if log is initialized.
 pub static LOG_INITIALIZED: AtomicBool = AtomicBool::new(false);
@@ -129,7 +129,7 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
             make_engine_log_path(&config.lmdb.info_log_dir, "", DEFAULT_LMDB_LOG_FILE)
         } else {
             make_engine_log_path(
-                &config.causetStorage.data_dir,
+                &config.causet_storage.data_dir,
                 DEFAULT_LMDB_SUB_DIR,
                 DEFAULT_LMDB_LOG_FILE,
             )
@@ -144,7 +144,7 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
                     DEFAULT_VIOLETABFTDB_LOG_FILE,
                 )
             } else {
-                make_engine_log_path(&config.causetStorage.data_dir, "violetabft", DEFAULT_VIOLETABFTDB_LOG_FILE)
+                make_engine_log_path(&config.causet_storage.data_dir, "violetabft", DEFAULT_VIOLETABFTDB_LOG_FILE)
             }
         };
         let lmdb_log_writer = logger::file_writer(
@@ -225,11 +225,11 @@ pub fn initial_logger(config: &EINSTEINDBConfig) {
 
 #[allow(dead_code)]
 pub fn initial_metric(causet: &MetricConfig, node_id: Option<u64>) {
-    edb_util::metrics::monitor_process()
+    violetabftstore::interlock::::metrics::monitor_process()
         .unwrap_or_else(|e| fatal!("failed to spacelike process monitor: {}", e));
-    edb_util::metrics::monitor_threads("edb")
+    violetabftstore::interlock::::metrics::monitor_threads("edb")
         .unwrap_or_else(|e| fatal!("failed to spacelike thread monitor: {}", e));
-    edb_util::metrics::monitor_allocator_stats("edb")
+    violetabftstore::interlock::::metrics::monitor_allocator_stats("edb")
         .unwrap_or_else(|e| fatal!("failed to monitor allocator stats: {}", e));
 
     if causet.interval.as_secs() == 0 || causet.address.is_empty() {
@@ -242,7 +242,7 @@ pub fn initial_metric(causet: &MetricConfig, node_id: Option<u64>) {
     }
 
     info!("spacelike prometheus client");
-    edb_util::metrics::run_prometheus(causet.interval.0, &causet.address, &push_job);
+    violetabftstore::interlock::::metrics::run_prometheus(causet.interval.0, &causet.address, &push_job);
 }
 
 #[allow(dead_code)]
@@ -272,7 +272,7 @@ pub fn overwrite_config_with_cmd_args(config: &mut EINSTEINDBConfig, matches: &A
     }
 
     if let Some(data_dir) = matches.value_of("data-dir") {
-        config.causetStorage.data_dir = data_dir.to_owned();
+        config.causet_storage.data_dir = data_dir.to_owned();
     }
 
     if let Some(lightlikepoints) = matches.values_of("fidel-lightlikepoints") {

@@ -4,8 +4,8 @@ use std::fs;
 use std::path::Path;
 
 use edb::{CacheStats, VioletaBftEngine, VioletaBftLogBatch as VioletaBftLogBatchTrait, Result};
-use ekvproto::violetabft_serverpb::VioletaBftLocalState;
-use violetabft::evioletabftpb::Entry;
+use ekvproto::violetabft_server_timeshare::VioletaBftLocalState;
+use violetabft::evioletabft_timeshare::Entry;
 use violetabft_engine::{EntryExt, Error as VioletaBftEngineError, LogBatch, VioletaBftLogEngine as RawVioletaBftEngine};
 
 pub use violetabft_engine::config::RecoveryMode;

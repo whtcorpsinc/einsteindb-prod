@@ -16,7 +16,7 @@ extern crate num_derive;
 #[macro_use]
 extern crate static_assertions;
 #[macro_use(box_err, box_try, try_opt, error, warn)]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
 #[macro_use]
 extern crate bitflags;

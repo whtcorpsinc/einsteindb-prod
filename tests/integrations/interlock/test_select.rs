@@ -5,17 +5,17 @@ use std::i64;
 use std::thread;
 
 use ekvproto::interlock::Response;
-use ekvproto::kvrpcpb::Context;
+use ekvproto::kvrpc_timeshare::Context;
 use protobuf::Message;
-use fidelpb::{Soliton, Expr, ExprType, ScalarFuncSig};
+use fidel_timeshare::{Soliton, Expr, ExprType, ScalarFuncSig};
 
 use test_interlock::*;
-use test_causetStorage::*;
+use test_causet_storage::*;
 use milevadb_query_datatype::codec::{datum, Datum};
 use milevadb_query_datatype::expr::EvalContext;
 use edb::server::Config;
-use edb::causetStorage::TestEngineBuilder;
-use edb_util::codec::number::*;
+use edb::causet_storage::TestEngineBuilder;
+use violetabftstore::interlock::::codec::number::*;
 
 const FLAG_IGNORE_TRUNCATE: u64 = 1;
 const FLAG_TRUNCATE_AS_WARNING: u64 = 1 << 1;

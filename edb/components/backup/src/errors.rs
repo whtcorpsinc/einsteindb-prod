@@ -5,11 +5,11 @@ use std::{error, result};
 
 use edb::Error as EngineTraitError;
 use ekvproto::backup::Error as ErrorPb;
-use ekvproto::errorpb::{Error as BraneError, ServerIsBusy};
-use ekvproto::kvrpcpb::KeyError;
-use edb::causetStorage::kv::{Error as EngineError, ErrorInner as EngineErrorInner};
-use edb::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
-use edb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
+use ekvproto::error_timeshare::{Error as BraneError, ServerIsBusy};
+use ekvproto::kvrpc_timeshare::KeyError;
+use edb::causet_storage::kv::{Error as EngineError, ErrorInner as EngineErrorInner};
+use edb::causet_storage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
+use edb::causet_storage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
 
 use crate::metrics::*;
 

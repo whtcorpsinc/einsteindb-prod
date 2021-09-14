@@ -2,7 +2,7 @@
 
 use std::error::Error;
 use std::result::Result;
-use edb_util::config::ReadableDuration;
+use violetabftstore::interlock::::config::ReadableDuration;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(default)]

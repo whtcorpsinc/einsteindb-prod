@@ -9,7 +9,7 @@ extern crate test;
 
 extern crate encryption;
 #[macro_use]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 extern crate fidel_client;
 
 mod config;
@@ -19,4 +19,4 @@ mod fidel;
 mod violetabftstore;
 mod server;
 mod server_encryption;
-mod causetStorage;
+mod causet_storage;

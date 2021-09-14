@@ -1,5 +1,5 @@
 [package]
-name = "test_causetStorage"
+name = "test_causet_storage"
 version = "0.0.1"
 edition = "2018"
 publish = false
@@ -27,5 +27,5 @@ violetabftstore = { path = "../violetabftstore" }
 fidel_client = { path = "../fidel_client" }
 test_violetabftstore = { path = "../test_violetabftstore" }
 edb = { path = "../../", default-features = false }
-edb_util = { path = "../edb_util" }
+violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
 txn_types = { path = "../txn_types" }

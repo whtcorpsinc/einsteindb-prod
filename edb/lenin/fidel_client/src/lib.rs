@@ -15,7 +15,7 @@ extern crate fail;
 #[allow(unused_extern_crates)]
 extern crate edb_alloc;
 #[macro_use]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
 mod client;
 pub mod metrics;
@@ -33,11 +33,11 @@ use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 
 use futures::future::BoxFuture;
-use ekvproto::metapb;
-use ekvproto::fidelpb;
-use ekvproto::replication_modepb::{BraneReplicationStatus, ReplicationStatus};
+use ekvproto::meta_timeshare;
+use ekvproto::fidel_timeshare;
+use ekvproto::replication_mode_timeshare::{BraneReplicationStatus, ReplicationStatus};
 use semver::{SemVerError, Version};
-use edb_util::time::UnixSecs;
+use violetabftstore::interlock::::time::UnixSecs;
 use txn_types::TimeStamp;
 
 pub type Key = Vec<u8>;
@@ -45,8 +45,8 @@ pub type FidelFuture<T> = BoxFuture<'static, Result<T>>;
 
 #[derive(Default, Clone)]
 pub struct BraneStat {
-    pub down_peers: Vec<fidelpb::PeerStats>,
-    pub plightlikeing_peers: Vec<metapb::Peer>,
+    pub down_peers: Vec<fidel_timeshare::PeerStats>,
+    pub plightlikeing_peers: Vec<meta_timeshare::Peer>,
     pub written_bytes: u64,
     pub written_tuplespaceInstanton: u64,
     pub read_bytes: u64,
@@ -58,18 +58,18 @@ pub struct BraneStat {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BraneInfo {
-    pub brane: metapb::Brane,
-    pub leader: Option<metapb::Peer>,
+    pub brane: meta_timeshare::Brane,
+    pub leader: Option<meta_timeshare::Peer>,
 }
 
 impl BraneInfo {
-    pub fn new(brane: metapb::Brane, leader: Option<metapb::Peer>) -> BraneInfo {
+    pub fn new(brane: meta_timeshare::Brane, leader: Option<meta_timeshare::Peer>) -> BraneInfo {
         BraneInfo { brane, leader }
     }
 }
 
 impl Deref for BraneInfo {
-    type Target = metapb::Brane;
+    type Target = meta_timeshare::Brane;
 
     fn deref(&self) -> &Self::Target {
         &self.brane
@@ -99,8 +99,8 @@ pub trait FidelClient: lightlike + Sync {
     /// and must remove their created local Brane data themselves.
     fn bootstrap_cluster(
         &self,
-        _stores: metapb::CausetStore,
-        _brane: metapb::Brane,
+        _stores: meta_timeshare::CausetStore,
+        _brane: meta_timeshare::Brane,
     ) -> Result<Option<ReplicationStatus>> {
         unimplemented!();
     }
@@ -120,7 +120,7 @@ pub trait FidelClient: lightlike + Sync {
     }
 
     /// Informs FIDel when the store spacelikes or some store information changes.
-    fn put_store(&self, _store: metapb::CausetStore) -> Result<Option<ReplicationStatus>> {
+    fn put_store(&self, _store: meta_timeshare::CausetStore) -> Result<Option<ReplicationStatus>> {
         unimplemented!();
     }
 
@@ -136,23 +136,23 @@ pub trait FidelClient: lightlike + Sync {
     /// - For auto-balance, FIDel determines how to move the Brane from one store to another.
 
     /// Gets store information if it is not a tombstone store.
-    fn get_store(&self, _store_id: u64) -> Result<metapb::CausetStore> {
+    fn get_store(&self, _store_id: u64) -> Result<meta_timeshare::CausetStore> {
         unimplemented!();
     }
 
     /// Gets all stores information.
-    fn get_all_stores(&self, _exclude_tombstone: bool) -> Result<Vec<metapb::CausetStore>> {
+    fn get_all_stores(&self, _exclude_tombstone: bool) -> Result<Vec<meta_timeshare::CausetStore>> {
         unimplemented!();
     }
 
     /// Gets cluster meta information.
-    fn get_cluster_config(&self) -> Result<metapb::Cluster> {
+    fn get_cluster_config(&self) -> Result<meta_timeshare::Cluster> {
         unimplemented!();
     }
 
     /// For route.
     /// Gets Brane which the key belongs to.
-    fn get_brane(&self, _key: &[u8]) -> Result<metapb::Brane> {
+    fn get_brane(&self, _key: &[u8]) -> Result<meta_timeshare::Brane> {
         unimplemented!();
     }
 
@@ -162,7 +162,7 @@ pub trait FidelClient: lightlike + Sync {
     }
 
     /// Gets Brane by Brane id.
-    fn get_brane_by_id(&self, _brane_id: u64) -> FidelFuture<Option<metapb::Brane>> {
+    fn get_brane_by_id(&self, _brane_id: u64) -> FidelFuture<Option<meta_timeshare::Brane>> {
         unimplemented!();
     }
 
@@ -170,8 +170,8 @@ pub trait FidelClient: lightlike + Sync {
     fn brane_heartbeat(
         &self,
         _term: u64,
-        _brane: metapb::Brane,
-        _leader: metapb::Peer,
+        _brane: meta_timeshare::Brane,
+        _leader: meta_timeshare::Peer,
         _brane_stat: BraneStat,
         _replication_status: Option<BraneReplicationStatus>,
     ) -> FidelFuture<()> {
@@ -184,32 +184,32 @@ pub trait FidelClient: lightlike + Sync {
     fn handle_brane_heartbeat_response<F>(&self, _store_id: u64, _f: F) -> FidelFuture<()>
     where
         Self: Sized,
-        F: Fn(fidelpb::BraneHeartbeatResponse) + lightlike + 'static,
+        F: Fn(fidel_timeshare::BraneHeartbeatResponse) + lightlike + 'static,
     {
         unimplemented!();
     }
 
     /// Asks FIDel for split. FIDel returns the newly split Brane id.
-    fn ask_split(&self, _brane: metapb::Brane) -> FidelFuture<fidelpb::AskSplitResponse> {
+    fn ask_split(&self, _brane: meta_timeshare::Brane) -> FidelFuture<fidel_timeshare::AskSplitResponse> {
         unimplemented!();
     }
 
     /// Asks FIDel for batch split. FIDel returns the newly split Brane ids.
     fn ask_batch_split(
         &self,
-        _brane: metapb::Brane,
+        _brane: meta_timeshare::Brane,
         _count: usize,
-    ) -> FidelFuture<fidelpb::AskBatchSplitResponse> {
+    ) -> FidelFuture<fidel_timeshare::AskBatchSplitResponse> {
         unimplemented!();
     }
 
     /// lightlikes store statistics regularly.
-    fn store_heartbeat(&self, _stats: fidelpb::StoreStats) -> FidelFuture<fidelpb::StoreHeartbeatResponse> {
+    fn store_heartbeat(&self, _stats: fidel_timeshare::StoreStats) -> FidelFuture<fidel_timeshare::StoreHeartbeatResponse> {
         unimplemented!();
     }
 
     /// Reports FIDel the split Brane.
-    fn report_batch_split(&self, _branes: Vec<metapb::Brane>) -> FidelFuture<()> {
+    fn report_batch_split(&self, _branes: Vec<meta_timeshare::Brane>) -> FidelFuture<()> {
         unimplemented!();
     }
 
@@ -232,12 +232,12 @@ pub trait FidelClient: lightlike + Sync {
     }
 
     /// Gets store state if it is not a tombstone store.
-    fn get_store_stats(&self, _store_id: u64) -> Result<fidelpb::StoreStats> {
+    fn get_store_stats(&self, _store_id: u64) -> Result<fidel_timeshare::StoreStats> {
         unimplemented!();
     }
 
     /// Gets current operator of the brane
-    fn get_operator(&self, _brane_id: u64) -> Result<fidelpb::GetOperatorResponse> {
+    fn get_operator(&self, _brane_id: u64) -> Result<fidel_timeshare::GetOperatorResponse> {
         unimplemented!();
     }
 
@@ -250,7 +250,7 @@ pub trait FidelClient: lightlike + Sync {
 const REQUEST_TIMEOUT: u64 = 2; // 2s
 
 /// Takes the peer address (for lightlikeing violetabft messages) from a store.
-pub fn take_peer_address(store: &mut metapb::CausetStore) -> String {
+pub fn take_peer_address(store: &mut meta_timeshare::CausetStore) -> String {
     if !store.get_peer_address().is_empty() {
         store.take_peer_address()
     } else {

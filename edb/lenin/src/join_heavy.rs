@@ -8,7 +8,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use edb_raum::{
+use edb_allegro::{
     Keyword,
 };
 
@@ -46,22 +46,22 @@ impl<'a> BootstrapHelper<'a> {
     // TODO we could also iterate through our own join_heavy schemaReplicant definition and check that everything matches
     // "version" is used here as a proxy for doing that work
     pub fn is_compatible(&self) -> Result<bool> {
-        Ok(self.raum_schemaReplicant_version()? == CORE_SCHEMA_VERSION as i64)
+        Ok(self.allegro_schemaReplicant_version()? == CORE_SCHEMA_VERSION as i64)
     }
 
-    pub fn raum_schemaReplicant_version(&self) -> Result<i64> {
+    pub fn allegro_schemaReplicant_version(&self) -> Result<i64> {
         match self.parts.ea_lookup(
-            Keyword::namespaced("edb.schemaReplicant", "raum"),
+            Keyword::namespaced("edb.schemaReplicant", "allegro"),
             Keyword::namespaced("edb.schemaReplicant", "version"),
         ) {
             Some(v) => {
                 // TODO v is just a type tag and a Copy value, we shouldn't need to clone.
                 match v.clone().into_long() {
                     Some(v) => Ok(v),
-                    None => bail!(LeninError::BadRemoteState("incorrect type for raum schemaReplicant version".to_string()))
+                    None => bail!(LeninError::BadRemoteState("incorrect type for allegro schemaReplicant version".to_string()))
                 }
             },
-            None => bail!(LeninError::BadRemoteState("missing raum schemaReplicant version".to_string()))
+            None => bail!(LeninError::BadRemoteState("missing allegro schemaReplicant version".to_string()))
         }
     }
 }
@@ -85,6 +85,6 @@ mod tests {
         assert_eq!(1, remote_causetxs.len());
 
         let bh = BootstrapHelper::new(&remote_causetxs[0]);
-        assert_eq!(1, bh.raum_schemaReplicant_version().expect("schemaReplicant version"));
+        assert_eq!(1, bh.allegro_schemaReplicant_version().expect("schemaReplicant version"));
     }
 }

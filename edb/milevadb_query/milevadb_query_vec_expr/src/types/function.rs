@@ -26,7 +26,7 @@ use std::convert::TryFrom;
 use std::marker::PhantomData;
 
 use milevadb_query_datatype::{EvalType, FieldTypeAccessor};
-use fidelpb::{Expr, FieldType};
+use fidel_timeshare::{Expr, FieldType};
 
 use super::expr_eval::LogicalEvents;
 use super::RpnStackNode;

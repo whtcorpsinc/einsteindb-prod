@@ -9,19 +9,19 @@
 // specific language governing permissions and limitations under the License.
 
 extern crate edbn;
-extern crate edb_raum;
-extern crate raum_promises;
+extern crate edb_allegro;
+extern crate allegro_promises;
 extern crate edb_causetq_parityfilter;
 extern crate causetq_parityfilter_promises;
 
 mod utils;
 
-use raum_promises::{
+use allegro_promises::{
     Attribute,
     MinkowskiValueType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SchemaReplicant,
 };
 
@@ -86,7 +86,7 @@ fn test_apply_fulltext() {
 
     // If you get a type mismatch, we will short-circuit.
     let causetq = r#"[:find ?val
-                    :where [(fulltext $ :foo/description "hello") [[?instanton ?val ?causetx ?sraum]]]
-                    [?sraum :foo/bar _]]"#;
+                    :where [(fulltext $ :foo/description "hello") [[?instanton ?val ?causetx ?sallegro]]]
+                    [?sallegro :foo/bar _]]"#;
     assert!(alg(knownCauset, causetq).is_known_empty());
 }

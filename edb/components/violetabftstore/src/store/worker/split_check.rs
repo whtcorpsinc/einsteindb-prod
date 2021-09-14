@@ -6,9 +6,9 @@ use std::fmt::{self, Display, Formatter};
 use std::mem;
 
 use edb::{CfName, IterOptions, Iterable, Iteron, KvEngine, Causet_WRITE, LARGE_CausetS};
-use ekvproto::metapb::Brane;
-use ekvproto::metapb::BraneEpoch;
-use ekvproto::fidelpb::CheckPolicy;
+use ekvproto::meta_timeshare::Brane;
+use ekvproto::meta_timeshare::BraneEpoch;
+use ekvproto::fidel_timeshare::CheckPolicy;
 
 use crate::interlock::Config;
 use crate::interlock::InterlockHost;
@@ -16,8 +16,8 @@ use crate::interlock::SplitCheckerHost;
 use crate::store::{Callback, CasualMessage, CasualRouter};
 use crate::Result;
 use configuration::{ConfigChange, Configuration};
-use edb_util::keybuilder::KeyBuilder;
-use edb_util::worker::Runnable;
+use violetabftstore::interlock::::keybuilder::KeyBuilder;
+use violetabftstore::interlock::::worker::Runnable;
 
 use super::metrics::*;
 
@@ -288,9 +288,9 @@ where
                 tuplespaceInstanton += 1;
             }
 
-            // if we scan the whole cone, we can ufidelate approximate size and tuplespaceInstanton with accurate value.
+            // if we scan the whole cone, we can fidelio approximate size and tuplespaceInstanton with accurate value.
             info!(
-                "ufidelate approximate size and tuplespaceInstanton with accurate value";
+                "fidelio approximate size and tuplespaceInstanton with accurate value";
                 "brane_id" => brane.get_id(),
                 "size" => size,
                 "tuplespaceInstanton" => tuplespaceInstanton,
@@ -311,10 +311,10 @@ where
 
     fn change_causet(&mut self, change: ConfigChange) {
         info!(
-            "split check config ufidelated";
+            "split check config fideliod";
             "change" => ?change
         );
-        self.causet.ufidelate(change);
+        self.causet.fidelio(change);
     }
 }
 

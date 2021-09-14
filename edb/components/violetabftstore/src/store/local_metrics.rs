@@ -3,7 +3,7 @@
 use prometheus::local::LocalHistogram;
 use std::sync::{Arc, Mutex};
 
-use edb_util::collections::HashSet;
+use violetabftstore::interlock::::collections::HashSet;
 
 use super::metrics::*;
 

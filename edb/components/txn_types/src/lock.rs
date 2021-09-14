@@ -4,10 +4,10 @@ use crate::timestamp::{TimeStamp, TsSet};
 use crate::types::{Key, Mutation, Value, SHORT_VALUE_PREFIX};
 use crate::{Error, ErrorInner, Result};
 use byteorder::ReadBytesExt;
-use ekvproto::kvrpcpb::{LockInfo, Op};
+use ekvproto::kvrpc_timeshare::{LockInfo, Op};
 use std::{borrow::Cow, mem::size_of};
-use edb_util::codec::bytes::{self, BytesEncoder};
-use edb_util::codec::number::{self, NumberEncoder, MAX_VAR_I64_LEN, MAX_VAR_U64_LEN};
+use violetabftstore::interlock::codec::bytes::{self, BytesEncoder};
+use violetabftstore::interlock::codec::number::{self, NumberEncoder, MAX_VAR_I64_LEN, MAX_VAR_U64_LEN};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LockType {
@@ -22,7 +22,7 @@ const FLAG_DELETE: u8 = b'D';
 const FLAG_LOCK: u8 = b'L';
 const FLAG_PESSIMISTIC: u8 = b'S';
 
-const FOR_UFIDelATE_TS_PREFIX: u8 = b'f';
+const FOR_fidelio_TS_PREFIX: u8 = b'f';
 const TXN_SIZE_PREFIX: u8 = b't';
 const MIN_COMMIT_TS_PREFIX: u8 = b'c';
 const ASYNC_COMMIT_PREFIX: u8 = b'a';
@@ -65,8 +65,8 @@ pub struct Dagger {
     pub ts: TimeStamp,
     pub ttl: u64,
     pub short_value: Option<Value>,
-    // If for_ufidelate_ts != 0, this dagger belongs to a pessimistic transaction
-    pub for_ufidelate_ts: TimeStamp,
+    // If for_fidelio_ts != 0, this dagger belongs to a pessimistic transaction
+    pub for_fidelio_ts: TimeStamp,
     pub txn_size: u64,
     pub min_commit_ts: TimeStamp,
     pub use_async_commit: bool,
@@ -88,7 +88,7 @@ impl Dagger {
         ts: TimeStamp,
         ttl: u64,
         short_value: Option<Value>,
-        for_ufidelate_ts: TimeStamp,
+        for_fidelio_ts: TimeStamp,
         txn_size: u64,
         min_commit_ts: TimeStamp,
     ) -> Self {
@@ -98,7 +98,7 @@ impl Dagger {
             ts,
             ttl,
             short_value,
-            for_ufidelate_ts,
+            for_fidelio_ts,
             txn_size,
             min_commit_ts,
             use_async_commit: false,
@@ -129,9 +129,9 @@ impl Dagger {
             b.push(v.len() as u8);
             b.extlightlike_from_slice(v);
         }
-        if !self.for_ufidelate_ts.is_zero() {
-            b.push(FOR_UFIDelATE_TS_PREFIX);
-            b.encode_u64(self.for_ufidelate_ts.into_inner()).unwrap();
+        if !self.for_fidelio_ts.is_zero() {
+            b.push(FOR_fidelio_TS_PREFIX);
+            b.encode_u64(self.for_fidelio_ts.into_inner()).unwrap();
         }
         if self.txn_size > 0 {
             b.push(TXN_SIZE_PREFIX);
@@ -163,7 +163,7 @@ impl Dagger {
         if let Some(v) = &self.short_value {
             size += 2 + v.len();
         }
-        if !self.for_ufidelate_ts.is_zero() {
+        if !self.for_fidelio_ts.is_zero() {
             size += 1 + size_of::<u64>();
         }
         if self.txn_size > 0 {
@@ -214,7 +214,7 @@ impl Dagger {
         }
 
         let mut short_value = None;
-        let mut for_ufidelate_ts = TimeStamp::zero();
+        let mut for_fidelio_ts = TimeStamp::zero();
         let mut txn_size: u64 = 0;
         let mut min_commit_ts = TimeStamp::zero();
         let mut use_async_commit = false;
@@ -234,7 +234,7 @@ impl Dagger {
                     short_value = Some(b[..len as usize].to_vec());
                     b = &b[len as usize..];
                 }
-                FOR_UFIDelATE_TS_PREFIX => for_ufidelate_ts = number::decode_u64(&mut b)?.into(),
+                FOR_fidelio_TS_PREFIX => for_fidelio_ts = number::decode_u64(&mut b)?.into(),
                 TXN_SIZE_PREFIX => txn_size = number::decode_u64(&mut b)?,
                 MIN_COMMIT_TS_PREFIX => min_commit_ts = number::decode_u64(&mut b)?.into(),
                 ASYNC_COMMIT_PREFIX => {
@@ -262,7 +262,7 @@ impl Dagger {
             ts,
             ttl,
             short_value,
-            for_ufidelate_ts,
+            for_fidelio_ts,
             txn_size,
             min_commit_ts,
         );
@@ -287,7 +287,7 @@ impl Dagger {
             LockType::Pessimistic => Op::PessimisticLock,
         };
         info.set_lock_type(lock_type);
-        info.set_lock_for_ufidelate_ts(self.for_ufidelate_ts.into_inner());
+        info.set_lock_for_fidelio_ts(self.for_fidelio_ts.into_inner());
         info.set_use_async_commit(self.use_async_commit);
         info.set_min_commit_ts(self.min_commit_ts.into_inner());
         info.set_secondaries(self.secondaries.into());
@@ -333,7 +333,7 @@ impl Dagger {
     }
 
     pub fn is_pessimistic_txn(&self) -> bool {
-        !self.for_ufidelate_ts.is_zero()
+        !self.for_fidelio_ts.is_zero()
     }
 }
 

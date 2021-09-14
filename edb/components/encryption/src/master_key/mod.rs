@@ -1,6 +1,6 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use ekvproto::encryptionpb::EncryptedContent;
+use ekvproto::encryption_timeshare::EncryptedContent;
 
 #[causet(test)]
 use crate::config::Mock;

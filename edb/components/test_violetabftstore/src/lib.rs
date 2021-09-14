@@ -3,7 +3,7 @@
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 extern crate fidel_client;
 
 mod cluster;

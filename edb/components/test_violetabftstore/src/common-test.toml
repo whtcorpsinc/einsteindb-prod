@@ -5,7 +5,7 @@ unify-read-pool = true
 min-thread-count = 1
 max-thread-count = 1
 
-[readpool.causetStorage]
+[readpool.causet_storage]
 high-concurrency = 1
 normal-concurrency = 1
 low-concurrency = 1
@@ -27,11 +27,11 @@ stats-concurrency = 0
 
 [server.labels]
 
-[causetStorage]
+[causet_storage]
 interlock_semaphore-concurrency = 10
 interlock_semaphore-worker-pool-size = 1
 
-[causetStorage.block-cache]
+[causet_storage.block-cache]
 shared = true
 capacity = "64MB"
 

@@ -2,7 +2,7 @@
 
 use std::any::Any;
 
-use fidelpb::FieldType;
+use fidel_timeshare::FieldType;
 
 use super::super::function::RpnFnMeta;
 use milevadb_query_datatype::codec::data_type::ScalarValue;
@@ -40,9 +40,9 @@ impl RpnExpressionNode {
     }
 
     #[causet(test)]
-    pub fn expr_tp(&self) -> fidelpb::ExprType {
+    pub fn expr_tp(&self) -> fidel_timeshare::ExprType {
         use milevadb_query_datatype::EvalType;
-        use fidelpb::ExprType;
+        use fidel_timeshare::ExprType;
 
         match self {
             RpnExpressionNode::FnCall { .. } => ExprType::ScalarFunc,

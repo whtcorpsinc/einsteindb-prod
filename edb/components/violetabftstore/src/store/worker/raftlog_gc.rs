@@ -7,9 +7,9 @@ use std::sync::mpsc::lightlikeer;
 use crate::store::{CasualMessage, CasualRouter};
 
 use edb::{Engines, KvEngine, VioletaBftEngine};
-use edb_util::time::Duration;
-use edb_util::timer::Timer;
-use edb_util::worker::{Runnable, RunnableWithTimer};
+use violetabftstore::interlock::::time::Duration;
+use violetabftstore::interlock::::timer::Timer;
+use violetabftstore::interlock::::worker::{Runnable, RunnableWithTimer};
 
 const MAX_GC_REGION_BATCH: usize = 128;
 const COMPACT_LOG_INTERVAL: Duration = Duration::from_secs(60);

@@ -4,7 +4,7 @@ version = "0.0.1"
 workspace = ".."
 
 [lib]
-name = "allegrosql-promises"
+name = "allegrosql_promises"
 path = "lib.rs"
 
 [dependencies]

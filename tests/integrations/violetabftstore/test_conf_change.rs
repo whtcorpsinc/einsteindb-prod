@@ -7,10 +7,10 @@ use std::time::*;
 
 use futures::executor::block_on;
 
-use ekvproto::metapb;
-use ekvproto::violetabft_cmdpb::{VioletaBftCmdResponse, VioletaBftResponseHeader};
-use ekvproto::violetabft_serverpb::*;
-use violetabft::evioletabftpb::{ConfChangeType, MessageType};
+use ekvproto::meta_timeshare;
+use ekvproto::violetabft_cmd_timeshare::{VioletaBftCmdResponse, VioletaBftResponseHeader};
+use ekvproto::violetabft_server_timeshare::*;
+use violetabft::evioletabft_timeshare::{ConfChangeType, MessageType};
 
 use engine_lmdb::Compat;
 use edb::{Peekable, Causet_VIOLETABFT};
@@ -18,8 +18,8 @@ use fidel_client::FidelClient;
 use violetabftstore::store::util::is_learner;
 use violetabftstore::Result;
 use test_violetabftstore::*;
-use edb_util::config::ReadableDuration;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::config::ReadableDuration;
+use violetabftstore::interlock::::HandyRwLock;
 
 fn test_simple_conf_change<T: Simulator>(cluster: &mut Cluster<T>) {
     let fidel_client = Arc::clone(&cluster.fidel_client);
@@ -81,7 +81,7 @@ fn test_simple_conf_change<T: Simulator>(cluster: &mut Cluster<T>) {
     // add peer 2 then remove it again.
     fidel_client.must_add_peer(r1, new_peer(2, 2));
 
-    // Force ufidelate a2 to check whether peer 2 added ok and received the snapshot.
+    // Force fidelio a2 to check whether peer 2 added ok and received the snapshot.
     let (key, value) = (b"k2", b"v2");
     cluster.must_put(key, value);
     assert_eq!(cluster.get(key), Some(value.to_vec()));
@@ -136,7 +136,7 @@ fn test_simple_conf_change<T: Simulator>(cluster: &mut Cluster<T>) {
     // TODO: add more tests.
 }
 
-fn new_conf_change_peer(store: &metapb::CausetStore, fidel_client: &Arc<TestFidelClient>) -> metapb::Peer {
+fn new_conf_change_peer(store: &meta_timeshare::CausetStore, fidel_client: &Arc<TestFidelClient>) -> meta_timeshare::Peer {
     let peer_id = fidel_client.alloc_id().unwrap();
     new_peer(store.get_id(), peer_id)
 }
@@ -304,14 +304,14 @@ fn test_auto_adjust_replica<T: Simulator>(cluster: &mut Cluster<T>) {
     }
 
     let mut peer = new_conf_change_peer(&stores[i], &fidel_client);
-    peer.set_role(metapb::PeerRole::Learner);
+    peer.set_role(meta_timeshare::PeerRole::Learner);
     let engine = cluster.get_engine(peer.get_store_id());
     must_get_none(&engine, b"k1");
 
     fidel_client.must_add_peer(brane_id, peer.clone());
     wait_till_reach_count(Arc::clone(&fidel_client), brane_id, 6);
     must_get_equal(&engine, b"k1", b"v1");
-    peer.set_role(metapb::PeerRole::Voter);
+    peer.set_role(meta_timeshare::PeerRole::Voter);
     fidel_client.must_add_peer(brane_id, peer);
 
     // it should remove extra replica.
@@ -502,7 +502,7 @@ fn test_split_brain<T: Simulator>(cluster: &mut Cluster<T>) {
 fn find_leader_response_header<T: Simulator>(
     cluster: &mut Cluster<T>,
     brane_id: u64,
-    peer: metapb::Peer,
+    peer: meta_timeshare::Peer,
 ) -> VioletaBftResponseHeader {
     let find_leader = new_status_request(brane_id, peer, new_brane_leader_cmd());
     let resp = cluster.call_command(find_leader, Duration::from_secs(5));
@@ -696,7 +696,7 @@ fn test_learner_conf_change<T: Simulator>(cluster: &mut Cluster<T>) {
     must_get_equal(&engine_4, b"k3", b"v3");
 
     // Transfer leader to (4, 12) and check fidel heartbeats from it to ensure
-    // that `Peer::peer` has be ufidelated correctly after the peer is promoted.
+    // that `Peer::peer` has be fideliod correctly after the peer is promoted.
     fidel_client.transfer_leader(r1, new_peer(4, 12));
     fidel_client.brane_leader_must_be(r1, new_peer(4, 12));
 
@@ -709,7 +709,7 @@ fn test_learner_conf_change<T: Simulator>(cluster: &mut Cluster<T>) {
     // false warning about plightlikeing conf change.
     cluster.must_put(b"k4", b"v4");
 
-    let mut add_peer = |peer: metapb::Peer| {
+    let mut add_peer = |peer: meta_timeshare::Peer| {
         let conf_type = if is_learner(&peer) {
             ConfChangeType::AddLearnerNode
         } else {
@@ -914,7 +914,7 @@ fn call_conf_change<T>(
     cluster: &mut Cluster<T>,
     brane_id: u64,
     conf_change_type: ConfChangeType,
-    peer: metapb::Peer,
+    peer: meta_timeshare::Peer,
 ) -> Result<VioletaBftCmdResponse>
 where
     T: Simulator,

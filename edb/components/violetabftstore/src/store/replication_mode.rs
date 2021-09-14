@@ -1,8 +1,8 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use ekvproto::metapb;
-use ekvproto::replication_modepb::{ReplicationMode, ReplicationStatus};
-use edb_util::collections::{HashMap, HashMapEntry};
+use ekvproto::meta_timeshare;
+use ekvproto::replication_mode_timeshare::{ReplicationMode, ReplicationStatus};
+use violetabftstore::interlock::::collections::{HashMap, HashMapEntry};
 
 /// A registry that maps store to a group.
 ///
@@ -10,7 +10,7 @@ use edb_util::collections::{HashMap, HashMapEntry};
 /// label value will be mapped to the same group ID.
 #[derive(Default, Debug)]
 pub struct StoreGroup {
-    labels: HashMap<u64, Vec<metapb::StoreLabel>>,
+    labels: HashMap<u64, Vec<meta_timeshare::StoreLabel>>,
     label_ids: HashMap<String, u64>,
     stores: HashMap<u64, u64>,
     label_key: String,
@@ -23,7 +23,7 @@ impl StoreGroup {
     ///
     /// When using majority mode, labels still need to be backup for future
     /// usage. Should only call it in majority mode.
-    pub fn backup_store_labels(&mut self, store: &mut metapb::CausetStore) {
+    pub fn backup_store_labels(&mut self, store: &mut meta_timeshare::CausetStore) {
         if self
             .labels
             .get(&store.id)
@@ -46,7 +46,7 @@ impl StoreGroup {
     pub fn register_store(
         &mut self,
         store_id: u64,
-        labels: Vec<metapb::StoreLabel>,
+        labels: Vec<meta_timeshare::StoreLabel>,
     ) -> Option<u64> {
         info!("associated store labels"; "store_id" => store_id, "labels" => ?labels);
         let key = &self.label_key;
@@ -161,7 +161,7 @@ impl GlobalReplicationState {
     pub fn calculate_commit_group(
         &mut self,
         version: u64,
-        peers: &[metapb::Peer],
+        peers: &[meta_timeshare::Peer],
     ) -> &mut Vec<(u64, u64)> {
         self.group_buffer.clear();
         for p in peers {
@@ -177,19 +177,19 @@ impl GlobalReplicationState {
 mod tests {
     use super::*;
     use crate::store::util::new_peer;
-    use ekvproto::metapb;
-    use ekvproto::replication_modepb::{ReplicationMode, ReplicationStatus};
+    use ekvproto::meta_timeshare;
+    use ekvproto::replication_mode_timeshare::{ReplicationMode, ReplicationStatus};
     use std::panic;
 
-    fn new_label(key: &str, value: &str) -> metapb::StoreLabel {
-        let mut label = metapb::StoreLabel::default();
+    fn new_label(key: &str, value: &str) -> meta_timeshare::StoreLabel {
+        let mut label = meta_timeshare::StoreLabel::default();
         label.key = key.to_owned();
         label.value = value.to_owned();
         label
     }
 
-    fn new_store(id: u64, labels: Vec<metapb::StoreLabel>) -> metapb::CausetStore {
-        let mut store = metapb::CausetStore::default();
+    fn new_store(id: u64, labels: Vec<meta_timeshare::StoreLabel>) -> meta_timeshare::CausetStore {
+        let mut store = meta_timeshare::CausetStore::default();
         store.id = id;
         store.set_labels(labels.into());
         store
@@ -299,7 +299,7 @@ mod tests {
         expected = vec![0, 0, 2, 1, 1];
         validate_state(&state, 3, &expected);
 
-        // If a store has no group id, it can still ufidelates the labels.
+        // If a store has no group id, it can still fidelios the labels.
         assert_eq!(
             Some(1),
             state.group.register_store(1, vec![label1.clone(), label4])

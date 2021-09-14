@@ -6,12 +6,12 @@ use std::thread;
 use std::time::Duration;
 
 use futures::executor::block_on;
-use ekvproto::violetabft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
 use fidel_client::FidelClient;
-use violetabft::evioletabftpb::{ConfChangeType, MessageType};
+use violetabft::evioletabft_timeshare::{ConfChangeType, MessageType};
 use test_violetabftstore::*;
-use edb_util::config::ReadableDuration;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::config::ReadableDuration;
+use violetabftstore::interlock::::HandyRwLock;
 
 #[test]
 fn test_destroy_local_reader() {

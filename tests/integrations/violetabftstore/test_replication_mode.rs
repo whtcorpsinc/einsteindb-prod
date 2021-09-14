@@ -3,13 +3,13 @@
 use std::thread;
 use std::time::Duration;
 
-use ekvproto::replication_modepb::*;
+use ekvproto::replication_mode_timeshare::*;
 use fidel_client::FidelClient;
-use violetabft::evioletabftpb::ConfChangeType;
+use violetabft::evioletabft_timeshare::ConfChangeType;
 use std::sync::mpsc;
 use test_violetabftstore::*;
-use edb_util::config::*;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::config::*;
+use violetabftstore::interlock::::HandyRwLock;
 
 fn prepare_cluster() -> Cluster<ServerCluster> {
     let mut cluster = new_server_cluster(0, 3);
@@ -120,9 +120,9 @@ fn test_check_conf_change() {
     );
 }
 
-// Tests if group id is ufidelated when adding new node and applying snapshot.
+// Tests if group id is fideliod when adding new node and applying snapshot.
 #[test]
-fn test_ufidelate_group_id() {
+fn test_fidelio_group_id() {
     let mut cluster = new_server_cluster(0, 2);
     let fidel_client = cluster.fidel_client.clone();
     cluster.add_label(1, "zone", "ES");
@@ -151,7 +151,7 @@ fn test_ufidelate_group_id() {
     must_get_equal(&cluster.get_engine(3), b"k11", b"v11");
     must_get_equal(&cluster.get_engine(1), b"k11", b"v11");
 
-    // So both node 1 and node 3 have fully resolved all stores. Further ufidelates to group ID have
+    // So both node 1 and node 3 have fully resolved all stores. Further fidelios to group ID have
     // to be done when applying conf change and snapshot.
     cluster.clear_lightlike_filters();
     fidel_client.must_add_peer(right.id, new_peer(2, 4));

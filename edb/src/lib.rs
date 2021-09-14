@@ -23,16 +23,16 @@ extern crate tabwriter;
 extern crate time;
 
 #[macro_use] extern crate edbn;
-#[macro_use] extern crate edb_raum;
-extern crate edb_promises;
-#[macro_use] extern crate raum_promises;
+#[macro_use] extern crate edb_allegro;
+extern crate causetq_pull_promises;
+#[macro_use] extern crate allegro_promises;
 extern crate edb_sql;
 
 use std::iter::repeat;
 
 use itertools::Itertools;
 
-use edb_promises::errors::{
+use causetq_pull_promises::errors::{
     DbErrorKind,
     Result,
 };

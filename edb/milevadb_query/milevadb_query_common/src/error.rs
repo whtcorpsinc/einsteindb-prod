@@ -40,9 +40,9 @@ impl From<Box<dyn std::error::Error + lightlike + Sync>> for EvaluateError {
     }
 }
 
-impl From<edb_util::deadline::DeadlineError> for EvaluateError {
+impl From<violetabftstore::interlock::::deadline::DeadlineError> for EvaluateError {
     #[inline]
-    fn from(_: edb_util::deadline::DeadlineError) -> Self {
+    fn from(_: violetabftstore::interlock::::deadline::DeadlineError) -> Self {
         EvaluateError::DeadlineExceeded
     }
 }
@@ -75,8 +75,8 @@ impl From<failure::Error> for StorageError {
 /// `failure::Error` is not used. Instead, we introduce our own error enum.
 #[derive(Fail, Debug)]
 pub enum ErrorInner {
-    #[fail(display = "CausetStorage error: {}", _0)]
-    CausetStorage(#[fail(cause)] StorageError),
+    #[fail(display = "causet_storage error: {}", _0)]
+    causet_storage(#[fail(cause)] StorageError),
 
     #[fail(display = "Evaluate error: {}", _0)]
     Evaluate(#[fail(cause)] EvaluateError),
@@ -99,7 +99,7 @@ impl std::fmt::Display for Error {
 impl From<StorageError> for Error {
     #[inline]
     fn from(e: StorageError) -> Self {
-        Error(Box::new(ErrorInner::CausetStorage(e)))
+        Error(Box::new(ErrorInner::causet_storage(e)))
     }
 }
 
@@ -124,7 +124,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 impl ErrorCodeExt for Error {
     fn error_code(&self) -> ErrorCode {
         match self.0.as_ref() {
-            ErrorInner::CausetStorage(_) => error_code::interlock::STORAGE_ERROR,
+            ErrorInner::causet_storage(_) => error_code::interlock::STORAGE_ERROR,
             ErrorInner::Evaluate(e) => e.error_code(),
         }
     }

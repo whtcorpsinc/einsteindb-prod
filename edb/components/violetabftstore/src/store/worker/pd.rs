@@ -14,13 +14,13 @@ use futures::future::TryFutureExt;
 use tokio::task::spawn_local;
 
 use edb::{KvEngine, VioletaBftEngine};
-use ekvproto::metapb;
-use ekvproto::fidelpb;
-use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, VioletaBftCmdRequest, SplitRequest};
-use ekvproto::violetabft_serverpb::VioletaBftMessage;
-use ekvproto::replication_modepb::BraneReplicationStatus;
+use ekvproto::meta_timeshare;
+use ekvproto::fidel_timeshare;
+use ekvproto::violetabft_cmd_timeshare::{AdminCmdType, AdminRequest, VioletaBftCmdRequest, SplitRequest};
+use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
+use ekvproto::replication_mode_timeshare::BraneReplicationStatus;
 use prometheus::local::LocalHistogram;
-use violetabft::evioletabftpb::ConfChangeType;
+use violetabft::evioletabft_timeshare::ConfChangeType;
 
 use crate::interlock::{get_brane_approximate_tuplespaceInstanton, get_brane_approximate_size};
 use crate::store::cmd_resp::new_error;
@@ -36,12 +36,12 @@ use crate::store::{CasualMessage, PeerMsg, VioletaBftCommand, VioletaBftRouter, 
 use concurrency_manager::ConcurrencyManager;
 use fidel_client::metrics::*;
 use fidel_client::{Error, FidelClient, BraneStat};
-use edb_util::collections::HashMap;
-use edb_util::metrics::ThreadInfoStatistics;
-use edb_util::time::UnixSecs;
-use edb_util::worker::{FutureRunnable as Runnable, FutureInterlock_Semaphore as Interlock_Semaphore, Stopped};
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::metrics::ThreadInfoStatistics;
+use violetabftstore::interlock::::time::UnixSecs;
+use violetabftstore::interlock::::worker::{FutureRunnable as Runnable, FutureInterlock_Semaphore as Interlock_Semaphore, Stopped};
 
-type RecordPairVec = Vec<fidelpb::RecordPair>;
+type RecordPairVec = Vec<fidel_timeshare::RecordPair>;
 
 #[derive(Default, Debug, Clone)]
 pub struct FlowStatistics {
@@ -79,17 +79,17 @@ where
     E: KvEngine,
 {
     AskSplit {
-        brane: metapb::Brane,
+        brane: meta_timeshare::Brane,
         split_key: Vec<u8>,
-        peer: metapb::Peer,
+        peer: meta_timeshare::Peer,
         // If true, right Brane derives origin brane_id.
         right_derive: bool,
         callback: Callback<E::Snapshot>,
     },
     AskBatchSplit {
-        brane: metapb::Brane,
+        brane: meta_timeshare::Brane,
         split_tuplespaceInstanton: Vec<Vec<u8>>,
-        peer: metapb::Peer,
+        peer: meta_timeshare::Peer,
         // If true, right Brane derives origin brane_id.
         right_derive: bool,
         callback: Callback<E::Snapshot>,
@@ -99,10 +99,10 @@ where
     },
     Heartbeat {
         term: u64,
-        brane: metapb::Brane,
-        peer: metapb::Peer,
-        down_peers: Vec<fidelpb::PeerStats>,
-        plightlikeing_peers: Vec<metapb::Peer>,
+        brane: meta_timeshare::Brane,
+        peer: meta_timeshare::Peer,
+        down_peers: Vec<fidel_timeshare::PeerStats>,
+        plightlikeing_peers: Vec<meta_timeshare::Peer>,
         written_bytes: u64,
         written_tuplespaceInstanton: u64,
         approximate_size: Option<u64>,
@@ -110,15 +110,15 @@ where
         replication_status: Option<BraneReplicationStatus>,
     },
     StoreHeartbeat {
-        stats: fidelpb::StoreStats,
+        stats: fidel_timeshare::StoreStats,
         store_info: StoreInfo<E>,
     },
     ReportBatchSplit {
-        branes: Vec<metapb::Brane>,
+        branes: Vec<meta_timeshare::Brane>,
     },
     ValidatePeer {
-        brane: metapb::Brane,
-        peer: metapb::Peer,
+        brane: meta_timeshare::Brane,
+        peer: meta_timeshare::Peer,
     },
     ReadStats {
         read_stats: ReadStats,
@@ -131,7 +131,7 @@ where
         read_io_rates: RecordPairVec,
         write_io_rates: RecordPairVec,
     },
-    UfidelateMaxTimestamp {
+    fidelioMaxTimestamp {
         brane_id: u64,
         initial_status: u64,
         max_ts_sync_status: Arc<AtomicU64>,
@@ -259,9 +259,9 @@ where
                 "get store's informations: cpu_usages {:?}, read_io_rates {:?}, write_io_rates {:?}",
                 cpu_usages, read_io_rates, write_io_rates,
             ),
-            Task::UfidelateMaxTimestamp { brane_id, ..} => write!(
+            Task::fidelioMaxTimestamp { brane_id, ..} => write!(
                 f,
-                "ufidelate the max timestamp for brane {} in the concurrency manager",
+                "fidelio the max timestamp for brane {} in the concurrency manager",
                 brane_id
             ),
         }
@@ -275,7 +275,7 @@ const DEFAULT_COLLECT_INTERVAL: Duration = Duration::from_secs(1);
 fn convert_record_pairs(m: HashMap<String, u64>) -> RecordPairVec {
     m.into_iter()
         .map(|(k, v)| {
-            let mut pair = fidelpb::RecordPair::default();
+            let mut pair = fidel_timeshare::RecordPair::default();
             pair.set_key(k);
             pair.set_value(v);
             pair
@@ -485,9 +485,9 @@ where
     // Deprecate
     fn handle_ask_split(
         &self,
-        mut brane: metapb::Brane,
+        mut brane: meta_timeshare::Brane,
         split_key: Vec<u8>,
-        peer: metapb::Peer,
+        peer: meta_timeshare::Peer,
         right_derive: bool,
         callback: Callback<EK::Snapshot>,
         task: String,
@@ -532,9 +532,9 @@ where
         router: VioletaBftRouter<EK, ER>,
         interlock_semaphore: Interlock_Semaphore<Task<EK>>,
         fidel_client: Arc<T>,
-        mut brane: metapb::Brane,
+        mut brane: meta_timeshare::Brane,
         mut split_tuplespaceInstanton: Vec<Vec<u8>>,
-        peer: metapb::Peer,
+        peer: meta_timeshare::Peer,
         right_derive: bool,
         callback: Callback<EK::Snapshot>,
         task: String,
@@ -565,9 +565,9 @@ where
                     let epoch = brane.take_brane_epoch();
                     lightlike_admin_request(&router, brane_id, epoch, peer, req, callback)
                 }
-                // When rolling ufidelate, there might be some old version edbs that don't support batch split in cluster.
+                // When rolling fidelio, there might be some old version edbs that don't support batch split in cluster.
                 // In this situation, FIDel version check would refuse `ask_batch_split`.
-                // But if ufidelate time is long, it may cause large Branes, so call `ask_split` instead.
+                // But if fidelio time is long, it may cause large Branes, so call `ask_split` instead.
                 Err(Error::Incompatible) => {
                     let (brane_id, peer_id) = (brane.id, peer.id);
                     info!(
@@ -612,8 +612,8 @@ where
     fn handle_heartbeat(
         &self,
         term: u64,
-        brane: metapb::Brane,
-        peer: metapb::Peer,
+        brane: meta_timeshare::Brane,
+        peer: meta_timeshare::Peer,
         brane_stat: BraneStat,
         replication_status: Option<BraneReplicationStatus>,
     ) {
@@ -643,7 +643,7 @@ where
         spawn_local(f);
     }
 
-    fn handle_store_heartbeat(&mut self, mut stats: fidelpb::StoreStats, store_info: StoreInfo<EK>) {
+    fn handle_store_heartbeat(&mut self, mut stats: fidel_timeshare::StoreStats, store_info: StoreInfo<EK>) {
         let disk_stats = match fs2::statvfs(store_info.engine.path()) {
             Err(e) => {
                 error!(
@@ -693,7 +693,7 @@ where
         stats.set_read_io_rates(self.store_stat.store_read_io_rates.clone().into());
         stats.set_write_io_rates(self.store_stat.store_write_io_rates.clone().into());
 
-        let mut interval = fidelpb::TimeInterval::default();
+        let mut interval = fidel_timeshare::TimeInterval::default();
         interval.set_spacelike_timestamp(self.store_stat.last_report_ts.into_inner());
         stats.set_interval(interval);
         self.store_stat.engine_last_total_bytes_read = self.store_stat.engine_total_bytes_read;
@@ -717,7 +717,7 @@ where
             match resp.await {
                 Ok(mut resp) => {
                     if let Some(status) = resp.replication_status.take() {
-                        let _ = router.lightlike_control(StoreMsg::UfidelateReplicationMode(status));
+                        let _ = router.lightlike_control(StoreMsg::fidelioReplicationMode(status));
                     }
                 }
                 Err(e) => {
@@ -728,14 +728,14 @@ where
         spawn_local(f);
     }
 
-    fn handle_report_batch_split(&self, branes: Vec<metapb::Brane>) {
+    fn handle_report_batch_split(&self, branes: Vec<meta_timeshare::Brane>) {
         let f = self.fidel_client.report_batch_split(branes).map_err(|e| {
             warn!("report split failed"; "err" => ?e);
         });
         spawn_local(f);
     }
 
-    fn handle_validate_peer(&self, local_brane: metapb::Brane, peer: metapb::Peer) {
+    fn handle_validate_peer(&self, local_brane: meta_timeshare::Brane, peer: meta_timeshare::Peer) {
         let router = self.router.clone();
         let resp = self.fidel_client.get_brane_by_id(local_brane.get_id());
         let f = async move {
@@ -746,7 +746,7 @@ where
                         local_brane.get_brane_epoch(),
                     ) {
                         // The local Brane epoch is fresher than Brane epoch in FIDel
-                        // This means the Brane info in FIDel is not ufidelated to the latest even
+                        // This means the Brane info in FIDel is not fideliod to the latest even
                         // after `max_leader_missing_duration`. Something is wrong in the system.
                         // Just add a log here for this situation.
                         info!(
@@ -853,7 +853,7 @@ where
 
                     let mut split_brane = resp.take_split_brane();
                     info!("try to split"; "brane_id" => brane_id, "brane_epoch" => ?epoch);
-                    let msg = if split_brane.get_policy() == fidelpb::CheckPolicy::Usekey {
+                    let msg = if split_brane.get_policy() == fidel_timeshare::CheckPolicy::Usekey {
                         CasualMessage::SplitBrane {
                             brane_epoch: epoch,
                             split_tuplespaceInstanton: split_brane.take_tuplespaceInstanton().into(),
@@ -932,7 +932,7 @@ where
         self.store_stat.store_write_io_rates = write_io_rates;
     }
 
-    fn handle_ufidelate_max_timestamp(
+    fn handle_fidelio_max_timestamp(
         &mut self,
         brane_id: u64,
         initial_status: u64,
@@ -945,7 +945,7 @@ where
             while max_ts_sync_status.load(Ordering::SeqCst) == initial_status {
                 match fidel_client.get_tso().await {
                     Ok(ts) => {
-                        concurrency_manager.ufidelate_max_ts(ts);
+                        concurrency_manager.fidelio_max_ts(ts);
                         // Set the least significant bit to 1 to mark it as synced.
                         let old_value = max_ts_sync_status.compare_and_swap(
                             initial_status,
@@ -957,14 +957,14 @@ where
                     }
                     Err(e) => {
                         warn!(
-                            "failed to ufidelate max timestamp for brane {}: {:?}",
+                            "failed to fidelio max timestamp for brane {}: {:?}",
                             brane_id, e
                         );
                     }
                 }
             }
             if success {
-                info!("succeed to ufidelate max timestamp"; "brane_id" => brane_id);
+                info!("succeed to fidelio max timestamp"; "brane_id" => brane_id);
             } else {
                 info!(
                     "ufidelating max timestamp is stale";
@@ -1130,11 +1130,11 @@ where
                 read_io_rates,
                 write_io_rates,
             } => self.handle_store_infos(cpu_usages, read_io_rates, write_io_rates),
-            Task::UfidelateMaxTimestamp {
+            Task::fidelioMaxTimestamp {
                 brane_id,
                 initial_status,
                 max_ts_sync_status,
-            } => self.handle_ufidelate_max_timestamp(brane_id, initial_status, max_ts_sync_status),
+            } => self.handle_fidelio_max_timestamp(brane_id, initial_status, max_ts_sync_status),
         };
     }
 
@@ -1143,7 +1143,7 @@ where
     }
 }
 
-fn new_change_peer_request(change_type: ConfChangeType, peer: metapb::Peer) -> AdminRequest {
+fn new_change_peer_request(change_type: ConfChangeType, peer: meta_timeshare::Peer) -> AdminRequest {
     let mut req = AdminRequest::default();
     req.set_cmd_type(AdminCmdType::ChangePeer);
     req.mut_change_peer().set_change_type(change_type);
@@ -1168,7 +1168,7 @@ fn new_split_brane_request(
 
 fn new_batch_split_brane_request(
     split_tuplespaceInstanton: Vec<Vec<u8>>,
-    ids: Vec<fidelpb::SplitId>,
+    ids: Vec<fidel_timeshare::SplitId>,
     right_derive: bool,
 ) -> AdminRequest {
     let mut req = AdminRequest::default();
@@ -1186,14 +1186,14 @@ fn new_batch_split_brane_request(
     req
 }
 
-fn new_transfer_leader_request(peer: metapb::Peer) -> AdminRequest {
+fn new_transfer_leader_request(peer: meta_timeshare::Peer) -> AdminRequest {
     let mut req = AdminRequest::default();
     req.set_cmd_type(AdminCmdType::TransferLeader);
     req.mut_transfer_leader().set_peer(peer);
     req
 }
 
-fn new_merge_request(merge: fidelpb::Merge) -> AdminRequest {
+fn new_merge_request(merge: fidel_timeshare::Merge) -> AdminRequest {
     let mut req = AdminRequest::default();
     req.set_cmd_type(AdminCmdType::PrepareMerge);
     req.mut_prepare_merge()
@@ -1204,8 +1204,8 @@ fn new_merge_request(merge: fidelpb::Merge) -> AdminRequest {
 fn lightlike_admin_request<EK, ER>(
     router: &VioletaBftRouter<EK, ER>,
     brane_id: u64,
-    epoch: metapb::BraneEpoch,
-    peer: metapb::Peer,
+    epoch: meta_timeshare::BraneEpoch,
+    peer: meta_timeshare::Peer,
     request: AdminRequest,
     callback: Callback<EK::Snapshot>,
 ) where
@@ -1232,9 +1232,9 @@ fn lightlike_admin_request<EK, ER>(
 /// lightlikes a violetabft message to destroy the specified stale Peer
 fn lightlike_destroy_peer_message<EK, ER>(
     router: &VioletaBftRouter<EK, ER>,
-    local_brane: metapb::Brane,
-    peer: metapb::Peer,
-    fidel_brane: metapb::Brane,
+    local_brane: meta_timeshare::Brane,
+    peer: meta_timeshare::Peer,
+    fidel_brane: meta_timeshare::Brane,
 ) where
     EK: KvEngine,
     ER: VioletaBftEngine,
@@ -1260,7 +1260,7 @@ mod tests {
     use engine_lmdb::LmdbEngine;
     use std::sync::Mutex;
     use std::time::Instant;
-    use edb_util::worker::FutureWorker;
+    use violetabftstore::interlock::::worker::FutureWorker;
 
     use super::*;
 
@@ -1317,7 +1317,7 @@ mod tests {
         }
     }
 
-    fn sum_record_pairs(pairs: &[fidelpb::RecordPair]) -> u64 {
+    fn sum_record_pairs(pairs: &[fidel_timeshare::RecordPair]) -> u64 {
         let mut sum = 0;
         for record in pairs.iter() {
             sum += record.get_value();

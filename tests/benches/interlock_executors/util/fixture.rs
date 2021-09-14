@@ -11,11 +11,11 @@ use criterion::measurement::Measurement;
 
 use test_interlock::*;
 use milevadb_query_datatype::{FieldTypeAccessor, FieldTypeTp};
-use edb_util::collections::HashMap;
-use fidelpb::PrimaryCausetInfo;
-use fidelpb::FieldType;
+use violetabftstore::interlock::::collections::HashMap;
+use fidel_timeshare::PrimaryCausetInfo;
+use fidel_timeshare::FieldType;
 
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::codec::data_type::Decimal;
 use milevadb_query_datatype::codec::datum::{Datum, DatumEncoder};
@@ -23,7 +23,7 @@ use milevadb_query_datatype::codec::Block::EventColsDict;
 use milevadb_query_datatype::expr::{EvalContext, EvalWarnings};
 use milevadb_query_normal_executors::{FreeDaemon, Event};
 use milevadb_query_vec_executors::interface::*;
-use edb::causetStorage::{LmdbEngine, Statistics};
+use edb::causet_storage::{LmdbEngine, Statistics};
 
 use crate::util::bencher::Bencher;
 
@@ -366,7 +366,7 @@ impl BatchFreeDaemon for BatchFixtureFreeDaemon {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, _dest: &mut Self::StorageStats) {
+    fn collect_causet_storage_stats(&mut self, _dest: &mut Self::StorageStats) {
         // Do nothing
     }
 
@@ -400,7 +400,7 @@ impl FreeDaemon for NormalFixtureFreeDaemon {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, _dest: &mut Self::StorageStats) {
+    fn collect_causet_storage_stats(&mut self, _dest: &mut Self::StorageStats) {
         // Do nothing
     }
 

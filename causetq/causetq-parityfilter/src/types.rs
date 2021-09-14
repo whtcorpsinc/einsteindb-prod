@@ -14,14 +14,14 @@ use std::fmt::{
     Formatter,
 };
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
     MinkowskiSet,
 };
 
-use edb_raum::{
+use edb_allegro::{
     ValueRc,
 };
 

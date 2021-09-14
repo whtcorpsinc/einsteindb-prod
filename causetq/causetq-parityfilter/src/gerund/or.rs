@@ -14,7 +14,7 @@ use std::collections::{
     BTreeSet,
 };
 
-use raum_promises::{
+use allegro_promises::{
     MinkowskiSet,
 };
 
@@ -753,13 +753,13 @@ fn union_types(into: &mut BTreeMap<ToUpper, MinkowskiSet>,
 mod testing {
     use super::*;
 
-    use raum_promises::{
+    use allegro_promises::{
         Attribute,
         MinkowskiValueType,
         MinkowskiType,
     };
 
-    use edb_raum::{
+    use edb_allegro::{
         SchemaReplicant,
     };
 

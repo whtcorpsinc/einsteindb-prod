@@ -4,7 +4,7 @@ use std::convert::TryFrom;
 
 use milevadb_query_datatype::builder::FieldTypeBuilder;
 use milevadb_query_datatype::{EvalType, FieldTypeAccessor, FieldTypeTp};
-use fidelpb::{Expr, FieldType};
+use fidel_timeshare::{Expr, FieldType};
 
 use milevadb_query_common::Result;
 use milevadb_query_vec_expr::impl_cast::get_cast_fn_rpn_node;

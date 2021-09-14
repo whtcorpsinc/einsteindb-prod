@@ -1,11 +1,11 @@
 use test::{black_box, Bencher};
 
 use engine_lmdb::LmdbSnapshot;
-use ekvproto::kvrpcpb::{Context, IsolationLevel};
+use ekvproto::kvrpc_timeshare::{Context, IsolationLevel};
 use std::sync::Arc;
-use test_causetStorage::SyncTestStorageBuilder;
+use test_causet_storage::SyncTestStorageBuilder;
 use milevadb_query_datatype::codec::Block;
-use edb::causetStorage::{Engine, SnapshotStore, Statistics, CausetStore};
+use edb::causet_storage::{Engine, SnapshotStore, Statistics, CausetStore};
 use txn_types::{Key, Mutation};
 
 fn Block_lookup_gen_data() -> (SnapshotStore<Arc<LmdbSnapshot>>, Vec<Key>) {

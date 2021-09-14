@@ -1,6 +1,6 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
-use super::peer_causetStorage::{
+use super::peer_causet_storage::{
     write_initial_apply_state, write_initial_violetabft_state, INIT_EPOCH_CONF_VER, INIT_EPOCH_VER,
 };
 use super::util::new_peer;
@@ -8,11 +8,11 @@ use crate::Result;
 use edb::{Engines, KvEngine, MuBlock, VioletaBftEngine};
 use edb::{Causet_DEFAULT, Causet_VIOLETABFT};
 
-use ekvproto::metapb;
-use ekvproto::violetabft_serverpb::{VioletaBftLocalState, BraneLocalState, StoreIdent};
+use ekvproto::meta_timeshare;
+use ekvproto::violetabft_server_timeshare::{VioletaBftLocalState, BraneLocalState, StoreIdent};
 
-pub fn initial_brane(store_id: u64, brane_id: u64, peer_id: u64) -> metapb::Brane {
-    let mut brane = metapb::Brane::default();
+pub fn initial_brane(store_id: u64, brane_id: u64, peer_id: u64) -> meta_timeshare::Brane {
+    let mut brane = meta_timeshare::Brane::default();
     brane.set_id(brane_id);
     brane.set_spacelike_key(tuplespaceInstanton::EMPTY_KEY.to_vec());
     brane.set_lightlike_key(tuplespaceInstanton::EMPTY_KEY.to_vec());
@@ -69,7 +69,7 @@ where
 /// Write the first brane meta and prepare state.
 pub fn prepare_bootstrap_cluster(
     engines: &Engines<impl KvEngine, impl VioletaBftEngine>,
-    brane: &metapb::Brane,
+    brane: &meta_timeshare::Brane,
 ) -> Result<()> {
     let mut state = BraneLocalState::default();
     state.set_brane(brane.clone());

@@ -2,10 +2,10 @@
 
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Mutex;
-use edb_util::collections::HashMap;
+use violetabftstore::interlock::::collections::HashMap;
 
-use ekvproto::metapb::{Peer, Brane, CausetStore, StoreState};
-use ekvproto::fidelpb::*;
+use ekvproto::meta_timeshare::{Peer, Brane, CausetStore, StoreState};
+use ekvproto::fidel_timeshare::*;
 
 use super::*;
 

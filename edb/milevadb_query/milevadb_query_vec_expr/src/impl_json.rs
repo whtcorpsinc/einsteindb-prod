@@ -66,7 +66,7 @@ fn json_modify(args: &[ScalarValueRef], mt: ModifyType) -> Result<Option<Json>> 
 }
 
 /// validate the arguments are `(Option<JsonRef>, &[(Option<Bytes>, Option<Json>)])`
-fn json_modify_validator(expr: &fidelpb::Expr) -> Result<()> {
+fn json_modify_validator(expr: &fidel_timeshare::Expr) -> Result<()> {
     let children = expr.get_children();
     assert!(children.len() >= 2);
     if children.len() % 2 != 1 {
@@ -95,7 +95,7 @@ fn json_array(args: &[Option<JsonRef>]) -> Result<Option<Json>> {
     Ok(Some(Json::from_array(jsons)?))
 }
 
-fn json_object_validator(expr: &fidelpb::Expr) -> Result<()> {
+fn json_object_validator(expr: &fidel_timeshare::Expr) -> Result<()> {
     let Solitons = expr.get_children();
     if Solitons.len() % 2 == 1 {
         return Err(other_err!(
@@ -165,13 +165,13 @@ fn json_unquote(arg: Option<JsonRef>) -> Result<Option<Bytes>> {
 }
 
 // Args should be like `(Option<JsonRef> , &[Option<BytesRef>])`.
-fn json_with_paths_validator(expr: &fidelpb::Expr) -> Result<()> {
+fn json_with_paths_validator(expr: &fidel_timeshare::Expr) -> Result<()> {
     assert!(expr.get_children().len() >= 2);
     // args should be like `Option<JsonRef> , &[Option<BytesRef>]`.
     valid_paths(expr)
 }
 
-fn valid_paths(expr: &fidelpb::Expr) -> Result<()> {
+fn valid_paths(expr: &fidel_timeshare::Expr) -> Result<()> {
     let children = expr.get_children();
     super::function::validate_expr_return_type(&children[0], EvalType::Json)?;
     for i in 1..children.len() {
@@ -196,7 +196,7 @@ fn json_extract(args: &[ScalarValueRef]) -> Result<Option<Json>> {
 }
 
 // Args should be like `(Option<JsonRef> , &[Option<BytesRef>])`.
-fn json_with_path_validator(expr: &fidelpb::Expr) -> Result<()> {
+fn json_with_path_validator(expr: &fidel_timeshare::Expr) -> Result<()> {
     assert!(expr.get_children().len() == 2 || expr.get_children().len() == 1);
     valid_paths(expr)
 }
@@ -269,7 +269,7 @@ mod tests {
 
     use super::*;
 
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use crate::types::test_util::RpnFnScalarEvaluator;
 

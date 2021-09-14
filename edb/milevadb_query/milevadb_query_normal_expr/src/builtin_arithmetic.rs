@@ -296,7 +296,7 @@ mod tests {
     use std::{f64, i64, u64};
 
     use milevadb_query_datatype::FieldTypeFlag;
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use crate::tests::{
         check_divide_by_zero, check_overflow, datum_expr, scalar_func_expr, str2dec,
@@ -1103,19 +1103,19 @@ mod tests {
             //(flag,sql_mode,is_ok,has_warning)
             (Flag::empty(), SqlMode::empty(), true, true), //warning
             (
-                Flag::IN_UFIDelATE_OR_DELETE_STMT,
+                Flag::IN_fidelio_OR_DELETE_STMT,
                 SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS,
                 false,
                 false,
             ), //error
             (
-                Flag::IN_UFIDelATE_OR_DELETE_STMT,
+                Flag::IN_fidelio_OR_DELETE_STMT,
                 SqlMode::STRICT_ALL_BlockS,
                 true,
                 false,
             ), //ok
             (
-                Flag::IN_UFIDelATE_OR_DELETE_STMT | Flag::DIVIDED_BY_ZERO_AS_WARNING,
+                Flag::IN_fidelio_OR_DELETE_STMT | Flag::DIVIDED_BY_ZERO_AS_WARNING,
                 SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS,
                 true,
                 true,

@@ -287,8 +287,8 @@
             "for": "",
             "frequency": "1m",
             "handler": 1,
-            "message": "EinsteinDB CausetStorage ReadPool thread CPU usage is high",
-            "name": "EinsteinDB CausetStorage ReadPool CPU alert",
+            "message": "EinsteinDB causet_storage ReadPool thread CPU usage is high",
+            "name": "EinsteinDB causet_storage ReadPool CPU alert",
             "noDataState": "ok",
             "notifications": []
           },
@@ -298,7 +298,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "点查会走 CausetStorage ReadPool",
+          "description": "点查会走 causet_storage ReadPool",
           "ediBlock": true,
           "error": false,
           "fill": 0,
@@ -377,7 +377,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "CausetStorage ReadPool CPU",
+          "title": "causet_storage ReadPool CPU",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -3705,8 +3705,8 @@
             "for": "",
             "frequency": "1m",
             "handler": 1,
-            "message": "EinsteinDB CausetStorage ReadPool thread CPU is high",
-            "name": "EinsteinDB CausetStorage ReadPool CPU alert",
+            "message": "EinsteinDB causet_storage ReadPool thread CPU is high",
+            "name": "EinsteinDB causet_storage ReadPool CPU alert",
             "noDataState": "ok",
             "notifications": []
           },
@@ -3794,7 +3794,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "CausetStorage ReadPool CPU",
+          "title": "causet_storage ReadPool CPU",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -4330,7 +4330,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.999999, sum(rate(edb_causetStorage_engine_async_request_duration_seconds_bucket{instance=~\"$instance\", type=\"snapshot\"}[1m])) by (le))",
+              "expr": "histogram_quantile(0.999999, sum(rate(edb_causet_storage_engine_async_request_duration_seconds_bucket{instance=~\"$instance\", type=\"snapshot\"}[1m])) by (le))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "99.9999%",
@@ -4338,7 +4338,7 @@
               "step": 4
             },
             {
-              "expr": "sum(rate(edb_causetStorage_engine_async_request_duration_seconds_sum{instance=~\"$instance\", type=\"snapshot\"}[1m])) / sum(rate(edb_causetStorage_engine_async_request_duration_seconds_count{instance=~\"$instance\", type=\"snapshot\"}[1m]))",
+              "expr": "sum(rate(edb_causet_storage_engine_async_request_duration_seconds_sum{instance=~\"$instance\", type=\"snapshot\"}[1m])) / sum(rate(edb_causet_storage_engine_async_request_duration_seconds_count{instance=~\"$instance\", type=\"snapshot\"}[1m]))",
               "format": "time_series",
               "intervalFactor": 1,
               "leglightlikeFormat": "average",
@@ -4948,7 +4948,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(edb_causetStorage_engine_async_request_duration_seconds_bucket{instance=~\"$instance\", type=\"write\"}[1m])) by (le, instance))",
+              "expr": "histogram_quantile(0.99, sum(rate(edb_causet_storage_engine_async_request_duration_seconds_bucket{instance=~\"$instance\", type=\"write\"}[1m])) by (le, instance))",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 2,
@@ -4957,7 +4957,7 @@
               "step": 4
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(edb_causetStorage_engine_async_request_duration_seconds_bucket{instance=~\"$instance\", type=\"write\"}[1m])) by (le, instance))",
+              "expr": "histogram_quantile(0.95, sum(rate(edb_causet_storage_engine_async_request_duration_seconds_bucket{instance=~\"$instance\", type=\"write\"}[1m])) by (le, instance))",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 2,
@@ -4966,7 +4966,7 @@
               "step": 4
             },
             {
-              "expr": "rate(edb_causetStorage_engine_async_request_duration_seconds_sum{instance=~\"$instance\", type=\"write\"}[1m]) / rate(edb_causetStorage_engine_async_request_duration_seconds_count{instance=~\"$instance\", type=\"write\"}[1m])",
+              "expr": "rate(edb_causet_storage_engine_async_request_duration_seconds_sum{instance=~\"$instance\", type=\"write\"}[1m]) / rate(edb_causet_storage_engine_async_request_duration_seconds_count{instance=~\"$instance\", type=\"write\"}[1m])",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}} avg",
@@ -4978,7 +4978,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "CausetStorage async write duration",
+          "title": "causet_storage async write duration",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -7872,7 +7872,7 @@
         "multi": true,
         "name": "command",
         "options": [],
-        "query": "label_values(edb_causetStorage_command_total, type)",
+        "query": "label_values(edb_causet_storage_command_total, type)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,

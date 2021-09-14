@@ -17,12 +17,12 @@
 // - When semaphores are registered we want to flip some flags as writes occur so that we can
 //   notifying them outside the transaction.
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
     MinkowskiType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SchemaReplicant,
 };
 
@@ -30,7 +30,7 @@ use edbn::entities::{
     OpType,
 };
 
-use edb_promises::errors::{
+use causetq_pull_promises::errors::{
     Result,
 };
 

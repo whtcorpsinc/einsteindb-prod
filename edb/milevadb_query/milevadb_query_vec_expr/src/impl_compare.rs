@@ -442,7 +442,7 @@ mod tests {
 
     use milevadb_query_datatype::builder::FieldTypeBuilder;
     use milevadb_query_datatype::{Collation, FieldTypeFlag, FieldTypeTp};
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use crate::test_util::RpnFnScalarEvaluator;
 

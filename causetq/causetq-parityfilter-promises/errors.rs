@@ -10,7 +10,7 @@
 
 use std; // To refer to std::result::Result.
 
-use raum_promises::{
+use allegro_promises::{
     MinkowskiValueType,
     MinkowskiSet,
 };

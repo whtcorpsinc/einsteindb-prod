@@ -1,7 +1,7 @@
 [package]
 name = "engine_panic"
 version = "0.0.1"
-description = "An example EinsteinDB causetStorage engine that does nothing but panic"
+description = "An example EinsteinDB causet_storage engine that does nothing but panic"
 edition = "2018"
 publish = false
 
@@ -9,4 +9,4 @@ publish = false
 edb = { path = "../edb" }
 edb_alloc = { path = "../edb_alloc" }
 # FIXME: Remove this dep from the edb interface
-edb_util = { path = "../edb_util" }
+violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }

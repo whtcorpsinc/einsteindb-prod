@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::mem;
 use std::sync::Arc;
 
-use fidelpb::{Aggregation, Expr, ExprType};
+use fidel_timeshare::{Aggregation, Expr, ExprType};
 
 use indexmap::map::Entry as OrderMapEntry;
 use indexmap::IndexMap as OrderMap;
@@ -12,7 +12,7 @@ use indexmap::IndexMap as OrderMap;
 use super::aggregate::{self, AggrFunc};
 use super::{FreeDaemon, ExprPrimaryCausetRefVisitor, Event};
 use milevadb_query_common::execute_stats::ExecuteStats;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::datum::{self, Datum};
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext, EvalWarnings};
@@ -54,14 +54,14 @@ impl AggFuncExpr {
 }
 
 impl dyn AggrFunc {
-    fn ufidelate_with_expr(
+    fn fidelio_with_expr(
         &mut self,
         ctx: &mut EvalContext,
         expr: &mut AggFuncExpr,
         Evcausetidx: &[Datum],
     ) -> Result<()> {
         expr.eval_args(ctx, Evcausetidx)?;
-        self.ufidelate(ctx, &mut expr.eval_buffer)?;
+        self.fidelio(ctx, &mut expr.eval_buffer)?;
         Ok(())
     }
 }
@@ -139,8 +139,8 @@ impl<Src: FreeDaemon> AggFreeDaemon<Src> {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Src::StorageStats) {
-        self.src.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Src::StorageStats) {
+        self.src.collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -155,7 +155,7 @@ impl<Src: FreeDaemon> AggFreeDaemon<Src> {
 }
 // HashAggFreeDaemon deals with the aggregate functions.
 // When Next() is called, it reads all the data from src
-// and ufidelates all the values in group_key_aggrs, then returns a result.
+// and fidelios all the values in group_key_aggrs, then returns a result.
 pub struct HashAggFreeDaemon<Src: FreeDaemon> {
     inner: AggFreeDaemon<Src>,
     group_key_aggrs: OrderMap<Vec<u8>, Vec<Box<dyn AggrFunc>>>,
@@ -195,7 +195,7 @@ impl<Src: FreeDaemon> HashAggFreeDaemon<Src> {
                     let mut aggrs = Vec::with_capacity(self.inner.aggr_func.len());
                     for expr in &mut self.inner.aggr_func {
                         let mut aggr = aggregate::build_aggr_func(expr.tp)?;
-                        aggr.ufidelate_with_expr(&mut self.inner.ctx, expr, &cols)?;
+                        aggr.fidelio_with_expr(&mut self.inner.ctx, expr, &cols)?;
                         aggrs.push(aggr);
                     }
                     e.insert(aggrs);
@@ -203,7 +203,7 @@ impl<Src: FreeDaemon> HashAggFreeDaemon<Src> {
                 OrderMapEntry::Occupied(e) => {
                     let aggrs = e.into_mut();
                     for (expr, aggr) in self.inner.aggr_func.iter_mut().zip(aggrs) {
-                        aggr.ufidelate_with_expr(&mut self.inner.ctx, expr, &cols)?;
+                        aggr.fidelio_with_expr(&mut self.inner.ctx, expr, &cols)?;
                     }
                 }
             }
@@ -250,8 +250,8 @@ impl<Src: FreeDaemon> FreeDaemon for HashAggFreeDaemon<Src> {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.inner.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.inner.collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -292,7 +292,7 @@ impl<Src: FreeDaemon> FreeDaemon for StreamAggFreeDaemon<Src> {
                 None
             };
             for (expr, func) in self.inner.aggr_func.iter_mut().zip(&mut self.agg_funcs) {
-                func.ufidelate_with_expr(&mut self.inner.ctx, expr, &cols)?;
+                func.fidelio_with_expr(&mut self.inner.ctx, expr, &cols)?;
             }
             if new_group {
                 return Ok(ret);
@@ -314,8 +314,8 @@ impl<Src: FreeDaemon> FreeDaemon for StreamAggFreeDaemon<Src> {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.inner.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.inner.collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -425,9 +425,9 @@ mod tests {
     use std::i64;
 
     use milevadb_query_datatype::FieldTypeTp;
-    use edb_util::collections::HashMap;
-    use fidelpb::PrimaryCausetInfo;
-    use fidelpb::{Expr, ExprType};
+    use violetabftstore::interlock::::collections::HashMap;
+    use fidel_timeshare::PrimaryCausetInfo;
+    use fidel_timeshare::{Expr, ExprType};
 
     use super::super::index_scan::tests::IndexTestWrapper;
     use super::super::index_scan::IndexScanFreeDaemon;

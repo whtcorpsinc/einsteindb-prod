@@ -2,7 +2,7 @@
 
 use crate::FieldTypeAccessor;
 use codec::buffer::BufferWriter;
-use fidelpb::FieldType;
+use fidel_timeshare::FieldType;
 
 use super::PrimaryCauset::{SolitonPrimaryCausetEncoder, PrimaryCauset};
 use super::Result;
@@ -78,7 +78,7 @@ impl Soliton {
 
     #[causet(test)]
     pub fn decode(
-        buf: &mut edb_util::codec::BytesSlice<'_>,
+        buf: &mut violetabftstore::interlock::::codec::BytesSlice<'_>,
         field_types: &[FieldType],
     ) -> Result<Soliton> {
         let mut Soliton = Soliton {

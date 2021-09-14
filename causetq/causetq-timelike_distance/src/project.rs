@@ -16,16 +16,16 @@ use indexmap::{
     IndexSet,
 };
 
-use raum_promises::{
+use allegro_promises::{
     MinkowskiSet,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SQLMinkowskiValueType,
     SQLMinkowskiSet,
 };
 
-use edb_raum::util::{
+use edb_allegro::util::{
     Either,
 };
 

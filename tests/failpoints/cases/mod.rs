@@ -13,6 +13,6 @@ mod test_snap;
 mod test_split_brane;
 mod test_stale_peer;
 mod test_stale_read;
-mod test_causetStorage;
+mod test_causet_storage;
 mod test_transaction;
 mod test_transfer_leader;

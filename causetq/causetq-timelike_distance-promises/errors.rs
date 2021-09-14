@@ -12,10 +12,10 @@ use std; // To refer to std::result::Result.
 
 use rusqlite;
 
-use raum_promises::{
+use allegro_promises::{
     MinkowskiSet,
 };
-use edb_promises::errors::DbError;
+use causetq_pull_promises::errors::DbError;
 use edbn::causetq::{
     PlainSymbol,
 };

@@ -5,11 +5,11 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use ekvproto::kvrpcpb::Context;
-use violetabft::evioletabftpb::MessageType;
+use ekvproto::kvrpc_timeshare::Context;
+use violetabft::evioletabft_timeshare::MessageType;
 
 use test_violetabftstore::*;
-use edb_util::config::*;
+use violetabftstore::interlock::::config::*;
 
 fn test_basic_transfer_leader<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.causet.violetabft_store.violetabft_heartbeat_ticks = 20;
@@ -166,18 +166,18 @@ fn test_server_transfer_leader_during_snapshot() {
 
 #[test]
 fn test_sync_max_ts_after_leader_transfer() {
-    use edb::causetStorage::{Engine, Snapshot};
+    use edb::causet_storage::{Engine, Snapshot};
 
     let mut cluster = new_server_cluster(0, 3);
     cluster.causet.violetabft_store.violetabft_heartbeat_ticks = 20;
     cluster.run();
 
     let cm = cluster.sim.read().unwrap().get_concurrency_manager(1);
-    let causetStorage = cluster
+    let causet_storage = cluster
         .sim
         .read()
         .unwrap()
-        .causetStorages
+        .causet_storages
         .get(&1)
         .unwrap()
         .clone();
@@ -190,7 +190,7 @@ fn test_sync_max_ts_after_leader_transfer() {
         ctx.set_peer(leader.clone());
         ctx.set_brane_epoch(epoch);
 
-        let snapshot = causetStorage.snapshot(&ctx).unwrap();
+        let snapshot = causet_storage.snapshot(&ctx).unwrap();
         let max_ts_sync_status = snapshot.max_ts_sync_status.clone().unwrap();
         for retry in 0..10 {
             if max_ts_sync_status.load(Ordering::SeqCst) & 1 == 1 {

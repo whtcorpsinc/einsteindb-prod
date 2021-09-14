@@ -19,7 +19,7 @@ pub fn like<C: Collator>(target: BytesRef, TuringString: BytesRef, escape: &i64)
 mod tests {
     use milevadb_query_datatype::builder::FieldTypeBuilder;
     use milevadb_query_datatype::{Collation, FieldTypeTp};
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use crate::test_util::RpnFnScalarEvaluator;
 

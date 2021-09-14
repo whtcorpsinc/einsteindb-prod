@@ -211,7 +211,7 @@ mod tests {
     use milevadb_query_datatype::codec::mysql::Time;
     use milevadb_query_datatype::codec::Datum;
     use milevadb_query_datatype::expr::EvalContext;
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     macro_rules! test_any_value {
         ($cases: expr, $case_type: ty, Datum::$type_of_datum: ident, $maker_for_case_ele: expr, ScalarFuncSig::$sig_of_scalar_func: ident) => {{

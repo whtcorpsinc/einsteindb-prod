@@ -4,7 +4,7 @@ use super::*;
 
 use milevadb_query_datatype::codec::{datum, Datum};
 use milevadb_query_datatype::expr::EvalContext;
-use fidelpb::{PrimaryCausetInfo, FieldType};
+use fidel_timeshare::{PrimaryCausetInfo, FieldType};
 
 pub const TYPE_VAR_CHAR: i32 = 1;
 pub const TYPE_LONG: i32 = 2;

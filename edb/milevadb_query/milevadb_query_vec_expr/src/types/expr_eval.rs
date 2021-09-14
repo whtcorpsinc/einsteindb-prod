@@ -1,6 +1,6 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use fidelpb::FieldType;
+use fidel_timeshare::FieldType;
 
 use super::expr::{RpnExpression, RpnExpressionNode};
 use super::RpnFnCallExtra;
@@ -282,8 +282,8 @@ mod tests {
 
     use milevadb_query_codegen::rpn_fn;
     use milevadb_query_datatype::{EvalType, FieldTypeAccessor, FieldTypeTp};
-    use fidelpb::FieldType;
-    use fidelpb_helper::ExprDefBuilder;
+    use fidel_timeshare::FieldType;
+    use fidel_timeshare_helper::ExprDefBuilder;
 
     use crate::impl_arithmetic::*;
     use crate::impl_compare::*;
@@ -970,7 +970,7 @@ mod tests {
     /// Parse from an expression tree then evaluate.
     #[test]
     fn test_parse_and_eval() {
-        use fidelpb::{Expr, ScalarFuncSig};
+        use fidel_timeshare::{Expr, ScalarFuncSig};
 
         // We will build an expression tree from:
         //      fn_d(
@@ -1076,7 +1076,7 @@ mod tests {
     #[test]
     fn test_rpn_fn_data() {
         use milevadb_query_datatype::codec::data_type::Evaluable;
-        use fidelpb::{Expr, ScalarFuncSig};
+        use fidel_timeshare::{Expr, ScalarFuncSig};
 
         #[allow(clippy::trivially_copy_pass_by_ref)]
         #[rpn_fn(capture = [metadata], metadata_mapper = prepare_a::<T>)]

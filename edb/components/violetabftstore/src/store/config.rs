@@ -10,7 +10,7 @@ use batch_system::Config as BatchSystemConfig;
 use configuration::{ConfigChange, ConfigManager, ConfigValue, Configuration};
 use engine_lmdb::config as rocks_config;
 use engine_lmdb::PerfLevel;
-use edb_util::config::{ReadableDuration, ReadableSize, VersionTrack};
+use violetabftstore::interlock::::config::{ReadableDuration, ReadableSize, VersionTrack};
 
 lazy_static! {
     pub static ref CONFIG_VIOLETABFTSTORE_GAUGE: prometheus::GaugeVec = register_gauge_vec!(
@@ -611,7 +611,7 @@ impl ConfigManager for VioletaBftstoreConfigManager {
     ) -> std::result::Result<(), Box<dyn std::error::Error>> {
         {
             let change = change.clone();
-            self.0.ufidelate(move |causet: &mut Config| causet.ufidelate(change));
+            self.0.fidelio(move |causet: &mut Config| causet.fidelio(change));
         }
         info!(
             "violetabftstore config changed";

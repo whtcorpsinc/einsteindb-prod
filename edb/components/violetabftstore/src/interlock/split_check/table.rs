@@ -4,10 +4,10 @@ use std::cmp::Ordering;
 
 use edb::{IterOptions, Iteron, KvEngine, SeekKey, Causet_WRITE};
 use error_code::ErrorCodeExt;
-use ekvproto::metapb::Brane;
-use ekvproto::fidelpb::CheckPolicy;
+use ekvproto::meta_timeshare::Brane;
+use ekvproto::fidel_timeshare::CheckPolicy;
 use milevadb_query_datatype::codec::Block as Block_codec;
-use edb_util::keybuilder::KeyBuilder;
+use violetabftstore::interlock::::keybuilder::KeyBuilder;
 use txn_types::Key;
 
 use super::super::{
@@ -229,17 +229,17 @@ mod tests {
     use std::io::Write;
     use std::sync::mpsc;
 
-    use ekvproto::metapb::Peer;
-    use ekvproto::fidelpb::CheckPolicy;
+    use ekvproto::meta_timeshare::Peer;
+    use ekvproto::fidel_timeshare::CheckPolicy;
     use tempfile::Builder;
 
     use crate::store::{CasualMessage, SplitCheckRunner, SplitCheckTask};
     use engine_lmdb::util::new_engine;
     use edb::{SyncMuBlock, ALL_CausetS};
     use milevadb_query_datatype::codec::Block::{Block_PREFIX, Block_PREFIX_KEY_LEN};
-    use edb_util::codec::number::NumberEncoder;
-    use edb_util::config::ReadableSize;
-    use edb_util::worker::Runnable;
+    use violetabftstore::interlock::::codec::number::NumberEncoder;
+    use violetabftstore::interlock::::config::ReadableSize;
+    use violetabftstore::interlock::::worker::Runnable;
     use txn_types::Key;
 
     use super::*;

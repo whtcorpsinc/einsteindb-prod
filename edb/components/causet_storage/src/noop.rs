@@ -9,7 +9,7 @@ use futures_util::io::{copy, AllowStdIo};
 
 use super::ExternalStorage;
 
-/// A causetStorage saves files into void.
+/// A causet_storage saves files into void.
 /// It is mainly for test use.
 #[derive(Clone, Default)]
 pub struct NoopStorage {}
@@ -36,7 +36,7 @@ mod tests {
     use futures_util::io::AsyncReadExt;
 
     #[test]
-    fn test_noop_causetStorage() {
+    fn test_noop_causet_storage() {
         let noop = NoopStorage::default();
 
         // Test save_file

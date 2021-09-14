@@ -4,8 +4,8 @@ use std::fmt::{self, Display, Formatter};
 
 use byteorder::{BigEndian, WriteBytesExt};
 use edb::{KvEngine, Snapshot};
-use ekvproto::metapb::Brane;
-use edb_util::worker::Runnable;
+use ekvproto::meta_timeshare::Brane;
+use violetabftstore::interlock::::worker::Runnable;
 
 use crate::interlock::{ConsistencyCheckMethod, InterlockHost};
 use crate::store::metrics::*;
@@ -135,11 +135,11 @@ mod tests {
     use engine_lmdb::util::new_engine;
     use engine_lmdb::{LmdbEngine, LmdbSnapshot};
     use edb::{KvEngine, SyncMuBlock, Causet_DEFAULT, Causet_VIOLETABFT};
-    use ekvproto::metapb::*;
+    use ekvproto::meta_timeshare::*;
     use std::sync::mpsc;
     use std::time::Duration;
     use tempfile::Builder;
-    use edb_util::worker::Runnable;
+    use violetabftstore::interlock::::worker::Runnable;
 
     #[test]
     fn test_consistency_check() {
@@ -168,12 +168,12 @@ mod tests {
             let key = tuplespaceInstanton::data_key(k);
             db.put(&key, v).unwrap();
             // hash should contain all kvs
-            digest.ufidelate(&key);
-            digest.ufidelate(v);
+            digest.fidelio(&key);
+            digest.fidelio(v);
         }
 
         // hash should also contains brane state key.
-        digest.ufidelate(&tuplespaceInstanton::brane_state_key(brane.get_id()));
+        digest.fidelio(&tuplespaceInstanton::brane_state_key(brane.get_id()));
         let sum = digest.finalize();
         runner.run(Task::<LmdbSnapshot>::ComputeHash {
             index: 10,

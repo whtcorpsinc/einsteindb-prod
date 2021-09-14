@@ -4,10 +4,10 @@ use std::io::Error as IoError;
 use std::{error, result};
 
 use edb::Error as EnginePromisesError;
-use ekvproto::errorpb::Error as ErrorHeader;
-use edb::causetStorage::kv::{Error as EngineError, ErrorInner as EngineErrorInner};
-use edb::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
-use edb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
+use ekvproto::error_timeshare::Error as ErrorHeader;
+use edb::causet_storage::kv::{Error as EngineError, ErrorInner as EngineErrorInner};
+use edb::causet_storage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner};
+use edb::causet_storage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
 use txn_types::Error as TxnTypesError;
 
 /// The error type for causet_context.

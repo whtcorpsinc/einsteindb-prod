@@ -11,21 +11,21 @@ use concurrency_manager::ConcurrencyManager;
 use configuration::Configuration;
 use engine_lmdb::raw::DB;
 use edb::{name_to_causet, CfName, IterOptions, SstCompressionType, DATA_KEY_PREFIX_LEN};
-use external_causetStorage::*;
+use external_causet_storage::*;
 use futures::channel::mpsc::*;
 use ekvproto::backup::*;
-use ekvproto::kvrpcpb::{Context, IsolationLevel};
-use ekvproto::metapb::*;
+use ekvproto::kvrpc_timeshare::{Context, IsolationLevel};
+use ekvproto::meta_timeshare::*;
 use violetabft::StateRole;
 use violetabftstore::interlock::BraneInfoProvider;
 use violetabftstore::store::util::find_peer;
 use einsteindb::config::BackupConfig;
-use einsteindb::causetStorage::kv::{Engine, ScanMode, Snapshot};
-use einsteindb::causetStorage::tail_pointer::Error as MvccError;
-use einsteindb::causetStorage::txn::{
+use einsteindb::causet_storage::kv::{Engine, ScanMode, Snapshot};
+use einsteindb::causet_storage::tail_pointer::Error as MvccError;
+use einsteindb::causet_storage::txn::{
     EntryBatch, Error as TxnError, SnapshotStore, TxnEntryScanner, TxnEntryStore,
 };
-use einsteindb::causetStorage::Statistics;
+use einsteindb::causet_storage::Statistics;
 use einsteindb_util::threadpool::{DefaultContext, ThreadPool, ThreadPoolBuilder};
 use einsteindb_util::time::Limiter;
 use einsteindb_util::timer::Timer;
@@ -83,7 +83,7 @@ impl fmt::Debug for Task {
 #[derive(Clone)]
 struct LimitedStorage {
     limiter: Limiter,
-    causetStorage: Arc<dyn ExternalStorage>,
+    causet_storage: Arc<dyn ExternalStorage>,
 }
 
 impl Task {
@@ -104,8 +104,8 @@ impl Task {
             causet: req.get_causet().to_owned(),
         })?;
 
-        // Check causetStorage backlightlike eagerly.
-        create_causetStorage(req.get_causetStorage_backlightlike())?;
+        // Check causet_storage backlightlike eagerly.
+        create_causet_storage(req.get_causet_storage_backlightlike())?;
 
         let task = Task {
             request: Request {
@@ -113,7 +113,7 @@ impl Task {
                 lightlike_key: req.get_lightlike_key().to_owned(),
                 spacelike_ts: req.get_spacelike_version().into(),
                 lightlike_ts: req.get_lightlike_version().into(),
-                backlightlike: req.get_causetStorage_backlightlike().clone(),
+                backlightlike: req.get_causet_storage_backlightlike().clone(),
                 limiter,
                 cancel: cancel.clone(),
                 is_raw_kv: req.get_is_raw_kv(),
@@ -143,7 +143,7 @@ pub struct BackupCone {
 }
 
 impl BackupCone {
-    /// Get entries from the scanner and save them to causetStorage
+    /// Get entries from the scanner and save them to causet_storage
     fn backup<E: Engine>(
         &self,
         writer: &mut BackupWriter,
@@ -159,8 +159,8 @@ impl BackupCone {
         ctx.set_brane_epoch(self.brane.get_brane_epoch().to_owned());
         ctx.set_peer(self.leader.clone());
 
-        // Ufidelate max_ts and check the in-memory dagger Block before getting the snapshot
-        concurrency_manager.ufidelate_max_ts(backup_ts);
+        // fidelio max_ts and check the in-memory dagger Block before getting the snapshot
+        concurrency_manager.fidelio_max_ts(backup_ts);
         concurrency_manager
             .read_cone_check(
                 self.spacelike_key.as_ref(),
@@ -288,7 +288,7 @@ impl BackupCone {
         &self,
         engine: &E,
         db: Arc<DB>,
-        causetStorage: &LimitedStorage,
+        causet_storage: &LimitedStorage,
         concurrency_manager: ConcurrencyManager,
         file_name: String,
         backup_ts: TimeStamp,
@@ -299,7 +299,7 @@ impl BackupCone {
         let mut writer = match BackupWriter::new(
             db,
             &file_name,
-            causetStorage.limiter.clone(),
+            causet_storage.limiter.clone(),
             compression_type,
             compression_level,
         ) {
@@ -319,8 +319,8 @@ impl BackupCone {
             Ok(s) => s,
             Err(e) => return Err(e),
         };
-        // Save sst files to causetStorage.
-        match writer.save(&causetStorage.causetStorage) {
+        // Save sst files to causet_storage.
+        match writer.save(&causet_storage.causet_storage) {
             Ok(files) => Ok((files, stat)),
             Err(e) => {
                 error!(?e; "backup save file failed");
@@ -333,7 +333,7 @@ impl BackupCone {
         &self,
         engine: &E,
         db: Arc<DB>,
-        causetStorage: &LimitedStorage,
+        causet_storage: &LimitedStorage,
         file_name: String,
         causet: CfName,
         compression_type: Option<SstCompressionType>,
@@ -343,7 +343,7 @@ impl BackupCone {
             db,
             &file_name,
             causet,
-            causetStorage.limiter.clone(),
+            causet_storage.limiter.clone(),
             compression_type,
             compression_level,
         ) {
@@ -357,8 +357,8 @@ impl BackupCone {
             Ok(s) => s,
             Err(e) => return Err(e),
         };
-        // Save sst files to causetStorage.
-        match writer.save(&causetStorage.causetStorage) {
+        // Save sst files to causet_storage.
+        match writer.save(&causet_storage.causet_storage) {
             Ok(files) => Ok((files, stat)),
             Err(e) => {
                 error!(?e; "backup save file failed");
@@ -373,7 +373,7 @@ pub struct ConfigManager(Arc<RwLock<BackupConfig>>);
 
 impl configuration::ConfigManager for ConfigManager {
     fn dispatch(&mut self, change: configuration::ConfigChange) -> configuration::Result<()> {
-        self.0.write().unwrap().ufidelate(change);
+        self.0.write().unwrap().fidelio(change);
         Ok(())
     }
 }
@@ -656,11 +656,11 @@ impl<E: Engine, R: BraneInfoProvider> node<E, R> {
 
             einsteindb_alloc::add_thread_memory_accessor();
 
-            // CausetStorage backlightlike has been checked in `Task::new()`.
-            let backlightlike = create_causetStorage(&request.backlightlike).unwrap();
-            let causetStorage = LimitedStorage {
+            // causet_storage backlightlike has been checked in `Task::new()`.
+            let backlightlike = create_causet_storage(&request.backlightlike).unwrap();
+            let causet_storage = LimitedStorage {
                 limiter: request.limiter.clone(),
-                causetStorage: backlightlike,
+                causet_storage: backlightlike,
             };
             for bcone in bcones {
                 if request.cancel.load(Ordering::SeqCst) {
@@ -685,7 +685,7 @@ impl<E: Engine, R: BraneInfoProvider> node<E, R> {
                         bcone.backup_raw_kv_to_file(
                             &engine,
                             db.clone(),
-                            &causetStorage,
+                            &causet_storage,
                             name,
                             causet,
                             ct,
@@ -701,7 +701,7 @@ impl<E: Engine, R: BraneInfoProvider> node<E, R> {
                         bcone.backup_to_file(
                             &engine,
                             db.clone(),
-                            &causetStorage,
+                            &causet_storage,
                             concurrency_manager.clone(),
                             name,
                             backup_ts,
@@ -893,19 +893,19 @@ fn to_sst_compression_type(ct: CompressionType) -> Option<SstCompressionType> {
 #[causet(test)]
 pub mod tests {
     use super::*;
-    use external_causetStorage::{make_local_backlightlike, make_noop_backlightlike};
+    use external_causet_storage::{make_local_backlightlike, make_noop_backlightlike};
     use futures::executor::block_on;
     use futures::stream::StreamExt;
-    use ekvproto::metapb;
+    use ekvproto::meta_timeshare;
     use violetabftstore::interlock::BraneCollector;
     use violetabftstore::interlock::Result as CopResult;
     use violetabftstore::interlock::SeekBraneCallback;
     use violetabftstore::store::util::new_peer;
     use std::thread;
     use tempfile::TempDir;
-    use einsteindb::causetStorage::tail_pointer::tests::*;
-    use einsteindb::causetStorage::txn::tests::must_commit;
-    use einsteindb::causetStorage::{LmdbEngine, TestEngineBuilder};
+    use einsteindb::causet_storage::tail_pointer::tests::*;
+    use einsteindb::causet_storage::txn::tests::must_commit;
+    use einsteindb::causet_storage::{LmdbEngine, TestEngineBuilder};
     use einsteindb_util::time::Instant;
     use txn_types::SHORT_VALUE_MAX_LEN;
 
@@ -930,7 +930,7 @@ pub mod tests {
                 if !lightlike_key.is_empty() {
                     lightlike_key = Key::from_raw(&lightlike_key).into_encoded();
                 }
-                let mut r = metapb::Brane::default();
+                let mut r = meta_timeshare::Brane::default();
                 r.set_id(id);
                 r.set_spacelike_key(spacelike_key.clone());
                 r.set_lightlike_key(lightlike_key);
@@ -1060,7 +1060,7 @@ pub mod tests {
         let test_handle_backup_task_cone =
             |spacelike_key: &[u8], lightlike_key: &[u8], expect: Vec<(&[u8], &[u8])>| {
                 let tmp = TempDir::new().unwrap();
-                let backlightlike = external_causetStorage::make_local_backlightlike(tmp.path());
+                let backlightlike = external_causet_storage::make_local_backlightlike(tmp.path());
                 let (tx, rx) = unbounded();
                 let task = Task {
                     request: Request {
@@ -1173,7 +1173,7 @@ pub mod tests {
             Task::new(req.clone(), tx.clone()).unwrap_err();
 
             // Set an unique path to avoid AlreadyExists error.
-            req.set_causetStorage_backlightlike(make_local_backlightlike(&tmp.path().join(ts.to_string())));
+            req.set_causet_storage_backlightlike(make_local_backlightlike(&tmp.path().join(ts.to_string())));
             if len % 2 == 0 {
                 req.set_rate_limit(10 * 1024 * 1024);
             }
@@ -1229,7 +1229,7 @@ pub mod tests {
         req.set_lightlike_version(now.into_inner());
         req.set_concurrency(4);
         // Set an unique path to avoid AlreadyExists error.
-        req.set_causetStorage_backlightlike(make_local_backlightlike(&tmp.path().join(now.to_string())));
+        req.set_causet_storage_backlightlike(make_local_backlightlike(&tmp.path().join(now.to_string())));
         let (tx, rx) = unbounded();
         let (task, _) = Task::new(req.clone(), tx).unwrap();
         lightlikepoint.handle_backup_task(task);
@@ -1250,7 +1250,7 @@ pub mod tests {
         req.set_spacelike_version(now.into_inner());
         req.set_lightlike_version(now.into_inner());
         // Set an unique path to avoid AlreadyExists error.
-        req.set_causetStorage_backlightlike(make_local_backlightlike(&tmp.path().join(now.to_string())));
+        req.set_causet_storage_backlightlike(make_local_backlightlike(&tmp.path().join(now.to_string())));
         let (tx, rx) = unbounded();
         let (task, _) = Task::new(req, tx).unwrap();
         lightlikepoint.handle_backup_task(task);
@@ -1296,7 +1296,7 @@ pub mod tests {
         req.set_spacelike_version(now.into_inner());
         req.set_lightlike_version(now.into_inner());
         req.set_concurrency(4);
-        req.set_causetStorage_backlightlike(make_local_backlightlike(temp.path()));
+        req.set_causet_storage_backlightlike(make_local_backlightlike(temp.path()));
 
         // Cancel the task before spacelikeing the task.
         let (tx, rx) = unbounded();
@@ -1333,7 +1333,7 @@ pub mod tests {
         req.set_spacelike_version(1);
         req.set_lightlike_version(1);
         req.set_concurrency(4);
-        req.set_causetStorage_backlightlike(make_noop_backlightlike());
+        req.set_causet_storage_backlightlike(make_noop_backlightlike());
 
         let (tx, rx) = unbounded();
         let (task, _) = Task::new(req, tx).unwrap();
@@ -1364,7 +1364,7 @@ pub mod tests {
         req.set_lightlike_key(vec![]);
         req.set_spacelike_version(1);
         req.set_lightlike_version(1);
-        req.set_causetStorage_backlightlike(make_noop_backlightlike());
+        req.set_causet_storage_backlightlike(make_noop_backlightlike());
 
         let (tx, _) = unbounded();
 
@@ -1418,7 +1418,7 @@ pub mod tests {
         req.set_lightlike_key(vec![]);
         req.set_spacelike_version(1);
         req.set_lightlike_version(1);
-        req.set_causetStorage_backlightlike(make_noop_backlightlike());
+        req.set_causet_storage_backlightlike(make_noop_backlightlike());
 
         lightlikepoint
             .dagger()

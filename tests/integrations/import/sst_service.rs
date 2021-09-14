@@ -10,14 +10,14 @@ use tempfile::Builder;
 use uuid::Uuid;
 
 use grpcio::{ChannelBuilder, Environment, Result, WriteFlags};
-use ekvproto::import_sstpb::*;
-use ekvproto::kvrpcpb::*;
-use ekvproto::edbpb::*;
+use ekvproto::import_sst_timeshare::*;
+use ekvproto::kvrpc_timeshare::*;
+use ekvproto::edb_timeshare::*;
 
 use fidel_client::FidelClient;
 use test_violetabftstore::*;
 use test_sst_importer::*;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::HandyRwLock;
 
 const CLEANUP_SST_MILLIS: u64 = 10;
 
@@ -180,10 +180,10 @@ fn test_download_sst() {
     meta.set_brane_id(ctx.get_brane_id());
     meta.set_brane_epoch(ctx.get_brane_epoch().clone());
 
-    // Checks that downloading a non-existing causetStorage returns error.
+    // Checks that downloading a non-existing causet_storage returns error.
     let mut download = DownloadRequest::default();
     download.set_sst(meta.clone());
-    download.set_causetStorage_backlightlike(external_causetStorage::make_local_backlightlike(temp_dir.path()));
+    download.set_causet_storage_backlightlike(external_causet_storage::make_local_backlightlike(temp_dir.path()));
     download.set_name("missing.sst".to_owned());
 
     let result = import.download(&download).unwrap();

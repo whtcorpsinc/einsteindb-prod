@@ -8,14 +8,14 @@ use std::{cmp, u8};
 use crate::prelude::*;
 use crate::FieldTypeTp;
 use ekvproto::interlock::KeyCone;
-use fidelpb::PrimaryCausetInfo;
+use fidel_timeshare::PrimaryCausetInfo;
 
 use super::mysql::{Duration, Time};
 use super::{datum, datum::DatumDecoder, Datum, Error, Result};
 use crate::expr::EvalContext;
 use codec::prelude::*;
-use edb_util::codec::BytesSlice;
-use edb_util::collections::{HashMap, HashSet};
+use violetabftstore::interlock::::codec::BytesSlice;
+use violetabftstore::interlock::::collections::{HashMap, HashSet};
 
 // handle or index id
 pub const ID_LEN: usize = 8;
@@ -526,11 +526,11 @@ pub fn generate_index_data_for_test(
 mod tests {
     use std::i64;
 
-    use fidelpb::PrimaryCausetInfo;
+    use fidel_timeshare::PrimaryCausetInfo;
 
     use crate::codec::datum::{self, Datum};
-    use edb_util::collections::{HashMap, HashSet};
-    use edb_util::map;
+    use violetabftstore::interlock::::collections::{HashMap, HashSet};
+    use violetabftstore::interlock::::map;
 
     use super::*;
 

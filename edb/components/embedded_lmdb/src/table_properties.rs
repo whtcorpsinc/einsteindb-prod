@@ -117,8 +117,8 @@ impl UserCollectedProperties for LmdbUserCollectedProperties {
 }
 
 impl DecodeProperties for LmdbUserCollectedProperties {
-    fn decode(&self, k: &str) -> edb_util::codec::Result<&[u8]> {
+    fn decode(&self, k: &str) -> violetabftstore::interlock::::codec::Result<&[u8]> {
         self.get(k.as_bytes())
-            .ok_or(edb_util::codec::Error::KeyNotFound)
+            .ok_or(violetabftstore::interlock::::codec::Error::KeyNotFound)
     }
 }

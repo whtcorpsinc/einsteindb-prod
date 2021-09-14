@@ -11,10 +11,10 @@ use crossbeam::atomic::AtomicCell;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
 use futures::compat::Future01CompatExt;
 #[causet(feature = "prost-codec")]
-use ekvproto::causet_contextpb::event::Event as Event_oneof_event;
-use ekvproto::causet_contextpb::*;
-use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
-use ekvproto::metapb::Brane;
+use ekvproto::causet_context_timeshare::event::Event as Event_oneof_event;
+use ekvproto::causet_context_timeshare::*;
+use ekvproto::kvrpc_timeshare::ExtraOp as TxnExtraOp;
+use ekvproto::meta_timeshare::Brane;
 use fidel_client::FidelClient;
 use violetabftstore::interlock::CmdBatch;
 use violetabftstore::router::VioletaBftStoreRouter;
@@ -22,15 +22,15 @@ use violetabftstore::store::fsm::{ChangeCmd, ObserveID, StoreMeta};
 use violetabftstore::store::msg::{Callback, ReadResponse, SignificantMsg};
 use resolved_ts::Resolver;
 use edb::config::causet_contextConfig;
-use edb::causetStorage::kv::Snapshot;
-use edb::causetStorage::tail_pointer::{DeltaScanner, ScannerBuilder};
-use edb::causetStorage::txn::TxnEntry;
-use edb::causetStorage::txn::TxnEntryScanner;
-use edb_util::collections::HashMap;
-use edb_util::lru::LruCache;
-use edb_util::time::Instant;
-use edb_util::timer::{SteadyTimer, Timer};
-use edb_util::worker::{Runnable, RunnableWithTimer, ScheduleError, Interlock_Semaphore};
+use edb::causet_storage::kv::Snapshot;
+use edb::causet_storage::tail_pointer::{DeltaScanner, ScannerBuilder};
+use edb::causet_storage::txn::TxnEntry;
+use edb::causet_storage::txn::TxnEntryScanner;
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::lru::LruCache;
+use violetabftstore::interlock::::time::Instant;
+use violetabftstore::interlock::::timer::{SteadyTimer, Timer};
+use violetabftstore::interlock::::worker::{Runnable, RunnableWithTimer, ScheduleError, Interlock_Semaphore};
 use tokio::runtime::{Builder, Runtime};
 use txn_types::{
     Key, Dagger, LockType, MutationType, OldValue, TimeStamp, TxnExtra, TxnExtraInterlock_Semaphore,
@@ -513,7 +513,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
             build_resolver: is_new_pushdown_causet,
         };
 
-        let (cb, fut) = edb_util::future::paired_future_callback();
+        let (cb, fut) = violetabftstore::interlock::::future::paired_future_callback();
         let interlock_semaphore = self.interlock_semaphore.clone();
         let deregister_downstream = move |err| {
             warn!("causet_context lightlike capture change cmd failed"; "brane_id" => brane_id, "error" => ?err);
@@ -718,7 +718,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
             // like async commit is enabled.
             // Note: This step must be done before scheduling `Task::MinTS` task, and the
             // resolver must be checked in or after `Task::MinTS`' execution.
-            cm.ufidelate_max_ts(min_ts);
+            cm.fidelio_max_ts(min_ts);
             if let Some(min_mem_lock_ts) = cm.global_min_lock_ts() {
                 if min_mem_lock_ts < min_ts {
                     min_ts = min_mem_lock_ts;
@@ -1071,9 +1071,9 @@ mod tests {
     use super::*;
     use edb::DATA_CausetS;
     #[causet(feature = "prost-codec")]
-    use ekvproto::causet_contextpb::event::Event as Event_oneof_event;
-    use ekvproto::errorpb::Error as ErrorHeader;
-    use ekvproto::kvrpcpb::Context;
+    use ekvproto::causet_context_timeshare::event::Event as Event_oneof_event;
+    use ekvproto::error_timeshare::Error as ErrorHeader;
+    use ekvproto::kvrpc_timeshare::Context;
     use violetabftstore::errors::Error as VioletaBftStoreError;
     use violetabftstore::store::msg::CasualMessage;
     use std::collections::BTreeMap;
@@ -1082,13 +1082,13 @@ mod tests {
     use tempfile::TempDir;
     use test_violetabftstore::MockVioletaBftStoreRouter;
     use test_violetabftstore::TestFidelClient;
-    use edb::causetStorage::kv::Engine;
-    use edb::causetStorage::tail_pointer::tests::*;
-    use edb::causetStorage::TestEngineBuilder;
-    use edb_util::collections::HashSet;
-    use edb_util::config::ReadableDuration;
-    use edb_util::mpsc::batch;
-    use edb_util::worker::{dummy_interlock_semaphore, Builder as WorkerBuilder, Worker};
+    use edb::causet_storage::kv::Engine;
+    use edb::causet_storage::tail_pointer::tests::*;
+    use edb::causet_storage::TestEngineBuilder;
+    use violetabftstore::interlock::::collections::HashSet;
+    use violetabftstore::interlock::::config::ReadableDuration;
+    use violetabftstore::interlock::::mpsc::batch;
+    use violetabftstore::interlock::::worker::{dummy_interlock_semaphore, Builder as WorkerBuilder, Worker};
 
     struct ReceiverRunnable<T> {
         tx: lightlikeer<T>,

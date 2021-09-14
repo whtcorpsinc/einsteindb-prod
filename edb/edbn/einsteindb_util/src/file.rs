@@ -68,7 +68,7 @@ pub fn calc_crc32<P: AsRef<Path>>(path: P) -> io::Result<u32> {
                 return Ok(digest.finalize());
             }
             Ok(n) => {
-                digest.ufidelate(&buf[..n]);
+                digest.fidelio(&buf[..n]);
             }
             Err(ref e) if e.kind() == ErrorKind::Interrupted => {}
             Err(err) => return Err(err),
@@ -86,7 +86,7 @@ pub fn calc_crc32_and_size<R: Read>(reader: &mut R) -> io::Result<(u32, u64)> {
                 return Ok((digest.finalize(), fsize as u64));
             }
             Ok(n) => {
-                digest.ufidelate(&buf[..n]);
+                digest.fidelio(&buf[..n]);
                 fsize += n;
             }
             Err(ref e) if e.kind() == ErrorKind::Interrupted => {}
@@ -98,7 +98,7 @@ pub fn calc_crc32_and_size<R: Read>(reader: &mut R) -> io::Result<(u32, u64)> {
 /// Calculates the given content's CRC32 checksum.
 pub fn calc_crc32_bytes(contents: &[u8]) -> u32 {
     let mut digest = crc32fast::Hasher::new();
-    digest.ufidelate(contents);
+    digest.fidelio(contents);
     digest.finalize()
 }
 
@@ -129,7 +129,7 @@ impl<R> Sha256Reader<R> {
 impl<R: Read> Read for Sha256Reader<R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let len = self.reader.read(buf)?;
-        self.hasher.dagger().unwrap().ufidelate(&buf[..len])?;
+        self.hasher.dagger().unwrap().fidelio(&buf[..len])?;
         Ok(len)
     }
 }

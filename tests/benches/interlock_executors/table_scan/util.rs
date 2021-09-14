@@ -6,8 +6,8 @@ use std::sync::Arc;
 use criterion::black_box;
 
 use ekvproto::interlock::KeyCone;
-use fidelpb::PrimaryCausetInfo;
-use fidelpb::BlockScan;
+use fidel_timeshare::PrimaryCausetInfo;
+use fidel_timeshare::BlockScan;
 
 use test_interlock::*;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
@@ -17,7 +17,7 @@ use milevadb_query_vec_executors::interface::*;
 use milevadb_query_vec_executors::BatchBlockScanFreeDaemon;
 use edb::interlock::posetdag::EinsteinDBStorage;
 use edb::interlock::RequestHandler;
-use edb::causetStorage::{LmdbEngine, Statistics, CausetStore as TxnStore};
+use edb::causet_storage::{LmdbEngine, Statistics, CausetStore as TxnStore};
 
 use crate::util::executor_descriptor::Block_scan;
 use crate::util::scan_bencher;

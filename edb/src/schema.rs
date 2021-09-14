@@ -12,13 +12,13 @@
 
 use edb::TypedSQLValue;
 use edbn;
-use edb_promises::errors::{
+use causetq_pull_promises::errors::{
     DbErrorKind,
     Result,
 };
 use edbn::symbols;
 
-use raum_promises::{
+use allegro_promises::{
     attribute,
     Attribute,
     SolitonId,
@@ -27,7 +27,7 @@ use raum_promises::{
     MinkowskiValueType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SolitonIdMap,
     HasSchemaReplicant,
     CausetIdMap,

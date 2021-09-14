@@ -37,8 +37,8 @@ impl Bucket {
         self.repeats = 1;
     }
 
-    fn into_proto(self) -> fidelpb::Bucket {
-        let mut bucket = fidelpb::Bucket::default();
+    fn into_proto(self) -> fidel_timeshare::Bucket {
+        let mut bucket = fidel_timeshare::Bucket::default();
         bucket.set_repeats(self.repeats as i64);
         bucket.set_count(self.count as i64);
         bucket.set_lower_bound(self.lower_bound);
@@ -69,10 +69,10 @@ impl Histogram {
         }
     }
 
-    pub fn into_proto(self) -> fidelpb::Histogram {
-        let mut hist = fidelpb::Histogram::default();
+    pub fn into_proto(self) -> fidel_timeshare::Histogram {
+        let mut hist = fidel_timeshare::Histogram::default();
         hist.set_ndv(self.ndv as i64);
-        let buckets: Vec<fidelpb::Bucket> = self
+        let buckets: Vec<fidel_timeshare::Bucket> = self
             .buckets
             .into_iter()
             .map(|bucket| bucket.into_proto())

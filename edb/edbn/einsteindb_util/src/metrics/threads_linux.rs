@@ -60,7 +60,7 @@ impl ThreadsCollector {
         let io_totals = CounterVec::new(
             Opts::new(
                 "threads_io_bytes_total",
-                "Total number of bytes which threads cause to be fetched from or sent to the causetStorage layer.",
+                "Total number of bytes which threads cause to be fetched from or sent to the causet_storage layer.",
             ).namespace(ns.clone()),
             &["name", "tid", "io"],
         )
@@ -319,7 +319,7 @@ fn collect_metrics_by_name(
 }
 
 #[inline]
-fn ufidelate_metric(
+fn fidelio_metric(
     metrics: &mut HashMap<i32, f64>,
     rates: &mut HashMap<i32, f64>,
     tid: i32,
@@ -394,7 +394,7 @@ impl ThreadInfoStatistics {
                 self.tid_names.entry(tid).or_insert(name);
 
                 let cpu_time = cpu_total(&stat) * 100.0;
-                ufidelate_metric(
+                fidelio_metric(
                     &mut self.metrics_total.cpu_times,
                     &mut self.metrics_rate.cpu_times,
                     tid,
@@ -407,7 +407,7 @@ impl ThreadInfoStatistics {
                     let read_bytes = io.read_bytes;
                     let write_bytes = io.write_bytes;
 
-                    ufidelate_metric(
+                    fidelio_metric(
                         &mut self.metrics_total.read_ios,
                         &mut self.metrics_rate.read_ios,
                         tid,
@@ -415,7 +415,7 @@ impl ThreadInfoStatistics {
                         time_delta,
                     );
 
-                    ufidelate_metric(
+                    fidelio_metric(
                         &mut self.metrics_total.write_ios,
                         &mut self.metrics_rate.write_ios,
                         tid,
@@ -440,15 +440,15 @@ impl ThreadInfoStatistics {
     }
 }
 
-const TID_MIN_UFIDelATE_INTERVAL: Duration = Duration::from_secs(15);
-const TID_MAX_UFIDelATE_INTERVAL: Duration = Duration::from_secs(10 * 60);
+const TID_MIN_fidelio_INTERVAL: Duration = Duration::from_secs(15);
+const TID_MAX_fidelio_INTERVAL: Duration = Duration::from_secs(10 * 60);
 
 /// A helper that buffers the thread id list internally.
 struct TidRetriever {
     pid: pid_t,
     tid_buffer: Vec<i32>,
-    tid_buffer_last_ufidelate: Instant,
-    tid_buffer_ufidelate_interval: Duration,
+    tid_buffer_last_fidelio: Instant,
+    tid_buffer_fidelio_interval: Duration,
 }
 
 impl TidRetriever {
@@ -456,26 +456,26 @@ impl TidRetriever {
         Self {
             pid,
             tid_buffer: get_thread_ids(pid).unwrap(),
-            tid_buffer_last_ufidelate: Instant::now(),
-            tid_buffer_ufidelate_interval: TID_MIN_UFIDelATE_INTERVAL,
+            tid_buffer_last_fidelio: Instant::now(),
+            tid_buffer_fidelio_interval: TID_MIN_fidelio_INTERVAL,
         }
     }
 
     pub fn get_tids(&mut self) -> &[pid_t] {
-        // Ufidelate the tid list according to tid_buffer_ufidelate_interval.
-        // If tid is not changed, ufidelate the tid list less frequently.
-        if self.tid_buffer_last_ufidelate.elapsed() >= self.tid_buffer_ufidelate_interval {
+        // fidelio the tid list according to tid_buffer_fidelio_interval.
+        // If tid is not changed, fidelio the tid list less frequently.
+        if self.tid_buffer_last_fidelio.elapsed() >= self.tid_buffer_fidelio_interval {
             let new_tid_buffer = get_thread_ids(self.pid).unwrap();
             if new_tid_buffer == self.tid_buffer {
-                self.tid_buffer_ufidelate_interval *= 2;
-                if self.tid_buffer_ufidelate_interval > TID_MAX_UFIDelATE_INTERVAL {
-                    self.tid_buffer_ufidelate_interval = TID_MAX_UFIDelATE_INTERVAL;
+                self.tid_buffer_fidelio_interval *= 2;
+                if self.tid_buffer_fidelio_interval > TID_MAX_fidelio_INTERVAL {
+                    self.tid_buffer_fidelio_interval = TID_MAX_fidelio_INTERVAL;
                 }
             } else {
                 self.tid_buffer = new_tid_buffer;
-                self.tid_buffer_ufidelate_interval = TID_MIN_UFIDelATE_INTERVAL;
+                self.tid_buffer_fidelio_interval = TID_MIN_fidelio_INTERVAL;
             }
-            self.tid_buffer_last_ufidelate = Instant::now();
+            self.tid_buffer_last_fidelio = Instant::now();
         }
 
         &self.tid_buffer

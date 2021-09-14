@@ -3,7 +3,7 @@
 use std::error;
 
 use crate::Error;
-use ekvproto::violetabft_cmdpb::VioletaBftCmdResponse;
+use ekvproto::violetabft_cmd_timeshare::VioletaBftCmdResponse;
 
 pub fn bind_term(resp: &mut VioletaBftCmdResponse, term: u64) {
     if term == 0 {

@@ -6,8 +6,8 @@ use crate::prelude::*;
 use crate::{EvalType, FieldTypeFlag, FieldTypeTp};
 use codec::buffer::{BufferReader, BufferWriter};
 use codec::number::{NumberDecoder, NumberEncoder};
-use edb_util::buffer_vec::BufferVec;
-use fidelpb::FieldType;
+use violetabftstore::interlock::::buffer_vec::BufferVec;
+use fidel_timeshare::FieldType;
 
 use super::{Error, Result};
 use crate::codec::data_type::{SolitonRef, VectorValue};
@@ -369,7 +369,7 @@ impl PrimaryCauset {
         }
     }
 
-    /// Ufidelate the null bitmap and count when applightlike a datum.
+    /// fidelio the null bitmap and count when applightlike a datum.
     /// `on` is false means the datum is null.
     #[inline]
     fn applightlike_null_bitmap(&mut self, on: bool) {
@@ -834,7 +834,7 @@ impl PrimaryCauset {
     }
 
     #[causet(test)]
-    pub fn decode(buf: &mut edb_util::codec::BytesSlice<'_>, tp: FieldTypeTp) -> Result<PrimaryCauset> {
+    pub fn decode(buf: &mut violetabftstore::interlock::::codec::BytesSlice<'_>, tp: FieldTypeTp) -> Result<PrimaryCauset> {
         let length = buf.read_u32_le()? as usize;
         let mut col = PrimaryCauset::new(tp, length);
         col.length = length;
@@ -892,7 +892,7 @@ mod tests {
     use super::*;
     use crate::codec::datum::Datum;
     use std::{f64, u64};
-    use fidelpb::FieldType;
+    use fidel_timeshare::FieldType;
 
     #[test]
     fn test_PrimaryCauset_i64() {

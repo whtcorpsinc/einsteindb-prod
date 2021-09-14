@@ -2,12 +2,12 @@
 
 use std::sync::Arc;
 
-use fidelpb::Expr;
-use fidelpb::FieldType;
-use fidelpb::Selection;
+use fidel_timeshare::Expr;
+use fidel_timeshare::FieldType;
+use fidel_timeshare::Selection;
 
 use crate::interface::*;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::data_type::*;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
@@ -87,7 +87,7 @@ impl<Src: BatchFreeDaemon> BatchSelectionFreeDaemon<Src> {
                 src_logical_rows_copy.len(),
             )? {
                 RpnStackNode::Scalar { value, .. } => {
-                    ufidelate_logical_rows_by_scalar_value(
+                    fidelio_logical_rows_by_scalar_value(
                         &mut src_result.logical_rows,
                         &mut self.context,
                         value,
@@ -98,7 +98,7 @@ impl<Src: BatchFreeDaemon> BatchSelectionFreeDaemon<Src> {
                     match_template_evaluable! {
                         TT, match value.as_ref() {
                             VectorValue::TT(eval_result) => {
-                                ufidelate_logical_rows_by_vector_value(
+                                fidelio_logical_rows_by_vector_value(
                                     &mut src_result.logical_rows,
                                     &mut self.context,
                                     eval_result,
@@ -117,7 +117,7 @@ impl<Src: BatchFreeDaemon> BatchSelectionFreeDaemon<Src> {
     }
 }
 
-fn ufidelate_logical_rows_by_scalar_value(
+fn fidelio_logical_rows_by_scalar_value(
     logical_rows: &mut Vec<usize>,
     ctx: &mut EvalContext,
     value: &ScalarValue,
@@ -130,7 +130,7 @@ fn ufidelate_logical_rows_by_scalar_value(
     Ok(())
 }
 
-fn ufidelate_logical_rows_by_vector_value<'a, TT: EvaluableRef<'a>, T: 'a + SolitonRef<'a, TT>>(
+fn fidelio_logical_rows_by_vector_value<'a, TT: EvaluableRef<'a>, T: 'a + SolitonRef<'a, TT>>(
     logical_rows: &mut Vec<usize>,
     ctx: &mut EvalContext,
     eval_result: T,
@@ -197,8 +197,8 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchSelectionFreeDaemon<Src> {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.src.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.src.collect_causet_storage_stats(dest);
     }
 
     #[inline]

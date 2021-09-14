@@ -1,18 +1,18 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
 use futures::executor::block_on;
-use ekvproto::kvrpcpb::{Context, GetRequest, LockInfo};
+use ekvproto::kvrpc_timeshare::{Context, GetRequest, LockInfo};
 use violetabftstore::interlock::BraneInfoProvider;
 use violetabftstore::router::VioletaBftStoreBlackHole;
 use edb::server::gc_worker::{AutoGcConfig, GcConfig, GcSafePointProvider, GcWorker};
-use edb::causetStorage::config::Config;
-use edb::causetStorage::kv::LmdbEngine;
-use edb::causetStorage::lock_manager::DummyLockManager;
-use edb::causetStorage::{
-    txn::commands, Engine, PrewriteResult, Result, CausetStorage, TestEngineBuilder, TestStorageBuilder,
+use edb::causet_storage::config::Config;
+use edb::causet_storage::kv::LmdbEngine;
+use edb::causet_storage::lock_manager::DummyLockManager;
+use edb::causet_storage::{
+    txn::commands, Engine, PrewriteResult, Result, causet_storage, TestEngineBuilder, TestStorageBuilder,
     TxnStatus,
 };
-use edb_util::collections::HashMap;
+use violetabftstore::interlock::::collections::HashMap;
 use txn_types::{Key, KvPair, Mutation, TimeStamp, Value};
 
 /// A builder to build a `SyncTestStorage`.
@@ -74,13 +74,13 @@ impl<E: Engine> SyncTestStorageBuilder<E> {
     }
 }
 
-/// A `CausetStorage` like structure with sync API.
+/// A `causet_storage` like structure with sync API.
 ///
 /// Only used for test purpose.
 #[derive(Clone)]
 pub struct SyncTestStorage<E: Engine> {
     gc_worker: GcWorker<E, VioletaBftStoreBlackHole>,
-    store: CausetStorage<E, DummyLockManager>,
+    store: causet_storage<E, DummyLockManager>,
 }
 
 impl<E: Engine> SyncTestStorage<E> {
@@ -91,7 +91,7 @@ impl<E: Engine> SyncTestStorage<E> {
         self.gc_worker.spacelike_auto_gc(causet).unwrap();
     }
 
-    pub fn get_causetStorage(&self) -> CausetStorage<E, DummyLockManager> {
+    pub fn get_causet_storage(&self) -> causet_storage<E, DummyLockManager> {
         self.store.clone()
     }
 

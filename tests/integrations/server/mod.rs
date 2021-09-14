@@ -14,9 +14,9 @@ use futures::future::FutureExt;
 use grpcio::RpcStatusCode;
 use grpcio::*;
 use ekvproto::interlock::*;
-use ekvproto::kvrpcpb::*;
-use ekvproto::violetabft_serverpb::{Done, VioletaBftMessage, SnapshotSoliton};
-use ekvproto::edbpb::{
+use ekvproto::kvrpc_timeshare::*;
+use ekvproto::violetabft_server_timeshare::{Done, VioletaBftMessage, SnapshotSoliton};
+use ekvproto::edb_timeshare::{
     create_edb, BatchCommandsRequest, BatchCommandsResponse, BatchVioletaBftMessage, EINSTEINDB,
 };
 

@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex};
 
 use tempfile::Builder;
 
-use ekvproto::metapb;
-use ekvproto::violetabft_serverpb::BraneLocalState;
+use ekvproto::meta_timeshare;
+use ekvproto::violetabft_server_timeshare::BraneLocalState;
 
 use concurrency_manager::ConcurrencyManager;
 use engine_lmdb::{Compat, LmdbEngine};
@@ -17,8 +17,8 @@ use violetabftstore::store::{bootstrap_store, fsm, AutoSplitController, SnapMana
 use test_violetabftstore::*;
 use edb::import::SSTImporter;
 use edb::server::Node;
-use edb_util::config::VersionTrack;
-use edb_util::worker::{FutureWorker, Worker};
+use violetabftstore::interlock::::config::VersionTrack;
+use violetabftstore::interlock::::worker::{FutureWorker, Worker};
 
 fn test_bootstrap_idempotent<T: Simulator>(cluster: &mut Cluster<T>) {
     // assume that there is a node  bootstrap the cluster and add brane in fidel successfully
@@ -77,7 +77,7 @@ fn test_node_bootstrap_with_prepared_data() {
     let brane = node.prepare_bootstrap_cluster(&engines, 1).unwrap();
     assert!(engine
         .c()
-        .get_msg::<metapb::Brane>(tuplespaceInstanton::PREPARE_BOOTSTRAP_KEY)
+        .get_msg::<meta_timeshare::Brane>(tuplespaceInstanton::PREPARE_BOOTSTRAP_KEY)
         .unwrap()
         .is_some());
     let brane_state_key = tuplespaceInstanton::brane_state_key(brane.get_id());
@@ -111,7 +111,7 @@ fn test_node_bootstrap_with_prepared_data() {
     .unwrap();
     assert!(Arc::clone(&engine)
         .c()
-        .get_msg::<metapb::Brane>(tuplespaceInstanton::PREPARE_BOOTSTRAP_KEY)
+        .get_msg::<meta_timeshare::Brane>(tuplespaceInstanton::PREPARE_BOOTSTRAP_KEY)
         .unwrap()
         .is_none());
     assert!(engine

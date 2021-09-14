@@ -10,29 +10,29 @@ use batch_system::{BasicMailbox, Fsm};
 use edb::Causet_VIOLETABFT;
 use edb::{Engines, KvEngine, VioletaBftEngine, WriteBatchExt};
 use error_code::ErrorCodeExt;
-use ekvproto::errorpb;
-use ekvproto::import_sstpb::SstMeta;
-use ekvproto::metapb::{self, Brane, BraneEpoch};
-use ekvproto::fidelpb::CheckPolicy;
-use ekvproto::violetabft_cmdpb::{
+use ekvproto::error_timeshare;
+use ekvproto::import_sst_timeshare::SstMeta;
+use ekvproto::meta_timeshare::{self, Brane, BraneEpoch};
+use ekvproto::fidel_timeshare::CheckPolicy;
+use ekvproto::violetabft_cmd_timeshare::{
     AdminCmdType, AdminRequest, CmdType, VioletaBftCmdRequest, VioletaBftCmdResponse, Request, StatusCmdType,
     StatusResponse,
 };
-use ekvproto::violetabft_serverpb::{
+use ekvproto::violetabft_server_timeshare::{
     ExtraMessageType, MergeState, PeerState, VioletaBftMessage, VioletaBftSnapshotData, VioletaBftTruncatedState,
     BraneLocalState,
 };
-use ekvproto::replication_modepb::{DrAutoSyncState, ReplicationMode};
+use ekvproto::replication_mode_timeshare::{DrAutoSyncState, ReplicationMode};
 use fidel_client::FidelClient;
 use protobuf::Message;
-use violetabft::evioletabftpb::{ConfChangeType, MessageType};
+use violetabft::evioletabft_timeshare::{ConfChangeType, MessageType};
 use violetabft::{self, SnapshotStatus, INVALID_INDEX, NO_LIMIT};
 use violetabft::{Ready, StateRole};
-use edb_util::collections::HashMap;
-use edb_util::mpsc::{self, LooseBoundedlightlikeer, Receiver};
-use edb_util::time::duration_to_sec;
-use edb_util::worker::{Interlock_Semaphore, Stopped};
-use edb_util::{escape, is_zero_duration, Either};
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::mpsc::{self, LooseBoundedlightlikeer, Receiver};
+use violetabftstore::interlock::::time::duration_to_sec;
+use violetabftstore::interlock::::worker::{Interlock_Semaphore, Stopped};
+use violetabftstore::interlock::::{escape, is_zero_duration, Either};
 
 use crate::interlock::BraneChangeEvent;
 use crate::store::cmd_resp::{bind_term, new_error};
@@ -44,7 +44,7 @@ use crate::store::local_metrics::VioletaBftProposeMetrics;
 use crate::store::metrics::*;
 use crate::store::msg::Callback;
 use crate::store::peer::{ConsistencyState, Peer, StaleState};
-use crate::store::peer_causetStorage::{ApplySnapResult, InvokeContext};
+use crate::store::peer_causet_storage::{ApplySnapResult, InvokeContext};
 use crate::store::transport::Transport;
 use crate::store::util::{is_learner, TuplespaceInstantonInfoFormatter};
 use crate::store::worker::{
@@ -64,7 +64,7 @@ const REGION_SPLIT_SKIP_MAX_COUNT: usize = 3;
 pub struct DestroyPeerJob {
     pub initialized: bool,
     pub brane_id: u64,
-    pub peer: metapb::Peer,
+    pub peer: meta_timeshare::Peer,
 }
 
 /// Represents state of the group.
@@ -139,7 +139,7 @@ where
                 _ => continue,
             };
 
-            let mut err = errorpb::Error::default();
+            let mut err = error_timeshare::Error::default();
             err.set_message("brane is not found".to_owned());
             err.mut_brane_not_found().set_brane_id(self.brane_id());
             let mut resp = VioletaBftCmdResponse::default();
@@ -164,7 +164,7 @@ where
         causet: &Config,
         sched: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
         engines: Engines<EK, ER>,
-        brane: &metapb::Brane,
+        brane: &meta_timeshare::Brane,
     ) -> Result<lightlikeerFsmPair<EK, ER>> {
         let meta_peer = match util::find_peer(brane, store_id) {
             None => {
@@ -213,7 +213,7 @@ where
         sched: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
         engines: Engines<EK, ER>,
         brane_id: u64,
-        peer: metapb::Peer,
+        peer: meta_timeshare::Peer,
     ) -> Result<lightlikeerFsmPair<EK, ER>> {
         // We will remove tombstone key when apply snapshot
         info!(
@@ -222,7 +222,7 @@ where
             "peer_id" => peer.get_id(),
         );
 
-        let mut brane = metapb::Brane::default();
+        let mut brane = meta_timeshare::Brane::default();
         brane.set_id(brane_id);
 
         let (tx, rx) = mpsc::loose_bounded(causet.notify_capacity);
@@ -472,7 +472,7 @@ where
                     }
                 }
                 PeerMsg::Noop => {}
-                PeerMsg::UfidelateReplicationMode => self.on_ufidelate_replication_mode(),
+                PeerMsg::fidelioReplicationMode => self.on_fidelio_replication_mode(),
             }
         }
         // Propose batch request which may be still waiting for more violetabft-command
@@ -489,7 +489,7 @@ where
         }
     }
 
-    fn on_ufidelate_replication_mode(&mut self) {
+    fn on_fidelio_replication_mode(&mut self) {
         self.fsm
             .peer
             .switch_replication_mode(&self.ctx.global_replication_state);
@@ -550,7 +550,7 @@ where
 
                 if is_learner(&self.fsm.peer.peer) {
                     // FIXME: should use `bcast_check_stale_peer_message` instead.
-                    // lightlikeing a new enum type msg to a old edb may cause panic during rolling ufidelate
+                    // lightlikeing a new enum type msg to a old edb may cause panic during rolling fidelio
                     // we should change the protobuf behavior and check if properly handled in all place
                     self.fsm.peer.bcast_wake_up_message(&mut self.ctx);
                 }
@@ -818,7 +818,7 @@ where
     }
 
     fn on_role_changed(&mut self, ready: &Ready) {
-        // Ufidelate leader lease when the VioletaBft state changes.
+        // fidelio leader lease when the VioletaBft state changes.
         if let Some(ss) = ready.ss() {
             if StateRole::Leader == ss.violetabft_state {
                 self.fsm.missing_ticks = 0;
@@ -971,7 +971,7 @@ where
             return;
         }
         // When having plightlikeing snapshot, if election timeout is met, it can't pass
-        // the plightlikeing conf change check because first index has been ufidelated to
+        // the plightlikeing conf change check because first index has been fideliod to
         // a value that is larger than last index.
         if self.fsm.peer.is_applying_snapshot() || self.fsm.peer.has_plightlikeing_snapshot() {
             // need to check if snapshot is applied.
@@ -1063,7 +1063,7 @@ where
                     res.applied_index_term,
                     &res.metrics,
                 );
-                // After applying, several metrics are ufidelated, report it to fidel to
+                // After applying, several metrics are fideliod, report it to fidel to
                 // get fair schedule.
                 self.register_fidel_heartbeat_tick();
             }
@@ -1980,8 +1980,8 @@ where
 
     fn on_ready_split_brane(
         &mut self,
-        derived: metapb::Brane,
-        branes: Vec<metapb::Brane>,
+        derived: meta_timeshare::Brane,
+        branes: Vec<meta_timeshare::Brane>,
         new_split_branes: HashMap<u64, apply::NewSplitPeer>,
     ) {
         self.register_split_brane_check_tick();
@@ -1992,7 +1992,7 @@ where
         let is_leader = self.fsm.peer.is_leader();
         if is_leader {
             self.fsm.peer.heartbeat_fidel(self.ctx);
-            // Notify fidel immediately to let it ufidelate the brane meta.
+            // Notify fidel immediately to let it fidelio the brane meta.
             info!(
                 "notify fidel with split";
                 "brane_id" => self.fsm.brane_id(),
@@ -2018,7 +2018,7 @@ where
         if meta.brane_cones.remove(&last_key).is_none() {
             panic!("{} original brane should exists", self.fsm.peer.tag);
         }
-        // It's not correct anymore, so set it to None to let split checker ufidelate it.
+        // It's not correct anymore, so set it to None to let split checker fidelio it.
         self.fsm.peer.approximate_size = None;
         let last_brane_id = branes.last().unwrap().get_id();
         for new_brane in branes {
@@ -2159,7 +2159,7 @@ where
     /// It should be called when target brane is not in brane map in memory.
     /// If everything is ok, the answer should always be true because FIDel should ensure all target peers exist.
     /// So if not, error log will be printed and return false.
-    fn is_merge_target_brane_stale(&self, target_brane: &metapb::Brane) -> Result<bool> {
+    fn is_merge_target_brane_stale(&self, target_brane: &meta_timeshare::Brane) -> Result<bool> {
         let target_brane_id = target_brane.get_id();
         let target_peer_id = util::find_peer(target_brane, self.ctx.store_id())
             .unwrap()
@@ -2238,7 +2238,7 @@ where
         Ok(false)
     }
 
-    fn validate_merge_peer(&self, target_brane: &metapb::Brane) -> Result<bool> {
+    fn validate_merge_peer(&self, target_brane: &meta_timeshare::Brane) -> Result<bool> {
         let target_brane_id = target_brane.get_id();
         let exist_brane = {
             let meta = self.ctx.store_meta.dagger().unwrap();
@@ -2434,7 +2434,7 @@ where
         }
     }
 
-    fn on_ready_prepare_merge(&mut self, brane: metapb::Brane, state: MergeState) {
+    fn on_ready_prepare_merge(&mut self, brane: meta_timeshare::Brane, state: MergeState) {
         {
             let mut meta = self.ctx.store_meta.dagger().unwrap();
             meta.set_brane(&self.ctx.interlock_host, brane, &mut self.fsm.peer);
@@ -2522,7 +2522,7 @@ where
         self.fsm.peer.catch_up_logs = Some(catch_up_logs);
     }
 
-    fn on_ready_commit_merge(&mut self, brane: metapb::Brane, source: metapb::Brane) {
+    fn on_ready_commit_merge(&mut self, brane: meta_timeshare::Brane, source: meta_timeshare::Brane) {
         self.register_split_brane_check_tick();
         let mut meta = self.ctx.store_meta.dagger().unwrap();
 
@@ -2547,7 +2547,7 @@ where
         reader.mark_invalid();
 
         // If a follower merges into a leader, a more recent read may happen
-        // on the leader of the follower. So max ts should be ufidelated after
+        // on the leader of the follower. So max ts should be fideliod after
         // a brane merge.
         self.fsm
             .peer
@@ -2555,8 +2555,8 @@ where
 
         drop(meta);
 
-        // make approximate size and tuplespaceInstanton ufidelated in time.
-        // the reason why follower need to ufidelate is that there is a issue that after merge
+        // make approximate size and tuplespaceInstanton fideliod in time.
+        // the reason why follower need to fidelio is that there is a issue that after merge
         // and then transfer leader, the new leader may have stale size and tuplespaceInstanton.
         self.fsm.peer.size_diff_hint = self.ctx.causet.brane_split_check_diff.0;
         if self.fsm.peer.is_leader() {
@@ -2593,7 +2593,7 @@ where
     /// If commit is 0, it means that Merge is rollbacked by a snapshot; otherwise
     /// it's rollbacked by a proposal, and its value should be equal to the commit
     /// index of previous PrepareMerge.
-    fn on_ready_rollback_merge(&mut self, commit: u64, brane: Option<metapb::Brane>) {
+    fn on_ready_rollback_merge(&mut self, commit: u64, brane: Option<meta_timeshare::Brane>) {
         let plightlikeing_commit = self
             .fsm
             .peer
@@ -2629,7 +2629,7 @@ where
     fn on_merge_result(
         &mut self,
         target_brane_id: u64,
-        target: metapb::Peer,
+        target: meta_timeshare::Peer,
         result: MergeResultKind,
     ) {
         let exists = self
@@ -2875,7 +2875,7 @@ where
             }
         }
 
-        // Ufidelate metrics only when all exec_results are finished in case the metrics is counted multiple times
+        // fidelio metrics only when all exec_results are finished in case the metrics is counted multiple times
         // when waiting for commit merge
         self.ctx.store_stat.lock_causet_bytes_written += metrics.lock_causet_written_bytes;
         self.ctx.store_stat.engine_total_bytes_written += metrics.written_bytes;
@@ -3020,7 +3020,7 @@ where
                 // Attach the brane which might be split from the current brane. But it doesn't
                 // matter if the brane is not split from the current brane. If the brane meta
                 // received by the EinsteinDB driver is newer than the meta cached in the driver, the meta is
-                // ufidelated.
+                // fideliod.
                 let sibling_brane = self.find_sibling_brane();
                 if let Some(sibling_brane) = sibling_brane {
                     new_branes.push(sibling_brane);
@@ -3255,7 +3255,7 @@ where
         // When respacelike, the approximate size will be None. The split check will first
         // check the brane size, and then check whether the brane should split. This
         // should work even if we change the brane max size.
-        // If peer says should ufidelate approximate size, ufidelate brane size and check
+        // If peer says should fidelio approximate size, fidelio brane size and check
         // whether the brane should split.
         if self.fsm.peer.approximate_size.is_some()
             && self.fsm.peer.compaction_declined_bytes < self.ctx.causet.brane_split_check_diff.0
@@ -3295,7 +3295,7 @@ where
 
     fn on_prepare_split_brane(
         &mut self,
-        brane_epoch: metapb::BraneEpoch,
+        brane_epoch: meta_timeshare::BraneEpoch,
         split_tuplespaceInstanton: Vec<Vec<u8>>,
         cb: Callback<EK::Snapshot>,
     ) {
@@ -3331,7 +3331,7 @@ where
 
     fn validate_split_brane(
         &mut self,
-        epoch: &metapb::BraneEpoch,
+        epoch: &meta_timeshare::BraneEpoch,
         split_tuplespaceInstanton: &[Vec<u8>],
     ) -> Result<()> {
         if split_tuplespaceInstanton.is_empty() {
@@ -3372,7 +3372,7 @@ where
         let latest_epoch = brane.get_brane_epoch();
 
         // This is a little difference for `check_brane_epoch` in brane split case.
-        // Here we just need to check `version` because `conf_ver` will be ufidelate
+        // Here we just need to check `version` because `conf_ver` will be fidelio
         // to the latest value of the peer, and then lightlike to FIDel.
         if latest_epoch.get_version() != epoch.get_version() {
             info!(
@@ -3408,14 +3408,14 @@ where
     fn on_compaction_declined_bytes(&mut self, declined_bytes: u64) {
         self.fsm.peer.compaction_declined_bytes += declined_bytes;
         if self.fsm.peer.compaction_declined_bytes >= self.ctx.causet.brane_split_check_diff.0 {
-            UFIDelATE_REGION_SIZE_BY_COMPACTION_COUNTER.inc();
+            fidelio_REGION_SIZE_BY_COMPACTION_COUNTER.inc();
         }
         self.register_split_brane_check_tick();
     }
 
     fn on_schedule_half_split_brane(
         &mut self,
-        brane_epoch: &metapb::BraneEpoch,
+        brane_epoch: &meta_timeshare::BraneEpoch,
         policy: CheckPolicy,
     ) {
         if !self.fsm.peer.is_leader() {
@@ -3574,7 +3574,7 @@ where
 {
     fn on_ready_compute_hash(
         &mut self,
-        brane: metapb::Brane,
+        brane: meta_timeshare::Brane,
         index: u64,
         context: Vec<u8>,
         snap: EK::Snapshot,
@@ -3760,7 +3760,7 @@ pub fn maybe_destroy_source(
 pub fn new_read_index_request(
     brane_id: u64,
     brane_epoch: BraneEpoch,
-    peer: metapb::Peer,
+    peer: meta_timeshare::Peer,
 ) -> VioletaBftCmdRequest {
     let mut request = VioletaBftCmdRequest::default();
     request.mut_header().set_brane_id(brane_id);
@@ -3771,7 +3771,7 @@ pub fn new_read_index_request(
     request
 }
 
-pub fn new_admin_request(brane_id: u64, peer: metapb::Peer) -> VioletaBftCmdRequest {
+pub fn new_admin_request(brane_id: u64, peer: meta_timeshare::Peer) -> VioletaBftCmdRequest {
     let mut request = VioletaBftCmdRequest::default();
     request.mut_header().set_brane_id(brane_id);
     request.mut_header().set_peer(peer);
@@ -3780,7 +3780,7 @@ pub fn new_admin_request(brane_id: u64, peer: metapb::Peer) -> VioletaBftCmdRequ
 
 fn new_verify_hash_request(
     brane_id: u64,
-    peer: metapb::Peer,
+    peer: meta_timeshare::Peer,
     state: &ConsistencyState,
 ) -> VioletaBftCmdRequest {
     let mut request = new_admin_request(brane_id, peer);
@@ -3796,7 +3796,7 @@ fn new_verify_hash_request(
 
 fn new_compact_log_request(
     brane_id: u64,
-    peer: metapb::Peer,
+    peer: meta_timeshare::Peer,
     compact_index: u64,
     compact_term: u64,
 ) -> VioletaBftCmdRequest {
@@ -3870,7 +3870,7 @@ mod tests {
     use crate::store::msg::{Callback, VioletaBftCommand};
 
     use engine_lmdb::LmdbEngine;
-    use ekvproto::violetabft_cmdpb::{
+    use ekvproto::violetabft_cmd_timeshare::{
         AdminRequest, CmdType, PutRequest, VioletaBftCmdRequest, VioletaBftCmdResponse, Request, Response,
         StatusRequest,
     };

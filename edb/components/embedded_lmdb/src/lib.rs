@@ -19,7 +19,7 @@
 #[allow(unused_extern_crates)]
 extern crate edb_alloc;
 #[macro_use]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
 #[macro_use]
 extern crate serde_derive;

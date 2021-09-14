@@ -1,9 +1,9 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-//! External causetStorage support.
+//! External causet_storage support.
 //!
-//! This crate define an abstraction of external causetStorage. Currently, it
-//! supports local causetStorage.
+//! This crate define an abstraction of external causet_storage. Currently, it
+//! supports local causet_storage.
 
 #[macro_use]
 extern crate slog_global;
@@ -19,7 +19,7 @@ use futures_io::AsyncRead;
 #[causet(feature = "protobuf-codec")]
 use ekvproto::backup::StorageBacklightlike_oneof_backlightlike as Backlightlike;
 #[causet(feature = "prost-codec")]
-use ekvproto::backup::{causetStorage_backlightlike::Backlightlike, Local};
+use ekvproto::backup::{causet_storage_backlightlike::Backlightlike, Local};
 use ekvproto::backup::{Gcs, Noop, StorageBacklightlike, S3};
 
 mod local;
@@ -35,8 +35,8 @@ pub use util::block_on_external_io;
 
 pub const READ_BUF_SIZE: usize = 1024 * 1024 * 2;
 
-/// Create a new causetStorage from the given causetStorage backlightlike description.
-pub fn create_causetStorage(backlightlike: &StorageBacklightlike) -> io::Result<Arc<dyn ExternalStorage>> {
+/// Create a new causet_storage from the given causet_storage backlightlike description.
+pub fn create_causet_storage(backlightlike: &StorageBacklightlike) -> io::Result<Arc<dyn ExternalStorage>> {
     match &backlightlike.backlightlike {
         Some(Backlightlike::Local(local)) => {
             let p = Path::new(&local.path);
@@ -47,16 +47,16 @@ pub fn create_causetStorage(backlightlike: &StorageBacklightlike) -> io::Result<
         Some(Backlightlike::Gcs(config)) => GCSStorage::new(config).map(|s| Arc::new(s) as _),
         _ => {
             let u = url_of_backlightlike(backlightlike);
-            error!("unknown causetStorage"; "scheme" => u.scheme());
+            error!("unknown causet_storage"; "scheme" => u.scheme());
             Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("unknown causetStorage {}", u),
+                format!("unknown causet_storage {}", u),
             ))
         }
     }
 }
 
-/// Formats the causetStorage backlightlike as a URL.
+/// Formats the causet_storage backlightlike as a URL.
 pub fn url_of_backlightlike(backlightlike: &StorageBacklightlike) -> url::Url {
     let mut u = url::Url::parse("unknown:///").unwrap();
     match &backlightlike.backlightlike {
@@ -152,7 +152,7 @@ pub fn make_gcs_backlightlike(config: Gcs) -> StorageBacklightlike {
     }
 }
 
-/// An abstraction of an external causetStorage.
+/// An abstraction of an external causet_storage.
 // TODO: these should all be returning a future (i.e. async fn).
 pub trait ExternalStorage: 'static {
     /// Write all contents of the read to the given path.
@@ -185,15 +185,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_create_causetStorage() {
+    fn test_create_causet_storage() {
         let backlightlike = make_local_backlightlike(Path::new("/tmp/a"));
-        create_causetStorage(&backlightlike).unwrap();
+        create_causet_storage(&backlightlike).unwrap();
 
         let backlightlike = make_noop_backlightlike();
-        create_causetStorage(&backlightlike).unwrap();
+        create_causet_storage(&backlightlike).unwrap();
 
         let backlightlike = StorageBacklightlike::default();
-        assert!(create_causetStorage(&backlightlike).is_err());
+        assert!(create_causet_storage(&backlightlike).is_err());
     }
 
     #[test]

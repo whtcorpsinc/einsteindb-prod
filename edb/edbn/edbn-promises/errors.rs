@@ -27,7 +27,7 @@ use edbn::entities::{
     TempId,
 };
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
     KnownSolitonId,
     MinkowskiType,

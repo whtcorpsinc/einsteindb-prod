@@ -1,9 +1,9 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use grpcio::{ChannelBuilder, Environment};
-use ekvproto::{kvrpcpb::*, metapb, edbpb::EINSTEINDBClient};
+use ekvproto::{kvrpc_timeshare::*, meta_timeshare, edb_timeshare::EINSTEINDBClient};
 use test_violetabftstore::*;
-use edb_util::{collections::HashMap, HandyRwLock};
+use violetabftstore::interlock::::{collections::HashMap, HandyRwLock};
 
 use std::sync::Arc;
 
@@ -95,7 +95,7 @@ fn test_applied_lock_collector() {
     ctx.set_brane_epoch(cluster.get_brane_epoch(brane_id));
 
     // It's used to make sure all stores applies all logs.
-    let wait_for_apply = |cluster: &mut Cluster<_>, brane: &metapb::Brane| {
+    let wait_for_apply = |cluster: &mut Cluster<_>, brane: &meta_timeshare::Brane| {
         let cluster = &mut *cluster;
         brane.get_peers().iter().for_each(|p| {
             let resp = async_read_on_peer(cluster, p.clone(), brane.clone(), b"key", true, true)

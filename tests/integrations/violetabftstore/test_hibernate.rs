@@ -6,9 +6,9 @@ use std::time::*;
 
 use futures::executor::block_on;
 use fidel_client::FidelClient;
-use violetabft::evioletabftpb::{ConfChangeType, MessageType};
+use violetabft::evioletabft_timeshare::{ConfChangeType, MessageType};
 use test_violetabftstore::*;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::HandyRwLock;
 
 #[test]
 fn test_proposal_prevent_sleep() {

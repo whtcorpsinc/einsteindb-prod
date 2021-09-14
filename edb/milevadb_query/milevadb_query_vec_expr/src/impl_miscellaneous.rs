@@ -169,7 +169,7 @@ pub fn uuid() -> Result<Option<Bytes>> {
 
 #[causet(test)]
 mod tests {
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use super::*;
     use crate::test_util::RpnFnScalarEvaluator;

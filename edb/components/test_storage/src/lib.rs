@@ -3,12 +3,12 @@
 #![feature(box_TuringStrings)]
 
 #[macro_use]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
-mod assert_causetStorage;
-mod sync_causetStorage;
+mod assert_causet_storage;
+mod sync_causet_storage;
 mod util;
 
-pub use crate::assert_causetStorage::*;
-pub use crate::sync_causetStorage::*;
+pub use crate::assert_causet_storage::*;
+pub use crate::sync_causet_storage::*;
 pub use crate::util::*;

@@ -7,17 +7,17 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::time::*;
 use std::{mem, thread};
 
-use ekvproto::metapb;
-use ekvproto::violetabft_serverpb::VioletaBftLocalState;
-use violetabft::evioletabftpb::{ConfChangeType, MessageType};
+use ekvproto::meta_timeshare;
+use ekvproto::violetabft_server_timeshare::VioletaBftLocalState;
+use violetabft::evioletabft_timeshare::{ConfChangeType, MessageType};
 
 use engine_lmdb::{Compat, LmdbSnapshot};
 use edb::Peekable;
 use fidel_client::FidelClient;
 use violetabftstore::store::{Callback, BraneSnapshot};
 use test_violetabftstore::*;
-use edb_util::config::*;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::config::*;
+use violetabftstore::interlock::::HandyRwLock;
 
 // A helper function for testing the lease reads and lease renewing.
 // The leader keeps a record of its leader lease, and uses the system's
@@ -168,7 +168,7 @@ fn test_node_lease_expired() {
 // procedure, so it will not do lease read.
 // Since violetabft will not propose any request during leader transfer procedure, consistent read/write
 // could not be performed neither.
-// When leader transfer procedure aborts later, the leader would use and ufidelate the lease as usual.
+// When leader transfer procedure aborts later, the leader would use and fidelio the lease as usual.
 fn test_lease_unsafe_during_leader_transfers<T: Simulator>(cluster: &mut Cluster<T>) {
     // Avoid triggering the log compaction in this test case.
     cluster.causet.violetabft_store.violetabft_log_gc_memory_barrier = 100;
@@ -233,7 +233,7 @@ fn test_lease_unsafe_during_leader_transfers<T: Simulator>(cluster: &mut Cluster
     must_read_on_peer(cluster, peer.clone(), brane.clone(), key, b"v1");
     assert_eq!(detector.ctx.rl().len(), 1);
 
-    // And read index should not ufidelate lease.
+    // And read index should not fidelio lease.
     must_read_on_peer(cluster, peer.clone(), brane.clone(), key, b"v1");
     assert_eq!(detector.ctx.rl().len(), 2);
 
@@ -331,7 +331,7 @@ fn test_batch_id_in_lease<T: Simulator>(cluster: &mut Cluster<T>) {
         .map(|key| fidel_client.get_brane(key).unwrap())
         .collect();
 
-    let requests: Vec<(metapb::Peer, metapb::Brane)> = peers
+    let requests: Vec<(meta_timeshare::Peer, meta_timeshare::Brane)> = peers
         .iter()
         .zip(branes)
         .map(|(p, r)| (p.clone(), r))

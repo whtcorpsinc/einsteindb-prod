@@ -1,7 +1,7 @@
 mod engine;
 mod engine_factory;
 mod tail_pointer;
-mod causetStorage;
+mod causet_storage;
 mod txn;
 
 use std::fmt;
@@ -9,10 +9,10 @@ use std::fmt;
 use self::engine::bench_engine;
 use self::engine_factory::{BTreeEngineFactory, EngineFactory, LmdbEngineFactory};
 use self::tail_pointer::bench_tail_pointer;
-use self::causetStorage::bench_causetStorage;
+use self::causet_storage::bench_causet_storage;
 use self::txn::bench_txn;
 use criterion::Criterion;
-use edb::causetStorage::Engine;
+use edb::causet_storage::Engine;
 
 const DEFAULT_ITERATIONS: usize = 10;
 const DEFAULT_KEY_LENGTHS: [usize; 1] = [64];
@@ -67,8 +67,8 @@ fn main() {
     bench_txn(&mut c, &btree_engine_configs);
     bench_txn(&mut c, &rocks_engine_configs);
 
-    bench_causetStorage(&mut c, &btree_engine_configs);
-    bench_causetStorage(&mut c, &rocks_engine_configs);
+    bench_causet_storage(&mut c, &btree_engine_configs);
+    bench_causet_storage(&mut c, &rocks_engine_configs);
 
     c.final_summary();
 }

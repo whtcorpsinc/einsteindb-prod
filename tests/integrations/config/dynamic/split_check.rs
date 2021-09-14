@@ -13,7 +13,7 @@ use violetabftstore::interlock::{
 };
 use violetabftstore::store::{SplitCheckRunner as Runner, SplitCheckTask as Task};
 use edb::config::{ConfigController, Module, EINSTEINDBConfig};
-use edb_util::worker::{Interlock_Semaphore, Worker};
+use violetabftstore::interlock::::worker::{Interlock_Semaphore, Worker};
 
 fn tmp_engine<P: AsRef<Path>>(path: P) -> Arc<DB> {
     Arc::new(
@@ -62,17 +62,17 @@ where
 }
 
 #[test]
-fn test_ufidelate_split_check_config() {
+fn test_fidelio_split_check_config() {
     let (mut causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
     causet.validate().unwrap();
-    let engine = tmp_engine(&causet.causetStorage.data_dir);
+    let engine = tmp_engine(&causet.causet_storage.data_dir);
     let (causet_controller, mut worker) = setup(causet.clone(), engine);
     let interlock_semaphore = worker.interlock_semaphore();
 
     let cop_config = causet.interlock.clone();
-    // ufidelate of other module's config should not effect split check config
+    // fidelio of other module's config should not effect split check config
     causet_controller
-        .ufidelate_config("violetabftstore.violetabft-log-gc-memory_barrier", "2000")
+        .fidelio_config("violetabftstore.violetabft-log-gc-memory_barrier", "2000")
         .unwrap();
     validate(&interlock_semaphore, move |causet: &Config| {
         assert_eq!(causet, &cop_config);
@@ -91,9 +91,9 @@ fn test_ufidelate_split_check_config() {
         );
         m
     };
-    causet_controller.ufidelate(change).unwrap();
+    causet_controller.fidelio(change).unwrap();
 
-    // config should be ufidelated
+    // config should be fideliod
     let cop_config = {
         let mut cop_config = causet.interlock;
         cop_config.split_brane_on_Block = true;

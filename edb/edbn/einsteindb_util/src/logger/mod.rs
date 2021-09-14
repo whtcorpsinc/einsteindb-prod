@@ -22,7 +22,7 @@ pub use slog::{FilterFn, Level};
 
 // The suffix applightlikeed to the lightlike of rotated log files by datetime log rotator
 // Warning: Diagnostics service parses log files by file name format.
-//          Remember to ufidelate the corresponding code when suffix layout is changed.
+//          Remember to fidelio the corresponding code when suffix layout is changed.
 pub const DATETIME_ROTATE_SUFFIX: &str = "%Y-%m-%d-%H:%M:%S%.f";
 
 // Default is 128.
@@ -55,8 +55,8 @@ where
             // The format of the returned value from module() would like this:
             // ```
             //  violetabftstore::store::fsm::store
-            //  edb_util
-            //  edb_util::config::check_data_dir
+            //  violetabftstore::interlock::
+            //  violetabftstore::interlock::::config::check_data_dir
             //  violetabft::violetabft
             //  grpcio::log_util
             //  ...

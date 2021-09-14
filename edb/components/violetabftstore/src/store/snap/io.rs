@@ -12,9 +12,9 @@ use edb::{
     CfName, EncryptionKeyManager, Error as EngineError, ImportExt, IngestExternalFileOptions,
     Iterable, KvEngine, MuBlock, SstWriter, SstWriterBuilder,
 };
-use ekvproto::encryptionpb::EncryptionMethod;
-use edb_util::codec::bytes::{BytesEncoder, CompactBytesFromFileDecoder};
-use edb_util::time::Limiter;
+use ekvproto::encryption_timeshare::EncryptionMethod;
+use violetabftstore::interlock::::codec::bytes::{BytesEncoder, CompactBytesFromFileDecoder};
+use violetabftstore::interlock::::time::Limiter;
 
 use super::Error;
 
@@ -244,7 +244,7 @@ mod tests {
     use engine_lmdb::{Compat, LmdbEngine, LmdbSnapshot};
     use edb::Causet_DEFAULT;
     use tempfile::Builder;
-    use edb_util::time::Limiter;
+    use violetabftstore::interlock::::time::Limiter;
 
     struct TestStaleDetector;
     impl StaleDetector for TestStaleDetector {

@@ -6,7 +6,7 @@ use std::{thread, time};
 use edb::MiscExt;
 use fidel_client::FidelClient;
 use test_violetabftstore::*;
-use edb_util::config::*;
+use violetabftstore::interlock::::config::*;
 
 fn flush<T: Simulator>(cluster: &mut Cluster<T>) {
     for engines in cluster.engines.values() {
@@ -14,7 +14,7 @@ fn flush<T: Simulator>(cluster: &mut Cluster<T>) {
     }
 }
 
-fn test_ufidelate_brane_size<T: Simulator>(cluster: &mut Cluster<T>) {
+fn test_fidelio_brane_size<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.causet.violetabft_store.fidel_heartbeat_tick_interval = ReadableDuration::millis(50);
     cluster.causet.violetabft_store.split_brane_check_tick_interval = ReadableDuration::millis(50);
     cluster.causet.violetabft_store.brane_split_check_diff = ReadableSize::kb(1);
@@ -68,8 +68,8 @@ fn test_ufidelate_brane_size<T: Simulator>(cluster: &mut Cluster<T>) {
 }
 
 #[test]
-fn test_server_ufidelate_brane_size() {
+fn test_server_fidelio_brane_size() {
     let count = 1;
     let mut cluster = new_server_cluster(0, count);
-    test_ufidelate_brane_size(&mut cluster);
+    test_fidelio_brane_size(&mut cluster);
 }

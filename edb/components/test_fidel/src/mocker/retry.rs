@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::thread;
 use std::time::Duration;
 
-use ekvproto::fidelpb::*;
+use ekvproto::fidel_timeshare::*;
 use fidel_client::RECONNECT_INTERVAL_SEC;
 
 use super::*;
@@ -31,7 +31,7 @@ impl Retry {
             // it's ok.
             return true;
         }
-        // let's sleep awhile, so that client will ufidelate its connection.
+        // let's sleep awhile, so that client will fidelio its connection.
         thread::sleep(Duration::from_secs(RECONNECT_INTERVAL_SEC));
         false
     }

@@ -13,7 +13,7 @@ mod bootstrap;
 mod local_metrics;
 mod metrics;
 mod peer;
-mod peer_causetStorage;
+mod peer_causet_storage;
 mod read_queue;
 mod brane_snapshot;
 mod replication_mode;
@@ -33,7 +33,7 @@ pub use self::msg::{
 pub use self::peer::{
     AbstractPeer, Peer, PeerStat, ProposalContext, RequestInspector, RequestPolicy,
 };
-pub use self::peer_causetStorage::{
+pub use self::peer_causet_storage::{
     clear_meta, do_snapshot, write_initial_apply_state, write_initial_violetabft_state, write_peer_state,
     PeerStorage, SnapState, INIT_EPOCH_CONF_VER, INIT_EPOCH_VER, VIOLETABFT_INIT_LOG_INDEX,
     VIOLETABFT_INIT_LOG_TERM,

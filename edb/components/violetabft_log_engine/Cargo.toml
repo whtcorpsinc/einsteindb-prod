@@ -19,7 +19,7 @@ prost-codec = [
 
 [deplightlikeencies]
 edb = { path = "../edb" }
-edb_util = { path = "../edb_util" }
+violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
 hex = "0.4"
 tuplespaceInstanton = { path = "../tuplespaceInstanton" }
 num_cpus = "1"

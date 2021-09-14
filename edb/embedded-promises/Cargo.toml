@@ -1,10 +1,10 @@
 [package]
-name = "raum-promises"
+name = "allegro-promises"
 version = "0.0.1"
 workspace = ".."
 
 [lib]
-name = "raum_promises"
+name = "allegro_promises"
 path = "lib.rs"
 
 [dependencies]

@@ -1,11 +1,11 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 #[macro_use(debug)]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
 use std::cmp;
 use std::collections::BTreeMap;
-use edb_util::collections::HashSet;
+use violetabftstore::interlock::::collections::HashSet;
 use txn_types::TimeStamp;
 
 // Resolver resolves timestamps that guarantee no more commit will happen before

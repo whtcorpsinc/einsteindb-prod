@@ -7,7 +7,7 @@
 #![feature(specialization)]
 
 #[macro_use(box_try)]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
 #[macro_use(other_err)]
 extern crate milevadb_query_common;
@@ -31,12 +31,12 @@ use milevadb_query_datatype::expr::EvalContext;
 /// A trait for all single parameter aggregate functions.
 ///
 /// Unlike ordinary function, aggregate function calculates a summary value over multiple events. To
-/// save memory, this functionality is provided via an incremental ufidelate model:
+/// save memory, this functionality is provided via an incremental fidelio model:
 ///
 /// 1. Each aggregate function associates a state structure, storing partially computed aggregate
 ///    results.
 ///
-/// 2. The caller calls `ufidelate()` or `ufidelate_vector()` for each Evcausetidx to ufidelate the state.
+/// 2. The caller calls `fidelio()` or `fidelio_vector()` for each Evcausetidx to fidelio the state.
 ///
 /// 3. The caller finally calls `push_result()` to aggregate a summary value and push it into the
 ///    given data container.
@@ -53,7 +53,7 @@ pub trait AggrFunction: std::fmt::Debug + lightlike + 'static {
 /// A trait for all single parameter aggregate function states.
 ///
 /// Aggregate function states are created by corresponding aggregate functions. For each state,
-/// it can be ufidelated or aggregated (to finalize a result) indeplightlikeently.
+/// it can be fideliod or aggregated (to finalize a result) indeplightlikeently.
 ///
 /// Note that aggregate function states are strongly typed, that is, the caller must provide the
 /// parameter in the correct data type for an aggregate function states that calculates over this
@@ -63,13 +63,13 @@ pub trait AggrFunctionState:
     std::fmt::Debug
     + lightlike
     + 'static
-    + AggrFunctionStateUfidelatePartial<&'static Int>
-    + AggrFunctionStateUfidelatePartial<&'static Real>
-    + AggrFunctionStateUfidelatePartial<&'static Decimal>
-    + AggrFunctionStateUfidelatePartial<BytesRef<'static>>
-    + AggrFunctionStateUfidelatePartial<&'static DateTime>
-    + AggrFunctionStateUfidelatePartial<&'static Duration>
-    + AggrFunctionStateUfidelatePartial<JsonRef<'static>>
+    + AggrFunctionStatefidelioPartial<&'static Int>
+    + AggrFunctionStatefidelioPartial<&'static Real>
+    + AggrFunctionStatefidelioPartial<&'static Decimal>
+    + AggrFunctionStatefidelioPartial<BytesRef<'static>>
+    + AggrFunctionStatefidelioPartial<&'static DateTime>
+    + AggrFunctionStatefidelioPartial<&'static Duration>
+    + AggrFunctionStatefidelioPartial<JsonRef<'static>>
 {
     // TODO: A better implementation is to specialize different push result targets. However
     // current aggregation executor cannot utilize it.
@@ -79,8 +79,8 @@ pub trait AggrFunctionState:
 /// A helper trait for single parameter aggregate function states that only work over concrete eval
 /// types. This is the actual and only trait that normal aggregate function states will implement.
 ///
-/// Unlike `AggrFunctionState`, this trait only provides specialized `ufidelate()` and `push_result()`
-/// functions according to the associated type. `ufidelate()` and `push_result()` functions that accept
+/// Unlike `AggrFunctionState`, this trait only provides specialized `fidelio()` and `push_result()`
+/// functions according to the associated type. `fidelio()` and `push_result()` functions that accept
 /// any eval types (but will panic when eval type does not match expectation) will be generated via
 /// implementations over this trait.
 pub trait ConcreteAggrFunctionState: std::fmt::Debug + lightlike + 'static {
@@ -88,8 +88,8 @@ pub trait ConcreteAggrFunctionState: std::fmt::Debug + lightlike + 'static {
 
     /// # Safety
     ///
-    /// This function should be called with `ufidelate_concrete` macro.
-    unsafe fn ufidelate_concrete_unsafe(
+    /// This function should be called with `fidelio_concrete` macro.
+    unsafe fn fidelio_concrete_unsafe(
         &mut self,
         ctx: &mut EvalContext,
         value: Option<Self::ParameterType>,
@@ -99,17 +99,17 @@ pub trait ConcreteAggrFunctionState: std::fmt::Debug + lightlike + 'static {
 }
 
 #[macro_export]
-macro_rules! ufidelate_concrete {
+macro_rules! fidelio_concrete {
     ( $state:expr, $ctx:expr, $value:expr ) => {
-        unsafe { $state.ufidelate_concrete_unsafe($ctx, $value.unsafe_into()) }
+        unsafe { $state.fidelio_concrete_unsafe($ctx, $value.unsafe_into()) }
     };
 }
 
 #[macro_export]
-macro_rules! ufidelate_vector {
+macro_rules! fidelio_vector {
     ( $state:expr, $ctx:expr, $physical_values:expr, $logical_rows:expr ) => {
         unsafe {
-            $state.ufidelate_vector_unsafe(
+            $state.fidelio_vector_unsafe(
                 $ctx,
                 $physical_values.phantom_data().unsafe_into(),
                 $physical_values.unsafe_into(),
@@ -120,50 +120,50 @@ macro_rules! ufidelate_vector {
 }
 
 #[macro_export]
-macro_rules! ufidelate_repeat {
+macro_rules! fidelio_repeat {
     ( $state:expr, $ctx:expr, $value:expr, $repeat_times:expr ) => {
-        unsafe { $state.ufidelate_repeat_unsafe($ctx, $value.unsafe_into(), $repeat_times) }
+        unsafe { $state.fidelio_repeat_unsafe($ctx, $value.unsafe_into(), $repeat_times) }
     };
 }
 
 #[macro_export]
-macro_rules! ufidelate {
+macro_rules! fidelio {
     ( $state:expr, $ctx:expr, $value:expr ) => {
-        unsafe { $state.ufidelate_unsafe($ctx, $value.unsafe_into()) }
+        unsafe { $state.fidelio_unsafe($ctx, $value.unsafe_into()) }
     };
 }
 
 #[macro_export]
-macro_rules! impl_state_ufidelate_partial {
+macro_rules! impl_state_fidelio_partial {
     ( $ty:tt ) => {
         #[inline]
-        unsafe fn ufidelate_unsafe(
+        unsafe fn fidelio_unsafe(
             &mut self,
             ctx: &mut EvalContext,
             value: Option<$ty>,
         ) -> Result<()> {
-            self.ufidelate(ctx, value)
+            self.fidelio(ctx, value)
         }
 
         #[inline]
-        unsafe fn ufidelate_repeat_unsafe(
+        unsafe fn fidelio_repeat_unsafe(
             &mut self,
             ctx: &mut EvalContext,
             value: Option<$ty>,
             repeat_times: usize,
         ) -> Result<()> {
-            self.ufidelate_repeat(ctx, value, repeat_times)
+            self.fidelio_repeat(ctx, value, repeat_times)
         }
 
         #[inline]
-        unsafe fn ufidelate_vector_unsafe(
+        unsafe fn fidelio_vector_unsafe(
             &mut self,
             ctx: &mut EvalContext,
             phantom_data: Option<$ty>,
             physical_values: $ty::SolitonedType,
             logical_rows: &[usize],
         ) -> Result<()> {
-            self.ufidelate_vector(ctx, phantom_data, physical_values, logical_rows)
+            self.fidelio_vector(ctx, phantom_data, physical_values, logical_rows)
         }
     };
 }
@@ -172,12 +172,12 @@ macro_rules! impl_state_ufidelate_partial {
 macro_rules! impl_concrete_state {
     ( $ty:ty ) => {
         #[inline]
-        unsafe fn ufidelate_concrete_unsafe(
+        unsafe fn fidelio_concrete_unsafe(
             &mut self,
             ctx: &mut EvalContext,
             value: Option<$ty>,
         ) -> Result<()> {
-            self.ufidelate_concrete(ctx, value)
+            self.fidelio_concrete(ctx, value)
         }
     };
 }
@@ -185,14 +185,14 @@ macro_rules! impl_concrete_state {
 #[macro_export]
 macro_rules! impl_unmatched_function_state {
     ( $ty:ty ) => {
-        impl<T1, T> super::AggrFunctionStateUfidelatePartial<T1> for $ty
+        impl<T1, T> super::AggrFunctionStatefidelioPartial<T1> for $ty
         where
             T1: EvaluableRef<'static> + 'static,
             T: EvaluableRef<'static> + 'static,
             VectorValue: VectorValueExt<T::EvaluableType>,
         {
             #[inline]
-            default unsafe fn ufidelate_unsafe(
+            default unsafe fn fidelio_unsafe(
                 &mut self,
                 _ctx: &mut EvalContext,
                 _value: Option<T1>,
@@ -201,7 +201,7 @@ macro_rules! impl_unmatched_function_state {
             }
 
             #[inline]
-            default unsafe fn ufidelate_repeat_unsafe(
+            default unsafe fn fidelio_repeat_unsafe(
                 &mut self,
                 _ctx: &mut EvalContext,
                 _value: Option<T1>,
@@ -211,7 +211,7 @@ macro_rules! impl_unmatched_function_state {
             }
 
             #[inline]
-            default unsafe fn ufidelate_vector_unsafe(
+            default unsafe fn fidelio_vector_unsafe(
                 &mut self,
                 _ctx: &mut EvalContext,
                 _phantom_data: Option<T1>,
@@ -224,10 +224,10 @@ macro_rules! impl_unmatched_function_state {
     };
 }
 
-/// A helper trait that provides `ufidelate()` and `ufidelate_vector()` over a concrete type, which will
+/// A helper trait that provides `fidelio()` and `fidelio_vector()` over a concrete type, which will
 /// be relied in `AggrFunctionState`.
-pub trait AggrFunctionStateUfidelatePartial<TT: EvaluableRef<'static>> {
-    /// Ufidelates the internal state giving one Evcausetidx data.
+pub trait AggrFunctionStatefidelioPartial<TT: EvaluableRef<'static>> {
+    /// fidelios the internal state giving one Evcausetidx data.
     ///
     /// # Panics
     ///
@@ -236,10 +236,10 @@ pub trait AggrFunctionStateUfidelatePartial<TT: EvaluableRef<'static>> {
     ///
     /// # Safety
     ///
-    /// This function should be called with `ufidelate` macro.
-    unsafe fn ufidelate_unsafe(&mut self, ctx: &mut EvalContext, value: Option<TT>) -> Result<()>;
+    /// This function should be called with `fidelio` macro.
+    unsafe fn fidelio_unsafe(&mut self, ctx: &mut EvalContext, value: Option<TT>) -> Result<()>;
 
-    /// Repeatedly ufidelates the internal state giving one Evcausetidx data.
+    /// Repeatedly fidelios the internal state giving one Evcausetidx data.
     ///
     /// # Panics
     ///
@@ -248,15 +248,15 @@ pub trait AggrFunctionStateUfidelatePartial<TT: EvaluableRef<'static>> {
     ///
     /// # Safety
     ///
-    /// This function should be called with `ufidelate_repeat_unsafe` macro.
-    unsafe fn ufidelate_repeat_unsafe(
+    /// This function should be called with `fidelio_repeat_unsafe` macro.
+    unsafe fn fidelio_repeat_unsafe(
         &mut self,
         ctx: &mut EvalContext,
         value: Option<TT>,
         repeat_times: usize,
     ) -> Result<()>;
 
-    /// Ufidelates the internal state giving multiple events data.
+    /// fidelios the internal state giving multiple events data.
     ///
     /// # Panics
     ///
@@ -265,8 +265,8 @@ pub trait AggrFunctionStateUfidelatePartial<TT: EvaluableRef<'static>> {
     ///
     /// # Safety
     ///
-    /// This function should be called with `ufidelate_vector` macro.
-    unsafe fn ufidelate_vector_unsafe(
+    /// This function should be called with `fidelio_vector` macro.
+    unsafe fn fidelio_vector_unsafe(
         &mut self,
         ctx: &mut EvalContext,
         phantom_data: Option<TT>,
@@ -275,15 +275,15 @@ pub trait AggrFunctionStateUfidelatePartial<TT: EvaluableRef<'static>> {
     ) -> Result<()>;
 }
 
-impl<T: EvaluableRef<'static>, State> AggrFunctionStateUfidelatePartial<T> for State
+impl<T: EvaluableRef<'static>, State> AggrFunctionStatefidelioPartial<T> for State
 where
     State: ConcreteAggrFunctionState,
 {
-    // All `ConcreteAggrFunctionState` implement `AggrFunctionStateUfidelatePartial<T>`, which is
+    // All `ConcreteAggrFunctionState` implement `AggrFunctionStatefidelioPartial<T>`, which is
     // one of the trait bound that `AggrFunctionState` requires.
 
     #[inline]
-    default unsafe fn ufidelate_unsafe(
+    default unsafe fn fidelio_unsafe(
         &mut self,
         _ctx: &mut EvalContext,
         _value: Option<T>,
@@ -292,7 +292,7 @@ where
     }
 
     #[inline]
-    default unsafe fn ufidelate_repeat_unsafe(
+    default unsafe fn fidelio_repeat_unsafe(
         &mut self,
         _ctx: &mut EvalContext,
         _value: Option<T>,
@@ -302,7 +302,7 @@ where
     }
 
     #[inline]
-    default unsafe fn ufidelate_vector_unsafe(
+    default unsafe fn fidelio_vector_unsafe(
         &mut self,
         _ctx: &mut EvalContext,
         _phantom_data: Option<T>,
@@ -313,30 +313,30 @@ where
     }
 }
 
-impl<T: EvaluableRef<'static>, State> AggrFunctionStateUfidelatePartial<T> for State
+impl<T: EvaluableRef<'static>, State> AggrFunctionStatefidelioPartial<T> for State
 where
     State: ConcreteAggrFunctionState<ParameterType = T>,
 {
     #[inline]
-    unsafe fn ufidelate_unsafe(&mut self, ctx: &mut EvalContext, value: Option<T>) -> Result<()> {
-        self.ufidelate_concrete_unsafe(ctx, value)
+    unsafe fn fidelio_unsafe(&mut self, ctx: &mut EvalContext, value: Option<T>) -> Result<()> {
+        self.fidelio_concrete_unsafe(ctx, value)
     }
 
     #[inline]
-    unsafe fn ufidelate_repeat_unsafe(
+    unsafe fn fidelio_repeat_unsafe(
         &mut self,
         ctx: &mut EvalContext,
         value: Option<T>,
         repeat_times: usize,
     ) -> Result<()> {
         for _ in 0..repeat_times {
-            self.ufidelate_concrete_unsafe(ctx, value.clone())?;
+            self.fidelio_concrete_unsafe(ctx, value.clone())?;
         }
         Ok(())
     }
 
     #[inline]
-    unsafe fn ufidelate_vector_unsafe(
+    unsafe fn fidelio_vector_unsafe(
         &mut self,
         ctx: &mut EvalContext,
         _phantom_data: Option<T>,
@@ -344,7 +344,7 @@ where
         logical_rows: &[usize],
     ) -> Result<()> {
         for physical_index in logical_rows {
-            self.ufidelate_concrete_unsafe(ctx, physical_values.get_option_ref(*physical_index))?;
+            self.fidelio_concrete_unsafe(ctx, physical_values.get_option_ref(*physical_index))?;
         }
         Ok(())
     }
@@ -382,7 +382,7 @@ mod tests {
         impl ConcreteAggrFunctionState for AggrFnStateFoo {
             type ParameterType = &'static Int;
 
-            unsafe fn ufidelate_concrete_unsafe(
+            unsafe fn fidelio_concrete_unsafe(
                 &mut self,
                 _ctx: &mut EvalContext,
                 value: Option<&'static Int>,
@@ -406,25 +406,25 @@ mod tests {
         let mut ctx = EvalContext::default();
         let mut s = AggrFnStateFoo::new();
 
-        // Ufidelate using `Int` should success.
-        assert!(ufidelate!(
-            &mut s as &mut dyn AggrFunctionStateUfidelatePartial<_>,
+        // fidelio using `Int` should success.
+        assert!(fidelio!(
+            &mut s as &mut dyn AggrFunctionStatefidelioPartial<_>,
             &mut ctx,
             Some(&1)
         )
         .is_ok());
-        assert!(ufidelate!(
-            &mut s as &mut dyn AggrFunctionStateUfidelatePartial<_>,
+        assert!(fidelio!(
+            &mut s as &mut dyn AggrFunctionStatefidelioPartial<_>,
             &mut ctx,
             Some(&3)
         )
         .is_ok());
 
-        // Ufidelate using other data type should panic.
+        // fidelio using other data type should panic.
         let result = panic_hook::recover_safe(|| {
             let mut s = s.clone();
-            let _ = ufidelate!(
-                &mut s as &mut dyn AggrFunctionStateUfidelatePartial<_>,
+            let _ = fidelio!(
+                &mut s as &mut dyn AggrFunctionStatefidelioPartial<_>,
                 &mut ctx,
                 Real::new(1.0).ok().as_ref()
             );
@@ -433,8 +433,8 @@ mod tests {
 
         let result = panic_hook::recover_safe(|| {
             let mut s = s.clone();
-            let _ = ufidelate!(
-                &mut s as &mut dyn AggrFunctionStateUfidelatePartial<_>,
+            let _ = fidelio!(
+                &mut s as &mut dyn AggrFunctionStatefidelioPartial<_>,
                 &mut ctx,
                 Some(&[1u8] as BytesRef)
             );
@@ -450,8 +450,8 @@ mod tests {
         assert_eq!(target[0].to_real_vec(), &[Real::new(4.0).ok()]);
 
         // Calling push result multiple times should also success.
-        assert!(ufidelate!(
-            &mut s as &mut dyn AggrFunctionStateUfidelatePartial<_>,
+        assert!(fidelio!(
+            &mut s as &mut dyn AggrFunctionStatefidelioPartial<_>,
             &mut ctx,
             Some(&1)
         )

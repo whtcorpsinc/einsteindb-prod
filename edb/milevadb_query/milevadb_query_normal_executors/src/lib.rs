@@ -7,7 +7,7 @@
 #[macro_use]
 extern crate failure;
 #[macro_use(box_err, box_try)]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
 #[causet(test)]
 extern crate test;
@@ -40,12 +40,12 @@ use std::sync::Arc;
 use codec::prelude::NumberDecoder;
 use milevadb_query_datatype::prelude::*;
 use milevadb_query_datatype::FieldTypeFlag;
-use edb_util::collections::HashSet;
-use fidelpb::PrimaryCausetInfo;
-use fidelpb::{Expr, ExprType};
+use violetabftstore::interlock::::collections::HashSet;
+use fidel_timeshare::PrimaryCausetInfo;
+use fidel_timeshare::{Expr, ExprType};
 
 use milevadb_query_common::execute_stats::*;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::datum::{self, Datum, DatumEncoder};
 use milevadb_query_datatype::codec::Block::{self, EventColsDict};
@@ -276,7 +276,7 @@ pub trait FreeDaemon: lightlike {
 
     fn collect_exec_stats(&mut self, dest: &mut ExecuteStats);
 
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats);
 
     fn get_len_of_PrimaryCausets(&self) -> usize;
 
@@ -321,8 +321,8 @@ impl<C: ExecSummaryCollector + lightlike, T: FreeDaemon> FreeDaemon for WithSumm
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.inner.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.inner.collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -360,8 +360,8 @@ impl<T: FreeDaemon + ?Sized> FreeDaemon for Box<T> {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        (**self).collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        (**self).collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -390,15 +390,15 @@ pub mod tests {
     use super::{FreeDaemon, BlockScanFreeDaemon};
     use codec::prelude::NumberEncoder;
     use ekvproto::interlock::KeyCone;
-    use milevadb_query_common::causetStorage::test_fixture::FixtureStorage;
+    use milevadb_query_common::causet_storage::test_fixture::FixtureStorage;
     use milevadb_query_datatype::codec::{datum, Block, Datum};
     use milevadb_query_datatype::expr::EvalContext;
     use milevadb_query_datatype::{FieldTypeAccessor, FieldTypeTp};
-    use edb_util::collections::HashMap;
-    use edb_util::map;
-    use fidelpb::PrimaryCausetInfo;
-    use fidelpb::BlockScan;
-    use fidelpb::{Expr, ExprType};
+    use violetabftstore::interlock::::collections::HashMap;
+    use violetabftstore::interlock::::map;
+    use fidel_timeshare::PrimaryCausetInfo;
+    use fidel_timeshare::BlockScan;
+    use fidel_timeshare::{Expr, ExprType};
 
     pub fn build_expr(tp: ExprType, id: Option<i64>, child: Option<Expr>) -> Expr {
         let mut expr = Expr::default();
@@ -523,7 +523,7 @@ pub mod tests {
         key_cones: Option<Vec<KeyCone>>,
     ) -> Box<dyn FreeDaemon<StorageStats = ()> + lightlike> {
         let Block_data = gen_Block_data(tid, &cis, raw_data);
-        let causetStorage = FixtureStorage::from(Block_data);
+        let causet_storage = FixtureStorage::from(Block_data);
 
         let mut Block_scan = BlockScan::default();
         Block_scan.set_Block_id(tid);
@@ -535,7 +535,7 @@ pub mod tests {
                 Block_scan,
                 EvalContext::default(),
                 key_cones,
-                causetStorage,
+                causet_storage,
                 false,
             )
             .unwrap(),

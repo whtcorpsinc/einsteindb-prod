@@ -27,8 +27,8 @@ use edb::{
 use fs2::FileExt;
 use futures::executor::block_on;
 use ekvproto::{
-    backup::create_backup, causet_contextpb::create_change_data, deadlock::create_deadlock,
-    debugpb::create_debug, diagnosticspb::create_diagnostics, import_sstpb::create_import_sst,
+    backup::create_backup, causet_context_timeshare::create_change_data, deadlock::create_deadlock,
+    debug_timeshare::create_debug, diagnostics_timeshare::create_diagnostics, import_sst_timeshare::create_import_sst,
 };
 use fidel_client::{FidelClient, RpcClient};
 use violetabft_log_engine::VioletaBftLogEngine;
@@ -54,7 +54,7 @@ use edb::{
     read_pool::{build_yatp_read_pool, ReadPool},
     server::{
         config::Config as ServerConfig,
-        create_violetabft_causetStorage,
+        create_violetabft_causet_storage,
         gc_worker::{AutoGcConfig, GcWorker},
         lock_manager::LockManager,
         resolve,
@@ -62,10 +62,10 @@ use edb::{
         status_server::StatusServer,
         Node, VioletaBftKv, Server, CPU_CORES_QUOTA_GAUGE, DEFAULT_CLUSTER_ID,
     },
-    causetStorage::{self, config::StorageConfigManger},
+    causet_storage::{self, config::StorageConfigManger},
 };
-use edb_util::config::VersionTrack;
-use edb_util::{
+use violetabftstore::interlock::::config::VersionTrack;
+use violetabftstore::interlock::::{
     check_environment_variables,
     config::ensure_dir_exist,
     sys::sys_quota::SysQuota,
@@ -158,7 +158,7 @@ struct Servers<ER: VioletaBftEngine> {
     server: Server<VioletaBftRouter<LmdbEngine, ER>, resolve::FidelStoreAddrResolver>,
     node: Node<RpcClient, ER>,
     importer: Arc<SSTImporter>,
-    causet_context_interlock_semaphore: edb_util::worker::Interlock_Semaphore<causet_context::Task>,
+    causet_context_interlock_semaphore: violetabftstore::interlock::::worker::Interlock_Semaphore<causet_context::Task>,
 }
 
 impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
@@ -176,7 +176,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         let causet_controller = Self::init_config(config);
         let config = causet_controller.get_current();
 
-        let store_path = Path::new(&config.causetStorage.data_dir).to_owned();
+        let store_path = Path::new(&config.causet_storage.data_dir).to_owned();
 
         // Initialize violetabftstore channels.
         let (router, system) = fsm::create_violetabft_batch_system(&config.violetabft_store);
@@ -249,13 +249,13 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
     /// - If the max open file descriptor limit is not high enough to support
     ///   the main database and the violetabft database.
     fn init_config(mut config: EINSTEINDBConfig) -> ConfigController {
-        ensure_dir_exist(&config.causetStorage.data_dir).unwrap();
+        ensure_dir_exist(&config.causet_storage.data_dir).unwrap();
         ensure_dir_exist(&config.violetabft_store.violetabftdb_path).unwrap();
 
         validate_and_persist_config(&mut config, true);
         check_system_config(&config);
 
-        edb_util::set_panic_hook(false, &config.causetStorage.data_dir);
+        violetabftstore::interlock::::set_panic_hook(false, &config.causet_storage.data_dir);
 
         info!(
             "using config";
@@ -263,7 +263,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         );
         if config.panic_when_unexpected_key_or_data {
             info!("panic-when-unexpected-key-or-data is on");
-            edb_util::set_panic_when_unexpected_key_or_data(true);
+            violetabftstore::interlock::::set_panic_when_unexpected_key_or_data(true);
         }
 
         config.write_into_metrics();
@@ -347,19 +347,19 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         }
         self.lock_files.push(f);
 
-        if edb_util::panic_mark_file_exists(&self.config.causetStorage.data_dir) {
+        if violetabftstore::interlock::::panic_mark_file_exists(&self.config.causet_storage.data_dir) {
             fatal!(
                 "panic_mark_file {} exists, there must be something wrong with the db.",
-                edb_util::panic_mark_file_path(&self.config.causetStorage.data_dir).display()
+                violetabftstore::interlock::::panic_mark_file_path(&self.config.causet_storage.data_dir).display()
             );
         }
 
         // We truncate a big file to make sure that both violetabftdb and kvdb of EinsteinDB have enough space
         // to compaction when EinsteinDB recover. This file is created in data_dir rather than db_path,
         // because we must not increase store size of db_path.
-        edb_util::reserve_space_for_recover(
-            &self.config.causetStorage.data_dir,
-            self.config.causetStorage.reserve_space.0,
+        violetabftstore::interlock::::reserve_space_for_recover(
+            &self.config.causet_storage.data_dir,
+            self.config.causet_storage.reserve_space.0,
         )
         .unwrap();
     }
@@ -373,7 +373,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
     fn init_encryption(&mut self) {
         self.encryption_key_manager = DataKeyManager::from_config(
             &self.config.security.encryption,
-            &self.config.causetStorage.data_dir,
+            &self.config.causet_storage.data_dir,
         )
         .unwrap()
         .map(|key_manager| Arc::new(key_manager));
@@ -419,10 +419,10 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
 
         let causet_controller = self.causet_controller.as_mut().unwrap();
         causet_controller.register(
-            edb::config::Module::CausetStorage,
+            edb::config::Module::causet_storage,
             Box::new(StorageConfigManger::new(
                 engines.kv.clone(),
-                self.config.causetStorage.block_cache.shared,
+                self.config.causet_storage.block_cache.shared,
             )),
         );
 
@@ -467,7 +467,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         );
 
         // Create causet_context.
-        let mut causet_context_worker = Box::new(edb_util::worker::Worker::new("causet_context"));
+        let mut causet_context_worker = Box::new(violetabftstore::interlock::::worker::Worker::new("causet_context"));
         let causet_context_interlock_semaphore = causet_context_worker.interlock_semaphore();
         let txn_extra_interlock_semaphore = causet_context::causet_contextTxnExtraInterlock_Semaphore::new(causet_context_interlock_semaphore.clone());
 
@@ -514,26 +514,26 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
                 .unwrap(),
         );
 
-        let causetStorage_read_pool_handle = if self.config.readpool.causetStorage.use_unified_pool() {
+        let causet_storage_read_pool_handle = if self.config.readpool.causet_storage.use_unified_pool() {
             unified_read_pool.as_ref().unwrap().handle()
         } else {
-            let causetStorage_read_pools = ReadPool::from(causetStorage::build_read_pool(
-                &self.config.readpool.causetStorage,
+            let causet_storage_read_pools = ReadPool::from(causet_storage::build_read_pool(
+                &self.config.readpool.causet_storage,
                 fidel_lightlikeer.clone(),
                 engines.engine.clone(),
             ));
-            causetStorage_read_pools.handle()
+            causet_storage_read_pools.handle()
         };
 
-        let causetStorage = create_violetabft_causetStorage(
+        let causet_storage = create_violetabft_causet_storage(
             engines.engine.clone(),
-            &self.config.causetStorage,
-            causetStorage_read_pool_handle,
+            &self.config.causet_storage,
+            causet_storage_read_pool_handle,
             lock_mgr.clone(),
             self.concurrency_manager.clone(),
             self.config.pessimistic_txn.pipelined,
         )
-        .unwrap_or_else(|e| fatal!("failed to create violetabft causetStorage: {}", e));
+        .unwrap_or_else(|e| fatal!("failed to create violetabft causet_storage: {}", e));
 
         // Create snapshot manager, server.
         let snap_path = self
@@ -574,7 +574,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
         let server = Server::new(
             &server_config,
             &self.security_mgr,
-            causetStorage,
+            causet_storage,
             interlock::node::new(
                 &server_config,
                 cop_read_pool_handle,
@@ -656,7 +656,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             node.id(),
         );
         if let Err(e) = gc_worker.spacelike_auto_gc(auto_gc_config) {
-            fatal!("failed to spacelike auto_gc on causetStorage, error: {}", e);
+            fatal!("failed to spacelike auto_gc on causet_storage, error: {}", e);
         }
 
         // Start causet_context.
@@ -760,7 +760,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             .unwrap_or_else(|e| fatal!("failed to spacelike dagger manager: {}", e));
 
         // Backup service.
-        let mut backup_worker = Box::new(edb_util::worker::Worker::new("backup-lightlikepoint"));
+        let mut backup_worker = Box::new(violetabftstore::interlock::::worker::Worker::new("backup-lightlikepoint"));
         let backup_interlock_semaphore = backup_worker.interlock_semaphore();
         let backup_service = backup::Service::new(backup_interlock_semaphore, self.security_mgr.clone());
         if servers
@@ -875,7 +875,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
 impl EinsteinDBServer<LmdbEngine> {
     fn init_raw_engines(&mut self) -> Engines<LmdbEngine, LmdbEngine> {
         let env = get_env(self.encryption_key_manager.clone(), None /*base_env*/).unwrap();
-        let block_cache = self.config.causetStorage.block_cache.build_shared_cache();
+        let block_cache = self.config.causet_storage.block_cache.build_shared_cache();
 
         // Create violetabft engine.
         let violetabft_db_path = Path::new(&self.config.violetabft_store.violetabftdb_path);
@@ -897,7 +897,7 @@ impl EinsteinDBServer<LmdbEngine> {
         let kv_causets_opts = self.config.lmdb.build_causet_opts(&block_cache);
         let db_path = self
             .store_path
-            .join(Path::new(causetStorage::config::DEFAULT_LMDB_SUB_DIR));
+            .join(Path::new(causet_storage::config::DEFAULT_LMDB_SUB_DIR));
         let kv_engine = engine_lmdb::raw_util::new_engine_opt(
             db_path.to_str().unwrap(),
             kv_db_opts,
@@ -918,7 +918,7 @@ impl EinsteinDBServer<LmdbEngine> {
             Box::new(DBConfigManger::new(
                 engines.kv.clone(),
                 DBType::Kv,
-                self.config.causetStorage.block_cache.shared,
+                self.config.causet_storage.block_cache.shared,
             )),
         );
         causet_controller.register(
@@ -926,7 +926,7 @@ impl EinsteinDBServer<LmdbEngine> {
             Box::new(DBConfigManger::new(
                 engines.violetabft.clone(),
                 DBType::VioletaBft,
-                self.config.causetStorage.block_cache.shared,
+                self.config.causet_storage.block_cache.shared,
             )),
         );
 
@@ -937,7 +937,7 @@ impl EinsteinDBServer<LmdbEngine> {
 impl EinsteinDBServer<VioletaBftLogEngine> {
     fn init_raw_engines(&mut self) -> Engines<LmdbEngine, VioletaBftLogEngine> {
         let env = get_env(self.encryption_key_manager.clone(), None /*base_env*/).unwrap();
-        let block_cache = self.config.causetStorage.block_cache.build_shared_cache();
+        let block_cache = self.config.causet_storage.block_cache.build_shared_cache();
 
         // Create violetabft engine.
         let violetabft_config = self.config.violetabft_engine.config();
@@ -950,7 +950,7 @@ impl EinsteinDBServer<VioletaBftLogEngine> {
         let kv_causets_opts = self.config.lmdb.build_causet_opts(&block_cache);
         let db_path = self
             .store_path
-            .join(Path::new(causetStorage::config::DEFAULT_LMDB_SUB_DIR));
+            .join(Path::new(causet_storage::config::DEFAULT_LMDB_SUB_DIR));
         let kv_engine = engine_lmdb::raw_util::new_engine_opt(
             db_path.to_str().unwrap(),
             kv_db_opts,
@@ -969,7 +969,7 @@ impl EinsteinDBServer<VioletaBftLogEngine> {
             Box::new(DBConfigManger::new(
                 engines.kv.clone(),
                 DBType::Kv,
-                self.config.causetStorage.block_cache.shared,
+                self.config.causet_storage.block_cache.shared,
             )),
         );
 
@@ -998,7 +998,7 @@ impl EinsteinDBServer<VioletaBftLogEngine> {
 /// - if the "TZ" environment variable is not set on unix
 fn pre_spacelike() {
     check_environment_variables();
-    for e in edb_util::config::check_kernel() {
+    for e in violetabftstore::interlock::::config::check_kernel() {
         warn!(
             "check: kernel";
             "err" => %e
@@ -1015,22 +1015,22 @@ fn check_system_config(config: &EINSTEINDBConfig) {
         // open files here
         lmdb_max_open_files *= 2;
     }
-    if let Err(e) = edb_util::config::check_max_open_fds(
+    if let Err(e) = violetabftstore::interlock::::config::check_max_open_fds(
         RESERVED_OPEN_FDS + (lmdb_max_open_files + config.violetabftdb.max_open_files) as u64,
     ) {
         fatal!("{}", e);
     }
 
     // Check Lmdb data dir
-    if let Err(e) = edb_util::config::check_data_dir(&config.causetStorage.data_dir) {
+    if let Err(e) = violetabftstore::interlock::::config::check_data_dir(&config.causet_storage.data_dir) {
         warn!(
             "check: lmdb-data-dir";
-            "path" => &config.causetStorage.data_dir,
+            "path" => &config.causet_storage.data_dir,
             "err" => %e
         );
     }
     // Check violetabft data dir
-    if let Err(e) = edb_util::config::check_data_dir(&config.violetabft_store.violetabftdb_path) {
+    if let Err(e) = violetabftstore::interlock::::config::check_data_dir(&config.violetabft_store.violetabftdb_path) {
         warn!(
             "check: violetabftdb-path";
             "path" => &config.violetabft_store.violetabftdb_path,

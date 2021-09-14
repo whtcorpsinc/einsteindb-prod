@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 
 use milevadb_query_codegen::AggrFunction;
 use milevadb_query_datatype::EvalType;
-use fidelpb::{Expr, ExprType, FieldType};
+use fidel_timeshare::{Expr, ExprType, FieldType};
 
 use super::*;
 use milevadb_query_common::Result;
@@ -104,7 +104,7 @@ where
     }
 
     #[inline]
-    fn ufidelate<'a, TT>(&mut self, _ctx: &mut EvalContext, value: Option<TT>) -> Result<()>
+    fn fidelio<'a, TT>(&mut self, _ctx: &mut EvalContext, value: Option<TT>) -> Result<()>
     where
         TT: EvaluableRef<'a, EvaluableType = T::EvaluableType>,
     {
@@ -116,7 +116,7 @@ where
     }
 
     #[inline]
-    fn ufidelate_repeat<'a, TT>(
+    fn fidelio_repeat<'a, TT>(
         &mut self,
         ctx: &mut EvalContext,
         value: Option<TT>,
@@ -126,11 +126,11 @@ where
         TT: EvaluableRef<'a, EvaluableType = T::EvaluableType>,
     {
         assert!(repeat_times > 0);
-        self.ufidelate(ctx, value)
+        self.fidelio(ctx, value)
     }
 
     #[inline]
-    fn ufidelate_vector<'a, TT, CC>(
+    fn fidelio_vector<'a, TT, CC>(
         &mut self,
         ctx: &mut EvalContext,
         _phantom_data: Option<TT>,
@@ -142,25 +142,25 @@ where
         CC: SolitonRef<'a, TT>,
     {
         if let Some(physical_index) = logical_rows.first() {
-            self.ufidelate(ctx, physical_values.get_option_ref(*physical_index))?;
+            self.fidelio(ctx, physical_values.get_option_ref(*physical_index))?;
         }
         Ok(())
     }
 }
 
-// Here we manually implement `AggrFunctionStateUfidelatePartial` instead of implementing
-// `ConcreteAggrFunctionState` so that `ufidelate_repeat` and `ufidelate_vector` can be faster.
-impl<T> super::AggrFunctionStateUfidelatePartial<T> for AggrFnStateFirst<T>
+// Here we manually implement `AggrFunctionStatefidelioPartial` instead of implementing
+// `ConcreteAggrFunctionState` so that `fidelio_repeat` and `fidelio_vector` can be faster.
+impl<T> super::AggrFunctionStatefidelioPartial<T> for AggrFnStateFirst<T>
 where
     T: EvaluableRef<'static> + 'static,
     VectorValue: VectorValueExt<T::EvaluableType>,
 {
-    // SolitonedType has been implemented in AggrFunctionStateUfidelatePartial<T1> for AggrFnStateFirst<T2>
-    impl_state_ufidelate_partial! { T }
+    // SolitonedType has been implemented in AggrFunctionStatefidelioPartial<T1> for AggrFnStateFirst<T2>
+    impl_state_fidelio_partial! { T }
 }
 
 // In order to make `AggrFnStateFirst` satisfy the `AggrFunctionState` trait, we default impl all
-// `AggrFunctionStateUfidelatePartial` of `Evaluable` for all `AggrFnStateFirst`.
+// `AggrFunctionStatefidelioPartial` of `Evaluable` for all `AggrFnStateFirst`.
 impl_unmatched_function_state! { AggrFnStateFirst<T> }
 
 impl<T> super::AggrFunctionState for AggrFnStateFirst<T>
@@ -186,12 +186,12 @@ mod tests {
     use super::*;
 
     use milevadb_query_datatype::FieldTypeTp;
-    use fidelpb_helper::ExprDefBuilder;
+    use fidel_timeshare_helper::ExprDefBuilder;
 
     use crate::AggrDefinitionParser;
 
     #[test]
-    fn test_ufidelate() {
+    fn test_fidelio() {
         let mut ctx = EvalContext::default();
         let function = AggrFnFirst::<&'static Int>::new();
         let mut state = function.create_state();
@@ -200,40 +200,40 @@ mod tests {
         state.push_result(&mut ctx, &mut result[..]).unwrap();
         assert_eq!(result[0].to_int_vec(), &[None]);
 
-        ufidelate!(state, &mut ctx, Some(&1)).unwrap();
+        fidelio!(state, &mut ctx, Some(&1)).unwrap();
         state.push_result(&mut ctx, &mut result[..]).unwrap();
         assert_eq!(result[0].to_int_vec(), &[None, Some(1)]);
 
-        ufidelate!(state, &mut ctx, Some(&2)).unwrap();
+        fidelio!(state, &mut ctx, Some(&2)).unwrap();
         state.push_result(&mut ctx, &mut result[..]).unwrap();
         assert_eq!(result[0].to_int_vec(), &[None, Some(1), Some(1)]);
     }
 
     #[test]
-    fn test_ufidelate_repeat() {
+    fn test_fidelio_repeat() {
         let mut ctx = EvalContext::default();
         let function = AggrFnFirst::<BytesRef<'static>>::new();
         let mut state = function.create_state();
 
         let mut result = [VectorValue::with_capacity(0, EvalType::Bytes)];
 
-        ufidelate_repeat!(state, &mut ctx, Some(&[1u8] as BytesRef), 2).unwrap();
+        fidelio_repeat!(state, &mut ctx, Some(&[1u8] as BytesRef), 2).unwrap();
         state.push_result(&mut ctx, &mut result[..]).unwrap();
         assert_eq!(result[0].to_bytes_vec(), &[Some(vec![1])]);
 
-        ufidelate_repeat!(state, &mut ctx, Some(&[2u8] as BytesRef), 3).unwrap();
+        fidelio_repeat!(state, &mut ctx, Some(&[2u8] as BytesRef), 3).unwrap();
         state.push_result(&mut ctx, &mut result[..]).unwrap();
         assert_eq!(result[0].to_bytes_vec(), &[Some(vec![1]), Some(vec![1])]);
     }
 
     #[test]
-    fn test_ufidelate_vector() {
+    fn test_fidelio_vector() {
         let mut ctx = EvalContext::default();
         let function = AggrFnFirst::<&'static Int>::new();
         let mut state = function.create_state();
         let mut result = [VectorValue::with_capacity(0, EvalType::Int)];
 
-        ufidelate_vector!(
+        fidelio_vector!(
             state,
             &mut ctx,
             &SolitonedVecSized::from_slice(&[Some(0); 0]),
@@ -244,7 +244,7 @@ mod tests {
         assert_eq!(result[0].to_int_vec(), &[None]);
 
         result[0].clear();
-        ufidelate_vector!(
+        fidelio_vector!(
             state,
             &mut ctx,
             &SolitonedVecSized::from_slice(&[Some(1)]),
@@ -255,7 +255,7 @@ mod tests {
         assert_eq!(result[0].to_int_vec(), &[None]);
 
         result[0].clear();
-        ufidelate_vector!(
+        fidelio_vector!(
             state,
             &mut ctx,
             &SolitonedVecSized::from_slice(&[None, Some(2)]),
@@ -266,7 +266,7 @@ mod tests {
         assert_eq!(result[0].to_int_vec(), &[None]);
 
         result[0].clear();
-        ufidelate_vector!(
+        fidelio_vector!(
             state,
             &mut ctx,
             &SolitonedVecSized::from_slice(&[Some(1)]),
@@ -280,7 +280,7 @@ mod tests {
         let mut state = function.create_state();
 
         result[0].clear();
-        ufidelate_vector!(
+        fidelio_vector!(
             state,
             &mut ctx,
             &SolitonedVecSized::from_slice(&[None, Some(2)]),

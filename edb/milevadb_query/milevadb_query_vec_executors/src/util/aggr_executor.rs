@@ -30,10 +30,10 @@ use std::convert::TryFrom;
 use std::sync::Arc;
 
 use milevadb_query_datatype::{EvalType, FieldTypeAccessor};
-use fidelpb::{Expr, FieldType};
+use fidel_timeshare::{Expr, FieldType};
 
 use crate::interface::*;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::codec::data_type::*;
@@ -51,7 +51,7 @@ pub trait AggregationFreeDaemonImpl<Src: BatchFreeDaemon>: lightlike {
 
     /// Processes a set of PrimaryCausets which are emitted from the underlying executor.
     ///
-    /// Implementors should ufidelate the aggregate function states according to the data of
+    /// Implementors should fidelio the aggregate function states according to the data of
     /// these PrimaryCausets.
     fn process_batch_input(
         &mut self,
@@ -196,7 +196,7 @@ impl<Src: BatchFreeDaemon, I: AggregationFreeDaemonImpl<Src>> AggregationFreeDae
         self.entities.context.warnings = src_result.warnings;
 
         // When there are errors in the underlying executor, there must be no aggregate output.
-        // Thus we even don't need to ufidelate the aggregate function state and can return directly.
+        // Thus we even don't need to fidelio the aggregate function state and can return directly.
         let src_is_drained = src_result.is_drained?;
 
         // Consume all data from the underlying executor. We directly return when there are errors
@@ -312,8 +312,8 @@ impl<Src: BatchFreeDaemon, I: AggregationFreeDaemonImpl<Src>> BatchFreeDaemon
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.entities.src.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.entities.src.collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -352,7 +352,7 @@ pub mod tests {
     impl ConcreteAggrFunctionState for AggrFnUnreachableState {
         type ParameterType = &'static Real;
 
-        unsafe fn ufidelate_concrete_unsafe(
+        unsafe fn fidelio_concrete_unsafe(
             &mut self,
             _ctx: &mut EvalContext,
             _value: Option<Self::ParameterType>,

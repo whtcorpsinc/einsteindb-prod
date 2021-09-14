@@ -4,18 +4,18 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::time::Instant;
 
-use Raum_promises::{PrimaryCausetNetworkOptions, DBOptions, TxnRaum};
+use allegro_promises::{PrimaryCausetNetworkOptions, DBOptions, Txnallegro};
 use futures::executor::ThreadPool;
 use futures_util::compat::Future01CompatExt;
-use eTxnproto::import_sstpb::*;
-use edb_util::timer::GLOBAL_TIMER_HANDLE;
+use eTxnproto::import_sst_timeshare::*;
+use violetabftstore::interlock::::timer::GLOBAL_TIMER_HANDLE;
 
 use super::Config;
 use super::Result;
 
 type LmdbDBMetricsFn = fn(causet: &str, name: &str, v: f64);
 
-struct ImportModeSwitcherInner<E: TxnRaum> {
+struct ImportModeSwitcherInner<E: Txnallegro> {
     mode: SwitchMode,
     backup_db_options: ImportModeDBOptions,
     backup_causet_options: Vec<(String, ImportModeCausetOptions)>,
@@ -25,7 +25,7 @@ struct ImportModeSwitcherInner<E: TxnRaum> {
     metrics_fn: LmdbDBMetricsFn,
 }
 
-impl<E: TxnRaum> ImportModeSwitcherInner<E> {
+impl<E: Txnallegro> ImportModeSwitcherInner<E> {
     fn enter_normal_mode(&mut self, mf: LmdbDBMetricsFn) -> Result<()> {
         if self.mode == SwitchMode::Normal {
             return Ok(());
@@ -67,11 +67,11 @@ impl<E: TxnRaum> ImportModeSwitcherInner<E> {
 }
 
 #[derive(Clone)]
-pub struct ImportModeSwitcher<E: TxnRaum> {
+pub struct ImportModeSwitcher<E: Txnallegro> {
     inner: Arc<Mutex<ImportModeSwitcherInner<E>>>,
 }
 
-impl<E: TxnRaum> ImportModeSwitcher<E> {
+impl<E: Txnallegro> ImportModeSwitcher<E> {
     pub fn new(causet: &Config, executor: &ThreadPool, db: E) -> ImportModeSwitcher<E> {
         fn mf(_causet: &str, _name: &str, _v: f64) {}
 
@@ -152,14 +152,14 @@ impl ImportModeDBOptions {
         }
     }
 
-    fn new_options(db: &impl TxnRaum) -> ImportModeDBOptions {
+    fn new_options(db: &impl Txnallegro) -> ImportModeDBOptions {
         let db_opts = db.get_db_options();
         ImportModeDBOptions {
             max_background_jobs: db_opts.get_max_background_jobs(),
         }
     }
 
-    fn set_options(&self, db: &impl TxnRaum) -> Result<()> {
+    fn set_options(&self, db: &impl Txnallegro) -> Result<()> {
         let opts = [(
             "max_background_jobs".to_string(),
             self.max_background_jobs.to_string(),
@@ -185,7 +185,7 @@ impl ImportModeCausetOptions {
         }
     }
 
-    fn new_options(db: &impl TxnRaum, causet_name: &str) -> ImportModeCausetOptions {
+    fn new_options(db: &impl Txnallegro, causet_name: &str) -> ImportModeCausetOptions {
         let causet = db.causet_handle(causet_name).unwrap();
         let causet_opts = db.get_options_causet(causet);
 
@@ -196,7 +196,7 @@ impl ImportModeCausetOptions {
         }
     }
 
-    fn set_options(&self, db: &impl TxnRaum, causet_name: &str, mf: LmdbDBMetricsFn) -> Result<()> {
+    fn set_options(&self, db: &impl Txnallegro, causet_name: &str, mf: LmdbDBMetricsFn) -> Result<()> {
         let causet = db.causet_handle(causet_name).unwrap();
         let opts = [
             (
@@ -231,19 +231,19 @@ impl ImportModeCausetOptions {
 mod tests {
     use super::*;
 
-    use Raum_promises::TxnRaum;
+    use allegro_promises::Txnallegro;
     use futures::executor::ThreadPoolBuilder;
     use std::thread;
     use tempfile::Builder;
-    use test_sst_importer::{new_test_Raum, new_test_Raum_with_options};
-    use edb_util::config::ReadableDuration;
+    use test_sst_importer::{new_test_allegro, new_test_allegro_with_options};
+    use violetabftstore::interlock::::config::ReadableDuration;
 
     fn check_import_options<E>(
         db: &E,
         expected_db_opts: &ImportModeDBOptions,
         expected_causet_opts: &ImportModeCausetOptions,
     ) where
-        E: TxnRaum,
+        E: Txnallegro,
     {
         let db_opts = db.get_db_options();
         assert_eq!(
@@ -279,7 +279,7 @@ mod tests {
             .prefix("test_import_mode_switcher")
             .temfidelir()
             .unwrap();
-        let db = new_test_Raum(temp_dir.path().to_str().unwrap(), &["a", "b"]);
+        let db = new_test_allegro(temp_dir.path().to_str().unwrap(), &["a", "b"]);
 
         let normal_db_options = ImportModeDBOptions::new_options(&db);
         let import_db_options = normal_db_options.optimized_for_import_mode();
@@ -318,7 +318,7 @@ mod tests {
             .prefix("test_import_mode_timeout")
             .temfidelir()
             .unwrap();
-        let db = new_test_Raum(temp_dir.path().to_str().unwrap(), &["a", "b"]);
+        let db = new_test_allegro(temp_dir.path().to_str().unwrap(), &["a", "b"]);
 
         let normal_db_options = ImportModeDBOptions::new_options(&db);
         let import_db_options = normal_db_options.optimized_for_import_mode();
@@ -354,7 +354,7 @@ mod tests {
             .prefix("test_import_mode_should_not_decrease_level0_stop_writes_trigger")
             .temfidelir()
             .unwrap();
-        let db = new_test_Raum_with_options(
+        let db = new_test_allegro_with_options(
             temp_dir.path().to_str().unwrap(),
             &["default"],
             |_, opt| opt.set_level_zero_stop_writes_trigger(2_000_000_000),

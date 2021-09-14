@@ -5,16 +5,16 @@ use std::thread;
 use std::time::Duration;
 
 use grpcio::*;
-use ekvproto::kvrpcpb::{self, Context, Op, PrewriteRequest, RawPutRequest};
-use ekvproto::edbpb::EINSTEINDBClient;
+use ekvproto::kvrpc_timeshare::{self, Context, Op, PrewriteRequest, RawPutRequest};
+use ekvproto::edb_timeshare::EINSTEINDBClient;
 
 use errors::extract_brane_error;
 use test_violetabftstore::{must_get_equal, must_get_none, new_peer, new_server_cluster};
-use edb::causetStorage::kv::{Error as KvError, ErrorInner as KvErrorInner};
-use edb::causetStorage::lock_manager::DummyLockManager;
-use edb::causetStorage::txn::{commands, Error as TxnError, ErrorInner as TxnErrorInner};
-use edb::causetStorage::{self, test_util::*, *};
-use edb_util::{collections::HashMap, HandyRwLock};
+use edb::causet_storage::kv::{Error as KvError, ErrorInner as KvErrorInner};
+use edb::causet_storage::lock_manager::DummyLockManager;
+use edb::causet_storage::txn::{commands, Error as TxnError, ErrorInner as TxnErrorInner};
+use edb::causet_storage::{self, test_util::*, *};
+use violetabftstore::interlock::::{collections::HashMap, HandyRwLock};
 use txn_types::Key;
 use txn_types::{Mutation, TimeStamp};
 
@@ -26,8 +26,8 @@ fn test_interlock_semaphore_leader_change_twice() {
     let brane0 = cluster.get_brane(b"");
     let peers = brane0.get_peers();
     cluster.must_transfer_leader(brane0.get_id(), peers[0].clone());
-    let engine0 = cluster.sim.rl().causetStorages[&peers[0].get_id()].clone();
-    let causetStorage0 = TestStorageBuilder::<_, DummyLockManager>::from_engine_and_lock_mgr(
+    let engine0 = cluster.sim.rl().causet_storages[&peers[0].get_id()].clone();
+    let causet_storage0 = TestStorageBuilder::<_, DummyLockManager>::from_engine_and_lock_mgr(
         engine0,
         DummyLockManager {},
     )
@@ -40,7 +40,7 @@ fn test_interlock_semaphore_leader_change_twice() {
     ctx0.set_peer(peers[0].clone());
     let (prewrite_tx, prewrite_rx) = channel();
     fail::causet(snapshot_fp, "pause").unwrap();
-    causetStorage0
+    causet_storage0
         .sched_txn_command(
             commands::Prewrite::new(
                 vec![Mutation::Put((Key::from_raw(b"k"), b"v".to_vec()))],
@@ -53,7 +53,7 @@ fn test_interlock_semaphore_leader_change_twice() {
                 None,
                 ctx0,
             ),
-            Box::new(move |res: causetStorage::Result<_>| {
+            Box::new(move |res: causet_storage::Result<_>| {
                 prewrite_tx.lightlike(res).unwrap();
             }),
         )
@@ -100,7 +100,7 @@ fn test_server_catching_api_error() {
 
     let mut prewrite_req = PrewriteRequest::default();
     prewrite_req.set_context(ctx.clone());
-    let mut mutation = kvrpcpb::Mutation::default();
+    let mut mutation = kvrpc_timeshare::Mutation::default();
     mutation.op = Op::Put.into();
     mutation.key = b"k3".to_vec();
     mutation.value = b"v3".to_vec();
@@ -208,7 +208,7 @@ fn test_pipelined_pessimistic_lock() {
     let interlock_semaphore_async_write_finish_fp = "interlock_semaphore_async_write_finish";
     let interlock_semaphore_pipelined_write_finish_fp = "interlock_semaphore_pipelined_write_finish";
 
-    let causetStorage = TestStorageBuilder::new(DummyLockManager {})
+    let causet_storage = TestStorageBuilder::new(DummyLockManager {})
         .set_pipelined_pessimistic_lock(true)
         .build()
         .unwrap();
@@ -216,11 +216,11 @@ fn test_pipelined_pessimistic_lock() {
     let (tx, rx) = channel();
     let (key, val) = (Key::from_raw(b"key"), b"val".to_vec());
 
-    // Even if causetStorage fails to write the dagger to engine, client should
+    // Even if causet_storage fails to write the dagger to engine, client should
     // receive the successful response.
     fail::causet(rockskv_write_modifies_fp, "return()").unwrap();
     fail::causet(interlock_semaphore_async_write_finish_fp, "pause").unwrap();
-    causetStorage
+    causet_storage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(vec![(key.clone(), false)], 10, 10, true),
             expect_pessimistic_lock_res_callback(
@@ -232,7 +232,7 @@ fn test_pipelined_pessimistic_lock() {
     rx.recv().unwrap();
     fail::remove(rockskv_write_modifies_fp);
     fail::remove(interlock_semaphore_async_write_finish_fp);
-    causetStorage
+    causet_storage
         .sched_txn_command(
             commands::PrewritePessimistic::new(
                 vec![(Mutation::Put((key.clone(), val.clone())), true)],
@@ -249,7 +249,7 @@ fn test_pipelined_pessimistic_lock() {
         )
         .unwrap();
     rx.recv().unwrap();
-    causetStorage
+    causet_storage
         .sched_txn_command(
             commands::Commit::new(vec![key.clone()], 10.into(), 20.into(), Context::default()),
             expect_ok_callback(tx.clone(), 0),
@@ -257,9 +257,9 @@ fn test_pipelined_pessimistic_lock() {
         .unwrap();
     rx.recv().unwrap();
 
-    // Should report failure if causetStorage fails to schedule write request to engine.
+    // Should report failure if causet_storage fails to schedule write request to engine.
     fail::causet(rockskv_async_write_fp, "return()").unwrap();
-    causetStorage
+    causet_storage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(vec![(key.clone(), false)], 30, 30, true),
             expect_fail_callback(tx.clone(), 0, |_| ()),
@@ -271,7 +271,7 @@ fn test_pipelined_pessimistic_lock() {
     // Shouldn't release latches until async write finished.
     fail::causet(interlock_semaphore_async_write_finish_fp, "pause").unwrap();
     for blocked in &[false, true] {
-        causetStorage
+        causet_storage
             .sched_txn_command(
                 new_acquire_pessimistic_lock_command(vec![(key.clone(), false)], 40, 40, true),
                 expect_pessimistic_lock_res_callback(
@@ -290,11 +290,11 @@ fn test_pipelined_pessimistic_lock() {
     }
     fail::remove(interlock_semaphore_async_write_finish_fp);
     rx.recv().unwrap();
-    delete_pessimistic_lock(&causetStorage, key.clone(), 40, 40);
+    delete_pessimistic_lock(&causet_storage, key.clone(), 40, 40);
 
     // Pipelined write is finished before async write.
     fail::causet(interlock_semaphore_async_write_finish_fp, "pause").unwrap();
-    causetStorage
+    causet_storage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(vec![(key.clone(), false)], 50, 50, true),
             expect_pessimistic_lock_res_callback(
@@ -305,12 +305,12 @@ fn test_pipelined_pessimistic_lock() {
         .unwrap();
     rx.recv().unwrap();
     fail::remove(interlock_semaphore_async_write_finish_fp);
-    delete_pessimistic_lock(&causetStorage, key.clone(), 50, 50);
+    delete_pessimistic_lock(&causet_storage, key.clone(), 50, 50);
 
     // Async write is finished before pipelined write due to thread scheduling.
-    // CausetStorage should handle it properly.
+    // causet_storage should handle it properly.
     fail::causet(interlock_semaphore_pipelined_write_finish_fp, "pause").unwrap();
-    causetStorage
+    causet_storage
         .sched_txn_command(
             new_acquire_pessimistic_lock_command(
                 vec![(key.clone(), false), (Key::from_raw(b"nonexist"), false)],
@@ -326,7 +326,7 @@ fn test_pipelined_pessimistic_lock() {
         .unwrap();
     rx.recv().unwrap();
     fail::remove(interlock_semaphore_pipelined_write_finish_fp);
-    delete_pessimistic_lock(&causetStorage, key, 60, 60);
+    delete_pessimistic_lock(&causet_storage, key, 60, 60);
 }
 
 #[test]
@@ -338,11 +338,11 @@ fn test_async_commit_prewrite_with_stale_max_ts() {
         .sim
         .read()
         .unwrap()
-        .causetStorages
+        .causet_storages
         .get(&1)
         .unwrap()
         .clone();
-    let causetStorage = TestStorageBuilder::<_, DummyLockManager>::from_engine_and_lock_mgr(
+    let causet_storage = TestStorageBuilder::<_, DummyLockManager>::from_engine_and_lock_mgr(
         engine.clone(),
         DummyLockManager {},
     )
@@ -362,7 +362,7 @@ fn test_async_commit_prewrite_with_stale_max_ts() {
     let check_max_timestamp_not_synced = |expected: bool| {
         // prewrite
         let (prewrite_tx, prewrite_rx) = channel();
-        causetStorage
+        causet_storage
             .sched_txn_command(
                 commands::Prewrite::new(
                     vec![Mutation::Put((Key::from_raw(b"k1"), b"v".to_vec()))],
@@ -375,7 +375,7 @@ fn test_async_commit_prewrite_with_stale_max_ts() {
                     Some(vec![b"k2".to_vec()]),
                     ctx.clone(),
                 ),
-                Box::new(move |res: causetStorage::Result<_>| {
+                Box::new(move |res: causet_storage::Result<_>| {
                     prewrite_tx.lightlike(res).unwrap();
                 }),
             )
@@ -391,7 +391,7 @@ fn test_async_commit_prewrite_with_stale_max_ts() {
 
         // pessimistic prewrite
         let (prewrite_tx, prewrite_rx) = channel();
-        causetStorage
+        causet_storage
             .sched_txn_command(
                 commands::PrewritePessimistic::new(
                     vec![(Mutation::Put((Key::from_raw(b"k1"), b"v".to_vec())), true)],
@@ -404,7 +404,7 @@ fn test_async_commit_prewrite_with_stale_max_ts() {
                     Some(vec![b"k2".to_vec()]),
                     ctx.clone(),
                 ),
-                Box::new(move |res: causetStorage::Result<_>| {
+                Box::new(move |res: causet_storage::Result<_>| {
                     prewrite_tx.lightlike(res).unwrap();
                 }),
             )

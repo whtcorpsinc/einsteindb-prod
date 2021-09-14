@@ -9,7 +9,7 @@ mod imp {
     use libc::c_int;
     use nix::sys::signal::{SIGHUP, SIGINT, SIGTERM, SIGUSR1, SIGUSR2};
     use signal::trap::Trap;
-    use edb_util::metrics;
+    use violetabftstore::interlock::::metrics;
 
     #[allow(dead_code)]
     pub fn wait_for_signal<ER: VioletaBftEngine>(engines: Option<Engines<LmdbEngine, ER>>) {

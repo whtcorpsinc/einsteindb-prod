@@ -1,15 +1,15 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
-use ekvproto::kvrpcpb;
-use ekvproto::kvrpcpb::ScanDetailV2;
+use ekvproto::kvrpc_timeshare;
+use ekvproto::kvrpc_timeshare::ScanDetailV2;
 
-use crate::causetStorage::kv::{PerfStatisticsDelta, PerfStatisticsInstant};
+use crate::causet_storage::kv::{PerfStatisticsDelta, PerfStatisticsInstant};
 
-use edb_util::time::{self, Duration, Instant};
+use violetabftstore::interlock::::time::{self, Duration, Instant};
 
 use super::metrics::*;
 use crate::interlock::*;
-use crate::causetStorage::Statistics;
+use crate::causet_storage::Statistics;
 
 // If handle time is larger than the lower bound, the query is considered as slow query.
 const SLOW_QUERY_LOWER_BOUND: f64 = 1.0; // 1 second.
@@ -41,7 +41,7 @@ enum TrackerState {
     Tracked,
 }
 
-/// Track interlock requests to ufidelate statistics and provide slow logs.
+/// Track interlock requests to fidelio statistics and provide slow logs.
 #[derive(Debug)]
 pub struct Tracker {
     request_begin_at: Instant,
@@ -57,7 +57,7 @@ pub struct Tracker {
     req_lifetime: Duration,
     item_process_time: Duration,
     total_process_time: Duration,
-    total_causetStorage_stats: Statistics,
+    total_causet_storage_stats: Statistics,
     total_perf_stats: PerfStatisticsDelta, // Accumulated perf statistics
 
     // Request info, used to print slow log.
@@ -83,7 +83,7 @@ impl Tracker {
             req_lifetime: Duration::default(),
             item_process_time: Duration::default(),
             total_process_time: Duration::default(),
-            total_causetStorage_stats: Statistics::default(),
+            total_causet_storage_stats: Statistics::default(),
             total_perf_stats: PerfStatisticsDelta::default(),
 
             req_ctx,
@@ -128,12 +128,12 @@ impl Tracker {
         self.current_stage = TrackerState::ItemBegan;
     }
 
-    pub fn on_finish_item(&mut self, some_causetStorage_stats: Option<Statistics>) {
+    pub fn on_finish_item(&mut self, some_causet_storage_stats: Option<Statistics>) {
         assert_eq!(self.current_stage, TrackerState::ItemBegan);
         self.item_process_time = Instant::now_coarse() - self.item_begin_at;
         self.total_process_time += self.item_process_time;
-        if let Some(causetStorage_stats) = some_causetStorage_stats {
-            self.total_causetStorage_stats.add(&causetStorage_stats);
+        if let Some(causet_storage_stats) = some_causet_storage_stats {
+            self.total_causet_storage_stats.add(&causet_storage_stats);
         }
         // Record delta perf statistics
         if let Some(perf_stats) = self.perf_statistics_spacelike.take() {
@@ -144,38 +144,38 @@ impl Tracker {
         // TODO: Need to record time between Finish -> Begin Next?
     }
 
-    pub fn collect_causetStorage_statistics(&mut self, causetStorage_stats: Statistics) {
-        self.total_causetStorage_stats.add(&causetStorage_stats);
+    pub fn collect_causet_storage_statistics(&mut self, causet_storage_stats: Statistics) {
+        self.total_causet_storage_stats.add(&causet_storage_stats);
     }
 
     /// Get current item's ExecDetail according to previous collected metrics.
     /// MilevaDB asks for ExecDetail to be printed in its log.
     /// WARN: TRY BEST NOT TO USE THIS FUNCTION.
-    pub fn get_item_exec_details(&self) -> kvrpcpb::ExecDetails {
+    pub fn get_item_exec_details(&self) -> kvrpc_timeshare::ExecDetails {
         assert_eq!(self.current_stage, TrackerState::ItemFinished);
         self.exec_details(self.item_process_time)
     }
 
     /// Get ExecDetail according to previous collected metrics.
     /// MilevaDB asks for ExecDetail to be printed in its log.
-    pub fn get_exec_details(&self) -> kvrpcpb::ExecDetails {
+    pub fn get_exec_details(&self) -> kvrpc_timeshare::ExecDetails {
         assert_eq!(self.current_stage, TrackerState::ItemFinished);
         self.exec_details(self.total_process_time)
     }
 
-    fn exec_details(&self, measure: Duration) -> kvrpcpb::ExecDetails {
-        let mut exec_details = kvrpcpb::ExecDetails::default();
+    fn exec_details(&self, measure: Duration) -> kvrpc_timeshare::ExecDetails {
+        let mut exec_details = kvrpc_timeshare::ExecDetails::default();
 
-        let mut handle = kvrpcpb::HandleTime::default();
+        let mut handle = kvrpc_timeshare::HandleTime::default();
         handle.set_process_ms((time::duration_to_sec(measure) * 1000.0) as i64);
         handle.set_wait_ms((time::duration_to_sec(self.wait_time) * 1000.0) as i64);
         exec_details.set_handle_time(handle);
 
-        let detail = self.total_causetStorage_stats.scan_detail();
+        let detail = self.total_causet_storage_stats.scan_detail();
 
         let mut detail_v2 = ScanDetailV2::default();
-        detail_v2.set_processed_versions(self.total_causetStorage_stats.write.processed_tuplespaceInstanton as u64);
-        detail_v2.set_total_versions(self.total_causetStorage_stats.write.total_op_count() as u64);
+        detail_v2.set_processed_versions(self.total_causet_storage_stats.write.processed_tuplespaceInstanton as u64);
+        detail_v2.set_total_versions(self.total_causet_storage_stats.write.total_op_count() as u64);
         detail_v2.set_lmdb_delete_skipped_count(
             self.total_perf_stats.0.internal_delete_skipped_count as u64,
         );
@@ -209,7 +209,7 @@ impl Tracker {
             return;
         }
 
-        let total_causetStorage_stats = std::mem::take(&mut self.total_causetStorage_stats);
+        let total_causet_storage_stats = std::mem::take(&mut self.total_causet_storage_stats);
 
         if time::duration_to_sec(self.req_lifetime) > SLOW_QUERY_LOWER_BOUND {
             let some_Block_id = self.req_ctx.first_cone.as_ref().map(|cone| {
@@ -230,8 +230,8 @@ impl Tracker {
                 "Block_id" => some_Block_id,
                 "tag" => self.req_ctx.tag.get_str(),
                 "scan.is_desc" => self.req_ctx.is_desc_scan,
-                "scan.processed" => total_causetStorage_stats.write.processed_tuplespaceInstanton,
-                "scan.total" => total_causetStorage_stats.write.total_op_count(),
+                "scan.processed" => total_causet_storage_stats.write.processed_tuplespaceInstanton,
+                "scan.total" => total_causet_storage_stats.write.total_op_count(),
                 "scan.cones" => self.req_ctx.cones_len,
                 "scan.cone.first" => ?self.req_ctx.first_cone,
                 self.total_perf_stats,
@@ -275,11 +275,11 @@ impl Tracker {
         COPR_SCAN_KEYS_STATIC
             .get(self.req_ctx.tag)
             .total
-            .observe(total_causetStorage_stats.write.total_op_count() as f64);
+            .observe(total_causet_storage_stats.write.total_op_count() as f64);
         COPR_SCAN_KEYS_STATIC
             .get(self.req_ctx.tag)
             .processed_tuplespaceInstanton
-            .observe(total_causetStorage_stats.write.processed_tuplespaceInstanton as f64);
+            .observe(total_causet_storage_stats.write.processed_tuplespaceInstanton as f64);
 
         // Lmdb perf stats
         COPR_LMDB_PERF_COUNTER_STATIC
@@ -317,8 +317,8 @@ impl Tracker {
             .decrypt_data_nanos
             .inc_by(self.total_perf_stats.0.decrypt_data_nanos as i64);
 
-        tls_collect_scan_details(self.req_ctx.tag, &total_causetStorage_stats);
-        tls_collect_read_flow(self.req_ctx.context.get_brane_id(), &total_causetStorage_stats);
+        tls_collect_scan_details(self.req_ctx.tag, &total_causet_storage_stats);
+        tls_collect_read_flow(self.req_ctx.context.get_brane_id(), &total_causet_storage_stats);
 
         let peer = self.req_ctx.context.get_peer();
         let brane_id = self.req_ctx.context.get_brane_id();

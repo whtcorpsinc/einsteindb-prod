@@ -12,7 +12,7 @@ path = "tests/integrations/mod.rs"
 default = ["protobuf-codec"]
 protobuf-codec = [
   "engine_lmdb/protobuf-codec",
-  "external_causetStorage/protobuf-codec",
+  "external_causet_storage/protobuf-codec",
   "grpcio/protobuf-codec",
   "tuplespaceInstanton/protobuf-codec",
   "ekvproto/protobuf-codec",
@@ -23,7 +23,7 @@ protobuf-codec = [
 ]
 prost-codec = [
   "engine_lmdb/prost-codec",
-  "external_causetStorage/prost-codec",
+  "external_causet_storage/prost-codec",
   "grpcio/prost-codec",
   "tuplespaceInstanton/prost-codec",
   "ekvproto/prost-codec",
@@ -47,7 +47,7 @@ crc64fast = "0.1"
 engine_lmdb = { path = "../engine_lmdb" }
 edb = { path = "../edb" }
 error_code = { path = "../error_code" }
-external_causetStorage = { path = "../external_causetStorage" }
+external_causet_storage = { path = "../external_causet_storage" }
 failure = "0.1"
 futures = "0.3"
 futures-util = { version = "0.3", default-features = false, features = ["io"] }
@@ -69,7 +69,7 @@ slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global
 milevadb_query_common = { path = "../milevadb_query_common" }
 edb = { path = "../../", default-features = false }
 edb_alloc = { path = "../edb_alloc" }
-edb_util = { path = "../edb_util" }
+violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
 txn_types = { path = "../txn_types" }
 
 [deplightlikeencies.futures_01]

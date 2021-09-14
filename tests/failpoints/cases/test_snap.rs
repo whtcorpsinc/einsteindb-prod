@@ -5,12 +5,12 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::time::*;
 use std::{fs, io, mem, thread};
 
-use violetabft::evioletabftpb::MessageType;
+use violetabft::evioletabft_timeshare::MessageType;
 
 use violetabftstore::store::*;
 use test_violetabftstore::*;
-use edb_util::config::*;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::config::*;
+use violetabftstore::interlock::::HandyRwLock;
 
 #[test]
 fn test_overlap_cleanup() {

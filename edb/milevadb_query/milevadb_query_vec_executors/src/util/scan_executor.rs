@@ -1,12 +1,12 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use ekvproto::interlock::KeyCone;
-use fidelpb::PrimaryCausetInfo;
-use fidelpb::FieldType;
+use fidel_timeshare::PrimaryCausetInfo;
+use fidel_timeshare::FieldType;
 
 use crate::interface::*;
-use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
-use milevadb_query_common::causetStorage::{IntervalCone, Cone, CausetStorage};
+use milevadb_query_common::causet_storage::scanner::{ConesScanner, ConesScannerOptions};
+use milevadb_query_common::causet_storage::{IntervalCone, Cone, causet_storage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::LazyBatchPrimaryCausetVec;
 use milevadb_query_datatype::expr::EvalContext;
@@ -35,7 +35,7 @@ pub trait ScanFreeDaemonImpl: lightlike {
 
 /// A shared executor implementation for both Block scan and index scan. Implementation differences
 /// between Block scan and index scan are further given via `ScanFreeDaemonImpl`.
-pub struct ScanFreeDaemon<S: CausetStorage, I: ScanFreeDaemonImpl> {
+pub struct ScanFreeDaemon<S: causet_storage, I: ScanFreeDaemonImpl> {
     /// The internal scanning implementation.
     imp: I,
 
@@ -50,7 +50,7 @@ pub struct ScanFreeDaemon<S: CausetStorage, I: ScanFreeDaemonImpl> {
 
 pub struct ScanFreeDaemonOptions<S, I> {
     pub imp: I,
-    pub causetStorage: S,
+    pub causet_storage: S,
     pub key_cones: Vec<KeyCone>,
     pub is_backward: bool,
     pub is_key_only: bool,
@@ -58,11 +58,11 @@ pub struct ScanFreeDaemonOptions<S, I> {
     pub is_scanned_cone_aware: bool,
 }
 
-impl<S: CausetStorage, I: ScanFreeDaemonImpl> ScanFreeDaemon<S, I> {
+impl<S: causet_storage, I: ScanFreeDaemonImpl> ScanFreeDaemon<S, I> {
     pub fn new(
         ScanFreeDaemonOptions {
             imp,
-            causetStorage,
+            causet_storage,
             mut key_cones,
             is_backward,
             is_key_only,
@@ -77,10 +77,10 @@ impl<S: CausetStorage, I: ScanFreeDaemonImpl> ScanFreeDaemon<S, I> {
         Ok(Self {
             imp,
             scanner: ConesScanner::new(ConesScannerOptions {
-                causetStorage,
+                causet_storage,
                 cones: key_cones
                     .into_iter()
-                    .map(|r| Cone::from_pb_cone(r, accept_point_cone))
+                    .map(|r| Cone::from__timeshare_cone(r, accept_point_cone))
                     .collect(),
                 scan_backward_in_cone: is_backward,
                 is_key_only,
@@ -153,7 +153,7 @@ pub fn check_PrimaryCausets_info_supported(PrimaryCausets_info: &[PrimaryCausetI
     Ok(())
 }
 
-impl<S: CausetStorage, I: ScanFreeDaemonImpl> BatchFreeDaemon for ScanFreeDaemon<S, I> {
+impl<S: causet_storage, I: ScanFreeDaemonImpl> BatchFreeDaemon for ScanFreeDaemon<S, I> {
     type StorageStats = S::Statistics;
 
     #[inline]
@@ -198,8 +198,8 @@ impl<S: CausetStorage, I: ScanFreeDaemonImpl> BatchFreeDaemon for ScanFreeDaemon
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.scanner.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.scanner.collect_causet_storage_stats(dest);
     }
 
     #[inline]

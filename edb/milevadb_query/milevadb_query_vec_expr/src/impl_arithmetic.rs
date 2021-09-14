@@ -512,7 +512,7 @@ mod tests {
 
     use milevadb_query_datatype::builder::FieldTypeBuilder;
     use milevadb_query_datatype::{FieldTypeFlag, FieldTypeTp};
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use crate::test_util::RpnFnScalarEvaluator;
     use milevadb_query_datatype::codec::error::ERR_DIVISION_BY_ZERO;
@@ -1252,21 +1252,21 @@ mod tests {
             (Flag::empty(), SqlMode::empty(), true, true),
             // Error
             (
-                Flag::IN_UFIDelATE_OR_DELETE_STMT,
+                Flag::IN_fidelio_OR_DELETE_STMT,
                 SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS,
                 false,
                 false,
             ),
             // Ok
             (
-                Flag::IN_UFIDelATE_OR_DELETE_STMT,
+                Flag::IN_fidelio_OR_DELETE_STMT,
                 SqlMode::STRICT_ALL_BlockS,
                 true,
                 false,
             ),
             // Warning
             (
-                Flag::IN_UFIDelATE_OR_DELETE_STMT | Flag::DIVIDED_BY_ZERO_AS_WARNING,
+                Flag::IN_fidelio_OR_DELETE_STMT | Flag::DIVIDED_BY_ZERO_AS_WARNING,
                 SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS,
                 true,
                 true,

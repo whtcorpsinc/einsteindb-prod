@@ -7,12 +7,12 @@ use engine_lmdb::raw::DB;
 use engine_lmdb::{LmdbEngine, LmdbSstWriter, LmdbSstWriterBuilder};
 use edb::{CfName, Causet_DEFAULT, Causet_WRITE};
 use edb::{ExternalSstFileInfo, SstCompressionType, SstWriter, SstWriterBuilder};
-use external_causetStorage::ExternalStorage;
+use external_causet_storage::ExternalStorage;
 use futures_util::io::AllowStdIo;
 use ekvproto::backup::File;
 use edb::interlock::checksum_crc64_xor;
-use edb::causetStorage::txn::TxnEntry;
-use edb_util::{self, box_err, file::Sha256Reader, time::Limiter};
+use edb::causet_storage::txn::TxnEntry;
+use violetabftstore::interlock::::{self, box_err, file::Sha256Reader, time::Limiter};
 use txn_types::KvPair;
 
 use crate::metrics::*;
@@ -46,7 +46,7 @@ impl Writer {
         Ok(())
     }
 
-    fn ufidelate_with(&mut self, entry: TxnEntry, need_checksum: bool) -> Result<()> {
+    fn fidelio_with(&mut self, entry: TxnEntry, need_checksum: bool) -> Result<()> {
         self.total_kvs += 1;
         if need_checksum {
             let (k, v) = entry
@@ -58,7 +58,7 @@ impl Writer {
         Ok(())
     }
 
-    fn ufidelate_raw_with(&mut self, key: &[u8], value: &[u8], need_checksum: bool) -> Result<()> {
+    fn fidelio_raw_with(&mut self, key: &[u8], value: &[u8], need_checksum: bool) -> Result<()> {
         self.total_kvs += 1;
         self.total_bytes += (key.len() + value.len()) as u64;
         if need_checksum {
@@ -72,7 +72,7 @@ impl Writer {
         name: &str,
         causet: &'static str,
         limiter: Limiter,
-        causetStorage: &dyn ExternalStorage,
+        causet_storage: &dyn ExternalStorage,
     ) -> Result<File> {
         let (sst_info, sst_reader) = self.writer.finish_read()?;
         BACKUP_RANGE_SIZE_HISTOGRAM_VEC
@@ -82,7 +82,7 @@ impl Writer {
 
         let (reader, hasher) = Sha256Reader::new(sst_reader)
             .map_err(|e| Error::Other(box_err!("Sha256 error: {:?}", e)))?;
-        causetStorage.write(
+        causet_storage.write(
             &file_name,
             Box::new(limiter.limit(AllowStdIo::new(reader))),
             sst_info.file_size(),
@@ -172,16 +172,16 @@ impl BackupWriter {
                 }
             }
             if value_in_default {
-                self.default.ufidelate_with(e, need_checksum)?;
+                self.default.fidelio_with(e, need_checksum)?;
             } else {
-                self.write.ufidelate_with(e, need_checksum)?;
+                self.write.fidelio_with(e, need_checksum)?;
             }
         }
         Ok(())
     }
 
-    /// Save buffered SST files to the given external causetStorage.
-    pub fn save(self, causetStorage: &dyn ExternalStorage) -> Result<Vec<File>> {
+    /// Save buffered SST files to the given external causet_storage.
+    pub fn save(self, causet_storage: &dyn ExternalStorage) -> Result<Vec<File>> {
         let spacelike = Instant::now();
         let mut files = Vec::with_capacity(2);
         let write_written = !self.write.is_empty() || !self.default.is_empty();
@@ -191,7 +191,7 @@ impl BackupWriter {
                 &self.name,
                 Causet_DEFAULT,
                 self.limiter.clone(),
-                causetStorage,
+                causet_storage,
             )?;
             files.push(default);
         }
@@ -201,7 +201,7 @@ impl BackupWriter {
                 &self.name,
                 Causet_WRITE,
                 self.limiter.clone(),
-                causetStorage,
+                causet_storage,
             )?;
             files.push(write);
         }
@@ -261,13 +261,13 @@ impl BackupRawKVWriter {
 
             assert!(!k.is_empty());
             self.writer.write(&k, &v)?;
-            self.writer.ufidelate_raw_with(&k, &v, need_checksum)?;
+            self.writer.fidelio_raw_with(&k, &v, need_checksum)?;
         }
         Ok(())
     }
 
-    /// Save buffered SST files to the given external causetStorage.
-    pub fn save(self, causetStorage: &dyn ExternalStorage) -> Result<Vec<File>> {
+    /// Save buffered SST files to the given external causet_storage.
+    pub fn save(self, causet_storage: &dyn ExternalStorage) -> Result<Vec<File>> {
         let spacelike = Instant::now();
         let mut files = Vec::with_capacity(1);
         if !self.writer.is_empty() {
@@ -275,7 +275,7 @@ impl BackupRawKVWriter {
                 &self.name,
                 self.causet,
                 self.limiter.clone(),
-                causetStorage,
+                causet_storage,
             )?;
             files.push(file);
         }
@@ -294,7 +294,7 @@ mod tests {
     use std::f64::INFINITY;
     use std::path::Path;
     use tempfile::TempDir;
-    use edb::causetStorage::TestEngineBuilder;
+    use edb::causet_storage::TestEngineBuilder;
 
     type CfKvs<'a> = (edb::CfName, &'a [(&'a [u8], &'a [u8])]);
 
@@ -347,14 +347,14 @@ mod tests {
             .build()
             .unwrap();
         let db = rocks.get_lmdb();
-        let backlightlike = external_causetStorage::make_local_backlightlike(temp.path());
-        let causetStorage = external_causetStorage::create_causetStorage(&backlightlike).unwrap();
+        let backlightlike = external_causet_storage::make_local_backlightlike(temp.path());
+        let causet_storage = external_causet_storage::create_causet_storage(&backlightlike).unwrap();
 
         // Test empty file.
         let mut writer =
             BackupWriter::new(db.get_sync_db(), "foo", Limiter::new(INFINITY), None, 0).unwrap();
         writer.write(vec![].into_iter(), false).unwrap();
-        assert!(writer.save(&causetStorage).unwrap().is_empty());
+        assert!(writer.save(&causet_storage).unwrap().is_empty());
 
         // Test write only txn.
         let mut writer =
@@ -370,7 +370,7 @@ mod tests {
                 false,
             )
             .unwrap();
-        let files = writer.save(&causetStorage).unwrap();
+        let files = writer.save(&causet_storage).unwrap();
         assert_eq!(files.len(), 1);
         check_sst(
             &[(
@@ -404,7 +404,7 @@ mod tests {
                 false,
             )
             .unwrap();
-        let files = writer.save(&causetStorage).unwrap();
+        let files = writer.save(&causet_storage).unwrap();
         assert_eq!(files.len(), 2);
         check_sst(
             &[

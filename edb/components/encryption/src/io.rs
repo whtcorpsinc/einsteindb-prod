@@ -9,7 +9,7 @@ use futures_util::{
     io::AsyncRead,
     task::{Context, Poll},
 };
-use ekvproto::encryptionpb::EncryptionMethod;
+use ekvproto::encryption_timeshare::EncryptionMethod;
 use openssl::symm::{Cipher as OCipher, Crypter as OCrypter, Mode};
 
 use crate::{Iv, Result};
@@ -120,13 +120,13 @@ impl<R> CrypterReader<R> {
 
     // For simplicity, the following implementation rely on the fact that OpenSSL always
     // return exact same size as input in CTR mode. If it is not true in the future, or we
-    // want to support other counter modes, this code needs to be ufidelated.
+    // want to support other counter modes, this code needs to be fideliod.
     fn do_crypter(&mut self, buf: &mut [u8], read_count: usize) -> IoResult<usize> {
         // OCrypter require the output buffer to have block_size extra bytes, or it will panic.
         let mut crypter_buffer = vec![0; read_count + self.block_size];
         let crypter_count = self
             .crypter
-            .ufidelate(&buf[..read_count], &mut crypter_buffer)?;
+            .fidelio(&buf[..read_count], &mut crypter_buffer)?;
         if read_count != crypter_count {
             return Err(IoError::new(
                 ErrorKind::Other,
@@ -209,7 +209,7 @@ impl<W: Write> EncrypterWriter<W> {
 impl<W: Write> Write for EncrypterWriter<W> {
     fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
         let mut encrypt_buffer = vec![0; buf.len() + self.block_size];
-        let bytes = self.crypter.ufidelate(buf, &mut encrypt_buffer)?;
+        let bytes = self.crypter.fidelio(buf, &mut encrypt_buffer)?;
         // The EncrypterWriter current only support crypters that always return the same amount
         // of data. This is true for CTR mode.
         if bytes != buf.len() {

@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::{f64, i64};
 
 use num::promises::Pow;
-use edb_util::file::calc_crc32_bytes;
+use violetabftstore::interlock::::file::calc_crc32_bytes;
 
 use crate::ScalarFunc;
 use milevadb_query_datatype::codec::mysql::{Decimal, RoundMode, DEFAULT_FSP};
@@ -512,7 +512,7 @@ mod tests {
     use std::{f64, i64, u64};
 
     use milevadb_query_datatype::{self, FieldTypeAccessor, FieldTypeFlag};
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use crate::tests::{check_overflow, eval_func, eval_func_with, str2dec};
     use milevadb_query_datatype::codec::Datum;

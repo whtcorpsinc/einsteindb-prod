@@ -2,7 +2,7 @@
 
 use milevadb_query_codegen::AggrFunction;
 use milevadb_query_datatype::EvalType;
-use fidelpb::{Expr, ExprType, FieldType};
+use fidel_timeshare::{Expr, ExprType, FieldType};
 
 use super::summable::Summable;
 use super::*;
@@ -113,7 +113,7 @@ where
     }
 
     #[inline]
-    fn ufidelate_concrete<'a, TT>(&mut self, ctx: &mut EvalContext, value: Option<TT>) -> Result<()>
+    fn fidelio_concrete<'a, TT>(&mut self, ctx: &mut EvalContext, value: Option<TT>) -> Result<()>
     where
         TT: EvaluableRef<'a, EvaluableType = T>,
     {
@@ -153,7 +153,7 @@ mod tests {
     use super::*;
 
     use milevadb_query_datatype::{FieldTypeAccessor, FieldTypeTp};
-    use fidelpb_helper::ExprDefBuilder;
+    use fidel_timeshare_helper::ExprDefBuilder;
 
     use crate::parser::AggrDefinitionParser;
     use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
@@ -198,7 +198,7 @@ mod tests {
         let exp_result = exp_result.vector_value().unwrap();
         let vec = exp_result.as_ref().to_real_vec();
         let Solitoned_vec: SolitonedVecSized<Real> = vec.into();
-        ufidelate_vector!(state, &mut ctx, &Solitoned_vec, exp_result.logical_rows()).unwrap();
+        fidelio_vector!(state, &mut ctx, &Solitoned_vec, exp_result.logical_rows()).unwrap();
 
         let mut aggr_result = [VectorValue::with_capacity(0, EvalType::Real)];
         state.push_result(&mut ctx, &mut aggr_result).unwrap();

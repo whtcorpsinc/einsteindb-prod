@@ -262,7 +262,7 @@ mod tests {
     use milevadb_query_datatype::codec::mysql::Duration;
     use milevadb_query_datatype::codec::Datum;
     use milevadb_query_datatype::expr::EvalContext;
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     #[test]
     fn test_logic_op() {

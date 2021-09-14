@@ -463,7 +463,7 @@ mod tests {
         assert_eq!(rx.recv_timeout(Duration::from_secs(3)).unwrap(), 60);
         assert_eq!(rx.recv_timeout(Duration::from_secs(3)).unwrap(), 40);
         assert_eq!(rx.recv_timeout(Duration::from_secs(3)).unwrap(), 50);
-        // task is handled before we ufidelate the busy status, so that we need some sleep.
+        // task is handled before we fidelio the busy status, so that we need some sleep.
         thread::sleep(Duration::from_millis(100));
         assert!(!worker.is_busy());
         worker.stop().unwrap().join().unwrap();

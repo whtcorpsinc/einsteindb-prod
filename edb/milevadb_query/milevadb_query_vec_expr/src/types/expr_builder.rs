@@ -4,7 +4,7 @@ use std::convert::{TryFrom, TryInto};
 
 use codec::prelude::NumberDecoder;
 use milevadb_query_datatype::{EvalType, FieldTypeAccessor};
-use fidelpb::{Expr, ExprType, FieldType};
+use fidel_timeshare::{Expr, ExprType, FieldType};
 
 use super::super::function::RpnFnMeta;
 use super::expr::{RpnExpression, RpnExpressionNode};
@@ -287,7 +287,7 @@ fn handle_node_fn_call<F>(
 where
     F: Fn(&Expr) -> Result<RpnFnMeta> + Copy,
 {
-    // Map pb func to `RpnFnMeta`.
+    // Map _timeshare func to `RpnFnMeta`.
     let func_meta = fn_mapper(&tree_node)?;
 
     // Validate the input expression.
@@ -461,8 +461,8 @@ mod tests {
 
     use milevadb_query_codegen::rpn_fn;
     use milevadb_query_datatype::FieldTypeTp;
-    use fidelpb::ScalarFuncSig;
-    use fidelpb_helper::ExprDefBuilder;
+    use fidel_timeshare::ScalarFuncSig;
+    use fidel_timeshare_helper::ExprDefBuilder;
 
     use milevadb_query_common::Result;
 

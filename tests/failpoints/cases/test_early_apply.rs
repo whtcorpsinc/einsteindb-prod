@@ -1,6 +1,6 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use violetabft::evioletabftpb::MessageType;
+use violetabft::evioletabft_timeshare::MessageType;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;

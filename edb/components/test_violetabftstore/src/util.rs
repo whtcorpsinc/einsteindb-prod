@@ -8,17 +8,17 @@ use std::{thread, u64};
 use rand::RngCore;
 use tempfile::{Builder, TempDir};
 
-use ekvproto::encryptionpb::EncryptionMethod;
-use ekvproto::kvrpcpb::*;
-use ekvproto::metapb::{self, BraneEpoch};
-use ekvproto::fidelpb::{
+use ekvproto::encryption_timeshare::EncryptionMethod;
+use ekvproto::kvrpc_timeshare::*;
+use ekvproto::meta_timeshare::{self, BraneEpoch};
+use ekvproto::fidel_timeshare::{
     ChangePeer, CheckPolicy, Merge, BraneHeartbeatResponse, SplitBrane, TransferLeader,
 };
-use ekvproto::violetabft_cmdpb::{AdminCmdType, CmdType, StatusCmdType};
-use ekvproto::violetabft_cmdpb::{AdminRequest, VioletaBftCmdRequest, VioletaBftCmdResponse, Request, StatusRequest};
-use ekvproto::violetabft_serverpb::{PeerState, VioletaBftLocalState, BraneLocalState};
-use ekvproto::edbpb::EINSTEINDBClient;
-use violetabft::evioletabftpb::ConfChangeType;
+use ekvproto::violetabft_cmd_timeshare::{AdminCmdType, CmdType, StatusCmdType};
+use ekvproto::violetabft_cmd_timeshare::{AdminRequest, VioletaBftCmdRequest, VioletaBftCmdResponse, Request, StatusRequest};
+use ekvproto::violetabft_server_timeshare::{PeerState, VioletaBftLocalState, BraneLocalState};
+use ekvproto::edb_timeshare::EINSTEINDBClient;
+use violetabft::evioletabft_timeshare::ConfChangeType;
 
 use encryption::{DataKeyManager, FileConfig, MasterKeyConfig};
 use engine_lmdb::config::BlobRunMode;
@@ -31,15 +31,15 @@ use violetabftstore::store::fsm::VioletaBftRouter;
 use violetabftstore::store::*;
 use violetabftstore::Result;
 use edb::config::*;
-use edb::causetStorage::config::DEFAULT_LMDB_SUB_DIR;
-use edb_util::config::*;
-use edb_util::{escape, HandyRwLock};
+use edb::causet_storage::config::DEFAULT_LMDB_SUB_DIR;
+use violetabftstore::interlock::::config::*;
+use violetabftstore::interlock::::{escape, HandyRwLock};
 
 use super::*;
 
 use edb::{ALL_CausetS, Causet_DEFAULT, Causet_VIOLETABFT};
 pub use violetabftstore::store::util::{find_peer, new_learner_peer, new_peer};
-use edb_util::time::ThreadReadId;
+use violetabftstore::interlock::::time::ThreadReadId;
 
 pub fn must_get(engine: &Arc<DB>, causet: &str, key: &[u8], value: Option<&[u8]>) {
     for _ in 1..300 {
@@ -83,7 +83,7 @@ pub fn must_get_causet_none(engine: &Arc<DB>, causet: &str, key: &[u8]) {
     must_get(engine, causet, key, None);
 }
 
-pub fn must_brane_cleared(engine: &Engines<LmdbEngine, LmdbEngine>, brane: &metapb::Brane) {
+pub fn must_brane_cleared(engine: &Engines<LmdbEngine, LmdbEngine>, brane: &meta_timeshare::Brane) {
     let id = brane.get_id();
     let state_key = tuplespaceInstanton::brane_state_key(id);
     let state: BraneLocalState = engine.kv.get_msg_causet(Causet_VIOLETABFT, &state_key).unwrap().unwrap();
@@ -216,7 +216,7 @@ pub fn new_delete_cone_cmd(causet: &str, spacelike: &[u8], lightlike: &[u8]) -> 
 
 pub fn new_status_request(
     brane_id: u64,
-    peer: metapb::Peer,
+    peer: meta_timeshare::Peer,
     request: StatusRequest,
 ) -> VioletaBftCmdRequest {
     let mut req = new_base_request(brane_id, BraneEpoch::default(), false);
@@ -247,7 +247,7 @@ pub fn new_admin_request(
     req
 }
 
-pub fn new_change_peer_request(change_type: ConfChangeType, peer: metapb::Peer) -> AdminRequest {
+pub fn new_change_peer_request(change_type: ConfChangeType, peer: meta_timeshare::Peer) -> AdminRequest {
     let mut req = AdminRequest::default();
     req.set_cmd_type(AdminCmdType::ChangePeer);
     req.mut_change_peer().set_change_type(change_type);
@@ -263,7 +263,7 @@ pub fn new_compact_log_request(index: u64, term: u64) -> AdminRequest {
     req
 }
 
-pub fn new_transfer_leader_cmd(peer: metapb::Peer) -> AdminRequest {
+pub fn new_transfer_leader_cmd(peer: meta_timeshare::Peer) -> AdminRequest {
     let mut cmd = AdminRequest::default();
     cmd.set_cmd_type(AdminCmdType::TransferLeader);
     cmd.mut_transfer_leader().set_peer(peer);
@@ -271,15 +271,15 @@ pub fn new_transfer_leader_cmd(peer: metapb::Peer) -> AdminRequest {
 }
 
 #[allow(dead_code)]
-pub fn new_prepare_merge(target_brane: metapb::Brane) -> AdminRequest {
+pub fn new_prepare_merge(target_brane: meta_timeshare::Brane) -> AdminRequest {
     let mut cmd = AdminRequest::default();
     cmd.set_cmd_type(AdminCmdType::PrepareMerge);
     cmd.mut_prepare_merge().set_target(target_brane);
     cmd
 }
 
-pub fn new_store(store_id: u64, addr: String) -> metapb::CausetStore {
-    let mut store = metapb::CausetStore::default();
+pub fn new_store(store_id: u64, addr: String) -> meta_timeshare::CausetStore {
+    let mut store = meta_timeshare::CausetStore::default();
     store.set_id(store_id);
     store.set_address(addr);
 
@@ -296,7 +296,7 @@ pub fn is_error_response(resp: &VioletaBftCmdResponse) -> bool {
 
 pub fn new_fidel_change_peer(
     change_type: ConfChangeType,
-    peer: metapb::Peer,
+    peer: meta_timeshare::Peer,
 ) -> BraneHeartbeatResponse {
     let mut change_peer = ChangePeer::default();
     change_peer.set_change_type(change_type);
@@ -316,7 +316,7 @@ pub fn new_split_brane(policy: CheckPolicy, tuplespaceInstanton: Vec<Vec<u8>>) -
     resp
 }
 
-pub fn new_fidel_transfer_leader(peer: metapb::Peer) -> BraneHeartbeatResponse {
+pub fn new_fidel_transfer_leader(peer: meta_timeshare::Peer) -> BraneHeartbeatResponse {
     let mut transfer_leader = TransferLeader::default();
     transfer_leader.set_peer(peer);
 
@@ -325,7 +325,7 @@ pub fn new_fidel_transfer_leader(peer: metapb::Peer) -> BraneHeartbeatResponse {
     resp
 }
 
-pub fn new_fidel_merge_brane(target_brane: metapb::Brane) -> BraneHeartbeatResponse {
+pub fn new_fidel_merge_brane(target_brane: meta_timeshare::Brane) -> BraneHeartbeatResponse {
     let mut merge = Merge::default();
     merge.set_target(target_brane);
 
@@ -368,8 +368,8 @@ pub fn make_cb(cmd: &VioletaBftCmdRequest) -> (Callback<LmdbSnapshot>, mpsc::Rec
 // Issue a read request on the specified peer.
 pub fn read_on_peer<T: Simulator>(
     cluster: &mut Cluster<T>,
-    peer: metapb::Peer,
-    brane: metapb::Brane,
+    peer: meta_timeshare::Peer,
+    brane: meta_timeshare::Brane,
     key: &[u8],
     read_quorum: bool,
     timeout: Duration,
@@ -386,8 +386,8 @@ pub fn read_on_peer<T: Simulator>(
 
 pub fn async_read_on_peer<T: Simulator>(
     cluster: &mut Cluster<T>,
-    peer: metapb::Peer,
-    brane: metapb::Brane,
+    peer: meta_timeshare::Peer,
+    brane: meta_timeshare::Brane,
     key: &[u8],
     read_quorum: bool,
     replica_read: bool,
@@ -409,7 +409,7 @@ pub fn async_read_on_peer<T: Simulator>(
 
 pub fn batch_read_on_peer<T: Simulator>(
     cluster: &mut Cluster<T>,
-    requests: &[(metapb::Peer, metapb::Brane)],
+    requests: &[(meta_timeshare::Peer, meta_timeshare::Brane)],
 ) -> Vec<ReadResponse<LmdbSnapshot>> {
     let batch_id = Some(ThreadReadId::new());
     let (tx, rx) = mpsc::sync_channel(3);
@@ -443,8 +443,8 @@ pub fn batch_read_on_peer<T: Simulator>(
 
 pub fn read_index_on_peer<T: Simulator>(
     cluster: &mut Cluster<T>,
-    peer: metapb::Peer,
-    brane: metapb::Brane,
+    peer: meta_timeshare::Peer,
+    brane: meta_timeshare::Brane,
     read_quorum: bool,
     timeout: Duration,
 ) -> Result<VioletaBftCmdResponse> {
@@ -470,8 +470,8 @@ pub fn must_get_value(resp: &VioletaBftCmdResponse) -> Vec<u8> {
 
 pub fn must_read_on_peer<T: Simulator>(
     cluster: &mut Cluster<T>,
-    peer: metapb::Peer,
-    brane: metapb::Brane,
+    peer: meta_timeshare::Peer,
+    brane: meta_timeshare::Brane,
     key: &[u8],
     value: &[u8],
 ) {
@@ -489,8 +489,8 @@ pub fn must_read_on_peer<T: Simulator>(
 
 pub fn must_error_read_on_peer<T: Simulator>(
     cluster: &mut Cluster<T>,
-    peer: metapb::Peer,
-    brane: metapb::Brane,
+    peer: meta_timeshare::Peer,
+    brane: meta_timeshare::Brane,
     key: &[u8],
     timeout: Duration,
 ) {
@@ -526,7 +526,7 @@ pub fn create_test_engine(
             .map(|key_manager| Arc::new(key_manager));
 
     let env = get_env(key_manager.clone(), None).unwrap();
-    let cache = causet.causetStorage.block_cache.build_shared_cache();
+    let cache = causet.causet_storage.block_cache.build_shared_cache();
 
     let kv_path = dir.path().join(DEFAULT_LMDB_SUB_DIR);
     let kv_path_str = kv_path.to_str().unwrap();
@@ -779,7 +779,7 @@ pub fn kv_pessimistic_lock(
     ctx: Context,
     tuplespaceInstanton: Vec<Vec<u8>>,
     ts: u64,
-    for_ufidelate_ts: u64,
+    for_fidelio_ts: u64,
     return_values: bool,
 ) -> PessimisticLockResponse {
     let mut req = PessimisticLockRequest::default();
@@ -795,7 +795,7 @@ pub fn kv_pessimistic_lock(
     req.set_mutations(mutations.into());
     req.primary_lock = primary;
     req.spacelike_version = ts;
-    req.for_ufidelate_ts = for_ufidelate_ts;
+    req.for_fidelio_ts = for_fidelio_ts;
     req.lock_ttl = 20;
     req.is_first_lock = false;
     req.return_values = return_values;
@@ -813,7 +813,7 @@ pub fn must_kv_pessimistic_rollback(client: &EINSTEINDBClient, ctx: Context, key
     req.set_context(ctx);
     req.set_tuplespaceInstanton(vec![key].into_iter().collect());
     req.spacelike_version = ts;
-    req.for_ufidelate_ts = ts;
+    req.for_fidelio_ts = ts;
     let resp = client.kv_pessimistic_rollback(&req).unwrap();
     assert!(!resp.has_brane_error(), "{:?}", resp.get_brane_error());
     assert!(resp.errors.is_empty(), "{:?}", resp.get_errors());

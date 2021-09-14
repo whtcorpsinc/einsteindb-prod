@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex};
 
 use edb::{KvEngine, Cone};
 use error_code::ErrorCodeExt;
-use ekvproto::metapb::Brane;
-use ekvproto::fidelpb::CheckPolicy;
+use ekvproto::meta_timeshare::Brane;
+use ekvproto::fidel_timeshare::CheckPolicy;
 
 use crate::store::{CasualMessage, CasualRouter};
 
@@ -154,7 +154,7 @@ where
             }
         };
 
-        // lightlike it to violetabftstore to ufidelate brane approximate size
+        // lightlike it to violetabftstore to fidelio brane approximate size
         let res = CasualMessage::BraneApproximateSize { size: brane_size };
         if let Err(e) = self.router.dagger().unwrap().lightlike(brane_id, res) {
             warn!(
@@ -260,9 +260,9 @@ pub mod tests {
     use engine_lmdb::{Compat, LmdbEngine};
     use edb::Causet_DAGGER;
     use edb::{CfName, ALL_CausetS, Causet_DEFAULT, Causet_WRITE, LARGE_CausetS};
-    use ekvproto::metapb::Peer;
-    use ekvproto::metapb::Brane;
-    use ekvproto::fidelpb::CheckPolicy;
+    use ekvproto::meta_timeshare::Peer;
+    use ekvproto::meta_timeshare::Brane;
+    use ekvproto::fidel_timeshare::CheckPolicy;
     use std::sync::mpsc;
     use std::sync::Arc;
     use std::{
@@ -270,9 +270,9 @@ pub mod tests {
         u64,
     };
     use tempfile::Builder;
-    use edb_util::collections::HashSet;
-    use edb_util::config::ReadableSize;
-    use edb_util::worker::Runnable;
+    use violetabftstore::interlock::::collections::HashSet;
+    use violetabftstore::interlock::::config::ReadableSize;
+    use violetabftstore::interlock::::worker::Runnable;
     use txn_types::Key;
 
     use super::*;

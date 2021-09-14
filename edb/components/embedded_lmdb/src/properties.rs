@@ -14,8 +14,8 @@ use lmdb::{
     DBEntryType, BlockPropertiesCollector, BlockPropertiesCollectorFactory, NoetherBlobIndex,
     UserCollectedProperties,
 };
-use edb_util::codec::number::{self, NumberEncoder};
-use edb_util::codec::{Error, Result};
+use violetabftstore::interlock::::codec::number::{self, NumberEncoder};
+use violetabftstore::interlock::::codec::{Error, Result};
 use txn_types::{Key, TimeStamp, Write, WriteType};
 
 const PROP_TOTAL_SIZE: &str = "edb.total_size";

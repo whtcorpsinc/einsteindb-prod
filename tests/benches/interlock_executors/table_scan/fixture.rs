@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use test_interlock::*;
-use edb::causetStorage::LmdbEngine;
+use edb::causet_storage::LmdbEngine;
 
 /// Builds a fixture Block, which contains two PrimaryCausets: id, foo.
 pub fn Block_with_2_PrimaryCausets(events: usize) -> (Block, CausetStore<LmdbEngine>) {

@@ -3,7 +3,7 @@
 use std::{fs::File, io::Write, time::Duration};
 
 use encryption::{DataKeyManager, FileConfig, MasterKeyConfig, Result};
-use ekvproto::encryptionpb::EncryptionMethod;
+use ekvproto::encryption_timeshare::EncryptionMethod;
 
 pub fn create_test_key_file(path: &str) {
     let mut file = File::create(path).unwrap();

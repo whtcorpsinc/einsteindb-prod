@@ -3,7 +3,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use ekvproto::import_sstpb::SstMeta;
+use ekvproto::import_sst_timeshare::SstMeta;
 
 use crate::store::util::is_epoch_stale;
 use crate::store::{StoreMsg, StoreRouter};
@@ -11,7 +11,7 @@ use edb::KvEngine;
 use fidel_client::FidelClient;
 use sst_importer::SSTImporter;
 use std::marker::PhantomData;
-use edb_util::worker::Runnable;
+use violetabftstore::interlock::::worker::Runnable;
 
 pub enum Task {
     DeleteSST { ssts: Vec<SstMeta> },
@@ -78,7 +78,7 @@ where
                     // SST file, but it doesn't matter, because the
                     // epoch of a cone will not decrease anyway.
                     if is_epoch_stale(r.get_brane_epoch(), sst.get_brane_epoch()) {
-                        // Brane has not been ufidelated.
+                        // Brane has not been fideliod.
                         continue;
                     }
                     if r.get_id() == sst.get_brane_id()

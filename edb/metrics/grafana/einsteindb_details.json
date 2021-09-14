@@ -78,7 +78,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The causetStorage size per EinsteinDB instance",
+          "description": "The causet_storage size per EinsteinDB instance",
           "ediBlock": true,
           "error": false,
           "fill": 5,
@@ -1739,7 +1739,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(edb_causetStorage_engine_async_request_total{instance=~\"$instance\", status!~\"success|all\"}[1m])) by (instance, status)",
+              "expr": "sum(rate(edb_causet_storage_engine_async_request_total{instance=~\"$instance\", status!~\"success|all\"}[1m])) by (instance, status)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}-{{status}}",
@@ -2418,7 +2418,7 @@
           "dashes": false,
           "datasource": "${DS_TEST-CLUSTER}",
           "decimals": 1,
-          "description": "The causetStorage size per EinsteinDB instance",
+          "description": "The causet_storage size per EinsteinDB instance",
           "ediBlock": true,
           "error": false,
           "fill": 5,
@@ -4906,8 +4906,8 @@
             "for": "0m",
             "frequency": "1m",
             "handler": 1,
-            "message": "EinsteinDB CausetStorage ReadPool thread CPU usage is high",
-            "name": "EinsteinDB CausetStorage ReadPool CPU alert",
+            "message": "EinsteinDB causet_storage ReadPool thread CPU usage is high",
+            "name": "EinsteinDB causet_storage ReadPool CPU alert",
             "noDataState": "ok",
             "notifications": []
           },
@@ -4998,7 +4998,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "CausetStorage ReadPool CPU",
+          "title": "causet_storage ReadPool CPU",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -9259,7 +9259,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(edb_causetStorage_command_total{instance=~\"$instance\"}[1m])) by (type)",
+              "expr": "sum(rate(edb_causet_storage_command_total{instance=~\"$instance\"}[1m])) by (type)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{type}}",
@@ -9271,7 +9271,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "CausetStorage command total",
+          "title": "causet_storage command total",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -9358,7 +9358,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(edb_causetStorage_engine_async_request_total{instance=~\"$instance\", status!~\"all|success\"}[1m])) by (status)",
+              "expr": "sum(rate(edb_causet_storage_engine_async_request_total{instance=~\"$instance\", status!~\"all|success\"}[1m])) by (status)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{status}}",
@@ -9371,7 +9371,7 @@
           "timeFrom": null,
           "timeBranes": [],
           "timeShift": null,
-          "title": "CausetStorage async request error",
+          "title": "causet_storage async request error",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -9441,7 +9441,7 @@
           "reverseYBuckets": false,
           "targets": [
             {
-              "expr": "sum(delta(edb_causetStorage_engine_async_request_duration_seconds_bucket{instance=~\"$instance\", type=\"snapshot\"}[1m])) by (le)",
+              "expr": "sum(delta(edb_causet_storage_engine_async_request_duration_seconds_bucket{instance=~\"$instance\", type=\"snapshot\"}[1m])) by (le)",
               "format": "heatmap",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{le}}",
@@ -9451,7 +9451,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "CausetStorage async snapshot duration",
+          "title": "causet_storage async snapshot duration",
           "tooltip": {
             "show": true,
             "showHistogram": false
@@ -9507,7 +9507,7 @@
           "reverseYBuckets": false,
           "targets": [
             {
-              "expr": "sum(delta(edb_causetStorage_engine_async_request_duration_seconds_bucket{instance=~\"$instance\", type=\"write\"}[1m])) by (le)",
+              "expr": "sum(delta(edb_causet_storage_engine_async_request_duration_seconds_bucket{instance=~\"$instance\", type=\"write\"}[1m])) by (le)",
               "format": "heatmap",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{le}}",
@@ -9517,7 +9517,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "CausetStorage async write duration",
+          "title": "causet_storage async write duration",
           "tooltip": {
             "show": true,
             "showHistogram": false
@@ -9543,7 +9543,7 @@
         }
       ],
       "repeat": null,
-      "title": "CausetStorage",
+      "title": "causet_storage",
       "type": "Evcausetidx"
     },
     {
@@ -11112,7 +11112,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(edb_causetStorage_tail_pointer_versions_bucket{instance=~\"$instance\"}[5m]))",
+              "expr": "sum(rate(edb_causet_storage_tail_pointer_versions_bucket{instance=~\"$instance\"}[5m]))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": " max",
@@ -11195,7 +11195,7 @@
           "reverseYBuckets": false,
           "targets": [
             {
-              "expr": "sum(rate(edb_causetStorage_tail_pointer_gc_delete_versions_bucket{instance=~\"$instance\"}[1m]))",
+              "expr": "sum(rate(edb_causet_storage_tail_pointer_gc_delete_versions_bucket{instance=~\"$instance\"}[1m]))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": " max",
@@ -11278,16 +11278,16 @@
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "total-{{task}}",
-              "metric": "edb_causetStorage_command_total",
+              "metric": "edb_causet_storage_command_total",
               "refId": "A",
               "step": 4
             },
             {
-              "expr": "sum(rate(edb_causetStorage_gc_skipped_counter{instance=~\"$instance\"}[1m])) by (task)",
+              "expr": "sum(rate(edb_causet_storage_gc_skipped_counter{instance=~\"$instance\"}[1m])) by (task)",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "skipped-{{task}}",
-              "metric": "edb_causetStorage_gc_skipped_counter",
+              "metric": "edb_causet_storage_gc_skipped_counter",
               "refId": "B",
               "step": 4
             },
@@ -11395,7 +11395,7 @@
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "max-{{task}}",
-              "metric": "edb_causetStorage_command_total",
+              "metric": "edb_causet_storage_command_total",
               "refId": "A",
               "step": 4
             },
@@ -11404,7 +11404,7 @@
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "99%-{{task}}",
-              "metric": "edb_causetStorage_gc_skipped_counter",
+              "metric": "edb_causet_storage_gc_skipped_counter",
               "refId": "B",
               "step": 4
             },
@@ -11512,7 +11512,7 @@
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{tag}}",
-              "metric": "edb_causetStorage_command_total",
+              "metric": "edb_causet_storage_command_total",
               "refId": "A",
               "step": 4
             }
@@ -11798,7 +11798,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(edb_causetStorage_tail_pointer_gc_delete_versions_sum[1m]))",
+              "expr": "sum(rate(edb_causet_storage_tail_pointer_gc_delete_versions_sum[1m]))",
               "format": "time_series",
               "intervalFactor": 2,
               "leglightlikeFormat": "tuplespaceInstanton/s",
@@ -11896,7 +11896,7 @@
               "interval": "",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
-              "metric": "edb_causetStorage_command_total",
+              "metric": "edb_causet_storage_command_total",
               "refId": "A",
               "step": 4
             }
@@ -11993,7 +11993,7 @@
               "interval": "",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{result}}",
-              "metric": "edb_causetStorage_command_total",
+              "metric": "edb_causet_storage_command_total",
               "refId": "A",
               "step": 4
             }
@@ -12090,7 +12090,7 @@
               "interval": "",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
-              "metric": "edb_causetStorage_command_total",
+              "metric": "edb_causet_storage_command_total",
               "refId": "A",
               "step": 4
             }
@@ -12187,7 +12187,7 @@
               "interval": "",
               "intervalFactor": 2,
               "leglightlikeFormat": "{{instance}}",
-              "metric": "edb_causetStorage_command_total",
+              "metric": "edb_causet_storage_command_total",
               "refId": "A",
               "step": 4
             }
@@ -24371,7 +24371,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "edb_encryption_data_key_causetStorage_total",
+          "expr": "edb_encryption_data_key_causet_storage_total",
           "format": "time_series",
           "intervalFactor": 1,
           "leglightlikeFormat": "{{instance}}",
@@ -24929,7 +24929,7 @@
         "multi": true,
         "name": "command",
         "options": [],
-        "query": "label_values(edb_causetStorage_command_total, type)",
+        "query": "label_values(edb_causet_storage_command_total, type)",
         "refresh": 1,
         "regex": "prewrite|commit|rollback",
         "skipUrlSync": false,

@@ -26,7 +26,7 @@ use crate::codec::{
 };
 
 use crate::{FieldTypeAccessor, FieldTypeFlag, FieldTypeTp};
-use fidelpb::FieldType;
+use fidel_timeshare::FieldType;
 
 use crate::expr::EvalContext;
 use codec::prelude::*;

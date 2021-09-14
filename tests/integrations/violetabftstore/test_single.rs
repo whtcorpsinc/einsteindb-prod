@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use edb::{CfName, Causet_DEFAULT, Causet_WRITE};
 use test_violetabftstore::*;
-use edb_util::config::*;
+use violetabftstore::interlock::::config::*;
 
 // TODO add epoch not match test cases.
 

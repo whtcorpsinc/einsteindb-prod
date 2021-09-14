@@ -5,10 +5,10 @@ use super::*;
 use std::collections::BTreeMap;
 
 use ekvproto::interlock::KeyCone;
-use fidelpb::{self, PrimaryCausetInfo};
+use fidel_timeshare::{self, PrimaryCausetInfo};
 
 use milevadb_query_datatype::codec::Block;
-use edb_util::codec::number::NumberEncoder;
+use violetabftstore::interlock::::codec::number::NumberEncoder;
 
 #[derive(Clone)]
 pub struct Block {
@@ -38,9 +38,9 @@ impl Block {
         idx.map(|idx| &self.PrimaryCausets[*idx].1)
     }
 
-    /// Create `fidelpb::BlockInfo` from current Block.
-    pub fn Block_info(&self) -> fidelpb::BlockInfo {
-        let mut info = fidelpb::BlockInfo::default();
+    /// Create `fidel_timeshare::BlockInfo` from current Block.
+    pub fn Block_info(&self) -> fidel_timeshare::BlockInfo {
+        let mut info = fidel_timeshare::BlockInfo::default();
         info.set_Block_id(self.id);
         info.set_PrimaryCausets(self.PrimaryCausets_info().into());
         info
@@ -54,9 +54,9 @@ impl Block {
             .collect()
     }
 
-    /// Create `fidelpb::IndexInfo` from current Block.
-    pub fn index_info(&self, index: i64, store_handle: bool) -> fidelpb::IndexInfo {
-        let mut idx_info = fidelpb::IndexInfo::default();
+    /// Create `fidel_timeshare::IndexInfo` from current Block.
+    pub fn index_info(&self, index: i64, store_handle: bool) -> fidel_timeshare::IndexInfo {
+        let mut idx_info = fidel_timeshare::IndexInfo::default();
         idx_info.set_Block_id(self.id);
         idx_info.set_index_id(index);
         let mut has_pk = false;

@@ -6,7 +6,7 @@ use futures::{FutureExt, SinkExt, StreamExt, TryFutureExt};
 use grpcio::{self, *};
 use ekvproto::backup::*;
 use security::{check_common_name, SecurityManager};
-use edb_util::worker::*;
+use violetabftstore::interlock::::worker::*;
 
 use super::Task;
 
@@ -92,11 +92,11 @@ mod tests {
 
     use super::*;
     use crate::lightlikepoint::tests::*;
-    use external_causetStorage::make_local_backlightlike;
+    use external_causet_storage::make_local_backlightlike;
     use security::*;
-    use edb::causetStorage::tail_pointer::tests::*;
-    use edb::causetStorage::txn::tests::must_commit;
-    use edb_util::mpsc::Receiver;
+    use edb::causet_storage::tail_pointer::tests::*;
+    use edb::causet_storage::txn::tests::must_commit;
+    use violetabftstore::interlock::::mpsc::Receiver;
     use txn_types::TimeStamp;
 
     fn new_rpc_suite() -> (Server, BackupClient, Receiver<Option<Task>>) {
@@ -149,7 +149,7 @@ mod tests {
         req.set_spacelike_version(now.into_inner());
         req.set_lightlike_version(now.into_inner());
         // Set an unique path to avoid AlreadyExists error.
-        req.set_causetStorage_backlightlike(make_local_backlightlike(&tmp.path().join(now.to_string())));
+        req.set_causet_storage_backlightlike(make_local_backlightlike(&tmp.path().join(now.to_string())));
 
         let stream = client.backup(&req).unwrap();
         let task = rx.recv_timeout(Duration::from_secs(5)).unwrap();
@@ -159,7 +159,7 @@ mod tests {
         lightlikepoint.handle_backup_task(task.unwrap());
 
         // Set an unique path to avoid AlreadyExists error.
-        req.set_causetStorage_backlightlike(make_local_backlightlike(&tmp.path().join(alloc_ts().to_string())));
+        req.set_causet_storage_backlightlike(make_local_backlightlike(&tmp.path().join(alloc_ts().to_string())));
         let mut stream = client.backup(&req).unwrap();
         // Drop steam once it received something.
         client.spawn(async move {
@@ -170,7 +170,7 @@ mod tests {
         lightlikepoint.handle_backup_task(task.unwrap());
 
         // Set an unique path to avoid AlreadyExists error.
-        req.set_causetStorage_backlightlike(make_local_backlightlike(&tmp.path().join(alloc_ts().to_string())));
+        req.set_causet_storage_backlightlike(make_local_backlightlike(&tmp.path().join(alloc_ts().to_string())));
         let stream = client.backup(&req).unwrap();
         let task = rx.recv_timeout(Duration::from_secs(5)).unwrap().unwrap();
         // Drop stream without spacelike receiving will cause cancel error.

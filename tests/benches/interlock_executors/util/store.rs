@@ -1,13 +1,13 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use std::sync::Arc;
-use edb::causetStorage::kv::LmdbSnapshot;
-use edb::causetStorage::txn::{FixtureStore, SnapshotStore, CausetStore};
+use edb::causet_storage::kv::LmdbSnapshot;
+use edb::causet_storage::txn::{FixtureStore, SnapshotStore, CausetStore};
 
 /// `MemStore` is a store provider that operates directly over a BTreeMap.
 pub type MemStore = FixtureStore;
 
-/// `LmdbStore` is a store provider that operates over a disk-based Lmdb causetStorage.
+/// `LmdbStore` is a store provider that operates over a disk-based Lmdb causet_storage.
 pub type LmdbStore = SnapshotStore<Arc<LmdbSnapshot>>;
 
 pub trait StoreDescriber {

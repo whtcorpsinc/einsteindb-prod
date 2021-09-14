@@ -3,7 +3,7 @@
 use milevadb_query_codegen::AggrFunction;
 use milevadb_query_datatype::builder::FieldTypeBuilder;
 use milevadb_query_datatype::{FieldTypeFlag, FieldTypeTp};
-use fidelpb::{Expr, ExprType, FieldType};
+use fidel_timeshare::{Expr, ExprType, FieldType};
 
 use super::*;
 use milevadb_query_common::Result;
@@ -63,7 +63,7 @@ impl AggrFnStateCount {
     }
 
     #[inline]
-    fn ufidelate<'a, TT>(&mut self, _ctx: &mut EvalContext, value: Option<TT>) -> Result<()>
+    fn fidelio<'a, TT>(&mut self, _ctx: &mut EvalContext, value: Option<TT>) -> Result<()>
     where
         TT: EvaluableRef<'a>,
     {
@@ -74,7 +74,7 @@ impl AggrFnStateCount {
     }
 
     #[inline]
-    fn ufidelate_repeat<'a, TT>(
+    fn fidelio_repeat<'a, TT>(
         &mut self,
         _ctx: &mut EvalContext,
         value: Option<TT>,
@@ -91,7 +91,7 @@ impl AggrFnStateCount {
     }
 
     #[inline]
-    fn ufidelate_vector<'a, TT, CC>(
+    fn fidelio_vector<'a, TT, CC>(
         &mut self,
         _ctx: &mut EvalContext,
         _phantom_data: Option<TT>,
@@ -112,16 +112,16 @@ impl AggrFnStateCount {
     }
 }
 
-// Here we manually implement `AggrFunctionStateUfidelatePartial` so that `ufidelate_repeat` and
-// `ufidelate_vector` can be faster. Also note that we support all kind of
-// `AggrFunctionStateUfidelatePartial` for the COUNT aggregate function.
+// Here we manually implement `AggrFunctionStatefidelioPartial` so that `fidelio_repeat` and
+// `fidelio_vector` can be faster. Also note that we support all kind of
+// `AggrFunctionStatefidelioPartial` for the COUNT aggregate function.
 
-impl<T> super::AggrFunctionStateUfidelatePartial<T> for AggrFnStateCount
+impl<T> super::AggrFunctionStatefidelioPartial<T> for AggrFnStateCount
 where
     T: EvaluableRef<'static> + 'static,
     VectorValue: VectorValueExt<T::EvaluableType>,
 {
-    impl_state_ufidelate_partial! { T }
+    impl_state_fidelio_partial! { T }
 }
 
 impl super::AggrFunctionState for AggrFnStateCount {
@@ -141,7 +141,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_ufidelate() {
+    fn test_fidelio() {
         let mut ctx = EvalContext::default();
         let function = AggrFnCount;
         let mut state = function.create_state();
@@ -151,29 +151,29 @@ mod tests {
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(0)]);
 
-        ufidelate!(state, &mut ctx, Option::<&Real>::None).unwrap();
+        fidelio!(state, &mut ctx, Option::<&Real>::None).unwrap();
 
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(0)]);
 
-        ufidelate!(state, &mut ctx, Real::new(5.0).ok().as_ref()).unwrap();
-        ufidelate!(state, &mut ctx, Option::<&Real>::None).unwrap();
-        ufidelate!(state, &mut ctx, Some(&7i64)).unwrap();
+        fidelio!(state, &mut ctx, Real::new(5.0).ok().as_ref()).unwrap();
+        fidelio!(state, &mut ctx, Option::<&Real>::None).unwrap();
+        fidelio!(state, &mut ctx, Some(&7i64)).unwrap();
 
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(2)]);
 
-        ufidelate_repeat!(state, &mut ctx, Some(&3i64), 4).unwrap();
-        ufidelate_repeat!(state, &mut ctx, Option::<&Int>::None, 7).unwrap();
+        fidelio_repeat!(state, &mut ctx, Some(&3i64), 4).unwrap();
+        fidelio_repeat!(state, &mut ctx, Option::<&Int>::None, 7).unwrap();
 
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(6)]);
 
         let Solitoned_vec: SolitonedVecSized<Int> = vec![Some(1i64), None, Some(-1i64)].into();
-        ufidelate_vector!(state, &mut ctx, &Solitoned_vec, &[1, 2]).unwrap();
+        fidelio_vector!(state, &mut ctx, &Solitoned_vec, &[1, 2]).unwrap();
 
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();

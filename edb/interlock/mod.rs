@@ -34,27 +34,27 @@ pub use self::lightlikepoint::node;
 pub use self::error::{Error, Result};
 pub use checksum::checksum_crc64_xor;
 
-use crate::causetStorage::tail_pointer::TimeStamp;
-use crate::causetStorage::Statistics;
+use crate::causet_storage::tail_pointer::TimeStamp;
+use crate::causet_storage::Statistics;
 use async_trait::async_trait;
-use ekvproto::{interlock as coppb, kvrpcpb};
+use ekvproto::{interlock as cop_timeshare, kvrpc_timeshare};
 use metrics::ReqTag;
 use rand::prelude::*;
-use edb_util::deadline::Deadline;
-use edb_util::time::Duration;
+use violetabftstore::interlock::::deadline::Deadline;
+use violetabftstore::interlock::::time::Duration;
 use txn_types::TsSet;
 
 pub const REQ_TYPE_DAG: i64 = 103;
 pub const REQ_TYPE_ANALYZE: i64 = 104;
 pub const REQ_TYPE_CHECKSUM: i64 = 105;
 
-type HandlerStreamStepResult = Result<(Option<coppb::Response>, bool)>;
+type HandlerStreamStepResult = Result<(Option<cop_timeshare::Response>, bool)>;
 
 /// An interface for all kind of Interlock request handlers.
 #[async_trait]
 pub trait RequestHandler: lightlike {
     /// Processes current request and produces a response.
-    async fn handle_request(&mut self) -> Result<coppb::Response> {
+    async fn handle_request(&mut self) -> Result<cop_timeshare::Response> {
         panic!("unary request is not supported for this handler");
     }
 
@@ -79,17 +79,17 @@ pub trait RequestHandler: lightlike {
 type RequestHandlerBuilder<Snap> =
     Box<dyn for<'a> FnOnce(Snap, &'a ReqContext) -> Result<Box<dyn RequestHandler>> + lightlike>;
 
-/// Encapsulate the `kvrpcpb::Context` to provide some extra properties.
+/// Encapsulate the `kvrpc_timeshare::Context` to provide some extra properties.
 #[derive(Debug, Clone)]
 pub struct ReqContext {
     /// The tag of the request
     pub tag: ReqTag,
 
     /// The rpc context carried in the request
-    pub context: kvrpcpb::Context,
+    pub context: kvrpc_timeshare::Context,
 
     /// The first cone of the request
-    pub first_cone: Option<coppb::KeyCone>,
+    pub first_cone: Option<cop_timeshare::KeyCone>,
 
     /// The length of the cone
     pub cones_len: usize,
@@ -125,8 +125,8 @@ pub struct ReqContext {
 impl ReqContext {
     pub fn new(
         tag: ReqTag,
-        mut context: kvrpcpb::Context,
-        cones: &[coppb::KeyCone],
+        mut context: kvrpc_timeshare::Context,
+        cones: &[cop_timeshare::KeyCone],
         max_handle_duration: Duration,
         peer: Option<String>,
         is_desc_scan: Option<bool>,
@@ -163,7 +163,7 @@ impl ReqContext {
     pub fn default_for_test() -> Self {
         Self::new(
             ReqTag::test,
-            kvrpcpb::Context::default(),
+            kvrpc_timeshare::Context::default(),
             &[],
             Duration::from_secs(100),
             None,

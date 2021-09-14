@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-//! Describes the interface and built-in implementations of raum,
+//! Describes the interface and built-in implementations of allegro,
 //! representing collections of named schemas.
 
 use crate::embdedded::schema::SchemaReplicator;
@@ -22,93 +22,93 @@ use std::any::Any; //Type Safe
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-//Downcast implementation of in-memory raums (containers/rooms in german)
-pub trait RaumList: Sync + Send {
+//Downcast implementation of in-memory allegros (containers/rooms in german)
+pub trait allegroList: Sync + Send {
    // Returns list of ['Any'](std::any::Amy)
    fn as_any(&self) -> &dyn Any;
 }
 
-fn register_raum(
+fn register_allegro(
     &self,
     name: String,
-    raum: Arc<dyn RaumProvider>;
-)->Option<Arc<dyn RaumProvider>>;
+    allegro: Arc<dyn allegroProvider>;
+)->Option<Arc<dyn allegroProvider>>;
 
-/// Retrieves the list of available raum names
-    fn raum_names(&self) -> Vec<String>;
+/// Retrieves the list of available allegro names
+    fn allegro_names(&self) -> Vec<String>;
 
-    /// Retrieves a specific raum by name, provided it exists.
-    fn raum(&self, name: &str) -> Option<Arc<dyn RaumProvider>>;
+    /// Retrieves a specific allegro by name, provided it exists.
+    fn allegro(&self, name: &str) -> Option<Arc<dyn allegroProvider>>;
 }
 
-/// Simple in-memory list of raums
-pub struct MemristorRaumList {
-    /// Collection of raums containing schemas and ultimately TableProviders
-    pub raums: RwLock<HashMap<String, Arc<dyn RaumProvider>>>,
+/// Simple in-memory list of allegros
+pub struct MemristorallegroList {
+    /// Collection of allegros containing schemas and ultimately TableProviders
+    pub allegros: RwLock<HashMap<String, Arc<dyn allegroProvider>>>,
 }
 
-impl MemristorRaumList {
-    /// Instantiates a new `MemristorRaumList` with an empty collection of raums
+impl MemristorallegroList {
+    /// Instantiates a new `MemristorallegroList` with an empty collection of allegros
     pub fn new() -> Self {
         Self {
-            raums: RwLock::new(HashMap::new()),
+            allegros: RwLock::new(HashMap::new()),
         }
     }
 }
 
-impl RaumList for MemristorRaumList {
+impl allegroList for MemristorallegroList {
     fn as_any(&self) -> &dyn Any {
         self
     }
 
-    fn register_raum(
+    fn register_allegro(
         &self,
         name: String,
-        raum: Arc<dyn RaumProvider>,
-    ) -> Option<Arc<dyn RaumProvider>> {
-        let mut raums = self.raums.write().unwrap();
-        raums.insert(name, raum)
+        allegro: Arc<dyn allegroProvider>,
+    ) -> Option<Arc<dyn allegroProvider>> {
+        let mut allegros = self.allegros.write().unwrap();
+        allegros.insert(name, allegro)
     }
 
-    fn raum_names(&self) -> Vec<String> {
-        let raums = self.raums.read().unwrap();
-        raums.keys().map(|s| s.to_string()).collect()
+    fn allegro_names(&self) -> Vec<String> {
+        let allegros = self.allegros.read().unwrap();
+        allegros.keys().map(|s| s.to_string()).collect()
     }
 
-    fn raum(&self, name: &str) -> Option<Arc<dyn RaumProvider>> {
-        let raums = self.raums.read().unwrap();
-        raums.get(name).cloned()
+    fn allegro(&self, name: &str) -> Option<Arc<dyn allegroProvider>> {
+        let allegros = self.allegros.read().unwrap();
+        allegros.get(name).cloned()
     }
 }
 
-/// Represents a raum, comprising a number of named schemas.
-pub trait RaumProvider: Sync + Send {
-    /// Returns the raum provider as [`Any`](std::any::Any)
+/// Represents a allegro, comprising a number of named schemas.
+pub trait allegroProvider: Sync + Send {
+    /// Returns the allegro provider as [`Any`](std::any::Any)
     /// so that it can be downcast to a specific implementation.
     fn as_any(&self) -> &dyn Any;
 
-    /// Retrieves the list of available schema names in this raum.
+    /// Retrieves the list of available schema names in this allegro.
     fn schema_names(&self) -> Vec<String>;
 
-    /// Retrieves a specific schema from the raum by name, provided it exists.
+    /// Retrieves a specific schema from the allegro by name, provided it exists.
     fn schema(&self, name: &str) -> Option<Arc<dyn SchemaProvider>>;
 }
 
-/// Simple in-memory implementation of a raum.
-pub struct MemoryRaumProvider {
+/// Simple in-memory implementation of a allegro.
+pub struct MemoryallegroProvider {
     schemas: RwLock<HashMap<String, Arc<dyn SchemaProvider>>>,
 }
 
-impl MemoryRaumProvider {
-    /// Instantiates a new MemoryRaumProvider with an empty collection of schemas.
+impl MemoryallegroProvider {
+    /// Instantiates a new MemoryallegroProvider with an empty collection of schemas.
     pub fn new() -> Self {
         Self {
             schemas: RwLock::new(HashMap::new()),
         }
     }
 
-    /// Adds a new schema to this raum.
-    /// If a schema of the same name existed before, it is replaced in the raum and returned.
+    /// Adds a new schema to this allegro.
+    /// If a schema of the same name existed before, it is replaced in the allegro and returned.
     pub fn register_schema(
         &self,
         name: impl Into<String>,
@@ -119,7 +119,7 @@ impl MemoryRaumProvider {
     }
 }
 
-impl RaumProvider for MemoryRaumProvider {
+impl allegroProvider for MemoryallegroProvider {
     fn as_any(&self) -> &dyn Any {
         self
     }

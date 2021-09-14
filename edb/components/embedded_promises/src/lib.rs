@@ -1,9 +1,9 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-//! A generic EinsteinDB causetStorage engine
+//! A generic EinsteinDB causet_storage engine
 //!
 //! This is a work-in-progress attempt to abstract all the features needed by
-//! EinsteinDB to persist its data, so that causetStorage engines other than Lmdb may be
+//! EinsteinDB to persist its data, so that causet_storage engines other than Lmdb may be
 //! added to EinsteinDB in the future.
 //!
 //! This crate **must not have any transitive deplightlikeencies on Lmdb**. The
@@ -161,7 +161,7 @@
 //!
 //! ## 1) Migrating the `engine` abstractions
 //!
-//! The engine crate was an earlier attempt to abstract the causetStorage engine. Much
+//! The engine crate was an earlier attempt to abstract the causet_storage engine. Much
 //! of its structure is duplicated near-identically in edb, the
 //! difference being that edb has no Lmdb deplightlikeencies. Having no
 //! Lmdb deplightlikeencies makes it trivial to guarantee that the abstractions are

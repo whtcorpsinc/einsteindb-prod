@@ -6,8 +6,8 @@ use std::sync::Arc;
 use std::thread;
 use std::time::*;
 
-use ekvproto::violetabft_serverpb::{PeerState, BraneLocalState};
-use violetabft::evioletabftpb::MessageType;
+use ekvproto::violetabft_server_timeshare::{PeerState, BraneLocalState};
+use violetabft::evioletabft_timeshare::MessageType;
 
 use engine_lmdb::Compat;
 use edb::Peekable;

@@ -9,8 +9,8 @@ use ekvproto::interlock::{KeyCone, Response};
 use protobuf::Message;
 use rand::rngs::StdRng;
 use rand::Rng;
-use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
-use milevadb_query_common::causetStorage::Cone;
+use milevadb_query_common::causet_storage::scanner::{ConesScanner, ConesScannerOptions};
+use milevadb_query_common::causet_storage::Cone;
 use milevadb_query_datatype::codec::datum::{encode_value, split_datum, Datum, NIL_FLAG};
 use milevadb_query_datatype::codec::Block;
 use milevadb_query_datatype::def::Collation;
@@ -20,7 +20,7 @@ use milevadb_query_vec_executors::{
     interface::BatchFreeDaemon, runner::MAX_TIME_SLICE, BatchBlockScanFreeDaemon,
 };
 use milevadb_query_vec_expr::BATCH_MAX_SIZE;
-use fidelpb::{self, AnalyzePrimaryCausetsReq, AnalyzeIndexReq, AnalyzeReq, AnalyzeType};
+use fidel_timeshare::{self, AnalyzePrimaryCausetsReq, AnalyzeIndexReq, AnalyzeReq, AnalyzeType};
 use yatp::task::future::reschedule;
 
 use super::cmsketch::CmSketch;
@@ -28,14 +28,14 @@ use super::fmsketch::FmSketch;
 use super::histogram::Histogram;
 use crate::interlock::posetdag::EinsteinDBStorage;
 use crate::interlock::*;
-use crate::causetStorage::{Snapshot, SnapshotStore, Statistics};
+use crate::causet_storage::{Snapshot, SnapshotStore, Statistics};
 
 // `AnalyzeContext` is used to handle `AnalyzeReq`
 pub struct AnalyzeContext<S: Snapshot> {
     req: AnalyzeReq,
-    causetStorage: Option<EinsteinDBStorage<SnapshotStore<S>>>,
+    causet_storage: Option<EinsteinDBStorage<SnapshotStore<S>>>,
     cones: Vec<KeyCone>,
-    causetStorage_stats: Statistics,
+    causet_storage_stats: Statistics,
 }
 
 impl<S: Snapshot> AnalyzeContext<S> {
@@ -56,9 +56,9 @@ impl<S: Snapshot> AnalyzeContext<S> {
         );
         Ok(Self {
             req,
-            causetStorage: Some(EinsteinDBStorage::new(store, false)),
+            causet_storage: Some(EinsteinDBStorage::new(store, false)),
             cones,
-            causetStorage_stats: Statistics::default(),
+            causet_storage_stats: Statistics::default(),
         })
     }
 
@@ -69,11 +69,11 @@ impl<S: Snapshot> AnalyzeContext<S> {
         let (collectors, pk_builder) = builder.collect_PrimaryCausets_stats().await?;
 
         let pk_hist = pk_builder.into_proto();
-        let cols: Vec<fidelpb::SampleCollector> =
+        let cols: Vec<fidel_timeshare::SampleCollector> =
             collectors.into_iter().map(|col| col.into_proto()).collect();
 
         let res_data = {
-            let mut res = fidelpb::AnalyzePrimaryCausetsResp::default();
+            let mut res = fidel_timeshare::AnalyzePrimaryCausetsResp::default();
             res.set_collectors(cols.into());
             res.set_pk_hist(pk_hist);
             box_try!(res.write_to_bytes())
@@ -133,7 +133,7 @@ impl<S: Snapshot> AnalyzeContext<S> {
             hist.applightlike(&data);
         }
 
-        let mut res = fidelpb::AnalyzeIndexResp::default();
+        let mut res = fidel_timeshare::AnalyzeIndexResp::default();
         res.set_hist(hist.into_proto());
         if let Some(c) = cms {
             res.set_cms(c.into_proto());
@@ -152,10 +152,10 @@ impl<S: Snapshot> RequestHandler for AnalyzeContext<S> {
                 let cones = mem::replace(&mut self.cones, vec![]);
                 Block::check_Block_cones(&cones)?;
                 let mut scanner = ConesScanner::new(ConesScannerOptions {
-                    causetStorage: self.causetStorage.take().unwrap(),
+                    causet_storage: self.causet_storage.take().unwrap(),
                     cones: cones
                         .into_iter()
-                        .map(|r| Cone::from_pb_cone(r, false))
+                        .map(|r| Cone::from__timeshare_cone(r, false))
                         .collect(),
                     scan_backward_in_cone: false,
                     is_key_only: true,
@@ -167,17 +167,17 @@ impl<S: Snapshot> RequestHandler for AnalyzeContext<S> {
                     self.req.get_tp() == AnalyzeType::TypeCommonHandle,
                 )
                 .await;
-                scanner.collect_causetStorage_stats(&mut self.causetStorage_stats);
+                scanner.collect_causet_storage_stats(&mut self.causet_storage_stats);
                 res
             }
 
             AnalyzeType::TypePrimaryCauset => {
                 let col_req = self.req.take_col_req();
-                let causetStorage = self.causetStorage.take().unwrap();
+                let causet_storage = self.causet_storage.take().unwrap();
                 let cones = mem::replace(&mut self.cones, Vec::new());
-                let mut builder = SampleBuilder::new(col_req, causetStorage, cones)?;
+                let mut builder = SampleBuilder::new(col_req, causet_storage, cones)?;
                 let res = AnalyzeContext::handle_PrimaryCauset(&mut builder).await;
-                builder.data.collect_causetStorage_stats(&mut self.causetStorage_stats);
+                builder.data.collect_causet_storage_stats(&mut self.causet_storage_stats);
                 res
             }
         };
@@ -197,8 +197,8 @@ impl<S: Snapshot> RequestHandler for AnalyzeContext<S> {
     }
 
     fn collect_scan_statistics(&mut self, dest: &mut Statistics) {
-        dest.add(&self.causetStorage_stats);
-        self.causetStorage_stats = Statistics::default();
+        dest.add(&self.causet_storage_stats);
+        self.causet_storage_stats = Statistics::default();
     }
 }
 
@@ -210,7 +210,7 @@ struct SampleBuilder<S: Snapshot> {
     max_fm_sketch_size: usize,
     cm_sketch_depth: usize,
     cm_sketch_width: usize,
-    PrimaryCausets_info: Vec<fidelpb::PrimaryCausetInfo>,
+    PrimaryCausets_info: Vec<fidel_timeshare::PrimaryCausetInfo>,
 }
 
 /// `SampleBuilder` is used to analyze PrimaryCausets. It collects sample from
@@ -219,7 +219,7 @@ struct SampleBuilder<S: Snapshot> {
 impl<S: Snapshot> SampleBuilder<S> {
     fn new(
         mut req: AnalyzePrimaryCausetsReq,
-        causetStorage: EinsteinDBStorage<SnapshotStore<S>>,
+        causet_storage: EinsteinDBStorage<SnapshotStore<S>>,
         cones: Vec<KeyCone>,
     ) -> Result<Self> {
         let PrimaryCausets_info: Vec<_> = req.take_PrimaryCausets_info().into();
@@ -228,7 +228,7 @@ impl<S: Snapshot> SampleBuilder<S> {
         }
 
         let Block_scanner = BatchBlockScanFreeDaemon::new(
-            causetStorage,
+            causet_storage,
             Arc::new(EvalConfig::default()),
             PrimaryCausets_info.clone(),
             cones,
@@ -366,8 +366,8 @@ impl SampleCollector {
         }
     }
 
-    fn into_proto(self) -> fidelpb::SampleCollector {
-        let mut s = fidelpb::SampleCollector::default();
+    fn into_proto(self) -> fidel_timeshare::SampleCollector {
+        let mut s = fidel_timeshare::SampleCollector::default();
         s.set_null_count(self.null_count as i64);
         s.set_count(self.count as i64);
         s.set_fm_sketch(self.fm_sketch.into_proto());

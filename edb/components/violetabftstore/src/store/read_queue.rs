@@ -8,10 +8,10 @@ use crate::store::metrics::*;
 use crate::store::{Callback, Config};
 
 use edb::Snapshot;
-use ekvproto::violetabft_cmdpb::VioletaBftCmdRequest;
-use edb_util::collections::HashMap;
-use edb_util::time::{duration_to_sec, monotonic_raw_now};
-use edb_util::MustConsumeVec;
+use ekvproto::violetabft_cmd_timeshare::VioletaBftCmdRequest;
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::time::{duration_to_sec, monotonic_raw_now};
+use violetabftstore::interlock::::MustConsumeVec;
 use time::Timespec;
 use uuid::Uuid;
 
@@ -195,7 +195,7 @@ where
         }
     }
 
-    /// ufidelate the read index of the requests that before the specified id.
+    /// fidelio the read index of the requests that before the specified id.
     pub fn advance_replica_reads<T>(&mut self, states: T)
     where
         T: IntoIterator<Item = (Uuid, u64)>,

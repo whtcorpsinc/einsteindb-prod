@@ -11,11 +11,11 @@ use std::u64;
 
 use edb::Causet_VIOLETABFT;
 use edb::{Engines, KvEngine, MuBlock, VioletaBftEngine};
-use ekvproto::violetabft_serverpb::{PeerState, VioletaBftApplyState, BraneLocalState};
-use violetabft::evioletabftpb::Snapshot as VioletaBftSnapshot;
+use ekvproto::violetabft_server_timeshare::{PeerState, VioletaBftApplyState, BraneLocalState};
+use violetabft::evioletabft_timeshare::Snapshot as VioletaBftSnapshot;
 
 use crate::interlock::InterlockHost;
-use crate::store::peer_causetStorage::{
+use crate::store::peer_causet_storage::{
     JOB_STATUS_CANCELLED, JOB_STATUS_CANCELLING, JOB_STATUS_FAILED, JOB_STATUS_FINISHED,
     JOB_STATUS_PENDING, JOB_STATUS_RUNNING,
 };
@@ -27,8 +27,8 @@ use crate::store::{
 use yatp::pool::{Builder, ThreadPool};
 use yatp::task::future::TaskCell;
 
-use edb_util::timer::Timer;
-use edb_util::worker::{Runnable, RunnableWithTimer};
+use violetabftstore::interlock::::timer::Timer;
+use violetabftstore::interlock::::worker::{Runnable, RunnableWithTimer};
 
 use super::metrics::*;
 
@@ -277,7 +277,7 @@ where
         notifier: Synclightlikeer<VioletaBftSnapshot>,
     ) {
         SNAP_COUNTER.generate.all.inc();
-        let spacelike = edb_util::time::Instant::now();
+        let spacelike = violetabftstore::interlock::::time::Instant::now();
 
         if let Err(e) = self.generate_snap(
             brane_id,
@@ -378,7 +378,7 @@ where
         SNAP_COUNTER.apply.all.inc();
         // let apply_histogram = SNAP_HISTOGRAM.with_label_values(&["apply"]);
         // let timer = apply_histogram.spacelike_coarse_timer();
-        let spacelike = edb_util::time::Instant::now();
+        let spacelike = violetabftstore::interlock::::time::Instant::now();
 
         match self.apply_snap(brane_id, Arc::clone(&status)) {
             Ok(()) => {
@@ -732,7 +732,7 @@ mod tests {
     use std::time::Duration;
 
     use crate::interlock::InterlockHost;
-    use crate::store::peer_causetStorage::JOB_STATUS_PENDING;
+    use crate::store::peer_causet_storage::JOB_STATUS_PENDING;
     use crate::store::snap::tests::get_test_db_for_branes;
     use crate::store::worker::BraneRunner;
     use crate::store::{CasualMessage, SnapKey, SnapManager};
@@ -743,11 +743,11 @@ mod tests {
     };
     use edb::{Engines, KvEngine};
     use edb::{Causet_DEFAULT, Causet_VIOLETABFT};
-    use ekvproto::violetabft_serverpb::{PeerState, VioletaBftApplyState, BraneLocalState};
-    use violetabft::evioletabftpb::Entry;
+    use ekvproto::violetabft_server_timeshare::{PeerState, VioletaBftApplyState, BraneLocalState};
+    use violetabft::evioletabft_timeshare::Entry;
     use tempfile::Builder;
-    use edb_util::timer::Timer;
-    use edb_util::worker::Worker;
+    use violetabftstore::interlock::::timer::Timer;
+    use violetabftstore::interlock::::worker::Worker;
 
     use super::Event;
     use super::PlightlikeingDeleteCones;

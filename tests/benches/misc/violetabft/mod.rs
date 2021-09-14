@@ -6,10 +6,10 @@ use crossbeam::channel::TrylightlikeError;
 use engine_lmdb::raw::DB;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
 use edb::{ALL_CausetS, Causet_DEFAULT};
-use ekvproto::kvrpcpb::{Context, ExtraOp as TxnExtraOp};
-use ekvproto::metapb::Brane;
-use ekvproto::Violetabft_cmdpb::{VioletaBftCmdRequest, VioletaBftCmdResponse, Response};
-use ekvproto::Violetabft_serverpb::VioletaBftMessage;
+use ekvproto::kvrpc_timeshare::{Context, ExtraOp as TxnExtraOp};
+use ekvproto::meta_timeshare::Brane;
+use ekvproto::Violetabft_cmd_timeshare::{VioletaBftCmdRequest, VioletaBftCmdResponse, Response};
+use ekvproto::Violetabft_server_timeshare::VioletaBftMessage;
 use violetabftstore::router::{LocalReadRouter, VioletaBftStoreRouter};
 use violetabftstore::store::{
     cmd_resp, util, Callback, CasualMessage, CasualRouter, PeerMsg, ProposalRouter, VioletaBftCommand,
@@ -18,11 +18,11 @@ use violetabftstore::store::{
 use violetabftstore::Result;
 use tempfile::{Builder, TempDir};
 use edb::server::violetabftkv::{CmdRes, VioletaBftKv};
-use edb::causetStorage::kv::{
+use edb::causet_storage::kv::{
     Callback as EngineCallback, CbContext, Modify, Result as EngineResult, WriteData,
 };
-use edb::causetStorage::Engine;
-use edb_util::time::ThreadReadId;
+use edb::causet_storage::Engine;
+use violetabftstore::interlock::::time::ThreadReadId;
 use txn_types::Key;
 
 use crate::test;

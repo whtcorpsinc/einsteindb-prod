@@ -8,16 +8,16 @@ use std::time::{Duration, Instant};
 use fail::fail_point;
 use ekvproto::interlock::KeyCone;
 use milevadb_query_datatype::{EvalType, FieldTypeAccessor};
-use edb_util::deadline::Deadline;
-use fidelpb::StreamResponse;
-use fidelpb::{self, ExecType, FreeDaemonExecutionSummary, FieldType};
-use fidelpb::{Soliton, PosetDagRequest, EncodeType, SelectResponse};
+use violetabftstore::interlock::::deadline::Deadline;
+use fidel_timeshare::StreamResponse;
+use fidel_timeshare::{self, ExecType, FreeDaemonExecutionSummary, FieldType};
+use fidel_timeshare::{Soliton, PosetDagRequest, EncodeType, SelectResponse};
 use yatp::task::future::reschedule;
 
 use super::interface::{BatchFreeDaemon, ExecuteStats};
 use super::*;
 use milevadb_query_common::metrics::*;
-use milevadb_query_common::causetStorage::{IntervalCone, CausetStorage};
+use milevadb_query_common::causet_storage::{IntervalCone, causet_storage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext, EvalWarnings};
 
@@ -70,7 +70,7 @@ pub struct BatchFreeDaemonsRunner<SS> {
 impl BatchFreeDaemonsRunner<()> {
     /// Given a list of executor descriptors and checks whether all executor descriptors can
     /// be used to build batch executors.
-    pub fn check_supported(exec_descriptors: &[fidelpb::FreeDaemon]) -> Result<()> {
+    pub fn check_supported(exec_descriptors: &[fidel_timeshare::FreeDaemon]) -> Result<()> {
         for ed in exec_descriptors {
             match ed.get_tp() {
                 ExecType::TypeBlockScan => {
@@ -130,9 +130,9 @@ fn is_arrow_encodable(schemaReplicant: &[FieldType]) -> bool {
 }
 
 #[allow(clippy::explicit_counter_loop)]
-pub fn build_executors<S: CausetStorage + 'static>(
-    executor_descriptors: Vec<fidelpb::FreeDaemon>,
-    causetStorage: S,
+pub fn build_executors<S: causet_storage + 'static>(
+    executor_descriptors: Vec<fidel_timeshare::FreeDaemon>,
+    causet_storage: S,
     cones: Vec<KeyCone>,
     config: Arc<EvalConfig>,
     is_scanned_cone_aware: bool,
@@ -155,7 +155,7 @@ pub fn build_executors<S: CausetStorage + 'static>(
 
             executor = Box::new(
                 BatchBlockScanFreeDaemon::new(
-                    causetStorage,
+                    causet_storage,
                     config.clone(),
                     PrimaryCausets_info,
                     cones,
@@ -174,7 +174,7 @@ pub fn build_executors<S: CausetStorage + 'static>(
             let primary_PrimaryCauset_ids_len = descriptor.take_primary_PrimaryCauset_ids().len();
             executor = Box::new(
                 BatchIndexScanFreeDaemon::new(
-                    causetStorage,
+                    causet_storage,
                     config.clone(),
                     PrimaryCausets_info,
                     cones,
@@ -310,10 +310,10 @@ pub fn build_executors<S: CausetStorage + 'static>(
 }
 
 impl<SS: 'static> BatchFreeDaemonsRunner<SS> {
-    pub fn from_request<S: CausetStorage<Statistics = SS> + 'static>(
+    pub fn from_request<S: causet_storage<Statistics = SS> + 'static>(
         mut req: PosetDagRequest,
         cones: Vec<KeyCone>,
-        causetStorage: S,
+        causet_storage: S,
         deadline: Deadline,
         stream_row_limit: usize,
         is_streaming: bool,
@@ -324,7 +324,7 @@ impl<SS: 'static> BatchFreeDaemonsRunner<SS> {
 
         let out_most_executor = build_executors(
             req.take_executors().into(),
-            causetStorage,
+            causet_storage,
             cones,
             config.clone(),
             is_streaming, // For streaming request, executors will continue scan from cone lightlike where last scan is finished
@@ -481,8 +481,8 @@ impl<SS: 'static> BatchFreeDaemonsRunner<SS> {
         Ok((None, true))
     }
 
-    pub fn collect_causetStorage_stats(&mut self, dest: &mut SS) {
-        self.out_most_executor.collect_causetStorage_stats(dest);
+    pub fn collect_causet_storage_stats(&mut self, dest: &mut SS) {
+        self.out_most_executor.collect_causet_storage_stats(dest);
     }
 
     pub fn can_be_cached(&self) -> bool {

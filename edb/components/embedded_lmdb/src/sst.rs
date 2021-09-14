@@ -1,13 +1,13 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use crate::Raum::LmdbRaum;
+use crate::allegro::Lmdballegro;
 use crate::options::LmdbReadOptions;
-use raum_promises::Error;
-use raum_promises::IterOptions;
-use raum_promises::{CausetName, Causet_DEFAULT};
-use raum_promises::{ExternalSstFileInfo, SstCompressionType, SstWriter, SstWriterBuilder};
-use raum_promises::{Iterable, Result, SstExt, SstReader};
-use raum_promises::{Iteron, SeekKey};
+use allegro_promises::Error;
+use allegro_promises::IterOptions;
+use allegro_promises::{CausetName, Causet_DEFAULT};
+use allegro_promises::{ExternalSstFileInfo, SstCompressionType, SstWriter, SstWriterBuilder};
+use allegro_promises::{Iterable, Result, SstExt, SstReader};
+use allegro_promises::{Iteron, SeekKey};
 use lmdb::lmdb::supported_compression;
 use lmdb::DBCompressionType;
 use lmdb::DBIterator;
@@ -19,10 +19,10 @@ use std::rc::Rc;
 use std::sync::Arc;
 // FIXME: Move LmdbSeekKey into a common module since
 // it's shared between multiple Iterons
-use crate::Raum_Iteron::LmdbSeekKey;
+use crate::allegro_Iteron::LmdbSeekKey;
 use std::path::PathBuf;
 
-impl SstExt for LmdbRaum {
+impl SstExt for Lmdballegro {
     type SstReader = LmdbSstReader;
     type SstWriter = LmdbSstWriter;
     type SstWriterBuilder = LmdbSstWriterBuilder;
@@ -86,20 +86,20 @@ unsafe impl lightlike for LmdbSstIterator {}
 impl Iteron for LmdbSstIterator {
     fn seek(&mut self, key: SeekKey) -> Result<bool> {
         let k: LmdbSeekKey = key.into();
-        self.0.seek(k.into_raw()).map_err(Error::Raum)
+        self.0.seek(k.into_raw()).map_err(Error::allegro)
     }
 
     fn seek_for_prev(&mut self, key: SeekKey) -> Result<bool> {
         let k: LmdbSeekKey = key.into();
-        self.0.seek_for_prev(k.into_raw()).map_err(Error::Raum)
+        self.0.seek_for_prev(k.into_raw()).map_err(Error::allegro)
     }
 
     fn prev(&mut self) -> Result<bool> {
-        self.0.prev().map_err(Error::Raum)
+        self.0.prev().map_err(Error::allegro)
     }
 
     fn next(&mut self) -> Result<bool> {
-        self.0.next().map_err(Error::Raum)
+        self.0.next().map_err(Error::allegro)
     }
 
     fn key(&self) -> &[u8] {
@@ -111,7 +111,7 @@ impl Iteron for LmdbSstIterator {
     }
 
     fn valid(&self) -> Result<bool> {
-        self.0.valid().map_err(Error::Raum)
+        self.0.valid().map_err(Error::allegro)
     }
 }
 
@@ -123,7 +123,7 @@ pub struct LmdbSstWriterBuilder {
     compression_level: i32,
 }
 
-impl SstWriterBuilder<LmdbRaum> for LmdbSstWriterBuilder {
+impl SstWriterBuilder<Lmdballegro> for LmdbSstWriterBuilder {
     fn new() -> Self {
         LmdbSstWriterBuilder {
             causet: None,
@@ -134,7 +134,7 @@ impl SstWriterBuilder<LmdbRaum> for LmdbSstWriterBuilder {
         }
     }
 
-    fn set_db(mut self, db: &LmdbRaum) -> Self {
+    fn set_db(mut self, db: &Lmdballegro) -> Self {
         self.db = Some(db.as_inner().clone());
         self
     }
@@ -238,12 +238,12 @@ impl SstWriter for LmdbSstWriter {
 
     fn finish_read(mut self) -> Result<(Self::ExternalSstFileInfo, Self::ExternalSstFileReader)> {
         let env = self.env.take().ok_or_else(|| {
-            Error::Raum("failed to read sequential file no env provided".to_owned())
+            Error::allegro("failed to read sequential file no env provided".to_owned())
         })?;
         let sst_info = self.writer.finish()?;
         let p = sst_info.file_path();
         let path = p.as_os_str().to_str().ok_or_else(|| {
-            Error::Raum(format!(
+            Error::allegro(format!(
                 "failed to sequential file bad path {}",
                 p.display()
             ))
@@ -320,20 +320,20 @@ fn to_rocks_compression_type(ct: SstCompressionType) -> DBCompressionType {
 #[causet(test)]
 mod tests {
     use super::*;
-    use crate::util::new_default_Raum;
+    use crate::util::new_default_allegro;
     use std::io::Read;
     use tempfile::Builder;
 
     #[test]
     fn test_smoke() {
         let path = Builder::new().temfidelir().unwrap();
-        let Raum = new_default_Raum(path.path().to_str().unwrap()).unwrap();
+        let allegro = new_default_allegro(path.path().to_str().unwrap()).unwrap();
         let (k, v) = (b"foo", b"bar");
 
         let p = path.path().join("sst");
         let mut writer = LmdbSstWriterBuilder::new()
             .set_causet(Causet_DEFAULT)
-            .set_db(&Raum)
+            .set_db(&allegro)
             .build(p.as_os_str().to_str().unwrap())
             .unwrap();
         writer.put(k, v).unwrap();
@@ -348,7 +348,7 @@ mod tests {
         let mut writer = LmdbSstWriterBuilder::new()
             .set_in_memory(true)
             .set_causet(Causet_DEFAULT)
-            .set_db(&Raum)
+            .set_db(&allegro)
             .build(p.as_os_str().to_str().unwrap())
             .unwrap();
         writer.put(k, v).unwrap();

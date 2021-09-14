@@ -54,8 +54,8 @@ extern crate failure;
 extern crate rusqlite;
 
 extern crate edbn;
-extern crate edb_raum;
-extern crate raum_promises;
+extern crate edb_allegro;
+extern crate allegro_promises;
 extern crate edb;
 extern crate causetq_pull_promises;
 
@@ -68,14 +68,14 @@ use std::iter::{
     once,
 };
 
-use raum_promises::{
+use allegro_promises::{
     ConstrainedEntsConstraint,
     SolitonId,
     MinkowskiType,
     StructuredMap,
 };
 
-use edb_raum::{
+use edb_allegro::{
     Cloned,
     HasSchemaReplicant,
     Keyword,

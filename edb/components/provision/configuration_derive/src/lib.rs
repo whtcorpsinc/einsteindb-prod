@@ -39,7 +39,7 @@ fn generate_token(ast: DeriveInput) -> std::result::Result<TokenStream, Error> {
     let encoder_lt = Lifetime::new("'lt", Span::call_site());
 
     let fields = get_struct_fields(ast.data, name.span())?;
-    let ufidelate_fn = ufidelate(&fields, &creat_name)?;
+    let fidelio_fn = fidelio(&fields, &creat_name)?;
     let diff_fn = diff(&fields, &creat_name)?;
     let get_encoder_fn = get_encoder(&encoder_name, &encoder_lt);
     let typed_fn = typed(&fields, &creat_name)?;
@@ -55,7 +55,7 @@ fn generate_token(ast: DeriveInput) -> std::result::Result<TokenStream, Error> {
     Ok(quote! {
         impl<#encoder_lt> #creat_name::Configuration<#encoder_lt> for #name {
             type Encoder = #encoder_name<#encoder_lt>;
-            #ufidelate_fn
+            #fidelio_fn
             #diff_fn
             #get_encoder_fn
             #typed_fn
@@ -161,9 +161,9 @@ fn get_encoder(encoder_name: &Ident, lt: &Lifetime) -> TokenStream {
     }
 }
 
-fn ufidelate(fields: &Punctuated<Field, Comma>, creat_name: &Ident) -> Result<TokenStream> {
+fn fidelio(fields: &Punctuated<Field, Comma>, creat_name: &Ident) -> Result<TokenStream> {
     let incoming = Ident::new("incoming", Span::call_site());
-    let mut ufidelate_fields = Vec::with_capacity(fields.len());
+    let mut fidelio_fields = Vec::with_capacity(fields.len());
     for field in fields {
         let (skip, hidden, submodule) = get_config_attrs(&field.attrs)?;
         if skip || hidden || field.ident.is_none() {
@@ -174,7 +174,7 @@ fn ufidelate(fields: &Punctuated<Field, Comma>, creat_name: &Ident) -> Result<To
         let f = if submodule {
             quote! {
                 if let Some(#creat_name::ConfigValue::Module(v)) = #incoming.remove(#name_lit) {
-                    #creat_name::Configuration::ufidelate(&mut self.#name, v);
+                    #creat_name::Configuration::fidelio(&mut self.#name, v);
                 }
             }
         } else {
@@ -184,11 +184,11 @@ fn ufidelate(fields: &Punctuated<Field, Comma>, creat_name: &Ident) -> Result<To
                 }
             }
         };
-        ufidelate_fields.push(f);
+        fidelio_fields.push(f);
     }
     Ok(quote! {
-        fn ufidelate(&mut self, mut #incoming: #creat_name::ConfigChange) {
-            #(#ufidelate_fields)*
+        fn fidelio(&mut self, mut #incoming: #creat_name::ConfigChange) {
+            #(#fidelio_fields)*
         }
     })
 }

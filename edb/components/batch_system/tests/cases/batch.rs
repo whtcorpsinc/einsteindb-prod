@@ -4,7 +4,7 @@ use batch_system::test_runner::*;
 use batch_system::*;
 use std::thread::sleep;
 use std::time::Duration;
-use edb_util::mpsc;
+use violetabftstore::interlock::::mpsc;
 
 #[test]
 fn test_batch() {

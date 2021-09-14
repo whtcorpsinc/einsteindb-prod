@@ -8,11 +8,11 @@ description = "Data type of a query engine to run MilevaDB pushed down executors
 [features]
 protobuf-codec = [
   "ekvproto/protobuf-codec",
-  "fidelpb/protobuf-codec",
+  "fidel_timeshare/protobuf-codec",
 ]
 prost-codec = [
   "ekvproto/prost-codec",
-  "fidelpb/prost-codec",
+  "fidel_timeshare/prost-codec",
 ]
 
 [deplightlikeencies]
@@ -40,8 +40,8 @@ serde = "1.0"
 serde_json = "1.0"
 slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debug"] }
 slog-global = { version = "0.1", git = "https://github.com/breeswish/slog-global.git", rev = "0e23a5baff302a9d7bccd85f8f31e43339c2f2c1" }
-edb_util = { path = "../edb_util" }
-fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
+violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
+fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", default-features = false }
 static_assertions = { version = "1.0", features = ["nightly"] }
 milevadb_query_common = { path = "../milevadb_query_common" }
 edb_alloc = { path = "../edb_alloc" }

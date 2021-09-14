@@ -14,7 +14,7 @@ use milevadb_query_shared_expr::string::{
     encoded_size, line_wrap, strip_whitespace, trim, validate_target_len_for_pad, TrimDirection,
     BASE64_ENCODED_Soliton_LENGTH, BASE64_INPUT_Soliton_LENGTH,
 };
-use edb_util::try_opt_or;
+use violetabftstore::interlock::::try_opt_or;
 
 use crate::ScalarFunc;
 use milevadb_query_datatype::codec::{datum, Datum};
@@ -1092,7 +1092,7 @@ mod tests {
     use std::{f64, i64, str};
     use milevadb_query_datatype::codec::mysql::charset::CHARSET_BIN;
     use milevadb_query_datatype::{Collation, FieldTypeFlag, FieldTypeTp, MAX_BLOB_WIDTH};
-    use fidelpb::{Expr, ScalarFuncSig};
+    use fidel_timeshare::{Expr, ScalarFuncSig};
 
     use crate::tests::{
         col_expr, datum_expr, eval_func, scalar_func_expr, string_datum_expr_with_tp,

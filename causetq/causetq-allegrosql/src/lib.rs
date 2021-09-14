@@ -8,22 +8,21 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#[macro_use] extern crate edb_raum;
-extern crate raum_promises;
+#[macro_use] extern crate edb;
 extern crate allegrosql_promises;
 extern crate edbn;
-extern crate edb_causetq_parityfilter;
-extern crate causetq-allegrosql;
+extern crate causetq_parityfilter;
+extern crate causetq_allegrosql;
 
 use std::boxed::Box;
 
-use raum_promises::{
+use allegrosql_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SQLTypeAffinity,
 };
 

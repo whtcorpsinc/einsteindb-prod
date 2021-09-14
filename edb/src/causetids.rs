@@ -12,9 +12,9 @@
 
 /// Literal `SolitonId` values in the the "edb" namespace.
 ///
-/// Used through-out the transactor to match raum EDB constructs.
+/// Used through-out the transactor to match allegro EDB constructs.
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
 };
 

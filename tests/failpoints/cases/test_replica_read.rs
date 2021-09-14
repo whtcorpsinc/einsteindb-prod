@@ -4,15 +4,15 @@ use crossbeam::channel;
 use engine_lmdb::raw::DB;
 use engine_lmdb::Compat;
 use edb::{Peekable, Causet_VIOLETABFT};
-use ekvproto::violetabft_serverpb::{PeerState, VioletaBftApplyState, VioletaBftMessage, BraneLocalState};
-use violetabft::evioletabftpb::MessageType;
+use ekvproto::violetabft_server_timeshare::{PeerState, VioletaBftApplyState, VioletaBftMessage, BraneLocalState};
+use violetabft::evioletabft_timeshare::MessageType;
 use std::mem;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use test_violetabftstore::*;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::HandyRwLock;
 
 #[test]
 fn test_wait_for_apply_index() {
@@ -167,7 +167,7 @@ fn test_read_before_init() {
     cluster.fidel_client.must_none_plightlikeing_peer(p2);
     must_get_equal(&cluster.get_engine(2), b"k0", b"v0");
 
-    fail::causet("before_apply_snap_ufidelate_brane", "return").unwrap();
+    fail::causet("before_apply_snap_fidelio_brane", "return").unwrap();
     // Add peer 3
     let p3 = new_peer(3, 3);
     cluster.fidel_client.must_add_peer(r1, p3.clone());
@@ -190,7 +190,7 @@ fn test_read_before_init() {
         .async_command_on_node(3, request, cb)
         .unwrap();
     let resp = rx.recv_timeout(Duration::from_secs(5)).unwrap();
-    fail::remove("before_apply_snap_ufidelate_brane");
+    fail::remove("before_apply_snap_fidelio_brane");
     assert!(
         resp.get_header()
             .get_error()

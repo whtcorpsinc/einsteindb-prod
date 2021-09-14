@@ -3,7 +3,7 @@
 use engine_lmdb::raw::DBStatisticsTickerType;
 use edb::{MiscExt, Causet_DAGGER};
 use test_violetabftstore::*;
-use edb_util::config::*;
+use violetabftstore::interlock::::config::*;
 
 fn flush<T: Simulator>(cluster: &mut Cluster<T>) {
     for engines in cluster.engines.values() {

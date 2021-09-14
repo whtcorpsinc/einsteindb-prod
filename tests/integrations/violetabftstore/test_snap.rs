@@ -6,16 +6,16 @@ use std::sync::mpsc::{self, lightlikeer};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
-use ekvproto::violetabft_serverpb::*;
-use violetabft::evioletabftpb::{Message, MessageType};
+use ekvproto::violetabft_server_timeshare::*;
+use violetabft::evioletabft_timeshare::{Message, MessageType};
 
 use engine_lmdb::Compat;
 use edb::Peekable;
 use violetabftstore::store::*;
 use violetabftstore::Result;
 use test_violetabftstore::*;
-use edb_util::config::*;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::config::*;
+use violetabftstore::interlock::::HandyRwLock;
 
 fn test_huge_snapshot<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.causet.violetabft_store.violetabft_log_gc_count_limit = 1000;

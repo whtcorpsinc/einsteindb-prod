@@ -5,14 +5,14 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 use std::{mem, thread};
 
-use ekvproto::metapb::{Peer, Brane};
-use violetabft::evioletabftpb::MessageType;
+use ekvproto::meta_timeshare::{Peer, Brane};
+use violetabft::evioletabft_timeshare::MessageType;
 
 use fidel_client::FidelClient;
 use violetabftstore::store::Callback;
 use test_violetabftstore::*;
-use edb_util::config::*;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::config::*;
+use violetabftstore::interlock::::HandyRwLock;
 
 fn stale_read_during_splitting(right_derive: bool) {
     let count = 3;

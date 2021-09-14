@@ -8,13 +8,13 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use ekvproto::violetabft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
 use fidel_client::FidelClient;
-use violetabft::evioletabftpb::MessageType;
+use violetabft::evioletabft_timeshare::MessageType;
 use violetabftstore::Result;
 use test_violetabftstore::*;
-use edb_util::config::*;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::config::*;
+use violetabftstore::interlock::::HandyRwLock;
 
 #[derive(Default)]
 struct CommitToFilter {

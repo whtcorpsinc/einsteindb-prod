@@ -6,8 +6,8 @@ use std::time::Duration;
 
 use violetabftstore::interlock::{BraneInfoAccessor, BraneInfoProvider};
 use test_violetabftstore::*;
-use edb_util::collections::HashMap;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::HandyRwLock;
 
 fn test_seek_brane_impl<T: Simulator, R: BraneInfoProvider>(
     mut cluster: Cluster<T>,
@@ -57,7 +57,7 @@ fn test_seek_brane_impl<T: Simulator, R: BraneInfoProvider>(
         assert_eq!(branes[i].lightlike_key, lightlike_tuplespaceInstanton[i]);
     }
 
-    // Wait for violetabftstore to ufidelate branes
+    // Wait for violetabftstore to fidelio branes
     thread::sleep(Duration::from_secs(2));
 
     for node_id in cluster.get_node_ids() {

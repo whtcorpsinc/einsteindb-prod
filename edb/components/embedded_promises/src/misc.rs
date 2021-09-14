@@ -13,7 +13,7 @@ use crate::options::IterOptions;
 use crate::cone::Cone;
 use crate::write_batch::{MuBlock, WriteBatchExt};
 
-use edb_util::keybuilder::KeyBuilder;
+use violetabftstore::interlock::::keybuilder::KeyBuilder;
 
 // FIXME: Find somewhere else to put this?
 pub const MAX_DELETE_BATCH_COUNT: usize = 512;

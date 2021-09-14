@@ -7,11 +7,11 @@ use futures::stream::StreamExt;
 use protobuf::Message;
 
 use ekvproto::interlock::{Request, Response};
-use fidelpb::PrimaryCausetInfo;
-use fidelpb::{SelectResponse, StreamResponse};
+use fidel_timeshare::PrimaryCausetInfo;
+use fidel_timeshare::{SelectResponse, StreamResponse};
 
 use edb::interlock::node;
-use edb::causetStorage::Engine;
+use edb::causet_storage::Engine;
 
 static ID_GENERATOR: AtomicUsize = AtomicUsize::new(1);
 

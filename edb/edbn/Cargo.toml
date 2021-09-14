@@ -33,10 +33,10 @@ prost-codec = [
     "violetabftstore/prost-codec",
     "sst_importer/prost-codec",
     "milevadb_query_datatype/prost-codec",
-    "fidelpb/prost-codec",
+    "fidel_timeshare/prost-codec",
     "txn_types/prost-codec",
     "encryption/prost-codec",
-    "edb_util/prost-codec",
+    "violetabftstore::interlock::/prost-codec",
 ]
 protobuf-codec = [
     "engine_lmdb/protobuf-codec",
@@ -48,10 +48,10 @@ protobuf-codec = [
     "violetabftstore/protobuf-codec",
     "sst_importer/protobuf-codec",
     "milevadb_query_datatype/protobuf-codec",
-    "fidelpb/protobuf-codec",
+    "fidel_timeshare/protobuf-codec",
     "txn_types/protobuf-codec",
     "encryption/protobuf-codec",
-    "edb_util/protobuf-codec",
+    "violetabftstore::interlock::/protobuf-codec",
 ]
 testexport = ["violetabftstore/testexport"]
 
@@ -147,9 +147,9 @@ milevadb_query_normal_executors = { path = "components/milevadb_query_normal_exe
 milevadb_query_vec_expr = { path = "components/milevadb_query_vec_expr" }
 milevadb_query_vec_aggr = { path = "components/milevadb_query_vec_aggr" }
 milevadb_query_vec_executors = { path = "components/milevadb_query_vec_executors" }
-edb_util = { path = "components/edb_util" }
+violetabftstore::interlock:: = { path = "components/violetabftstore::interlock::" }
 time = "0.2.23"
-fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
+fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", default-features = false }
 tokio-threadpool = "0.1.13"
 tokio-timer = "0.2"
 tokio-openssl = "0.6.0"

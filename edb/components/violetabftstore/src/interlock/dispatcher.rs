@@ -5,9 +5,9 @@ use std::mem;
 use std::ops::Deref;
 
 use edb::{CfName, KvEngine};
-use ekvproto::metapb::Brane;
-use ekvproto::fidelpb::CheckPolicy;
-use ekvproto::violetabft_cmdpb::{ComputeHashRequest, VioletaBftCmdRequest};
+use ekvproto::meta_timeshare::Brane;
+use ekvproto::fidel_timeshare::CheckPolicy;
+use ekvproto::violetabft_cmd_timeshare::{ComputeHashRequest, VioletaBftCmdRequest};
 
 use super::*;
 use crate::store::CasualRouter;
@@ -435,7 +435,7 @@ impl<E: KvEngine> InterlockHost<E> {
     pub fn on_prepropose_compute_hash(&self, req: &mut ComputeHashRequest) {
         for semaphore in &self.registry.consistency_check_semaphores {
             let semaphore = semaphore.semaphore.inner();
-            if semaphore.ufidelate_context(req.mut_context()) {
+            if semaphore.fidelio_context(req.mut_context()) {
                 break;
             }
         }
@@ -555,8 +555,8 @@ mod tests {
     use std::sync::Arc;
 
     use engine_panic::PanicEngine;
-    use ekvproto::metapb::Brane;
-    use ekvproto::violetabft_cmdpb::{
+    use ekvproto::meta_timeshare::Brane;
+    use ekvproto::violetabft_cmd_timeshare::{
         AdminRequest, AdminResponse, VioletaBftCmdRequest, VioletaBftCmdResponse, Request,
     };
 

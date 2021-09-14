@@ -28,7 +28,7 @@ fn maybe_create_dir(path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-/// A causetStorage saves files in local file system.
+/// A causet_storage saves files in local file system.
 #[derive(Clone)]
 pub struct LocalStorage {
     base: PathBuf,
@@ -37,9 +37,9 @@ pub struct LocalStorage {
 }
 
 impl LocalStorage {
-    /// Create a new local causetStorage in the given path.
+    /// Create a new local causet_storage in the given path.
     pub fn new(base: &Path) -> io::Result<LocalStorage> {
-        info!("create local causetStorage"; "base" => base.display());
+        info!("create local causet_storage"; "base" => base.display());
         let tmp_dir = base.join(LOCAL_STORAGE_TMP_DIR);
         maybe_create_dir(&tmp_dir)?;
         let base_dir = Arc::new(File::open(base)?);
@@ -64,7 +64,7 @@ impl ExternalStorage for LocalStorage {
         reader: Box<dyn AsyncRead + lightlike + Unpin>,
         _content_length: u64,
     ) -> io::Result<()> {
-        // CausetStorage does not support dir,
+        // causet_storage does not support dir,
         // "a/a.sst", "/" and "" will return an error.
         if Path::new(name)
             .parent()
@@ -72,7 +72,7 @@ impl ExternalStorage for LocalStorage {
         {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("[{}] parent is not allowed in causetStorage", name),
+                format!("[{}] parent is not allowed in causet_storage", name),
             ));
         }
         // Sanitize check, do not save file if it is already exist.
@@ -88,7 +88,7 @@ impl ExternalStorage for LocalStorage {
         let tmp_f = tmp_f.into_inner();
         tmp_f.metadata()?.permissions().set_readonly(true);
         tmp_f.sync_all()?;
-        debug!("save file to local causetStorage";
+        debug!("save file to local causet_storage";
             "name" => %name, "base" => %self.base.display());
         fs::rename(tmp_path, self.base.join(name))?;
         // Fsync the base dir.
@@ -96,7 +96,7 @@ impl ExternalStorage for LocalStorage {
     }
 
     fn read(&self, name: &str) -> Box<dyn AsyncRead + Unpin + '_> {
-        debug!("read file from local causetStorage";
+        debug!("read file from local causet_storage";
             "name" => %name, "base" => %self.base.display());
         match File::open(self.base.join(name)) {
             Ok(file) => Box::new(AllowStdIo::new(file)) as _,
@@ -111,7 +111,7 @@ mod tests {
     use tempfile::Builder;
 
     #[test]
-    fn test_local_causetStorage() {
+    fn test_local_causet_storage() {
         let temp_dir = Builder::new().temfidelir().unwrap();
         let path = temp_dir.path();
         let ls = LocalStorage::new(path).unwrap();

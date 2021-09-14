@@ -99,7 +99,7 @@ impl_into!(ConfigChange, Module);
 ///
 /// There are four type of fields inside derived Configuration struct:
 /// 1. `#[config(skip)]` field, these fields will not return
-/// by `diff` method and have not effect of `ufidelate` method
+/// by `diff` method and have not effect of `fidelio` method
 /// 2. `#[config(hidden)]` field, these fields have the same effect of
 /// `#[config(skip)]` field, in addition, these fields will not appear
 /// at the output of serializing `Self::Encoder`
@@ -111,8 +111,8 @@ pub trait Configuration<'a> {
     type Encoder: serde::Serialize;
     /// Compare to other config, return the difference
     fn diff(&self, _: &Self) -> ConfigChange;
-    /// Ufidelate config with difference returned by `diff`
-    fn ufidelate(&mut self, _: ConfigChange);
+    /// fidelio config with difference returned by `diff`
+    fn fidelio(&mut self, _: ConfigChange);
     /// Get encoder that can be serialize with `serde::Serializer`
     /// with the disappear of `#[config(hidden)]` field
     fn get_encoder(&'a self) -> Self::Encoder;
@@ -150,23 +150,23 @@ mod tests {
     }
 
     #[test]
-    fn test_ufidelate_fields() {
+    fn test_fidelio_fields() {
         let mut causet = TestConfig::default();
-        let mut ufidelated_causet = causet.clone();
+        let mut fideliod_causet = causet.clone();
         {
-            // ufidelate fields
-            ufidelated_causet.field1 = 100;
-            ufidelated_causet.field2 = "1".to_owned();
-            ufidelated_causet.submodule_field.field1 = 1000;
-            ufidelated_causet.submodule_field.field2 = true;
+            // fidelio fields
+            fideliod_causet.field1 = 100;
+            fideliod_causet.field2 = "1".to_owned();
+            fideliod_causet.submodule_field.field1 = 1000;
+            fideliod_causet.submodule_field.field2 = true;
         }
-        let diff = causet.diff(&ufidelated_causet);
+        let diff = causet.diff(&fideliod_causet);
         {
             let mut diff = diff.clone();
             assert_eq!(diff.len(), 3);
             assert_eq!(diff.remove("field1").map(Into::into), Some(100usize));
             assert_eq!(diff.remove("field2").map(Into::into), Some("1".to_owned()));
-            // submodule should also be ufidelated
+            // submodule should also be fideliod
             let sub_m = diff.remove("submodule_field").map(Into::into);
             assert!(sub_m.is_some());
             let mut sub_diff: ConfigChange = sub_m.unwrap();
@@ -174,43 +174,43 @@ mod tests {
             assert_eq!(sub_diff.remove("field1").map(Into::into), Some(1000u64));
             assert_eq!(sub_diff.remove("field2").map(Into::into), Some(true));
         }
-        causet.ufidelate(diff);
-        assert_eq!(causet, ufidelated_causet, "causet should be ufidelated");
+        causet.fidelio(diff);
+        assert_eq!(causet, fideliod_causet, "causet should be fideliod");
     }
 
     #[test]
-    fn test_not_ufidelate() {
+    fn test_not_fidelio() {
         let mut causet = TestConfig::default();
         let diff = causet.diff(&causet.clone());
         assert!(diff.is_empty(), "diff should be empty");
 
-        causet.ufidelate(diff);
-        assert_eq!(causet, TestConfig::default(), "causet should not be ufidelated");
+        causet.fidelio(diff);
+        assert_eq!(causet, TestConfig::default(), "causet should not be fideliod");
     }
 
     #[test]
-    fn test_ufidelate_skip_field() {
+    fn test_fidelio_skip_field() {
         let mut causet = TestConfig::default();
-        let mut ufidelated_causet = causet.clone();
+        let mut fideliod_causet = causet.clone();
 
-        ufidelated_causet.skip_field = 100;
-        assert!(causet.diff(&ufidelated_causet).is_empty(), "diff should be empty");
+        fideliod_causet.skip_field = 100;
+        assert!(causet.diff(&fideliod_causet).is_empty(), "diff should be empty");
 
         let mut diff = HashMap::new();
         diff.insert("skip_field".to_owned(), ConfigValue::U64(123));
-        causet.ufidelate(diff);
-        assert_eq!(causet, TestConfig::default(), "causet should not be ufidelated");
+        causet.fidelio(diff);
+        assert_eq!(causet, TestConfig::default(), "causet should not be fideliod");
     }
 
     #[test]
-    fn test_ufidelate_submodule() {
+    fn test_fidelio_submodule() {
         let mut causet = TestConfig::default();
-        let mut ufidelated_causet = causet.clone();
+        let mut fideliod_causet = causet.clone();
 
-        ufidelated_causet.submodule_field.field1 = 12345;
-        ufidelated_causet.submodule_field.field2 = true;
+        fideliod_causet.submodule_field.field1 = 12345;
+        fideliod_causet.submodule_field.field2 = true;
 
-        let diff = causet.diff(&ufidelated_causet);
+        let diff = causet.diff(&fideliod_causet);
         {
             let mut diff = diff.clone();
             assert_eq!(diff.len(), 1);
@@ -221,12 +221,12 @@ mod tests {
             assert_eq!(sub_diff.remove("field2").map(Into::into), Some(true));
         }
 
-        causet.ufidelate(diff);
+        causet.fidelio(diff);
         assert_eq!(
-            causet.submodule_field, ufidelated_causet.submodule_field,
-            "submodule should be ufidelated"
+            causet.submodule_field, fideliod_causet.submodule_field,
+            "submodule should be fideliod"
         );
-        assert_eq!(causet, ufidelated_causet, "causet should be ufidelated");
+        assert_eq!(causet, fideliod_causet, "causet should be fideliod");
     }
 
     #[test]

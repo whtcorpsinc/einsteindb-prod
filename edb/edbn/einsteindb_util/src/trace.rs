@@ -1,17 +1,17 @@
-use ekvproto::span as spanpb;
+use ekvproto::span as span_timeshare;
 use minitrace::{Link, Span, SpanSet};
 
-pub fn encode_spans(span_sets: Vec<SpanSet>) -> impl Iteron<Item = spanpb::SpanSet> {
+pub fn encode_spans(span_sets: Vec<SpanSet>) -> impl Iteron<Item = span_timeshare::SpanSet> {
     span_sets
         .into_iter()
         .map(|span_set| {
-            let mut pb_set = spanpb::SpanSet::default();
-            pb_set.set_create_time_ns(span_set.create_time_ns);
-            pb_set.set_spacelike_time_ns(span_set.spacelike_time_ns);
-            pb_set.set_cycles_per_sec(span_set.cycles_per_sec);
+            let mut _timeshare_set = span_timeshare::SpanSet::default();
+            _timeshare_set.set_create_time_ns(span_set.create_time_ns);
+            _timeshare_set.set_spacelike_time_ns(span_set.spacelike_time_ns);
+            _timeshare_set.set_cycles_per_sec(span_set.cycles_per_sec);
 
             let spans = span_set.spans.into_iter().map(|span| {
-                let mut s = spanpb::Span::default();
+                let mut s = span_timeshare::Span::default();
                 s.set_id(span.id);
                 s.set_begin_cycles(span.begin_cycles);
                 s.set_lightlike_cycles(span.lightlike_cycles);
@@ -19,14 +19,14 @@ pub fn encode_spans(span_sets: Vec<SpanSet>) -> impl Iteron<Item = spanpb::SpanS
 
                 #[causet(feature = "prost-codec")]
                 {
-                    s.link = Some(spanpb::Link {
+                    s.link = Some(span_timeshare::Link {
                         link: Some(match span.link {
-                            Link::Root => spanpb::link::Link::Root(spanpb::Root {}),
+                            Link::Root => span_timeshare::link::Link::Root(span_timeshare::Root {}),
                             Link::Parent { id } => {
-                                spanpb::link::Link::Parent(spanpb::Parent { id })
+                                span_timeshare::link::Link::Parent(span_timeshare::Parent { id })
                             }
                             Link::Continue { id } => {
-                                spanpb::link::Link::Continue(spanpb::Continue { id })
+                                span_timeshare::link::Link::Continue(span_timeshare::Continue { id })
                             }
                         }),
                     });
@@ -34,16 +34,16 @@ pub fn encode_spans(span_sets: Vec<SpanSet>) -> impl Iteron<Item = spanpb::SpanS
 
                 #[causet(feature = "protobuf-codec")]
                 {
-                    let mut link = spanpb::Link::new();
+                    let mut link = span_timeshare::Link::new();
                     match span.link {
-                        Link::Root => link.set_root(spanpb::Root::new()),
+                        Link::Root => link.set_root(span_timeshare::Root::new()),
                         Link::Parent { id } => {
-                            let mut parent = spanpb::Parent::new();
+                            let mut parent = span_timeshare::Parent::new();
                             parent.set_id(id);
                             link.set_parent(parent);
                         }
                         Link::Continue { id } => {
-                            let mut cont = spanpb::Continue::new();
+                            let mut cont = span_timeshare::Continue::new();
                             cont.set_id(id);
                             link.set_continue(cont);
                         }
@@ -53,14 +53,14 @@ pub fn encode_spans(span_sets: Vec<SpanSet>) -> impl Iteron<Item = spanpb::SpanS
                 s
             });
 
-            pb_set.set_spans(spans.collect());
+            _timeshare_set.set_spans(spans.collect());
 
-            pb_set
+            _timeshare_set
         })
         .into_iter()
 }
 
-pub fn decode_spans(span_sets: Vec<spanpb::SpanSet>) -> impl Iteron<Item = SpanSet> {
+pub fn decode_spans(span_sets: Vec<span_timeshare::SpanSet>) -> impl Iteron<Item = SpanSet> {
     span_sets.into_iter().map(|span_set| {
         let spans = span_set
             .spans
@@ -70,14 +70,14 @@ pub fn decode_spans(span_sets: Vec<spanpb::SpanSet>) -> impl Iteron<Item = SpanS
                 {
                     if let Some(link) = span.link {
                         let link = match link.link {
-                            Some(spanpb::link::Link::Root(spanpb::Root {})) => Link::Root,
-                            Some(spanpb::link::Link::Parent(spanpb::Parent { id })) => {
+                            Some(span_timeshare::link::Link::Root(span_timeshare::Root {})) => Link::Root,
+                            Some(span_timeshare::link::Link::Parent(span_timeshare::Parent { id })) => {
                                 Link::Parent { id }
                             }
-                            Some(spanpb::link::Link::Continue(spanpb::Continue { id })) => {
+                            Some(span_timeshare::link::Link::Continue(span_timeshare::Continue { id })) => {
                                 Link::Continue { id }
                             }
-                            _ => panic!("Link should not be none from spanpb"),
+                            _ => panic!("Link should not be none from span_timeshare"),
                         };
                         Span {
                             id: span.id,
@@ -87,7 +87,7 @@ pub fn decode_spans(span_sets: Vec<spanpb::SpanSet>) -> impl Iteron<Item = SpanS
                             link,
                         }
                     } else {
-                        panic!("Link should not be none from spanpb")
+                        panic!("Link should not be none from span_timeshare")
                     }
                 }
                 #[causet(feature = "protobuf-codec")]
@@ -214,9 +214,9 @@ mod tests {
             ],
         ];
         for raw_span_set in raw_span_sets {
-            let spanpb_set_vec =
+            let span_timeshare_set_vec =
                 crate::trace::encode_spans(raw_span_set.clone()).collect::<Vec<_>>();
-            let encode_and_decode: Vec<_> = crate::trace::decode_spans(spanpb_set_vec).collect();
+            let encode_and_decode: Vec<_> = crate::trace::decode_spans(span_timeshare_set_vec).collect();
             assert_eq!(raw_span_set, encode_and_decode)
         }
     }

@@ -13,8 +13,8 @@ use crossbeam::channel::{self,lightlikeror};
 use std::borrow::Cow;
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
-use edb_util::mpsc;
-use edb_util::time::Instant;
+use violetabftstore::interlock::::mpsc;
+use violetabftstore::interlock::::time::Instant;
 
 /// A unify type for FSMs so that they can be sent to channel easily.
 enum FsmTypes<N, C> {

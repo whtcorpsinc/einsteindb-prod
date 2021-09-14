@@ -11,9 +11,9 @@ pub type Result<T> = std::result::Result<T, crate::error::StorageError>;
 
 pub type OwnedKvPair = (Vec<u8>, Vec<u8>);
 
-/// The abstract causetStorage interface. The Block scan and index scan executor relies on a `CausetStorage`
+/// The abstract causet_storage interface. The Block scan and index scan executor relies on a `causet_storage`
 /// implementation to provide source data.
-pub trait CausetStorage: lightlike {
+pub trait causet_storage: lightlike {
     type Statistics;
 
     // TODO: Use const generics.
@@ -36,7 +36,7 @@ pub trait CausetStorage: lightlike {
     fn collect_statistics(&mut self, dest: &mut Self::Statistics);
 }
 
-impl<T: CausetStorage + ?Sized> CausetStorage for Box<T> {
+impl<T: causet_storage + ?Sized> causet_storage for Box<T> {
     type Statistics = T::Statistics;
 
     fn begin_scan(

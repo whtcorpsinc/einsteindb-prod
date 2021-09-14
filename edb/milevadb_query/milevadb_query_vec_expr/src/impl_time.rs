@@ -339,7 +339,7 @@ pub fn last_day(ctx: &mut EvalContext, t: Option<&Time>) -> Result<Option<Time>>
 mod tests {
     use super::*;
 
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use crate::types::test_util::RpnFnScalarEvaluator;
     use milevadb_query_datatype::codec::error::ERR_TRUNCATE_WRONG_VALUE;
@@ -411,7 +411,7 @@ mod tests {
         //                    let time: Option<DateTime> = Some( DateTime::parse_utc_datetime("0000-00-00 00:00:00", 6).unwrap());
         //
         //                    let mut causet = EvalConfig::new();
-        //                    causet.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+        //                    causet.set_flag(Flag::IN_fidelio_OR_DELETE_STMT)
         //                        .set_sql_mode(SqlMode::NO_ZERO_DATE | SqlMode::STRICT_ALL_BlockS);
         //                    let ctx = EvalContext::new(Arc::new(causet));
         //
@@ -425,7 +425,7 @@ mod tests {
 
         {
             let mut causet = EvalConfig::new();
-            causet.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+            causet.set_flag(Flag::IN_fidelio_OR_DELETE_STMT)
                 .set_sql_mode(SqlMode::NO_ZERO_DATE | SqlMode::STRICT_ALL_BlockS);
             let ctx = EvalContext::new(Arc::new(causet));
 

@@ -9,7 +9,7 @@ use arrow::record_batch::RecordBatch;
 use milevadb_query_datatype::codec::Datum;
 use milevadb_query_datatype::prelude::*;
 use milevadb_query_datatype::{FieldTypeFlag, FieldTypeTp};
-use fidelpb::FieldType;
+use fidel_timeshare::FieldType;
 
 pub struct Soliton {
     pub data: RecordBatch,

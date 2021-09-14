@@ -3,7 +3,7 @@
 use crate::store::{CasualMessage, CasualRouter};
 use edb::{KvEngine, Cone};
 use error_code::ErrorCodeExt;
-use ekvproto::{metapb::Brane, fidelpb::CheckPolicy};
+use ekvproto::{meta_timeshare::Brane, fidel_timeshare::CheckPolicy};
 use std::marker::PhantomData;
 use std::mem;
 use std::sync::{Arc, Mutex};
@@ -222,13 +222,13 @@ mod tests {
     use engine_lmdb::raw_util::{new_engine_opt, CausetOptions};
     use engine_lmdb::Compat;
     use edb::{ALL_CausetS, Causet_DEFAULT, Causet_WRITE, LARGE_CausetS};
-    use ekvproto::metapb::{Peer, Brane};
-    use ekvproto::fidelpb::CheckPolicy;
+    use ekvproto::meta_timeshare::{Peer, Brane};
+    use ekvproto::fidel_timeshare::CheckPolicy;
     use std::cmp;
     use std::sync::{mpsc, Arc};
     use std::u64;
     use tempfile::Builder;
-    use edb_util::worker::Runnable;
+    use violetabftstore::interlock::::worker::Runnable;
     use txn_types::{Key, TimeStamp, Write, WriteType};
 
     use super::*;

@@ -7,7 +7,7 @@ use std::{self, char, i16, i32, i64, i8, str, u16, u32, u64, u8};
 // use crate::{self, FieldTypeTp, UNSPECIFIED_LENGTH};
 use crate::{Collation, FieldTypeAccessor};
 use crate::{FieldTypeTp, UNSPECIFIED_LENGTH};
-use fidelpb::FieldType;
+use fidel_timeshare::FieldType;
 
 use super::mysql::{RoundMode, DEFAULT_FSP};
 use super::{Error, Result};
@@ -634,7 +634,7 @@ pub fn produce_dec_with_specified_tp(
                 )?;
             if !rounded.is_zero() && frac > decimal && rounded != old {
                 if ctx.causet.flag.contains(Flag::IN_INSERT_STMT)
-                    || ctx.causet.flag.contains(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+                    || ctx.causet.flag.contains(Flag::IN_fidelio_OR_DELETE_STMT)
                 {
                     ctx.warnings.applightlike_warning(Error::truncated());
                 } else {
@@ -2196,7 +2196,7 @@ mod tests {
             // origin,
             // (origin_flen, origin_decimal), (res_flen, res_decimal), is_unsigned,
             // expect, warning_err_code,
-            // ((InInsertStmt || InUfidelateStmt || InDeleteStmt), overflow_as_warning, truncate_as_warning)
+            // ((InInsertStmt || InfidelioStmt || InDeleteStmt), overflow_as_warning, truncate_as_warning)
             // )
             //
             // The origin_flen, origin_decimal field is to
@@ -2542,7 +2542,7 @@ mod tests {
             assert_eq!(d, origin_decimal, "{}", log);
 
             // run test case
-            let ctx_in_dml_flag = vec![Flag::IN_INSERT_STMT, Flag::IN_UFIDelATE_OR_DELETE_STMT];
+            let ctx_in_dml_flag = vec![Flag::IN_INSERT_STMT, Flag::IN_fidelio_OR_DELETE_STMT];
             for in_dml_flag in ctx_in_dml_flag {
                 // make ctx
                 let mut flag: Flag = Flag::empty();

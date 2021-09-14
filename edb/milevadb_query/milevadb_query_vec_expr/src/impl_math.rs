@@ -41,7 +41,7 @@ pub fn pi() -> Result<Option<Real>> {
 #[rpn_fn]
 #[inline]
 pub fn crc32(arg: BytesRef) -> Result<Option<Int>> {
-    Ok(Some(i64::from(edb_util::file::calc_crc32_bytes(&arg))))
+    Ok(Some(i64::from(violetabftstore::interlock::::file::calc_crc32_bytes(&arg))))
 }
 
 #[inline]
@@ -527,7 +527,7 @@ mod tests {
     use std::{f64, i64};
     use milevadb_query_datatype::builder::FieldTypeBuilder;
     use milevadb_query_datatype::{FieldTypeFlag, FieldTypeTp};
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use super::*;
     use crate::types::test_util::RpnFnScalarEvaluator;

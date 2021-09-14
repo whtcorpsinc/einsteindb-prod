@@ -8,8 +8,8 @@ use std::time::Duration;
 use rand;
 use rand::Rng;
 
-use ekvproto::violetabft_cmdpb::VioletaBftCmdResponse;
-use violetabft::evioletabftpb::MessageType;
+use ekvproto::violetabft_cmd_timeshare::VioletaBftCmdResponse;
+use violetabft::evioletabft_timeshare::MessageType;
 
 use engine_lmdb::Compat;
 use edb::Peekable;
@@ -18,8 +18,8 @@ use violetabftstore::store::*;
 use violetabftstore::Result;
 use rand::RngCore;
 use test_violetabftstore::*;
-use edb_util::config::*;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::config::*;
+use violetabftstore::interlock::::HandyRwLock;
 
 fn test_multi_base<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.run();
@@ -762,7 +762,7 @@ fn test_batch_write<T: Simulator>(cluster: &mut Cluster<T>) {
     cluster.run();
     let r = cluster.get_brane(b"");
     cluster.must_split(&r, b"k3");
-    // ufidelate epoch.
+    // fidelio epoch.
     let r = cluster.get_brane(b"");
 
     let req = new_request(

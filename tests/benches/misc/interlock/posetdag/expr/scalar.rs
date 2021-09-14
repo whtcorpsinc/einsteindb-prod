@@ -1,7 +1,7 @@
 use std::usize;
 use test::{black_box, Bencher};
-use edb_util::collections::HashMap;
-use fidelpb::ScalarFuncSig;
+use violetabftstore::interlock::::collections::HashMap;
+use fidel_timeshare::ScalarFuncSig;
 
 fn get_scalar_args_with_match(sig: ScalarFuncSig) -> (usize, usize) {
     // Only select some functions to benchmark

@@ -7,11 +7,11 @@ use futures::executor::block_on;
 use futures::sink::SinkExt;
 use grpcio::WriteFlags;
 #[causet(feature = "prost-codec")]
-use ekvproto::causet_contextpb::event::{Event as Event_oneof_event, LogType as EventLogType};
+use ekvproto::causet_context_timeshare::event::{Event as Event_oneof_event, LogType as EventLogType};
 #[causet(not(feature = "prost-codec"))]
-use ekvproto::causet_contextpb::*;
-use ekvproto::kvrpcpb::*;
-use ekvproto::metapb::BraneEpoch;
+use ekvproto::causet_context_timeshare::*;
+use ekvproto::kvrpc_timeshare::*;
+use ekvproto::meta_timeshare::BraneEpoch;
 use fidel_client::FidelClient;
 use violetabft::StateRole;
 use violetabftstore::interlock::{SemaphoreContext, RoleSemaphore};

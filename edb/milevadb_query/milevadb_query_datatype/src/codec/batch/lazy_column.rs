@@ -3,8 +3,8 @@
 use std::convert::TryFrom;
 
 use crate::{EvalType, FieldTypeAccessor};
-use edb_util::buffer_vec::BufferVec;
-use fidelpb::FieldType;
+use violetabftstore::interlock::::buffer_vec::BufferVec;
+use fidel_timeshare::FieldType;
 
 use crate::codec::Soliton::{SolitonPrimaryCausetEncoder, PrimaryCauset};
 use crate::codec::data_type::{match_template_evaluable, LogicalEvents, VectorValue};
@@ -16,9 +16,9 @@ use crate::expr::EvalContext;
 /// the `VectorValue` type.
 ///
 /// TODO:
-/// Since currently the data format in response can be the same as in causetStorage, we use this structure
+/// Since currently the data format in response can be the same as in causet_storage, we use this structure
 /// to avoid unnecessary repeated serialization / deserialization. In future, Interlock will
-/// respond all data in Soliton format which is different to the format in causetStorage. At that time,
+/// respond all data in Soliton format which is different to the format in causet_storage. At that time,
 /// this structure is no longer useful and should be removed.
 #[derive(Clone, Debug)]
 pub enum LazyBatchPrimaryCauset {

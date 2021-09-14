@@ -4,7 +4,7 @@ use crate::rocks_metrics::*;
 use lmdb::{
     CompactionJobInfo, DBBackgroundErrorReason, FlushJobInfo, IngestionInfo, WriteStallInfo,
 };
-use edb_util::set_panic_mark;
+use violetabftstore::interlock::::set_panic_mark;
 
 pub struct LmdbEventListener {
     db_name: String,

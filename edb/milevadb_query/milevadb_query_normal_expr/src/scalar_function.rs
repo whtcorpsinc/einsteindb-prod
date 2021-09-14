@@ -5,7 +5,7 @@ use std::usize;
 
 use milevadb_query_datatype::prelude::*;
 use milevadb_query_datatype::FieldTypeFlag;
-use fidelpb::ScalarFuncSig;
+use fidel_timeshare::ScalarFuncSig;
 
 use super::builtin_compare::CmpOp;
 use super::{Error, EvalContext, Result};
@@ -1030,7 +1030,7 @@ dispatch_call! {
 #[causet(test)]
 mod tests {
     use crate::{Error, ScalarFunc};
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     #[test]
     fn test_check_args() {

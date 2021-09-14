@@ -1,6 +1,6 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
-use ekvproto::metapb::Brane;
+use ekvproto::meta_timeshare::Brane;
 use violetabft::StateRole;
 use violetabftstore::interlock::{
     BoxBraneChangeSemaphore, Interlock, SemaphoreContext, BraneChangeEvent, BraneChangeSemaphore,
@@ -11,7 +11,7 @@ use std::sync::mpsc::{channel, sync_channel, Receiver, Synclightlikeer};
 use std::sync::Arc;
 use std::time::Duration;
 use test_violetabftstore::{new_node_cluster, Cluster, NodeCluster};
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::HandyRwLock;
 
 #[derive(Clone)]
 struct TestSemaphore {
@@ -71,7 +71,7 @@ fn test_brane_change_semaphore_impl(mut cluster: Cluster<NodeCluster>) {
     fidel_client.must_add_peer(r1, new_peer(2, 10));
     let add_peer_event = receiver.recv().unwrap();
     receiver.try_recv().unwrap_err();
-    assert_eq!(add_peer_event.1, BraneChangeEvent::Ufidelate);
+    assert_eq!(add_peer_event.1, BraneChangeEvent::fidelio);
     assert_eq!(add_peer_event.0.get_id(), r1);
     assert_eq!(add_peer_event.0.get_peers().len(), 2);
     assert_ne!(
@@ -84,76 +84,76 @@ fn test_brane_change_semaphore_impl(mut cluster: Cluster<NodeCluster>) {
     cluster.must_put(b"k2", b"v2");
     cluster.must_put(b"k3", b"v3");
     cluster.must_split(&add_peer_event.0, b"k2");
-    let mut split_ufidelate = receiver.recv().unwrap();
+    let mut split_fidelio = receiver.recv().unwrap();
     let mut split_create = receiver.recv().unwrap();
-    // We should receive an `Ufidelate` and a `Create`. The order of them is not important.
-    if split_ufidelate.1 != BraneChangeEvent::Ufidelate {
-        mem::swap(&mut split_ufidelate, &mut split_create);
+    // We should receive an `fidelio` and a `Create`. The order of them is not important.
+    if split_fidelio.1 != BraneChangeEvent::fidelio {
+        mem::swap(&mut split_fidelio, &mut split_create);
     }
     // No more events
     receiver.try_recv().unwrap_err();
-    assert_eq!(split_ufidelate.1, BraneChangeEvent::Ufidelate);
-    assert_eq!(split_ufidelate.0.get_id(), r1);
+    assert_eq!(split_fidelio.1, BraneChangeEvent::fidelio);
+    assert_eq!(split_fidelio.0.get_id(), r1);
     assert_ne!(
-        split_ufidelate.0.get_brane_epoch(),
+        split_fidelio.0.get_brane_epoch(),
         add_peer_event.0.get_brane_epoch()
     );
     let r2 = split_create.0.get_id();
     assert_ne!(r2, r1);
     assert_eq!(split_create.1, BraneChangeEvent::Create);
-    if split_ufidelate.0.get_spacelike_key().is_empty() {
-        assert_eq!(split_ufidelate.0.get_lightlike_key(), b"k2");
+    if split_fidelio.0.get_spacelike_key().is_empty() {
+        assert_eq!(split_fidelio.0.get_lightlike_key(), b"k2");
         assert_eq!(split_create.0.get_spacelike_key(), b"k2");
         assert!(split_create.0.get_lightlike_key().is_empty());
     } else {
-        assert_eq!(split_ufidelate.0.get_spacelike_key(), b"k2");
-        assert!(split_ufidelate.0.get_lightlike_key().is_empty());
+        assert_eq!(split_fidelio.0.get_spacelike_key(), b"k2");
+        assert!(split_fidelio.0.get_lightlike_key().is_empty());
         assert!(split_create.0.get_spacelike_key().is_empty());
         assert_eq!(split_create.0.get_lightlike_key(), b"k2");
     }
 
     // Merge
-    fidel_client.must_merge(split_ufidelate.0.get_id(), split_create.0.get_id());
-    // An `Ufidelate` produced by PrepareMerge. Ignore it.
-    assert_eq!(receiver.recv().unwrap().1, BraneChangeEvent::Ufidelate);
-    let mut merge_ufidelate = receiver.recv().unwrap();
+    fidel_client.must_merge(split_fidelio.0.get_id(), split_create.0.get_id());
+    // An `fidelio` produced by PrepareMerge. Ignore it.
+    assert_eq!(receiver.recv().unwrap().1, BraneChangeEvent::fidelio);
+    let mut merge_fidelio = receiver.recv().unwrap();
     let mut merge_destroy = receiver.recv().unwrap();
-    // We should receive an `Ufidelate` and a `Destroy`. The order of them is not important.
-    if merge_ufidelate.1 != BraneChangeEvent::Ufidelate {
-        mem::swap(&mut merge_ufidelate, &mut merge_destroy);
+    // We should receive an `fidelio` and a `Destroy`. The order of them is not important.
+    if merge_fidelio.1 != BraneChangeEvent::fidelio {
+        mem::swap(&mut merge_fidelio, &mut merge_destroy);
     }
     // No more events
     receiver.try_recv().unwrap_err();
-    assert_eq!(merge_ufidelate.1, BraneChangeEvent::Ufidelate);
-    assert!(merge_ufidelate.0.get_spacelike_key().is_empty());
-    assert!(merge_ufidelate.0.get_lightlike_key().is_empty());
+    assert_eq!(merge_fidelio.1, BraneChangeEvent::fidelio);
+    assert!(merge_fidelio.0.get_spacelike_key().is_empty());
+    assert!(merge_fidelio.0.get_lightlike_key().is_empty());
     assert_eq!(merge_destroy.1, BraneChangeEvent::Destroy);
-    if merge_ufidelate.0.get_id() == split_ufidelate.0.get_id() {
+    if merge_fidelio.0.get_id() == split_fidelio.0.get_id() {
         assert_eq!(merge_destroy.0.get_id(), split_create.0.get_id());
         assert_ne!(
-            merge_ufidelate.0.get_brane_epoch(),
-            split_ufidelate.0.get_brane_epoch()
+            merge_fidelio.0.get_brane_epoch(),
+            split_fidelio.0.get_brane_epoch()
         );
     } else {
-        assert_eq!(merge_ufidelate.0.get_id(), split_create.0.get_id());
-        assert_eq!(merge_destroy.0.get_id(), split_ufidelate.0.get_id());
+        assert_eq!(merge_fidelio.0.get_id(), split_create.0.get_id());
+        assert_eq!(merge_destroy.0.get_id(), split_fidelio.0.get_id());
         assert_ne!(
-            merge_ufidelate.0.get_brane_epoch(),
+            merge_fidelio.0.get_brane_epoch(),
             split_create.0.get_brane_epoch()
         );
     }
 
     // Move out from this node
     // After last time calling "must_add_peer", this brane must have two peers
-    assert_eq!(merge_ufidelate.0.get_peers().len(), 2);
-    let r = merge_ufidelate.0.get_id();
+    assert_eq!(merge_fidelio.0.get_peers().len(), 2);
+    let r = merge_fidelio.0.get_id();
 
-    fidel_client.must_remove_peer(r, find_peer(&merge_ufidelate.0, 1).unwrap().clone());
+    fidel_client.must_remove_peer(r, find_peer(&merge_fidelio.0, 1).unwrap().clone());
 
-    let remove_peer_ufidelate = receiver.recv().unwrap();
-    // After being removed from the brane's peers, an ufidelate is triggered at first.
-    assert_eq!(remove_peer_ufidelate.1, BraneChangeEvent::Ufidelate);
-    assert!(find_peer(&remove_peer_ufidelate.0, 1).is_none());
+    let remove_peer_fidelio = receiver.recv().unwrap();
+    // After being removed from the brane's peers, an fidelio is triggered at first.
+    assert_eq!(remove_peer_fidelio.1, BraneChangeEvent::fidelio);
+    assert!(find_peer(&remove_peer_fidelio.0, 1).is_none());
 
     let remove_peer_destroy = receiver.recv().unwrap();
     receiver.try_recv().unwrap_err();

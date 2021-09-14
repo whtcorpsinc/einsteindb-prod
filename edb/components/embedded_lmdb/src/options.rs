@@ -3,7 +3,7 @@
 use lmdb::{
     ReadOptions as RawReadOptions, BlockFilter, BlockProperties, WriteOptions as RawWriteOptions,
 };
-use edb_util::codec::number;
+use violetabftstore::interlock::::codec::number;
 
 pub struct LmdbReadOptions(RawReadOptions);
 

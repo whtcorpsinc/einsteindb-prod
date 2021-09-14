@@ -1,12 +1,12 @@
 [readpool.interlock]
 
-[readpool.causetStorage]
+[readpool.causet_storage]
 
 [server]
 
-[causetStorage]
+[causet_storage]
 
-[causetStorage.block-cache]
+[causet_storage.block-cache]
 
 [fidel]
 

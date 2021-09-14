@@ -1,7 +1,7 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
 #![causet_attr(test, feature(test))]
-#![feature(cell_ufidelate)]
+#![feature(cell_fidelio)]
 #![feature(shrink_to)]
 #![feature(div_duration)]
 #![feature(min_specialization)]
@@ -21,7 +21,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_with;
 #[macro_use]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
 #[causet(test)]
 extern crate test;

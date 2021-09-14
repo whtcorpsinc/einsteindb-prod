@@ -3,13 +3,13 @@
 use async_trait::async_trait;
 use ekvproto::interlock::{KeyCone, Response};
 use protobuf::Message;
-use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
-use milevadb_query_common::causetStorage::Cone;
-use fidelpb::{ChecksumAlgorithm, ChecksumRequest, ChecksumResponse};
+use milevadb_query_common::causet_storage::scanner::{ConesScanner, ConesScannerOptions};
+use milevadb_query_common::causet_storage::Cone;
+use fidel_timeshare::{ChecksumAlgorithm, ChecksumRequest, ChecksumResponse};
 
 use crate::interlock::posetdag::EinsteinDBStorage;
 use crate::interlock::*;
-use crate::causetStorage::{Snapshot, SnapshotStore, Statistics};
+use crate::causet_storage::{Snapshot, SnapshotStore, Statistics};
 
 // `ChecksumContext` is used to handle `ChecksumRequest`
 pub struct ChecksumContext<S: Snapshot> {
@@ -34,10 +34,10 @@ impl<S: Snapshot> ChecksumContext<S> {
             false,
         );
         let scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage: EinsteinDBStorage::new(store, false),
+            causet_storage: EinsteinDBStorage::new(store, false),
             cones: cones
                 .into_iter()
-                .map(|r| Cone::from_pb_cone(r, false))
+                .map(|r| Cone::from__timeshare_cone(r, false))
                 .collect(),
             scan_backward_in_cone: false,
             is_key_only: false,
@@ -90,7 +90,7 @@ impl<S: Snapshot> RequestHandler for ChecksumContext<S> {
     }
 
     fn collect_scan_statistics(&mut self, dest: &mut Statistics) {
-        self.scanner.collect_causetStorage_stats(dest)
+        self.scanner.collect_causet_storage_stats(dest)
     }
 }
 

@@ -15,36 +15,36 @@ fn change(name: &str, value: &str) -> HashMap<String, String> {
 }
 
 #[test]
-fn test_ufidelate_config() {
+fn test_fidelio_config() {
     let (causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
     let causet_controller = ConfigController::new(causet);
     let mut causet = causet_controller.get_current().clone();
 
-    // normal ufidelate
+    // normal fidelio
     causet_controller
-        .ufidelate(change("violetabftstore.violetabft-log-gc-memory_barrier", "2000"))
+        .fidelio(change("violetabftstore.violetabft-log-gc-memory_barrier", "2000"))
         .unwrap();
     causet.violetabft_store.violetabft_log_gc_memory_barrier = 2000;
     assert_eq!(causet_controller.get_current(), causet);
 
-    // ufidelate not support config
-    let res = causet_controller.ufidelate(change("server.addr", "localhost:3000"));
+    // fidelio not support config
+    let res = causet_controller.fidelio(change("server.addr", "localhost:3000"));
     assert!(res.is_err());
     assert_eq!(causet_controller.get_current(), causet);
 
-    // ufidelate to invalid config
-    let res = causet_controller.ufidelate(change("violetabftstore.violetabft-log-gc-memory_barrier", "0"));
+    // fidelio to invalid config
+    let res = causet_controller.fidelio(change("violetabftstore.violetabft-log-gc-memory_barrier", "0"));
     assert!(res.is_err());
     assert_eq!(causet_controller.get_current(), causet);
 
-    // bad ufidelate request
-    let res = causet_controller.ufidelate(change("xxx.yyy", "0"));
+    // bad fidelio request
+    let res = causet_controller.fidelio(change("xxx.yyy", "0"));
     assert!(res.is_err());
-    let res = causet_controller.ufidelate(change("violetabftstore.xxx", "0"));
+    let res = causet_controller.fidelio(change("violetabftstore.xxx", "0"));
     assert!(res.is_err());
-    let res = causet_controller.ufidelate(change("violetabftstore.violetabft-log-gc-memory_barrier", "10MB"));
+    let res = causet_controller.fidelio(change("violetabftstore.violetabft-log-gc-memory_barrier", "10MB"));
     assert!(res.is_err());
-    let res = causet_controller.ufidelate(change("violetabft-log-gc-memory_barrier", "10MB"));
+    let res = causet_controller.fidelio(change("violetabft-log-gc-memory_barrier", "10MB"));
     assert!(res.is_err());
     assert_eq!(causet_controller.get_current(), causet);
 }
@@ -60,7 +60,7 @@ fn test_dispatch_change() {
 
     impl ConfigManager for CfgManager {
         fn dispatch(&mut self, c: ConfigChange) -> Result<(), Box<dyn Error>> {
-            self.0.dagger().unwrap().ufidelate(c);
+            self.0.dagger().unwrap().fidelio(c);
             Ok(())
         }
     }
@@ -72,10 +72,10 @@ fn test_dispatch_change() {
     causet_controller.register(Module::VioletaBftstore, Box::new(mgr.clone()));
 
     causet_controller
-        .ufidelate(change("violetabftstore.violetabft-log-gc-memory_barrier", "2000"))
+        .fidelio(change("violetabftstore.violetabft-log-gc-memory_barrier", "2000"))
         .unwrap();
 
-    // config ufidelate
+    // config fidelio
     causet.violetabft_store.violetabft_log_gc_memory_barrier = 2000;
     assert_eq!(causet_controller.get_current(), causet);
 
@@ -84,7 +84,7 @@ fn test_dispatch_change() {
 }
 
 #[test]
-fn test_write_ufidelate_to_file() {
+fn test_write_fidelio_to_file() {
     let (mut causet, tmp_dir) = EINSTEINDBConfig::with_tmp().unwrap();
     causet.causet_path = tmp_dir.path().join("causet_file").to_str().unwrap().to_owned();
     {
@@ -92,25 +92,25 @@ fn test_write_ufidelate_to_file() {
 ## comment should be reserve
 [violetabftstore]
 
-# config that comment out by one `#` should be ufidelate in place
+# config that comment out by one `#` should be fidelio in place
 ## fidel-heartbeat-tick-interval = "30s"
 # fidel-heartbeat-tick-interval = "30s"
 
 [lmdb.defaultcauset]
-## config should be ufidelate in place
+## config should be fidelio in place
 block-cache-size = "10GB"
 
 [lmdb.lockcauset]
-## this config will not ufidelate even it has the same last 
+## this config will not fidelio even it has the same last 
 ## name as `lmdb.defaultcauset.block-cache-size`
 block-cache-size = "512MB"
 
 [interlock]
-## the ufidelate to `interlock.brane-split-tuplespaceInstanton`, which do not show up
+## the fidelio to `interlock.brane-split-tuplespaceInstanton`, which do not show up
 ## as key-value pair after [interlock], will be written at the lightlike of [interlock]
 
 [gc]
-## config should be ufidelate in place
+## config should be fidelio in place
 max-write-bytes-per-sec = "1KB"
 
 [lmdb.defaultcauset.titan]
@@ -142,7 +142,7 @@ blob-run-mode = "normal"
         );
         change
     };
-    causet_controller.ufidelate(change).unwrap();
+    causet_controller.fidelio(change).unwrap();
     let res = {
         let mut buf = Vec::new();
         let mut f = File::open(&causet_controller.get_current().causet_path).unwrap();
@@ -154,26 +154,26 @@ blob-run-mode = "normal"
 ## comment should be reserve
 [violetabftstore]
 
-# config that comment out by one `#` should be ufidelate in place
+# config that comment out by one `#` should be fidelio in place
 ## fidel-heartbeat-tick-interval = "30s"
 fidel-heartbeat-tick-interval = "1h"
 
 [lmdb.defaultcauset]
-## config should be ufidelate in place
+## config should be fidelio in place
 block-cache-size = "1GB"
 
 [lmdb.lockcauset]
-## this config will not ufidelate even it has the same last 
+## this config will not fidelio even it has the same last 
 ## name as `lmdb.defaultcauset.block-cache-size`
 block-cache-size = "512MB"
 
 [interlock]
-## the ufidelate to `interlock.brane-split-tuplespaceInstanton`, which do not show up
+## the fidelio to `interlock.brane-split-tuplespaceInstanton`, which do not show up
 ## as key-value pair after [interlock], will be written at the lightlike of [interlock]
 
 brane-split-tuplespaceInstanton = 10000
 [gc]
-## config should be ufidelate in place
+## config should be fidelio in place
 max-write-bytes-per-sec = "100MB"
 
 [lmdb.defaultcauset.titan]

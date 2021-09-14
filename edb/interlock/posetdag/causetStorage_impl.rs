@@ -1,16 +1,16 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use milevadb_query_common::causetStorage::{
-    IntervalCone, OwnedKvPair, PointCone, Result as QEResult, CausetStorage,
+use milevadb_query_common::interlock::{
+    IntervalCone, OwnedKvPair, PointCone, Result as QEResult, interlock,
 };
 
 use crate::interlock::Error;
-use crate::causetStorage::tail_pointer::NewerTsCheckState;
-use crate::causetStorage::Statistics;
-use crate::causetStorage::{Scanner, CausetStore};
+use crate::interlock::tail_pointer::NewerTsCheckState;
+use crate::interlock::Statistics;
+use crate::interlock::{Scanner, CausetStore};
 use txn_types::Key;
 
-/// A `CausetStorage` implementation over EinsteinDB's causetStorage.
+/// A `interlock` implementation over EinsteinDB's interlock.
 pub struct EinsteinDBStorage<S: CausetStore> {
     store: S,
     scanner: Option<S::Scanner>,
@@ -33,7 +33,7 @@ impl<S: CausetStore> EinsteinDBStorage<S> {
     }
 }
 
-impl<S: CausetStore> CausetStorage for EinsteinDBStorage<S> {
+impl<S: CausetStore> interlock for EinsteinDBStorage<S> {
     type Statistics = Statistics;
 
     fn begin_scan(
@@ -61,7 +61,7 @@ impl<S: CausetStore> CausetStorage for EinsteinDBStorage<S> {
                     upper,
                 )
                 .map_err(Error::from)?,
-            // There is no transform from causetStorage error to QE's StorageError,
+            // There is no transform from interlock error to QE's StorageError,
             // so an intermediate error is needed.
         );
         Ok(())

@@ -98,7 +98,7 @@ impl UserCollectedProperties for PanicUserCollectedProperties {
 }
 
 impl DecodeProperties for PanicUserCollectedProperties {
-    fn decode(&self, k: &str) -> edb_util::codec::Result<&[u8]> {
+    fn decode(&self, k: &str) -> violetabftstore::interlock::::codec::Result<&[u8]> {
         panic!()
     }
 }

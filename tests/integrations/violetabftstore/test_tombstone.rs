@@ -5,10 +5,10 @@ use std::thread;
 use std::time::*;
 
 use crossbeam::channel;
-use ekvproto::violetabft_serverpb::{PeerState, VioletaBftMessage, BraneLocalState, StoreIdent};
+use ekvproto::violetabft_server_timeshare::{PeerState, VioletaBftMessage, BraneLocalState, StoreIdent};
 use protobuf::Message;
-use violetabft::evioletabftpb::MessageType;
-use edb_util::config::*;
+use violetabft::evioletabft_timeshare::MessageType;
+use violetabftstore::interlock::::config::*;
 
 use engine_lmdb::raw::WriBlock;
 use engine_lmdb::Compat;

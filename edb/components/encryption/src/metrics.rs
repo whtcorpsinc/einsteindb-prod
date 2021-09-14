@@ -4,7 +4,7 @@ use prometheus::*;
 
 lazy_static::lazy_static! {
     pub static ref ENCRYPTION_DATA_KEY_GAUGE: IntGauge = register_int_gauge!(
-        "edb_encryption_data_key_causetStorage_total",
+        "edb_encryption_data_key_causet_storage_total",
         "Total number of ecryption data tuplespaceInstanton in use"
     ).unwrap();
     pub static ref ENCRYPTION_FILE_NUM_GAUGE: IntGauge = register_int_gauge!(

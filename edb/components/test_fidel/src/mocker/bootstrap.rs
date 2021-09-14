@@ -1,6 +1,6 @@
 // Copyright 2020 WHTCORPS INC Project Authors. Licensed Under Apache-2.0
 
-use ekvproto::fidelpb::*;
+use ekvproto::fidel_timeshare::*;
 
 use super::*;
 

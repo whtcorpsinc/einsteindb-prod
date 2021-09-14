@@ -6,26 +6,26 @@ use std::sync::Arc;
 
 use ekvproto::interlock::KeyCone;
 use milevadb_query_datatype::{EvalType, FieldTypeAccessor};
-use edb_util::collections::HashMap;
-use fidelpb::PrimaryCausetInfo;
-use fidelpb::FieldType;
-use fidelpb::BlockScan;
+use violetabftstore::interlock::::collections::HashMap;
+use fidel_timeshare::PrimaryCausetInfo;
+use fidel_timeshare::FieldType;
+use fidel_timeshare::BlockScan;
 
 use super::util::scan_executor::*;
 use crate::interface::*;
-use milevadb_query_common::causetStorage::{IntervalCone, CausetStorage};
+use milevadb_query_common::causet_storage::{IntervalCone, causet_storage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::codec::Evcausetidx;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
 
-pub struct BatchBlockScanFreeDaemon<S: CausetStorage>(ScanFreeDaemon<S, BlockScanFreeDaemonImpl>);
+pub struct BatchBlockScanFreeDaemon<S: causet_storage>(ScanFreeDaemon<S, BlockScanFreeDaemonImpl>);
 
 type HandleIndicesVec = SmallVec<[usize; 2]>;
 
-// We assign a dummy type `Box<dyn CausetStorage<Statistics = ()>>` so that we can omit the type
+// We assign a dummy type `Box<dyn causet_storage<Statistics = ()>>` so that we can omit the type
 // when calling `check_supported`.
-impl BatchBlockScanFreeDaemon<Box<dyn CausetStorage<Statistics = ()>>> {
+impl BatchBlockScanFreeDaemon<Box<dyn causet_storage<Statistics = ()>>> {
     /// Checks whether this executor can be used.
     #[inline]
     pub fn check_supported(descriptor: &BlockScan) -> Result<()> {
@@ -33,9 +33,9 @@ impl BatchBlockScanFreeDaemon<Box<dyn CausetStorage<Statistics = ()>>> {
     }
 }
 
-impl<S: CausetStorage> BatchBlockScanFreeDaemon<S> {
+impl<S: causet_storage> BatchBlockScanFreeDaemon<S> {
     pub fn new(
-        causetStorage: S,
+        causet_storage: S,
         config: Arc<EvalConfig>,
         PrimaryCausets_info: Vec<PrimaryCausetInfo>,
         key_cones: Vec<KeyCone>,
@@ -86,7 +86,7 @@ impl<S: CausetStorage> BatchBlockScanFreeDaemon<S> {
         };
         let wrapper = ScanFreeDaemon::new(ScanFreeDaemonOptions {
             imp,
-            causetStorage,
+            causet_storage,
             key_cones,
             is_backward,
             is_key_only,
@@ -97,7 +97,7 @@ impl<S: CausetStorage> BatchBlockScanFreeDaemon<S> {
     }
 }
 
-impl<S: CausetStorage> BatchFreeDaemon for BatchBlockScanFreeDaemon<S> {
+impl<S: causet_storage> BatchFreeDaemon for BatchBlockScanFreeDaemon<S> {
     type StorageStats = S::Statistics;
 
     #[inline]
@@ -116,8 +116,8 @@ impl<S: CausetStorage> BatchFreeDaemon for BatchBlockScanFreeDaemon<S> {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.0.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.0.collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -137,7 +137,7 @@ struct BlockScanFreeDaemonImpl {
     context: EvalContext,
 
     /// The schemaReplicant of the output. All of the output come from specific PrimaryCausets in the underlying
-    /// causetStorage.
+    /// causet_storage.
     schemaReplicant: Vec<FieldType>,
 
     /// The default value of corresponding PrimaryCausets in the schemaReplicant. When PrimaryCauset data is missing,
@@ -392,11 +392,11 @@ mod tests {
 
     use ekvproto::interlock::KeyCone;
     use milevadb_query_datatype::{EvalType, FieldTypeAccessor, FieldTypeTp};
-    use fidelpb::PrimaryCausetInfo;
-    use fidelpb::FieldType;
+    use fidel_timeshare::PrimaryCausetInfo;
+    use fidel_timeshare::FieldType;
 
     use milevadb_query_common::execute_stats::*;
-    use milevadb_query_common::causetStorage::test_fixture::FixtureStorage;
+    use milevadb_query_common::causet_storage::test_fixture::FixtureStorage;
     use milevadb_query_common::util::convert_to_prefix_next;
     use milevadb_query_datatype::codec::batch::LazyBatchPrimaryCausetVec;
     use milevadb_query_datatype::codec::data_type::*;
@@ -941,7 +941,7 @@ mod tests {
             kv.push((key, Ok(value)));
         }
         {
-            // Evcausetidx 1: causetStorage error
+            // Evcausetidx 1: causet_storage error
             let key = Block::encode_row_key(Block_ID, 1);
             let value: std::result::Result<
                 _,
@@ -1276,7 +1276,7 @@ mod tests {
             result.physical_PrimaryCausets.PrimaryCausets_len(),
             PrimaryCausets.len() - missed_PrimaryCausets_info.len()
         );
-        // We expect we fill the primary PrimaryCauset with the value raum in the common handle.
+        // We expect we fill the primary PrimaryCauset with the value allegro in the common handle.
         for i in 0..result.physical_PrimaryCausets.PrimaryCausets_len() {
             result.physical_PrimaryCausets[i]
                 .ensure_all_decoded_for_test(&mut EvalContext::default(), &schemaReplicant[i])

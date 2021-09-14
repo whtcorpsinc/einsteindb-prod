@@ -15,7 +15,7 @@ use uuid;
 use hyper;
 use serde_json;
 
-use edb_promises::errors::{
+use causetq_pull_promises::errors::{
     DbError,
 };
 

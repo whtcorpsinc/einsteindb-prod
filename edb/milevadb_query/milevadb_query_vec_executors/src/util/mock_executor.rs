@@ -1,9 +1,9 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use fidelpb::FieldType;
+use fidel_timeshare::FieldType;
 
 use crate::interface::*;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 
 /// A simple mock executor that will return batch data according to a fixture without any
 /// modification.
@@ -39,7 +39,7 @@ impl BatchFreeDaemon for MockFreeDaemon {
         // Do nothing
     }
 
-    fn collect_causetStorage_stats(&mut self, _dest: &mut Self::StorageStats) {
+    fn collect_causet_storage_stats(&mut self, _dest: &mut Self::StorageStats) {
         // Do nothing
     }
 

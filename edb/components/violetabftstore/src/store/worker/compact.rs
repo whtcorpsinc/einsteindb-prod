@@ -7,7 +7,7 @@ use std::time::Instant;
 
 use edb::KvEngine;
 use edb::Causet_WRITE;
-use edb_util::worker::Runnable;
+use violetabftstore::interlock::::worker::Runnable;
 
 use super::metrics::COMPACT_RANGE_Causet;
 use engine_lmdb::properties::get_cone_entries_and_versions;

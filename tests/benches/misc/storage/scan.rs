@@ -2,9 +2,9 @@
 
 use test::Bencher;
 
-use ekvproto::kvrpcpb::Context;
+use ekvproto::kvrpc_timeshare::Context;
 
-use test_causetStorage::SyncTestStorageBuilder;
+use test_causet_storage::SyncTestStorageBuilder;
 use test_util::*;
 use txn_types::{Key, Mutation};
 

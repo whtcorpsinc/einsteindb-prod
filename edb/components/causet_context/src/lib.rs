@@ -7,7 +7,7 @@ extern crate failure;
 #[macro_use(fail_point)]
 extern crate fail;
 #[macro_use]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
 mod pushdown_causet;
 mod lightlikepoint;

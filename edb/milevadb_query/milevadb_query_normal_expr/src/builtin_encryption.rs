@@ -185,7 +185,7 @@ mod tests {
     use crate::Expression;
     use milevadb_query_datatype::codec::Datum;
     use milevadb_query_datatype::expr::EvalContext;
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     #[test]
     fn test_md5() {

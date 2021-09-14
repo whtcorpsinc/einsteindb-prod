@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use test_violetabftstore::*;
 
-use edb_util::config::*;
+use violetabftstore::interlock::::config::*;
 
 #[test]
 fn test_plightlikeing_peers() {

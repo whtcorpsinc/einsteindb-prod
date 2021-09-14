@@ -6,14 +6,14 @@ use std::time::*;
 use std::{result, thread};
 
 use futures::executor::block_on;
-use ekvproto::errorpb::Error as PbError;
-use ekvproto::metapb::{self, Peer, BraneEpoch, StoreLabel};
-use ekvproto::fidelpb;
-use ekvproto::violetabft_cmdpb::*;
-use ekvproto::violetabft_serverpb::{
+use ekvproto::error_timeshare::Error as PbError;
+use ekvproto::meta_timeshare::{self, Peer, BraneEpoch, StoreLabel};
+use ekvproto::fidel_timeshare;
+use ekvproto::violetabft_cmd_timeshare::*;
+use ekvproto::violetabft_server_timeshare::{
     self, VioletaBftApplyState, VioletaBftLocalState, VioletaBftMessage, VioletaBftTruncatedState, BraneLocalState,
 };
-use violetabft::evioletabftpb::ConfChangeType;
+use violetabft::evioletabft_timeshare::ConfChangeType;
 use tempfile::TempDir;
 
 use encryption::DataKeyManager;
@@ -30,11 +30,11 @@ use violetabftstore::store::*;
 use violetabftstore::{Error, Result};
 use edb::config::EINSTEINDBConfig;
 use edb::server::Result as ServerResult;
-use edb_util::collections::{HashMap, HashSet};
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::collections::{HashMap, HashSet};
+use violetabftstore::interlock::::HandyRwLock;
 
 use super::*;
-use edb_util::time::ThreadReadId;
+use violetabftstore::interlock::::time::ThreadReadId;
 
 // We simulate 3 or 5 nodes, each has a store.
 // Sometimes, we use fixed id to test, which means the id
@@ -122,7 +122,7 @@ pub trait Simulator {
 
 pub struct Cluster<T: Simulator> {
     pub causet: EINSTEINDBConfig,
-    leaders: HashMap<u64, metapb::Peer>,
+    leaders: HashMap<u64, meta_timeshare::Peer>,
     count: usize,
 
     pub paths: Vec<TempDir>,
@@ -168,7 +168,7 @@ impl<T: Simulator> Cluster<T> {
 
     pub fn pre_spacelike_check(&mut self) -> result::Result<(), Box<dyn StdError>> {
         for path in &self.paths {
-            self.causet.causetStorage.data_dir = path.path().to_str().unwrap().to_owned();
+            self.causet.causet_storage.data_dir = path.path().to_str().unwrap().to_owned();
             self.causet.validate()?
         }
         Ok(())
@@ -420,7 +420,7 @@ impl<T: Simulator> Cluster<T> {
         store_id: u64,
         brane_id: u64,
         timeout: Duration,
-    ) -> Option<metapb::Peer> {
+    ) -> Option<meta_timeshare::Peer> {
         // To get brane leader, we don't care real peer id, so use 0 instead.
         let peer = new_peer(store_id, 0);
         let find_leader = new_status_request(brane_id, peer, new_brane_leader_cmd());
@@ -443,7 +443,7 @@ impl<T: Simulator> Cluster<T> {
         }
     }
 
-    pub fn leader_of_brane(&mut self, brane_id: u64) -> Option<metapb::Peer> {
+    pub fn leader_of_brane(&mut self, brane_id: u64) -> Option<meta_timeshare::Peer> {
         let store_ids = match self.store_ids_of_brane(brane_id) {
             None => return None,
             Some(ids) => ids,
@@ -505,7 +505,7 @@ impl<T: Simulator> Cluster<T> {
     // But another node may request bootstrap at same time and get is_bootstrap false
     // Add Brane but not set bootstrap to true
     pub fn add_first_brane(&self) -> Result<()> {
-        let mut brane = metapb::Brane::default();
+        let mut brane = meta_timeshare::Brane::default();
         let brane_id = self.fidel_client.alloc_id().unwrap();
         let peer_id = self.fidel_client.alloc_id().unwrap();
         brane.set_id(brane_id);
@@ -534,7 +534,7 @@ impl<T: Simulator> Cluster<T> {
                 .insert(id, self.key_managers[i].clone());
         }
 
-        let mut brane = metapb::Brane::default();
+        let mut brane = meta_timeshare::Brane::default();
         brane.set_id(1);
         brane.set_spacelike_key(tuplespaceInstanton::EMPTY_KEY.to_vec());
         brane.set_lightlike_key(tuplespaceInstanton::EMPTY_KEY.to_vec());
@@ -582,7 +582,7 @@ impl<T: Simulator> Cluster<T> {
     }
 
     // This is only for fixed id test.
-    fn bootstrap_cluster(&mut self, brane: metapb::Brane) {
+    fn bootstrap_cluster(&mut self, brane: meta_timeshare::Brane) {
         self.fidel_client
             .bootstrap_cluster(new_store(1, "".to_owned()), brane)
             .unwrap();
@@ -759,9 +759,9 @@ impl<T: Simulator> Cluster<T> {
     }
 
     // Get brane when the `filter` returns true.
-    pub fn get_brane_with<F>(&self, key: &[u8], filter: F) -> metapb::Brane
+    pub fn get_brane_with<F>(&self, key: &[u8], filter: F) -> meta_timeshare::Brane
     where
-        F: Fn(&metapb::Brane) -> bool,
+        F: Fn(&meta_timeshare::Brane) -> bool,
     {
         for _ in 0..100 {
             if let Ok(brane) = self.fidel_client.get_brane(key) {
@@ -777,7 +777,7 @@ impl<T: Simulator> Cluster<T> {
         panic!("find no brane for {}", hex::encode_upper(key));
     }
 
-    pub fn get_brane(&self, key: &[u8]) -> metapb::Brane {
+    pub fn get_brane(&self, key: &[u8]) -> meta_timeshare::Brane {
         self.get_brane_with(key, |_| true)
     }
 
@@ -785,7 +785,7 @@ impl<T: Simulator> Cluster<T> {
         self.get_brane(key).get_id()
     }
 
-    pub fn get_down_peers(&self) -> HashMap<u64, fidelpb::PeerStats> {
+    pub fn get_down_peers(&self) -> HashMap<u64, fidel_timeshare::PeerStats> {
         self.fidel_client.get_down_peers()
     }
 
@@ -848,7 +848,7 @@ impl<T: Simulator> Cluster<T> {
     pub fn async_remove_peer(
         &mut self,
         brane_id: u64,
-        peer: metapb::Peer,
+        peer: meta_timeshare::Peer,
     ) -> Result<mpsc::Receiver<VioletaBftCmdResponse>> {
         let brane = block_on(self.fidel_client.get_brane_by_id(brane_id))
             .unwrap()
@@ -861,7 +861,7 @@ impl<T: Simulator> Cluster<T> {
     pub fn async_add_peer(
         &mut self,
         brane_id: u64,
-        peer: metapb::Peer,
+        peer: meta_timeshare::Peer,
     ) -> Result<mpsc::Receiver<VioletaBftCmdResponse>> {
         let brane = block_on(self.fidel_client.get_brane_by_id(brane_id))
             .unwrap()
@@ -991,7 +991,7 @@ impl<T: Simulator> Cluster<T> {
         let key = tuplespaceInstanton::violetabft_state_key(brane_id);
         self.get_violetabft_engine(store_id)
             .c()
-            .get_msg::<violetabft_serverpb::VioletaBftLocalState>(&key)
+            .get_msg::<violetabft_server_timeshare::VioletaBftLocalState>(&key)
             .unwrap()
             .unwrap()
     }
@@ -1099,7 +1099,7 @@ impl<T: Simulator> Cluster<T> {
         }
     }
 
-    pub fn transfer_leader(&mut self, brane_id: u64, leader: metapb::Peer) {
+    pub fn transfer_leader(&mut self, brane_id: u64, leader: meta_timeshare::Peer) {
         let epoch = self.get_brane_epoch(brane_id);
         let transfer_leader = new_admin_request(brane_id, &epoch, new_transfer_leader_cmd(leader));
         let resp = self
@@ -1113,7 +1113,7 @@ impl<T: Simulator> Cluster<T> {
         );
     }
 
-    pub fn must_transfer_leader(&mut self, brane_id: u64, leader: metapb::Peer) {
+    pub fn must_transfer_leader(&mut self, brane_id: u64, leader: meta_timeshare::Peer) {
         let timer = Instant::now();
         loop {
             self.reset_leader_of_brane(brane_id);
@@ -1143,11 +1143,11 @@ impl<T: Simulator> Cluster<T> {
     }
 
     // It's similar to `ask_split`, the difference is the msg, it lightlikes, is `Msg::SplitBrane`,
-    // and `brane` will not be raum to that msg.
+    // and `brane` will not be allegro to that msg.
     // Caller must ensure that the `split_key` is in the `brane`.
     pub fn split_brane(
         &mut self,
-        brane: &metapb::Brane,
+        brane: &meta_timeshare::Brane,
         split_key: &[u8],
         cb: Callback<LmdbSnapshot>,
     ) {
@@ -1166,7 +1166,7 @@ impl<T: Simulator> Cluster<T> {
         .unwrap();
     }
 
-    pub fn must_split(&mut self, brane: &metapb::Brane, split_key: &[u8]) {
+    pub fn must_split(&mut self, brane: &meta_timeshare::Brane, split_key: &[u8]) {
         let mut try_cnt = 0;
         let split_count = self.fidel_client.get_split_count();
         loop {
@@ -1218,13 +1218,13 @@ impl<T: Simulator> Cluster<T> {
         }
     }
 
-    pub fn wait_brane_split(&mut self, brane: &metapb::Brane) {
+    pub fn wait_brane_split(&mut self, brane: &meta_timeshare::Brane) {
         self.wait_brane_split_max_cnt(brane, 20, 250, true);
     }
 
     pub fn wait_brane_split_max_cnt(
         &mut self,
-        brane: &metapb::Brane,
+        brane: &meta_timeshare::Brane,
         itvl_ms: u64,
         max_try_cnt: u64,
         is_panic: bool,

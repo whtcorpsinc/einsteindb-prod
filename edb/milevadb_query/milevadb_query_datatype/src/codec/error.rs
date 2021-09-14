@@ -12,7 +12,7 @@ use quick_error::quick_error;
 use regex::Error as RegexpError;
 use serde_json::error::Error as SerdeError;
 use milevadb_query_common::error::EvaluateError;
-use fidelpb::{self, ScalarFuncSig};
+use fidel_timeshare::{self, ScalarFuncSig};
 
 pub const ERR_M_BIGGER_THAN_D: i32 = 1427;
 pub const ERR_UNKNOWN: i32 = 1105;
@@ -119,7 +119,7 @@ impl Error {
     }
 
     pub fn unexpected_eof() -> Error {
-        edb_util::codec::Error::unexpected_eof().into()
+        violetabftstore::interlock::::codec::Error::unexpected_eof().into()
     }
 
     pub fn invalid_time_format(val: impl Display) -> Error {
@@ -150,9 +150,9 @@ impl Error {
     }
 }
 
-impl From<Error> for fidelpb::Error {
-    fn from(error: Error) -> fidelpb::Error {
-        let mut err = fidelpb::Error::default();
+impl From<Error> for fidel_timeshare::Error {
+    fn from(error: Error) -> fidel_timeshare::Error {
+        let mut err = fidel_timeshare::Error::default();
         err.set_code(error.code());
         err.set_msg(error.to_string());
         err
@@ -177,15 +177,15 @@ impl From<ParseFloatError> for Error {
     }
 }
 
-impl From<edb_util::codec::Error> for Error {
-    fn from(err: edb_util::codec::Error) -> Error {
+impl From<violetabftstore::interlock::::codec::Error> for Error {
+    fn from(err: violetabftstore::interlock::::codec::Error) -> Error {
         box_err!("codec:{:?}", err)
     }
 }
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
-        let uerr: edb_util::codec::Error = err.into();
+        let uerr: violetabftstore::interlock::::codec::Error = err.into();
         uerr.into()
     }
 }

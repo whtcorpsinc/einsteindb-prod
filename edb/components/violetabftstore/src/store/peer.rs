@@ -10,21 +10,21 @@ use std::{cmp, mem, u64, usize};
 use crossbeam::atomic::AtomicCell;
 use edb::{Engines, KvEngine, VioletaBftEngine, Snapshot, WriteOptions};
 use error_code::ErrorCodeExt;
-use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
-use ekvproto::metapb;
-use ekvproto::fidelpb::PeerStats;
-use ekvproto::violetabft_cmdpb::{
+use ekvproto::kvrpc_timeshare::ExtraOp as TxnExtraOp;
+use ekvproto::meta_timeshare;
+use ekvproto::fidel_timeshare::PeerStats;
+use ekvproto::violetabft_cmd_timeshare::{
     AdminCmdType, AdminResponse, CmdType, CommitMergeRequest, VioletaBftCmdRequest, VioletaBftCmdResponse,
     TransferLeaderRequest, TransferLeaderResponse,
 };
-use ekvproto::violetabft_serverpb::{
+use ekvproto::violetabft_server_timeshare::{
     ExtraMessage, ExtraMessageType, MergeState, PeerState, VioletaBftApplyState, VioletaBftMessage,
 };
-use ekvproto::replication_modepb::{
+use ekvproto::replication_mode_timeshare::{
     DrAutoSyncState, BraneReplicationState, BraneReplicationStatus, ReplicationMode,
 };
 use protobuf::Message;
-use violetabft::evioletabftpb::{self, ConfChangeType, EntryType, MessageType};
+use violetabft::evioletabft_timeshare::{self, ConfChangeType, EntryType, MessageType};
 use violetabft::{
     self, Changer, ProgressState, ProgressTracker, RawNode, Ready, SnapshotStatus, StateRole,
     INVALID_INDEX, NO_LIMIT,
@@ -43,16 +43,16 @@ use crate::store::worker::{Readpushdown_causet, ReadFreeDaemon, ReadProgress, Br
 use crate::store::{Callback, Config, GlobalReplicationState, FidelTask, ReadResponse};
 use crate::{Error, Result};
 use fidel_client::INVALID_ID;
-use edb_util::collections::{HashMap, HashSet};
-use edb_util::time::{duration_to_sec, monotonic_raw_now};
-use edb_util::time::{Instant as UtilInstant, ThreadReadId};
-use edb_util::worker::{FutureInterlock_Semaphore, Interlock_Semaphore};
-use edb_util::Either;
+use violetabftstore::interlock::::collections::{HashMap, HashSet};
+use violetabftstore::interlock::::time::{duration_to_sec, monotonic_raw_now};
+use violetabftstore::interlock::::time::{Instant as UtilInstant, ThreadReadId};
+use violetabftstore::interlock::::worker::{FutureInterlock_Semaphore, Interlock_Semaphore};
+use violetabftstore::interlock::::Either;
 
 use super::cmd_resp;
 use super::local_metrics::{VioletaBftMessageMetrics, VioletaBftReadyMetrics};
 use super::metrics::*;
-use super::peer_causetStorage::{
+use super::peer_causet_storage::{
     write_peer_state, ApplySnapResult, CheckApplyingSnapStatus, InvokeContext, PeerStorage,
 };
 use super::read_queue::{ReadIndexQueue, ReadIndexRequest};
@@ -135,7 +135,7 @@ impl<S: Snapshot> ProposalQueue<S> {
 
 bitflags! {
     // TODO: maybe declare it as protobuf struct is better.
-    /// A bitmap contains some useful flags when dealing with `evioletabftpb::Entry`.
+    /// A bitmap contains some useful flags when dealing with `evioletabft_timeshare::Entry`.
     pub struct ProposalContext: u8 {
         const SYNC_LOG       = 0b0000_0001;
         const SPLIT          = 0b0000_0010;
@@ -220,7 +220,7 @@ impl<S: Snapshot> Default for CmdEpochChecker<S> {
 }
 
 impl<S: Snapshot> CmdEpochChecker<S> {
-    fn maybe_ufidelate_term(&mut self, term: u64) {
+    fn maybe_fidelio_term(&mut self, term: u64) {
         assert!(term >= self.term);
         if term > self.term {
             self.term = term;
@@ -237,7 +237,7 @@ impl<S: Snapshot> CmdEpochChecker<S> {
     /// Returns None if passing the epoch check, otherwise returns a index which is the last
     /// admin cmd index conflicted with this proposal.
     pub fn propose_check_epoch(&mut self, req: &VioletaBftCmdRequest, term: u64) -> Option<u64> {
-        self.maybe_ufidelate_term(term);
+        self.maybe_fidelio_term(term);
         let (check_ver, check_conf_ver) = if !req.has_admin_request() {
             (NORMAL_REQ_CHECK_VER, NORMAL_REQ_CHECK_CONF_VER)
         } else {
@@ -250,7 +250,7 @@ impl<S: Snapshot> CmdEpochChecker<S> {
     }
 
     pub fn post_propose(&mut self, cmd_type: AdminCmdType, index: u64, term: u64) {
-        self.maybe_ufidelate_term(term);
+        self.maybe_fidelio_term(term);
         // Due to `test_admin_cmd_epoch_map_include_all_cmd_type`, using unwrap is ok.
         let epoch_state = *ADMIN_CMD_EPOCH_MAP.get(&cmd_type).unwrap();
         assert!(self
@@ -277,8 +277,8 @@ impl<S: Snapshot> CmdEpochChecker<S> {
             .map(|cmd| cmd.index)
     }
 
-    pub fn advance_apply(&mut self, index: u64, term: u64, brane: &metapb::Brane) {
-        self.maybe_ufidelate_term(term);
+    pub fn advance_apply(&mut self, index: u64, term: u64, brane: &meta_timeshare::Brane) {
+        self.maybe_fidelio_term(term);
         while !self.proposed_admin_cmd.is_empty() {
             let cmd = self.proposed_admin_cmd.front_mut().unwrap();
             if cmd.index <= index {
@@ -339,12 +339,12 @@ where
     /// Peer_tag, "[brane <brane_id>] <peer_id>"
     pub tag: String,
     /// The Peer meta information.
-    pub peer: metapb::Peer,
+    pub peer: meta_timeshare::Peer,
 
     /// The VioletaBft state machine of this Peer.
     pub violetabft_group: RawNode<PeerStorage<EK, ER>>,
     /// The cache of meta information for Brane's other Peers.
-    peer_cache: RefCell<HashMap<u64, metapb::Peer>>,
+    peer_cache: RefCell<HashMap<u64, meta_timeshare::Peer>>,
     /// Record the last instant of each peer's heartbeat response.
     pub peer_heartbeats: HashMap<u64, Instant>,
 
@@ -363,7 +363,7 @@ where
     /// 2. all read requests must be rejected.
     pub plightlikeing_remove: bool,
     /// If a snapshot is being applied asynchronously, messages should not be sent.
-    plightlikeing_messages: Vec<evioletabftpb::Message>,
+    plightlikeing_messages: Vec<evioletabft_timeshare::Message>,
 
     /// Record the instants of peers being added into the configuration.
     /// Remove them after they are not plightlikeing any more.
@@ -377,7 +377,7 @@ where
     /// The count of deleted tuplespaceInstanton since last reset.
     delete_tuplespaceInstanton_hint: u64,
     /// An inaccurate difference in brane size after compaction.
-    /// It is used to trigger check split to ufidelate approximate size and tuplespaceInstanton after space reclamation
+    /// It is used to trigger check split to fidelio approximate size and tuplespaceInstanton after space reclamation
     /// of deleted entries.
     pub compaction_declined_bytes: u64,
     /// Approximate size of the brane.
@@ -432,20 +432,20 @@ where
     /// The knownCauset newest conf version and its corresponding peer list
     /// lightlike to these peers to check whether itself is stale.
     pub check_stale_conf_ver: u64,
-    pub check_stale_peers: Vec<metapb::Peer>,
+    pub check_stale_peers: Vec<meta_timeshare::Peer>,
     /// Whether this peer is created by replication and is the first
     /// one of this brane on local store.
     pub local_first_replicate: bool,
 
     pub txn_extra_op: Arc<AtomicCell<TxnExtraOp>>,
 
-    /// The max timestamp recorded in the concurrency manager is only ufidelated at leader.
+    /// The max timestamp recorded in the concurrency manager is only fideliod at leader.
     /// So if a peer becomes leader from a follower, the max timestamp can be outdated.
-    /// We need to ufidelate the max timestamp with a latest timestamp from FIDel before this
+    /// We need to fidelio the max timestamp with a latest timestamp from FIDel before this
     /// peer can work.
     /// From the least significant to the most, 1 bit marks whether the timestamp is
-    /// ufidelated, 31 bits for the current epoch version, 32 bits for the current term.
-    /// The version and term are stored to prevent stale UfidelateMaxTimestamp task from
+    /// fideliod, 31 bits for the current epoch version, 32 bits for the current term.
+    /// The version and term are stored to prevent stale fidelioMaxTimestamp task from
     /// marking the lowest bit.
     pub max_ts_sync_status: Arc<AtomicU64>,
 
@@ -463,8 +463,8 @@ where
         causet: &Config,
         sched: Interlock_Semaphore<BraneTask<EK::Snapshot>>,
         engines: Engines<EK, ER>,
-        brane: &metapb::Brane,
-        peer: metapb::Peer,
+        brane: &meta_timeshare::Brane,
+        peer: meta_timeshare::Peer,
     ) -> Result<Peer<EK, ER>> {
         if peer.get_id() == violetabft::INVALID_ID {
             return Err(box_err!("invalid peer id"));
@@ -574,7 +574,7 @@ where
         self.dr_auto_sync_state = state.status().get_dr_auto_sync().get_state();
     }
 
-    /// Ufidelates replication mode.
+    /// fidelios replication mode.
     pub fn switch_replication_mode(&mut self, state: &Mutex<GlobalReplicationState>) {
         self.replication_sync = false;
         let mut guard = state.dagger().unwrap();
@@ -638,9 +638,9 @@ where
         let mut entries = merge.get_entries();
         if entries.is_empty() {
             // Though the entries is empty, it is possible that one source peer has caught up the logs
-            // but commit index is not ufidelated. If Other source peers are already destroyed, so the violetabft
+            // but commit index is not fideliod. If Other source peers are already destroyed, so the violetabft
             // group will not make any progress, namely the source peer can not get the latest commit index anymore.
-            // Here ufidelate the commit index to let source apply rest uncommitted entries.
+            // Here fidelio the commit index to let source apply rest uncommitted entries.
             return if merge.get_commit() > self.violetabft_group.violetabft.violetabft_log.committed {
                 self.violetabft_group.violetabft.violetabft_log.commit_to(merge.get_commit());
                 Some(merge.get_commit())
@@ -790,7 +790,7 @@ where
     }
 
     #[inline]
-    pub fn brane(&self) -> &metapb::Brane {
+    pub fn brane(&self) -> &meta_timeshare::Brane {
         self.get_store().brane()
     }
 
@@ -865,13 +865,13 @@ where
 
     /// Set the brane of a peer.
     ///
-    /// This will ufidelate the brane of the peer, caller must ensure the brane
+    /// This will fidelio the brane of the peer, caller must ensure the brane
     /// has been preserved in a durable device.
     pub fn set_brane(
         &mut self,
         host: &InterlockHost<impl KvEngine>,
         reader: &mut Readpushdown_causet,
-        brane: metapb::Brane,
+        brane: meta_timeshare::Brane,
     ) {
         if self.brane().get_brane_epoch().get_version() < brane.get_brane_epoch().get_version()
         {
@@ -880,12 +880,12 @@ where
         }
         self.mut_store().set_brane(brane.clone());
         let progress = ReadProgress::brane(brane);
-        // Always ufidelate read pushdown_causet's brane to avoid stale brane info after a follower
+        // Always fidelio read pushdown_causet's brane to avoid stale brane info after a follower
         // becoming a leader.
-        self.maybe_ufidelate_read_progress(reader, progress);
+        self.maybe_fidelio_read_progress(reader, progress);
 
         if !self.plightlikeing_remove {
-            host.on_brane_changed(self.brane(), BraneChangeEvent::Ufidelate, self.get_role());
+            host.on_brane_changed(self.brane(), BraneChangeEvent::fidelio, self.get_role());
         }
     }
 
@@ -931,7 +931,7 @@ where
     }
 
     #[inline]
-    pub fn get_plightlikeing_snapshot(&self) -> Option<&evioletabftpb::Snapshot> {
+    pub fn get_plightlikeing_snapshot(&self) -> Option<&evioletabft_timeshare::Snapshot> {
         self.violetabft_group.snap()
     }
 
@@ -952,7 +952,7 @@ where
     fn lightlike<T, I>(&mut self, trans: &mut T, msgs: I, metrics: &mut VioletaBftMessageMetrics)
     where
         T: Transport,
-        I: IntoIterator<Item = evioletabftpb::Message>,
+        I: IntoIterator<Item = evioletabft_timeshare::Message>,
     {
         for msg in msgs {
             let msg_type = msg.get_msg_type();
@@ -1003,7 +1003,7 @@ where
     pub fn step<T, C>(
         &mut self,
         ctx: &mut PollContext<EK, ER, T, C>,
-        mut m: evioletabftpb::Message,
+        mut m: evioletabft_timeshare::Message,
     ) -> Result<()> {
         fail_point!(
             "step_message_3_1",
@@ -1028,7 +1028,7 @@ where
             // requests. Please also take a look at violetabft-rs.
             let state = self.inspect_lease();
             if let LeaseState::Valid = state {
-                let mut resp = evioletabftpb::Message::default();
+                let mut resp = evioletabft_timeshare::Message::default();
                 resp.set_msg_type(MessageType::MsgReadIndexResp);
                 resp.term = self.term();
                 resp.to = m.from;
@@ -1049,7 +1049,7 @@ where
         Ok(())
     }
 
-    /// Checks and ufidelates `peer_heartbeats` for the peer.
+    /// Checks and fidelios `peer_heartbeats` for the peer.
     pub fn check_peers(&mut self) {
         if !self.is_leader() {
             self.peer_heartbeats.clear();
@@ -1092,11 +1092,11 @@ where
         down_peers
     }
 
-    /// Collects all plightlikeing peers and ufidelate `peers_spacelike_plightlikeing_time`.
+    /// Collects all plightlikeing peers and fidelio `peers_spacelike_plightlikeing_time`.
     pub fn collect_plightlikeing_peers<T, C>(
         &mut self,
         ctx: &PollContext<EK, ER, T, C>,
-    ) -> Vec<metapb::Peer> {
+    ) -> Vec<meta_timeshare::Peer> {
         let mut plightlikeing_peers = Vec::with_capacity(self.brane().get_peers().len());
         let status = self.violetabft_group.status();
         let truncated_idx = self.get_store().truncated_index();
@@ -1194,14 +1194,14 @@ where
         if self.is_leader() {
             // Leaders always have valid state.
             //
-            // We ufidelate the leader_missing_time in the `fn step`. However one peer brane
-            // does not lightlike any violetabft messages, so we have to check and ufidelate it before
+            // We fidelio the leader_missing_time in the `fn step`. However one peer brane
+            // does not lightlike any violetabft messages, so we have to check and fidelio it before
             // reporting stale states.
             self.leader_missing_time = None;
             return StaleState::Valid;
         }
         let naive_peer = !self.is_initialized() || !self.violetabft_group.violetabft.promoBlock();
-        // Ufidelates the `leader_missing_time` according to the current state.
+        // fidelios the `leader_missing_time` according to the current state.
         //
         // If we are checking this it means we suspect the leader might be missing.
         // Mark down the time when we are called, so we can check later if it's been longer than it
@@ -1231,16 +1231,16 @@ where
     }
 
     fn on_role_changed<T, C>(&mut self, ctx: &mut PollContext<EK, ER, T, C>, ready: &Ready) {
-        // Ufidelate leader lease when the VioletaBft state changes.
+        // fidelio leader lease when the VioletaBft state changes.
         if let Some(ss) = ready.ss() {
             match ss.violetabft_state {
                 StateRole::Leader => {
                     // The local read can only be performed after a new leader has applied
                     // the first empty entry on its term. After that the lease expiring time
-                    // should be ufidelated to
+                    // should be fideliod to
                     //   lightlike_to_quorum_ts + max_lease
                     // as the comments in `Lease` explain.
-                    // It is recommlightlikeed to ufidelate the lease expiring time right after
+                    // It is recommlightlikeed to fidelio the lease expiring time right after
                     // this peer becomes leader because it's more convenient to do it here and
                     // it has no impact on the correctness.
                     let progress_term = ReadProgress::term(self.term());
@@ -1263,7 +1263,7 @@ where
                     self.violetabft_group.skip_bcast_commit(false);
 
                     // A more recent read may happen on the old leader. So max ts should
-                    // be ufidelated after a peer becomes leader.
+                    // be fideliod after a peer becomes leader.
                     self.require_ufidelating_max_ts(&ctx.fidel_interlock_semaphore);
                 }
                 StateRole::Follower => {
@@ -1273,7 +1273,7 @@ where
             }
             ctx.interlock_host
                 .on_role_change(self.brane(), ss.violetabft_state);
-            self.cmd_epoch_checker.maybe_ufidelate_term(self.term());
+            self.cmd_epoch_checker.maybe_fidelio_term(self.term());
         }
     }
 
@@ -1539,22 +1539,22 @@ where
                             .index,
                         hs.get_commit()
                     );
-                    let mut split_to_be_ufidelated = true;
-                    let mut merge_to_be_ufidelated = true;
+                    let mut split_to_be_fideliod = true;
+                    let mut merge_to_be_fideliod = true;
                     for entry in ready.committed_entries.as_ref().unwrap().iter().rev() {
                         // We care about split/merge commands that are committed in the current term.
-                        if entry.term == self.term() && (split_to_be_ufidelated || merge_to_be_ufidelated)
+                        if entry.term == self.term() && (split_to_be_fideliod || merge_to_be_fideliod)
                         {
                             let ctx = ProposalContext::from_bytes(&entry.context);
-                            if split_to_be_ufidelated && ctx.contains(ProposalContext::SPLIT) {
+                            if split_to_be_fideliod && ctx.contains(ProposalContext::SPLIT) {
                                 // We don't need to suspect its lease because peers of new brane that
                                 // in other store do not spacelike election before theirs election timeout
                                 // which is longer than the max leader lease.
                                 // It's safe to read local within its current lease, however, it's not
                                 // safe to renew its lease.
                                 self.last_committed_split_idx = entry.index;
-                                split_to_be_ufidelated = false;
-                            } else if merge_to_be_ufidelated
+                                split_to_be_fideliod = false;
+                            } else if merge_to_be_fideliod
                                 && ctx.contains(ProposalContext::PREPARE_MERGE)
                             {
                                 // We committed prepare merge, to prevent unsafe read index,
@@ -1565,7 +1565,7 @@ where
                                 // it can not know when the target brane writes new values.
                                 // To prevent unsafe local read, we suspect its leader lease.
                                 self.leader_lease.suspect(monotonic_raw_now());
-                                merge_to_be_ufidelated = false;
+                                merge_to_be_fideliod = false;
                             }
                         }
                     }
@@ -1659,20 +1659,20 @@ where
     ) {
         // Call `handle_violetabft_committed_entries` directly here may lead to inconsistency.
         // In some cases, there will be some plightlikeing committed entries when applying a
-        // snapshot. If we call `handle_violetabft_committed_entries` directly, these ufidelates
+        // snapshot. If we call `handle_violetabft_committed_entries` directly, these fidelios
         // will be written to disk. Because we apply snapshot asynchronously, so these
-        // ufidelates will soon be removed. But the soft state of violetabft is still be ufidelated
-        // in memory. Hence when handle ready next time, these ufidelates won't be included
+        // fidelios will soon be removed. But the soft state of violetabft is still be fideliod
+        // in memory. Hence when handle ready next time, these fidelios won't be included
         // in `ready.committed_entries` again, which will lead to inconsistency.
         if ready.snapshot().is_empty() {
             debug_assert!(!invoke_ctx.has_snapshot() && !self.get_store().is_applying_snapshot());
             let committed_entries = ready.committed_entries.take().unwrap();
-            // leader needs to ufidelate lease and last committed split index.
-            let mut lease_to_be_ufidelated = self.is_leader();
+            // leader needs to fidelio lease and last committed split index.
+            let mut lease_to_be_fideliod = self.is_leader();
             for entry in committed_entries.iter().rev() {
                 // violetabft meta is very small, can be ignored.
                 self.violetabft_log_size_hint += entry.get_data().len() as u64;
-                if lease_to_be_ufidelated {
+                if lease_to_be_fideliod {
                     let propose_time = self
                         .proposals
                         .find_propose_time((entry.get_term(), entry.get_index()));
@@ -1681,7 +1681,7 @@ where
                             (ctx.current_time.unwrap() - propose_time).to_std().unwrap(),
                         ));
                         self.maybe_renew_leader_lease(propose_time, ctx, None);
-                        lease_to_be_ufidelated = false;
+                        lease_to_be_fideliod = false;
                     }
                 }
 
@@ -1836,7 +1836,7 @@ where
         });
         // The follower may lost `ReadIndexResp`, so the plightlikeing_reads does not
         // guarantee the orders are consistent with read_states. `advance` will
-        // ufidelate the `read_index` of read request that before this successful
+        // fidelio the `read_index` of read request that before this successful
         // `ready`.
         if !self.is_leader() {
             // NOTE: there could still be some plightlikeing reads proposed by the peer when it was
@@ -1894,7 +1894,7 @@ where
             self.violetabft_group.store().brane(),
         );
 
-        let progress_to_be_ufidelated = self.mut_store().applied_index_term() != applied_index_term;
+        let progress_to_be_fideliod = self.mut_store().applied_index_term() != applied_index_term;
         self.mut_store().set_applied_state(apply_state);
         self.mut_store().set_applied_term(applied_index_term);
 
@@ -1916,12 +1916,12 @@ where
         }
         self.plightlikeing_reads.gc();
 
-        // Only leaders need to ufidelate applied_index_term.
-        if progress_to_be_ufidelated && self.is_leader() {
+        // Only leaders need to fidelio applied_index_term.
+        if progress_to_be_fideliod && self.is_leader() {
             let progress = ReadProgress::applied_index_term(applied_index_term);
             let mut meta = ctx.store_meta.dagger().unwrap();
             let reader = meta.readers.get_mut(&self.brane_id).unwrap();
-            self.maybe_ufidelate_read_progress(reader, progress);
+            self.maybe_fidelio_read_progress(reader, progress);
         }
         has_ready
     }
@@ -1974,26 +1974,26 @@ where
         if let Some(progress) = progress {
             let mut meta = ctx.store_meta.dagger().unwrap();
             let reader = meta.readers.get_mut(&self.brane_id).unwrap();
-            self.maybe_ufidelate_read_progress(reader, progress);
+            self.maybe_fidelio_read_progress(reader, progress);
         }
         if let Some(progress) = read_progress {
             let mut meta = ctx.store_meta.dagger().unwrap();
             let reader = meta.readers.get_mut(&self.brane_id).unwrap();
-            self.maybe_ufidelate_read_progress(reader, progress);
+            self.maybe_fidelio_read_progress(reader, progress);
         }
     }
 
-    fn maybe_ufidelate_read_progress(&self, reader: &mut Readpushdown_causet, progress: ReadProgress) {
+    fn maybe_fidelio_read_progress(&self, reader: &mut Readpushdown_causet, progress: ReadProgress) {
         if self.plightlikeing_remove {
             return;
         }
         debug!(
-            "ufidelate read progress";
+            "fidelio read progress";
             "brane_id" => self.brane_id,
             "peer_id" => self.peer.get_id(),
             "progress" => ?progress,
         );
-        reader.ufidelate(progress);
+        reader.fidelio(progress);
     }
 
     pub fn maybe_campaign(&mut self, parent_is_leader: bool) -> bool {
@@ -2116,7 +2116,7 @@ where
     fn check_conf_change<T, C>(
         &mut self,
         ctx: &mut PollContext<EK, ER, T, C>,
-        cc: &evioletabftpb::ConfChange,
+        cc: &evioletabft_timeshare::ConfChange,
         cmd: &VioletaBftCmdRequest,
     ) -> Result<()> {
         let change_peer = apply::get_change_peer_cmd(cmd).unwrap();
@@ -2208,7 +2208,7 @@ where
         Ok(prs)
     }
 
-    fn transfer_leader(&mut self, peer: &metapb::Peer) {
+    fn transfer_leader(&mut self, peer: &meta_timeshare::Peer) {
         info!(
             "transfer leader";
             "brane_id" => self.brane_id,
@@ -2219,7 +2219,7 @@ where
         self.violetabft_group.transfer_leader(peer.get_id());
     }
 
-    fn pre_transfer_leader(&mut self, peer: &metapb::Peer) -> bool {
+    fn pre_transfer_leader(&mut self, peer: &meta_timeshare::Peer) -> bool {
         // Checks if safe to transfer leader.
         if self.violetabft_group.violetabft.has_plightlikeing_conf() {
             info!(
@@ -2234,9 +2234,9 @@ where
         // Broadcast heartbeat to make sure followers commit the entries immediately.
         // It's only necessary to ping the target peer, but ping all for simplicity.
         self.violetabft_group.ping();
-        let mut msg = evioletabftpb::Message::new();
+        let mut msg = evioletabft_timeshare::Message::new();
         msg.set_to(peer.get_id());
-        msg.set_msg_type(evioletabftpb::MessageType::MsgTransferLeader);
+        msg.set_msg_type(evioletabft_timeshare::MessageType::MsgTransferLeader);
         msg.set_from(self.peer_id());
         // log term here represents the term of last log. For leader, the term of last
         // log is always its current term. Not just set term because violetabft library forbids
@@ -2250,7 +2250,7 @@ where
         &self,
         ctx: &mut PollContext<EK, ER, T, C>,
         mut index: u64,
-        peer: &metapb::Peer,
+        peer: &meta_timeshare::Peer,
     ) -> Option<&'static str> {
         let peer_id = peer.get_id();
         let status = self.violetabft_group.status();
@@ -2453,7 +2453,7 @@ where
         );
 
         // TimeoutNow has been sent out, so we need to propose explicitly to
-        // ufidelate leader lease.
+        // fidelio leader lease.
         if self.leader_lease.inspect(Some(renew_lease_time)) == LeaseState::Suspect {
             let req = VioletaBftCmdRequest::default();
             if let Ok(Either::Left(index)) = self.propose_normal(poll_ctx, req) {
@@ -2630,7 +2630,7 @@ where
                 return Ok(Either::Right(index));
             }
         } else if req.has_admin_request() {
-            // The admin request is rejected because it may need to ufidelate epoch checker which
+            // The admin request is rejected because it may need to fidelio epoch checker which
             // introduces an uncertainty and may breaks the correctness of epoch checker.
             return Err(box_err!(
                 "{} peer has not applied to current term, applied_term {}, current_term {}",
@@ -2688,7 +2688,7 @@ where
     fn execute_transfer_leader<T, C>(
         &mut self,
         ctx: &mut PollContext<EK, ER, T, C>,
-        msg: &evioletabftpb::Message,
+        msg: &evioletabft_timeshare::Message,
     ) {
         // log_term is set by original leader, represents the term last log is written
         // in, which should be equal to the original leader's term.
@@ -2734,10 +2734,10 @@ where
             return;
         }
 
-        let mut msg = evioletabftpb::Message::new();
+        let mut msg = evioletabft_timeshare::Message::new();
         msg.set_from(self.peer_id());
         msg.set_to(self.leader_id());
-        msg.set_msg_type(evioletabftpb::MessageType::MsgTransferLeader);
+        msg.set_msg_type(evioletabft_timeshare::MessageType::MsgTransferLeader);
         msg.set_index(self.get_store().applied_index());
         msg.set_log_term(self.term());
         self.violetabft_group.violetabft.msgs.push(msg);
@@ -2830,7 +2830,7 @@ where
         let cc = {
             let data = req.write_to_bytes()?;
             let change_peer = apply::get_change_peer_cmd(req).unwrap();
-            let mut cc = evioletabftpb::ConfChange::default();
+            let mut cc = evioletabft_timeshare::ConfChange::default();
             cc.set_change_type(change_peer.get_change_type());
             cc.set_node_id(change_peer.get_peer().get_id());
             cc.set_context(data);
@@ -2924,7 +2924,7 @@ where
     EK: KvEngine,
     ER: VioletaBftEngine,
 {
-    pub fn insert_peer_cache(&mut self, peer: metapb::Peer) {
+    pub fn insert_peer_cache(&mut self, peer: meta_timeshare::Peer) {
         self.peer_cache.borrow_mut().insert(peer.get_id(), peer);
     }
 
@@ -2932,7 +2932,7 @@ where
         self.peer_cache.borrow_mut().remove(&peer_id);
     }
 
-    pub fn get_peer_from_cache(&self, peer_id: u64) -> Option<metapb::Peer> {
+    pub fn get_peer_from_cache(&self, peer_id: u64) -> Option<meta_timeshare::Peer> {
         if peer_id == 0 {
             return None;
         }
@@ -3020,7 +3020,7 @@ where
         }
     }
 
-    fn lightlike_violetabft_message<T: Transport>(&mut self, msg: evioletabftpb::Message, trans: &mut T) {
+    fn lightlike_violetabft_message<T: Transport>(&mut self, msg: evioletabft_timeshare::Message, trans: &mut T) {
         let mut lightlike_msg = VioletaBftMessage::default();
         lightlike_msg.set_brane_id(self.brane_id);
         // set current epoch
@@ -3086,7 +3086,7 @@ where
             }
             // unreachable store
             self.violetabft_group.report_unreachable(to_peer_id);
-            if msg_type == evioletabftpb::MessageType::MsgSnapshot {
+            if msg_type == evioletabft_timeshare::MessageType::MsgSnapshot {
                 self.violetabft_group
                     .report_snapshot(to_peer_id, SnapshotStatus::Failure);
             }
@@ -3155,7 +3155,7 @@ where
     pub fn on_check_stale_peer_response(
         &mut self,
         check_conf_ver: u64,
-        check_peers: Vec<metapb::Peer>,
+        check_peers: Vec<meta_timeshare::Peer>,
     ) {
         if self.check_stale_conf_ver < check_conf_ver {
             self.check_stale_conf_ver = check_conf_ver;
@@ -3213,13 +3213,13 @@ where
             "brane_id" => self.brane_id,
             "initial_status" => initial_status,
         );
-        if let Err(e) = fidel_interlock_semaphore.schedule(FidelTask::UfidelateMaxTimestamp {
+        if let Err(e) = fidel_interlock_semaphore.schedule(FidelTask::fidelioMaxTimestamp {
             brane_id: self.brane_id,
             initial_status,
             max_ts_sync_status: self.max_ts_sync_status.clone(),
         }) {
             error!(
-                "failed to ufidelate max ts";
+                "failed to fidelio max ts";
                 "err" => ?e,
             );
         }
@@ -3412,8 +3412,8 @@ fn make_transfer_leader_response() -> VioletaBftCmdResponse {
 
 /// A poor version of `Peer` to avoid port generic variables everywhere.
 pub trait AbstractPeer {
-    fn meta_peer(&self) -> &metapb::Peer;
-    fn brane(&self) -> &metapb::Brane;
+    fn meta_peer(&self) -> &meta_timeshare::Peer;
+    fn brane(&self) -> &meta_timeshare::Brane;
     fn apply_state(&self) -> &VioletaBftApplyState;
     fn violetabft_status(&self) -> violetabft::Status;
     fn violetabft_committed_index(&self) -> u64;
@@ -3422,10 +3422,10 @@ pub trait AbstractPeer {
 }
 
 impl<EK: KvEngine, ER: VioletaBftEngine> AbstractPeer for Peer<EK, ER> {
-    fn meta_peer(&self) -> &metapb::Peer {
+    fn meta_peer(&self) -> &meta_timeshare::Peer {
         &self.peer
     }
-    fn brane(&self) -> &metapb::Brane {
+    fn brane(&self) -> &meta_timeshare::Brane {
         self.violetabft_group.store().brane()
     }
     fn apply_state(&self) -> &VioletaBftApplyState {
@@ -3448,7 +3448,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> AbstractPeer for Peer<EK, ER> {
 #[causet(test)]
 mod tests {
     use super::*;
-    use ekvproto::violetabft_cmdpb;
+    use ekvproto::violetabft_cmd_timeshare;
     #[causet(feature = "protobuf-codec")]
     use protobuf::ProtobufEnum;
 
@@ -3543,17 +3543,17 @@ mod tests {
 
         // Ok(_)
         let mut req = VioletaBftCmdRequest::default();
-        let mut admin_req = violetabft_cmdpb::AdminRequest::default();
+        let mut admin_req = violetabft_cmd_timeshare::AdminRequest::default();
 
         req.set_admin_request(admin_req.clone());
         Block.push((req.clone(), RequestPolicy::ProposeNormal));
 
-        admin_req.set_change_peer(violetabft_cmdpb::ChangePeerRequest::default());
+        admin_req.set_change_peer(violetabft_cmd_timeshare::ChangePeerRequest::default());
         req.set_admin_request(admin_req.clone());
         Block.push((req.clone(), RequestPolicy::ProposeConfChange));
         admin_req.clear_change_peer();
 
-        admin_req.set_transfer_leader(violetabft_cmdpb::TransferLeaderRequest::default());
+        admin_req.set_transfer_leader(violetabft_cmd_timeshare::TransferLeaderRequest::default());
         req.set_admin_request(admin_req.clone());
         Block.push((req.clone(), RequestPolicy::ProposeTransferLeader));
         admin_req.clear_transfer_leader();
@@ -3567,7 +3567,7 @@ mod tests {
             (CmdType::DeleteCone, RequestPolicy::ProposeNormal),
             (CmdType::IngestSst, RequestPolicy::ProposeNormal),
         ] {
-            let mut request = violetabft_cmdpb::Request::default();
+            let mut request = violetabft_cmd_timeshare::Request::default();
             request.set_cmd_type(op);
             req.set_requests(vec![request].into());
             Block.push((req.clone(), policy));
@@ -3593,7 +3593,7 @@ mod tests {
         }
 
         // Read quorum.
-        let mut request = violetabft_cmdpb::Request::default();
+        let mut request = violetabft_cmd_timeshare::Request::default();
         request.set_cmd_type(CmdType::Snap);
         req.set_requests(vec![request].into());
         req.mut_header().set_read_quorum(true);
@@ -3607,14 +3607,14 @@ mod tests {
         // Err(_)
         let mut err_Block = vec![];
         for &op in &[CmdType::Prewrite, CmdType::Invalid] {
-            let mut request = violetabft_cmdpb::Request::default();
+            let mut request = violetabft_cmd_timeshare::Request::default();
             request.set_cmd_type(op);
             req.set_requests(vec![request].into());
             err_Block.push(req.clone());
         }
-        let mut snap = violetabft_cmdpb::Request::default();
+        let mut snap = violetabft_cmd_timeshare::Request::default();
         snap.set_cmd_type(CmdType::Snap);
-        let mut put = violetabft_cmdpb::Request::default();
+        let mut put = violetabft_cmd_timeshare::Request::default();
         put.set_cmd_type(CmdType::Put);
         req.set_requests(vec![snap, put].into());
         err_Block.push(req);
@@ -3664,7 +3664,7 @@ mod tests {
             request
         }
 
-        let brane = metapb::Brane::default();
+        let brane = meta_timeshare::Brane::default();
         let normal_cmd = VioletaBftCmdRequest::default();
         let split_admin = new_admin_request(AdminCmdType::BatchSplit);
         let prepare_merge_admin = new_admin_request(AdminCmdType::PrepareMerge);

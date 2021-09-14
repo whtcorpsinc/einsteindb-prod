@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use crossbeam::atomic::AtomicCell;
 #[causet(feature = "prost-codec")]
-use ekvproto::causet_contextpb::{
+use ekvproto::causet_context_timeshare::{
     event::{
         Evcausetidx::OpType as EventEventOpType, Entries as EventEntries, Event as Event_oneof_event,
         LogType as EventLogType, Event as EventEvent,
@@ -16,22 +16,22 @@ use ekvproto::causet_contextpb::{
     Compatibility, DuplicateRequest as ErrorDuplicateRequest, Error as EventError, Event,
 };
 #[causet(not(feature = "prost-codec"))]
-use ekvproto::causet_contextpb::{
+use ekvproto::causet_context_timeshare::{
     Compatibility, DuplicateRequest as ErrorDuplicateRequest, Error as EventError, Event,
     EventEntries, EventLogType, EventEvent, EventEventOpType, Event_oneof_event,
 };
-use ekvproto::errorpb;
-use ekvproto::kvrpcpb::ExtraOp as TxnExtraOp;
-use ekvproto::metapb::{Brane, BraneEpoch};
-use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, AdminResponse, CmdType, Request};
+use ekvproto::error_timeshare;
+use ekvproto::kvrpc_timeshare::ExtraOp as TxnExtraOp;
+use ekvproto::meta_timeshare::{Brane, BraneEpoch};
+use ekvproto::violetabft_cmd_timeshare::{AdminCmdType, AdminRequest, AdminResponse, CmdType, Request};
 use violetabftstore::interlock::{Cmd, CmdBatch};
 use violetabftstore::store::fsm::ObserveID;
 use violetabftstore::store::util::compare_brane_epoch;
 use violetabftstore::Error as VioletaBftStoreError;
 use resolved_ts::Resolver;
-use edb::causetStorage::txn::TxnEntry;
-use edb_util::collections::HashMap;
-use edb_util::mpsc::batch::lightlikeer as Batchlightlikeer;
+use edb::causet_storage::txn::TxnEntry;
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::mpsc::batch::lightlikeer as Batchlightlikeer;
 use txn_types::{Key, Dagger, LockType, TimeStamp, WriteRef, WriteType};
 
 use crate::lightlikepoint::{OldValueCache, OldValueCallback};
@@ -317,7 +317,7 @@ impl pushdown_causet {
             causet_context_err.set_epoch_not_match(epoch_not_match);
         } else {
             // TODO: Add more errors to the causet_context protocol
-            let mut brane_not_found = errorpb::BraneNotFound::default();
+            let mut brane_not_found = error_timeshare::BraneNotFound::default();
             brane_not_found.set_brane_id(self.brane_id);
             causet_context_err.set_brane_not_found(brane_not_found);
         }
@@ -407,7 +407,7 @@ impl pushdown_causet {
             Some(rts) => rts,
             None => return None,
         };
-        debug!("resolved ts ufidelated";
+        debug!("resolved ts fideliod";
             "brane_id" => self.brane_id, "resolved_ts" => resolved_ts);
         causet_context_RESOLVED_TS_GAP_HISTOGRAM
             .observe((min_ts.physical() - resolved_ts.physical()) as f64 / 1000f64);
@@ -743,7 +743,7 @@ fn decode_lock(key: Vec<u8>, value: &[u8], Evcausetidx: &mut EventEvent) -> bool
                 "type" => ?other,
                 "spacelike_ts" => ?dagger.ts,
                 "key" => hex::encode_upper(key),
-                "for_ufidelate_ts" => ?dagger.for_ufidelate_ts);
+                "for_fidelio_ts" => ?dagger.for_fidelio_ts);
             return true;
         }
     };
@@ -770,11 +770,11 @@ mod tests {
     use super::*;
     use futures::executor::block_on;
     use futures::stream::StreamExt;
-    use ekvproto::errorpb::Error as ErrorHeader;
-    use ekvproto::metapb::Brane;
+    use ekvproto::error_timeshare::Error as ErrorHeader;
+    use ekvproto::meta_timeshare::Brane;
     use std::cell::Cell;
-    use edb::causetStorage::tail_pointer::test_util::*;
-    use edb_util::mpsc::batch::{self, BatchReceiver, VecCollector};
+    use edb::causet_storage::tail_pointer::test_util::*;
+    use violetabftstore::interlock::::mpsc::batch::{self, BatchReceiver, VecCollector};
 
     #[test]
     fn test_error() {
@@ -961,7 +961,7 @@ mod tests {
                     .spacelike_ts(1.into())
                     .commit_ts(0.into())
                     .primary(&[])
-                    .for_ufidelate_ts(0.into())
+                    .for_fidelio_ts(0.into())
                     .build_prewrite(LockType::Put, false),
             ),
             Some(
@@ -971,7 +971,7 @@ mod tests {
                     .spacelike_ts(1.into())
                     .commit_ts(2.into())
                     .primary(&[])
-                    .for_ufidelate_ts(0.into())
+                    .for_fidelio_ts(0.into())
                     .build_commit(WriteType::Put, false),
             ),
             Some(
@@ -981,7 +981,7 @@ mod tests {
                     .spacelike_ts(3.into())
                     .commit_ts(0.into())
                     .primary(&[])
-                    .for_ufidelate_ts(0.into())
+                    .for_fidelio_ts(0.into())
                     .build_rollback(),
             ),
             None,

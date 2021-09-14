@@ -12,11 +12,11 @@ use criterion::black_box;
 use criterion::measurement::Measurement;
 
 use ekvproto::interlock::KeyCone;
-use fidelpb::FreeDaemon as PbFreeDaemon;
+use fidel_timeshare::FreeDaemon as PbFreeDaemon;
 
 use test_interlock::*;
 use edb::interlock::RequestHandler;
-use edb::causetStorage::{LmdbEngine, CausetStore as TxnStore};
+use edb::causet_storage::{LmdbEngine, CausetStore as TxnStore};
 
 use std::marker::PhantomData;
 
@@ -36,7 +36,7 @@ pub fn build_dag_handler<TargetTxnStore: TxnStore + 'static>(
     cones: &[KeyCone],
     store: &CausetStore<LmdbEngine>,
 ) -> Box<dyn RequestHandler> {
-    use fidelpb::PosetDagRequest;
+    use fidel_timeshare::PosetDagRequest;
 
     let mut posetdag = PosetDagRequest::default();
     posetdag.set_executors(executors.to_vec().into());
@@ -45,7 +45,7 @@ pub fn build_dag_handler<TargetTxnStore: TxnStore + 'static>(
         black_box(posetdag),
         black_box(cones.to_vec()),
         black_box(ToTxnStore::<TargetTxnStore>::to_store(store)),
-        edb_util::deadline::Deadline::from_now(std::time::Duration::from_secs(10)),
+        violetabftstore::interlock::::deadline::Deadline::from_now(std::time::Duration::from_secs(10)),
         64,
         false,
         false,

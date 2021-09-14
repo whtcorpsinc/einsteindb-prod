@@ -264,7 +264,7 @@ fn right_shift(lhs: Option<&Int>, rhs: Option<&Int>) -> Result<Option<Int>> {
 #[causet(test)]
 mod tests {
     use milevadb_query_datatype::{builder::FieldTypeBuilder, FieldTypeFlag, FieldTypeTp};
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use super::*;
     use crate::test_util::RpnFnScalarEvaluator;

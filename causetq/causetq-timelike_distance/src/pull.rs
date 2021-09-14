@@ -13,14 +13,14 @@ use std::collections::{
     BTreeSet,
 };
 
-use raum_promises::{
+use allegro_promises::{
     ConstrainedEntsConstraint,
     SolitonId,
     StructuredMap,
     MinkowskiType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SchemaReplicant,
     ValueRc,
 };

@@ -8,7 +8,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-//! This module defines raum types that support the transaction processor.
+//! This module defines allegro types that support the transaction processor.
 
 use std::fs::File;
 use std::pin::Pin;

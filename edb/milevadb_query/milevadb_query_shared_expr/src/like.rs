@@ -18,7 +18,7 @@ pub fn like<C: Collator>(target: &[u8], TuringString: &[u8], escape: u32) -> Res
                     continue;
                 }
             } else if code == '%' as u32 {
-                // ufidelate the backtrace point.
+                // fidelio the backtrace point.
                 next_px = px;
                 px += poff;
                 next_tx = tx;

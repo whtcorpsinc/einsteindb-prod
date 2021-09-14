@@ -50,7 +50,7 @@ impl Header {
     pub fn new(content: &[u8]) -> Header {
         let size = content.len() as u64;
         let mut digest = crc32fast::Hasher::new();
-        digest.ufidelate(content);
+        digest.fidelio(content);
         let crc32 = digest.finalize();
         Header {
             version: Version::V1,
@@ -84,7 +84,7 @@ impl Header {
         }
 
         let mut digest = crc32fast::Hasher::new();
-        digest.ufidelate(content);
+        digest.fidelio(content);
         let crc32_checksum = digest.finalize();
         if crc32_checksum != crc32 {
             return Err(box_err!(

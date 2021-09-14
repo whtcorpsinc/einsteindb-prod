@@ -5,13 +5,13 @@ use std::marker::PhantomData;
 use criterion::measurement::Measurement;
 
 use ekvproto::interlock::KeyCone;
-use fidelpb::PrimaryCausetInfo;
+use fidel_timeshare::PrimaryCausetInfo;
 
 use test_interlock::*;
 use milevadb_query_normal_executors::FreeDaemon;
 use milevadb_query_vec_executors::interface::*;
 use edb::interlock::RequestHandler;
-use edb::causetStorage::{LmdbEngine, CausetStore as TxnStore};
+use edb::causet_storage::{LmdbEngine, CausetStore as TxnStore};
 
 use crate::util::bencher::Bencher;
 use crate::util::store::StoreDescriber;

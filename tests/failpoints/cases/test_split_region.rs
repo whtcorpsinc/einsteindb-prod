@@ -5,16 +5,16 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 
 use edb::Causet_WRITE;
-use ekvproto::metapb::Brane;
-use ekvproto::violetabft_serverpb::VioletaBftMessage;
+use ekvproto::meta_timeshare::Brane;
+use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
 use fidel_client::FidelClient;
-use violetabft::evioletabftpb::MessageType;
+use violetabft::evioletabft_timeshare::MessageType;
 use violetabftstore::store::util::is_vote_msg;
 use violetabftstore::Result;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::HandyRwLock;
 
 use test_violetabftstore::*;
-use edb_util::config::{ReadableDuration, ReadableSize};
+use violetabftstore::interlock::::config::{ReadableDuration, ReadableSize};
 
 #[test]
 fn test_follower_slow_split() {

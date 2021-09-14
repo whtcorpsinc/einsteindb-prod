@@ -50,8 +50,8 @@
 ## Max running tasks of each worker, reject if exceeded.
 # max-tasks-per-worker = 2000
 
-[readpool.causetStorage]
-## Whether to use the unified read pool to handle causetStorage requests.
+[readpool.causet_storage]
+## Whether to use the unified read pool to handle causet_storage requests.
 # use-unified-pool = false
 
 ## The following configurations only take effect when `use-unified-pool` is false.
@@ -178,7 +178,7 @@
 ## Attributes about this server, e.g. `{ zone = "us-west-1", disk = "ssd" }`.
 # labels = {}
 
-[causetStorage]
+[causet_storage]
 ## The path to Lmdb directory.
 # data-dir = "/tmp/edb/store"
 
@@ -200,7 +200,7 @@
 ## DO NOT use it in production. This option may be removed in the future.
 # enable-async-commit = true
 
-[causetStorage.block-cache]
+[causet_storage.block-cache]
 ## Whether to create a shared block cache for all Lmdb PrimaryCauset families.
 ##
 ## Block cache is used by Lmdb to cache uncompressed blocks. Big block cache can speed up read.
@@ -208,7 +208,7 @@
 ## set, it is easier to config. In most cases it should be able to auto-balance cache usage
 ## between PrimaryCauset families with standard LRU algorithm.
 ##
-## The rest of config in the causetStorage.block-cache session is effective only when shared block cache
+## The rest of config in the causet_storage.block-cache session is effective only when shared block cache
 ## is on.
 # shared = true
 
@@ -407,7 +407,7 @@
 ## This config specifies the absolute directory path for WAL.
 ## If it is not set, the log files will be in the same directory as data. When you set the path to
 ## Lmdb directory in memory like in `/dev/shm`, you may want to set`wal-dir` to a directory on a
-## persistent causetStorage. See https://github.com/facebook/lmdb/wiki/How-to-persist-in-memory-Lmdb-database .
+## persistent causet_storage. See https://github.com/facebook/lmdb/wiki/How-to-persist-in-memory-Lmdb-database .
 ## If there are two disks on the machine, storing Lmdb data and WAL logs on different disks can
 ## improve performance.
 # wal-dir = "/tmp/edb/store"
@@ -524,7 +524,7 @@
 ##   lz4hc:  kLZ4HCCompression
 ##   zstd:   kZSTD
 ## `lz4` is a compression algorithm with moderate speed and compression ratio. The compression
-## ratio of `zlib` is high. It is frilightlikely to the causetStorage space, but its compression speed is
+## ratio of `zlib` is high. It is frilightlikely to the causet_storage space, but its compression speed is
 ## slow. This compression occupies many CPU resources.
 
 ## Per level compression.
@@ -584,7 +584,7 @@
 ## `max-write-buffer-number` value higher, like 10.
 # max-write-buffer-number = 5
 
-## The minimum number of write buffers that will be merged together before writing to causetStorage.
+## The minimum number of write buffers that will be merged together before writing to causet_storage.
 # min-write-buffer-number-to-merge = 1
 
 ## Control maximum total data size for base level (level 1).

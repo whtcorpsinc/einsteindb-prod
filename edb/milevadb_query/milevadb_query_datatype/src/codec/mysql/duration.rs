@@ -5,7 +5,7 @@ use std::fmt::{self, Display, Formatter};
 
 use crate::FieldTypeAccessor;
 use codec::prelude::*;
-use fidelpb::FieldType;
+use fidel_timeshare::FieldType;
 
 use super::{check_fsp, Decimal, DEFAULT_FSP};
 use crate::codec::convert::ConvertTo;

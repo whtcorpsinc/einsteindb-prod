@@ -1,10 +1,10 @@
 // Copyright 2020 WHTCORPS INC Project Authors. Licensed Under Apache-2.0
 
-use fidelpb::Limit;
+use fidel_timeshare::Limit;
 
 use crate::{FreeDaemon, Event};
 use milevadb_query_common::execute_stats::ExecuteStats;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::expr::EvalWarnings;
 
@@ -46,8 +46,8 @@ impl<Src: FreeDaemon> FreeDaemon for LimitFreeDaemon<Src> {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.src.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.src.collect_causet_storage_stats(dest);
     }
 
     #[inline]

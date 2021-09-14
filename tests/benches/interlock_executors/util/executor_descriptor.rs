@@ -1,8 +1,8 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-use fidelpb::PrimaryCausetInfo;
-use fidelpb::{ByItem, Expr};
-use fidelpb::{ExecType, FreeDaemon as PbFreeDaemon, TopN};
+use fidel_timeshare::PrimaryCausetInfo;
+use fidel_timeshare::{ByItem, Expr};
+use fidel_timeshare::{ExecType, FreeDaemon as PbFreeDaemon, TopN};
 
 /// Builds a Block scan executor descriptor.
 pub fn Block_scan(PrimaryCausets_info: &[PrimaryCausetInfo]) -> PbFreeDaemon {

@@ -6,15 +6,15 @@ use std::sync::Arc;
 
 use milevadb_query_datatype::Collation;
 use milevadb_query_datatype::{EvalType, FieldTypeAccessor};
-use edb_util::box_try;
-use edb_util::collections::HashMap;
-use fidelpb::Aggregation;
-use fidelpb::{Expr, FieldType};
+use violetabftstore::interlock::::box_try;
+use violetabftstore::interlock::::collections::HashMap;
+use fidel_timeshare::Aggregation;
+use fidel_timeshare::{Expr, FieldType};
 
 use crate::interface::*;
 use crate::util::aggr_executor::*;
 use crate::util::hash_aggr_helper::HashAggregationHelper;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::codec::collation::{match_template_collator, SortKey};
@@ -54,8 +54,8 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchFastHashAggregationFreeDaemo
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.0.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.0.collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -323,8 +323,8 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for FastHashAggregatio
             }
         };
 
-        // 2. Ufidelate states according to the group.
-        HashAggregationHelper::ufidelate_each_row_states_by_offset(
+        // 2. fidelio states according to the group.
+        HashAggregationHelper::fidelio_each_row_states_by_offset(
             entities,
             &mut input_physical_PrimaryCausets,
             input_logical_rows,
@@ -451,7 +451,7 @@ mod tests {
     use super::*;
 
     use milevadb_query_datatype::FieldTypeTp;
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use crate::util::aggr_executor::tests::*;
     use crate::util::mock_executor::MockFreeDaemon;
@@ -459,8 +459,8 @@ mod tests {
     use milevadb_query_datatype::expr::EvalWarnings;
     use milevadb_query_vec_expr::impl_arithmetic::{arithmetic_fn_meta, RealPlus};
     use milevadb_query_vec_expr::{RpnExpression, RpnExpressionBuilder};
-    use fidelpb::ExprType;
-    use fidelpb_helper::ExprDefBuilder;
+    use fidel_timeshare::ExprType;
+    use fidel_timeshare_helper::ExprDefBuilder;
 
     // Test cases also cover BatchSlowHashAggregationFreeDaemon.
 
@@ -603,8 +603,8 @@ mod tests {
         // And group by:
         // - 1 (Constant)
 
-        use fidelpb::ExprType;
-        use fidelpb_helper::ExprDefBuilder;
+        use fidel_timeshare::ExprType;
+        use fidel_timeshare_helper::ExprDefBuilder;
 
         let group_by_exp = || {
             RpnExpressionBuilder::new_for_test()
@@ -689,8 +689,8 @@ mod tests {
 
     #[test]
     fn test_collation() {
-        use fidelpb::ExprType;
-        use fidelpb_helper::ExprDefBuilder;
+        use fidel_timeshare::ExprType;
+        use fidel_timeshare_helper::ExprDefBuilder;
 
         // This test creates a hash aggregation executor with the following aggregate functions:
         // - COUNT(col_0)

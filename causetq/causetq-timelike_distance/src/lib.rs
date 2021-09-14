@@ -14,10 +14,10 @@ extern crate indexmap;
 extern crate rusqlite;
 
 extern crate edbn;
-extern crate edb_raum;
-extern crate edb_promises;
+extern crate edb_allegro;
+extern crate causetq_pull_promises;
 #[macro_use]
-extern crate raum_promises;
+extern crate allegro_promises;
 extern crate einstein_db;                 // For value conversion.
 extern crate edb_causetq_parityfilter;
 extern crate edb_causetq_pull;
@@ -38,17 +38,17 @@ use rusqlite::{
     Events,
 };
 
-use raum_promises::{
+use allegro_promises::{
     ConstrainedEntsConstraint,
     MinkowskiType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SchemaReplicant,
     MinkowskiValueTypeTag,
 };
 
-use edb_raum::util::{
+use edb_allegro::util::{
     Either,
 };
 

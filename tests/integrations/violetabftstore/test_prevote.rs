@@ -4,8 +4,8 @@ use std::sync::{atomic::AtomicBool, mpsc, Arc};
 use std::thread;
 use std::time::Duration;
 
-use violetabft::evioletabftpb::MessageType;
-use edb_util::HandyRwLock;
+use violetabft::evioletabft_timeshare::MessageType;
+use violetabftstore::interlock::::HandyRwLock;
 
 use test_violetabftstore::*;
 

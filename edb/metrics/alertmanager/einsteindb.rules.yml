@@ -74,24 +74,24 @@ groups:
       summary: EinsteinDB violetabftstore log lag more than 5000
 
   - alert: EinsteinDB_async_request_snapshot_duration_seconds
-    expr: histogram_quantile(0.99, sum(rate(edb_causetStorage_engine_async_request_duration_seconds_bucket{type="snapshot"}[1m])) by (le, instance, type)) > 1
+    expr: histogram_quantile(0.99, sum(rate(edb_causet_storage_engine_async_request_duration_seconds_bucket{type="snapshot"}[1m])) by (le, instance, type)) > 1
     for: 1m
     labels:
       env: ENV_LABELS_ENV
       level: critical
-      expr:  histogram_quantile(0.99, sum(rate(edb_causetStorage_engine_async_request_duration_seconds_bucket{type="snapshot"}[1m])) by (le, instance, type)) > 1
+      expr:  histogram_quantile(0.99, sum(rate(edb_causet_storage_engine_async_request_duration_seconds_bucket{type="snapshot"}[1m])) by (le, instance, type)) > 1
     annotations:
       description: 'cluster: ENV_LABELS_ENV, instance: {{ $labels.instance }}, values:{{ $value }}'
       value: '{{ $value }}'
       summary: EinsteinDB async request snapshot duration seconds more than 1s
 
   - alert: EinsteinDB_async_request_write_duration_seconds
-    expr: histogram_quantile(0.99, sum(rate(edb_causetStorage_engine_async_request_duration_seconds_bucket{type="write"}[1m])) by (le, instance, type)) > 1
+    expr: histogram_quantile(0.99, sum(rate(edb_causet_storage_engine_async_request_duration_seconds_bucket{type="write"}[1m])) by (le, instance, type)) > 1
     for: 1m
     labels:
       env: ENV_LABELS_ENV
       level: critical
-      expr:  histogram_quantile(0.99, sum(rate(edb_causetStorage_engine_async_request_duration_seconds_bucket{type="write"}[1m])) by (le, instance, type)) > 1
+      expr:  histogram_quantile(0.99, sum(rate(edb_causet_storage_engine_async_request_duration_seconds_bucket{type="write"}[1m])) by (le, instance, type)) > 1
     annotations:
       description: 'cluster: ENV_LABELS_ENV, instance: {{ $labels.instance }}, values:{{ $value }}'
       value: '{{ $value }}'

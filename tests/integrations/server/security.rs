@@ -1,12 +1,12 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use grpcio::{ChannelBuilder, Environment};
-use ekvproto::kvrpcpb::*;
-use ekvproto::edbpb::EINSTEINDBClient;
+use ekvproto::kvrpc_timeshare::*;
+use ekvproto::edb_timeshare::EINSTEINDBClient;
 use std::sync::Arc;
 use test_violetabftstore::new_server_cluster;
-use edb_util::collections::HashSet;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::collections::HashSet;
+use violetabftstore::interlock::::HandyRwLock;
 
 #[test]
 fn test_check_cn_success() {

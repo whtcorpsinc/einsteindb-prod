@@ -16,16 +16,16 @@ use edb::{
     Causet_WRITE,
 };
 use tuplespaceInstanton::data_key;
-use ekvproto::metapb::{Peer, Brane};
+use ekvproto::meta_timeshare::{Peer, Brane};
 use violetabftstore::store::BraneSnapshot;
 use violetabftstore::store::{apply_sst_causet_file, build_sst_causet_file};
 use tempfile::Builder;
 use test_violetabftstore::*;
 use edb::config::EINSTEINDBConfig;
-use edb::causetStorage::tail_pointer::ScannerBuilder;
-use edb::causetStorage::txn::Scanner;
-use edb_util::config::{ReadableDuration, ReadableSize};
-use edb_util::time::Limiter;
+use edb::causet_storage::tail_pointer::ScannerBuilder;
+use edb::causet_storage::txn::Scanner;
+use violetabftstore::interlock::::config::{ReadableDuration, ReadableSize};
+use violetabftstore::interlock::::time::Limiter;
 use txn_types::{Key, Write, WriteType};
 
 #[test]
@@ -148,7 +148,7 @@ fn test_delete_files_in_cone_for_titan() {
 
     // Set configs and create engines
     let mut causet = EINSTEINDBConfig::default();
-    let cache = causet.causetStorage.block_cache.build_shared_cache();
+    let cache = causet.causet_storage.block_cache.build_shared_cache();
     causet.lmdb.titan.enabled = true;
     causet.lmdb.titan.disable_gc = true;
     causet.lmdb.titan.purge_obsolete_files_period = ReadableDuration::secs(1);

@@ -8,14 +8,14 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
     MinkowskiValueType,
     MinkowskiType,
     MinkowskiSet,
 };
 
-use edb_raum::{
+use edb_allegro::{
     Cloned,
     HasSchemaReplicant,
 };
@@ -658,14 +658,14 @@ mod testing {
     use std::collections::BTreeMap;
     use std::collections::BTreeSet;
 
-    use raum_promises::attribute::{
+    use allegro_promises::attribute::{
         Unique,
     };
-    use raum_promises::{
+    use allegro_promises::{
         Attribute,
         MinkowskiSet,
     };
-    use edb_raum::{
+    use edb_allegro::{
         SchemaReplicant,
     };
 

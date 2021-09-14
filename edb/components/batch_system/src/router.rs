@@ -6,9 +6,9 @@ use crossbeam::channel::{lightlikeError, TrylightlikeError};
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use edb_util::collections::HashMap;
-use edb_util::lru::LruCache;
-use edb_util::Either;
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::lru::LruCache;
+use violetabftstore::interlock::::Either;
 
 enum CheckDoResult<T> {
     NotExist,
@@ -77,7 +77,7 @@ where
     /// Returns None means there is no mailbox inside the normal registry.
     /// Some(None) means there is expected mailbox inside the normal registry
     /// but it returns None after apply the given function. Some(Some) means
-    /// the given function returns Some and cache is ufidelated if it's invalid.
+    /// the given function returns Some and cache is fideliod if it's invalid.
     #[inline]
     fn check_do<F, R>(&self, addr: u64, mut f: F) -> CheckDoResult<R>
     where

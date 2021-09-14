@@ -4,13 +4,13 @@ use std::sync::{Arc, Mutex};
 
 use crossbeam::channel::TrylightlikeError;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
-use ekvproto::violetabft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
 use violetabftstore::errors::{Error as VioletaBftStoreError, Result as VioletaBftStoreResult};
 use violetabftstore::router::{handle_lightlike_error, VioletaBftStoreRouter};
 use violetabftstore::store::msg::{CasualMessage, PeerMsg, SignificantMsg};
 use violetabftstore::store::{CasualRouter, ProposalRouter, VioletaBftCommand, StoreMsg, StoreRouter};
-use edb_util::collections::HashMap;
-use edb_util::mpsc::{loose_bounded, LooseBoundedlightlikeer, Receiver};
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::mpsc::{loose_bounded, LooseBoundedlightlikeer, Receiver};
 
 #[derive(Clone)]
 #[allow(clippy::type_complexity)]

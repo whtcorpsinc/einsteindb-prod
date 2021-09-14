@@ -9,6 +9,6 @@ protobuf-codec = ["eTxnproto/protobuf-codec", "violetabft/protobuf-codec"]
 prost-codec = ["eTxnproto/prost-codec", "violetabft/prost-codec"]
 
 [deplightlikeencies]
-Raum_promises = { path = "../Raum_promises" }
+allegro_promises = { path = "../allegro_promises" }
 eTxnproto = { git = "https://github.com/whtcorpsinc/eTxnproto.git", default-features = false }
 violetabft = { version = "0.0.1-alpha", default-features = false }

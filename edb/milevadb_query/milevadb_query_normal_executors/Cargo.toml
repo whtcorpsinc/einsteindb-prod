@@ -15,5 +15,5 @@ protobuf = "2"
 milevadb_query_datatype = { path = "../milevadb_query_datatype" }
 milevadb_query_common = { path = "../milevadb_query_common" }
 milevadb_query_normal_expr = { path = "../milevadb_query_normal_expr" }
-edb_util = { path = "../edb_util" }
-fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
+violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
+fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", default-features = false }

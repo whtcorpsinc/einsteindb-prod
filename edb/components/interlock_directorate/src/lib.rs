@@ -47,9 +47,9 @@ impl ConcurrencyManager {
         TimeStamp::new(self.max_ts.load(Ordering::SeqCst))
     }
 
-    /// Ufidelates max_ts with the given new_ts. It has no effect if
+    /// fidelios max_ts with the given new_ts. It has no effect if
     /// max_ts >= new_ts or new_ts is TimeStamp::max().
-    pub fn ufidelate_max_ts(&self, new_ts: TimeStamp) {
+    pub fn fidelio_max_ts(&self, new_ts: TimeStamp) {
         if new_ts != TimeStamp::max() {
             self.max_ts.fetch_max(new_ts.into_inner(), Ordering::SeqCst);
         }
@@ -141,15 +141,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_ufidelate_max_ts() {
+    async fn test_fidelio_max_ts() {
         let concurrency_manager = ConcurrencyManager::new(10.into());
-        concurrency_manager.ufidelate_max_ts(20.into());
+        concurrency_manager.fidelio_max_ts(20.into());
         assert_eq!(concurrency_manager.max_ts(), 20.into());
 
-        concurrency_manager.ufidelate_max_ts(5.into());
+        concurrency_manager.fidelio_max_ts(5.into());
         assert_eq!(concurrency_manager.max_ts(), 20.into());
 
-        concurrency_manager.ufidelate_max_ts(TimeStamp::max());
+        concurrency_manager.fidelio_max_ts(TimeStamp::max());
         assert_eq!(concurrency_manager.max_ts(), 20.into());
     }
 

@@ -5,12 +5,12 @@ use std::sync::Arc;
 use criterion::black_box;
 use criterion::measurement::Measurement;
 
-use fidelpb::Expr;
+use fidel_timeshare::Expr;
 
 use milevadb_query_datatype::expr::EvalConfig;
 use milevadb_query_normal_executors::{FreeDaemon, TopNFreeDaemon};
 use milevadb_query_vec_executors::BatchTopNFreeDaemon;
-use edb::causetStorage::Statistics;
+use edb::causet_storage::Statistics;
 
 use crate::util::bencher::Bencher;
 use crate::util::executor_descriptor::top_n;

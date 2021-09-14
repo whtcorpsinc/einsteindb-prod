@@ -7,15 +7,15 @@ use std::time::Duration;
 
 use futures::executor::block_on;
 use grpcio::EnvBuilder;
-use ekvproto::metapb;
-use ekvproto::fidelpb;
+use ekvproto::meta_timeshare;
+use ekvproto::fidel_timeshare;
 use tokio::runtime::Builder;
 
 use fidel_client::{validate_lightlikepoints, Error as FidelError, FidelClient, BraneStat, RpcClient};
 use violetabftstore::store;
 use security::{SecurityConfig, SecurityManager};
 use semver::Version;
-use edb_util::config::ReadableDuration;
+use violetabftstore::interlock::::config::ReadableDuration;
 use txn_types::TimeStamp;
 
 use test_fidel::{mocker::*, util::*, Server as MockServer};
@@ -48,17 +48,17 @@ fn test_rpc_client() {
     assert_ne!(client.get_cluster_id().unwrap(), 0);
 
     let store_id = client.alloc_id().unwrap();
-    let mut store = metapb::CausetStore::default();
+    let mut store = meta_timeshare::CausetStore::default();
     store.set_id(store_id);
     debug!("bootstrap store {:?}", store);
 
     let peer_id = client.alloc_id().unwrap();
-    let mut peer = metapb::Peer::default();
+    let mut peer = meta_timeshare::Peer::default();
     peer.set_id(peer_id);
     peer.set_store_id(store_id);
 
     let brane_id = client.alloc_id().unwrap();
-    let mut brane = metapb::Brane::default();
+    let mut brane = meta_timeshare::Brane::default();
     brane.set_id(brane_id);
     brane.mut_peers().push(peer.clone());
     debug!("bootstrap brane {:?}", brane);
@@ -123,9 +123,9 @@ fn test_rpc_client() {
     assert_eq!(brane_info.brane, brane);
     assert_eq!(brane_info.leader.unwrap(), peer);
 
-    block_on(client.store_heartbeat(fidelpb::StoreStats::default())).unwrap();
-    block_on(client.ask_batch_split(metapb::Brane::default(), 1)).unwrap();
-    block_on(client.report_batch_split(vec![metapb::Brane::default(), metapb::Brane::default()]))
+    block_on(client.store_heartbeat(fidel_timeshare::StoreStats::default())).unwrap();
+    block_on(client.ask_batch_split(meta_timeshare::Brane::default(), 1)).unwrap();
+    block_on(client.report_batch_split(vec![meta_timeshare::Brane::default(), meta_timeshare::Brane::default()]))
         .unwrap();
 
     let brane_info = client.get_brane_info(brane_key).unwrap();
@@ -141,10 +141,10 @@ fn test_get_tombstone_stores() {
 
     let mut all_stores = vec![];
     let store_id = client.alloc_id().unwrap();
-    let mut store = metapb::CausetStore::default();
+    let mut store = meta_timeshare::CausetStore::default();
     store.set_id(store_id);
     let brane_id = client.alloc_id().unwrap();
-    let mut brane = metapb::Brane::default();
+    let mut brane = meta_timeshare::Brane::default();
     brane.set_id(brane_id);
     client.bootstrap_cluster(store.clone(), brane).unwrap();
 
@@ -154,9 +154,9 @@ fn test_get_tombstone_stores() {
     assert_eq!(s, all_stores);
 
     // Add tombstone store.
-    let mut store99 = metapb::CausetStore::default();
+    let mut store99 = meta_timeshare::CausetStore::default();
     store99.set_id(99);
-    store99.set_state(metapb::StoreState::Tombstone);
+    store99.set_state(meta_timeshare::StoreState::Tombstone);
     server.default_handler().add_store(store99.clone());
 
     // do not include tombstone.
@@ -195,7 +195,7 @@ fn test_reboot() {
 
     assert!(!client.is_cluster_bootstrapped().unwrap());
 
-    match client.bootstrap_cluster(metapb::CausetStore::default(), metapb::Brane::default()) {
+    match client.bootstrap_cluster(meta_timeshare::CausetStore::default(), meta_timeshare::Brane::default()) {
         Err(FidelError::ClusterBootstrapped(_)) => (),
         _ => {
             panic!("failed, should return ClusterBootstrapped");
@@ -285,7 +285,7 @@ fn test_incompatible_version() {
 
     let client = new_client(eps, None);
 
-    let resp = block_on(client.ask_batch_split(metapb::Brane::default(), 2));
+    let resp = block_on(client.ask_batch_split(meta_timeshare::Brane::default(), 2));
     assert_eq!(
         resp.unwrap_err().to_string(),
         FidelError::Incompatible.to_string()
@@ -302,16 +302,16 @@ fn respacelike_leader(mgr: SecurityManager) {
     let client = new_client(eps.clone(), Some(Arc::clone(&mgr)));
     // Put a brane.
     let store_id = client.alloc_id().unwrap();
-    let mut store = metapb::CausetStore::default();
+    let mut store = meta_timeshare::CausetStore::default();
     store.set_id(store_id);
 
     let peer_id = client.alloc_id().unwrap();
-    let mut peer = metapb::Peer::default();
+    let mut peer = meta_timeshare::Peer::default();
     peer.set_id(peer_id);
     peer.set_store_id(store_id);
 
     let brane_id = client.alloc_id().unwrap();
-    let mut brane = metapb::Brane::default();
+    let mut brane = meta_timeshare::Brane::default();
     brane.set_id(brane_id);
     brane.mut_peers().push(peer);
     client.bootstrap_cluster(store, brane.clone()).unwrap();
@@ -391,8 +391,8 @@ fn test_brane_heartbeat_on_leader_change() {
         tx.lightlike(resp).unwrap();
     });
     poller.spawn(f);
-    let brane = metapb::Brane::default();
-    let peer = metapb::Peer::default();
+    let brane = meta_timeshare::Brane::default();
+    let peer = meta_timeshare::Peer::default();
     let stat = BraneStat::default();
     poller.spawn(client.brane_heartbeat(
         store::VIOLETABFT_INIT_LOG_TERM,
@@ -432,18 +432,18 @@ fn test_brane_heartbeat_on_leader_change() {
     // Change FIDel leader once then heartbeat FIDel.
     heartbeat_on_leader_change(1);
 
-    // Change FIDel leader twice without ufidelate the heartbeat lightlikeer, then heartbeat FIDel.
+    // Change FIDel leader twice without fidelio the heartbeat lightlikeer, then heartbeat FIDel.
     heartbeat_on_leader_change(2);
 }
 
 #[test]
-fn test_periodical_ufidelate() {
+fn test_periodical_fidelio() {
     let eps_count = 3;
     let server = MockServer::with_case(eps_count, Arc::new(LeaderChange::new()));
     let eps = server.bind_addrs();
 
     let counter = Arc::new(AtomicUsize::new(0));
-    let client = new_client_with_ufidelate_interval(eps, None, ReadableDuration::secs(3));
+    let client = new_client_with_fidelio_interval(eps, None, ReadableDuration::secs(3));
     let counter1 = Arc::clone(&counter);
     client.handle_reconnect(move || {
         counter1.fetch_add(1, Ordering::SeqCst);
@@ -472,7 +472,7 @@ fn test_cluster_version() {
     assert!(cluster_version.get().is_none());
 
     let emit_heartbeat = || {
-        let req = fidelpb::StoreStats::default();
+        let req = fidel_timeshare::StoreStats::default();
         block_on(client.store_heartbeat(req)).unwrap();
     };
 

@@ -10,11 +10,11 @@
 
 use std; // To refer to std::result::Result.
 
-use edb_promises::errors::{
+use causetq_pull_promises::errors::{
     DbError,
 };
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
 };
 

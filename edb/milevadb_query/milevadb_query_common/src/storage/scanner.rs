@@ -2,7 +2,7 @@
 
 use super::cone::*;
 use super::cones_iter::*;
-use super::{OwnedKvPair, CausetStorage};
+use super::{OwnedKvPair, causet_storage};
 use crate::error::StorageError;
 
 const KEY_BUFFER_CAPACITY: usize = 64;
@@ -10,7 +10,7 @@ const KEY_BUFFER_CAPACITY: usize = 64;
 /// A scanner that scans over multiple cones. Each cone can be a point cone containing only
 /// one Evcausetidx, or an interval cone containing multiple events.
 pub struct ConesScanner<T> {
-    causetStorage: T,
+    causet_storage: T,
     cones_iter: ConesIterator,
 
     scan_backward_in_cone: bool,
@@ -28,17 +28,17 @@ pub struct ConesScanner<T> {
 }
 
 pub struct ConesScannerOptions<T> {
-    pub causetStorage: T,
+    pub causet_storage: T,
     pub cones: Vec<Cone>,
     pub scan_backward_in_cone: bool, // TODO: This can be const generics
     pub is_key_only: bool,            // TODO: This can be const generics
     pub is_scanned_cone_aware: bool, // TODO: This can be const generics
 }
 
-impl<T: CausetStorage> ConesScanner<T> {
+impl<T: causet_storage> ConesScanner<T> {
     pub fn new(
         ConesScannerOptions {
-            causetStorage,
+            causet_storage,
             cones,
             scan_backward_in_cone,
             is_key_only,
@@ -48,7 +48,7 @@ impl<T: CausetStorage> ConesScanner<T> {
         let cones_len = cones.len();
         let cones_iter = ConesIterator::new(cones);
         ConesScanner {
-            causetStorage,
+            causet_storage,
             cones_iter,
             scan_backward_in_cone,
             is_key_only,
@@ -72,31 +72,31 @@ impl<T: CausetStorage> ConesScanner<T> {
             let some_row = match cone {
                 IterStatus::NewCone(Cone::Point(r)) => {
                     if self.is_scanned_cone_aware {
-                        self.ufidelate_scanned_cone_from_new_point(&r);
+                        self.fidelio_scanned_cone_from_new_point(&r);
                     }
                     self.cones_iter.notify_drained();
                     self.scanned_rows_per_cone.push(0);
-                    self.causetStorage.get(self.is_key_only, r)?
+                    self.causet_storage.get(self.is_key_only, r)?
                 }
                 IterStatus::NewCone(Cone::Interval(r)) => {
                     if self.is_scanned_cone_aware {
-                        self.ufidelate_scanned_cone_from_new_cone(&r);
+                        self.fidelio_scanned_cone_from_new_cone(&r);
                     }
                     self.scanned_rows_per_cone.push(0);
-                    self.causetStorage
+                    self.causet_storage
                         .begin_scan(self.scan_backward_in_cone, self.is_key_only, r)?;
-                    self.causetStorage.scan_next()?
+                    self.causet_storage.scan_next()?
                 }
-                IterStatus::Continue => self.causetStorage.scan_next()?,
+                IterStatus::Continue => self.causet_storage.scan_next()?,
                 IterStatus::Drained => {
                     if self.is_scanned_cone_aware {
-                        self.ufidelate_working_cone_lightlike_key();
+                        self.fidelio_working_cone_lightlike_key();
                     }
                     return Ok(None); // drained
                 }
             };
             if self.is_scanned_cone_aware {
-                self.ufidelate_scanned_cone_from_scanned_row(&some_row);
+                self.fidelio_scanned_cone_from_scanned_row(&some_row);
             }
             if some_row.is_some() {
                 // Retrieved one Evcausetidx from point cone or interval cone.
@@ -112,10 +112,10 @@ impl<T: CausetStorage> ConesScanner<T> {
         }
     }
 
-    /// Applightlikes causetStorage statistics collected so far to the given container and clears the
+    /// Applightlikes causet_storage statistics collected so far to the given container and clears the
     /// collected statistics.
-    pub fn collect_causetStorage_stats(&mut self, dest: &mut T::Statistics) {
-        self.causetStorage.collect_statistics(dest)
+    pub fn collect_causet_storage_stats(&mut self, dest: &mut T::Statistics) {
+        self.causet_storage.collect_statistics(dest)
     }
 
     /// Applightlikes scanned events of each cone so far to the given container and clears the
@@ -155,13 +155,13 @@ impl<T: CausetStorage> ConesScanner<T> {
 
     #[inline]
     pub fn can_be_cached(&self) -> bool {
-        self.causetStorage.met_uncacheable_data() == Some(false)
+        self.causet_storage.met_uncacheable_data() == Some(false)
     }
 
-    fn ufidelate_scanned_cone_from_new_point(&mut self, point: &PointCone) {
+    fn fidelio_scanned_cone_from_new_point(&mut self, point: &PointCone) {
         assert!(self.is_scanned_cone_aware);
 
-        self.ufidelate_working_cone_lightlike_key();
+        self.fidelio_working_cone_lightlike_key();
         self.current_cone.lower_inclusive.clear();
         self.current_cone.upper_exclusive.clear();
         self.current_cone
@@ -171,13 +171,13 @@ impl<T: CausetStorage> ConesScanner<T> {
             .upper_exclusive
             .extlightlike_from_slice(&point.0);
         self.current_cone.upper_exclusive.push(0);
-        self.ufidelate_working_cone_begin_key();
+        self.fidelio_working_cone_begin_key();
     }
 
-    fn ufidelate_scanned_cone_from_new_cone(&mut self, cone: &IntervalCone) {
+    fn fidelio_scanned_cone_from_new_cone(&mut self, cone: &IntervalCone) {
         assert!(self.is_scanned_cone_aware);
 
-        self.ufidelate_working_cone_lightlike_key();
+        self.fidelio_working_cone_lightlike_key();
         self.current_cone.lower_inclusive.clear();
         self.current_cone.upper_exclusive.clear();
         self.current_cone
@@ -186,10 +186,10 @@ impl<T: CausetStorage> ConesScanner<T> {
         self.current_cone
             .upper_exclusive
             .extlightlike_from_slice(&cone.upper_exclusive);
-        self.ufidelate_working_cone_begin_key();
+        self.fidelio_working_cone_begin_key();
     }
 
-    fn ufidelate_working_cone_begin_key(&mut self) {
+    fn fidelio_working_cone_begin_key(&mut self) {
         assert!(self.is_scanned_cone_aware);
 
         if self.working_cone_begin_key.is_empty() {
@@ -203,7 +203,7 @@ impl<T: CausetStorage> ConesScanner<T> {
         }
     }
 
-    fn ufidelate_working_cone_lightlike_key(&mut self) {
+    fn fidelio_working_cone_lightlike_key(&mut self) {
         assert!(self.is_scanned_cone_aware);
 
         self.working_cone_lightlike_key.clear();
@@ -216,7 +216,7 @@ impl<T: CausetStorage> ConesScanner<T> {
         }
     }
 
-    fn ufidelate_scanned_cone_from_scanned_row(&mut self, some_row: &Option<OwnedKvPair>) {
+    fn fidelio_scanned_cone_from_scanned_row(&mut self, some_row: &Option<OwnedKvPair>) {
         assert!(self.is_scanned_cone_aware);
 
         if let Some((key, _)) = some_row {
@@ -233,10 +233,10 @@ impl<T: CausetStorage> ConesScanner<T> {
 mod tests {
     use super::*;
 
-    use crate::causetStorage::test_fixture::FixtureStorage;
-    use crate::causetStorage::{IntervalCone, PointCone, Cone};
+    use crate::causet_storage::test_fixture::FixtureStorage;
+    use crate::causet_storage::{IntervalCone, PointCone, Cone};
 
-    fn create_causetStorage() -> FixtureStorage {
+    fn create_causet_storage() -> FixtureStorage {
         let data: &[(&'static [u8], &'static [u8])] = &[
             (b"bar", b"2"),
             (b"bar_2", b"4"),
@@ -249,7 +249,7 @@ mod tests {
 
     #[test]
     fn test_next() {
-        let causetStorage = create_causetStorage();
+        let causet_storage = create_causet_storage();
 
         // Currently we accept unordered cones.
         let cones: Vec<Cone> = vec![
@@ -259,7 +259,7 @@ mod tests {
             IntervalCone::from(("a", "c")).into(),
         ];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage: causetStorage.clone(),
+            causet_storage: causet_storage.clone(),
             cones,
             scan_backward_in_cone: false,
             is_key_only: false,
@@ -295,7 +295,7 @@ mod tests {
             IntervalCone::from(("a", "bar_2")).into(),
         ];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage: causetStorage.clone(),
+            causet_storage: causet_storage.clone(),
             cones,
             scan_backward_in_cone: true,
             is_key_only: false,
@@ -326,7 +326,7 @@ mod tests {
             PointCone::from("bar_3").into(),
         ];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage,
+            causet_storage,
             cones,
             scan_backward_in_cone: false,
             is_key_only: true,
@@ -351,7 +351,7 @@ mod tests {
 
     #[test]
     fn test_scanned_rows() {
-        let causetStorage = create_causetStorage();
+        let causet_storage = create_causet_storage();
 
         let cones: Vec<Cone> = vec![
             IntervalCone::from(("foo", "foo_2a")).into(),
@@ -360,7 +360,7 @@ mod tests {
             IntervalCone::from(("a", "z")).into(),
         ];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage,
+            causet_storage,
             cones,
             scan_backward_in_cone: false,
             is_key_only: false,
@@ -410,12 +410,12 @@ mod tests {
 
     #[test]
     fn test_scanned_cone_forward() {
-        let causetStorage = create_causetStorage();
+        let causet_storage = create_causet_storage();
 
         // No cone
         let cones = vec![];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage: causetStorage.clone(),
+            causet_storage: causet_storage.clone(),
             cones,
             scan_backward_in_cone: false,
             is_key_only: false,
@@ -435,7 +435,7 @@ mod tests {
         // Empty interval cone
         let cones = vec![IntervalCone::from(("x", "xb")).into()];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage: causetStorage.clone(),
+            causet_storage: causet_storage.clone(),
             cones,
             scan_backward_in_cone: false,
             is_key_only: false,
@@ -451,7 +451,7 @@ mod tests {
         // Empty point cone
         let cones = vec![PointCone::from("x").into()];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage: causetStorage.clone(),
+            causet_storage: causet_storage.clone(),
             cones,
             scan_backward_in_cone: false,
             is_key_only: false,
@@ -467,7 +467,7 @@ mod tests {
         // Filled interval cone
         let cones = vec![IntervalCone::from(("foo", "foo_8")).into()];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage: causetStorage.clone(),
+            causet_storage: causet_storage.clone(),
             cones,
             scan_backward_in_cone: false,
             is_key_only: false,
@@ -505,7 +505,7 @@ mod tests {
             IntervalCone::from(("bar_4", "box")).into(),
         ];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage,
+            causet_storage,
             cones,
             scan_backward_in_cone: false,
             is_key_only: false,
@@ -545,12 +545,12 @@ mod tests {
 
     #[test]
     fn test_scanned_cone_backward() {
-        let causetStorage = create_causetStorage();
+        let causet_storage = create_causet_storage();
 
         // No cone
         let cones = vec![];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage: causetStorage.clone(),
+            causet_storage: causet_storage.clone(),
             cones,
             scan_backward_in_cone: true,
             is_key_only: false,
@@ -570,7 +570,7 @@ mod tests {
         // Empty interval cone
         let cones = vec![IntervalCone::from(("x", "xb")).into()];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage: causetStorage.clone(),
+            causet_storage: causet_storage.clone(),
             cones,
             scan_backward_in_cone: true,
             is_key_only: false,
@@ -586,7 +586,7 @@ mod tests {
         // Empty point cone
         let cones = vec![PointCone::from("x").into()];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage: causetStorage.clone(),
+            causet_storage: causet_storage.clone(),
             cones,
             scan_backward_in_cone: true,
             is_key_only: false,
@@ -602,7 +602,7 @@ mod tests {
         // Filled interval cone
         let cones = vec![IntervalCone::from(("foo", "foo_8")).into()];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage: causetStorage.clone(),
+            causet_storage: causet_storage.clone(),
             cones,
             scan_backward_in_cone: true,
             is_key_only: false,
@@ -638,7 +638,7 @@ mod tests {
             IntervalCone::from(("foo", "foo_3")).into(),
         ];
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage,
+            causet_storage,
             cones,
             scan_backward_in_cone: true,
             is_key_only: false,

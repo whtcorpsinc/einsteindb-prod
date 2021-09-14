@@ -14,7 +14,7 @@ use std::collections::{
     BTreeSet,
 };
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
     MinkowskiType,
 };

@@ -5,7 +5,7 @@
 use crate::*;
 use std::borrow::Cow;
 use std::sync::{Arc, Mutex};
-use edb_util::mpsc;
+use violetabftstore::interlock::::mpsc;
 
 /// Message `Runner` can accepts.
 pub enum Message {

@@ -18,7 +18,7 @@ use edb_causetq_pull::{
     Puller,
 };
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
 };
 

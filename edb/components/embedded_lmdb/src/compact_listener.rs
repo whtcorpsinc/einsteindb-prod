@@ -12,7 +12,7 @@ use lmdb::{
 };
 use std::collections::BTreeMap;
 use std::collections::Bound::{Excluded, Included, Unbounded};
-use edb_util::collections::hash_set_with_capacity;
+use violetabftstore::interlock::::collections::hash_set_with_capacity;
 
 pub struct LmdbCompactionJobInfo<'a>(&'a RawCompactionJobInfo);
 

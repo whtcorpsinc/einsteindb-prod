@@ -13,10 +13,10 @@ use std::time::{Duration, Instant};
 use futures_util::io::{AsyncRead, AsyncReadExt};
 use ekvproto::backup::StorageBacklightlike;
 #[causet(feature = "prost-codec")]
-use ekvproto::import_sstpb::pair::Op as PairOp;
+use ekvproto::import_sst_timeshare::pair::Op as PairOp;
 #[causet(not(feature = "prost-codec"))]
-use ekvproto::import_sstpb::PairOp;
-use ekvproto::import_sstpb::*;
+use ekvproto::import_sst_timeshare::PairOp;
+use ekvproto::import_sst_timeshare::*;
 use tokio::time::timeout;
 use uuid::{Builder as UuidBuilder, Uuid};
 
@@ -26,8 +26,8 @@ use edb::{
     EncryptionKeyManager, IngestExternalFileOptions, Iteron, KvEngine, SeekKey, SstExt,
     SstReader, SstWriter, Causet_DEFAULT, Causet_WRITE,
 };
-use external_causetStorage::{block_on_external_io, create_causetStorage, url_of_backlightlike, READ_BUF_SIZE};
-use edb_util::time::Limiter;
+use external_causet_storage::{block_on_external_io, create_causet_storage, url_of_backlightlike, READ_BUF_SIZE};
+use violetabftstore::interlock::::time::Limiter;
 use txn_types::{is_short_value, Key, TimeStamp, Write as KvWrite, WriteRef, WriteType};
 
 use super::{Error, Result};
@@ -94,7 +94,7 @@ impl SSTImporter {
         }
     }
 
-    // Downloads an SST file from an external causetStorage.
+    // Downloads an SST file from an external causet_storage.
     //
     // This method is blocking. It performs the following transformations before
     // writing to disk:
@@ -138,7 +138,7 @@ impl SSTImporter {
         }
     }
 
-    async fn read_external_causetStorage_into_file(
+    async fn read_external_causet_storage_into_file(
         input: &mut (dyn AsyncRead + Unpin),
         output: &mut dyn Write,
         speed_limiter: &Limiter,
@@ -147,7 +147,7 @@ impl SSTImporter {
     ) -> io::Result<()> {
         let dur = Duration::from_secs((READ_BUF_SIZE / min_read_speed) as u64);
 
-        // do the I/O copy from external_causetStorage to the local file.
+        // do the I/O copy from external_causet_storage to the local file.
         let mut buffer = vec![0u8; READ_BUF_SIZE];
         let mut file_length = 0;
 
@@ -194,9 +194,9 @@ impl SSTImporter {
         let url = url_of_backlightlike(backlightlike);
 
         {
-            // prepare to download the file from the external_causetStorage
-            let ext_causetStorage = create_causetStorage(backlightlike)?;
-            let mut ext_reader = ext_causetStorage.read(name);
+            // prepare to download the file from the external_causet_storage
+            let ext_causet_storage = create_causet_storage(backlightlike)?;
+            let mut ext_reader = ext_causet_storage.read(name);
 
             let mut plain_file;
             let mut encrypted_file;
@@ -214,7 +214,7 @@ impl SSTImporter {
             // (at 8 KB/s for a 2 MB buffer, this means we timeout after 4m16s.)
             const MINIMUM_READ_SPEED: usize = 8192;
 
-            block_on_external_io(Self::read_external_causetStorage_into_file(
+            block_on_external_io(Self::read_external_causet_storage_into_file(
                 &mut ext_reader,
                 file_writer,
                 &speed_limiter,
@@ -701,7 +701,7 @@ impl ImportFile {
 
     pub fn applightlike(&mut self, data: &[u8]) -> Result<()> {
         self.file.as_mut().unwrap().write_all(data)?;
-        self.digest.ufidelate(data);
+        self.digest.fidelio(data);
         Ok(())
     }
 
@@ -1003,7 +1003,7 @@ mod tests {
         meta.mut_brane_epoch().set_conf_ver(5);
         meta.mut_brane_epoch().set_version(6);
 
-        let backlightlike = external_causetStorage::make_local_backlightlike(ext_sst_dir.path());
+        let backlightlike = external_causet_storage::make_local_backlightlike(ext_sst_dir.path());
         Ok((ext_sst_dir, backlightlike, meta))
     }
 
@@ -1083,7 +1083,7 @@ mod tests {
         meta.mut_brane_epoch().set_conf_ver(5);
         meta.mut_brane_epoch().set_version(6);
 
-        let backlightlike = external_causetStorage::make_local_backlightlike(ext_sst_dir.path());
+        let backlightlike = external_causet_storage::make_local_backlightlike(ext_sst_dir.path());
         Ok((ext_sst_dir, backlightlike, meta))
     }
 
@@ -1129,7 +1129,7 @@ mod tests {
         meta.mut_brane_epoch().set_conf_ver(5);
         meta.mut_brane_epoch().set_version(6);
 
-        let backlightlike = external_causetStorage::make_local_backlightlike(ext_sst_dir.path());
+        let backlightlike = external_causet_storage::make_local_backlightlike(ext_sst_dir.path());
         Ok((ext_sst_dir, backlightlike, meta))
     }
 
@@ -1161,12 +1161,12 @@ mod tests {
     }
 
     #[test]
-    fn test_read_external_causetStorage_into_file() {
+    fn test_read_external_causet_storage_into_file() {
         let data = &b"some input data"[..];
         let mut input = data;
         let mut output = Vec::new();
         let input_len = input.len() as u64;
-        block_on_external_io(SSTImporter::read_external_causetStorage_into_file(
+        block_on_external_io(SSTImporter::read_external_causet_storage_into_file(
             &mut input,
             &mut output,
             &Limiter::new(INFINITY),
@@ -1178,12 +1178,12 @@ mod tests {
     }
 
     #[test]
-    fn test_read_external_causetStorage_into_file_timed_out() {
+    fn test_read_external_causet_storage_into_file_timed_out() {
         use futures_util::stream::{plightlikeing, TryStreamExt};
 
         let mut input = plightlikeing::<io::Result<&[u8]>>().into_async_read();
         let mut output = Vec::new();
-        let err = block_on_external_io(SSTImporter::read_external_causetStorage_into_file(
+        let err = block_on_external_io(SSTImporter::read_external_causet_storage_into_file(
             &mut input,
             &mut output,
             &Limiter::new(INFINITY),
@@ -1548,7 +1548,7 @@ mod tests {
         let importer_dir = tempfile::temfidelir().unwrap();
         let importer = SSTImporter::new(&importer_dir, None).unwrap();
         let sst_writer = create_sst_writer_with_db(&importer, &meta).unwrap();
-        let backlightlike = external_causetStorage::make_local_backlightlike(ext_sst_dir.path());
+        let backlightlike = external_causet_storage::make_local_backlightlike(ext_sst_dir.path());
 
         let result = importer.download::<TestEngine>(
             &meta,

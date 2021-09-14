@@ -5,9 +5,9 @@ use std::time::*;
 
 use engine_lmdb::Compat;
 use edb::Peekable;
-use ekvproto::violetabft_serverpb::VioletaBftLocalState;
+use ekvproto::violetabft_server_timeshare::VioletaBftLocalState;
 use test_violetabftstore::*;
-use edb_util::config::ReadableDuration;
+use violetabftstore::interlock::::config::ReadableDuration;
 
 #[test]
 fn test_one_node_leader_missing() {
@@ -38,7 +38,7 @@ fn test_one_node_leader_missing() {
 }
 
 #[test]
-fn test_node_ufidelate_localreader_after_removed() {
+fn test_node_fidelio_localreader_after_removed() {
     let mut cluster = new_node_cluster(0, 6);
     let fidel_client = cluster.fidel_client.clone();
     // Disable default max peer number check.
@@ -76,7 +76,7 @@ fn test_node_ufidelate_localreader_after_removed() {
     thread::sleep(cluster.causet.violetabft_store.max_leader_missing_duration.0 * 2);
 
     // Continue peer 2 apply worker, so that peer 2 tries to
-    // ufidelate brane to its read pushdown_causet.
+    // fidelio brane to its read pushdown_causet.
     fail::remove(add_node_fp);
 
     // Make sure peer 2 is removed in node 2.

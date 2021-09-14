@@ -12,7 +12,7 @@ use edb::KvEngine;
 use edb::SstReader;
 use edb::SstWriter;
 use edb::SstWriterBuilder;
-use ekvproto::import_sstpb::*;
+use ekvproto::import_sst_timeshare::*;
 use uuid::Uuid;
 
 use engine_lmdb::raw::{
@@ -61,7 +61,7 @@ pub fn new_sst_writer(path: &str) -> LmdbSstWriter {
 
 pub fn calc_data_crc32(data: &[u8]) -> u32 {
     let mut digest = crc32fast::Hasher::new();
-    digest.ufidelate(data);
+    digest.fidelio(data);
     digest.finalize()
 }
 

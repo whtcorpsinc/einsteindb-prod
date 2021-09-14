@@ -16,26 +16,26 @@ use backup::Task;
 use concurrency_manager::ConcurrencyManager;
 use edb::IterOptions;
 use edb::{CfName, Causet_DEFAULT, Causet_WRITE, DATA_KEY_PREFIX_LEN};
-use external_causetStorage::*;
+use external_causet_storage::*;
 use ekvproto::backup::*;
-use ekvproto::import_sstpb::*;
-use ekvproto::kvrpcpb::*;
-use ekvproto::violetabft_cmdpb::{CmdType, VioletaBftCmdRequest, VioletaBftRequestHeader, Request};
-use ekvproto::edbpb::EINSTEINDBClient;
+use ekvproto::import_sst_timeshare::*;
+use ekvproto::kvrpc_timeshare::*;
+use ekvproto::violetabft_cmd_timeshare::{CmdType, VioletaBftCmdRequest, VioletaBftRequestHeader, Request};
+use ekvproto::edb_timeshare::EINSTEINDBClient;
 use fidel_client::FidelClient;
 use tempfile::Builder;
 use test_violetabftstore::*;
-use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
-use milevadb_query_common::causetStorage::{IntervalCone, Cone};
+use milevadb_query_common::causet_storage::scanner::{ConesScanner, ConesScannerOptions};
+use milevadb_query_common::causet_storage::{IntervalCone, Cone};
 use edb::config::BackupConfig;
 use edb::interlock::checksum_crc64_xor;
 use edb::interlock::posetdag::EinsteinDBStorage;
-use edb::causetStorage::kv::Engine;
-use edb::causetStorage::SnapshotStore;
-use edb_util::collections::HashMap;
-use edb_util::file::calc_crc32_bytes;
-use edb_util::worker::Worker;
-use edb_util::HandyRwLock;
+use edb::causet_storage::kv::Engine;
+use edb::causet_storage::SnapshotStore;
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::file::calc_crc32_bytes;
+use violetabftstore::interlock::::worker::Worker;
+use violetabftstore::interlock::::HandyRwLock;
 use txn_types::TimeStamp;
 
 struct TestSuite {
@@ -83,7 +83,7 @@ impl TestSuite {
             let sim = cluster.sim.rl();
             let backup_lightlikepoint = backup::node::new(
                 *id,
-                sim.causetStorages[&id].clone(),
+                sim.causet_storages[&id].clone(),
                 sim.brane_info_accessors[&id].clone(),
                 engines.kv.as_inner().clone(),
                 BackupConfig { num_threads: 4 },
@@ -215,7 +215,7 @@ impl TestSuite {
         req.set_lightlike_key(lightlike_key);
         req.spacelike_version = begin_ts.into_inner();
         req.lightlike_version = backup_ts.into_inner();
-        req.set_causetStorage_backlightlike(make_local_backlightlike(path));
+        req.set_causet_storage_backlightlike(make_local_backlightlike(path));
         req.set_is_raw_kv(false);
         let (tx, rx) = future_mpsc::unbounded();
         for lightlike in self.lightlikepoints.values() {
@@ -235,7 +235,7 @@ impl TestSuite {
         let mut req = BackupRequest::default();
         req.set_spacelike_key(spacelike_key);
         req.set_lightlike_key(lightlike_key);
-        req.set_causetStorage_backlightlike(make_local_backlightlike(path));
+        req.set_causet_storage_backlightlike(make_local_backlightlike(path));
         req.set_is_raw_kv(true);
         req.set_causet(causet);
         let (tx, rx) = future_mpsc::unbounded();
@@ -251,7 +251,7 @@ impl TestSuite {
         let mut total_kvs = 0;
         let mut total_bytes = 0;
         let sim = self.cluster.sim.rl();
-        let engine = sim.causetStorages[&self.context.get_peer().get_store_id()].clone();
+        let engine = sim.causet_storages[&self.context.get_peer().get_store_id()].clone();
         let snapshot = engine.snapshot(&self.context.clone()).unwrap();
         let snap_store = SnapshotStore::new(
             snapshot,
@@ -262,7 +262,7 @@ impl TestSuite {
             false,
         );
         let mut scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage: EinsteinDBStorage::new(snap_store, false),
+            causet_storage: EinsteinDBStorage::new(snap_store, false),
             cones: vec![Cone::Interval(IntervalCone::from((spacelike, lightlike)))],
             scan_backward_in_cone: false,
             is_key_only: false,
@@ -289,7 +289,7 @@ impl TestSuite {
         let mut total_bytes = 0;
 
         let sim = self.cluster.sim.rl();
-        let engine = sim.causetStorages[&self.context.get_peer().get_store_id()].clone();
+        let engine = sim.causet_storages[&self.context.get_peer().get_store_id()].clone();
         let snapshot = engine.snapshot(&self.context.clone()).unwrap();
         let mut iter_opt = IterOptions::default();
         if !lightlike.is_empty() {
@@ -345,13 +345,13 @@ fn test_backup_and_import() {
     // Push down backup request.
     let tmp = Builder::new().temfidelir().unwrap();
     let backup_ts = suite.alloc_ts();
-    let causetStorage_path = tmp.path().join(format!("{}", backup_ts));
+    let causet_storage_path = tmp.path().join(format!("{}", backup_ts));
     let rx = suite.backup(
         vec![],   // spacelike
         vec![],   // lightlike
         0.into(), // begin_ts
         backup_ts,
-        &causetStorage_path,
+        &causet_storage_path,
     );
     let resps1 = block_on(rx.collect::<Vec<_>>());
     // Only leader can handle backup.
@@ -376,8 +376,8 @@ fn test_backup_and_import() {
     assert!(resps2[0].get_files().is_empty(), "{:?}", resps2);
 
     // Use importer to restore backup files.
-    let backlightlike = make_local_backlightlike(&causetStorage_path);
-    let causetStorage = create_causetStorage(&backlightlike).unwrap();
+    let backlightlike = make_local_backlightlike(&causet_storage_path);
+    let causet_storage = create_causet_storage(&backlightlike).unwrap();
     let brane = suite.cluster.get_brane(b"");
     let mut sst_meta = SstMeta::default();
     sst_meta.brane_id = brane.get_id();
@@ -385,7 +385,7 @@ fn test_backup_and_import() {
     sst_meta.set_uuid(uuid::Uuid::new_v4().as_bytes().to_vec());
     let mut metas = vec![];
     for f in files1.clone().into_iter() {
-        let mut reader = causetStorage.read(&f.name);
+        let mut reader = causet_storage.read(&f.name);
         let mut content = vec![];
         block_on(reader.read_to_lightlike(&mut content)).unwrap();
         let mut m = sst_meta.clone();
@@ -464,13 +464,13 @@ fn test_backup_meta() {
 
     // Push down backup request.
     let tmp = Builder::new().temfidelir().unwrap();
-    let causetStorage_path = tmp.path().join(format!("{}", backup_ts));
+    let causet_storage_path = tmp.path().join(format!("{}", backup_ts));
     let rx = suite.backup(
         vec![],   // spacelike
         vec![],   // lightlike
         0.into(), // begin_ts
         backup_ts,
-        &causetStorage_path,
+        &causet_storage_path,
     );
     let resps1 = block_on(rx.collect::<Vec<_>>());
     // Only leader can handle backup.
@@ -508,12 +508,12 @@ fn test_backup_rawkv() {
     // Push down backup request.
     let tmp = Builder::new().temfidelir().unwrap();
     let backup_ts = suite.alloc_ts();
-    let causetStorage_path = tmp.path().join(format!("{}", backup_ts));
+    let causet_storage_path = tmp.path().join(format!("{}", backup_ts));
     let rx = suite.backup_raw(
         vec![b'a'], // spacelike
         vec![b'z'], // lightlike
         causet.clone(),
-        &causetStorage_path,
+        &causet_storage_path,
     );
     let resps1 = block_on(rx.collect::<Vec<_>>());
     // Only leader can handle backup.
@@ -535,8 +535,8 @@ fn test_backup_rawkv() {
     assert!(resps2[0].get_files().is_empty(), "{:?}", resps2);
 
     // Use importer to restore backup files.
-    let backlightlike = make_local_backlightlike(&causetStorage_path);
-    let causetStorage = create_causetStorage(&backlightlike).unwrap();
+    let backlightlike = make_local_backlightlike(&causet_storage_path);
+    let causet_storage = create_causet_storage(&backlightlike).unwrap();
     let brane = suite.cluster.get_brane(b"");
     let mut sst_meta = SstMeta::default();
     sst_meta.brane_id = brane.get_id();
@@ -544,7 +544,7 @@ fn test_backup_rawkv() {
     sst_meta.set_uuid(uuid::Uuid::new_v4().as_bytes().to_vec());
     let mut metas = vec![];
     for f in files1.clone().into_iter() {
-        let mut reader = causetStorage.read(&f.name);
+        let mut reader = causet_storage.read(&f.name);
         let mut content = vec![];
         block_on(reader.read_to_lightlike(&mut content)).unwrap();
         let mut m = sst_meta.clone();
@@ -612,12 +612,12 @@ fn test_backup_raw_meta() {
 
     // Push down backup request.
     let tmp = Builder::new().temfidelir().unwrap();
-    let causetStorage_path = tmp.path().join(format!("{}", backup_ts));
+    let causet_storage_path = tmp.path().join(format!("{}", backup_ts));
     let rx = suite.backup_raw(
         vec![], // spacelike
         vec![], // lightlike
         causet,
-        &causetStorage_path,
+        &causet_storage_path,
     );
     let resps1 = block_on(rx.collect::<Vec<_>>());
     // Only leader can handle backup.
@@ -640,7 +640,7 @@ fn test_backup_raw_meta() {
     assert_eq!(total_bytes, admin_total_bytes);
     assert_eq!(checksum, admin_checksum);
     assert_eq!(total_size, 1611);
-    // please ufidelate this number (must be > 0) when the test failed
+    // please fidelio this number (must be > 0) when the test failed
 
     suite.stop();
 }

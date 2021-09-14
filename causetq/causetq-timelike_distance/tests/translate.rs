@@ -9,8 +9,8 @@
 // specific language governing permissions and limitations under the License.
 
 extern crate edbn;
-extern crate edb_raum;
-extern crate raum_promises;
+extern crate edb_allegro;
+extern crate allegro_promises;
 extern crate edb_causetq_parityfilter;
 extern crate edb_causetq_projector;
 extern crate edb_sql;
@@ -25,14 +25,14 @@ use edbn::causetq::{
     ToUpper,
 };
 
-use raum_promises::{
+use allegro_promises::{
     Attribute,
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SchemaReplicant,
 };
 
@@ -919,12 +919,12 @@ fn test_not_with_ground() {
 fn test_fulltext() {
     let schemaReplicant = prepopulated_typed_schemaReplicant(MinkowskiValueType::Double);
 
-    let causetq = r#"[:find ?instanton ?value ?causetx ?sraum :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sraum]]]]"#;
+    let causetq = r#"[:find ?instanton ?value ?causetx ?sallegro :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sallegro]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
                                      `Causets01`.causetx AS `?causetx`, \
-                                     0e0 AS `?sraum` \
+                                     0e0 AS `?sallegro` \
                      FROM `fulltext_values` AS `fulltext_values00`, \
                           `causets` AS `Causets01` \
                      WHERE `Causets01`.a = 100 \
@@ -932,9 +932,9 @@ fn test_fulltext() {
                        AND `fulltext_values00`.text MATCH $v0");
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
-    let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sraum]]]]"#;
+    let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sallegro]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
-    // Observe that the computed Block isn't dropped, even though `?sraum` isn't bound in the final conjoining gerund.
+    // Observe that the computed Block isn't dropped, even though `?sallegro` isn't bound in the final conjoining gerund.
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
                                      `Causets01`.causetx AS `?causetx` \
@@ -947,7 +947,7 @@ fn test_fulltext() {
 
     let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx _]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
-    // Observe that the computed Block isn't included at all when `?sraum` isn't bound.
+    // Observe that the computed Block isn't included at all when `?sallegro` isn't bound.
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
                                      `Causets01`.causetx AS `?causetx` \
@@ -958,7 +958,7 @@ fn test_fulltext() {
                        AND `fulltext_values00`.text MATCH $v0");
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
-    let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sraum]]] [?instanton :foo/bar ?sraum]]"#;
+    let causetq = r#"[:find ?instanton ?value ?causetx :where [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sallegro]]] [?instanton :foo/bar ?sallegro]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets01`.e AS `?instanton`, \
                                      `fulltext_values00`.text AS `?value`, \
@@ -974,7 +974,7 @@ fn test_fulltext() {
                        AND `Causets01`.e = `Causets02`.e");
     assert_eq!(args, vec![make_arg("$v0", "needle"),]);
 
-    let causetq = r#"[:find ?instanton ?value ?causetx :where [?instanton :foo/bar ?sraum] [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sraum]]]]"#;
+    let causetq = r#"[:find ?instanton ?value ?causetx :where [?instanton :foo/bar ?sallegro] [(fulltext $ :foo/fts "needle") [[?instanton ?value ?causetx ?sallegro]]]]"#;
     let SQLCausetQ { allegrosql, args } = translate(&schemaReplicant, causetq);
     assert_eq!(allegrosql, "SELECT DISTINCT `Causets00`.e AS `?instanton`, \
                                      `fulltext_values01`.text AS `?value`, \

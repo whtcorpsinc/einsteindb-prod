@@ -2,11 +2,11 @@
 
 use concurrency_manager::ConcurrencyManager;
 use criterion::{black_box, BatchSize, Bencher, Criterion};
-use ekvproto::kvrpcpb::Context;
+use ekvproto::kvrpc_timeshare::Context;
 use test_util::KvGenerator;
-use edb::causetStorage::kv::{Engine, WriteData};
-use edb::causetStorage::tail_pointer::{self, MvccReader, MvccTxn};
-use edb::causetStorage::txn::commit;
+use edb::causet_storage::kv::{Engine, WriteData};
+use edb::causet_storage::tail_pointer::{self, MvccReader, MvccTxn};
+use edb::causet_storage::txn::commit;
 use txn_types::{Key, Mutation, TimeStamp};
 
 use super::{BenchConfig, EngineFactory, DEFAULT_ITERATIONS, DEFAULT_KV_GENERATOR_SEED};

@@ -24,15 +24,15 @@ use std::ops::{
     Range,
 };
 
-extern crate edb_raum;
+extern crate edb_allegro;
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-pub use self::edb_raum::{
+pub use self::edb_allegro::{
     DateTime,
     SchemaReplicant,
     Utc,
@@ -43,7 +43,7 @@ use edbn::entities::{
     TempId,
 };
 
-use edb_promises::errors as errors;
+use causetq_pull_promises::errors as errors;
 
 /// Represents one partition of the solitonId space.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]

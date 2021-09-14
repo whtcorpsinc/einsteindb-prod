@@ -7,18 +7,18 @@ publish = false
 [features]
 protobuf-codec = [
   "ekvproto/protobuf-codec",
-  "test_causetStorage/protobuf-codec",
+  "test_causet_storage/protobuf-codec",
   "milevadb_query_datatype/protobuf-codec",
   "edb/protobuf-codec",
-  "fidelpb/protobuf-codec",
+  "fidel_timeshare/protobuf-codec",
   "txn_types/protobuf-codec",
 ]
 prost-codec = [
   "ekvproto/prost-codec",
-  "test_causetStorage/prost-codec",
+  "test_causet_storage/prost-codec",
   "milevadb_query_datatype/prost-codec",
   "edb/prost-codec",
-  "fidelpb/prost-codec",
+  "fidel_timeshare/prost-codec",
   "txn_types/prost-codec",
 ]
 
@@ -26,11 +26,11 @@ prost-codec = [
 futures = "0.3"
 ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
 protobuf = "2"
-test_causetStorage = { path = "../test_causetStorage" }
+test_causet_storage = { path = "../test_causet_storage" }
 milevadb_query_datatype = { path = "../milevadb_query_datatype" }
 milevadb_query_common = { path = "../milevadb_query_common" }
 edb = { path = "../../", default-features = false }
-edb_util = { path = "../edb_util" }
-fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
+violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
+fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", default-features = false }
 txn_types = { path = "../txn_types" }
 concurrency_manager = { path = "../concurrency_manager" }

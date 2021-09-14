@@ -16,12 +16,12 @@ use edb::{Engines, KvEngine, MuBlock, WriteBatch, WriteBatchExt, WriteOptions};
 use edb::{Causet_DEFAULT, Causet_DAGGER, Causet_VIOLETABFT, Causet_WRITE};
 use futures::compat::Future01CompatExt;
 use futures::FutureExt;
-use ekvproto::import_sstpb::SstMeta;
-use ekvproto::metapb::{self, Brane, BraneEpoch};
-use ekvproto::fidelpb::StoreStats;
-use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest};
-use ekvproto::violetabft_serverpb::{ExtraMessageType, PeerState, VioletaBftMessage, BraneLocalState};
-use ekvproto::replication_modepb::{ReplicationMode, ReplicationStatus};
+use ekvproto::import_sst_timeshare::SstMeta;
+use ekvproto::meta_timeshare::{self, Brane, BraneEpoch};
+use ekvproto::fidel_timeshare::StoreStats;
+use ekvproto::violetabft_cmd_timeshare::{AdminCmdType, AdminRequest};
+use ekvproto::violetabft_server_timeshare::{ExtraMessageType, PeerState, VioletaBftMessage, BraneLocalState};
+use ekvproto::replication_mode_timeshare::{ReplicationMode, ReplicationStatus};
 use protobuf::Message;
 use violetabft::{Ready, StateRole};
 use time::{self, Timespec};
@@ -31,13 +31,13 @@ use edb::{VioletaBftEngine, VioletaBftLogBatch};
 use tuplespaceInstanton::{self, data_lightlike_key, data_key, enc_lightlike_key, enc_spacelike_key};
 use fidel_client::FidelClient;
 use sst_importer::SSTImporter;
-use edb_util::collections::HashMap;
-use edb_util::config::{Tracker, VersionTrack};
-use edb_util::mpsc::{self, LooseBoundedlightlikeer, Receiver};
-use edb_util::time::{duration_to_sec, Instant as TiInstant};
-use edb_util::timer::SteadyTimer;
-use edb_util::worker::{FutureInterlock_Semaphore, FutureWorker, Interlock_Semaphore, Worker};
-use edb_util::{is_zero_duration, sys as sys_util, Either, RingQueue};
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::config::{Tracker, VersionTrack};
+use violetabftstore::interlock::::mpsc::{self, LooseBoundedlightlikeer, Receiver};
+use violetabftstore::interlock::::time::{duration_to_sec, Instant as TiInstant};
+use violetabftstore::interlock::::timer::SteadyTimer;
+use violetabftstore::interlock::::worker::{FutureInterlock_Semaphore, FutureWorker, Interlock_Semaphore, Worker};
+use violetabftstore::interlock::::{is_zero_duration, sys as sys_util, Either, RingQueue};
 
 use crate::interlock::split_semaphore::SplitSemaphore;
 use crate::interlock::{BoxAdminSemaphore, InterlockHost, BraneChangeEvent};
@@ -55,7 +55,7 @@ use crate::store::fsm::{
 };
 use crate::store::local_metrics::VioletaBftMetrics;
 use crate::store::metrics::*;
-use crate::store::peer_causetStorage::{self, HandleVioletaBftReadyContext, InvokeContext};
+use crate::store::peer_causet_storage::{self, HandleVioletaBftReadyContext, InvokeContext};
 use crate::store::transport::Transport;
 use crate::store::util::{is_initial_msg, PerfContextStatistics};
 use crate::store::worker::{
@@ -71,7 +71,7 @@ use crate::store::{
 };
 use crate::Result;
 use concurrency_manager::ConcurrencyManager;
-use edb_util::future::poll_future_notify;
+use violetabftstore::interlock::::future::poll_future_notify;
 
 type Key = Vec<u8>;
 
@@ -101,7 +101,7 @@ pub struct StoreMeta {
     pub plightlikeing_snapshot_branes: Vec<Brane>,
     /// A marker used to indicate the peer of a Brane has received a merge target message and waits to be destroyed.
     /// target_brane_id -> (source_brane_id -> merge_target_brane)
-    pub plightlikeing_merge_targets: HashMap<u64, HashMap<u64, metapb::Brane>>,
+    pub plightlikeing_merge_targets: HashMap<u64, HashMap<u64, meta_timeshare::Brane>>,
     /// An inverse mapping of `plightlikeing_merge_targets` used to let source peer help target peer to clean up related entry.
     /// source_brane_id -> target_brane_id
     pub targets_map: HashMap<u64, u64>,
@@ -257,8 +257,8 @@ where
         });
     }
 
-    fn report_status_ufidelate(&self) {
-        self.broadcast_normal(|| PeerMsg::UfidelateReplicationMode)
+    fn report_status_fidelio(&self) {
+        self.broadcast_normal(|| PeerMsg::fidelioReplicationMode)
     }
 
     /// Broadcasts resolved result to all branes.
@@ -290,7 +290,7 @@ where
     ER: VioletaBftEngine,
 {
     pub causet: Config,
-    pub store: metapb::CausetStore,
+    pub store: meta_timeshare::CausetStore,
     pub fidel_interlock_semaphore: FutureInterlock_Semaphore<FidelTask<EK>>,
     pub consistency_check_interlock_semaphore: Interlock_Semaphore<ConsistencyCheckTask<EK::Snapshot>>,
     pub split_check_interlock_semaphore: Interlock_Semaphore<SplitCheckTask>,
@@ -391,7 +391,7 @@ where
         timeout
     }
 
-    pub fn ufidelate_ticks_timeout(&mut self) {
+    pub fn fidelio_ticks_timeout(&mut self) {
         self.tick_batch[PeerTicks::VIOLETABFT.bits() as usize].wait_duration =
             self.causet.violetabft_base_tick_interval.0;
         self.tick_batch[PeerTicks::VIOLETABFT_LOG_GC.bits() as usize].wait_duration =
@@ -434,7 +434,7 @@ where
         msg: &VioletaBftMessage,
         cur_epoch: BraneEpoch,
         need_gc: bool,
-        target_brane: Option<metapb::Brane>,
+        target_brane: Option<meta_timeshare::Brane>,
     ) {
         let brane_id = msg.get_brane_id();
         let from_peer = msg.get_from_peer();
@@ -592,12 +592,12 @@ impl<'a, EK: KvEngine + 'static, ER: VioletaBftEngine + 'static, T: Transport, C
                 StoreMsg::Start { store } => self.spacelike(store),
                 #[causet(any(test, feature = "testexport"))]
                 StoreMsg::Validate(f) => f(&self.ctx.causet),
-                StoreMsg::UfidelateReplicationMode(status) => self.on_ufidelate_replication_mode(status),
+                StoreMsg::fidelioReplicationMode(status) => self.on_fidelio_replication_mode(status),
             }
         }
     }
 
-    fn spacelike(&mut self, store: metapb::CausetStore) {
+    fn spacelike(&mut self, store: meta_timeshare::CausetStore) {
         if self.fsm.store.spacelike_time.is_some() {
             panic!(
                 "[store {}] unable to spacelike again with meta {:?}",
@@ -776,7 +776,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         self.poll_ctx.sync_log = false;
         self.poll_ctx.has_ready = false;
         self.timer = TiInstant::now_coarse();
-        // ufidelate config
+        // fidelio config
         self.poll_ctx.perf_context_statistics.spacelike();
         if let Some(incoming) = self.causet_tracker.any_new() {
             match Ord::cmp(
@@ -796,7 +796,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                 _ => {}
             }
             self.poll_ctx.causet = incoming.clone();
-            self.poll_ctx.ufidelate_ticks_timeout();
+            self.poll_ctx.fidelio_ticks_timeout();
         }
     }
 
@@ -891,7 +891,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
 
 pub struct VioletaBftPollerBuilder<EK: KvEngine, ER: VioletaBftEngine, T, C> {
     pub causet: Arc<VersionTrack<Config>>,
-    pub store: metapb::CausetStore,
+    pub store: meta_timeshare::CausetStore,
     fidel_interlock_semaphore: FutureInterlock_Semaphore<FidelTask<EK>>,
     consistency_check_interlock_semaphore: Interlock_Semaphore<ConsistencyCheckTask<EK::Snapshot>>,
     split_check_interlock_semaphore: Interlock_Semaphore<SplitCheckTask>,
@@ -956,7 +956,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
             if local_state.get_state() == PeerState::Applying {
                 // in case of respacelike happen when we just write brane state to Applying,
                 // but not write violetabft_local_state to violetabft lmdb in time.
-                box_try!(peer_causetStorage::recover_from_applying_state(
+                box_try!(peer_causet_storage::recover_from_applying_state(
                     &self.engines,
                     &mut violetabft_wb,
                     brane_id
@@ -1045,7 +1045,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
             None => return,
             Some(value) => value,
         };
-        peer_causetStorage::clear_meta(&self.engines, kv_wb, violetabft_wb, rid, &violetabft_state).unwrap();
+        peer_causet_storage::clear_meta(&self.engines, kv_wb, violetabft_wb, rid, &violetabft_state).unwrap();
         let key = tuplespaceInstanton::brane_state_key(rid);
         kv_wb.put_msg_causet(Causet_VIOLETABFT, &key, origin_state).unwrap();
     }
@@ -1124,7 +1124,7 @@ where
             tick_batch: vec![PeerTickBatch::default(); 256],
             node_spacelike_time: Some(TiInstant::now_coarse()),
         };
-        ctx.ufidelate_ticks_timeout();
+        ctx.fidelio_ticks_timeout();
         let tag = format!("[store {}]", ctx.store.get_id());
         VioletaBftPoller {
             tag: tag.clone(),
@@ -1170,7 +1170,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
     // TODO: reduce arguments
     pub fn spawn<T: Transport + 'static, C: FidelClient + 'static>(
         &mut self,
-        meta: metapb::CausetStore,
+        meta: meta_timeshare::CausetStore,
         causet: Arc<VersionTrack<Config>>,
         engines: Engines<EK, ER>,
         trans: T,
@@ -1913,7 +1913,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
                     .map(|(k, _)| k.to_owned()),
             );
 
-            // Ufidelate last_compact_checked_key.
+            // fidelio last_compact_checked_key.
             meta.brane_cones.tuplespaceInstanton().last().unwrap().to_vec()
         };
 
@@ -2369,7 +2369,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         self.ctx.router.report_unreachable(store_id);
     }
 
-    fn on_ufidelate_replication_mode(&mut self, status: ReplicationStatus) {
+    fn on_fidelio_replication_mode(&mut self, status: ReplicationStatus) {
         let mut state = self.ctx.global_replication_state.dagger().unwrap();
         if state.status().mode == status.mode {
             if status.get_mode() == ReplicationMode::Majority {
@@ -2384,7 +2384,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
         info!("ufidelating replication mode"; "status" => ?status);
         state.set_status(status);
         drop(state);
-        self.ctx.router.report_status_ufidelate()
+        self.ctx.router.report_status_fidelio()
     }
 
     fn register_violetabft_engine_purge_tick(&self) {

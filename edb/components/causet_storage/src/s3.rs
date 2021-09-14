@@ -22,7 +22,7 @@ use super::{
 };
 use ekvproto::backup::S3 as Config;
 
-/// S3 compatible causetStorage
+/// S3 compatible causet_storage
 #[derive(Clone)]
 pub struct S3Storage {
     config: Config,
@@ -34,7 +34,7 @@ pub struct S3Storage {
 }
 
 impl S3Storage {
-    /// Create a new S3 causetStorage for the given config.
+    /// Create a new S3 causet_storage for the given config.
     pub fn new(config: &Config) -> io::Result<S3Storage> {
         Self::check_config(config)?;
         let client = new_client!(S3Client, config);
@@ -91,7 +91,7 @@ impl<E> RetryError for RusotoError<E> {
     }
 }
 
-/// A helper for uploading a large files to S3 causetStorage.
+/// A helper for uploading a large files to S3 causet_storage.
 ///
 /// Note: this uploader does not support uploading files larger than 19.5 GiB.
 struct S3Uploader<'client> {
@@ -102,7 +102,7 @@ struct S3Uploader<'client> {
     acl: Option<String>,
     server_side_encryption: Option<String>,
     ssekms_key_id: Option<String>,
-    causetStorage_class: Option<String>,
+    causet_storage_class: Option<String>,
 
     upload_id: String,
     parts: Vec<CompletedPart>,
@@ -130,7 +130,7 @@ impl<'client> S3Uploader<'client> {
             acl: get_var(&config.acl),
             server_side_encryption: get_var(&config.sse),
             ssekms_key_id: get_var(&config.sse_kms_key_id),
-            causetStorage_class: get_var(&config.causetStorage_class),
+            causet_storage_class: get_var(&config.causet_storage_class),
             upload_id: "".to_owned(),
             parts: Vec::new(),
         }
@@ -186,7 +186,7 @@ impl<'client> S3Uploader<'client> {
                 acl: self.acl.clone(),
                 server_side_encryption: self.server_side_encryption.clone(),
                 ssekms_key_id: self.ssekms_key_id.clone(),
-                causetStorage_class: self.causetStorage_class.clone(),
+                causet_storage_class: self.causet_storage_class.clone(),
                 ..Default::default()
             })
             .await?;
@@ -262,7 +262,7 @@ impl<'client> S3Uploader<'client> {
                 acl: self.acl.clone(),
                 server_side_encryption: self.server_side_encryption.clone(),
                 ssekms_key_id: self.ssekms_key_id.clone(),
-                causetStorage_class: self.causetStorage_class.clone(),
+                causet_storage_class: self.causet_storage_class.clone(),
                 content_length: Some(data.len() as i64),
                 body: Some(data.to_vec().into()),
                 ..Default::default()
@@ -280,7 +280,7 @@ impl ExternalStorage for S3Storage {
         content_length: u64,
     ) -> io::Result<()> {
         let key = self.maybe_prefix_key(name);
-        debug!("save file to s3 causetStorage"; "key" => %key);
+        debug!("save file to s3 causet_storage"; "key" => %key);
 
         let uploader = S3Uploader::new(&self.client, &self.config, key);
         block_on_external_io(uploader.run(&mut *reader, content_length)).map_err(|e| {
@@ -291,7 +291,7 @@ impl ExternalStorage for S3Storage {
     fn read(&self, name: &str) -> Box<dyn AsyncRead + Unpin + '_> {
         let key = self.maybe_prefix_key(name);
         let bucket = self.config.bucket.clone();
-        debug!("read file from s3 causetStorage"; "key" => %key);
+        debug!("read file from s3 causet_storage"; "key" => %key);
         let req = GetObjectRequest {
             key,
             bucket: bucket.clone(),
@@ -351,7 +351,7 @@ mod tests {
     }
 
     #[test]
-    fn test_s3_causetStorage() {
+    fn test_s3_causet_storage() {
         let magic_contents = "5678";
         let config = Config {
             brane: "ap-southeast-2".to_string(),
@@ -388,9 +388,9 @@ mod tests {
     // FIXME: enable this (or move this to an integration test) if we've got a
     // reliable way to test s3 (rusoto_mock requires custom logic to verify the
     // body stream which itself can have bug)
-    fn test_real_s3_causetStorage() {
+    fn test_real_s3_causet_storage() {
         use std::f64::INFINITY;
-        use edb_util::time::Limiter;
+        use violetabftstore::interlock::::time::Limiter;
 
         let mut s3 = Config::default();
         s3.set_lightlikepoint("http://127.0.0.1:9000".to_owned());
@@ -402,10 +402,10 @@ mod tests {
 
         let limiter = Limiter::new(INFINITY);
 
-        let causetStorage = S3Storage::new(&s3).unwrap();
+        let causet_storage = S3Storage::new(&s3).unwrap();
         const LEN: usize = 1024 * 1024 * 4;
         static CONTENT: [u8; LEN] = [50_u8; LEN];
-        causetStorage
+        causet_storage
             .write(
                 "huge_file",
                 Box::new(limiter.limit(&CONTENT[..])),
@@ -413,7 +413,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut reader = causetStorage.read("huge_file");
+        let mut reader = causet_storage.read("huge_file");
         let mut buf = Vec::new();
         block_on_external_io(reader.read_to_lightlike(&mut buf)).unwrap();
         assert_eq!(buf.len(), LEN);

@@ -5,10 +5,10 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use tempfile::{Builder, TempDir};
 
-use ekvproto::metapb;
-use ekvproto::violetabft_cmdpb::*;
-use ekvproto::violetabft_serverpb::{self, VioletaBftMessage};
-use violetabft::evioletabftpb::MessageType;
+use ekvproto::meta_timeshare;
+use ekvproto::violetabft_cmd_timeshare::*;
+use ekvproto::violetabft_server_timeshare::{self, VioletaBftMessage};
+use violetabft::evioletabft_timeshare::MessageType;
 use violetabft::SnapshotStatus;
 
 use super::*;
@@ -30,10 +30,10 @@ use edb::config::{ConfigController, Module, EINSTEINDBConfig};
 use edb::import::SSTImporter;
 use edb::server::Node;
 use edb::server::Result as ServerResult;
-use edb_util::collections::{HashMap, HashSet};
-use edb_util::config::VersionTrack;
-use edb_util::time::ThreadReadId;
-use edb_util::worker::{FutureWorker, Worker};
+use violetabftstore::interlock::::collections::{HashMap, HashSet};
+use violetabftstore::interlock::::config::VersionTrack;
+use violetabftstore::interlock::::time::ThreadReadId;
+use violetabftstore::interlock::::worker::{FutureWorker, Worker};
 
 pub struct ChannelTransportCore {
     snap_paths: HashMap<u64, (SnapManager, TempDir)>,
@@ -268,7 +268,7 @@ impl Simulator for NodeCluster {
         )?;
         assert!(engines
             .kv
-            .get_msg::<metapb::Brane>(tuplespaceInstanton::PREPARE_BOOTSTRAP_KEY)
+            .get_msg::<meta_timeshare::Brane>(tuplespaceInstanton::PREPARE_BOOTSTRAP_KEY)
             .unwrap()
             .is_none());
         assert!(node_id == 0 || node_id == node.id());
@@ -384,7 +384,7 @@ impl Simulator for NodeCluster {
         router.read(batch_id, request, cb).unwrap();
     }
 
-    fn lightlike_violetabft_msg(&mut self, msg: violetabft_serverpb::VioletaBftMessage) -> Result<()> {
+    fn lightlike_violetabft_msg(&mut self, msg: violetabft_server_timeshare::VioletaBftMessage) -> Result<()> {
         self.trans.lightlike(msg)
     }
 

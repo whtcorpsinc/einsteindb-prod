@@ -13,7 +13,7 @@ pub fn bit_count(arg: &Int) -> Result<Option<Int>> {
 #[causet(test)]
 mod tests {
     use std::i64;
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use crate::test_util::RpnFnScalarEvaluator;
 

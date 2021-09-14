@@ -12,7 +12,7 @@ use grpcio::{
 use fidel_client::Error as FidelError;
 use security::*;
 
-use ekvproto::fidelpb::*;
+use ekvproto::fidel_timeshare::*;
 
 use super::mocker::*;
 
@@ -382,13 +382,13 @@ impl<C: FidelMocker + lightlike + Sync + 'static> Fidel for FidelMock<C> {
         hijack_unary(self, ctx, sink, |c| c.get_gc_safe_point(&req))
     }
 
-    fn ufidelate_gc_safe_point(
+    fn fidelio_gc_safe_point(
         &mut self,
         ctx: RpcContext<'_>,
-        req: UfidelateGcSafePointRequest,
-        sink: UnarySink<UfidelateGcSafePointResponse>,
+        req: fidelioGcSafePointRequest,
+        sink: UnarySink<fidelioGcSafePointResponse>,
     ) {
-        hijack_unary(self, ctx, sink, |c| c.ufidelate_gc_safe_point(&req))
+        hijack_unary(self, ctx, sink, |c| c.fidelio_gc_safe_point(&req))
     }
 
     fn sync_branes(
@@ -418,11 +418,11 @@ impl<C: FidelMocker + lightlike + Sync + 'static> Fidel for FidelMock<C> {
         unimplemented!()
     }
 
-    fn ufidelate_service_gc_safe_point(
+    fn fidelio_service_gc_safe_point(
         &mut self,
         _ctx: RpcContext<'_>,
-        _req: UfidelateServiceGcSafePointRequest,
-        _sink: UnarySink<UfidelateServiceGcSafePointResponse>,
+        _req: fidelioServiceGcSafePointRequest,
+        _sink: UnarySink<fidelioServiceGcSafePointResponse>,
     ) {
         unimplemented!()
     }

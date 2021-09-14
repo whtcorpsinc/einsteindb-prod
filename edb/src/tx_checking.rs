@@ -13,13 +13,13 @@ use std::collections::{
     BTreeMap,
 };
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-use edb_promises::errors::{
+use causetq_pull_promises::errors::{
     CardinalityConflict,
 };
 

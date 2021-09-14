@@ -1,15 +1,15 @@
 // Copyright 2020 WHTCORPS INC Project Authors. Licensed Under Apache-2.0
 
-use ekvproto::kvrpcpb::{Context, LockInfo};
+use ekvproto::kvrpc_timeshare::{Context, LockInfo};
 
 use test_violetabftstore::{Cluster, ServerCluster, SimulateEngine};
-use edb::causetStorage::kv::{Error as KvError, ErrorInner as KvErrorInner, LmdbEngine};
-use edb::causetStorage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner, MAX_TXN_WRITE_SIZE};
-use edb::causetStorage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
-use edb::causetStorage::{
+use edb::causet_storage::kv::{Error as KvError, ErrorInner as KvErrorInner, LmdbEngine};
+use edb::causet_storage::tail_pointer::{Error as MvccError, ErrorInner as MvccErrorInner, MAX_TXN_WRITE_SIZE};
+use edb::causet_storage::txn::{Error as TxnError, ErrorInner as TxnErrorInner};
+use edb::causet_storage::{
     self, Engine, Error as StorageError, ErrorInner as StorageErrorInner, TxnStatus,
 };
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::HandyRwLock;
 use txn_types::{Key, KvPair, Mutation, TimeStamp, Value};
 
 use super::*;
@@ -30,16 +30,16 @@ impl Default for AssertionStorage<LmdbEngine> {
 }
 
 impl AssertionStorage<SimulateEngine> {
-    pub fn new_violetabft_causetStorage_with_store_count(
+    pub fn new_violetabft_causet_storage_with_store_count(
         count: usize,
         key: &str,
     ) -> (Cluster<ServerCluster>, Self) {
-        let (cluster, store, ctx) = new_violetabft_causetStorage_with_store_count(count, key);
-        let causetStorage = Self { ctx, store };
-        (cluster, causetStorage)
+        let (cluster, store, ctx) = new_violetabft_causet_storage_with_store_count(count, key);
+        let causet_storage = Self { ctx, store };
+        (cluster, causet_storage)
     }
 
-    pub fn ufidelate_with_key_byte(&mut self, cluster: &mut Cluster<ServerCluster>, key: &[u8]) {
+    pub fn fidelio_with_key_byte(&mut self, cluster: &mut Cluster<ServerCluster>, key: &[u8]) {
         // ensure the leader of cone which contains current key has been elected
         cluster.must_get(key);
         let brane = cluster.get_brane(key);
@@ -47,7 +47,7 @@ impl AssertionStorage<SimulateEngine> {
         if leader.get_store_id() == self.ctx.get_peer().get_store_id() {
             return;
         }
-        let engine = cluster.sim.rl().causetStorages[&leader.get_id()].clone();
+        let engine = cluster.sim.rl().causet_storages[&leader.get_id()].clone();
         self.ctx.set_brane_id(brane.get_id());
         self.ctx.set_brane_epoch(brane.get_brane_epoch().clone());
         self.ctx.set_peer(leader);
@@ -86,7 +86,7 @@ impl AssertionStorage<SimulateEngine> {
                 return data;
             }
             self.expect_not_leader_or_stale_command(res.unwrap_err());
-            self.ufidelate_with_key_byte(cluster, key);
+            self.fidelio_with_key_byte(cluster, key);
         }
         panic!("failed with 3 try");
     }
@@ -137,7 +137,7 @@ impl AssertionStorage<SimulateEngine> {
                 break;
             }
             self.expect_not_leader_or_stale_command(res.unwrap_err());
-            self.ufidelate_with_key_byte(cluster, key)
+            self.fidelio_with_key_byte(cluster, key)
         }
         assert!(success);
 
@@ -152,7 +152,7 @@ impl AssertionStorage<SimulateEngine> {
                 break;
             }
             self.expect_not_leader_or_stale_command(res.unwrap_err());
-            self.ufidelate_with_key_byte(cluster, key)
+            self.fidelio_with_key_byte(cluster, key)
         }
         assert!(success);
     }
@@ -170,7 +170,7 @@ impl AssertionStorage<SimulateEngine> {
                 return;
             }
             self.expect_not_leader_or_stale_command(ret.unwrap_err());
-            self.ufidelate_with_key_byte(cluster, brane_key);
+            self.fidelio_with_key_byte(cluster, brane_key);
         }
         panic!("failed with 3 retry!");
     }
@@ -245,7 +245,7 @@ impl<E: Engine> AssertionStorage<E> {
         assert_eq!(result, expect);
     }
 
-    fn expect_not_leader_or_stale_command(&self, err: causetStorage::Error) {
+    fn expect_not_leader_or_stale_command(&self, err: causet_storage::Error) {
         match err {
             StorageError(box StorageErrorInner::Txn(TxnError(box TxnErrorInner::Mvcc(
                 MvccError(box MvccErrorInner::Engine(KvError(box KvErrorInner::Request(ref e)))),
@@ -273,7 +273,7 @@ impl<E: Engine> AssertionStorage<E> {
 
     fn expect_invalid_tso_err<T>(
         &self,
-        resp: Result<T, causetStorage::Error>,
+        resp: Result<T, causet_storage::Error>,
         sts: impl Into<TimeStamp>,
         cmt_ts: impl Into<TimeStamp>,
     ) where

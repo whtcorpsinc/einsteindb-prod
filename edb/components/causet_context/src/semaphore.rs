@@ -6,15 +6,15 @@ use std::sync::{Arc, RwLock};
 
 use engine_lmdb::LmdbEngine;
 use edb::{IterOptions, KvEngine, ReadOptions, Causet_DEFAULT, Causet_DAGGER, Causet_WRITE};
-use ekvproto::metapb::{Peer, Brane};
+use ekvproto::meta_timeshare::{Peer, Brane};
 use violetabft::StateRole;
 use violetabftstore::interlock::*;
 use violetabftstore::store::fsm::ObserveID;
 use violetabftstore::store::BraneSnapshot;
 use violetabftstore::Error as VioletaBftStoreError;
-use edb::causetStorage::{Cursor, ScanMode, Snapshot as EngineSnapshot, Statistics};
-use edb_util::collections::HashMap;
-use edb_util::worker::Interlock_Semaphore;
+use edb::causet_storage::{Cursor, ScanMode, Snapshot as EngineSnapshot, Statistics};
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::worker::Interlock_Semaphore;
 use txn_types::{Key, Dagger, MutationType, Value, WriteRef, WriteType};
 
 use crate::lightlikepoint::{Deregister, OldValueCache, Task};
@@ -308,16 +308,16 @@ impl<S: EngineSnapshot> OldValueReader<S> {
 mod tests {
     use super::*;
     use engine_lmdb::LmdbEngine;
-    use ekvproto::metapb::Brane;
-    use ekvproto::violetabft_cmdpb::*;
+    use ekvproto::meta_timeshare::Brane;
+    use ekvproto::violetabft_cmd_timeshare::*;
     use std::time::Duration;
-    use edb::causetStorage::kv::TestEngineBuilder;
-    use edb::causetStorage::tail_pointer::tests::*;
-    use edb::causetStorage::txn::tests::*;
+    use edb::causet_storage::kv::TestEngineBuilder;
+    use edb::causet_storage::tail_pointer::tests::*;
+    use edb::causet_storage::txn::tests::*;
 
     #[test]
     fn test_register_and_deregister() {
-        let (interlock_semaphore, rx) = edb_util::worker::dummy_interlock_semaphore();
+        let (interlock_semaphore, rx) = violetabftstore::interlock::::worker::dummy_interlock_semaphore();
         let semaphore = causet_contextSemaphore::new(interlock_semaphore);
         let observe_id = ObserveID::new();
         let engine = TestEngineBuilder::new().build().unwrap().get_lmdb();

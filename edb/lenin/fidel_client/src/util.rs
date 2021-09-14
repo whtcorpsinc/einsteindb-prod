@@ -21,14 +21,14 @@ use grpcio::{
     CallOption, ChannelBuilder, ClientDuplexReceiver, ClientDuplexlightlikeer, Environment,
     Result as GrpcResult,
 };
-use ekvproto::fidelpb::{
+use ekvproto::fidel_timeshare::{
     ErrorType, GetMembersRequest, GetMembersResponse, Member, FidelClient as FidelClientStub,
     BraneHeartbeatRequest, BraneHeartbeatResponse, ResponseHeader,
 };
 use security::SecurityManager;
-use edb_util::collections::HashSet;
-use edb_util::timer::GLOBAL_TIMER_HANDLE;
-use edb_util::{Either, HandyRwLock};
+use violetabftstore::interlock::::collections::HashSet;
+use violetabftstore::interlock::::timer::GLOBAL_TIMER_HANDLE;
+use violetabftstore::interlock::::{Either, HandyRwLock};
 use tokio_timer::timer::Handle;
 
 use super::{ClusterVersion, Config, Error, FidelFuture, Result, REQUEST_TIMEOUT};
@@ -45,7 +45,7 @@ pub struct Inner {
     security_mgr: Arc<SecurityManager>,
     on_reconnect: Option<Box<dyn Fn() + Sync + lightlike + 'static>>,
 
-    last_ufidelate: Instant,
+    last_fidelio: Instant,
 
     pub cluster_version: ClusterVersion,
 }
@@ -64,7 +64,7 @@ impl Stream for HeartbeatReceiver {
                 match Pin::new(receiver).poll_next(cx) {
                     Poll::Ready(Some(Ok(item))) => return Poll::Ready(Some(Ok(item))),
                     Poll::Plightlikeing => return Poll::Plightlikeing,
-                    // If it's None or there's error, we need to ufidelate receiver.
+                    // If it's None or there's error, we need to fidelio receiver.
                     _ => {}
                 }
             }
@@ -116,7 +116,7 @@ impl LeaderClient {
                 security_mgr,
                 on_reconnect: None,
 
-                last_ufidelate: Instant::now(),
+                last_fidelio: Instant::now(),
                 cluster_version: ClusterVersion::default(),
             })),
         }
@@ -169,7 +169,7 @@ impl LeaderClient {
     pub async fn reconnect(&self) -> Result<()> {
         let (future, spacelike) = {
             let inner = self.inner.rl();
-            if inner.last_ufidelate.elapsed() < Duration::from_secs(RECONNECT_INTERVAL_SEC) {
+            if inner.last_fidelio.elapsed() < Duration::from_secs(RECONNECT_INTERVAL_SEC) {
                 // Avoid unnecessary ufidelating.
                 return Ok(());
             }
@@ -206,7 +206,7 @@ impl LeaderClient {
             let _ = prev_receiver.right().map(|t| t.wake());
             inner.client_stub = client;
             inner.members = members;
-            inner.last_ufidelate = Instant::now();
+            inner.last_fidelio = Instant::now();
             if let Some(ref on_reconnect) = inner.on_reconnect {
                 on_reconnect();
             }

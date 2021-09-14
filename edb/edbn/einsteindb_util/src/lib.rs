@@ -194,7 +194,7 @@ impl<T> HandyRwLock<T> for RwLock<T> {
 /// # Examples
 ///
 /// ```
-/// use edb_util::escape;
+/// use violetabftstore::interlock::::escape;
 ///
 /// assert_eq!(r"ab", escape(b"ab"));
 /// assert_eq!(r"a\\023", escape(b"a\\023"));

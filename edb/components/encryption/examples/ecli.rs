@@ -1,7 +1,7 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 #[macro_use]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use encryption::{Backlightlike, Error, KmsBacklightlike, KmsConfig, Result};
 use ini::ini::Ini;
-use ekvproto::encryptionpb::EncryptedContent;
+use ekvproto::encryption_timeshare::EncryptedContent;
 use protobuf::Message;
 use structopt::clap::arg_enum;
 use structopt::StructOpt;

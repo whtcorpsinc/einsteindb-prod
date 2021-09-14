@@ -16,7 +16,7 @@
 #![feature(ptr_offset_from)]
 
 #[macro_use(box_err, box_try, try_opt)]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
 #[macro_use(other_err)]
 extern crate milevadb_query_common;
@@ -44,7 +44,7 @@ pub mod impl_time;
 pub use self::types::*;
 
 use milevadb_query_datatype::{Collation, FieldTypeAccessor, FieldTypeFlag};
-use fidelpb::{Expr, FieldType, ScalarFuncSig};
+use fidel_timeshare::{Expr, FieldType, ScalarFuncSig};
 
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::collation::*;

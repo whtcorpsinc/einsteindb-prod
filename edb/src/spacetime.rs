@@ -34,19 +34,19 @@ use add_retract_alter_set::{
 };
 use edbn::symbols;
 use causetids;
-use edb_promises::errors::{
+use causetq_pull_promises::errors::{
     DbErrorKind,
     Result,
 };
 
-use raum_promises::{
+use allegro_promises::{
     attribute,
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SchemaReplicant,
     AttributeMap,
 };

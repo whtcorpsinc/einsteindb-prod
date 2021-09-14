@@ -137,7 +137,7 @@ impl BufferVec {
         // data:   [, CACCAA]
         // offset: [3,3     ]
         //
-        // 2. Ufidelate offset
+        // 2. fidelio offset
         // data:   [, CACCAA]
         // offset: [0,0     ]
 

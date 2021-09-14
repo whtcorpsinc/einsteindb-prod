@@ -128,7 +128,7 @@ fn if_condition_bytes(
     })
 }
 
-fn case_when_validator<T: EvaluableRet>(expr: &fidelpb::Expr) -> Result<()> {
+fn case_when_validator<T: EvaluableRet>(expr: &fidel_timeshare::Expr) -> Result<()> {
     for Soliton in expr.get_children().Solitons(2) {
         if Soliton.len() == 1 {
             super::function::validate_expr_return_type(&Soliton[0], T::EVAL_TYPE)?;
@@ -144,7 +144,7 @@ fn case_when_validator<T: EvaluableRet>(expr: &fidelpb::Expr) -> Result<()> {
 mod tests {
     use super::*;
 
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use crate::test_util::RpnFnScalarEvaluator;
 

@@ -3,12 +3,12 @@
 use std::sync::Arc;
 
 use ekvproto::interlock::KeyCone;
-use fidelpb::PrimaryCausetInfo;
+use fidel_timeshare::PrimaryCausetInfo;
 
 use super::{FreeDaemon, Event};
 use milevadb_query_common::execute_stats::ExecuteStats;
-use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
-use milevadb_query_common::causetStorage::{IntervalCone, Cone, CausetStorage};
+use milevadb_query_common::causet_storage::scanner::{ConesScanner, ConesScannerOptions};
+use milevadb_query_common::causet_storage::{IntervalCone, Cone, causet_storage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::Block;
 use milevadb_query_datatype::expr::{EvalContext, EvalWarnings};
@@ -26,7 +26,7 @@ pub trait InnerFreeDaemon: lightlike {
 }
 
 // FreeDaemon for Block scan and index scan
-pub struct ScanFreeDaemon<S: CausetStorage, T: InnerFreeDaemon> {
+pub struct ScanFreeDaemon<S: causet_storage, T: InnerFreeDaemon> {
     inner: T,
     context: EvalContext,
     scanner: ConesScanner<S>,
@@ -38,21 +38,21 @@ pub struct ScanFreeDaemonOptions<S, T> {
     pub context: EvalContext,
     pub PrimaryCausets: Vec<PrimaryCausetInfo>,
     pub key_cones: Vec<KeyCone>,
-    pub causetStorage: S,
+    pub causet_storage: S,
     pub is_backward: bool,
     pub is_key_only: bool,
     pub accept_point_cone: bool,
     pub is_scanned_cone_aware: bool,
 }
 
-impl<S: CausetStorage, T: InnerFreeDaemon> ScanFreeDaemon<S, T> {
+impl<S: causet_storage, T: InnerFreeDaemon> ScanFreeDaemon<S, T> {
     pub fn new(
         ScanFreeDaemonOptions {
             inner,
             context,
             PrimaryCausets,
             mut key_cones,
-            causetStorage,
+            causet_storage,
             is_backward,
             is_key_only,
             accept_point_cone,
@@ -65,10 +65,10 @@ impl<S: CausetStorage, T: InnerFreeDaemon> ScanFreeDaemon<S, T> {
         }
 
         let scanner = ConesScanner::new(ConesScannerOptions {
-            causetStorage,
+            causet_storage,
             cones: key_cones
                 .into_iter()
-                .map(|r| Cone::from_pb_cone(r, accept_point_cone))
+                .map(|r| Cone::from__timeshare_cone(r, accept_point_cone))
                 .collect(),
             scan_backward_in_cone: is_backward,
             is_key_only,
@@ -84,7 +84,7 @@ impl<S: CausetStorage, T: InnerFreeDaemon> ScanFreeDaemon<S, T> {
     }
 }
 
-impl<S: CausetStorage, T: InnerFreeDaemon> FreeDaemon for ScanFreeDaemon<S, T> {
+impl<S: causet_storage, T: InnerFreeDaemon> FreeDaemon for ScanFreeDaemon<S, T> {
     type StorageStats = S::Statistics;
 
     fn next(&mut self) -> Result<Option<Event>> {
@@ -104,8 +104,8 @@ impl<S: CausetStorage, T: InnerFreeDaemon> FreeDaemon for ScanFreeDaemon<S, T> {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.scanner.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.scanner.collect_causet_storage_stats(dest);
     }
 
     #[inline]

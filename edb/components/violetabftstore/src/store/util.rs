@@ -6,36 +6,36 @@ use std::sync::Arc;
 use std::{fmt, u64};
 
 use engine_lmdb::{set_perf_level, PerfContext, PerfLevel};
-use ekvproto::kvrpcpb::KeyCone;
-use ekvproto::metapb::{self, PeerRole};
-use ekvproto::violetabft_cmdpb::{AdminCmdType, ChangePeerRequest, ChangePeerV2Request, VioletaBftCmdRequest};
+use ekvproto::kvrpc_timeshare::KeyCone;
+use ekvproto::meta_timeshare::{self, PeerRole};
+use ekvproto::violetabft_cmd_timeshare::{AdminCmdType, ChangePeerRequest, ChangePeerV2Request, VioletaBftCmdRequest};
 use protobuf::{self, Message};
-use violetabft::evioletabftpb::{self, ConfChangeType, ConfState, MessageType};
+use violetabft::evioletabft_timeshare::{self, ConfChangeType, ConfState, MessageType};
 use violetabft::INVALID_INDEX;
 use violetabft_proto::ConfChangeI;
-use edb_util::collections::HashMap;
-use edb_util::time::monotonic_raw_now;
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::time::monotonic_raw_now;
 use time::{Duration, Timespec};
 
-use super::peer_causetStorage;
+use super::peer_causet_storage;
 use crate::{Error, Result};
-use edb_util::Either;
+use violetabftstore::interlock::::Either;
 
-pub fn find_peer(brane: &metapb::Brane, store_id: u64) -> Option<&metapb::Peer> {
+pub fn find_peer(brane: &meta_timeshare::Brane, store_id: u64) -> Option<&meta_timeshare::Peer> {
     brane
         .get_peers()
         .iter()
         .find(|&p| p.get_store_id() == store_id)
 }
 
-pub fn find_peer_mut(brane: &mut metapb::Brane, store_id: u64) -> Option<&mut metapb::Peer> {
+pub fn find_peer_mut(brane: &mut meta_timeshare::Brane, store_id: u64) -> Option<&mut meta_timeshare::Peer> {
     brane
         .mut_peers()
         .iter_mut()
         .find(|p| p.get_store_id() == store_id)
 }
 
-pub fn remove_peer(brane: &mut metapb::Brane, store_id: u64) -> Option<metapb::Peer> {
+pub fn remove_peer(brane: &mut meta_timeshare::Brane, store_id: u64) -> Option<meta_timeshare::Peer> {
     brane
         .get_peers()
         .iter()
@@ -44,25 +44,25 @@ pub fn remove_peer(brane: &mut metapb::Brane, store_id: u64) -> Option<metapb::P
 }
 
 // a helper function to create peer easily.
-pub fn new_peer(store_id: u64, peer_id: u64) -> metapb::Peer {
-    let mut peer = metapb::Peer::default();
+pub fn new_peer(store_id: u64, peer_id: u64) -> meta_timeshare::Peer {
+    let mut peer = meta_timeshare::Peer::default();
     peer.set_store_id(store_id);
     peer.set_id(peer_id);
-    peer.set_role(metapb::PeerRole::Voter);
+    peer.set_role(meta_timeshare::PeerRole::Voter);
     peer
 }
 
 // a helper function to create learner peer easily.
-pub fn new_learner_peer(store_id: u64, peer_id: u64) -> metapb::Peer {
-    let mut peer = metapb::Peer::default();
+pub fn new_learner_peer(store_id: u64, peer_id: u64) -> meta_timeshare::Peer {
+    let mut peer = meta_timeshare::Peer::default();
     peer.set_store_id(store_id);
     peer.set_id(peer_id);
-    peer.set_role(metapb::PeerRole::Learner);
+    peer.set_role(meta_timeshare::PeerRole::Learner);
     peer
 }
 
 /// Check if key in brane cone (`spacelike_key`, `lightlike_key`).
-pub fn check_key_in_brane_exclusive(key: &[u8], brane: &metapb::Brane) -> Result<()> {
+pub fn check_key_in_brane_exclusive(key: &[u8], brane: &meta_timeshare::Brane) -> Result<()> {
     let lightlike_key = brane.get_lightlike_key();
     let spacelike_key = brane.get_spacelike_key();
     if spacelike_key < key && (key < lightlike_key || lightlike_key.is_empty()) {
@@ -73,7 +73,7 @@ pub fn check_key_in_brane_exclusive(key: &[u8], brane: &metapb::Brane) -> Result
 }
 
 /// Check if key in brane cone [`spacelike_key`, `lightlike_key`].
-pub fn check_key_in_brane_inclusive(key: &[u8], brane: &metapb::Brane) -> Result<()> {
+pub fn check_key_in_brane_inclusive(key: &[u8], brane: &meta_timeshare::Brane) -> Result<()> {
     let lightlike_key = brane.get_lightlike_key();
     let spacelike_key = brane.get_spacelike_key();
     if key >= spacelike_key && (lightlike_key.is_empty() || key <= lightlike_key) {
@@ -84,7 +84,7 @@ pub fn check_key_in_brane_inclusive(key: &[u8], brane: &metapb::Brane) -> Result
 }
 
 /// Check if key in brane cone [`spacelike_key`, `lightlike_key`).
-pub fn check_key_in_brane(key: &[u8], brane: &metapb::Brane) -> Result<()> {
+pub fn check_key_in_brane(key: &[u8], brane: &meta_timeshare::Brane) -> Result<()> {
     let lightlike_key = brane.get_lightlike_key();
     let spacelike_key = brane.get_spacelike_key();
     if key >= spacelike_key && (lightlike_key.is_empty() || key < lightlike_key) {
@@ -99,17 +99,17 @@ pub fn check_key_in_brane(key: &[u8], brane: &metapb::Brane) -> Result<()> {
 /// brane overlaps with others. In this case we should put `msg` into `plightlikeing_votes` instead of
 /// create the peer.
 #[inline]
-pub fn is_first_vote_msg(msg: &evioletabftpb::Message) -> bool {
+pub fn is_first_vote_msg(msg: &evioletabft_timeshare::Message) -> bool {
     match msg.get_msg_type() {
         MessageType::MsgRequestVote | MessageType::MsgRequestPreVote => {
-            msg.get_term() == peer_causetStorage::VIOLETABFT_INIT_LOG_TERM + 1
+            msg.get_term() == peer_causet_storage::VIOLETABFT_INIT_LOG_TERM + 1
         }
         _ => false,
     }
 }
 
 #[inline]
-pub fn is_vote_msg(msg: &evioletabftpb::Message) -> bool {
+pub fn is_vote_msg(msg: &evioletabft_timeshare::Message) -> bool {
     let msg_type = msg.get_msg_type();
     msg_type == MessageType::MsgRequestVote || msg_type == MessageType::MsgRequestPreVote
 }
@@ -124,7 +124,7 @@ pub fn is_vote_msg(msg: &evioletabftpb::Message) -> bool {
 // when receiving these messages, or just to wait for a plightlikeing brane split to perform
 // later.
 #[inline]
-pub fn is_initial_msg(msg: &evioletabftpb::Message) -> bool {
+pub fn is_initial_msg(msg: &evioletabft_timeshare::Message) -> bool {
     let msg_type = msg.get_msg_type();
     msg_type == MessageType::MsgRequestVote
         || msg_type == MessageType::MsgRequestPreVote
@@ -136,7 +136,7 @@ const STR_CONF_CHANGE_ADD_NODE: &str = "AddNode";
 const STR_CONF_CHANGE_REMOVE_NODE: &str = "RemoveNode";
 const STR_CONF_CHANGE_ADDLEARNER_NODE: &str = "AddLearner";
 
-pub fn conf_change_type_str(conf_type: evioletabftpb::ConfChangeType) -> &'static str {
+pub fn conf_change_type_str(conf_type: evioletabft_timeshare::ConfChangeType) -> &'static str {
     match conf_type {
         ConfChangeType::AddNode => STR_CONF_CHANGE_ADD_NODE,
         ConfChangeType::RemoveNode => STR_CONF_CHANGE_REMOVE_NODE,
@@ -145,7 +145,7 @@ pub fn conf_change_type_str(conf_type: evioletabftpb::ConfChangeType) -> &'stati
 }
 
 // check whether epoch is staler than check_epoch.
-pub fn is_epoch_stale(epoch: &metapb::BraneEpoch, check_epoch: &metapb::BraneEpoch) -> bool {
+pub fn is_epoch_stale(epoch: &meta_timeshare::BraneEpoch, check_epoch: &meta_timeshare::BraneEpoch) -> bool {
     epoch.get_version() < check_epoch.get_version()
         || epoch.get_conf_ver() < check_epoch.get_conf_ver()
 }
@@ -209,7 +209,7 @@ pub static NORMAL_REQ_CHECK_CONF_VER: bool = false;
 
 pub fn check_brane_epoch(
     req: &VioletaBftCmdRequest,
-    brane: &metapb::Brane,
+    brane: &meta_timeshare::Brane,
     include_brane: bool,
 ) -> Result<()> {
     let (check_ver, check_conf_ver) = if !req.has_admin_request() {
@@ -241,8 +241,8 @@ pub fn check_brane_epoch(
 }
 
 pub fn compare_brane_epoch(
-    from_epoch: &metapb::BraneEpoch,
-    brane: &metapb::Brane,
+    from_epoch: &meta_timeshare::BraneEpoch,
+    brane: &meta_timeshare::Brane,
     check_conf_ver: bool,
     check_ver: bool,
     include_brane: bool,
@@ -251,7 +251,7 @@ pub fn compare_brane_epoch(
     //
     // A 3 nodes EinsteinDB cluster with merge enabled, after commit merge, EinsteinDB A
     // tells MilevaDB with a epoch not match error contains the latest target Brane
-    // info, MilevaDB ufidelates its brane cache and lightlikes requests to EinsteinDB B,
+    // info, MilevaDB fidelios its brane cache and lightlikes requests to EinsteinDB B,
     // and EinsteinDB B has not applied commit merge yet, since the brane epoch in
     // request is higher than EinsteinDB B, the request must be denied due to epoch
     // not match, so it does not read on a stale snapshot, thus avoid the
@@ -336,7 +336,7 @@ pub fn build_key_cone(spacelike_key: &[u8], lightlike_key: &[u8], reverse_scan: 
 }
 
 /// Check if replicas of two branes are on the same stores.
-pub fn brane_on_same_stores(lhs: &metapb::Brane, rhs: &metapb::Brane) -> bool {
+pub fn brane_on_same_stores(lhs: &meta_timeshare::Brane, rhs: &meta_timeshare::Brane) -> bool {
     if lhs.get_peers().len() != rhs.get_peers().len() {
         return false;
     }
@@ -351,7 +351,7 @@ pub fn brane_on_same_stores(lhs: &metapb::Brane, rhs: &metapb::Brane) -> bool {
 }
 
 #[inline]
-pub fn is_brane_initialized(r: &metapb::Brane) -> bool {
+pub fn is_brane_initialized(r: &meta_timeshare::Brane) -> bool {
     !r.get_peers().is_empty()
 }
 
@@ -397,7 +397,7 @@ pub struct Lease {
     max_lease: Duration,
 
     max_drift: Duration,
-    last_ufidelate: Timespec,
+    last_fidelio: Timespec,
     remote: Option<RemoteLease>,
 }
 
@@ -418,7 +418,7 @@ impl Lease {
             max_lease,
 
             max_drift: max_lease / 3,
-            last_ufidelate: Timespec::new(0, 0),
+            last_fidelio: Timespec::new(0, 0),
             remote: None,
         }
     }
@@ -447,8 +447,8 @@ impl Lease {
         }
         // Renew remote if it's valid.
         if let Some(Either::Right(bound)) = self.bound {
-            if bound - self.last_ufidelate > self.max_drift {
-                self.last_ufidelate = bound;
+            if bound - self.last_fidelio > self.max_drift {
+                self.last_fidelio = bound;
                 if let Some(ref r) = self.remote {
                     r.renew(bound);
                 }
@@ -638,7 +638,7 @@ pub fn parse_data_at<T: Message + Default>(data: &[u8], index: u64, tag: &str) -
 /// Check if two branes are sibling.
 ///
 /// They are sibling only when they share borders and don't overlap.
-pub fn is_sibling_branes(lhs: &metapb::Brane, rhs: &metapb::Brane) -> bool {
+pub fn is_sibling_branes(lhs: &meta_timeshare::Brane, rhs: &meta_timeshare::Brane) -> bool {
     if lhs.get_id() == rhs.get_id() {
         return false;
     }
@@ -651,7 +651,7 @@ pub fn is_sibling_branes(lhs: &metapb::Brane, rhs: &metapb::Brane) -> bool {
     false
 }
 
-pub fn conf_state_from_brane(brane: &metapb::Brane) -> ConfState {
+pub fn conf_state_from_brane(brane: &meta_timeshare::Brane) -> ConfState {
     let mut conf_state = ConfState::default();
     let mut in_joint = false;
     for p in brane.get_peers() {
@@ -680,8 +680,8 @@ pub fn conf_state_from_brane(brane: &metapb::Brane) -> ConfState {
     conf_state
 }
 
-pub fn is_learner(peer: &metapb::Peer) -> bool {
-    peer.get_role() == metapb::PeerRole::Learner
+pub fn is_learner(peer: &meta_timeshare::Peer) -> bool {
+    peer.get_role() == meta_timeshare::PeerRole::Learner
 }
 
 pub struct TuplespaceInstantonInfoFormatter<
@@ -832,15 +832,15 @@ pub trait ChangePeerI {
 }
 
 impl<'a> ChangePeerI for &'a ChangePeerRequest {
-    type CC = evioletabftpb::ConfChange;
+    type CC = evioletabft_timeshare::ConfChange;
     type CP = Vec<ChangePeerRequest>;
 
     fn get_change_peers(&self) -> Vec<ChangePeerRequest> {
         vec![ChangePeerRequest::clone(self)]
     }
 
-    fn to_confchange(&self, ctx: Vec<u8>) -> evioletabftpb::ConfChange {
-        let mut cc = evioletabftpb::ConfChange::default();
+    fn to_confchange(&self, ctx: Vec<u8>) -> evioletabft_timeshare::ConfChange {
+        let mut cc = evioletabft_timeshare::ConfChange::default();
         cc.set_change_type(self.get_change_type());
         cc.set_node_id(self.get_peer().get_id());
         cc.set_context(ctx);
@@ -849,20 +849,20 @@ impl<'a> ChangePeerI for &'a ChangePeerRequest {
 }
 
 impl<'a> ChangePeerI for &'a ChangePeerV2Request {
-    type CC = evioletabftpb::ConfChangeV2;
+    type CC = evioletabft_timeshare::ConfChangeV2;
     type CP = &'a [ChangePeerRequest];
 
     fn get_change_peers(&self) -> &'a [ChangePeerRequest] {
         self.get_changes()
     }
 
-    fn to_confchange(&self, ctx: Vec<u8>) -> evioletabftpb::ConfChangeV2 {
-        let mut cc = evioletabftpb::ConfChangeV2::default();
+    fn to_confchange(&self, ctx: Vec<u8>) -> evioletabft_timeshare::ConfChangeV2 {
+        let mut cc = evioletabft_timeshare::ConfChangeV2::default();
         let changes: Vec<_> = self
             .get_changes()
             .iter()
             .map(|c| {
-                let mut ccs = evioletabftpb::ConfChangeSingle::default();
+                let mut ccs = evioletabft_timeshare::ConfChangeSingle::default();
                 ccs.set_change_type(c.get_change_type());
                 ccs.set_node_id(c.get_peer().get_id());
                 ccs
@@ -871,10 +871,10 @@ impl<'a> ChangePeerI for &'a ChangePeerV2Request {
 
         if changes.len() <= 1 {
             // Leave joint or simple confchange
-            cc.set_transition(evioletabftpb::ConfChangeTransition::Auto);
+            cc.set_transition(evioletabft_timeshare::ConfChangeTransition::Auto);
         } else {
             // Enter joint
-            cc.set_transition(evioletabftpb::ConfChangeTransition::Explicit);
+            cc.set_transition(evioletabft_timeshare::ConfChangeTransition::Explicit);
         }
         cc.set_changes(changes.into());
         cc.set_context(ctx);
@@ -886,13 +886,13 @@ impl<'a> ChangePeerI for &'a ChangePeerV2Request {
 mod tests {
     use std::thread;
 
-    use ekvproto::metapb::{self, BraneEpoch};
-    use ekvproto::violetabft_cmdpb::AdminRequest;
-    use violetabft::evioletabftpb::{ConfChangeType, Message, MessageType};
+    use ekvproto::meta_timeshare::{self, BraneEpoch};
+    use ekvproto::violetabft_cmd_timeshare::AdminRequest;
+    use violetabft::evioletabft_timeshare::{ConfChangeType, Message, MessageType};
     use time::Duration as TimeDuration;
 
-    use crate::store::peer_causetStorage;
-    use edb_util::time::{monotonic_now, monotonic_raw_now};
+    use crate::store::peer_causet_storage;
+    use violetabftstore::interlock::::time::{monotonic_now, monotonic_raw_now};
 
     use super::*;
 
@@ -1044,7 +1044,7 @@ mod tests {
             ("6", "3", "6", false, true, false),
         ];
         for (key, spacelike_key, lightlike_key, is_in_brane, inclusive, exclusive) in test_cases {
-            let mut brane = metapb::Brane::default();
+            let mut brane = meta_timeshare::Brane::default();
             brane.set_spacelike_key(spacelike_key.as_bytes().to_vec());
             brane.set_lightlike_key(lightlike_key.as_bytes().to_vec());
             let mut result = check_key_in_brane(key.as_bytes(), &brane);
@@ -1061,22 +1061,22 @@ mod tests {
         learners: &[u64],
         incomming_v: &[u64],
         demoting_v: &[u64],
-    ) -> metapb::Brane {
-        let mut brane = metapb::Brane::default();
+    ) -> meta_timeshare::Brane {
+        let mut brane = meta_timeshare::Brane::default();
         macro_rules! push_peer {
             ($ids: ident, $role: expr) => {
                 for id in $ids {
-                    let mut peer = metapb::Peer::default();
+                    let mut peer = meta_timeshare::Peer::default();
                     peer.set_id(*id);
                     peer.set_role($role);
                     brane.mut_peers().push(peer);
                 }
             };
         }
-        push_peer!(voters, metapb::PeerRole::Voter);
-        push_peer!(learners, metapb::PeerRole::Learner);
-        push_peer!(incomming_v, metapb::PeerRole::IncomingVoter);
-        push_peer!(demoting_v, metapb::PeerRole::DemotingVoter);
+        push_peer!(voters, meta_timeshare::PeerRole::Voter);
+        push_peer!(learners, meta_timeshare::PeerRole::Learner);
+        push_peer!(incomming_v, meta_timeshare::PeerRole::IncomingVoter);
+        push_peer!(demoting_v, meta_timeshare::PeerRole::DemotingVoter);
         brane
     }
 
@@ -1126,32 +1126,32 @@ mod tests {
         // Zore change for leave joint
         assert_eq!(
             (&req).to_confchange(vec![]).get_transition(),
-            evioletabftpb::ConfChangeTransition::Auto
+            evioletabft_timeshare::ConfChangeTransition::Auto
         );
 
         // One change for simple confchange
         req.mut_changes().push(ChangePeerRequest::default());
         assert_eq!(
             (&req).to_confchange(vec![]).get_transition(),
-            evioletabftpb::ConfChangeTransition::Auto
+            evioletabft_timeshare::ConfChangeTransition::Auto
         );
 
         // More than one change for enter joint
         req.mut_changes().push(ChangePeerRequest::default());
         assert_eq!(
             (&req).to_confchange(vec![]).get_transition(),
-            evioletabftpb::ConfChangeTransition::Explicit
+            evioletabft_timeshare::ConfChangeTransition::Explicit
         );
         req.mut_changes().push(ChangePeerRequest::default());
         assert_eq!(
             (&req).to_confchange(vec![]).get_transition(),
-            evioletabftpb::ConfChangeTransition::Explicit
+            evioletabft_timeshare::ConfChangeTransition::Explicit
         );
     }
 
     #[test]
     fn test_peer() {
-        let mut brane = metapb::Brane::default();
+        let mut brane = meta_timeshare::Brane::default();
         brane.set_id(1);
         brane.mut_peers().push(new_peer(1, 1));
         brane.mut_peers().push(new_learner_peer(2, 2));
@@ -1169,27 +1169,27 @@ mod tests {
         let tbl = vec![
             (
                 MessageType::MsgRequestVote,
-                peer_causetStorage::VIOLETABFT_INIT_LOG_TERM + 1,
+                peer_causet_storage::VIOLETABFT_INIT_LOG_TERM + 1,
                 true,
             ),
             (
                 MessageType::MsgRequestPreVote,
-                peer_causetStorage::VIOLETABFT_INIT_LOG_TERM + 1,
+                peer_causet_storage::VIOLETABFT_INIT_LOG_TERM + 1,
                 true,
             ),
             (
                 MessageType::MsgRequestVote,
-                peer_causetStorage::VIOLETABFT_INIT_LOG_TERM,
+                peer_causet_storage::VIOLETABFT_INIT_LOG_TERM,
                 false,
             ),
             (
                 MessageType::MsgRequestPreVote,
-                peer_causetStorage::VIOLETABFT_INIT_LOG_TERM,
+                peer_causet_storage::VIOLETABFT_INIT_LOG_TERM,
                 false,
             ),
             (
                 MessageType::MsgHup,
-                peer_causetStorage::VIOLETABFT_INIT_LOG_TERM + 1,
+                peer_causet_storage::VIOLETABFT_INIT_LOG_TERM + 1,
                 false,
             ),
         ];
@@ -1234,7 +1234,7 @@ mod tests {
 
     #[test]
     fn test_epoch_stale() {
-        let mut epoch = metapb::BraneEpoch::default();
+        let mut epoch = meta_timeshare::BraneEpoch::default();
         epoch.set_version(10);
         epoch.set_conf_ver(10);
 
@@ -1246,7 +1246,7 @@ mod tests {
         ];
 
         for (version, conf_version, is_stale) in tbl {
-            let mut check_epoch = metapb::BraneEpoch::default();
+            let mut check_epoch = meta_timeshare::BraneEpoch::default();
             check_epoch.set_version(version);
             check_epoch.set_conf_ver(conf_version);
             assert_eq!(is_epoch_stale(&epoch, &check_epoch), is_stale);
@@ -1267,7 +1267,7 @@ mod tests {
         ];
 
         for (s1, s2, s3, s4, exp) in cases {
-            let mut r1 = metapb::Brane::default();
+            let mut r1 = meta_timeshare::Brane::default();
             for (store_id, peer_id) in s1.into_iter().zip(0..) {
                 r1.mut_peers().push(new_peer(store_id, peer_id));
             }
@@ -1275,7 +1275,7 @@ mod tests {
                 r1.mut_peers().push(new_learner_peer(store_id, peer_id));
             }
 
-            let mut r2 = metapb::Brane::default();
+            let mut r2 = meta_timeshare::Brane::default();
             for (store_id, peer_id) in s3.into_iter().zip(10..) {
                 r2.mut_peers().push(new_peer(store_id, peer_id));
             }
@@ -1287,7 +1287,7 @@ mod tests {
         }
     }
 
-    fn split(mut r: metapb::Brane, key: &[u8]) -> (metapb::Brane, metapb::Brane) {
+    fn split(mut r: meta_timeshare::Brane, key: &[u8]) -> (meta_timeshare::Brane, meta_timeshare::Brane) {
         let mut r2 = r.clone();
         r.set_lightlike_key(key.to_owned());
         r2.set_id(r.get_id() + 1);
@@ -1295,14 +1295,14 @@ mod tests {
         (r, r2)
     }
 
-    fn check_sibling(r1: &metapb::Brane, r2: &metapb::Brane, is_sibling: bool) {
+    fn check_sibling(r1: &meta_timeshare::Brane, r2: &meta_timeshare::Brane, is_sibling: bool) {
         assert_eq!(is_sibling_branes(r1, r2), is_sibling);
         assert_eq!(is_sibling_branes(r2, r1), is_sibling);
     }
 
     #[test]
     fn test_brane_sibling() {
-        let r1 = metapb::Brane::default();
+        let r1 = meta_timeshare::Brane::default();
         check_sibling(&r1, &r1, false);
 
         let (r1, r2) = split(r1, b"k1");
@@ -1353,7 +1353,7 @@ mod tests {
         let mut epoch = BraneEpoch::default();
         epoch.set_conf_ver(2);
         epoch.set_version(2);
-        let mut brane = metapb::Brane::default();
+        let mut brane = meta_timeshare::Brane::default();
         brane.set_brane_epoch(epoch.clone());
 
         // Epoch is required for most requests even if it's empty.
@@ -1398,7 +1398,7 @@ mod tests {
 
             let mut stale_version_epoch = epoch.clone();
             stale_version_epoch.set_version(1);
-            let mut stale_brane = metapb::Brane::default();
+            let mut stale_brane = meta_timeshare::Brane::default();
             stale_brane.set_brane_epoch(stale_version_epoch.clone());
             req.mut_header()
                 .set_brane_epoch(stale_version_epoch.clone());
@@ -1434,7 +1434,7 @@ mod tests {
 
             let mut stale_conf_epoch = epoch.clone();
             stale_conf_epoch.set_conf_ver(1);
-            let mut stale_brane = metapb::Brane::default();
+            let mut stale_brane = meta_timeshare::Brane::default();
             stale_brane.set_brane_epoch(stale_conf_epoch.clone());
             req.mut_header().set_brane_epoch(stale_conf_epoch.clone());
             check_brane_epoch(&req, &stale_brane, false).unwrap();
@@ -1461,7 +1461,7 @@ mod tests {
 
     #[test]
     fn test_is_brane_initialized() {
-        let mut brane = metapb::Brane::default();
+        let mut brane = meta_timeshare::Brane::default();
         assert!(!is_brane_initialized(&brane));
         let peers = vec![new_peer(1, 2)];
         brane.set_peers(peers.into());

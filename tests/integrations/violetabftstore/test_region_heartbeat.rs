@@ -6,9 +6,9 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 use test_violetabftstore::*;
-use edb_util::config::*;
-use edb_util::time::UnixSecs as FidelInstant;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::config::*;
+use violetabftstore::interlock::::time::UnixSecs as FidelInstant;
+use violetabftstore::interlock::::HandyRwLock;
 
 fn wait_down_peers<T: Simulator>(cluster: &Cluster<T>, count: u64, peer: Option<u64>) {
     let mut peers = cluster.get_down_peers();
@@ -177,7 +177,7 @@ fn test_brane_heartbeat_timestamp() {
             return;
         }
     }
-    panic!("reported ts should be ufidelated");
+    panic!("reported ts should be fideliod");
 }
 
 // FIXME(nrc) failing on CI only
@@ -201,5 +201,5 @@ fn test_brane_heartbeat_term() {
             return;
         }
     }
-    panic!("reported term should be ufidelated");
+    panic!("reported term should be fideliod");
 }

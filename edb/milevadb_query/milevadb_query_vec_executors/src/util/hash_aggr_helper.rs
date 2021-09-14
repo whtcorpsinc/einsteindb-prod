@@ -5,17 +5,17 @@ use crate::interface::*;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::LazyBatchPrimaryCausetVec;
 use milevadb_query_datatype::codec::data_type::*;
-use milevadb_query_vec_aggr::{ufidelate, AggrFunctionState};
+use milevadb_query_vec_aggr::{fidelio, AggrFunctionState};
 use milevadb_query_vec_expr::RpnStackNode;
 
 pub struct HashAggregationHelper;
 
 impl HashAggregationHelper {
-    /// Ufidelates states for each Evcausetidx.
+    /// fidelios states for each Evcausetidx.
     ///
     /// Each Evcausetidx may belong to a different group. States of all groups should be passed in altogether
     /// in a single vector and the states of each Evcausetidx should be specified by an offset vector.
-    pub fn ufidelate_each_row_states_by_offset<Src: BatchFreeDaemon>(
+    pub fn fidelio_each_row_states_by_offset<Src: BatchFreeDaemon>(
         entities: &mut Entities<Src>,
         input_physical_PrimaryCausets: &mut LazyBatchPrimaryCausetVec,
         input_logical_rows: &[usize],
@@ -41,7 +41,7 @@ impl HashAggregationHelper {
                             ScalarValueRef::TT(scalar_value) => {
                                 for offset in states_offset_each_logical_row {
                                     let aggr_fn_state = &mut states[*offset + idx];
-                                    ufidelate!(aggr_fn_state, &mut entities.context, scalar_value)?;
+                                    fidelio!(aggr_fn_state, &mut entities.context, scalar_value)?;
                                 }
                             },
                         }
@@ -58,7 +58,7 @@ impl HashAggregationHelper {
                                     .zip(logical_rows)
                                 {
                                     let aggr_fn_state = &mut states[*states_offset + idx];
-                                    ufidelate!(aggr_fn_state, &mut entities.context, vec.get_option_ref(physical_idx))?;
+                                    fidelio!(aggr_fn_state, &mut entities.context, vec.get_option_ref(physical_idx))?;
                                 }
                             }
                         }

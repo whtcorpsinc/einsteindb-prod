@@ -3,15 +3,15 @@
 use super::*;
 
 use concurrency_manager::ConcurrencyManager;
-use ekvproto::kvrpcpb::Context;
+use ekvproto::kvrpc_timeshare::Context;
 
 use milevadb_query_datatype::codec::Datum;
 use edb::config::CoprReadPoolConfig;
 use edb::interlock::{readpool_impl, node};
 use edb::read_pool::ReadPool;
 use edb::server::Config;
-use edb::causetStorage::kv::LmdbEngine;
-use edb::causetStorage::{Engine, TestEngineBuilder};
+use edb::causet_storage::kv::LmdbEngine;
+use edb::causet_storage::{Engine, TestEngineBuilder};
 
 #[derive(Clone)]
 pub struct ProductBlock(Block);

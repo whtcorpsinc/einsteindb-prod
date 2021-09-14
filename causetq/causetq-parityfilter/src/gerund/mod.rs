@@ -25,7 +25,7 @@ use std::fmt::{
     Formatter,
 };
 
-use raum_promises::{
+use allegro_promises::{
     Attribute,
     SolitonId,
     KnownSolitonId,
@@ -34,13 +34,13 @@ use raum_promises::{
     MinkowskiType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     Cloned,
     HasSchemaReplicant,
     SchemaReplicant,
 };
 
-use edb_raum::counter::RcCounter;
+use edb_allegro::counter::RcCounter;
 
 use edbn::causetq::{
     Element,

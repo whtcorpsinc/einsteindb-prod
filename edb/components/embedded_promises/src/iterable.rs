@@ -27,7 +27,7 @@
 //! - [Lmdb Iteron API](https://github.com/facebook/lmdb/blob/master/include/lmdb/Iteron.h).
 //! - [Lmdb wiki on Iterons](https://github.com/facebook/lmdb/wiki/Iteron)
 
-use edb_util::keybuilder::KeyBuilder;
+use violetabftstore::interlock::::keybuilder::KeyBuilder;
 
 use crate::*;
 

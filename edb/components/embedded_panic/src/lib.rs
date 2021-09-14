@@ -1,6 +1,6 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-//! An example EinsteinDB causetStorage engine.
+//! An example EinsteinDB causet_storage engine.
 //!
 //! This project is intlightlikeed to serve as a skeleton for other engine
 //! implementations. It lays out the complex system of engine modules and promises

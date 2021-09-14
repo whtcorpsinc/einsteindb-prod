@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use ekvproto::encryptionpb::EncryptedContent;
+use ekvproto::encryption_timeshare::EncryptedContent;
 
 use super::{Backlightlike, MemAesGcmBacklightlike};
 use crate::AesGcmCrypter;

@@ -1,6 +1,6 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
-use ekvproto::fidelpb::*;
+use ekvproto::fidel_timeshare::*;
 
 use super::*;
 

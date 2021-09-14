@@ -5,7 +5,7 @@ use std::convert::TryFrom;
 
 use milevadb_query_codegen::AggrFunction;
 use milevadb_query_datatype::{Collation, EvalType, FieldTypeAccessor};
-use fidelpb::{Expr, ExprType, FieldType};
+use fidel_timeshare::{Expr, ExprType, FieldType};
 
 use super::*;
 use milevadb_query_common::Result;
@@ -157,7 +157,7 @@ where
     type ParameterType = BytesRef<'static>;
 
     #[inline]
-    unsafe fn ufidelate_concrete_unsafe(
+    unsafe fn fidelio_concrete_unsafe(
         &mut self,
         _ctx: &mut EvalContext,
         value: Option<Self::ParameterType>,
@@ -235,7 +235,7 @@ where
     }
 
     #[inline]
-    fn ufidelate_concrete<'a, TT>(&mut self, _ctx: &mut EvalContext, value: Option<TT>) -> Result<()>
+    fn fidelio_concrete<'a, TT>(&mut self, _ctx: &mut EvalContext, value: Option<TT>) -> Result<()>
     where
         TT: EvaluableRef<'a, EvaluableType = T::EvaluableType> + Ord,
     {
@@ -270,7 +270,7 @@ where
 #[causet(test)]
 mod tests {
     use milevadb_query_datatype::EvalType;
-    use fidelpb_helper::ExprDefBuilder;
+    use fidel_timeshare_helper::ExprDefBuilder;
 
     use super::*;
     use crate::parser::AggrDefinitionParser;
@@ -289,31 +289,31 @@ mod tests {
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[None]);
 
-        ufidelate!(state, &mut ctx, Option::<&Int>::None).unwrap();
+        fidelio!(state, &mut ctx, Option::<&Int>::None).unwrap();
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[None]);
 
-        ufidelate!(state, &mut ctx, Some(&7i64)).unwrap();
+        fidelio!(state, &mut ctx, Some(&7i64)).unwrap();
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(7)]);
 
-        ufidelate!(state, &mut ctx, Some(&4i64)).unwrap();
+        fidelio!(state, &mut ctx, Some(&4i64)).unwrap();
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(7)]);
 
-        ufidelate_repeat!(state, &mut ctx, Some(&20), 10).unwrap();
-        ufidelate_repeat!(state, &mut ctx, Option::<&Int>::None, 7).unwrap();
+        fidelio_repeat!(state, &mut ctx, Some(&20), 10).unwrap();
+        fidelio_repeat!(state, &mut ctx, Option::<&Int>::None, 7).unwrap();
 
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(20)]);
 
-        // ufidelate vector
-        ufidelate!(state, &mut ctx, Some(&7i64)).unwrap();
-        ufidelate_vector!(
+        // fidelio vector
+        fidelio!(state, &mut ctx, Some(&7i64)).unwrap();
+        fidelio_vector!(
             state,
             &mut ctx,
             &SolitonedVecSized::from_slice(&[Some(21i64), None, Some(22i64)]),
@@ -324,7 +324,7 @@ mod tests {
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(22)]);
 
-        ufidelate!(state, &mut ctx, Some(&40i64)).unwrap();
+        fidelio!(state, &mut ctx, Some(&40i64)).unwrap();
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(40)]);
@@ -341,31 +341,31 @@ mod tests {
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[None]);
 
-        ufidelate!(state, &mut ctx, Option::<&Int>::None).unwrap();
+        fidelio!(state, &mut ctx, Option::<&Int>::None).unwrap();
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[None]);
 
-        ufidelate!(state, &mut ctx, Some(&100i64)).unwrap();
+        fidelio!(state, &mut ctx, Some(&100i64)).unwrap();
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(100)]);
 
-        ufidelate!(state, &mut ctx, Some(&90i64)).unwrap();
+        fidelio!(state, &mut ctx, Some(&90i64)).unwrap();
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(90)]);
 
-        ufidelate_repeat!(state, &mut ctx, Some(&80), 10).unwrap();
-        ufidelate_repeat!(state, &mut ctx, Option::<&Int>::None, 10).unwrap();
+        fidelio_repeat!(state, &mut ctx, Some(&80), 10).unwrap();
+        fidelio_repeat!(state, &mut ctx, Option::<&Int>::None, 10).unwrap();
 
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(80)]);
 
-        // ufidelate vector
-        ufidelate!(state, &mut ctx, Some(&70i64)).unwrap();
-        ufidelate_vector!(
+        // fidelio vector
+        fidelio!(state, &mut ctx, Some(&70i64)).unwrap();
+        fidelio_vector!(
             state,
             &mut ctx,
             &SolitonedVecSized::from_slice(&[Some(69i64), None, Some(68i64)]),
@@ -376,12 +376,12 @@ mod tests {
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(68)]);
 
-        ufidelate!(state, &mut ctx, Some(&2i64)).unwrap();
+        fidelio!(state, &mut ctx, Some(&2i64)).unwrap();
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(2)]);
 
-        ufidelate!(state, &mut ctx, Some(&-1i64)).unwrap();
+        fidelio!(state, &mut ctx, Some(&-1i64)).unwrap();
         result[0].clear();
         state.push_result(&mut ctx, &mut result).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(-1i64)]);
@@ -420,7 +420,7 @@ mod tests {
             assert_eq!(result[0].to_bytes_vec(), &[None]);
 
             for arg in args {
-                ufidelate!(
+                fidelio!(
                     state,
                     &mut ctx,
                     Some(&String::from(arg).into_bytes() as BytesRef)
@@ -497,7 +497,7 @@ mod tests {
                 .unwrap();
             let max_result = max_result.vector_value().unwrap();
             let max_slice: SolitonedVecSized<Int> = max_result.as_ref().to_int_vec().into();
-            ufidelate_vector!(max_state, &mut ctx, &max_slice, max_result.logical_rows()).unwrap();
+            fidelio_vector!(max_state, &mut ctx, &max_slice, max_result.logical_rows()).unwrap();
             max_state.push_result(&mut ctx, &mut aggr_result).unwrap();
         }
 
@@ -508,7 +508,7 @@ mod tests {
                 .unwrap();
             let min_result = min_result.vector_value().unwrap();
             let min_slice: SolitonedVecSized<Int> = min_result.as_ref().to_int_vec().into();
-            ufidelate_vector!(min_state, &mut ctx, &min_slice, min_result.logical_rows()).unwrap();
+            fidelio_vector!(min_state, &mut ctx, &min_slice, min_result.logical_rows()).unwrap();
             min_state.push_result(&mut ctx, &mut aggr_result).unwrap();
         }
 

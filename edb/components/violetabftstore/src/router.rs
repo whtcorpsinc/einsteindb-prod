@@ -4,10 +4,10 @@ use std::cell::RefCell;
 
 use crossbeam::{lightlikeError, TrylightlikeError};
 use edb::{KvEngine, VioletaBftEngine, Snapshot};
-use ekvproto::violetabft_cmdpb::VioletaBftCmdRequest;
-use ekvproto::violetabft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_cmd_timeshare::VioletaBftCmdRequest;
+use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
 use violetabft::SnapshotStatus;
-use edb_util::time::ThreadReadId;
+use violetabftstore::interlock::::time::ThreadReadId;
 
 use crate::store::fsm::VioletaBftRouter;
 use crate::store::transport::{CasualRouter, ProposalRouter, StoreRouter};

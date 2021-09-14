@@ -3,9 +3,9 @@
 use std::sync::{Arc, Mutex};
 
 use crate::config::CoprReadPoolConfig;
-use crate::causetStorage::kv::{destroy_tls_engine, set_tls_engine};
-use crate::causetStorage::{Engine, FlowStatsReporter};
-use edb_util::yatp_pool::{Config, DefaultTicker, FuturePool, PoolTicker, YatpPoolBuilder};
+use crate::causet_storage::kv::{destroy_tls_engine, set_tls_engine};
+use crate::causet_storage::{Engine, FlowStatsReporter};
+use violetabftstore::interlock::::yatp_pool::{Config, DefaultTicker, FuturePool, PoolTicker, YatpPoolBuilder};
 
 use super::metrics::*;
 

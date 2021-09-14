@@ -1,7 +1,7 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use engine_lmdb::LmdbSnapshot;
-use violetabft::evioletabftpb::MessageType;
+use violetabft::evioletabft_timeshare::MessageType;
 use violetabftstore::store::*;
 use std::time::*;
 use test_violetabftstore::*;
@@ -131,11 +131,11 @@ fn test_all_node_crash() {
     test_early_apply(DataLost::AllLost)
 }
 
-/// Tests if apply index inside violetabft is ufidelated correctly.
+/// Tests if apply index inside violetabft is fideliod correctly.
 ///
-/// If index is not ufidelated, violetabft will reject to campaign on timeout.
+/// If index is not fideliod, violetabft will reject to campaign on timeout.
 #[test]
-fn test_ufidelate_internal_apply_index() {
+fn test_fidelio_internal_apply_index() {
     let mut cluster = new_node_cluster(0, 4);
     cluster.causet.violetabft_store.early_apply = true;
     cluster.fidel_client.disable_default_operator();

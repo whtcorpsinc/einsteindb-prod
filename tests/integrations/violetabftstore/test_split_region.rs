@@ -5,11 +5,11 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{fs, thread};
 
-use ekvproto::metapb;
-use ekvproto::fidelpb;
-use ekvproto::violetabft_cmdpb::*;
-use ekvproto::violetabft_serverpb::VioletaBftMessage;
-use violetabft::evioletabftpb::MessageType;
+use ekvproto::meta_timeshare;
+use ekvproto::fidel_timeshare;
+use ekvproto::violetabft_cmd_timeshare::*;
+use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
+use violetabft::evioletabft_timeshare::MessageType;
 
 use engine_lmdb::Compat;
 use edb::{Iterable, Peekable, Causet_WRITE};
@@ -18,7 +18,7 @@ use fidel_client::FidelClient;
 use violetabftstore::store::{Callback, WriteResponse};
 use violetabftstore::Result;
 use test_violetabftstore::*;
-use edb_util::config::*;
+use violetabftstore::interlock::::config::*;
 
 pub const REGION_MAX_SIZE: u64 = 50000;
 pub const REGION_SPLIT_SIZE: u64 = 30000;
@@ -26,7 +26,7 @@ pub const REGION_SPLIT_SIZE: u64 = 30000;
 fn test_base_split_brane<T, F>(cluster: &mut Cluster<T>, split: F, right_derive: bool)
 where
     T: Simulator,
-    F: Fn(&mut Cluster<T>, &metapb::Brane, &[u8]),
+    F: Fn(&mut Cluster<T>, &meta_timeshare::Brane, &[u8]),
 {
     cluster.causet.violetabft_store.right_derive_when_split = right_derive;
     cluster.run();
@@ -767,7 +767,7 @@ fn test_split_brane<T: Simulator>(cluster: &mut Cluster<T>) {
     let max_key = put_till_size(cluster, 9 * item_len, &mut cone);
     let target = fidel_client.get_brane(&max_key).unwrap();
     assert_eq!(brane, target);
-    fidel_client.must_split_brane(target, fidelpb::CheckPolicy::Scan, vec![]);
+    fidel_client.must_split_brane(target, fidel_timeshare::CheckPolicy::Scan, vec![]);
 
     let left = fidel_client.get_brane(b"").unwrap();
     let right = fidel_client.get_brane(&max_key).unwrap();
@@ -779,7 +779,7 @@ fn test_split_brane<T: Simulator>(cluster: &mut Cluster<T>) {
     let brane = fidel_client.get_brane(b"x").unwrap();
     fidel_client.must_split_brane(
         brane,
-        fidelpb::CheckPolicy::Usekey,
+        fidel_timeshare::CheckPolicy::Usekey,
         vec![b"x1".to_vec(), b"y2".to_vec()],
     );
     let x1 = fidel_client.get_brane(b"x1").unwrap();
@@ -791,7 +791,7 @@ fn test_split_brane<T: Simulator>(cluster: &mut Cluster<T>) {
 }
 
 #[test]
-fn test_node_split_ufidelate_brane_right_derive() {
+fn test_node_split_fidelio_brane_right_derive() {
     let mut cluster = new_node_cluster(0, 3);
     // Election timeout and max leader lease is 1s.
     configure_for_lease_read(&mut cluster, Some(100), Some(10));

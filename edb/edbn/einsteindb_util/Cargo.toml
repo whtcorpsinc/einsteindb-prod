@@ -1,5 +1,5 @@
 [package]
-name = "edb_util"
+name = "violetabftstore::interlock::"
 version = "0.1.0"
 edition = "2018"
 publish = false
@@ -44,7 +44,7 @@ slog-term = "2.4"
 sysinfo = "0.15.9"
 edb_alloc = { path = "../edb_alloc" }
 time = "0.2.24"
-fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
+fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", default-features = false }
 tokio = { version = "1.0.2", features = ["rt-util"] }
 tokio-executor = "0.1"
 tokio-timer = "0.2"

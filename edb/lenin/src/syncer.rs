@@ -15,7 +15,7 @@ use std::collections::HashSet;
 use rusqlite;
 use uuid::Uuid;
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
     KnownSolitonId,
     MinkowskiType,
@@ -710,7 +710,7 @@ impl Syncer {
         let bootstrap_helper = BootstrapHelper::new(remote_bootstrap);
 
         if !bootstrap_helper.is_compatible()? {
-            return Ok(SyncReport::IncompatibleRemoteBootstrap(CORE_SCHEMA_VERSION as i64, bootstrap_helper.raum_schemaReplicant_version()?));
+            return Ok(SyncReport::IncompatibleRemoteBootstrap(CORE_SCHEMA_VERSION as i64, bootstrap_helper.allegro_schemaReplicant_version()?));
         }
 
         d(&format!("mapping incoming bootstrap causetx uuid to local bootstrap solitonId: {} -> {}", remote_bootstrap.causetx, local_bootstrap));

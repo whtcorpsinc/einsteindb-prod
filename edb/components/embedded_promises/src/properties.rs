@@ -3,8 +3,8 @@
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
-use edb_util::codec::number::{self, NumberEncoder};
-use edb_util::codec::Result;
+use violetabftstore::interlock::::codec::number::{self, NumberEncoder};
+use violetabftstore::interlock::::codec::Result;
 
 #[derive(Clone, Debug, Default)]
 pub struct IndexHandle {

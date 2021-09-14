@@ -87,7 +87,7 @@ mod tests {
     use std::{str, u64};
 
     use milevadb_query_datatype::{FieldTypeAccessor, FieldTypeTp};
-    use fidelpb::FieldType;
+    use fidel_timeshare::FieldType;
 
     use crate::tests::col_expr;
     use crate::Expression;

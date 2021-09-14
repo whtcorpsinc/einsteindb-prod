@@ -7,15 +7,15 @@ use edb::{name_to_causet, CompactExt, MiscExt, Causet_DEFAULT, Causet_WRITE};
 use futures::executor::{ThreadPool, ThreadPoolBuilder};
 use futures::{TryFutureExt, TryStreamExt};
 use grpcio::{ClientStreamingSink, RequestStream, RpcContext, UnarySink};
-use ekvproto::errorpb;
+use ekvproto::error_timeshare;
 
 #[causet(feature = "prost-codec")]
-use ekvproto::import_sstpb::write_request::*;
+use ekvproto::import_sst_timeshare::write_request::*;
 #[causet(feature = "protobuf-codec")]
-use ekvproto::import_sstpb::WriteRequest_oneof_Soliton as Soliton;
-use ekvproto::import_sstpb::*;
+use ekvproto::import_sst_timeshare::WriteRequest_oneof_Soliton as Soliton;
+use ekvproto::import_sst_timeshare::*;
 
-use ekvproto::violetabft_cmdpb::*;
+use ekvproto::violetabft_cmd_timeshare::*;
 
 use crate::server::CONFIG_LMDB_GAUGE;
 use engine_lmdb::LmdbEngine;
@@ -24,9 +24,9 @@ use violetabftstore::router::VioletaBftStoreRouter;
 use violetabftstore::store::Callback;
 use security::{check_common_name, SecurityManager};
 use sst_importer::lightlike_rpc_response;
-use edb_util::future::create_stream_with_buffer;
-use edb_util::future::paired_future_callback;
-use edb_util::time::{Instant, Limiter};
+use violetabftstore::interlock::::future::create_stream_with_buffer;
+use violetabftstore::interlock::::future::paired_future_callback;
+use violetabftstore::interlock::::time::{Instant, Limiter};
 
 use sst_importer::import_mode::*;
 use sst_importer::metrics::*;
@@ -187,7 +187,7 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
             // is not lightlike + Sync. See the documentation of S3Storage for reason.
             let res = importer.download::<LmdbEngine>(
                 req.get_sst(),
-                req.get_causetStorage_backlightlike(),
+                req.get_causet_storage_backlightlike(),
                 req.get_name(),
                 req.get_rewrite_rule(),
                 limiter,
@@ -232,13 +232,13 @@ impl<Router: VioletaBftStoreRouter<LmdbEngine>> ImportSst for ImportSSTService<R
                 .expect("causet")
         {
             let err = "too many sst files are ingesting";
-            let mut server_is_busy_err = errorpb::ServerIsBusy::default();
+            let mut server_is_busy_err = error_timeshare::ServerIsBusy::default();
             server_is_busy_err.set_reason(err.to_string());
-            let mut errorpb = errorpb::Error::default();
-            errorpb.set_message(err.to_string());
-            errorpb.set_server_is_busy(server_is_busy_err);
+            let mut error_timeshare = error_timeshare::Error::default();
+            error_timeshare.set_message(err.to_string());
+            error_timeshare.set_server_is_busy(server_is_busy_err);
             let mut resp = IngestResponse::default();
-            resp.set_error(errorpb);
+            resp.set_error(error_timeshare);
             ctx.spawn(
                 sink.success(resp)
                     .unwrap_or_else(|e| warn!("lightlike rpc failed"; "err" => %e)),

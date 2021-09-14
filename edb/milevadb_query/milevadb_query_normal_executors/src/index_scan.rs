@@ -3,11 +3,11 @@
 use std::sync::Arc;
 
 use ekvproto::interlock::KeyCone;
-use fidelpb::PrimaryCausetInfo;
-use fidelpb::IndexScan;
+use fidel_timeshare::PrimaryCausetInfo;
+use fidel_timeshare::IndexScan;
 
 use super::{scan::InnerFreeDaemon, Event, ScanFreeDaemon, ScanFreeDaemonOptions};
-use milevadb_query_common::causetStorage::CausetStorage;
+use milevadb_query_common::causet_storage::causet_storage;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::Block::{self, check_index_key};
 use milevadb_query_datatype::expr::EvalContext;
@@ -69,12 +69,12 @@ impl InnerFreeDaemon for IndexInnerFreeDaemon {
 
 pub type IndexScanFreeDaemon<S> = ScanFreeDaemon<S, IndexInnerFreeDaemon>;
 
-impl<S: CausetStorage> IndexScanFreeDaemon<S> {
+impl<S: causet_storage> IndexScanFreeDaemon<S> {
     pub fn index_scan(
         mut meta: IndexScan,
         context: EvalContext,
         key_cones: Vec<KeyCone>,
-        causetStorage: S,
+        causet_storage: S,
         unique: bool,
         is_scanned_cone_aware: bool,
     ) -> Result<Self> {
@@ -85,7 +85,7 @@ impl<S: CausetStorage> IndexScanFreeDaemon<S> {
             context,
             PrimaryCausets,
             key_cones,
-            causetStorage,
+            causet_storage,
             is_backward: meta.get_desc(),
             is_key_only: false,
             accept_point_cone: unique,
@@ -97,7 +97,7 @@ impl<S: CausetStorage> IndexScanFreeDaemon<S> {
         context: EvalContext,
         cols: i64,
         key_cones: Vec<KeyCone>,
-        causetStorage: S,
+        causet_storage: S,
     ) -> Result<Self> {
         let col_ids: Vec<i64> = (0..cols).collect();
         let inner = IndexInnerFreeDaemon {
@@ -109,7 +109,7 @@ impl<S: CausetStorage> IndexScanFreeDaemon<S> {
             context,
             PrimaryCausets: vec![],
             key_cones,
-            causetStorage,
+            causet_storage,
             is_backward: false,
             is_key_only: false,
             accept_point_cone: false,
@@ -124,14 +124,14 @@ pub mod tests {
     use std::i64;
 
     use milevadb_query_datatype::FieldTypeTp;
-    use fidelpb::PrimaryCausetInfo;
+    use fidel_timeshare::PrimaryCausetInfo;
 
     use super::super::tests::*;
     use super::super::FreeDaemon;
     use super::*;
     use milevadb_query_common::execute_stats::ExecuteStats;
 
-    use milevadb_query_common::causetStorage::test_fixture::FixtureStorage;
+    use milevadb_query_common::causet_storage::test_fixture::FixtureStorage;
     use milevadb_query_datatype::codec::datum::{self, Datum};
     use milevadb_query_datatype::codec::Block::generate_index_data_for_test;
 

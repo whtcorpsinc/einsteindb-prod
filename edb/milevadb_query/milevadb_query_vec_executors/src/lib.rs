@@ -14,7 +14,7 @@
 #![feature(decl_macro)]
 
 #[macro_use(box_try, warn)]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 
 #[macro_use(other_err)]
 extern crate milevadb_query_common;

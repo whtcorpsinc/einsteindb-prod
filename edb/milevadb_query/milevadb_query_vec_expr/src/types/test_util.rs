@@ -2,7 +2,7 @@
 
 use std::any::Any;
 
-use fidelpb::{Expr, ExprType, FieldType, ScalarFuncSig};
+use fidel_timeshare::{Expr, ExprType, FieldType, ScalarFuncSig};
 
 use crate::types::function::RpnFnMeta;
 use crate::RpnExpressionBuilder;

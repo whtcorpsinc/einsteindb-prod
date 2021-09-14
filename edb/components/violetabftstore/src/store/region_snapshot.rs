@@ -3,8 +3,8 @@
 use edb::{
     IterOptions, KvEngine, Peekable, ReadOptions, Result as EngineResult, Snapshot,
 };
-use ekvproto::metapb::Brane;
-use ekvproto::violetabft_serverpb::VioletaBftApplyState;
+use ekvproto::meta_timeshare::Brane;
+use ekvproto::violetabft_server_timeshare::VioletaBftApplyState;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -15,9 +15,9 @@ use edb::VioletaBftEngine;
 use edb::Causet_VIOLETABFT;
 use edb::{Error as EngineError, Iterable, Iteron};
 use tuplespaceInstanton::DATA_PREFIX_KEY;
-use edb_util::keybuilder::KeyBuilder;
-use edb_util::metrics::CRITICAL_ERROR;
-use edb_util::{panic_when_unexpected_key_or_data, set_panic_mark};
+use violetabftstore::interlock::::keybuilder::KeyBuilder;
+use violetabftstore::interlock::::metrics::CRITICAL_ERROR;
+use violetabftstore::interlock::::{panic_when_unexpected_key_or_data, set_panic_mark};
 
 /// Snapshot of a brane.
 ///
@@ -75,13 +75,13 @@ where
     pub fn get_apply_index(&self) -> Result<u64> {
         let apply_index = self.apply_index.load(Ordering::SeqCst);
         if apply_index == 0 {
-            self.get_apply_index_from_causetStorage()
+            self.get_apply_index_from_causet_storage()
         } else {
             Ok(apply_index)
         }
     }
 
-    fn get_apply_index_from_causetStorage(&self) -> Result<u64> {
+    fn get_apply_index_from_causet_storage(&self) -> Result<u64> {
         let apply_state: Option<VioletaBftApplyState> = self
             .snap
             .get_msg_causet(Causet_VIOLETABFT, &tuplespaceInstanton::apply_state_key(self.brane.get_id()))?;
@@ -254,7 +254,7 @@ pub struct BraneIterator<S: Snapshot> {
     brane: Arc<Brane>,
 }
 
-fn ufidelate_lower_bound(iter_opt: &mut IterOptions, brane: &Brane) {
+fn fidelio_lower_bound(iter_opt: &mut IterOptions, brane: &Brane) {
     let brane_spacelike_key = tuplespaceInstanton::enc_spacelike_key(brane);
     if iter_opt.lower_bound().is_some() && !iter_opt.lower_bound().as_ref().unwrap().is_empty() {
         iter_opt.set_lower_bound_prefix(tuplespaceInstanton::DATA_PREFIX_KEY);
@@ -266,7 +266,7 @@ fn ufidelate_lower_bound(iter_opt: &mut IterOptions, brane: &Brane) {
     }
 }
 
-fn ufidelate_upper_bound(iter_opt: &mut IterOptions, brane: &Brane) {
+fn fidelio_upper_bound(iter_opt: &mut IterOptions, brane: &Brane) {
     let brane_lightlike_key = tuplespaceInstanton::enc_lightlike_key(brane);
     if iter_opt.upper_bound().is_some() && !iter_opt.upper_bound().as_ref().unwrap().is_empty() {
         iter_opt.set_upper_bound_prefix(tuplespaceInstanton::DATA_PREFIX_KEY);
@@ -284,8 +284,8 @@ where
     S: Snapshot,
 {
     pub fn new(snap: &S, brane: Arc<Brane>, mut iter_opt: IterOptions) -> BraneIterator<S> {
-        ufidelate_lower_bound(&mut iter_opt, &brane);
-        ufidelate_upper_bound(&mut iter_opt, &brane);
+        fidelio_lower_bound(&mut iter_opt, &brane);
+        fidelio_upper_bound(&mut iter_opt, &brane);
         let iter = snap
             .Iteron_opt(iter_opt)
             .expect("creating snapshot Iteron"); // FIXME error handling
@@ -298,8 +298,8 @@ where
         mut iter_opt: IterOptions,
         causet: &str,
     ) -> BraneIterator<S> {
-        ufidelate_lower_bound(&mut iter_opt, &brane);
-        ufidelate_upper_bound(&mut iter_opt, &brane);
+        fidelio_lower_bound(&mut iter_opt, &brane);
+        fidelio_upper_bound(&mut iter_opt, &brane);
         let iter = snap
             .Iteron_causet_opt(causet, iter_opt)
             .expect("creating snapshot Iteron"); // FIXME error handling
@@ -386,15 +386,15 @@ mod tests {
     use engine_lmdb::{LmdbEngine, LmdbSnapshot};
     use edb::{CompactExt, Engines, MiscExt, Peekable, SyncMuBlock};
     use tuplespaceInstanton::data_key;
-    use ekvproto::metapb::{Peer, Brane};
+    use ekvproto::meta_timeshare::{Peer, Brane};
     use tempfile::Builder;
-    use edb_util::worker;
+    use violetabftstore::interlock::::worker;
 
     use super::*;
 
     type DataSet = Vec<(Vec<u8>, Vec<u8>)>;
 
-    fn new_peer_causetStorage(
+    fn new_peer_causet_storage(
         engines: Engines<LmdbEngine, LmdbEngine>,
         r: &Brane,
     ) -> PeerStorage<LmdbEngine, LmdbEngine> {
@@ -422,7 +422,7 @@ mod tests {
         for &(ref k, ref v) in &base_data {
             engines.kv.put(&data_key(k), v).unwrap();
         }
-        let store = new_peer_causetStorage(engines, &r);
+        let store = new_peer_causet_storage(engines, &r);
         (store, base_data)
     }
 
@@ -468,7 +468,7 @@ mod tests {
             }
         }
 
-        let store = new_peer_causetStorage(engines, &r);
+        let store = new_peer_causet_storage(engines, &r);
         (store, data)
     }
 
@@ -480,7 +480,7 @@ mod tests {
         r.set_id(10);
         r.set_spacelike_key(b"key0".to_vec());
         r.set_lightlike_key(b"key4".to_vec());
-        let store = new_peer_causetStorage(engines.clone(), &r);
+        let store = new_peer_causet_storage(engines.clone(), &r);
 
         let key3 = b"key3";
         engines.kv.put_msg(&data_key(key3), &r).expect("");
@@ -648,7 +648,7 @@ mod tests {
         // test last brane
         let mut brane = Brane::default();
         brane.mut_peers().push(Peer::default());
-        let store = new_peer_causetStorage(engines.clone(), &brane);
+        let store = new_peer_causet_storage(engines.clone(), &brane);
         let snap = BraneSnapshot::<LmdbSnapshot>::new(&store);
         data.clear();
         snap.scan(b"", &[0xFF, 0xFF], false, |key, value| {
@@ -674,7 +674,7 @@ mod tests {
         assert_eq!(res, base_data);
 
         // test Iteron with upper bound
-        let store = new_peer_causetStorage(engines, &brane);
+        let store = new_peer_causet_storage(engines, &brane);
         let snap = BraneSnapshot::<LmdbSnapshot>::new(&store);
         let mut iter = snap.iter(IterOptions::new(
             None,

@@ -11,9 +11,9 @@ time = "0.1"
 failure = "0.1"
 derive_more = "0.99.3"
 error_code = { path = "../error_code" }
-edb_util = { path = "../edb_util" }
+violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
 ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
-fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
+fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", default-features = false }
 prometheus = { version = "0.8", features = ["nightly", "push"] }
 lazy_static = "1.3"
 

@@ -9,8 +9,8 @@
 // specific language governing permissions and limitations under the License.
 
 extern crate edbn;
-extern crate raum_promises;
-extern crate edb_raum;
+extern crate allegro_promises;
+extern crate edb_allegro;
 extern crate edb_causetq_parityfilter;
 extern crate causetq_parityfilter_promises;
 
@@ -22,11 +22,11 @@ use utils::{
     bails,
 };
 
-use raum_promises::{
+use allegro_promises::{
     MinkowskiValueType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SchemaReplicant,
 };
 

@@ -1,12 +1,12 @@
 use super::timestamp::TimeStamp;
 use byteorder::{ByteOrder, NativeEndian};
-use ekvproto::kvrpcpb;
+use ekvproto::kvrpc_timeshare;
 use std::fmt::{self, Debug, Display, Formatter};
-use edb_util::codec;
-use edb_util::codec::bytes;
-use edb_util::codec::bytes::BytesEncoder;
-use edb_util::codec::number::{self, NumberEncoder};
-use edb_util::collections::HashMap;
+use violetabftstore::interlock::::codec;
+use violetabftstore::interlock::::codec::bytes;
+use violetabftstore::interlock::::codec::bytes::BytesEncoder;
+use violetabftstore::interlock::::codec::number::{self, NumberEncoder};
+use violetabftstore::interlock::::collections::HashMap;
 
 // Short value max len must <= 255.
 pub const SHORT_VALUE_MAX_LEN: usize = 255;
@@ -29,7 +29,7 @@ pub type KvPair = (Vec<u8>, Value);
 ///
 /// TuplespaceInstanton have 2 types of binary representation - raw and encoded. The raw
 /// representation is for public interface, the encoded representation is for
-/// internal causetStorage. We can get both representations from an instance of this
+/// internal causet_storage. We can get both representations from an instance of this
 /// type.
 ///
 /// Orthogonal to binary representation, tuplespaceInstanton may or may not embed a timestamp,
@@ -121,7 +121,7 @@ impl Key {
             // a better way is to introduce a type `TimestampedKey`, and
             // functions to convert between `TimestampedKey` and `Key`.
             // `TimestampedKey` is in a higher (MVCC) layer, while `Key` is
-            // in the core causetStorage engine layer.
+            // in the core causet_storage engine layer.
             Err(codec::Error::KeyLength)
         } else {
             self.0.truncate(len - number::U64_SIZE);
@@ -245,11 +245,11 @@ pub enum Mutation {
     Dagger(Key),
     /// Put `Value` into `Key` if `Key` does not yet exist.
     ///
-    /// Returns `kvrpcpb::KeyError::AlreadyExists` if the key already exists.
+    /// Returns `kvrpc_timeshare::KeyError::AlreadyExists` if the key already exists.
     Insert((Key, Value)),
     /// Check `key` must be not exist.
     ///
-    /// Returns `kvrpcpb::KeyError::AlreadyExists` if the key already exists.
+    /// Returns `kvrpc_timeshare::KeyError::AlreadyExists` if the key already exists.
     CheckNotExists(Key),
 }
 
@@ -299,14 +299,14 @@ impl Mutation {
     }
 }
 
-impl From<kvrpcpb::Mutation> for Mutation {
-    fn from(mut m: kvrpcpb::Mutation) -> Mutation {
+impl From<kvrpc_timeshare::Mutation> for Mutation {
+    fn from(mut m: kvrpc_timeshare::Mutation) -> Mutation {
         match m.get_op() {
-            kvrpcpb::Op::Put => Mutation::Put((Key::from_raw(m.get_key()), m.take_value())),
-            kvrpcpb::Op::Del => Mutation::Delete(Key::from_raw(m.get_key())),
-            kvrpcpb::Op::Dagger => Mutation::Dagger(Key::from_raw(m.get_key())),
-            kvrpcpb::Op::Insert => Mutation::Insert((Key::from_raw(m.get_key()), m.take_value())),
-            kvrpcpb::Op::CheckNotExists => Mutation::CheckNotExists(Key::from_raw(m.get_key())),
+            kvrpc_timeshare::Op::Put => Mutation::Put((Key::from_raw(m.get_key()), m.take_value())),
+            kvrpc_timeshare::Op::Del => Mutation::Delete(Key::from_raw(m.get_key())),
+            kvrpc_timeshare::Op::Dagger => Mutation::Dagger(Key::from_raw(m.get_key())),
+            kvrpc_timeshare::Op::Insert => Mutation::Insert((Key::from_raw(m.get_key()), m.take_value())),
+            kvrpc_timeshare::Op::CheckNotExists => Mutation::CheckNotExists(Key::from_raw(m.get_key())),
             _ => panic!("mismatch Op in prewrite mutations"),
         }
     }
@@ -328,13 +328,13 @@ impl OldValue {
     }
 }
 
-// Returned by MvccTxn when extra_op is set to kvrpcpb::ExtraOp::ReadOldValue.
+// Returned by MvccTxn when extra_op is set to kvrpc_timeshare::ExtraOp::ReadOldValue.
 // key with current ts -> (short value of the prev txn, spacelike ts of the prev txn).
 // The value of the map will be None when the mutation is `Insert`.
 // MutationType is the type of mutation of the current write.
 pub type OldValues = HashMap<Key, (Option<OldValue>, MutationType)>;
 
-// Extra data fields filled by kvrpcpb::ExtraOp.
+// Extra data fields filled by kvrpc_timeshare::ExtraOp.
 #[derive(Default, Debug, Clone)]
 pub struct TxnExtra {
     pub old_values: OldValues,

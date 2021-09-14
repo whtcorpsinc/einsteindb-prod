@@ -2,14 +2,14 @@
 
 use self::metrics::*;
 use crate::config::UnifiedReadPoolConfig;
-use crate::causetStorage::kv::{destroy_tls_engine, set_tls_engine, Engine, FlowStatsReporter};
+use crate::causet_storage::kv::{destroy_tls_engine, set_tls_engine, Engine, FlowStatsReporter};
 use futures::channel::oneshot;
 use futures::future::TryFutureExt;
-use ekvproto::kvrpcpb::CommandPri;
+use ekvproto::kvrpc_timeshare::CommandPri;
 use prometheus::IntGauge;
 use std::future::Future;
 use std::sync::{Arc, Mutex};
-use edb_util::yatp_pool::{self, FuturePool, PoolTicker, YatpPoolBuilder};
+use violetabftstore::interlock::::yatp_pool::{self, FuturePool, PoolTicker, YatpPoolBuilder};
 use yatp::queue::Extras;
 use yatp::task::future::TaskCell;
 use yatp::Remote;
@@ -158,7 +158,7 @@ impl<R: FlowStatsReporter> PoolTicker for ReporterTicker<R> {
 
 impl<R: FlowStatsReporter> ReporterTicker<R> {
     fn flush_metrics_on_tick(&mut self) {
-        crate::causetStorage::metrics::tls_flush(&self.reporter);
+        crate::causet_storage::metrics::tls_flush(&self.reporter);
         crate::interlock::metrics::tls_flush(&self.reporter);
     }
 }
@@ -258,7 +258,7 @@ mod metrics {
 #[causet(test)]
 mod tests {
     use super::*;
-    use crate::causetStorage::TestEngineBuilder;
+    use crate::causet_storage::TestEngineBuilder;
     use futures::channel::oneshot;
     use violetabftstore::store::ReadStats;
     use std::thread;

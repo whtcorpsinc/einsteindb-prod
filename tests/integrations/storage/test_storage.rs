@@ -8,14 +8,14 @@ use std::u64;
 
 use rand::random;
 
-use ekvproto::kvrpcpb::{Context, LockInfo};
+use ekvproto::kvrpc_timeshare::{Context, LockInfo};
 
 use edb::{Causet_DEFAULT, Causet_DAGGER};
-use test_causetStorage::*;
+use test_causet_storage::*;
 use edb::server::gc_worker::DEFAULT_GC_BATCH_KEYS;
-use edb::causetStorage::tail_pointer::MAX_TXN_WRITE_SIZE;
-use edb::causetStorage::txn::RESOLVE_LOCK_BATCH_SIZE;
-use edb::causetStorage::Engine;
+use edb::causet_storage::tail_pointer::MAX_TXN_WRITE_SIZE;
+use edb::causet_storage::txn::RESOLVE_LOCK_BATCH_SIZE;
+use edb::causet_storage::Engine;
 use txn_types::{Key, Mutation, TimeStamp};
 
 #[test]
@@ -642,18 +642,18 @@ fn test_store_resolve_with_illegal_tso() {
 fn test_txn_store_gc() {
     let key = "k";
     let store = AssertionStorage::default();
-    let (_cluster, violetabft_store) = AssertionStorage::new_violetabft_causetStorage_with_store_count(3, key);
+    let (_cluster, violetabft_store) = AssertionStorage::new_violetabft_causet_storage_with_store_count(3, key);
     store.test_txn_store_gc(key);
     violetabft_store.test_txn_store_gc(key);
 }
 
 fn test_txn_store_gc_multiple_tuplespaceInstanton(key_prefix_len: usize, n: usize) {
     let prefix = String::from_utf8(vec![b'k'; key_prefix_len]).unwrap();
-    test_txn_store_gc_multiple_tuplespaceInstanton_cluster_causetStorage(n, prefix.clone());
-    test_txn_store_gc_multiple_tuplespaceInstanton_single_causetStorage(n, prefix);
+    test_txn_store_gc_multiple_tuplespaceInstanton_cluster_causet_storage(n, prefix.clone());
+    test_txn_store_gc_multiple_tuplespaceInstanton_single_causet_storage(n, prefix);
 }
 
-pub fn test_txn_store_gc_multiple_tuplespaceInstanton_single_causetStorage(n: usize, prefix: String) {
+pub fn test_txn_store_gc_multiple_tuplespaceInstanton_single_causet_storage(n: usize, prefix: String) {
     let store = AssertionStorage::default();
     let tuplespaceInstanton: Vec<String> = (0..n).map(|i| format!("{}{}", prefix, i)).collect();
     for k in &tuplespaceInstanton {
@@ -666,9 +666,9 @@ pub fn test_txn_store_gc_multiple_tuplespaceInstanton_single_causetStorage(n: us
     }
 }
 
-pub fn test_txn_store_gc_multiple_tuplespaceInstanton_cluster_causetStorage(n: usize, prefix: String) {
+pub fn test_txn_store_gc_multiple_tuplespaceInstanton_cluster_causet_storage(n: usize, prefix: String) {
     let (mut cluster, mut store) =
-        AssertionStorage::new_violetabft_causetStorage_with_store_count(3, prefix.clone().as_str());
+        AssertionStorage::new_violetabft_causet_storage_with_store_count(3, prefix.clone().as_str());
     let tuplespaceInstanton: Vec<String> = (0..n).map(|i| format!("{}{}", prefix, i)).collect();
     for k in &tuplespaceInstanton {
         store.put_ok_for_cluster(&mut cluster, k.as_bytes(), b"v1", 5, 10);
@@ -710,7 +710,7 @@ fn test_txn_store_gc3() {
     let key = "k";
     let store = AssertionStorage::default();
     store.test_txn_store_gc3(key.as_bytes()[0]);
-    let (mut cluster, mut violetabft_store) = AssertionStorage::new_violetabft_causetStorage_with_store_count(3, key);
+    let (mut cluster, mut violetabft_store) = AssertionStorage::new_violetabft_causet_storage_with_store_count(3, key);
     violetabft_store.test_txn_store_gc3_for_cluster(&mut cluster, key.as_bytes()[0]);
 }
 
@@ -771,7 +771,7 @@ fn test_txn_store_rawkv_causet() {
 }
 
 #[test]
-fn test_txn_causetStorage_tuplespaceInstantonize() {
+fn test_txn_causet_storage_tuplespaceInstantonize() {
     let store = AssertionStorage::default();
     let long_key = vec![b'x'; 10240];
     store.raw_put_ok("".to_string(), b"short_key".to_vec(), b"v".to_vec());

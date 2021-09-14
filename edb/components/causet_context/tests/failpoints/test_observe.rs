@@ -4,20 +4,20 @@ use futures::executor::block_on;
 use futures::sink::SinkExt;
 use grpcio::WriteFlags;
 #[causet(feature = "prost-codec")]
-use ekvproto::causet_contextpb::event::{Event as Event_oneof_event, LogType as EventLogType};
+use ekvproto::causet_context_timeshare::event::{Event as Event_oneof_event, LogType as EventLogType};
 #[causet(not(feature = "prost-codec"))]
-use ekvproto::causet_contextpb::*;
-use ekvproto::kvrpcpb::*;
-use ekvproto::violetabft_serverpb::VioletaBftMessage;
+use ekvproto::causet_context_timeshare::*;
+use ekvproto::kvrpc_timeshare::*;
+use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
 use fidel_client::FidelClient;
-use violetabft::evioletabftpb::MessageType;
+use violetabft::evioletabft_timeshare::MessageType;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::time::Duration;
 use test_violetabftstore::*;
-use edb_util::config::ReadableDuration;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::config::ReadableDuration;
+use violetabftstore::interlock::::HandyRwLock;
 
 #[test]
 fn test_observe_duplicate_cmd() {

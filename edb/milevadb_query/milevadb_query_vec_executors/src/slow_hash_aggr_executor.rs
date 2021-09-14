@@ -6,16 +6,16 @@ use std::ptr::NonNull;
 use std::sync::Arc;
 
 use milevadb_query_datatype::{EvalType, FieldTypeAccessor};
-use edb_util::collections::HashMap;
-use edb_util::collections::HashMapEntry;
-use fidelpb::Aggregation;
-use fidelpb::{Expr, FieldType};
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::collections::HashMapEntry;
+use fidel_timeshare::Aggregation;
+use fidel_timeshare::{Expr, FieldType};
 
 use crate::interface::*;
 use crate::util::aggr_executor::*;
 use crate::util::hash_aggr_helper::HashAggregationHelper;
 use crate::util::*;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
@@ -51,8 +51,8 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchSlowHashAggregationFreeDaemo
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.0.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.0.collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -393,8 +393,8 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for SlowHashAggregatio
                 .push(group_index * aggr_fn_len);
         }
 
-        // 2. Ufidelate states according to the group.
-        HashAggregationHelper::ufidelate_each_row_states_by_offset(
+        // 2. fidelio states according to the group.
+        HashAggregationHelper::fidelio_each_row_states_by_offset(
             entities,
             &mut input_physical_PrimaryCausets,
             input_logical_rows,
@@ -497,7 +497,7 @@ mod tests {
     use super::*;
 
     use milevadb_query_datatype::FieldTypeTp;
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use crate::util::aggr_executor::tests::*;
     use milevadb_query_datatype::codec::data_type::*;
@@ -507,8 +507,8 @@ mod tests {
     #[test]
     #[allow(clippy::string_lit_as_bytes)]
     fn test_it_works_integration() {
-        use fidelpb::ExprType;
-        use fidelpb_helper::ExprDefBuilder;
+        use fidel_timeshare::ExprType;
+        use fidel_timeshare_helper::ExprDefBuilder;
 
         // This test creates a hash aggregation executor with the following aggregate functions:
         // - COUNT(1)

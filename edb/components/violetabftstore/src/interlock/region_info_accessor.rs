@@ -13,11 +13,11 @@ use super::{
 };
 use edb::KvEngine;
 use tuplespaceInstanton::{data_lightlike_key, data_key};
-use ekvproto::metapb::Brane;
+use ekvproto::meta_timeshare::Brane;
 use violetabft::StateRole;
-use edb_util::collections::HashMap;
-use edb_util::timer::Timer;
-use edb_util::worker::{Builder as WorkerBuilder, Runnable, RunnableWithTimer, Interlock_Semaphore, Worker};
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::timer::Timer;
+use violetabftstore::interlock::::worker::{Builder as WorkerBuilder, Runnable, RunnableWithTimer, Interlock_Semaphore, Worker};
 
 /// `BraneInfoAccessor` is used to collect all branes' information on this EinsteinDB into a collection
 /// so that other parts of EinsteinDB can get brane information from it. It registers a semaphore to
@@ -38,7 +38,7 @@ use edb_util::worker::{Builder as WorkerBuilder, Runnable, RunnableWithTimer, In
 #[derive(Debug)]
 pub enum VioletaBftStoreEvent {
     CreateBrane { brane: Brane, role: StateRole },
-    UfidelateBrane { brane: Brane, role: StateRole },
+    fidelioBrane { brane: Brane, role: StateRole },
     DestroyBrane { brane: Brane },
     RoleChange { brane: Brane, role: StateRole },
 }
@@ -47,7 +47,7 @@ impl VioletaBftStoreEvent {
     pub fn get_brane(&self) -> &Brane {
         match self {
             VioletaBftStoreEvent::CreateBrane { brane, .. }
-            | VioletaBftStoreEvent::UfidelateBrane { brane, .. }
+            | VioletaBftStoreEvent::fidelioBrane { brane, .. }
             | VioletaBftStoreEvent::DestroyBrane { brane, .. }
             | VioletaBftStoreEvent::RoleChange { brane, .. } => brane,
         }
@@ -72,7 +72,7 @@ type BraneConesMap = BTreeMap<Vec<u8>, u64>;
 pub type Callback<T> = Box<dyn FnOnce(T) + lightlike>;
 pub type SeekBraneCallback = Box<dyn FnOnce(&mut dyn Iteron<Item = &BraneInfo>) + lightlike>;
 
-/// `BraneInfoAccessor` has its own thread. Queries and ufidelates are done by lightlikeing commands to the
+/// `BraneInfoAccessor` has its own thread. Queries and fidelios are done by lightlikeing commands to the
 /// thread.
 pub enum BraneInfoQuery {
     VioletaBftStoreEvent(VioletaBftStoreEvent),
@@ -122,7 +122,7 @@ impl BraneChangeSemaphore for BraneEventListener {
         let brane = context.brane().clone();
         let event = match event {
             BraneChangeEvent::Create => VioletaBftStoreEvent::CreateBrane { brane, role },
-            BraneChangeEvent::Ufidelate => VioletaBftStoreEvent::UfidelateBrane { brane, role },
+            BraneChangeEvent::fidelio => VioletaBftStoreEvent::fidelioBrane { brane, role },
             BraneChangeEvent::Destroy => VioletaBftStoreEvent::DestroyBrane { brane },
         };
         self.interlock_semaphore
@@ -189,7 +189,7 @@ impl BraneCollector {
         );
     }
 
-    fn ufidelate_brane(&mut self, brane: Brane) {
+    fn fidelio_brane(&mut self, brane: Brane) {
         let existing_brane_info = self.branes.get_mut(&brane.get_id()).unwrap();
 
         let old_brane = &mut existing_brane_info.brane;
@@ -212,31 +212,31 @@ impl BraneCollector {
                 .is_none());
         }
 
-        // If the brane already exists, ufidelate it and keep the original role.
+        // If the brane already exists, fidelio it and keep the original role.
         *old_brane = brane;
     }
 
     fn handle_create_brane(&mut self, brane: Brane, role: StateRole) {
         // During tests, we found that the `Create` event may arrive multiple times. And when we
-        // receive an `Ufidelate` message, the brane may have been deleted for some reason. So we
+        // receive an `fidelio` message, the brane may have been deleted for some reason. So we
         // handle it according to whether the brane exists in the collection.
         if self.branes.contains_key(&brane.get_id()) {
             info!(
-                "trying to create brane but it already exists, try to ufidelate it";
+                "trying to create brane but it already exists, try to fidelio it";
                 "brane_id" => brane.get_id(),
             );
-            self.ufidelate_brane(brane);
+            self.fidelio_brane(brane);
         } else {
             self.create_brane(brane, role);
         }
     }
 
-    fn handle_ufidelate_brane(&mut self, brane: Brane, role: StateRole) {
+    fn handle_fidelio_brane(&mut self, brane: Brane, role: StateRole) {
         if self.branes.contains_key(&brane.get_id()) {
-            self.ufidelate_brane(brane);
+            self.fidelio_brane(brane);
         } else {
             info!(
-                "trying to ufidelate brane but it doesn't exist, try to create it";
+                "trying to fidelio brane but it doesn't exist, try to create it";
                 "brane_id" => brane.get_id(),
             );
             self.create_brane(brane, role);
@@ -373,7 +373,7 @@ impl BraneCollector {
                 //
                 // Since 0 is actually an invalid value of version, we can simply ignore the
                 // messages with version 0. The brane will be created later when the brane's epoch
-                // is properly set and an Ufidelate message was sent.
+                // is properly set and an fidelio message was sent.
                 return;
             }
             if !self.check_brane_cone(brane, true) {
@@ -389,8 +389,8 @@ impl BraneCollector {
             VioletaBftStoreEvent::CreateBrane { brane, role } => {
                 self.handle_create_brane(brane, role);
             }
-            VioletaBftStoreEvent::UfidelateBrane { brane, role } => {
-                self.handle_ufidelate_brane(brane, role);
+            VioletaBftStoreEvent::fidelioBrane { brane, role } => {
+                self.handle_fidelio_brane(brane, role);
             }
             VioletaBftStoreEvent::DestroyBrane { brane } => {
                 self.handle_destroy_brane(brane);
@@ -640,13 +640,13 @@ mod tests {
         );
     }
 
-    fn must_ufidelate_brane(c: &mut BraneCollector, brane: &Brane, role: StateRole) {
+    fn must_fidelio_brane(c: &mut BraneCollector, brane: &Brane, role: StateRole) {
         let old_lightlike_key = c
             .branes
             .get(&brane.get_id())
             .map(|r| r.brane.get_lightlike_key().to_vec());
 
-        c.handle_violetabftstore_event(VioletaBftStoreEvent::UfidelateBrane {
+        c.handle_violetabftstore_event(VioletaBftStoreEvent::fidelioBrane {
             brane: brane.clone(),
             role,
         });
@@ -665,7 +665,7 @@ mod tests {
                 .get_version();
             assert!(brane.get_brane_epoch().get_version() < version);
         }
-        // If lightlike_key is ufidelated and the brane_id corresponding to the `old_lightlike_key` doesn't equals
+        // If lightlike_key is fideliod and the brane_id corresponding to the `old_lightlike_key` doesn't equals
         // to `brane_id`, it shouldn't be removed since it was used by another brane.
         if let Some(old_lightlike_key) = old_lightlike_key {
             if old_lightlike_key.as_slice() != brane.get_lightlike_key() {
@@ -713,7 +713,7 @@ mod tests {
             brane: new_brane(1, b"k1", b"k3", 0),
             role: StateRole::Follower,
         });
-        c.handle_violetabftstore_event(VioletaBftStoreEvent::UfidelateBrane {
+        c.handle_violetabftstore_event(VioletaBftStoreEvent::fidelioBrane {
             brane: new_brane(2, b"k2", b"k4", 0),
             role: StateRole::Follower,
         });
@@ -756,12 +756,12 @@ mod tests {
 
         assert!(c.check_brane_cone(&brane_with_conf(7, b"k2", b"k3", 1, 1), false));
 
-        must_ufidelate_brane(
+        must_fidelio_brane(
             &mut c,
             &brane_with_conf(1, b"", b"k1", 100, 100),
             StateRole::Follower,
         );
-        must_ufidelate_brane(
+        must_fidelio_brane(
             &mut c,
             &brane_with_conf(6, b"k7", b"", 100, 100),
             StateRole::Follower,
@@ -771,12 +771,12 @@ mod tests {
         assert!(!c.check_brane_cone(&brane_with_conf(2, b"k0", b"k7", 30, 30), false));
         assert!(!c.check_brane_cone(&brane_with_conf(2, b"k1", b"k8", 30, 30), false));
 
-        must_ufidelate_brane(
+        must_fidelio_brane(
             &mut c,
             &brane_with_conf(2, b"k1", b"k2", 100, 100),
             StateRole::Follower,
         );
-        must_ufidelate_brane(
+        must_fidelio_brane(
             &mut c,
             &brane_with_conf(5, b"k6", b"k7", 100, 100),
             StateRole::Follower,
@@ -859,15 +859,15 @@ mod tests {
         must_load_branes(&mut c, init_branes);
 
         // lightlike_key changed
-        must_ufidelate_brane(&mut c, &new_brane(2, b"k2", b"k8", 2), StateRole::Follower);
+        must_fidelio_brane(&mut c, &new_brane(2, b"k2", b"k8", 2), StateRole::Follower);
         // lightlike_key changed (previous lightlike_key is empty)
-        must_ufidelate_brane(
+        must_fidelio_brane(
             &mut c,
             &new_brane(3, b"k9", b"k99", 2),
             StateRole::Follower,
         );
         // lightlike_key not changed
-        must_ufidelate_brane(&mut c, &new_brane(1, b"k0", b"k1", 2), StateRole::Follower);
+        must_fidelio_brane(&mut c, &new_brane(1, b"k0", b"k1", 2), StateRole::Follower);
         check_collection(
             &c,
             &[
@@ -884,7 +884,7 @@ mod tests {
         );
         must_create_brane(&mut c, &new_brane(5, b"k99", b"", 2), StateRole::Follower);
         must_change_role(&mut c, &new_brane(2, b"k2", b"k8", 2), StateRole::Leader);
-        must_ufidelate_brane(&mut c, &new_brane(2, b"k3", b"k7", 3), StateRole::Leader);
+        must_fidelio_brane(&mut c, &new_brane(2, b"k3", b"k7", 3), StateRole::Leader);
         must_create_brane(&mut c, &new_brane(4, b"k1", b"k3", 3), StateRole::Follower);
         check_collection(
             &c,
@@ -934,7 +934,7 @@ mod tests {
 
         for idx in seq {
             if *idx == derive_index {
-                must_ufidelate_brane(&mut c, &final_branes[*idx], StateRole::Follower);
+                must_fidelio_brane(&mut c, &final_branes[*idx], StateRole::Follower);
             } else {
                 must_create_brane(&mut c, &final_branes[*idx], StateRole::Follower);
             }
@@ -966,7 +966,7 @@ mod tests {
         }
     }
 
-    fn test_merge_impl(to_left: bool, ufidelate_first: bool) {
+    fn test_merge_impl(to_left: bool, fidelio_first: bool) {
         let mut c = BraneCollector::new();
         let init_branes = &[
             brane_with_conf(1, b"", b"k1", 1, 1),
@@ -985,12 +985,12 @@ mod tests {
         ufidelating_brane.set_lightlike_key(b"k3".to_vec());
         ufidelating_brane.mut_brane_epoch().set_version(2);
 
-        if ufidelate_first {
-            must_ufidelate_brane(&mut c, &ufidelating_brane, StateRole::Follower);
+        if fidelio_first {
+            must_fidelio_brane(&mut c, &ufidelating_brane, StateRole::Follower);
             must_destroy_brane(&mut c, destroying_brane);
         } else {
             must_destroy_brane(&mut c, destroying_brane);
-            must_ufidelate_brane(&mut c, &ufidelating_brane, StateRole::Follower);
+            must_fidelio_brane(&mut c, &ufidelating_brane, StateRole::Follower);
         }
 
         let final_branes = &[
@@ -1019,14 +1019,14 @@ mod tests {
         ];
         must_load_branes(&mut c, init_branes);
 
-        // While splitting, brane 4 created but brane 2 still has an `ufidelate` event which haven't
+        // While splitting, brane 4 created but brane 2 still has an `fidelio` event which haven't
         // been handled.
         must_create_brane(&mut c, &new_brane(4, b"k5", b"k9", 2), StateRole::Follower);
-        must_ufidelate_brane(&mut c, &new_brane(2, b"k1", b"k9", 1), StateRole::Follower);
+        must_fidelio_brane(&mut c, &new_brane(2, b"k1", b"k9", 1), StateRole::Follower);
         must_change_role(&mut c, &new_brane(2, b"k1", b"k9", 1), StateRole::Leader);
-        must_ufidelate_brane(&mut c, &new_brane(2, b"k1", b"k5", 2), StateRole::Leader);
+        must_fidelio_brane(&mut c, &new_brane(2, b"k1", b"k5", 2), StateRole::Leader);
         // TODO: In fact, brane 2's role should be follower. However because it's previous state was
-        // removed while creating ufidelating brane 4, it can't be successfully ufidelated. Fortunately
+        // removed while creating ufidelating brane 4, it can't be successfully fideliod. Fortunately
         // this case may hardly happen so it can be fixed later.
         check_collection(
             &c,
@@ -1039,9 +1039,9 @@ mod tests {
         );
 
         // While merging, brane 2 expanded and covered brane 4 (and their lightlike key become the same)
-        // but brane 4 still has an `ufidelate` event which haven't been handled.
-        must_ufidelate_brane(&mut c, &new_brane(2, b"k1", b"k9", 3), StateRole::Leader);
-        must_ufidelate_brane(&mut c, &new_brane(4, b"k5", b"k9", 2), StateRole::Follower);
+        // but brane 4 still has an `fidelio` event which haven't been handled.
+        must_fidelio_brane(&mut c, &new_brane(2, b"k1", b"k9", 3), StateRole::Leader);
+        must_fidelio_brane(&mut c, &new_brane(4, b"k5", b"k9", 2), StateRole::Follower);
         must_change_role(&mut c, &new_brane(4, b"k5", b"k9", 2), StateRole::Leader);
         must_destroy_brane(&mut c, new_brane(4, b"k5", b"k9", 2));
         check_collection(

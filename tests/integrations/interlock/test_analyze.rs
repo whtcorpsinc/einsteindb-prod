@@ -1,9 +1,9 @@
 // Copyright 2020 WHTCORPS INC Project Authors. Licensed Under Apache-2.0
 
 use ekvproto::interlock::{KeyCone, Request};
-use ekvproto::kvrpcpb::{Context, IsolationLevel};
+use ekvproto::kvrpc_timeshare::{Context, IsolationLevel};
 use protobuf::Message;
-use fidelpb::{
+use fidel_timeshare::{
     AnalyzePrimaryCausetsReq, AnalyzePrimaryCausetsResp, AnalyzeIndexReq, AnalyzeIndexResp, AnalyzeReq,
     AnalyzeType,
 };

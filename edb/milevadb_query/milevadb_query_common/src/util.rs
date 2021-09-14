@@ -1,6 +1,6 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
-use ekvproto::interlock as coppb;
+use ekvproto::interlock as cop_timeshare;
 
 /// Convert the key to the smallest key which is larger than the key given.
 pub fn convert_to_prefix_next(key: &mut Vec<u8>) {
@@ -84,7 +84,7 @@ pub fn is_prefix_next(key: &[u8], next: &[u8]) -> bool {
 
 /// `is_point` checks if the key cone represents a point.
 #[inline]
-pub fn is_point(cone: &coppb::KeyCone) -> bool {
+pub fn is_point(cone: &cop_timeshare::KeyCone) -> bool {
     is_prefix_next(cone.get_spacelike(), cone.get_lightlike())
 }
 

@@ -18,7 +18,7 @@ use std::collections::{
     HashMap,
 };
 
-use raum_promises::{
+use allegro_promises::{
     Attribute,
     SolitonId,
     KnownSolitonId,
@@ -26,7 +26,7 @@ use raum_promises::{
     MinkowskiValueType,
 };
 
-use edb_raum::util::Either;
+use edb_allegro::util::Either;
 
 use edbn;
 use edbn::{
@@ -42,8 +42,8 @@ use edbn::entities::{
     TxFunction,
 };
 
-use edb_promises::errors as errors;
-use edb_promises::errors::{
+use causetq_pull_promises::errors as errors;
+use causetq_pull_promises::errors::{
     DbErrorKind,
     Result,
 };

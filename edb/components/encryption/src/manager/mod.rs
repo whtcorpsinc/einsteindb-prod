@@ -8,7 +8,7 @@ use std::sync::{Arc, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use edb::{EncryptionKeyManager, FileEncryptionInfo};
-use ekvproto::encryptionpb::{DataKey, EncryptionMethod, FileDictionary, FileInfo, KeyDictionary};
+use ekvproto::encryption_timeshare::{DataKey, EncryptionMethod, FileDictionary, FileInfo, KeyDictionary};
 use protobuf::Message;
 
 use crate::config::{EncryptionConfig, MasterKeyConfig};
@@ -251,7 +251,7 @@ impl Dicts {
             Entry::Occupied(_) => return Ok(false),
             Entry::Vacant(e) => e.insert(key),
         };
-        // Ufidelate current data key id.
+        // fidelio current data key id.
         self.key_dict.current_key_id = key_id;
         // re-encrypt key dict file.
         self.save_key_dict(master_key).map(|()| true)

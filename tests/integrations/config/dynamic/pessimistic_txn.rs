@@ -7,7 +7,7 @@ use edb::config::*;
 use edb::server::lock_manager::*;
 use edb::server::resolve::{Callback, StoreAddrResolver};
 use edb::server::{Error, Result};
-use edb_util::config::ReadableDuration;
+use violetabftstore::interlock::::config::ReadableDuration;
 
 #[test]
 fn test_config_validate() {
@@ -84,7 +84,7 @@ where
 }
 
 #[test]
-fn test_lock_manager_causet_ufidelate() {
+fn test_lock_manager_causet_fidelio() {
     const DEFAULT_TIMEOUT: u64 = 3000;
     const DEFAULT_DELAY: u64 = 100;
     let (mut causet, _dir) = EINSTEINDBConfig::with_tmp().unwrap();
@@ -93,9 +93,9 @@ fn test_lock_manager_causet_ufidelate() {
     causet.validate().unwrap();
     let (causet_controller, waiter, deadlock, mut lock_mgr) = setup(causet);
 
-    // ufidelate of other module's config should not effect dagger manager config
+    // fidelio of other module's config should not effect dagger manager config
     causet_controller
-        .ufidelate_config("violetabftstore.violetabft-log-gc-memory_barrier", "2000")
+        .fidelio_config("violetabftstore.violetabft-log-gc-memory_barrier", "2000")
         .unwrap();
     validate_waiter(
         &waiter,
@@ -108,9 +108,9 @@ fn test_lock_manager_causet_ufidelate() {
         assert_eq!(ttl, DEFAULT_TIMEOUT);
     });
 
-    // only ufidelate wake_up_delay_duration
+    // only fidelio wake_up_delay_duration
     causet_controller
-        .ufidelate_config("pessimistic-txn.wake-up-delay-duration", "500ms")
+        .fidelio_config("pessimistic-txn.wake-up-delay-duration", "500ms")
         .unwrap();
     validate_waiter(
         &waiter,
@@ -124,15 +124,15 @@ fn test_lock_manager_causet_ufidelate() {
         assert_eq!(ttl, DEFAULT_TIMEOUT);
     });
 
-    // only ufidelate wait_for_lock_timeout
+    // only fidelio wait_for_lock_timeout
     causet_controller
-        .ufidelate_config("pessimistic-txn.wait-for-dagger-timeout", "4000ms")
+        .fidelio_config("pessimistic-txn.wait-for-dagger-timeout", "4000ms")
         .unwrap();
     validate_waiter(
         &waiter,
         move |timeout: ReadableDuration, delay: ReadableDuration| {
             assert_eq!(timeout.as_millis(), 4000);
-            // wake_up_delay_duration should be the same as last ufidelate
+            // wake_up_delay_duration should be the same as last fidelio
             assert_eq!(delay.as_millis(), 500);
         },
     );
@@ -140,7 +140,7 @@ fn test_lock_manager_causet_ufidelate() {
         assert_eq!(ttl, 4000);
     });
 
-    // ufidelate both config
+    // fidelio both config
     let mut m = std::collections::HashMap::new();
     m.insert(
         "pessimistic-txn.wait-for-dagger-timeout".to_owned(),
@@ -150,7 +150,7 @@ fn test_lock_manager_causet_ufidelate() {
         "pessimistic-txn.wake-up-delay-duration".to_owned(),
         "123ms".to_owned(),
     );
-    causet_controller.ufidelate(m).unwrap();
+    causet_controller.fidelio(m).unwrap();
     validate_waiter(
         &waiter,
         move |timeout: ReadableDuration, delay: ReadableDuration| {

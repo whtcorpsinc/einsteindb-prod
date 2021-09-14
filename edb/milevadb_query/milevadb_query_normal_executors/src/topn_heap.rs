@@ -5,7 +5,7 @@ use std::cmp::{self, Ordering};
 use std::collections::BinaryHeap;
 use std::sync::Arc;
 use std::usize;
-use fidelpb::ByItem;
+use fidel_timeshare::ByItem;
 
 use crate::OriginCols;
 use milevadb_query_datatype::codec::datum::Datum;
@@ -173,14 +173,14 @@ mod tests {
     use std::cell::RefCell;
     use std::sync::Arc;
 
-    use fidelpb::{ByItem, Expr, ExprType};
+    use fidel_timeshare::{ByItem, Expr, ExprType};
 
     use crate::OriginCols;
     use codec::prelude::NumberEncoder;
     use milevadb_query_datatype::codec::Block::EventColsDict;
     use milevadb_query_datatype::codec::Datum;
     use milevadb_query_datatype::expr::EvalContext;
-    use edb_util::collections::HashMap;
+    use violetabftstore::interlock::::collections::HashMap;
 
     use super::*;
 

@@ -34,14 +34,14 @@ quick_error! {
             cause(err)
             display("{}", err)
         }
-        Codec(err: edb_util::codec::Error) {
+        Codec(err: violetabftstore::interlock::::codec::Error) {
             from()
             cause(err)
             display("{}", err)
         }
         BadFormatLock { display("bad format dagger data") }
         BadFormatWrite { display("bad format write data") }
-        KeyIsLocked(info: ekvproto::kvrpcpb::LockInfo) {
+        KeyIsLocked(info: ekvproto::kvrpc_timeshare::LockInfo) {
             display("key is locked (backoff or cleanup) {:?}", info)
         }
     }
@@ -105,11 +105,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 impl ErrorCodeExt for Error {
     fn error_code(&self) -> ErrorCode {
         match self.0.as_ref() {
-            ErrorInner::Io(_) => error_code::causetStorage::IO,
+            ErrorInner::Io(_) => error_code::causet_storage::IO,
             ErrorInner::Codec(e) => e.error_code(),
-            ErrorInner::BadFormatLock => error_code::causetStorage::BAD_FORMAT_LOCK,
-            ErrorInner::BadFormatWrite => error_code::causetStorage::BAD_FORMAT_WRITE,
-            ErrorInner::KeyIsLocked(_) => error_code::causetStorage::KEY_IS_LOCKED,
+            ErrorInner::BadFormatLock => error_code::causet_storage::BAD_FORMAT_LOCK,
+            ErrorInner::BadFormatWrite => error_code::causet_storage::BAD_FORMAT_WRITE,
+            ErrorInner::KeyIsLocked(_) => error_code::causet_storage::KEY_IS_LOCKED,
         }
     }
 }

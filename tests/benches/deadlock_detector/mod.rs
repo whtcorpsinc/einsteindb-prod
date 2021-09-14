@@ -4,7 +4,7 @@ use criterion::{Bencher, Criterion};
 use ekvproto::deadlock::*;
 use rand::prelude::*;
 use edb::server::lock_manager::deadlock::DetectBlock;
-use edb_util::time::Duration;
+use violetabftstore::interlock::::time::Duration;
 
 struct DetectGenerator {
     rng: ThreadRng,

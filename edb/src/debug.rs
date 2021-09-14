@@ -65,15 +65,15 @@ use edb::*;
 use edb::{read_attribute_map,read_causetId_map};
 use edbn;
 use causetids;
-use edb_promises::errors::Result;
+use causetq_pull_promises::errors::Result;
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     HasSchemaReplicant,
     SQLMinkowskiValueType,
     TxReport,

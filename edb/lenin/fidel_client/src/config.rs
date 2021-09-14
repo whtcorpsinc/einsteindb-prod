@@ -1,7 +1,7 @@
 // Copyright 2020 WHTCORPS INC Project Authors. Licensed Under Apache-2.0
 
 use std::error::Error;
-use edb_util::config::ReadableDuration;
+use violetabftstore::interlock::::config::ReadableDuration;
 
 /// The configuration for a FIDel Client.
 ///
@@ -28,10 +28,10 @@ pub struct Config {
     ///
     /// Default is 10. Set to 1 to disable this feature.
     pub retry_log_every: usize,
-    /// The interval at which to ufidelate FIDel information.
+    /// The interval at which to fidelio FIDel information.
     ///
     /// Default is 10m.
-    pub ufidelate_interval: ReadableDuration,
+    pub fidelio_interval: ReadableDuration,
 }
 
 impl Default for Config {
@@ -41,7 +41,7 @@ impl Default for Config {
             retry_interval: ReadableDuration::millis(300),
             retry_max_count: std::isize::MAX,
             retry_log_every: 10,
-            ufidelate_interval: ReadableDuration::minutes(10),
+            fidelio_interval: ReadableDuration::minutes(10),
         }
     }
 }

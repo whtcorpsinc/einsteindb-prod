@@ -5,8 +5,8 @@ use std::{
     sync::Arc,
 };
 
-use external_causetStorage::{
-    create_causetStorage, make_gcs_lightlike, make_local_lightlike, make_noop_lightlike, make_s3_lightlike,
+use external_causet_storage::{
+    create_causet_storage, make_gcs_lightlike, make_local_lightlike, make_noop_lightlike, make_s3_lightlike,
     ExternalStorage,
 };
 use futures::executor::block_on;
@@ -28,18 +28,18 @@ arg_enum! {
 
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case", name = "scli", version = "0.1")]
-/// An example using causetStorage to save and load a file.
+/// An example using causet_storage to save and load a file.
 pub struct Opt {
-    /// CausetStorage lightlike.
+    /// causet_storage lightlike.
     #[structopt(short, long, possible_values = &StorageType::variants(), case_insensitive = true)]
-    causetStorage: StorageType,
+    causet_storage: StorageType,
     /// Local file to load from or save to.
     #[structopt(short, long)]
     file: String,
     /// Remote name of the file to load from or save to.
     #[structopt(short, long)]
     name: String,
-    /// Path to use for local causetStorage.
+    /// Path to use for local causet_storage.
     #[structopt(short, long)]
     path: String,
     /// Credential file path. For S3, use ~/.aws/credentials.
@@ -64,13 +64,13 @@ pub struct Opt {
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 enum Command {
-    /// Save file to causetStorage.
+    /// Save file to causet_storage.
     Save,
-    /// Load file from causetStorage.
+    /// Load file from causet_storage.
     Load,
 }
 
-fn create_s3_causetStorage(opt: &Opt) -> Result<Arc<dyn ExternalStorage>> {
+fn create_s3_causet_storage(opt: &Opt) -> Result<Arc<dyn ExternalStorage>> {
     let mut config = S3::default();
 
     if let Some(credential_file) = &opt.credential_file {
@@ -109,10 +109,10 @@ fn create_s3_causetStorage(opt: &Opt) -> Result<Arc<dyn ExternalStorage>> {
     if let Some(prefix) = &opt.prefix {
         config.prefix = prefix.to_string();
     }
-    create_causetStorage(&make_s3_lightlike(config))
+    create_causet_storage(&make_s3_lightlike(config))
 }
 
-fn create_gcs_causetStorage(opt: &Opt) -> Result<Arc<dyn ExternalStorage>> {
+fn create_gcs_causet_storage(opt: &Opt) -> Result<Arc<dyn ExternalStorage>> {
     let mut config = Gcs::default();
 
     if let Some(credential_file) = &opt.credential_file {
@@ -129,26 +129,26 @@ fn create_gcs_causetStorage(opt: &Opt) -> Result<Arc<dyn ExternalStorage>> {
     if let Some(prefix) = &opt.prefix {
         config.prefix = prefix.to_string();
     }
-    create_causetStorage(&make_gcs_lightlike(config))
+    create_causet_storage(&make_gcs_lightlike(config))
 }
 
 fn process() -> Result<()> {
     let opt = Opt::from_args();
-    let causetStorage = match opt.causetStorage {
-        StorageType::Noop => create_causetStorage(&make_noop_lightlike())?,
-        StorageType::Local => create_causetStorage(&make_local_lightlike(Path::new(&opt.path)))?,
-        StorageType::S3 => create_s3_causetStorage(&opt)?,
-        StorageType::GCS => create_gcs_causetStorage(&opt)?,
+    let causet_storage = match opt.causet_storage {
+        StorageType::Noop => create_causet_storage(&make_noop_lightlike())?,
+        StorageType::Local => create_causet_storage(&make_local_lightlike(Path::new(&opt.path)))?,
+        StorageType::S3 => create_s3_causet_storage(&opt)?,
+        StorageType::GCS => create_gcs_causet_storage(&opt)?,
     };
 
     match opt.command {
         Command::Save => {
             let file = File::open(&opt.file)?;
             let file_size = file.metadata()?.len();
-            causetStorage.write(&opt.name, Box::new(AllowStdIo::new(file)), file_size)?;
+            causet_storage.write(&opt.name, Box::new(AllowStdIo::new(file)), file_size)?;
         }
         Command::Load => {
-            let reader = causetStorage.read(&opt.name);
+            let reader = causet_storage.read(&opt.name);
             let mut file = AllowStdIo::new(File::create(&opt.file)?);
             block_on(copy(reader, &mut file))?;
         }

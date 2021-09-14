@@ -8,11 +8,11 @@ workspace = ".."
 [dependencies.edbn]
 path = "..edb/edbn"
 
-[dependencies.raum_promises]
-path = "../raum-promises"
+[dependencies.allegro_promises]
+path = "../allegro-promises"
 
-[dependencies.edb_raum]
-path = "../raum"
+[dependencies.edb_allegro]
+path = "../allegro"
 
 [dependencies.edb_sql]
 path = "../allegrosql"

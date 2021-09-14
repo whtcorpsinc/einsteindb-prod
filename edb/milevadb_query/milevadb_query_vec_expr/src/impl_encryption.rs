@@ -120,7 +120,7 @@ pub fn random_bytes(_ctx: &mut EvalContext, arg: Option<&Int>) -> Result<Option<
 
 #[causet(test)]
 mod tests {
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use super::*;
     use crate::types::test_util::RpnFnScalarEvaluator;

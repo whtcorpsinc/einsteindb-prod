@@ -1,7 +1,7 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use tuplespaceInstanton::data_lightlike_key;
-use ekvproto::metapb::Brane;
+use ekvproto::meta_timeshare::Brane;
 use violetabft::StateRole;
 use violetabftstore::interlock::{BraneInfo, BraneInfoAccessor};
 use violetabftstore::store::util::{find_peer, new_peer};
@@ -10,7 +10,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use test_violetabftstore::{configure_for_merge, new_node_cluster, Cluster, NodeCluster};
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::HandyRwLock;
 
 fn dump(c: &BraneInfoAccessor) -> Vec<(Brane, StateRole)> {
     let (branes, brane_cones) = c.debug_dump();

@@ -219,7 +219,7 @@ impl ScalarFunc {
 
 #[causet(test)]
 mod tests {
-    use fidelpb::{Expr, ExprType, ScalarFuncSig};
+    use fidel_timeshare::{Expr, ExprType, ScalarFuncSig};
 
     use crate::tests::{col_expr, datum_expr, scalar_func_expr, str2dec};
     use crate::Expression;

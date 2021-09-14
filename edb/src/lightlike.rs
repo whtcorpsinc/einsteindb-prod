@@ -12,18 +12,18 @@ use std::ops::RangeFrom;
 
 use rusqlite;
 
-use edb_promises::errors::{
+use causetq_pull_promises::errors::{
     DbErrorKind,
     Result,
 };
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
     KnownSolitonId,
     MinkowskiType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SchemaReplicant,
 };
 

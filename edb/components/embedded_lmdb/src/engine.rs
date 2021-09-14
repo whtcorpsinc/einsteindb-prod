@@ -186,7 +186,7 @@ impl SyncMuBlock for LmdbEngine {
 mod tests {
     use crate::raw_util;
     use edb::{Iterable, KvEngine, Peekable, SyncMuBlock};
-    use ekvproto::metapb::Brane;
+    use ekvproto::meta_timeshare::Brane;
     use std::sync::Arc;
     use tempfile::Builder;
 

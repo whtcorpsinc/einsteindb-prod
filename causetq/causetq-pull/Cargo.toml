@@ -17,13 +17,13 @@ version = "0.13"
 features = ["limits"]
 
 [dependencies.edbn]
-path = "../edbn"
+path = "..edb/edbn"
 
-[dependencies.edb_raum]
-path = "../raum"
+[dependencies.edb_allegro]
+path = "../allegro"
 
-[dependencies.raum_promises]
-path = "../raum-promises"
+[dependencies.allegro_promises]
+path = "../allegro-promises"
 
 [dependencies.einstein_db]
 path = "../edb"

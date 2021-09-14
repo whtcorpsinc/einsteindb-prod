@@ -1,7 +1,7 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
 use super::ErrorCodeExt;
-use ekvproto::errorpb;
+use ekvproto::error_timeshare;
 
 define_error_codes!(
     "KV-VioletaBftstore-",
@@ -28,7 +28,7 @@ define_error_codes!(
     SNAP_UNKNOWN => ("SnapUnknown", "", "")
 );
 
-impl ErrorCodeExt for errorpb::Error {
+impl ErrorCodeExt for error_timeshare::Error {
     fn error_code(&self) -> ErrorCode {
         if self.has_not_leader() {
             NOT_LEADER

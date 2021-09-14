@@ -14,19 +14,19 @@ indexmap = "1"
 version = "0.13"
 features = ["limits"]
 
-[dependencies.raum_promises]
-path = "../raum-promises"
+[dependencies.allegro_promises]
+path = "../allegro-promises"
 
 [dependencies.edbn]
 path = "../edbn"
 
-[dependencies.edb_raum]
-path = "../raum"
+[dependencies.edb_allegro]
+path = "../allegro"
 
 [dependencies.einstein_db]
 path = "../edb"
 
-[dependencies.edb_promises]
+[dependencies.causetq_pull_promises]
 path = "../edb-promises"
 
 [dependencies.edb_causetq_parityfilter]

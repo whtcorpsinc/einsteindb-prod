@@ -548,7 +548,7 @@ pub fn elt(raw_args: &[ScalarValueRef]) -> Result<Option<Bytes>> {
 }
 
 /// validate the arguments are `(Option<&Int>, &[Option<BytesRef>)])`
-fn elt_validator(expr: &fidelpb::Expr) -> Result<()> {
+fn elt_validator(expr: &fidel_timeshare::Expr) -> Result<()> {
     let children = expr.get_children();
     assert!(children.len() >= 2);
     super::function::validate_expr_return_type(&children[0], EvalType::Int)?;
@@ -817,7 +817,7 @@ mod tests {
     use super::*;
 
     use std::{f64, i64};
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use crate::types::test_util::RpnFnScalarEvaluator;
 

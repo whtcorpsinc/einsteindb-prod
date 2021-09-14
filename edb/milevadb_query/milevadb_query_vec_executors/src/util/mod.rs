@@ -6,7 +6,7 @@ pub mod hash_aggr_helper;
 pub mod mock_executor;
 pub mod scan_executor;
 
-use fidelpb::FieldType;
+use fidel_timeshare::FieldType;
 
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::LazyBatchPrimaryCausetVec;

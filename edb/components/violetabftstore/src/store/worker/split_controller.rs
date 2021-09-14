@@ -5,13 +5,13 @@ use std::collections::BinaryHeap;
 use std::slice::Iter;
 use std::time::{Duration, SystemTime};
 
-use ekvproto::kvrpcpb::KeyCone;
-use ekvproto::metapb::Peer;
+use ekvproto::kvrpc_timeshare::KeyCone;
+use ekvproto::meta_timeshare::Peer;
 
 use rand::Rng;
 
-use edb_util::collections::HashMap;
-use edb_util::config::Tracker;
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::config::Tracker;
 
 use txn_types::Key;
 
@@ -131,7 +131,7 @@ impl BraneInfo {
         }
     }
 
-    fn ufidelate_peer(&mut self, peer: &Peer) {
+    fn fidelio_peer(&mut self, peer: &Peer) {
         if self.peer != *peer {
             self.peer = peer.clone();
         }
@@ -162,7 +162,7 @@ impl Recorder {
         self.key_cones.push(key_cones);
     }
 
-    fn ufidelate_peer(&mut self, peer: &Peer) {
+    fn fidelio_peer(&mut self, peer: &Peer) {
         if self.peer != *peer {
             self.peer = peer.clone();
         }
@@ -278,7 +278,7 @@ impl ReadStats {
             .brane_infos
             .entry(brane_id)
             .or_insert_with(|| BraneInfo::new(num));
-        brane_info.ufidelate_peer(peer);
+        brane_info.fidelio_peer(peer);
         brane_info.add_key_cones(key_cones);
     }
 
@@ -344,7 +344,7 @@ impl AutoSplitController {
                     .entry(brane_id)
                     .or_insert_with(|| Recorder::new(num));
 
-                recorder.ufidelate_peer(&brane_infos[0].peer);
+                recorder.fidelio_peer(&brane_infos[0].peer);
 
                 let key_cones = sample(
                     self.causet.sample_num,

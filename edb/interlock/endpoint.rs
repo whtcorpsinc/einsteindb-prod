@@ -10,18 +10,18 @@ use futures::channel::mpsc;
 use futures::prelude::*;
 use tokio::sync::Semaphore;
 
-use ekvproto::kvrpcpb::IsolationLevel;
-use ekvproto::{interlock as coppb, errorpb, kvrpcpb};
+use ekvproto::kvrpc_timeshare::IsolationLevel;
+use ekvproto::{interlock as cop_timeshare, error_timeshare, kvrpc_timeshare};
 #[causet(feature = "protobuf-codec")]
 use protobuf::CodedInputStream;
 use protobuf::Message;
-use fidelpb::{AnalyzeReq, AnalyzeType, ChecksumRequest, ChecksumScanOn, PosetDagRequest, ExecType};
+use fidel_timeshare::{AnalyzeReq, AnalyzeType, ChecksumRequest, ChecksumScanOn, PosetDagRequest, ExecType};
 
 use crate::read_pool::ReadPoolHandle;
 use crate::server::Config;
-use crate::causetStorage::kv::{self, with_tls_engine};
-use crate::causetStorage::tail_pointer::Error as MvccError;
-use crate::causetStorage::{self, Engine, Snapshot, SnapshotStore};
+use crate::causet_storage::kv::{self, with_tls_engine};
+use crate::causet_storage::tail_pointer::Error as MvccError;
+use crate::causet_storage::{self, Engine, Snapshot, SnapshotStore};
 
 use crate::interlock::cache::CachedRequestHandler;
 use crate::interlock::sentinels::limit_concurrency;
@@ -75,7 +75,7 @@ impl<E: Engine> Clone for node<E> {
     }
 }
 
-impl<E: Engine> edb_util::Assertlightlike for node<E> {}
+impl<E: Engine> violetabftstore::interlock::::Assertlightlike for node<E> {}
 
 impl<E: Engine> node<E> {
     pub fn new(
@@ -109,14 +109,14 @@ impl<E: Engine> node<E> {
     fn check_memory_locks(
         &self,
         req_ctx: &ReqContext,
-        key_cones: &[coppb::KeyCone],
+        key_cones: &[cop_timeshare::KeyCone],
     ) -> Result<()> {
         if !self.check_memory_locks {
             return Ok(());
         }
 
         let spacelike_ts = req_ctx.txn_spacelike_ts;
-        self.concurrency_manager.ufidelate_max_ts(spacelike_ts);
+        self.concurrency_manager.fidelio_max_ts(spacelike_ts);
         if req_ctx.context.get_isolation_level() == IsolationLevel::Si {
             for cone in key_cones {
                 let spacelike_key = txn_types::Key::from_raw(cone.get_spacelike());
@@ -142,7 +142,7 @@ impl<E: Engine> node<E> {
     /// It also checks if there are locks in memory blocking this read request.
     fn parse_request_and_check_memory_locks(
         &self,
-        mut req: coppb::Request,
+        mut req: cop_timeshare::Request,
         peer: Option<String>,
         is_streaming: bool,
     ) -> Result<(RequestHandlerBuilder<E::Snap>, ReqContext)> {
@@ -351,7 +351,7 @@ impl<E: Engine> node<E> {
     #[inline]
     fn async_snapshot(
         engine: &E,
-        ctx: &kvrpcpb::Context,
+        ctx: &kvrpc_timeshare::Context,
     ) -> impl std::future::Future<Output = Result<E::Snap>> {
         kv::snapshot(engine, None, ctx).map_err(Error::from)
     }
@@ -364,7 +364,7 @@ impl<E: Engine> node<E> {
         semaphore: Option<Arc<Semaphore>>,
         mut tracker: Box<Tracker>,
         handler_builder: RequestHandlerBuilder<E::Snap>,
-    ) -> Result<coppb::Response> {
+    ) -> Result<cop_timeshare::Response> {
         // When this function is being executed, it may be queued for a long time, so that
         // deadline may exceed.
         tracker.on_scheduled();
@@ -375,7 +375,7 @@ impl<E: Engine> node<E> {
         let snapshot = unsafe {
             with_tls_engine(|engine| Self::async_snapshot(engine, &tracker.req_ctx.context))
         }
-        .trace_async(fidelpb::Event::EINSTEINDBCoprGetSnapshot as u32)
+        .trace_async(fidel_timeshare::Event::EINSTEINDBCoprGetSnapshot as u32)
         .await?;
         // When snapshot is retrieved, deadline may exceed.
         tracker.on_snapshot_finished();
@@ -395,7 +395,7 @@ impl<E: Engine> node<E> {
         let handle_request_future = track(
             handler
                 .handle_request()
-                .trace_async(fidelpb::Event::EINSTEINDBCoprHandleRequest as u32),
+                .trace_async(fidel_timeshare::Event::EINSTEINDBCoprHandleRequest as u32),
             &mut tracker,
         );
         let result = if let Some(semaphore) = &semaphore {
@@ -406,9 +406,9 @@ impl<E: Engine> node<E> {
 
         // There might be errors when handling requests. In this case, we still need its
         // execution metrics.
-        let mut causetStorage_stats = Statistics::default();
-        handler.collect_scan_statistics(&mut causetStorage_stats);
-        tracker.collect_causetStorage_statistics(causetStorage_stats);
+        let mut causet_storage_stats = Statistics::default();
+        handler.collect_scan_statistics(&mut causet_storage_stats);
+        tracker.collect_causet_storage_statistics(causet_storage_stats);
         let exec_details = tracker.get_exec_details();
         tracker.on_finish_all_items();
 
@@ -431,7 +431,7 @@ impl<E: Engine> node<E> {
         &self,
         req_ctx: ReqContext,
         handler_builder: RequestHandlerBuilder<E::Snap>,
-    ) -> impl Future<Output = Result<coppb::Response>> {
+    ) -> impl Future<Output = Result<cop_timeshare::Response>> {
         let priority = req_ctx.context.get_priority();
         let task_id = req_ctx.build_task_id();
         // box the tracker so that moving it is cheap.
@@ -441,7 +441,7 @@ impl<E: Engine> node<E> {
             .read_pool
             .spawn_handle(
                 Self::handle_unary_request_impl(self.semaphore.clone(), tracker, handler_builder)
-                    .trace_task(fidelpb::Event::EINSTEINDBCoprScheduleTask as u32),
+                    .trace_task(fidel_timeshare::Event::EINSTEINDBCoprScheduleTask as u32),
                 priority,
                 task_id,
             )
@@ -455,12 +455,12 @@ impl<E: Engine> node<E> {
     #[inline]
     pub fn parse_and_handle_unary_request(
         &self,
-        req: coppb::Request,
+        req: cop_timeshare::Request,
         peer: Option<String>,
-    ) -> impl Future<Output = coppb::Response> {
+    ) -> impl Future<Output = cop_timeshare::Response> {
         let (_guard, collector) = minitrace::trace_may_enable(
             req.is_trace_enabled,
-            fidelpb::Event::EINSTEINDBCoprGetRequest as u32,
+            fidel_timeshare::Event::EINSTEINDBCoprGetRequest as u32,
         );
 
         let result_of_future = self
@@ -474,7 +474,7 @@ impl<E: Engine> node<E> {
             };
             if let Some(collector) = collector {
                 let span_sets = collector.collect();
-                resp.set_spans(edb_util::trace::encode_spans(span_sets).collect())
+                resp.set_spans(violetabftstore::interlock::::trace::encode_spans(span_sets).collect())
             }
             resp
         }
@@ -489,7 +489,7 @@ impl<E: Engine> node<E> {
         semaphore: Option<Arc<Semaphore>>,
         mut tracker: Box<Tracker>,
         handler_builder: RequestHandlerBuilder<E::Snap>,
-    ) -> impl futures::stream::Stream<Item = Result<coppb::Response>> {
+    ) -> impl futures::stream::Stream<Item = Result<cop_timeshare::Response>> {
         try_stream! {
             let _permit = if let Some(semaphore) = semaphore.as_ref() {
                 Some(semaphore.acquire().await)
@@ -520,10 +520,10 @@ impl<E: Engine> node<E> {
                 tracker.on_begin_item();
 
                 let result = handler.handle_streaming_request();
-                let mut causetStorage_stats = Statistics::default();
-                handler.collect_scan_statistics(&mut causetStorage_stats);
+                let mut causet_storage_stats = Statistics::default();
+                handler.collect_scan_statistics(&mut causet_storage_stats);
 
-                tracker.on_finish_item(Some(causetStorage_stats));
+                tracker.on_finish_item(Some(causet_storage_stats));
                 let exec_details = tracker.get_item_exec_details();
 
                 match result {
@@ -556,8 +556,8 @@ impl<E: Engine> node<E> {
         &self,
         req_ctx: ReqContext,
         handler_builder: RequestHandlerBuilder<E::Snap>,
-    ) -> Result<impl futures::stream::Stream<Item = Result<coppb::Response>>> {
-        let (tx, rx) = mpsc::channel::<Result<coppb::Response>>(self.stream_channel_size);
+    ) -> Result<impl futures::stream::Stream<Item = Result<cop_timeshare::Response>>> {
+        let (tx, rx) = mpsc::channel::<Result<cop_timeshare::Response>>(self.stream_channel_size);
         let priority = req_ctx.context.get_priority();
         let task_id = req_ctx.build_task_id();
         let tracker = Box::new(Tracker::new(req_ctx));
@@ -583,9 +583,9 @@ impl<E: Engine> node<E> {
     #[inline]
     pub fn parse_and_handle_stream_request(
         &self,
-        req: coppb::Request,
+        req: cop_timeshare::Request,
         peer: Option<String>,
-    ) -> impl futures::stream::Stream<Item = coppb::Response> {
+    ) -> impl futures::stream::Stream<Item = cop_timeshare::Response> {
         let result_of_stream = self
             .parse_request_and_check_memory_locks(req, peer, true)
             .and_then(|(handler_builder, req_ctx)| {
@@ -599,16 +599,16 @@ impl<E: Engine> node<E> {
     }
 }
 
-fn make_error_response(e: Error) -> coppb::Response {
+fn make_error_response(e: Error) -> cop_timeshare::Response {
     warn!(
         "error-response";
         "err" => %e
     );
-    let mut resp = coppb::Response::default();
+    let mut resp = cop_timeshare::Response::default();
     let tag;
     match e {
         Error::Brane(e) => {
-            tag = causetStorage::get_tag_from_header(&e);
+            tag = causet_storage::get_tag_from_header(&e);
             resp.set_brane_error(e);
         }
         Error::Locked(info) => {
@@ -621,12 +621,12 @@ fn make_error_response(e: Error) -> coppb::Response {
         }
         Error::MaxPlightlikeingTasksExceeded => {
             tag = "max_plightlikeing_tasks_exceeded";
-            let mut server_is_busy_err = errorpb::ServerIsBusy::default();
+            let mut server_is_busy_err = error_timeshare::ServerIsBusy::default();
             server_is_busy_err.set_reason(e.to_string());
-            let mut errorpb = errorpb::Error::default();
-            errorpb.set_message(e.to_string());
-            errorpb.set_server_is_busy(server_is_busy_err);
-            resp.set_brane_error(errorpb);
+            let mut error_timeshare = error_timeshare::Error::default();
+            error_timeshare.set_message(e.to_string());
+            error_timeshare.set_server_is_busy(server_is_busy_err);
+            resp.set_brane_error(error_timeshare);
         }
         Error::Other(_) => {
             tag = "other";
@@ -647,14 +647,14 @@ mod tests {
 
     use futures::executor::{block_on, block_on_stream};
 
-    use fidelpb::FreeDaemon;
-    use fidelpb::Expr;
+    use fidel_timeshare::FreeDaemon;
+    use fidel_timeshare::Expr;
 
     use crate::config::CoprReadPoolConfig;
     use crate::interlock::readpool_impl::build_read_pool_for_test;
     use crate::read_pool::ReadPool;
-    use crate::causetStorage::kv::LmdbEngine;
-    use crate::causetStorage::TestEngineBuilder;
+    use crate::causet_storage::kv::LmdbEngine;
+    use crate::causet_storage::TestEngineBuilder;
     use protobuf::Message;
     use txn_types::{Key, LockType};
 
@@ -662,11 +662,11 @@ mod tests {
     struct UnaryFixture {
         handle_duration_millis: u64,
         yieldable: bool,
-        result: Option<Result<coppb::Response>>,
+        result: Option<Result<cop_timeshare::Response>>,
     }
 
     impl UnaryFixture {
-        pub fn new(result: Result<coppb::Response>) -> UnaryFixture {
+        pub fn new(result: Result<cop_timeshare::Response>) -> UnaryFixture {
             UnaryFixture {
                 handle_duration_millis: 0,
                 yieldable: false,
@@ -675,7 +675,7 @@ mod tests {
         }
 
         pub fn new_with_duration(
-            result: Result<coppb::Response>,
+            result: Result<cop_timeshare::Response>,
             handle_duration_millis: u64,
         ) -> UnaryFixture {
             UnaryFixture {
@@ -686,7 +686,7 @@ mod tests {
         }
 
         pub fn new_with_duration_yieldable(
-            result: Result<coppb::Response>,
+            result: Result<cop_timeshare::Response>,
             handle_duration_millis: u64,
         ) -> UnaryFixture {
             UnaryFixture {
@@ -699,7 +699,7 @@ mod tests {
 
     #[async_trait]
     impl RequestHandler for UnaryFixture {
-        async fn handle_request(&mut self) -> Result<coppb::Response> {
+        async fn handle_request(&mut self) -> Result<cop_timeshare::Response> {
             if self.yieldable {
                 // We split the task into small executions of 1 second.
                 for _ in 0..self.handle_duration_millis / 1_000 {
@@ -718,13 +718,13 @@ mod tests {
     /// A streaming `RequestHandler` that always produces a fixture.
     struct StreamFixture {
         result_len: usize,
-        result_iter: vec::IntoIter<Result<coppb::Response>>,
+        result_iter: vec::IntoIter<Result<cop_timeshare::Response>>,
         handle_durations_millis: vec::IntoIter<u64>,
         nth: usize,
     }
 
     impl StreamFixture {
-        pub fn new(result: Vec<Result<coppb::Response>>) -> StreamFixture {
+        pub fn new(result: Vec<Result<cop_timeshare::Response>>) -> StreamFixture {
             let len = result.len();
             StreamFixture {
                 result_len: len,
@@ -735,7 +735,7 @@ mod tests {
         }
 
         pub fn new_with_duration(
-            result: Vec<Result<coppb::Response>>,
+            result: Vec<Result<cop_timeshare::Response>>,
             handle_durations_millis: Vec<u64>,
         ) -> StreamFixture {
             assert_eq!(result.len(), handle_durations_millis.len());
@@ -749,7 +749,7 @@ mod tests {
     }
 
     impl RequestHandler for StreamFixture {
-        fn handle_streaming_request(&mut self) -> Result<(Option<coppb::Response>, bool)> {
+        fn handle_streaming_request(&mut self) -> Result<(Option<cop_timeshare::Response>, bool)> {
             let is_finished = if self.result_len == 0 {
                 true
             } else {
@@ -794,7 +794,7 @@ mod tests {
     }
 
     impl RequestHandler for StreamFromClosure {
-        fn handle_streaming_request(&mut self) -> Result<(Option<coppb::Response>, bool)> {
+        fn handle_streaming_request(&mut self) -> Result<(Option<cop_timeshare::Response>, bool)> {
             let result = (self.result_generator)(self.nth);
             self.nth += 1;
             result
@@ -813,7 +813,7 @@ mod tests {
 
         // a normal request
         let handler_builder =
-            Box::new(|_, _: &_| Ok(UnaryFixture::new(Ok(coppb::Response::default())).into_boxed()));
+            Box::new(|_, _: &_| Ok(UnaryFixture::new(Ok(cop_timeshare::Response::default())).into_boxed()));
         let resp =
             block_on(causet.handle_unary_request(ReqContext::default_for_test(), handler_builder))
                 .unwrap();
@@ -821,10 +821,10 @@ mod tests {
 
         // an outdated request
         let handler_builder =
-            Box::new(|_, _: &_| Ok(UnaryFixture::new(Ok(coppb::Response::default())).into_boxed()));
+            Box::new(|_, _: &_| Ok(UnaryFixture::new(Ok(cop_timeshare::Response::default())).into_boxed()));
         let outdated_req_ctx = ReqContext::new(
             ReqTag::test,
-            kvrpcpb::Context::default(),
+            kvrpc_timeshare::Context::default(),
             &[],
             Duration::from_secs(0),
             None,
@@ -859,13 +859,13 @@ mod tests {
             e.mut_selection().mut_conditions().push(expr);
             let mut posetdag = PosetDagRequest::default();
             posetdag.mut_executors().push(e);
-            let mut req = coppb::Request::default();
+            let mut req = cop_timeshare::Request::default();
             req.set_tp(REQ_TYPE_DAG);
             req.set_data(posetdag.write_to_bytes().unwrap());
             req
         };
 
-        let resp: coppb::Response = block_on(causet.parse_and_handle_unary_request(req, None));
+        let resp: cop_timeshare::Response = block_on(causet.parse_and_handle_unary_request(req, None));
         assert!(!resp.get_other_error().is_empty());
     }
 
@@ -879,10 +879,10 @@ mod tests {
         let cm = ConcurrencyManager::new(1.into());
         let causet = node::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
 
-        let mut req = coppb::Request::default();
+        let mut req = cop_timeshare::Request::default();
         req.set_tp(9999);
 
-        let resp: coppb::Response = block_on(causet.parse_and_handle_unary_request(req, None));
+        let resp: cop_timeshare::Response = block_on(causet.parse_and_handle_unary_request(req, None));
         assert!(!resp.get_other_error().is_empty());
     }
 
@@ -896,7 +896,7 @@ mod tests {
         let cm = ConcurrencyManager::new(1.into());
         let causet = node::<LmdbEngine>::new(&Config::default(), read_pool.handle(), cm);
 
-        let mut req = coppb::Request::default();
+        let mut req = cop_timeshare::Request::default();
         req.set_tp(REQ_TYPE_DAG);
         req.set_data(vec![1, 2, 3]);
 
@@ -906,9 +906,9 @@ mod tests {
 
     #[test]
     fn test_full() {
-        use crate::causetStorage::kv::{destroy_tls_engine, set_tls_engine};
+        use crate::causet_storage::kv::{destroy_tls_engine, set_tls_engine};
         use std::sync::Mutex;
-        use edb_util::yatp_pool::{DefaultTicker, YatpPoolBuilder};
+        use violetabftstore::interlock::::yatp_pool::{DefaultTicker, YatpPoolBuilder};
 
         let engine = TestEngineBuilder::new().build().unwrap();
 
@@ -940,11 +940,11 @@ mod tests {
 
         // first 2 requests are processed as normal and laters are returned as errors
         for i in 0..5 {
-            let mut response = coppb::Response::default();
+            let mut response = cop_timeshare::Response::default();
             response.set_data(vec![1, 2, i]);
 
-            let mut context = kvrpcpb::Context::default();
-            context.set_priority(kvrpcpb::CommandPri::Normal);
+            let mut context = kvrpc_timeshare::Context::default();
+            context.set_priority(kvrpc_timeshare::CommandPri::Normal);
 
             let handler_builder = Box::new(|_, _: &_| {
                 Ok(UnaryFixture::new_with_duration(Ok(response), 1000).into_boxed())
@@ -1013,7 +1013,7 @@ mod tests {
         // Fail after some success responses
         let mut responses = Vec::new();
         for i in 0..5 {
-            let mut resp = coppb::Response::default();
+            let mut resp = cop_timeshare::Response::default();
             resp.set_data(vec![1, 2, i]);
             responses.push(Ok(resp));
         }
@@ -1071,7 +1071,7 @@ mod tests {
         let counter_clone = Arc::clone(&counter);
         let handler = StreamFromClosure::new(move |nth| match nth {
             0 => {
-                let mut resp = coppb::Response::default();
+                let mut resp = cop_timeshare::Response::default();
                 resp.set_data(vec![1, 2, 7]);
                 Ok((Some(resp), true))
             }
@@ -1097,7 +1097,7 @@ mod tests {
         let counter_clone = Arc::clone(&counter);
         let handler = StreamFromClosure::new(move |nth| match nth {
             0 => {
-                let mut resp = coppb::Response::default();
+                let mut resp = cop_timeshare::Response::default();
                 resp.set_data(vec![1, 2, 13]);
                 Ok((Some(resp), false))
             }
@@ -1123,7 +1123,7 @@ mod tests {
         let counter_clone = Arc::clone(&counter);
         let handler = StreamFromClosure::new(move |nth| match nth {
             0 => {
-                let mut resp = coppb::Response::default();
+                let mut resp = cop_timeshare::Response::default();
                 resp.set_data(vec![1, 2, 23]);
                 Ok((Some(resp), false))
             }
@@ -1167,7 +1167,7 @@ mod tests {
         let counter_clone = Arc::clone(&counter);
         let handler = StreamFromClosure::new(move |nth| {
             // produce an infinite stream
-            let mut resp = coppb::Response::default();
+            let mut resp = cop_timeshare::Response::default();
             resp.set_data(vec![1, 2, nth as u8]);
             counter_clone.fetch_add(1, atomic::Ordering::SeqCst);
             Ok((Some(resp), false))
@@ -1186,7 +1186,7 @@ mod tests {
 
     #[test]
     fn test_handle_time() {
-        use edb_util::config::ReadableDuration;
+        use violetabftstore::interlock::::config::ReadableDuration;
 
         /// Asserted that the snapshot can be retrieved in 500ms.
         const SNAPSHOT_DURATION_MS: i64 = 500;
@@ -1234,7 +1234,7 @@ mod tests {
             // Request 1: Unary, success response.
             let handler_builder = Box::new(|_, _: &_| {
                 Ok(UnaryFixture::new_with_duration(
-                    Ok(coppb::Response::default()),
+                    Ok(cop_timeshare::Response::default()),
                     PAYLOAD_SMALL as u64,
                 )
                 .into_boxed())
@@ -1306,7 +1306,7 @@ mod tests {
             // Request 1: Unary, success response.
             let handler_builder = Box::new(|_, _: &_| {
                 Ok(UnaryFixture::new_with_duration_yieldable(
-                    Ok(coppb::Response::default()),
+                    Ok(cop_timeshare::Response::default()),
                     PAYLOAD_SMALL as u64,
                 )
                 .into_boxed())
@@ -1363,7 +1363,7 @@ mod tests {
             // Request 1: Unary, success response.
             let handler_builder = Box::new(|_, _: &_| {
                 Ok(UnaryFixture::new_with_duration(
-                    Ok(coppb::Response::default()),
+                    Ok(cop_timeshare::Response::default()),
                     PAYLOAD_LARGE as u64,
                 )
                 .into_boxed())
@@ -1379,9 +1379,9 @@ mod tests {
             let handler_builder = Box::new(|_, _: &_| {
                 Ok(StreamFixture::new_with_duration(
                     vec![
-                        Ok(coppb::Response::default()),
+                        Ok(cop_timeshare::Response::default()),
                         Err(box_err!("foo")),
-                        Ok(coppb::Response::default()),
+                        Ok(cop_timeshare::Response::default()),
                     ],
                     vec![
                         PAYLOAD_SMALL as u64,
@@ -1506,11 +1506,11 @@ mod tests {
         };
         let causet = node::<LmdbEngine>::new(&config, read_pool.handle(), cm);
 
-        let mut req = coppb::Request::default();
+        let mut req = cop_timeshare::Request::default();
         req.mut_context().set_isolation_level(IsolationLevel::Si);
         req.set_spacelike_ts(100);
         req.set_tp(REQ_TYPE_DAG);
-        let mut key_cone = coppb::KeyCone::default();
+        let mut key_cone = cop_timeshare::KeyCone::default();
         key_cone.set_spacelike(b"a".to_vec());
         key_cone.set_lightlike(b"z".to_vec());
         req.mut_cones().push(key_cone);

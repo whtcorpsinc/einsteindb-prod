@@ -655,7 +655,7 @@ impl ScalarFunc {
 mod tests {
     use std::sync::Arc;
 
-    use fidelpb::{Expr, ScalarFuncSig};
+    use fidel_timeshare::{Expr, ScalarFuncSig};
 
     use crate::tests::{datum_expr, scalar_func_expr};
     use crate::*;
@@ -773,7 +773,7 @@ mod tests {
         );
         // test zero case
         let mut causet = EvalConfig::new();
-        causet.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+        causet.set_flag(Flag::IN_fidelio_OR_DELETE_STMT)
             .set_sql_mode(SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS);
         ctx = EvalContext::new(Arc::new(causet));
         test_err_case_two_arg(
@@ -800,7 +800,7 @@ mod tests {
         test_err_case_one_arg(&mut ctx, ScalarFuncSig::Date, Datum::Null);
         // test zero case
         let mut causet = EvalConfig::new();
-        causet.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+        causet.set_flag(Flag::IN_fidelio_OR_DELETE_STMT)
             .set_sql_mode(SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS);
         ctx = EvalContext::new(Arc::new(causet));
         let datetime =
@@ -1500,7 +1500,7 @@ mod tests {
         }
 
         let mut causet = EvalConfig::new();
-        causet.set_flag(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+        causet.set_flag(Flag::IN_fidelio_OR_DELETE_STMT)
             .set_sql_mode(SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS);
 
         test_err_case_two_arg(&mut ctx, ScalarFuncSig::DateDiff, Datum::Null, Datum::Null);

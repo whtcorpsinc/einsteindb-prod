@@ -4,10 +4,10 @@ use futures::executor::block_on;
 use futures::sink::SinkExt;
 use grpcio::WriteFlags;
 #[causet(feature = "prost-codec")]
-use ekvproto::causet_contextpb::event::{Event as Event_oneof_event, LogType as EventLogType};
+use ekvproto::causet_context_timeshare::event::{Event as Event_oneof_event, LogType as EventLogType};
 #[causet(not(feature = "prost-codec"))]
-use ekvproto::causet_contextpb::*;
-use ekvproto::kvrpcpb::*;
+use ekvproto::causet_context_timeshare::*;
+use ekvproto::kvrpc_timeshare::*;
 use fidel_client::FidelClient;
 use test_violetabftstore::sleep_ms;
 

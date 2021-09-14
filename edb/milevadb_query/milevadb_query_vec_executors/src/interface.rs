@@ -8,10 +8,10 @@ pub use milevadb_query_common::execute_stats::{
     ExecSummaryCollector, ExecuteStats, WithSummaryCollector,
 };
 
-use fidelpb::FieldType;
+use fidel_timeshare::FieldType;
 
 use milevadb_query_common::execute_stats::ExecSummaryCollectorEnabled;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::LazyBatchPrimaryCausetVec;
 use milevadb_query_datatype::expr::EvalWarnings;
@@ -41,12 +41,12 @@ pub trait BatchFreeDaemon: lightlike {
     /// this function is less than `next_batch()`.
     fn collect_exec_stats(&mut self, dest: &mut ExecuteStats);
 
-    /// Collects underlying causetStorage statistics accumulated during execution and prepares for
+    /// Collects underlying causet_storage statistics accumulated during execution and prepares for
     /// next collection.
     ///
     /// Similar to `collect_exec_stats()`, the implementation must invoke this function for each
     /// children executor and this function may be invoked several times during execution.
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats);
 
     fn take_scanned_cone(&mut self) -> IntervalCone;
 
@@ -81,8 +81,8 @@ impl<T: BatchFreeDaemon + ?Sized> BatchFreeDaemon for Box<T> {
         (**self).collect_exec_stats(dest);
     }
 
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        (**self).collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        (**self).collect_causet_storage_stats(dest);
     }
 
     fn take_scanned_cone(&mut self) -> IntervalCone {
@@ -117,8 +117,8 @@ impl<C: ExecSummaryCollector + lightlike, T: BatchFreeDaemon> BatchFreeDaemon
         self.inner.collect_exec_stats(dest);
     }
 
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.inner.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.inner.collect_causet_storage_stats(dest);
     }
 
     fn take_scanned_cone(&mut self) -> IntervalCone {

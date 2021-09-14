@@ -177,7 +177,7 @@ impl fmt::Debug for ServerClusterFactory {
 }
 
 fn main() {
-    edb_util::config::check_max_open_fds(4096).unwrap();
+    violetabftstore::interlock::::config::check_max_open_fds(4096).unwrap();
 
     let mut criterion = Criterion::default().configure_from_args().sample_size(10);
     bench_violetabft_cluster(&mut criterion, NodeClusterFactory {}, "violetabftstore::node");

@@ -6,10 +6,10 @@ use std::sync::*;
 use std::thread;
 use std::time::*;
 
-use ekvproto::kvrpcpb::Context;
-use ekvproto::violetabft_cmdpb::CmdType;
-use ekvproto::violetabft_serverpb::{PeerState, BraneLocalState};
-use violetabft::evioletabftpb::MessageType;
+use ekvproto::kvrpc_timeshare::Context;
+use ekvproto::violetabft_cmd_timeshare::CmdType;
+use ekvproto::violetabft_server_timeshare::{PeerState, BraneLocalState};
+use violetabft::evioletabft_timeshare::MessageType;
 
 use engine_lmdb::Compat;
 use edb::Peekable;
@@ -17,8 +17,8 @@ use edb::{Causet_VIOLETABFT, Causet_WRITE};
 use fidel_client::FidelClient;
 use violetabftstore::store::*;
 use test_violetabftstore::*;
-use edb_util::config::*;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::config::*;
+use violetabftstore::interlock::::HandyRwLock;
 
 /// Test if merge is working as expected in a general condition.
 #[test]
@@ -224,7 +224,7 @@ fn test_node_merge_prerequisites_check() {
             .msg_type(MessageType::MsgApplightlike)
             .allow(1),
     ));
-    // make the source peer's commit index can't be ufidelated by MsgHeartbeat.
+    // make the source peer's commit index can't be fideliod by MsgHeartbeat.
     cluster.add_lightlike_filter(CloneFilterFactory(
         BranePacketFilter::new(left.get_id(), 3)
             .msg_type(MessageType::MsgHeartbeat)
@@ -514,7 +514,7 @@ fn test_node_merge_brain_split() {
 
     cluster.must_put(b"k11", b"v11");
     cluster.must_put(b"k21", b"v21");
-    // Make sure peers on store 3 have replicated latest ufidelate, which means
+    // Make sure peers on store 3 have replicated latest fidelio, which means
     // they have already reported their progresses to leader.
     must_get_equal(&cluster.get_engine(3), b"k11", b"v11");
     must_get_equal(&cluster.get_engine(3), b"k21", b"v21");
@@ -590,7 +590,7 @@ fn test_node_merge_brain_split() {
     must_get_equal(&cluster.get_engine(3), b"k12", b"v12");
 }
 
-/// Test whether approximate size and tuplespaceInstanton are ufidelated after merge
+/// Test whether approximate size and tuplespaceInstanton are fideliod after merge
 #[test]
 fn test_merge_approximate_size_and_tuplespaceInstanton() {
     let mut cluster = new_node_cluster(0, 3);
@@ -605,7 +605,7 @@ fn test_merge_approximate_size_and_tuplespaceInstanton() {
     let brane = fidel_client.get_brane(b"").unwrap();
 
     cluster.must_split(&brane, &middle_key);
-    // make sure split check is invoked so size and tuplespaceInstanton are ufidelated.
+    // make sure split check is invoked so size and tuplespaceInstanton are fideliod.
     thread::sleep(Duration::from_millis(100));
 
     let left = fidel_client.get_brane(b"").unwrap();
@@ -630,11 +630,11 @@ fn test_merge_approximate_size_and_tuplespaceInstanton() {
     assert_ne!(tuplespaceInstanton, 0);
 
     fidel_client.must_merge(left.get_id(), right.get_id());
-    // make sure split check is invoked so size and tuplespaceInstanton are ufidelated.
+    // make sure split check is invoked so size and tuplespaceInstanton are fideliod.
     thread::sleep(Duration::from_millis(100));
 
     let brane = fidel_client.get_brane(b"").unwrap();
-    // size and tuplespaceInstanton should be ufidelated.
+    // size and tuplespaceInstanton should be fideliod.
     assert_ne!(
         fidel_client
             .get_brane_approximate_size(brane.get_id())
@@ -648,7 +648,7 @@ fn test_merge_approximate_size_and_tuplespaceInstanton() {
         tuplespaceInstanton
     );
 
-    // after merge and then transfer leader, if not ufidelate new leader's approximate size, it maybe be stale.
+    // after merge and then transfer leader, if not fidelio new leader's approximate size, it maybe be stale.
     cluster.must_transfer_leader(brane.get_id(), brane.get_peers()[0].clone());
     // make sure split check is invoked
     thread::sleep(Duration::from_millis(100));
@@ -667,7 +667,7 @@ fn test_merge_approximate_size_and_tuplespaceInstanton() {
 }
 
 #[test]
-fn test_node_merge_ufidelate_brane() {
+fn test_node_merge_fidelio_brane() {
     let mut cluster = new_node_cluster(0, 3);
     configure_for_merge(&mut cluster);
     // Election timeout and max leader lease is 1s.
@@ -744,7 +744,7 @@ fn test_node_merge_ufidelate_brane() {
     assert_eq!(resp.get_responses()[0].get_get().get_value(), b"v3");
 }
 
-/// Test if merge is working properly when merge entries is empty but commit index is not ufidelated.
+/// Test if merge is working properly when merge entries is empty but commit index is not fideliod.
 #[test]
 fn test_node_merge_catch_up_logs_empty_entries() {
     let mut cluster = new_node_cluster(0, 3);
@@ -1189,7 +1189,7 @@ fn test_merge_remove_target_peer_isolated() {
 
 #[test]
 fn test_sync_max_ts_after_brane_merge() {
-    use edb::causetStorage::{Engine, Snapshot};
+    use edb::causet_storage::{Engine, Snapshot};
 
     let mut cluster = new_server_cluster(0, 3);
     configure_for_merge(&mut cluster);
@@ -1207,11 +1207,11 @@ fn test_sync_max_ts_after_brane_merge() {
     let right = cluster.get_brane(b"k3");
 
     let cm = cluster.sim.read().unwrap().get_concurrency_manager(1);
-    let causetStorage = cluster
+    let causet_storage = cluster
         .sim
         .read()
         .unwrap()
-        .causetStorages
+        .causet_storages
         .get(&1)
         .unwrap()
         .clone();
@@ -1224,7 +1224,7 @@ fn test_sync_max_ts_after_brane_merge() {
         ctx.set_peer(leader.clone());
         ctx.set_brane_epoch(epoch);
 
-        let snapshot = causetStorage.snapshot(&ctx).unwrap();
+        let snapshot = causet_storage.snapshot(&ctx).unwrap();
         let max_ts_sync_status = snapshot.max_ts_sync_status.clone().unwrap();
         for retry in 0..10 {
             if max_ts_sync_status.load(Ordering::SeqCst) & 1 == 1 {

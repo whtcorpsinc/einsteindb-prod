@@ -90,14 +90,14 @@ mod testing {
 
     use super::*;
 
-    use raum_promises::{
+    use allegro_promises::{
         Attribute,
         MinkowskiType,
         MinkowskiValueType,
         MinkowskiSet,
     };
 
-    use edb_raum::{
+    use edb_allegro::{
         SchemaReplicant,
     };
 

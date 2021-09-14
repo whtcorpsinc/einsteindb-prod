@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use fidelpb::Selection;
+use fidel_timeshare::Selection;
 
 use super::{FreeDaemon, ExprPrimaryCausetRefVisitor, Event};
 use milevadb_query_common::execute_stats::ExecuteStats;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext, EvalWarnings};
 use milevadb_query_normal_expr::Expression;
@@ -58,8 +58,8 @@ impl<Src: FreeDaemon> FreeDaemon for SelectionFreeDaemon<Src> {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.src.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.src.collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -94,7 +94,7 @@ mod tests {
 
     use codec::prelude::NumberEncoder;
     use milevadb_query_datatype::FieldTypeTp;
-    use fidelpb::{Expr, ExprType, ScalarFuncSig};
+    use fidel_timeshare::{Expr, ExprType, ScalarFuncSig};
 
     use super::super::tests::*;
     use super::*;

@@ -1,11 +1,11 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
 use super::{AdminSemaphore, Interlock, SemaphoreContext, Result as CopResult};
-use edb_util::codec::bytes::{self, encode_bytes};
+use violetabftstore::interlock::::codec::bytes::{self, encode_bytes};
 
 use crate::store::util;
-use ekvproto::metapb::Brane;
-use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, SplitRequest};
+use ekvproto::meta_timeshare::Brane;
+use ekvproto::violetabft_cmd_timeshare::{AdminCmdType, AdminRequest, SplitRequest};
 use std::result::Result as StdResult;
 
 /// `SplitSemaphore` adjusts the split key so that it won't separate
@@ -154,11 +154,11 @@ mod tests {
     use crate::interlock::AdminSemaphore;
     use crate::interlock::SemaphoreContext;
     use byteorder::{BigEndian, WriteBytesExt};
-    use ekvproto::metapb::Brane;
-    use ekvproto::violetabft_cmdpb::{AdminCmdType, AdminRequest, SplitRequest};
+    use ekvproto::meta_timeshare::Brane;
+    use ekvproto::violetabft_cmd_timeshare::{AdminCmdType, AdminRequest, SplitRequest};
     use milevadb_query_datatype::codec::{datum, Block, Datum};
     use milevadb_query_datatype::expr::EvalContext;
-    use edb_util::codec::bytes::encode_bytes;
+    use violetabftstore::interlock::::codec::bytes::encode_bytes;
 
     fn new_split_request(key: &[u8]) -> AdminRequest {
         let mut req = AdminRequest::default();

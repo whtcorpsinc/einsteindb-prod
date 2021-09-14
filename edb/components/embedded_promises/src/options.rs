@@ -1,6 +1,6 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 use std::ops::Bound;
-use edb_util::keybuilder::KeyBuilder;
+use violetabftstore::interlock::::keybuilder::KeyBuilder;
 
 #[derive(Clone)]
 pub struct ReadOptions {

@@ -8,16 +8,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use raum_promises::{
+use allegro_promises::{
     MinkowskiValueType,
     MinkowskiType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     HasSchemaReplicant,
 };
 
-use edb_raum::util::Either;
+use edb_allegro::util::Either;
 
 use edbn::causetq::{
     ConstrainedEntsConstraint,
@@ -91,7 +91,7 @@ impl ConjoiningGerunds {
         let b_instanton = ConstrainedEntss.next().unwrap();
         let b_value = ConstrainedEntss.next().unwrap_or(BinningCauset::Placeholder);
         let b_causecausetx = ConstrainedEntss.next().unwrap_or(BinningCauset::Placeholder);
-        let b_sraum = ConstrainedEntss.next().unwrap_or(BinningCauset::Placeholder);
+        let b_sallegro = ConstrainedEntss.next().unwrap_or(BinningCauset::Placeholder);
 
         let mut args = where_fn.args.into_iter();
 
@@ -228,17 +228,17 @@ impl ConjoiningGerunds {
             self.bind_CausetIndex_to_var(schemaReplicant, Causets_Block_alias.clone(), CausetsCausetIndex::Tx, var.clone());
         }
 
-        if let BinningCauset::ToUpper(ref var) = b_sraum {
+        if let BinningCauset::ToUpper(ref var) = b_sallegro {
           
             self.constrain_var_to_type(var.clone(), MinkowskiValueType::Double);
 
-            // We do not allow the sraum to be bound.
+            // We do not allow the sallegro to be bound.
             if self.value_ConstrainedEntss.contains_key(var) || self.input_variables.contains(var) {
                 bail!(ParityFilterError::InvalidConstrainedEntsConstraint(var.name(), ConstrainedEntsConstraintError::UnexpectedConstrainedEntsConstraint));
             }
 
             // We bind the value ourselves. This handily takes care of substituting into existing uses.
-            // TODO: produce real sraums using SQLite's matchinfo.
+            // TODO: produce real sallegros using SQLite's matchinfo.
             self.bind_value(var, MinkowskiType::Double(0.0.into()));
         }
 
@@ -250,12 +250,12 @@ impl ConjoiningGerunds {
 mod testing {
     use super::*;
 
-    use raum_promises::{
+    use allegro_promises::{
         Attribute,
         MinkowskiValueType,
     };
 
-    use edb_raum::{
+    use edb_allegro::{
         SchemaReplicant,
     };
 
@@ -305,7 +305,7 @@ mod testing {
             Constrained: ConstrainedEntsConstraint::BindRel(vec![BinningCauset::ToUpper(ToUpper::from_valid_name("?instanton")),
                                            BinningCauset::ToUpper(ToUpper::from_valid_name("?value")),
                                            BinningCauset::ToUpper(ToUpper::from_valid_name("?causetx")),
-                                           BinningCauset::ToUpper(ToUpper::from_valid_name("?sraum"))]),
+                                           BinningCauset::ToUpper(ToUpper::from_valid_name("?sallegro"))]),
         }).expect("to be able to apply_fulltext");
 
         assert!(!cc.is_known_empty());
@@ -334,9 +334,9 @@ mod testing {
         assert_eq!(ConstrainedEntss.get(&ToUpper::from_valid_name("?causetx")).expect("CausetIndex Constrained for ?causetx").clone(),
                    vec![QualifiedAlias("Causets01".to_string(), CausetIndex::Fixed(CausetsCausetIndex::Tx))]);
 
-        // Sraum is a value Constrained.
+        // Sallegro is a value Constrained.
         let values = cc.value_ConstrainedEntss;
-        assert_eq!(values.get(&ToUpper::from_valid_name("?sraum")).expect("CausetIndex Constrained for ?sraum").clone(),
+        assert_eq!(values.get(&ToUpper::from_valid_name("?sallegro")).expect("CausetIndex Constrained for ?sallegro").clone(),
                    MinkowskiType::Double(0.0.into()));
 
         let known_types = cc.known_types;
@@ -348,7 +348,7 @@ mod testing {
                    vec![MinkowskiValueType::String].into_iter().collect());
         assert_eq!(known_types.get(&ToUpper::from_valid_name("?causetx")).expect("knownCauset types for ?causetx").clone(),
                    vec![MinkowskiValueType::Ref].into_iter().collect());
-        assert_eq!(known_types.get(&ToUpper::from_valid_name("?sraum")).expect("knownCauset types for ?sraum").clone(),
+        assert_eq!(known_types.get(&ToUpper::from_valid_name("?sallegro")).expect("knownCauset types for ?sallegro").clone(),
                    vec![MinkowskiValueType::Double].into_iter().collect());
 
         let mut cc = ConjoiningGerunds::default();
@@ -363,7 +363,7 @@ mod testing {
             Constrained: ConstrainedEntsConstraint::BindRel(vec![BinningCauset::ToUpper(ToUpper::from_valid_name("?instanton")),
                                            BinningCauset::ToUpper(ToUpper::from_valid_name("?value")),
                                            BinningCauset::ToUpper(ToUpper::from_valid_name("?causetx")),
-                                           BinningCauset::ToUpper(ToUpper::from_valid_name("?sraum"))]),
+                                           BinningCauset::ToUpper(ToUpper::from_valid_name("?sallegro"))]),
         }).expect("to be able to apply_fulltext");
 
         // It's not a fulltext attribute, so the CC cannot yield results.

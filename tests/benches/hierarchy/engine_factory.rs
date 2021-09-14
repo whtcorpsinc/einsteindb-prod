@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use edb::causetStorage::{
+use edb::causet_storage::{
     kv::{BTreeEngine, LmdbEngine},
     Engine, TestEngineBuilder,
 };

@@ -5,8 +5,8 @@ mod tuplespaceInstanton;
 mod size;
 mod Block;
 
-use ekvproto::metapb::Brane;
-use ekvproto::fidelpb::CheckPolicy;
+use ekvproto::meta_timeshare::Brane;
+use ekvproto::fidel_timeshare::CheckPolicy;
 
 use super::config::Config;
 use super::error::Result;

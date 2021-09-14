@@ -36,10 +36,10 @@ pub trait Rotator: lightlike {
     /// Return if the file need to be rotated.
     fn should_rotate(&self) -> bool;
 
-    /// Call by operator, ufidelate rotators' state while the operator try to write some data.
+    /// Call by operator, fidelio rotators' state while the operator try to write some data.
     fn on_write(&mut self, data: &[u8]) -> io::Result<()>;
 
-    /// Call by operator, ufidelate rotators' state while the operator execute a rotation.
+    /// Call by operator, fidelio rotators' state while the operator execute a rotation.
     fn on_rotate(&mut self) -> io::Result<()>;
 }
 
@@ -99,7 +99,7 @@ impl RotatingFileLoggerBuilder {
 
 impl Write for RotatingFileLogger {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        // Ufidelates all roators' states.
+        // fidelios all roators' states.
         for rotator in self.rotators.iter_mut() {
             rotator.on_write(bytes)?;
         }
@@ -115,7 +115,7 @@ impl Write for RotatingFileLogger {
                 fs::rename(&self.path, &new_path)?;
                 self.file = open_log_file(&self.path)?;
 
-                // Ufidelates all rotators' states.
+                // fidelios all rotators' states.
                 for rotator in self.rotators.iter_mut() {
                     rotator.on_rotate()?;
                 }
@@ -361,9 +361,9 @@ mod tests {
     }
 
     #[test]
-    fn test_ufidelate_rotate_by_size() {
+    fn test_fidelio_rotate_by_size() {
         let tmp_dir = TempDir::new().unwrap();
-        let path = tmp_dir.path().join("test_ufidelate_rotate_by_size.log");
+        let path = tmp_dir.path().join("test_fidelio_rotate_by_size.log");
         let suffix = ".backup";
 
         // Set the last modification time to 1 minute before.
@@ -398,14 +398,14 @@ mod tests {
 
         assert!(file_exists(new_path));
 
-        // Should ufidelate `RotateBySize`'s state.
+        // Should fidelio `RotateBySize`'s state.
         assert_eq!(logger.rotators[1].should_rotate(), false);
     }
 
     #[test]
-    fn test_ufidelate_rotate_by_time() {
+    fn test_fidelio_rotate_by_time() {
         let tmp_dir = TempDir::new().unwrap();
-        let path = tmp_dir.path().join("test_ufidelate_rotate_by_time.log");
+        let path = tmp_dir.path().join("test_fidelio_rotate_by_time.log");
         let suffix = ".backup";
 
         // Set the last modification time to 1 minute before.
@@ -440,7 +440,7 @@ mod tests {
 
         assert!(file_exists(new_path.clone()));
 
-        // Should ufidelate `RotateByTime`'s state.
+        // Should fidelio `RotateByTime`'s state.
         assert_eq!(logger.rotators[1].should_rotate(), false);
 
         logger.write_all(&[0xff; 2048]).unwrap();

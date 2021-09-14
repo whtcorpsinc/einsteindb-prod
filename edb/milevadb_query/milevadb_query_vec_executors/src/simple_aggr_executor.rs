@@ -5,12 +5,12 @@
 
 use std::sync::Arc;
 
-use fidelpb::Aggregation;
-use fidelpb::{Expr, FieldType};
+use fidel_timeshare::Aggregation;
+use fidel_timeshare::{Expr, FieldType};
 
 use crate::interface::*;
 use crate::util::aggr_executor::*;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::codec::data_type::*;
@@ -41,8 +41,8 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchSimpleAggregationFreeDaemon<
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.0.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.0.collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -157,7 +157,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for SimpleAggregationI
                     match_template_evaluable! {
                         TT, match value.as_scalar_value_ref() {
                             ScalarValueRef::TT(scalar_value) => {
-                                ufidelate_repeat!(
+                                fidelio_repeat!(
                                     aggr_state,
                                     &mut entities.context,
                                     scalar_value,
@@ -173,7 +173,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for SimpleAggregationI
                     match_template_evaluable! {
                         TT, match physical_vec {
                             VectorValue::TT(vec) => {
-                                ufidelate_vector!(
+                                fidelio_vector!(
                                     aggr_state,
                                     &mut entities.context,
                                     vec,
@@ -248,7 +248,7 @@ mod tests {
         impl ConcreteAggrFunctionState for AggrFnFooState {
             type ParameterType = BytesRef<'static>;
 
-            unsafe fn ufidelate_concrete_unsafe(
+            unsafe fn fidelio_concrete_unsafe(
                 &mut self,
                 _ctx: &mut EvalContext,
                 value: Option<Self::ParameterType>,
@@ -301,7 +301,7 @@ mod tests {
         impl ConcreteAggrFunctionState for AggrFnBarState {
             type ParameterType = &'static Real;
 
-            unsafe fn ufidelate_concrete_unsafe(
+            unsafe fn fidelio_concrete_unsafe(
                 &mut self,
                 _ctx: &mut EvalContext,
                 value: Option<Self::ParameterType>,
@@ -484,8 +484,8 @@ mod tests {
 
     #[test]
     fn test_it_works_integration() {
-        use fidelpb::ExprType;
-        use fidelpb_helper::ExprDefBuilder;
+        use fidel_timeshare::ExprType;
+        use fidel_timeshare_helper::ExprDefBuilder;
 
         // This test creates a simple aggregation executor with the following aggregate functions:
         // - COUNT(1)
@@ -577,12 +577,12 @@ mod tests {
         impl ConcreteAggrFunctionState for AggrFnFooState {
             type ParameterType = &'static Real;
 
-            unsafe fn ufidelate_concrete_unsafe(
+            unsafe fn fidelio_concrete_unsafe(
                 &mut self,
                 _ctx: &mut EvalContext,
                 _value: Option<Self::ParameterType>,
             ) -> Result<()> {
-                // Ufidelate should never be called since we are testing aggregate for no Evcausetidx.
+                // fidelio should never be called since we are testing aggregate for no Evcausetidx.
                 unreachable!()
             }
 

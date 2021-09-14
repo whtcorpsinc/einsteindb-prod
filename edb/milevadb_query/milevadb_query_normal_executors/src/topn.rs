@@ -5,13 +5,13 @@ use std::sync::Arc;
 use std::usize;
 use std::vec::IntoIter;
 
-use fidelpb::ByItem;
-use fidelpb::TopN;
+use fidel_timeshare::ByItem;
+use fidel_timeshare::TopN;
 
 use super::topn_heap::TopNHeap;
 use super::{FreeDaemon, ExprPrimaryCausetRefVisitor, Event};
 use milevadb_query_common::execute_stats::ExecuteStats;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::datum::Datum;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext, EvalWarnings};
@@ -123,8 +123,8 @@ impl<Src: FreeDaemon> FreeDaemon for TopNFreeDaemon<Src> {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.src.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.src.collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -161,8 +161,8 @@ pub mod tests {
 
     use codec::prelude::NumberEncoder;
     use milevadb_query_datatype::FieldTypeTp;
-    use edb_util::collections::HashMap;
-    use fidelpb::{Expr, ExprType};
+    use violetabftstore::interlock::::collections::HashMap;
+    use fidel_timeshare::{Expr, ExprType};
 
     use crate::OriginCols;
     use milevadb_query_datatype::codec::Block::EventColsDict;

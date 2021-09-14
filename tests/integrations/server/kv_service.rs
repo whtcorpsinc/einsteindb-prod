@@ -3,16 +3,16 @@
 use futures::executor::block_on;
 use futures::{SinkExt, StreamExt};
 use grpcio::*;
-use ekvproto::kvrpcpb::*;
-use ekvproto::edbpb::EINSTEINDBClient;
-use ekvproto::edbpb::*;
+use ekvproto::kvrpc_timeshare::*;
+use ekvproto::edb_timeshare::EINSTEINDBClient;
+use ekvproto::edb_timeshare::*;
 use fidel_client::FidelClient;
 use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::Duration;
 use test_violetabftstore::new_server_cluster;
 use edb::server::service::batch_commands_request;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::HandyRwLock;
 
 #[test]
 fn test_batch_commands() {

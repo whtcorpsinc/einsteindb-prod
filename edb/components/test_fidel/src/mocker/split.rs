@@ -2,7 +2,7 @@
 
 use std::sync::Mutex;
 
-use ekvproto::fidelpb::{GetMembersRequest, GetMembersResponse, Member, ResponseHeader};
+use ekvproto::fidel_timeshare::{GetMembersRequest, GetMembersResponse, Member, ResponseHeader};
 
 use super::*;
 

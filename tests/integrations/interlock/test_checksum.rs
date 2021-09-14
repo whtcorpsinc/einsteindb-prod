@@ -3,16 +3,16 @@
 use std::u64;
 
 use ekvproto::interlock::{KeyCone, Request};
-use ekvproto::kvrpcpb::{Context, IsolationLevel};
+use ekvproto::kvrpc_timeshare::{Context, IsolationLevel};
 use protobuf::Message;
-use fidelpb::{ChecksumAlgorithm, ChecksumRequest, ChecksumResponse, ChecksumScanOn};
+use fidel_timeshare::{ChecksumAlgorithm, ChecksumRequest, ChecksumResponse, ChecksumScanOn};
 
 use test_interlock::*;
-use milevadb_query_common::causetStorage::scanner::{ConesScanner, ConesScannerOptions};
-use milevadb_query_common::causetStorage::Cone;
+use milevadb_query_common::causet_storage::scanner::{ConesScanner, ConesScannerOptions};
+use milevadb_query_common::causet_storage::Cone;
 use edb::interlock::posetdag::EinsteinDBStorage;
 use edb::interlock::*;
-use edb::causetStorage::{Engine, SnapshotStore};
+use edb::causet_storage::{Engine, SnapshotStore};
 use txn_types::TimeStamp;
 
 fn new_checksum_request(cone: KeyCone, scan_on: ChecksumScanOn) -> Request {
@@ -75,8 +75,8 @@ fn reversed_checksum_crc64_xor<E: Engine>(store: &CausetStore<E>, cone: KeyCone)
         false,
     );
     let mut scanner = ConesScanner::new(ConesScannerOptions {
-        causetStorage: EinsteinDBStorage::new(store, false),
-        cones: vec![Cone::from_pb_cone(cone, false)],
+        causet_storage: EinsteinDBStorage::new(store, false),
+        cones: vec![Cone::from__timeshare_cone(cone, false)],
         scan_backward_in_cone: true,
         is_key_only: false,
         is_scanned_cone_aware: false,

@@ -2,7 +2,7 @@
 
 use std::result;
 
-use ekvproto::fidelpb::*;
+use ekvproto::fidel_timeshare::*;
 
 mod bootstrap;
 mod incompatible;
@@ -109,10 +109,10 @@ pub trait FidelMocker {
 
     fn set_lightlikepoints(&self, _: Vec<String>) {}
 
-    fn ufidelate_gc_safe_point(
+    fn fidelio_gc_safe_point(
         &self,
-        _: &UfidelateGcSafePointRequest,
-    ) -> Option<Result<UfidelateGcSafePointResponse>> {
+        _: &fidelioGcSafePointRequest,
+    ) -> Option<Result<fidelioGcSafePointResponse>> {
         None
     }
 

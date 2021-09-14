@@ -124,7 +124,7 @@ mod profiling {
     pub fn activate_prof() -> ProfResult<()> {
         info!("spacelike profiler");
         unsafe {
-            if let Err(e) = einsteindb_alloc::jemalloc_ctl::raw::ufidelate(PROF_ACTIVE, true) {
+            if let Err(e) = einsteindb_alloc::jemalloc_ctl::raw::fidelio(PROF_ACTIVE, true) {
                 error!("failed to activate profiling: {}", e);
                 return Err(ProfError::JemallocError(format!(
                     "failed to activate profiling: {}",
@@ -138,7 +138,7 @@ mod profiling {
     pub fn deactivate_prof() -> ProfResult<()> {
         info!("stop profiler");
         unsafe {
-            if let Err(e) = einsteindb_alloc::jemalloc_ctl::raw::ufidelate(PROF_ACTIVE, false) {
+            if let Err(e) = einsteindb_alloc::jemalloc_ctl::raw::fidelio(PROF_ACTIVE, false) {
                 error!("failed to deactivate profiling: {}", e);
                 return Err(ProfError::JemallocError(format!(
                     "failed to deactivate profiling: {}",
@@ -153,7 +153,7 @@ mod profiling {
     pub fn dump_prof(path: &str) -> ProfResult<()> {
         let mut bytes = CString::new(path)?.into_bytes_with_nul();
         let ptr = bytes.as_mut_ptr() as *mut c_char;
-        let res = unsafe { einsteindb_alloc::jemalloc_ctl::raw::ufidelate(PROF_DUMP, ptr) };
+        let res = unsafe { einsteindb_alloc::jemalloc_ctl::raw::fidelio(PROF_DUMP, ptr) };
         match res {
             Err(e) => {
                 error!("failed to dump the profile to {:?}: {}", path, e);

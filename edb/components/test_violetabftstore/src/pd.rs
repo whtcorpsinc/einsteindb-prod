@@ -14,31 +14,31 @@ use futures::future::{err, ok, FutureExt};
 use futures::{stream, stream::StreamExt};
 use tokio_timer::timer::Handle;
 
-use ekvproto::metapb;
-use ekvproto::fidelpb;
-use ekvproto::replication_modepb::{
+use ekvproto::meta_timeshare;
+use ekvproto::fidel_timeshare;
+use ekvproto::replication_mode_timeshare::{
     DrAutoSyncState, BraneReplicationStatus, ReplicationMode, ReplicationStatus,
 };
-use violetabft::evioletabftpb;
+use violetabft::evioletabft_timeshare;
 
 use fail::fail_point;
 use tuplespaceInstanton::{self, data_key, enc_lightlike_key, enc_spacelike_key};
 use fidel_client::{Error, Key, FidelClient, FidelFuture, BraneInfo, BraneStat, Result};
 use violetabftstore::store::util::{check_key_in_brane, is_learner};
 use violetabftstore::store::{INIT_EPOCH_CONF_VER, INIT_EPOCH_VER};
-use edb_util::collections::{HashMap, HashMapEntry, HashSet};
-use edb_util::time::UnixSecs;
-use edb_util::timer::GLOBAL_TIMER_HANDLE;
-use edb_util::{Either, HandyRwLock};
+use violetabftstore::interlock::::collections::{HashMap, HashMapEntry, HashSet};
+use violetabftstore::interlock::::time::UnixSecs;
+use violetabftstore::interlock::::timer::GLOBAL_TIMER_HANDLE;
+use violetabftstore::interlock::::{Either, HandyRwLock};
 use txn_types::TimeStamp;
 
 use super::*;
 
 struct CausetStore {
-    store: metapb::CausetStore,
+    store: meta_timeshare::CausetStore,
     brane_ids: HashSet<u64>,
-    lightlikeer: Unboundedlightlikeer<fidelpb::BraneHeartbeatResponse>,
-    receiver: Option<UnboundedReceiver<fidelpb::BraneHeartbeatResponse>>,
+    lightlikeer: Unboundedlightlikeer<fidel_timeshare::BraneHeartbeatResponse>,
+    receiver: Option<UnboundedReceiver<fidel_timeshare::BraneHeartbeatResponse>>,
 }
 
 impl Default for CausetStore {
@@ -85,15 +85,15 @@ enum Operator {
     AddPeer {
         // Left: to be added.
         // Right: plightlikeing peer.
-        peer: Either<metapb::Peer, metapb::Peer>,
+        peer: Either<meta_timeshare::Peer, meta_timeshare::Peer>,
         policy: SchedulePolicy,
     },
     RemovePeer {
-        peer: metapb::Peer,
+        peer: meta_timeshare::Peer,
         policy: SchedulePolicy,
     },
     TransferLeader {
-        peer: metapb::Peer,
+        peer: meta_timeshare::Peer,
         policy: SchedulePolicy,
     },
     MergeBrane {
@@ -102,8 +102,8 @@ enum Operator {
         policy: Arc<RwLock<SchedulePolicy>>,
     },
     SplitBrane {
-        brane_epoch: metapb::BraneEpoch,
-        policy: fidelpb::CheckPolicy,
+        brane_epoch: meta_timeshare::BraneEpoch,
+        policy: fidel_timeshare::CheckPolicy,
         tuplespaceInstanton: Vec<Vec<u8>>,
     },
 }
@@ -113,29 +113,29 @@ impl Operator {
         &self,
         brane_id: u64,
         cluster: &Cluster,
-    ) -> fidelpb::BraneHeartbeatResponse {
+    ) -> fidel_timeshare::BraneHeartbeatResponse {
         match *self {
             Operator::AddPeer { ref peer, .. } => {
                 if let Either::Left(ref peer) = *peer {
                     let conf_change_type = if is_learner(peer) {
-                        evioletabftpb::ConfChangeType::AddLearnerNode
+                        evioletabft_timeshare::ConfChangeType::AddLearnerNode
                     } else {
-                        evioletabftpb::ConfChangeType::AddNode
+                        evioletabft_timeshare::ConfChangeType::AddNode
                     };
                     new_fidel_change_peer(conf_change_type, peer.clone())
                 } else {
-                    fidelpb::BraneHeartbeatResponse::default()
+                    fidel_timeshare::BraneHeartbeatResponse::default()
                 }
             }
             Operator::RemovePeer { ref peer, .. } => {
-                new_fidel_change_peer(evioletabftpb::ConfChangeType::RemoveNode, peer.clone())
+                new_fidel_change_peer(evioletabft_timeshare::ConfChangeType::RemoveNode, peer.clone())
             }
             Operator::TransferLeader { ref peer, .. } => new_fidel_transfer_leader(peer.clone()),
             Operator::MergeBrane {
                 target_brane_id, ..
             } => {
                 if target_brane_id == brane_id {
-                    fidelpb::BraneHeartbeatResponse::default()
+                    fidel_timeshare::BraneHeartbeatResponse::default()
                 } else {
                     let brane = cluster.get_brane_by_id(target_brane_id).unwrap().unwrap();
                     if cluster.check_merge_target_integrity {
@@ -149,7 +149,7 @@ impl Operator {
                         if all_exist {
                             new_fidel_merge_brane(brane)
                         } else {
-                            fidelpb::BraneHeartbeatResponse::default()
+                            fidel_timeshare::BraneHeartbeatResponse::default()
                         }
                     } else {
                         new_fidel_merge_brane(brane)
@@ -165,8 +165,8 @@ impl Operator {
     fn try_finished(
         &mut self,
         cluster: &Cluster,
-        brane: &metapb::Brane,
-        leader: &metapb::Peer,
+        brane: &meta_timeshare::Brane,
+        leader: &meta_timeshare::Peer,
     ) -> bool {
         match *self {
             Operator::AddPeer {
@@ -225,9 +225,9 @@ impl Operator {
 }
 
 struct Cluster {
-    meta: metapb::Cluster,
+    meta: meta_timeshare::Cluster,
     stores: HashMap<u64, CausetStore>,
-    branes: BTreeMap<Key, metapb::Brane>,
+    branes: BTreeMap<Key, meta_timeshare::Brane>,
     brane_id_tuplespaceInstanton: HashMap<u64, Key>,
     brane_approximate_size: HashMap<u64, u64>,
     brane_approximate_tuplespaceInstanton: HashMap<u64, u64>,
@@ -235,7 +235,7 @@ struct Cluster {
     brane_last_report_term: HashMap<u64, u64>,
     base_id: AtomicUsize,
 
-    store_stats: HashMap<u64, fidelpb::StoreStats>,
+    store_stats: HashMap<u64, fidel_timeshare::StoreStats>,
     split_count: usize,
 
     // brane id -> Operator
@@ -243,9 +243,9 @@ struct Cluster {
     enable_peer_count_check: bool,
 
     // brane id -> leader
-    leaders: HashMap<u64, metapb::Peer>,
-    down_peers: HashMap<u64, fidelpb::PeerStats>,
-    plightlikeing_peers: HashMap<u64, metapb::Peer>,
+    leaders: HashMap<u64, meta_timeshare::Peer>,
+    down_peers: HashMap<u64, fidel_timeshare::PeerStats>,
+    plightlikeing_peers: HashMap<u64, meta_timeshare::Peer>,
     is_bootstraped: bool,
 
     gc_safe_point: u64,
@@ -259,7 +259,7 @@ struct Cluster {
 
 impl Cluster {
     fn new(cluster_id: u64) -> Cluster {
-        let mut meta = metapb::Cluster::default();
+        let mut meta = meta_timeshare::Cluster::default();
         meta.set_id(cluster_id);
         meta.set_max_peer_count(5);
 
@@ -289,7 +289,7 @@ impl Cluster {
         }
     }
 
-    fn bootstrap(&mut self, store: metapb::CausetStore, brane: metapb::Brane) {
+    fn bootstrap(&mut self, store: meta_timeshare::CausetStore, brane: meta_timeshare::Brane) {
         // Now, some tests use multi peers in bootstrap,
         // disable this check.
         // TODO: enable this check later.
@@ -315,10 +315,10 @@ impl Cluster {
         Ok(self.base_id.fetch_add(1, Ordering::Relaxed) as u64)
     }
 
-    fn put_store(&mut self, store: metapb::CausetStore) -> Result<()> {
+    fn put_store(&mut self, store: meta_timeshare::CausetStore) -> Result<()> {
         let store_id = store.get_id();
         // There is a race between put_store and handle_brane_heartbeat_response. If store id is
-        // 0, it means it's a placeholder created by latter, we just need to ufidelate the meta.
+        // 0, it means it's a placeholder created by latter, we just need to fidelio the meta.
         // Otherwise we should overwrite it.
         if self
             .stores
@@ -334,14 +334,14 @@ impl Cluster {
         Ok(())
     }
 
-    fn get_store(&self, store_id: u64) -> Result<metapb::CausetStore> {
+    fn get_store(&self, store_id: u64) -> Result<meta_timeshare::CausetStore> {
         match self.stores.get(&store_id) {
             Some(s) if s.store.get_id() != 0 => Ok(s.store.clone()),
             _ => Err(box_err!("store {} not found", store_id)),
         }
     }
 
-    fn get_all_stores(&self) -> Result<Vec<metapb::CausetStore>> {
+    fn get_all_stores(&self) -> Result<Vec<meta_timeshare::CausetStore>> {
         Ok(self
             .stores
             .values()
@@ -355,14 +355,14 @@ impl Cluster {
             .collect())
     }
 
-    fn get_brane(&self, key: Vec<u8>) -> Option<metapb::Brane> {
+    fn get_brane(&self, key: Vec<u8>) -> Option<meta_timeshare::Brane> {
         self.branes
             .cone((Excluded(key), Unbounded))
             .next()
             .map(|(_, brane)| brane.clone())
     }
 
-    fn get_brane_by_id(&self, brane_id: u64) -> Result<Option<metapb::Brane>> {
+    fn get_brane_by_id(&self, brane_id: u64) -> Result<Option<meta_timeshare::Brane>> {
         Ok(self
             .brane_id_tuplespaceInstanton
             .get(&brane_id)
@@ -385,7 +385,7 @@ impl Cluster {
         self.brane_last_report_term.get(&brane_id).cloned()
     }
 
-    fn get_stores(&self) -> Vec<metapb::CausetStore> {
+    fn get_stores(&self) -> Vec<meta_timeshare::CausetStore> {
         self.stores
             .values()
             .filter(|s| s.store.get_id() != 0)
@@ -397,7 +397,7 @@ impl Cluster {
         self.branes.len()
     }
 
-    fn add_brane(&mut self, brane: &metapb::Brane) {
+    fn add_brane(&mut self, brane: &meta_timeshare::Brane) {
         let lightlike_key = enc_lightlike_key(brane);
         assert!(self
             .branes
@@ -409,13 +409,13 @@ impl Cluster {
             .is_none());
     }
 
-    fn remove_brane(&mut self, brane: &metapb::Brane) {
+    fn remove_brane(&mut self, brane: &meta_timeshare::Brane) {
         let lightlike_key = enc_lightlike_key(brane);
         assert!(self.branes.remove(&lightlike_key).is_some());
         assert!(self.brane_id_tuplespaceInstanton.remove(&brane.get_id()).is_some());
     }
 
-    fn get_overlap(&self, spacelike_key: Vec<u8>, lightlike_key: Vec<u8>) -> Vec<metapb::Brane> {
+    fn get_overlap(&self, spacelike_key: Vec<u8>, lightlike_key: Vec<u8>) -> Vec<meta_timeshare::Brane> {
         self.branes
             .cone((Excluded(spacelike_key), Unbounded))
             .map(|(_, r)| r.clone())
@@ -423,7 +423,7 @@ impl Cluster {
             .collect()
     }
 
-    fn check_put_brane(&mut self, brane: metapb::Brane) -> Result<Vec<metapb::Brane>> {
+    fn check_put_brane(&mut self, brane: meta_timeshare::Brane) -> Result<Vec<meta_timeshare::Brane>> {
         let (spacelike_key, lightlike_key, incoming_epoch) = (
             enc_spacelike_key(&brane),
             enc_lightlike_key(&brane),
@@ -449,9 +449,9 @@ impl Cluster {
 
     fn handle_heartbeat(
         &mut self,
-        mut brane: metapb::Brane,
-        leader: metapb::Peer,
-    ) -> Result<fidelpb::BraneHeartbeatResponse> {
+        mut brane: meta_timeshare::Brane,
+        leader: meta_timeshare::Peer,
+    ) -> Result<fidel_timeshare::BraneHeartbeatResponse> {
         let overlaps = self.check_put_brane(brane.clone())?;
         let same_brane = {
             let (ver, conf_ver) = (
@@ -477,7 +477,7 @@ impl Cluster {
         let resp = self
             .poll_heartbeat_responses(brane.clone(), leader.clone())
             .unwrap_or_else(|| {
-                let mut resp = fidelpb::BraneHeartbeatResponse::default();
+                let mut resp = fidel_timeshare::BraneHeartbeatResponse::default();
                 resp.set_brane_id(brane.get_id());
                 resp.set_brane_epoch(brane.take_brane_epoch());
                 resp.set_target_peer(leader);
@@ -489,8 +489,8 @@ impl Cluster {
     // max_peer_count check, the default operator for handling brane heartbeat.
     fn handle_heartbeat_max_peer_count(
         &mut self,
-        brane: &metapb::Brane,
-        leader: &metapb::Peer,
+        brane: &meta_timeshare::Brane,
+        leader: &meta_timeshare::Peer,
     ) -> Option<Operator> {
         let max_peer_count = self.meta.get_max_peer_count() as usize;
         let peer_count = brane.get_peers().len();
@@ -529,7 +529,7 @@ impl Cluster {
     fn poll_heartbeat_responses_for(
         &mut self,
         store_id: u64,
-    ) -> Vec<fidelpb::BraneHeartbeatResponse> {
+    ) -> Vec<fidel_timeshare::BraneHeartbeatResponse> {
         let mut resps = vec![];
         for (brane_id, leader) in self.leaders.clone() {
             if leader.get_store_id() != store_id {
@@ -547,9 +547,9 @@ impl Cluster {
 
     fn poll_heartbeat_responses(
         &mut self,
-        mut brane: metapb::Brane,
-        leader: metapb::Peer,
-    ) -> Option<fidelpb::BraneHeartbeatResponse> {
+        mut brane: meta_timeshare::Brane,
+        leader: meta_timeshare::Peer,
+    ) -> Option<fidel_timeshare::BraneHeartbeatResponse> {
         let brane_id = brane.get_id();
         let mut operator = None;
         if let Some(mut op) = self.operators.remove(&brane_id) {
@@ -578,11 +578,11 @@ impl Cluster {
     fn brane_heartbeat(
         &mut self,
         term: u64,
-        brane: metapb::Brane,
-        leader: metapb::Peer,
+        brane: meta_timeshare::Brane,
+        leader: meta_timeshare::Peer,
         brane_stat: BraneStat,
         replication_status: Option<BraneReplicationStatus>,
-    ) -> Result<fidelpb::BraneHeartbeatResponse> {
+    ) -> Result<fidel_timeshare::BraneHeartbeatResponse> {
         for peer in brane.get_peers() {
             self.down_peers.remove(&peer.get_id());
             self.plightlikeing_peers.remove(&peer.get_id());
@@ -619,7 +619,7 @@ impl Cluster {
     }
 }
 
-fn check_stale_brane(brane: &metapb::Brane, check_brane: &metapb::Brane) -> Result<()> {
+fn check_stale_brane(brane: &meta_timeshare::Brane, check_brane: &meta_timeshare::Brane) -> Result<()> {
     let epoch = brane.get_brane_epoch();
     let check_epoch = check_brane.get_brane_epoch();
 
@@ -637,7 +637,7 @@ fn check_stale_brane(brane: &metapb::Brane, check_brane: &metapb::Brane) -> Resu
 
 // For test when a node is already bootstraped the cluster with the first brane
 pub fn bootstrap_with_first_brane(fidel_client: Arc<TestFidelClient>) -> Result<()> {
-    let mut brane = metapb::Brane::default();
+    let mut brane = meta_timeshare::Brane::default();
     brane.set_id(1);
     brane.set_spacelike_key(tuplespaceInstanton::EMPTY_KEY.to_vec());
     brane.set_lightlike_key(tuplespaceInstanton::EMPTY_KEY.to_vec());
@@ -671,7 +671,7 @@ impl TestFidelClient {
         }
     }
 
-    pub fn get_stores(&self) -> Result<Vec<metapb::CausetStore>> {
+    pub fn get_stores(&self) -> Result<Vec<meta_timeshare::CausetStore>> {
         Ok(self.cluster.rl().get_stores())
     }
 
@@ -706,7 +706,7 @@ impl TestFidelClient {
         }
     }
 
-    pub fn get_brane_epoch(&self, brane_id: u64) -> metapb::BraneEpoch {
+    pub fn get_brane_epoch(&self, brane_id: u64) -> meta_timeshare::BraneEpoch {
         block_on(self.get_brane_by_id(brane_id))
             .unwrap()
             .unwrap()
@@ -725,7 +725,7 @@ impl TestFidelClient {
         self.cluster.wl().enable_peer_count_check = true;
     }
 
-    pub fn must_have_peer(&self, brane_id: u64, peer: metapb::Peer) {
+    pub fn must_have_peer(&self, brane_id: u64, peer: meta_timeshare::Peer) {
         for _ in 1..500 {
             sleep_ms(10);
             let brane = match block_on(self.get_brane_by_id(brane_id)).unwrap() {
@@ -743,7 +743,7 @@ impl TestFidelClient {
         panic!("brane {:?} has no peer {:?}", brane, peer);
     }
 
-    pub fn must_none_peer(&self, brane_id: u64, peer: metapb::Peer) {
+    pub fn must_none_peer(&self, brane_id: u64, peer: meta_timeshare::Peer) {
         for _ in 1..500 {
             sleep_ms(10);
             let brane = match block_on(self.get_brane_by_id(brane_id)).unwrap() {
@@ -760,7 +760,7 @@ impl TestFidelClient {
         panic!("brane {:?} has peer {:?}", brane, peer);
     }
 
-    pub fn must_none_plightlikeing_peer(&self, peer: metapb::Peer) {
+    pub fn must_none_plightlikeing_peer(&self, peer: meta_timeshare::Peer) {
         for _ in 1..500 {
             sleep_ms(10);
             if self.cluster.rl().plightlikeing_peers.contains_key(&peer.get_id()) {
@@ -771,11 +771,11 @@ impl TestFidelClient {
         panic!("peer {:?} shouldn't be plightlikeing any more", peer);
     }
 
-    pub fn add_brane(&self, brane: &metapb::Brane) {
+    pub fn add_brane(&self, brane: &meta_timeshare::Brane) {
         self.cluster.wl().add_brane(brane)
     }
 
-    pub fn transfer_leader(&self, brane_id: u64, peer: metapb::Peer) {
+    pub fn transfer_leader(&self, brane_id: u64, peer: meta_timeshare::Peer) {
         let op = Operator::TransferLeader {
             peer,
             policy: SchedulePolicy::TillSuccess,
@@ -783,7 +783,7 @@ impl TestFidelClient {
         self.schedule_operator(brane_id, op);
     }
 
-    pub fn add_peer(&self, brane_id: u64, peer: metapb::Peer) {
+    pub fn add_peer(&self, brane_id: u64, peer: meta_timeshare::Peer) {
         let op = Operator::AddPeer {
             peer: Either::Left(peer),
             policy: SchedulePolicy::TillSuccess,
@@ -791,7 +791,7 @@ impl TestFidelClient {
         self.schedule_operator(brane_id, op);
     }
 
-    pub fn remove_peer(&self, brane_id: u64, peer: metapb::Peer) {
+    pub fn remove_peer(&self, brane_id: u64, peer: meta_timeshare::Peer) {
         let op = Operator::RemovePeer {
             peer,
             policy: SchedulePolicy::TillSuccess,
@@ -801,8 +801,8 @@ impl TestFidelClient {
 
     pub fn split_brane(
         &self,
-        mut brane: metapb::Brane,
-        policy: fidelpb::CheckPolicy,
+        mut brane: meta_timeshare::Brane,
+        policy: fidel_timeshare::CheckPolicy,
         tuplespaceInstanton: Vec<Vec<u8>>,
     ) {
         let op = Operator::SplitBrane {
@@ -815,12 +815,12 @@ impl TestFidelClient {
 
     pub fn must_split_brane(
         &self,
-        brane: metapb::Brane,
-        policy: fidelpb::CheckPolicy,
+        brane: meta_timeshare::Brane,
+        policy: fidel_timeshare::CheckPolicy,
         tuplespaceInstanton: Vec<Vec<u8>>,
     ) {
         let expect_brane_count = self.get_branes_number()
-            + if policy == fidelpb::CheckPolicy::Usekey {
+            + if policy == fidel_timeshare::CheckPolicy::Usekey {
                 tuplespaceInstanton.len()
             } else {
                 1
@@ -835,12 +835,12 @@ impl TestFidelClient {
         panic!("brane {:?} is still not split.", brane);
     }
 
-    pub fn must_add_peer(&self, brane_id: u64, peer: metapb::Peer) {
+    pub fn must_add_peer(&self, brane_id: u64, peer: meta_timeshare::Peer) {
         self.add_peer(brane_id, peer.clone());
         self.must_have_peer(brane_id, peer);
     }
 
-    pub fn must_remove_peer(&self, brane_id: u64, peer: metapb::Peer) {
+    pub fn must_remove_peer(&self, brane_id: u64, peer: meta_timeshare::Peer) {
         self.remove_peer(brane_id, peer.clone());
         self.must_none_peer(brane_id, peer);
     }
@@ -880,7 +880,7 @@ impl TestFidelClient {
         }
     }
 
-    pub fn brane_leader_must_be(&self, brane_id: u64, peer: metapb::Peer) {
+    pub fn brane_leader_must_be(&self, brane_id: u64, peer: meta_timeshare::Peer) {
         for _ in 0..500 {
             sleep_ms(10);
             if let Some(p) = self.cluster.rl().leaders.get(&brane_id) {
@@ -893,7 +893,7 @@ impl TestFidelClient {
     }
 
     // check whether brane is split by split_key or not.
-    pub fn check_split(&self, brane: &metapb::Brane, split_key: &[u8]) -> bool {
+    pub fn check_split(&self, brane: &meta_timeshare::Brane, split_key: &[u8]) -> bool {
         // E.g, 1 [a, c) -> 1 [a, b) + 2 [b, c)
         // use a to find new [a, b).
         // use b to find new [b, c)
@@ -918,7 +918,7 @@ impl TestFidelClient {
             && right.get_brane_epoch().get_version() > brane.get_brane_epoch().get_version()
     }
 
-    pub fn get_store_stats(&self, store_id: u64) -> Option<fidelpb::StoreStats> {
+    pub fn get_store_stats(&self, store_id: u64) -> Option<fidel_timeshare::StoreStats> {
         self.cluster.rl().store_stats.get(&store_id).cloned()
     }
 
@@ -926,11 +926,11 @@ impl TestFidelClient {
         self.cluster.rl().split_count
     }
 
-    pub fn get_down_peers(&self) -> HashMap<u64, fidelpb::PeerStats> {
+    pub fn get_down_peers(&self) -> HashMap<u64, fidel_timeshare::PeerStats> {
         self.cluster.rl().down_peers.clone()
     }
 
-    pub fn get_plightlikeing_peers(&self) -> HashMap<u64, metapb::Peer> {
+    pub fn get_plightlikeing_peers(&self) -> HashMap<u64, meta_timeshare::Peer> {
         self.cluster.rl().plightlikeing_peers.clone()
     }
 
@@ -1027,8 +1027,8 @@ impl FidelClient for TestFidelClient {
 
     fn bootstrap_cluster(
         &self,
-        store: metapb::CausetStore,
-        brane: metapb::Brane,
+        store: meta_timeshare::CausetStore,
+        brane: meta_timeshare::Brane,
     ) -> Result<Option<ReplicationStatus>> {
         if self.is_cluster_bootstrapped().unwrap() || !self.is_branes_empty() {
             self.cluster.wl().set_bootstrap(true);
@@ -1048,24 +1048,24 @@ impl FidelClient for TestFidelClient {
         self.cluster.rl().alloc_id()
     }
 
-    fn put_store(&self, store: metapb::CausetStore) -> Result<Option<ReplicationStatus>> {
+    fn put_store(&self, store: meta_timeshare::CausetStore) -> Result<Option<ReplicationStatus>> {
         self.check_bootstrap()?;
         let mut cluster = self.cluster.wl();
         cluster.put_store(store)?;
         Ok(cluster.replication_status.clone())
     }
 
-    fn get_all_stores(&self, _exclude_tombstone: bool) -> Result<Vec<metapb::CausetStore>> {
+    fn get_all_stores(&self, _exclude_tombstone: bool) -> Result<Vec<meta_timeshare::CausetStore>> {
         self.check_bootstrap()?;
         self.cluster.rl().get_all_stores()
     }
 
-    fn get_store(&self, store_id: u64) -> Result<metapb::CausetStore> {
+    fn get_store(&self, store_id: u64) -> Result<meta_timeshare::CausetStore> {
         self.check_bootstrap()?;
         self.cluster.rl().get_store(store_id)
     }
 
-    fn get_brane(&self, key: &[u8]) -> Result<metapb::Brane> {
+    fn get_brane(&self, key: &[u8]) -> Result<meta_timeshare::Brane> {
         self.check_bootstrap()?;
         if let Some(brane) = self.cluster.rl().get_brane(data_key(key)) {
             if check_key_in_brane(key, &brane).is_ok() {
@@ -1085,7 +1085,7 @@ impl FidelClient for TestFidelClient {
         Ok(BraneInfo::new(brane, leader))
     }
 
-    fn get_brane_by_id(&self, brane_id: u64) -> FidelFuture<Option<metapb::Brane>> {
+    fn get_brane_by_id(&self, brane_id: u64) -> FidelFuture<Option<meta_timeshare::Brane>> {
         if let Err(e) = self.check_bootstrap() {
             return Box::pin(err(e));
         }
@@ -1095,7 +1095,7 @@ impl FidelClient for TestFidelClient {
         }
     }
 
-    fn get_cluster_config(&self) -> Result<metapb::Cluster> {
+    fn get_cluster_config(&self) -> Result<meta_timeshare::Cluster> {
         self.check_bootstrap()?;
         Ok(self.cluster.rl().meta.clone())
     }
@@ -1103,8 +1103,8 @@ impl FidelClient for TestFidelClient {
     fn brane_heartbeat(
         &self,
         term: u64,
-        brane: metapb::Brane,
-        leader: metapb::Peer,
+        brane: meta_timeshare::Brane,
+        leader: meta_timeshare::Peer,
         brane_stat: BraneStat,
         replication_status: Option<BraneReplicationStatus>,
     ) -> FidelFuture<()> {
@@ -1133,7 +1133,7 @@ impl FidelClient for TestFidelClient {
     fn handle_brane_heartbeat_response<F>(&self, store_id: u64, f: F) -> FidelFuture<()>
     where
         Self: Sized,
-        F: Fn(fidelpb::BraneHeartbeatResponse) + lightlike + 'static,
+        F: Fn(fidel_timeshare::BraneHeartbeatResponse) + lightlike + 'static,
     {
         let cluster1 = Arc::clone(&self.cluster);
         let timer = self.timer.clone();
@@ -1170,7 +1170,7 @@ impl FidelClient for TestFidelClient {
         )
     }
 
-    fn ask_split(&self, brane: metapb::Brane) -> FidelFuture<fidelpb::AskSplitResponse> {
+    fn ask_split(&self, brane: meta_timeshare::Brane) -> FidelFuture<fidel_timeshare::AskSplitResponse> {
         if let Err(e) = self.check_bootstrap() {
             return Box::pin(err(e));
         }
@@ -1186,7 +1186,7 @@ impl FidelClient for TestFidelClient {
             return Box::pin(err(e));
         }
 
-        let mut resp = fidelpb::AskSplitResponse::default();
+        let mut resp = fidel_timeshare::AskSplitResponse::default();
         resp.set_new_brane_id(self.alloc_id().unwrap());
         let mut peer_ids = vec![];
         for _ in brane.get_peers() {
@@ -1199,9 +1199,9 @@ impl FidelClient for TestFidelClient {
 
     fn ask_batch_split(
         &self,
-        brane: metapb::Brane,
+        brane: meta_timeshare::Brane,
         count: usize,
-    ) -> FidelFuture<fidelpb::AskBatchSplitResponse> {
+    ) -> FidelFuture<fidel_timeshare::AskBatchSplitResponse> {
         if self.is_incompatible {
             return Box::pin(err(Error::Incompatible));
         }
@@ -1221,9 +1221,9 @@ impl FidelClient for TestFidelClient {
             return Box::pin(err(e));
         }
 
-        let mut resp = fidelpb::AskBatchSplitResponse::default();
+        let mut resp = fidel_timeshare::AskBatchSplitResponse::default();
         for _ in 0..count {
-            let mut id = fidelpb::SplitId::default();
+            let mut id = fidel_timeshare::SplitId::default();
             id.set_new_brane_id(self.alloc_id().unwrap());
             for _ in brane.get_peers() {
                 id.mut_new_peer_ids().push(self.alloc_id().unwrap());
@@ -1234,7 +1234,7 @@ impl FidelClient for TestFidelClient {
         Box::pin(ok(resp))
     }
 
-    fn store_heartbeat(&self, stats: fidelpb::StoreStats) -> FidelFuture<fidelpb::StoreHeartbeatResponse> {
+    fn store_heartbeat(&self, stats: fidel_timeshare::StoreStats) -> FidelFuture<fidel_timeshare::StoreHeartbeatResponse> {
         if let Err(e) = self.check_bootstrap() {
             return Box::pin(err(e));
         }
@@ -1244,14 +1244,14 @@ impl FidelClient for TestFidelClient {
         let mut cluster = self.cluster.wl();
         cluster.store_stats.insert(store_id, stats);
 
-        let mut resp = fidelpb::StoreHeartbeatResponse::default();
+        let mut resp = fidel_timeshare::StoreHeartbeatResponse::default();
         if let Some(ref status) = cluster.replication_status {
             resp.set_replication_status(status.clone());
         }
         Box::pin(ok(resp))
     }
 
-    fn report_batch_split(&self, branes: Vec<metapb::Brane>) -> FidelFuture<()> {
+    fn report_batch_split(&self, branes: Vec<meta_timeshare::Brane>) -> FidelFuture<()> {
         // fidel just uses this for history show, so here we just count it.
         if let Err(e) = self.check_bootstrap() {
             return Box::pin(err(e));
@@ -1269,7 +1269,7 @@ impl FidelClient for TestFidelClient {
         Box::pin(ok(safe_point))
     }
 
-    fn get_store_stats(&self, store_id: u64) -> Result<fidelpb::StoreStats> {
+    fn get_store_stats(&self, store_id: u64) -> Result<fidel_timeshare::StoreStats> {
         let cluster = self.cluster.rl();
         let stats = cluster.store_stats.get(&store_id);
         match stats {
@@ -1278,10 +1278,10 @@ impl FidelClient for TestFidelClient {
         }
     }
 
-    fn get_operator(&self, brane_id: u64) -> Result<fidelpb::GetOperatorResponse> {
-        let mut header = fidelpb::ResponseHeader::default();
+    fn get_operator(&self, brane_id: u64) -> Result<fidel_timeshare::GetOperatorResponse> {
+        let mut header = fidel_timeshare::ResponseHeader::default();
         header.set_cluster_id(self.cluster_id);
-        let mut resp = fidelpb::GetOperatorResponse::default();
+        let mut resp = fidel_timeshare::GetOperatorResponse::default();
         resp.set_header(header);
         resp.set_brane_id(brane_id);
         Ok(resp)

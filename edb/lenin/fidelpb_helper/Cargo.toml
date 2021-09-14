@@ -1,5 +1,5 @@
 [package]
-name = "fidelpb_helper"
+name = "fidel_timeshare_helper"
 version = "0.0.1"
 edition = "2018"
 publish = false
@@ -7,14 +7,14 @@ publish = false
 [features]
 protobuf-codec = [
   "milevadb_query_datatype/protobuf-codec",
-  "fidelpb/protobuf-codec"
+  "fidel_timeshare/protobuf-codec"
 ]
 prost-codec = [
   "milevadb_query_datatype/prost-codec",
-  "fidelpb/prost-codec"
+  "fidel_timeshare/prost-codec"
 ]
 
 [deplightlikeencies]
 codec = { path = "../codec" }
 milevadb_query_datatype = { path = "../milevadb_query_datatype" }
-fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
+fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", default-features = false }

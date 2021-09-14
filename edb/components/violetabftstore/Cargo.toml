@@ -75,7 +75,7 @@ sst_importer = { path = "../sst_importer" }
 tempfile = "3.0"
 milevadb_query_datatype = { path = "../milevadb_query_datatype" }
 edb_alloc = { path = "../edb_alloc" }
-edb_util = { path = "../edb_util" }
+violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
 time = "0.1"
 tokio = { version = "0.2", features = ["sync", "rt-threaded"] }
 txn_types = { path = "../txn_types" }

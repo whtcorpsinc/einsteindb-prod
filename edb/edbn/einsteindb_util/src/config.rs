@@ -975,8 +975,8 @@ impl<T> VersionTrack<T> {
         }
     }
 
-    /// Ufidelate the value
-    pub fn ufidelate<F>(&self, f: F)
+    /// fidelio the value
+    pub fn fidelio<F>(&self, f: F)
     where
         F: FnOnce(&mut T),
     {
@@ -1005,7 +1005,7 @@ pub struct Tracker<T> {
 }
 
 impl<T> Tracker<T> {
-    // The ufidelate of `value` and `version` is not atomic
+    // The fidelio of `value` and `version` is not atomic
     // so there maybe false positive.
     pub fn any_new(&mut self) -> Option<RwLockReadGuard<'_, T>> {
         let v = self.inner.version.load(Ordering::Acquire);
@@ -1016,7 +1016,7 @@ impl<T> Tracker<T> {
                 Err(_) => {
                     let t = Instant::now_coarse();
                     let value = self.inner.value.read().unwrap();
-                    slow_log!(t.elapsed(), "{} tracker get ufidelated value", self.tag);
+                    slow_log!(t.elapsed(), "{} tracker get fideliod value", self.tag);
                     Some(value)
                 }
             }
@@ -1099,7 +1099,7 @@ impl TomlLine {
     }
 }
 
-/// TomlWriter use to ufidelate the config file and only cover the most commom toml
+/// TomlWriter use to fidelio the config file and only cover the most commom toml
 /// format that used by edb config file, toml format like: quoted tuplespaceInstanton, multi-line
 /// value, inline Block, etc, are not supported, see https://github.com/toml-lang/toml
 /// for more detail.
@@ -1506,7 +1506,7 @@ mod tests {
 
         assert!(trackers.iter_mut().all(|tr| tr.any_new().is_none()));
 
-        vc.ufidelate(|v| {
+        vc.fidelio(|v| {
             v.v1 = 1000;
             v.v2 = true;
         });
@@ -1527,7 +1527,7 @@ mod tests {
 ## commet1
 log-level = "info"
 
-[readpool.causetStorage]
+[readpool.causet_storage]
 ## commet2
 normal-concurrency = 1
 # high-concurrency = 1
@@ -1542,9 +1542,9 @@ compression-per-level = ["no", "no", "no", "no", "no", "no", "no"]
 "#;
         let mut m = HashMap::new();
         m.insert("log-file".to_owned(), "log-file-name".to_owned());
-        m.insert("readpool.causetStorage.xxx".to_owned(), "zzz".to_owned());
+        m.insert("readpool.causet_storage.xxx".to_owned(), "zzz".to_owned());
         m.insert(
-            "readpool.causetStorage.high-concurrency".to_owned(),
+            "readpool.causet_storage.high-concurrency".to_owned(),
             "345".to_owned(),
         );
         m.insert(
@@ -1564,7 +1564,7 @@ compression-per-level = ["no", "no", "no", "no", "no", "no", "no"]
 log-level = "info"
 
 log-file = log-file-name
-[readpool.causetStorage]
+[readpool.causet_storage]
 ## commet2
 normal-concurrency = 1
 high-concurrency = 345
@@ -1585,14 +1585,14 @@ yyy = 100
     }
 
     #[test]
-    fn test_ufidelate_empty_content() {
+    fn test_fidelio_empty_content() {
         // empty content
         let mut src = "".to_owned();
 
         src = {
             let mut m = HashMap::new();
             m.insert(
-                "readpool.causetStorage.high-concurrency".to_owned(),
+                "readpool.causet_storage.high-concurrency".to_owned(),
                 "1".to_owned(),
             );
             let mut t = TomlWriter::new();
@@ -1602,14 +1602,14 @@ yyy = 100
         // src should have valid toml format
         let toml_value: toml::Value = toml::from_str(src.as_str()).unwrap();
         assert_eq!(
-            toml_value["readpool"]["causetStorage"]["high-concurrency"].as_integer(),
+            toml_value["readpool"]["causet_storage"]["high-concurrency"].as_integer(),
             Some(1)
         );
 
         src = {
             let mut m = HashMap::new();
             m.insert(
-                "readpool.causetStorage.normal-concurrency".to_owned(),
+                "readpool.causet_storage.normal-concurrency".to_owned(),
                 "2".to_owned(),
             );
             let mut t = TomlWriter::new();
@@ -1619,7 +1619,7 @@ yyy = 100
         // src should have valid toml format
         let toml_value: toml::Value = toml::from_str(src.as_str()).unwrap();
         assert_eq!(
-            toml_value["readpool"]["causetStorage"]["normal-concurrency"].as_integer(),
+            toml_value["readpool"]["causet_storage"]["normal-concurrency"].as_integer(),
             Some(2)
         );
     }

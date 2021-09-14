@@ -3,7 +3,7 @@
 use milevadb_query_codegen::AggrFunction;
 use milevadb_query_datatype::builder::FieldTypeBuilder;
 use milevadb_query_datatype::{EvalType, FieldTypeFlag, FieldTypeTp};
-use fidelpb::{Expr, ExprType, FieldType};
+use fidel_timeshare::{Expr, ExprType, FieldType};
 
 use super::summable::Summable;
 use super::*;
@@ -118,7 +118,7 @@ where
     }
 
     #[inline]
-    fn ufidelate_concrete<'a, TT>(&mut self, ctx: &mut EvalContext, value: Option<TT>) -> Result<()>
+    fn fidelio_concrete<'a, TT>(&mut self, ctx: &mut EvalContext, value: Option<TT>) -> Result<()>
     where
         TT: EvaluableRef<'a, EvaluableType = T>,
     {
@@ -162,13 +162,13 @@ mod tests {
     use super::*;
 
     use milevadb_query_datatype::FieldTypeAccessor;
-    use fidelpb_helper::ExprDefBuilder;
+    use fidel_timeshare_helper::ExprDefBuilder;
 
     use crate::parser::AggrDefinitionParser;
     use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 
     #[test]
-    fn test_ufidelate() {
+    fn test_fidelio() {
         let mut ctx = EvalContext::default();
         let function = AggrFnAvg::<Real>::new();
         let mut state = function.create_state();
@@ -181,15 +181,15 @@ mod tests {
         assert_eq!(result[0].to_int_vec(), &[Some(0)]);
         assert_eq!(result[1].to_real_vec(), &[None]);
 
-        ufidelate!(state, &mut ctx, Option::<&Real>::None).unwrap();
+        fidelio!(state, &mut ctx, Option::<&Real>::None).unwrap();
 
         state.push_result(&mut ctx, &mut result[..]).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(0), Some(0)]);
         assert_eq!(result[1].to_real_vec(), &[None, None]);
 
-        ufidelate!(state, &mut ctx, Real::new(5.0).ok().as_ref()).unwrap();
-        ufidelate!(state, &mut ctx, Option::<&Real>::None).unwrap();
-        ufidelate!(state, &mut ctx, Real::new(10.0).ok().as_ref()).unwrap();
+        fidelio!(state, &mut ctx, Real::new(5.0).ok().as_ref()).unwrap();
+        fidelio!(state, &mut ctx, Option::<&Real>::None).unwrap();
+        fidelio!(state, &mut ctx, Real::new(10.0).ok().as_ref()).unwrap();
 
         state.push_result(&mut ctx, &mut result[..]).unwrap();
         assert_eq!(result[0].to_int_vec(), &[Some(0), Some(0), Some(2)]);
@@ -197,7 +197,7 @@ mod tests {
 
         let x: SolitonedVecSized<Real> = vec![Real::new(0.0).ok(), Real::new(-4.5).ok(), None].into();
 
-        ufidelate_vector!(state, &mut ctx, &x, &[0, 1, 2]).unwrap();
+        fidelio_vector!(state, &mut ctx, &x, &[0, 1, 2]).unwrap();
 
         state.push_result(&mut ctx, &mut result[..]).unwrap();
         assert_eq!(
@@ -251,7 +251,7 @@ mod tests {
         let exp_result = exp_result.vector_value().unwrap();
         let slice = exp_result.as_ref().to_decimal_vec();
         let slice: SolitonedVecSized<Decimal> = slice.into();
-        ufidelate_vector!(state, &mut ctx, &slice, exp_result.logical_rows()).unwrap();
+        fidelio_vector!(state, &mut ctx, &slice, exp_result.logical_rows()).unwrap();
 
         let mut aggr_result = [
             VectorValue::with_capacity(0, EvalType::Int),

@@ -4,8 +4,8 @@ use super::Result;
 use crate::store::SplitCheckTask;
 
 use configuration::{ConfigChange, ConfigManager, Configuration};
-use edb_util::config::ReadableSize;
-use edb_util::worker::Interlock_Semaphore;
+use violetabftstore::interlock::config::ReadableSize;
+use violetabftstore::interlock::worker::Interlock_Semaphore;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Configuration)]
 #[serde(default)]

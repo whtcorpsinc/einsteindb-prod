@@ -8,13 +8,13 @@ use std::{thread, usize};
 use futures::executor::block_on;
 use grpcio::{ChannelBuilder, EnvBuilder, Environment, Error as GrpcError, Service};
 use ekvproto::deadlock::create_deadlock;
-use ekvproto::debugpb::{create_debug, DebugClient};
-use ekvproto::import_sstpb::create_import_sst;
-use ekvproto::kvrpcpb::Context;
-use ekvproto::metapb;
-use ekvproto::violetabft_cmdpb::*;
-use ekvproto::violetabft_serverpb;
-use ekvproto::edbpb::EINSTEINDBClient;
+use ekvproto::debug_timeshare::{create_debug, DebugClient};
+use ekvproto::import_sst_timeshare::create_import_sst;
+use ekvproto::kvrpc_timeshare::Context;
+use ekvproto::meta_timeshare;
+use ekvproto::violetabft_cmd_timeshare::*;
+use ekvproto::violetabft_server_timeshare;
+use ekvproto::edb_timeshare::EINSTEINDBClient;
 use tempfile::{Builder, TempDir};
 use tokio::runtime::Builder as TokioBuilder;
 
@@ -47,15 +47,15 @@ use edb::server::resolve::{self, Task as ResolveTask};
 use edb::server::service::DebugService;
 use edb::server::Result as ServerResult;
 use edb::server::{
-    create_violetabft_causetStorage, Config, Error, Node, FidelStoreAddrResolver, VioletaBftClient, VioletaBftKv, Server,
+    create_violetabft_causet_storage, Config, Error, Node, FidelStoreAddrResolver, VioletaBftClient, VioletaBftKv, Server,
     ServerTransport,
 };
-use edb::causetStorage;
-use edb_util::collections::{HashMap, HashSet};
-use edb_util::config::VersionTrack;
-use edb_util::time::ThreadReadId;
-use edb_util::worker::{FutureWorker, Worker};
-use edb_util::HandyRwLock;
+use edb::causet_storage;
+use violetabftstore::interlock::::collections::{HashMap, HashSet};
+use violetabftstore::interlock::::config::VersionTrack;
+use violetabftstore::interlock::::time::ThreadReadId;
+use violetabftstore::interlock::::worker::{FutureWorker, Worker};
+use violetabftstore::interlock::::HandyRwLock;
 
 type SimulateStoreTransport = SimulateTransport<ServerVioletaBftStoreRouter<LmdbEngine, LmdbEngine>>;
 type SimulateServerTransport =
@@ -80,7 +80,7 @@ type CopHooks = Vec<Box<dyn Fn(&mut InterlockHost<LmdbEngine>)>>;
 pub struct ServerCluster {
     metas: HashMap<u64, ServerMeta>,
     addrs: HashMap<u64, String>,
-    pub causetStorages: HashMap<u64, SimulateEngine>,
+    pub causet_storages: HashMap<u64, SimulateEngine>,
     pub brane_info_accessors: HashMap<u64, BraneInfoAccessor>,
     pub importers: HashMap<u64, Arc<SSTImporter>>,
     pub plightlikeing_services: HashMap<u64, PlightlikeingServices>,
@@ -112,7 +112,7 @@ impl ServerCluster {
             metas: HashMap::default(),
             addrs: HashMap::default(),
             fidel_client,
-            causetStorages: HashMap::default(),
+            causet_storages: HashMap::default(),
             brane_info_accessors: HashMap::default(),
             importers: HashMap::default(),
             snap_paths: HashMap::default(),
@@ -191,9 +191,9 @@ impl Simulator for ServerCluster {
             }
         }
 
-        // Create causetStorage.
+        // Create causet_storage.
         let fidel_worker = FutureWorker::new("test-fidel-worker");
-        let causetStorage_read_pool = ReadPool::from(causetStorage::build_read_pool_for_test(
+        let causet_storage_read_pool = ReadPool::from(causet_storage::build_read_pool_for_test(
             &edb::config::StorageReadPoolConfig::default_for_test(),
             violetabft_engine.clone(),
         ));
@@ -215,15 +215,15 @@ impl Simulator for ServerCluster {
             block_on(self.fidel_client.get_tso()).expect("failed to get timestamp from FIDel");
         let concurrency_manager = ConcurrencyManager::new(latest_ts);
         let mut lock_mgr = LockManager::new();
-        let store = create_violetabft_causetStorage(
+        let store = create_violetabft_causet_storage(
             engine,
-            &causet.causetStorage,
-            causetStorage_read_pool.handle(),
+            &causet.causet_storage,
+            causet_storage_read_pool.handle(),
             lock_mgr.clone(),
             concurrency_manager.clone(),
             false,
         )?;
-        self.causetStorages.insert(node_id, violetabft_engine);
+        self.causet_storages.insert(node_id, violetabft_engine);
 
         let security_mgr = Arc::new(SecurityManager::new(&causet.security).unwrap());
         // Create import service.
@@ -452,7 +452,7 @@ impl Simulator for ServerCluster {
         };
     }
 
-    fn lightlike_violetabft_msg(&mut self, violetabft_msg: violetabft_serverpb::VioletaBftMessage) -> Result<()> {
+    fn lightlike_violetabft_msg(&mut self, violetabft_msg: violetabft_server_timeshare::VioletaBftMessage) -> Result<()> {
         let store_id = violetabft_msg.get_to_peer().get_store_id();
         let addr = self.get_addr(store_id).to_owned();
         self.violetabft_client.lightlike(store_id, &addr, violetabft_msg).unwrap();
@@ -509,7 +509,7 @@ pub fn new_incompatible_server_cluster(id: u64, count: usize) -> Cluster<ServerC
     Cluster::new(id, count, sim, fidel_client)
 }
 
-pub fn must_new_cluster() -> (Cluster<ServerCluster>, metapb::Peer, Context) {
+pub fn must_new_cluster() -> (Cluster<ServerCluster>, meta_timeshare::Peer, Context) {
     let count = 1;
     let mut cluster = new_server_cluster(0, count);
     cluster.run();

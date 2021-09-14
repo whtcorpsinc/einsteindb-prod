@@ -18,12 +18,12 @@ use edbn::entities::{
     SolitonIdOrCausetId,
 };
 
-use raum_promises::{
+use allegro_promises::{
     SolitonId,
     MinkowskiType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     HasSchemaReplicant,
     SchemaReplicant,
 };

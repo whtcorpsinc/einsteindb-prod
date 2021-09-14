@@ -49,7 +49,7 @@ groups:
       expr: sum(rate(edb_interlock_request_duration_seconds_bucket{instance=~".*"}[1m])) by (le)
     - record: edb_futurepool_plightlikeing_task:1m
       expr: sum(rate(edb_futurepool_plightlikeing_task_total{instance=~".*"}[1m])) by (name)
-    - record: edb_causetStorage_engine_async_request:1m
-      expr: sum(rate(edb_causetStorage_engine_async_request_total{instance=~".*", status!~"all|success"}[1m])) by (status)
+    - record: edb_causet_storage_engine_async_request:1m
+      expr: sum(rate(edb_causet_storage_engine_async_request_total{instance=~".*", status!~"all|success"}[1m])) by (status)
     - record: edb_thread_cpu_seconds_nogrpc:1m
       expr: sum(rate(edb_thread_cpu_seconds_total{instance=~".*", name=~"grpc.*"}[1m])) by (instance)

@@ -5,7 +5,7 @@ use std::io::{Read, Write};
 use std::path::Path;
 use std::time::Instant;
 
-use ekvproto::encryptionpb::EncryptedContent;
+use ekvproto::encryption_timeshare::EncryptedContent;
 use protobuf::Message;
 use rand::{thread_rng, RngCore};
 

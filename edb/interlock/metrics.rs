@@ -3,11 +3,11 @@
 use std::cell::RefCell;
 use std::mem;
 
-use crate::causetStorage::{FlowStatsReporter, Statistics};
-use ekvproto::metapb;
+use crate::causet_storage::{FlowStatsReporter, Statistics};
+use ekvproto::meta_timeshare;
 use violetabftstore::store::util::build_key_cone;
 use violetabftstore::store::ReadStats;
-use edb_util::collections::HashMap;
+use violetabftstore::interlock::::collections::HashMap;
 
 use crate::server::metrics::{GcTuplespaceInstantonCauset, GcTuplespaceInstantonDetail};
 use prometheus::*;
@@ -289,7 +289,7 @@ pub fn tls_collect_read_flow(brane_id: u64, statistics: &Statistics) {
 
 pub fn tls_collect_qps(
     brane_id: u64,
-    peer: &metapb::Peer,
+    peer: &meta_timeshare::Peer,
     spacelike_key: &[u8],
     lightlike_key: &[u8],
     reverse_scan: bool,

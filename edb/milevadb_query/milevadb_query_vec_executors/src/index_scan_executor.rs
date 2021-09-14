@@ -4,14 +4,14 @@ use std::sync::Arc;
 
 use ekvproto::interlock::KeyCone;
 use milevadb_query_datatype::EvalType;
-use fidelpb::PrimaryCausetInfo;
-use fidelpb::FieldType;
-use fidelpb::IndexScan;
+use fidel_timeshare::PrimaryCausetInfo;
+use fidel_timeshare::FieldType;
+use fidel_timeshare::IndexScan;
 
 use super::util::scan_executor::*;
 use crate::interface::*;
 use codec::prelude::NumberDecoder;
-use milevadb_query_common::causetStorage::{IntervalCone, CausetStorage};
+use milevadb_query_common::causet_storage::{IntervalCone, causet_storage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::codec::Block::{check_index_key, MAX_OLD_ENCODED_VALUE_LEN};
@@ -20,11 +20,11 @@ use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
 
 use DecodeHandleStrategy::*;
 
-pub struct BatchIndexScanFreeDaemon<S: CausetStorage>(ScanFreeDaemon<S, IndexScanFreeDaemonImpl>);
+pub struct BatchIndexScanFreeDaemon<S: causet_storage>(ScanFreeDaemon<S, IndexScanFreeDaemonImpl>);
 
-// We assign a dummy type `Box<dyn CausetStorage<Statistics = ()>>` so that we can omit the type
+// We assign a dummy type `Box<dyn causet_storage<Statistics = ()>>` so that we can omit the type
 // when calling `check_supported`.
-impl BatchIndexScanFreeDaemon<Box<dyn CausetStorage<Statistics = ()>>> {
+impl BatchIndexScanFreeDaemon<Box<dyn causet_storage<Statistics = ()>>> {
     /// Checks whether this executor can be used.
     #[inline]
     pub fn check_supported(descriptor: &IndexScan) -> Result<()> {
@@ -32,9 +32,9 @@ impl BatchIndexScanFreeDaemon<Box<dyn CausetStorage<Statistics = ()>>> {
     }
 }
 
-impl<S: CausetStorage> BatchIndexScanFreeDaemon<S> {
+impl<S: causet_storage> BatchIndexScanFreeDaemon<S> {
     pub fn new(
-        causetStorage: S,
+        causet_storage: S,
         config: Arc<EvalConfig>,
         PrimaryCausets_info: Vec<PrimaryCausetInfo>,
         key_cones: Vec<KeyCone>,
@@ -97,7 +97,7 @@ impl<S: CausetStorage> BatchIndexScanFreeDaemon<S> {
         };
         let wrapper = ScanFreeDaemon::new(ScanFreeDaemonOptions {
             imp,
-            causetStorage,
+            causet_storage,
             key_cones,
             is_backward,
             is_key_only: false,
@@ -108,7 +108,7 @@ impl<S: CausetStorage> BatchIndexScanFreeDaemon<S> {
     }
 }
 
-impl<S: CausetStorage> BatchFreeDaemon for BatchIndexScanFreeDaemon<S> {
+impl<S: causet_storage> BatchFreeDaemon for BatchIndexScanFreeDaemon<S> {
     type StorageStats = S::Statistics;
 
     #[inline]
@@ -127,8 +127,8 @@ impl<S: CausetStorage> BatchFreeDaemon for BatchIndexScanFreeDaemon<S> {
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.0.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.0.collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -499,9 +499,9 @@ mod tests {
     use codec::prelude::NumberEncoder;
     use ekvproto::interlock::KeyCone;
     use milevadb_query_datatype::{FieldTypeAccessor, FieldTypeTp};
-    use fidelpb::PrimaryCausetInfo;
+    use fidel_timeshare::PrimaryCausetInfo;
 
-    use milevadb_query_common::causetStorage::test_fixture::FixtureStorage;
+    use milevadb_query_common::causet_storage::test_fixture::FixtureStorage;
     use milevadb_query_common::util::convert_to_prefix_next;
     use milevadb_query_datatype::codec::data_type::*;
     use milevadb_query_datatype::codec::{

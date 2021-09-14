@@ -1,18 +1,18 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
-mod causetStorage_impl;
+mod causet_storage_impl;
 
-pub use self::causetStorage_impl::EinsteinDBStorage;
+pub use self::causet_storage_impl::EinsteinDBStorage;
 
 use async_trait::async_trait;
 use ekvproto::interlock::{KeyCone, Response};
 use protobuf::Message;
-use milevadb_query_common::causetStorage::IntervalCone;
-use fidelpb::{PosetDagRequest, SelectResponse, StreamResponse};
+use milevadb_query_common::causet_storage::IntervalCone;
+use fidel_timeshare::{PosetDagRequest, SelectResponse, StreamResponse};
 
 use crate::interlock::metrics::*;
 use crate::interlock::{Deadline, RequestHandler, Result};
-use crate::causetStorage::{Statistics, CausetStore};
+use crate::causet_storage::{Statistics, CausetStore};
 
 pub struct PosetDagHandlerBuilder<S: CausetStore + 'static> {
     req: PosetDagRequest,
@@ -100,7 +100,7 @@ impl DAGHandler {
 
 #[async_trait]
 impl RequestHandler for DAGHandler {
-    #[minitrace::trace_async(fidelpb::Event::EINSTEINDBCoprExecutePosetDagRunner as u32)]
+    #[minitrace::trace_async(fidel_timeshare::Event::EINSTEINDBCoprExecutePosetDagRunner as u32)]
     async fn handle_request(&mut self) -> Result<Response> {
         let result = self.runner.handle_request();
         handle_qe_response(result, self.runner.can_be_cached(), self.data_version)
@@ -111,7 +111,7 @@ impl RequestHandler for DAGHandler {
     }
 
     fn collect_scan_statistics(&mut self, dest: &mut Statistics) {
-        self.runner.collect_causetStorage_stats(dest);
+        self.runner.collect_causet_storage_stats(dest);
     }
 }
 
@@ -147,7 +147,7 @@ impl BatchDAGHandler {
 
 #[async_trait]
 impl RequestHandler for BatchDAGHandler {
-    #[minitrace::trace_async(fidelpb::Event::EINSTEINDBCoprExecuteBatchPosetDagRunner as u32)]
+    #[minitrace::trace_async(fidel_timeshare::Event::EINSTEINDBCoprExecuteBatchPosetDagRunner as u32)]
     async fn handle_request(&mut self) -> Result<Response> {
         let result = self.runner.handle_request().await;
         handle_qe_response(result, self.runner.can_be_cached(), self.data_version)
@@ -158,7 +158,7 @@ impl RequestHandler for BatchDAGHandler {
     }
 
     fn collect_scan_statistics(&mut self, dest: &mut Statistics) {
-        self.runner.collect_causetStorage_stats(dest);
+        self.runner.collect_causet_storage_stats(dest);
     }
 }
 
@@ -181,7 +181,7 @@ fn handle_qe_response(
             Ok(resp)
         }
         Err(err) => match *err.0 {
-            ErrorInner::CausetStorage(err) => Err(err.into()),
+            ErrorInner::causet_storage(err) => Err(err.into()),
             ErrorInner::Evaluate(err) => {
                 let mut resp = Response::default();
                 let mut sel_resp = SelectResponse::default();
@@ -211,7 +211,7 @@ fn handle_qe_stream_response(
         }
         Ok((None, finished)) => Ok((None, finished)),
         Err(err) => match *err.0 {
-            ErrorInner::CausetStorage(err) => Err(err.into()),
+            ErrorInner::causet_storage(err) => Err(err.into()),
             ErrorInner::Evaluate(err) => {
                 let mut resp = Response::default();
                 let mut s_resp = StreamResponse::default();

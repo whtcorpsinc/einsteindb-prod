@@ -1,11 +1,11 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 // Various conversions between types that can't have their own
-// interdeplightlikeencies. These are used to convert between error_promises::Error and
+// dependencies. These are used to convert between error_promises::Error and
 // other Error's that error_promises can't deplightlike on.
 
 use edb::Error as EnginePromisesError;
-use ekvproto::errorpb::Error as ProtoError;
+use ekvproto::error_timeshare::Error as ProtoError;
 use violetabft::Error as VioletaBftError;
 
 pub trait IntoOther<O> {
@@ -14,17 +14,17 @@ pub trait IntoOther<O> {
 
 impl IntoOther<ProtoError> for EnginePromisesError {
     fn into_other(self) -> ProtoError {
-        let mut errorpb = ProtoError::default();
-        errorpb.set_message(format!("{}", self));
+        let mut error_timeshare = ProtoError::default();
+        error_timeshare.set_message(format!("{}", self));
 
         if let EnginePromisesError::NotInCone(key, brane_id, spacelike_key, lightlike_key) = self {
-            errorpb.mut_key_not_in_brane().set_key(key);
-            errorpb.mut_key_not_in_brane().set_brane_id(brane_id);
-            errorpb.mut_key_not_in_brane().set_spacelike_key(spacelike_key);
-            errorpb.mut_key_not_in_brane().set_lightlike_key(lightlike_key);
+            error_timeshare.mut_key_not_in_brane().set_key(key);
+            error_timeshare.mut_key_not_in_brane().set_brane_id(brane_id);
+            error_timeshare.mut_key_not_in_brane().set_spacelike_key(spacelike_key);
+            error_timeshare.mut_key_not_in_brane().set_lightlike_key(lightlike_key);
         }
 
-        errorpb
+        error_timeshare
     }
 }
 

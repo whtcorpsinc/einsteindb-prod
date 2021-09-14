@@ -11,16 +11,16 @@ use futures::executor::block_on;
 use futures::StreamExt;
 use grpcio::{ChannelBuilder, Environment};
 use grpcio::{ClientDuplexReceiver, ClientDuplexlightlikeer, ClientUnaryReceiver};
-use ekvproto::causet_contextpb::{create_change_data, ChangeDataClient, ChangeDataEvent, ChangeDataRequest};
-use ekvproto::kvrpcpb::*;
-use ekvproto::edbpb::EINSTEINDBClient;
+use ekvproto::causet_context_timeshare::{create_change_data, ChangeDataClient, ChangeDataEvent, ChangeDataRequest};
+use ekvproto::kvrpc_timeshare::*;
+use ekvproto::edb_timeshare::EINSTEINDBClient;
 use violetabftstore::interlock::InterlockHost;
 use security::*;
 use test_violetabftstore::*;
 use edb::config::causet_contextConfig;
-use edb_util::collections::HashMap;
-use edb_util::worker::Worker;
-use edb_util::HandyRwLock;
+use violetabftstore::interlock::::collections::HashMap;
+use violetabftstore::interlock::::worker::Worker;
+use violetabftstore::interlock::::HandyRwLock;
 use txn_types::TimeStamp;
 
 use causet_context::{causet_contextSemaphore, Task};
@@ -51,7 +51,7 @@ pub fn new_event_feed(
         if !keep_resolved_ts && change_data_event.has_resolved_ts() {
             continue;
         }
-        edb_util::info!("receive event {:?}", change_data_event);
+        violetabftstore::interlock::::info!("receive event {:?}", change_data_event);
         break change_data_event;
     };
     (req_tx, event_feed_wrap, receive_event)

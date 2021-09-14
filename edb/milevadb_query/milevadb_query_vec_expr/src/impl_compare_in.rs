@@ -7,7 +7,7 @@ use std::marker::{PhantomData, lightlike, Sized};
 use codec::prelude::NumberDecoder;
 use milevadb_query_codegen::rpn_fn;
 use milevadb_query_datatype::EvalType;
-use fidelpb::{Expr, ExprType};
+use fidel_timeshare::{Expr, ExprType};
 
 use milevadb_query_common::{Error, Result};
 use milevadb_query_datatype::codec::collation::*;
@@ -328,8 +328,8 @@ mod tests {
     use test::{black_box, Bencher};
     use milevadb_query_datatype::builder::FieldTypeBuilder;
     use milevadb_query_datatype::{Collation, FieldTypeTp};
-    use fidelpb::ScalarFuncSig;
-    use fidelpb_helper::ExprDefBuilder;
+    use fidel_timeshare::ScalarFuncSig;
+    use fidel_timeshare_helper::ExprDefBuilder;
 
     use crate::types::RpnFnMeta;
     use crate::{RpnExpressionBuilder, RpnExpressionNode};

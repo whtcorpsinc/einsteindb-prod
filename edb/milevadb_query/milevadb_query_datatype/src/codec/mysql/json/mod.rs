@@ -83,7 +83,7 @@ pub use self::path_expr::{parse_json_path_expr, PathExpression};
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::str;
-use edb_util::is_even;
+use violetabftstore::interlock::::is_even;
 
 use super::super::datum::Datum;
 use super::super::{Error, Result};

@@ -17,6 +17,6 @@ extern crate rusqlite;
 extern crate uuid;
 extern crate serde_json;
 
-extern crate edb_promises;
+extern crate causetq_pull_promises;
 
 pub mod errors;

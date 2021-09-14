@@ -130,7 +130,7 @@ pub trait UnsafeRefInto<T> {
     ///
     /// This function uses `std::mem::transmute`.
     /// The only place that copr uses this function is in
-    /// `milevadb_query_vec_aggr`, together with a set of `ufidelate` macros.
+    /// `milevadb_query_vec_aggr`, together with a set of `fidelio` macros.
     unsafe fn unsafe_into(self) -> T;
 }
 

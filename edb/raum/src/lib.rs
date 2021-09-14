@@ -15,11 +15,11 @@ extern crate indexmap;
 extern crate ordered_float;
 extern crate uuid;
 
-extern crate raum_promises;
+extern crate allegro_promises;
 
 extern crate edbn;
 
-use raum_promises::{
+use allegro_promises::{
     Attribute,
     SolitonId,
     KnownSolitonId,
@@ -253,7 +253,7 @@ mod test {
 
     use std::str::FromStr;
 
-    use raum_promises::{
+    use allegro_promises::{
         attribute,
         MinkowskiType,
     };

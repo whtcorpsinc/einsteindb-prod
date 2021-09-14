@@ -6,7 +6,7 @@ use std::{i64, mem, u64};
 
 use super::{Error, Result};
 use crate::codec::mysql::Tz;
-use fidelpb::PosetDagRequest;
+use fidel_timeshare::PosetDagRequest;
 
 bitflags! {
     /// Please refer to SQLMode in `mysql/const.go` in repo `whtcorpsinc/parser` for details.
@@ -36,8 +36,8 @@ bitflags! {
         const PAD_CHAR_TO_FULL_LENGTH = 1 << 2;
         /// `IN_INSERT_STMT` indicates if this is a INSERT statement.
         const IN_INSERT_STMT = 1 << 3;
-        /// `IN_UFIDelATE_OR_DELETE_STMT` indicates if this is a UFIDelATE statement or a DELETE statement.
-        const IN_UFIDelATE_OR_DELETE_STMT = 1 << 4;
+        /// `IN_fidelio_OR_DELETE_STMT` indicates if this is a fidelio statement or a DELETE statement.
+        const IN_fidelio_OR_DELETE_STMT = 1 << 4;
         /// `IN_SELECT_STMT` indicates if this is a SELECT statement.
         const IN_SELECT_STMT = 1 << 5;
         /// `OVERFLOW_AS_WARNING` indicates if overflow error should be returned as warning.
@@ -168,7 +168,7 @@ pub struct EvalWarnings {
     // number of warnings
     pub warning_cnt: usize,
     // details of previous max_warning_cnt warnings
-    pub warnings: Vec<fidelpb::Error>,
+    pub warnings: Vec<fidel_timeshare::Error>,
 }
 
 impl EvalWarnings {
@@ -251,7 +251,7 @@ impl EvalContext {
 
     pub fn handle_division_by_zero(&mut self) -> Result<()> {
         if self.causet.flag.contains(Flag::IN_INSERT_STMT)
-            || self.causet.flag.contains(Flag::IN_UFIDelATE_OR_DELETE_STMT)
+            || self.causet.flag.contains(Flag::IN_fidelio_OR_DELETE_STMT)
         {
             if !self
                 .causet
@@ -276,7 +276,7 @@ impl EvalContext {
 
         if self.causet.sql_mode.is_strict()
             && (self.causet.flag.contains(Flag::IN_INSERT_STMT)
-                || self.causet.flag.contains(Flag::IN_UFIDelATE_OR_DELETE_STMT))
+                || self.causet.flag.contains(Flag::IN_fidelio_OR_DELETE_STMT))
         {
             return Err(err);
         }
@@ -313,7 +313,7 @@ impl EvalContext {
     }
 
     /// Indicates whether values less than 0 should be clipped to 0 for unsigned
-    /// integer types. This is the case for `insert`, `ufidelate`, `alter Block` and
+    /// integer types. This is the case for `insert`, `fidelio`, `alter Block` and
     /// `load data infile` statements, when not in strict SQL mode.
     /// see https://dev.mysql.com/doc/refman/5.7/en/out-of-cone-and-overflow.html
     pub fn should_clip_to_zero(&self) -> bool {
@@ -375,25 +375,25 @@ mod tests {
                 false,
             ), //warning
             (
-                Flag::IN_UFIDelATE_OR_DELETE_STMT,
+                Flag::IN_fidelio_OR_DELETE_STMT,
                 SqlMode::ERROR_FOR_DIVISION_BY_ZERO,
                 true,
                 false,
             ), //warning
             (
-                Flag::IN_UFIDelATE_OR_DELETE_STMT,
+                Flag::IN_fidelio_OR_DELETE_STMT,
                 SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS,
                 false,
                 true,
             ), //error
             (
-                Flag::IN_UFIDelATE_OR_DELETE_STMT,
+                Flag::IN_fidelio_OR_DELETE_STMT,
                 SqlMode::STRICT_ALL_BlockS,
                 true,
                 true,
             ), //ok
             (
-                Flag::IN_UFIDelATE_OR_DELETE_STMT | Flag::DIVIDED_BY_ZERO_AS_WARNING,
+                Flag::IN_fidelio_OR_DELETE_STMT | Flag::DIVIDED_BY_ZERO_AS_WARNING,
                 SqlMode::ERROR_FOR_DIVISION_BY_ZERO | SqlMode::STRICT_ALL_BlockS,
                 true,
                 false,
@@ -415,8 +415,8 @@ mod tests {
             (Flag::empty(), false, true, false),        //warning
             (Flag::empty(), true, true, false),         //warning
             (Flag::IN_INSERT_STMT, false, true, false), //warning
-            (Flag::IN_UFIDelATE_OR_DELETE_STMT, false, true, false), //warning
-            (Flag::IN_UFIDelATE_OR_DELETE_STMT, true, false, true), //error
+            (Flag::IN_fidelio_OR_DELETE_STMT, false, true, false), //warning
+            (Flag::IN_fidelio_OR_DELETE_STMT, true, false, true), //error
             (Flag::IN_INSERT_STMT, true, false, true),  //error
         ];
         for (flag, strict_sql_mode, is_ok, is_empty) in cases {

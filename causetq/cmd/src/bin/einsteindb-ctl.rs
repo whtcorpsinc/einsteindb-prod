@@ -30,22 +30,22 @@ use engine_lmdb::encryption::get_env;
 use engine_lmdb::LmdbEngine;
 use edb::{EncryptionKeyManager, ALL_CausetS, Causet_DEFAULT, Causet_DAGGER, Causet_WRITE};
 use edb::{Engines, VioletaBftEngine};
-use ekvproto::debugpb::{Db as DBType, *};
-use ekvproto::encryptionpb::EncryptionMethod;
-use ekvproto::kvrpcpb::{MvccInfo, SplitBraneRequest};
-use ekvproto::metapb::{Peer, Brane};
-use ekvproto::violetabft_cmdpb::VioletaBftCmdRequest;
-use ekvproto::violetabft_serverpb::{PeerState, SnapshotMeta};
-use ekvproto::edbpb::EINSTEINDBClient;
+use ekvproto::debug_timeshare::{Db as DBType, *};
+use ekvproto::encryption_timeshare::EncryptionMethod;
+use ekvproto::kvrpc_timeshare::{MvccInfo, SplitBraneRequest};
+use ekvproto::meta_timeshare::{Peer, Brane};
+use ekvproto::violetabft_cmd_timeshare::VioletaBftCmdRequest;
+use ekvproto::violetabft_server_timeshare::{PeerState, SnapshotMeta};
+use ekvproto::edb_timeshare::EINSTEINDBClient;
 use fidel_client::{Config as FidelConfig, FidelClient, RpcClient};
-use violetabft::evioletabftpb::{ConfChange, Entry, EntryType};
+use violetabft::evioletabft_timeshare::{ConfChange, Entry, EntryType};
 use violetabft_log_engine::VioletaBftLogEngine;
 use violetabftstore::store::INIT_EPOCH_CONF_VER;
 use security::{SecurityConfig, SecurityManager};
 use std::pin::Pin;
 use edb::config::{ConfigController, EINSTEINDBConfig};
 use edb::server::debug::{BottommostLevelCompaction, Debugger, BraneInfo};
-use edb_util::{escape, file::calc_crc32, unescape};
+use violetabftstore::interlock::::{escape, file::calc_crc32, unescape};
 use txn_types::Key;
 
 const METRICS_PROMETHEUS: &str = "prometheus";
@@ -71,10 +71,10 @@ fn new_debug_executor(
     match (host, db) {
         (None, Some(kv_path)) => {
             let key_manager =
-                DataKeyManager::from_config(&causet.security.encryption, &causet.causetStorage.data_dir)
+                DataKeyManager::from_config(&causet.security.encryption, &causet.causet_storage.data_dir)
                     .unwrap()
                     .map(|key_manager| Arc::new(key_manager));
-            let cache = causet.causetStorage.block_cache.build_shared_cache();
+            let cache = causet.causet_storage.block_cache.build_shared_cache();
             let shared_block_cache = cache.is_some();
             let env = get_env(key_manager, None).unwrap();
 
@@ -1864,7 +1864,7 @@ fn main() {
     }
 
     if let Some(matches) = matches.subcommand_matches("decrypt-file") {
-        let message = "This action will expose sensitive data as plaintext on persistent causetStorage";
+        let message = "This action will expose sensitive data as plaintext on persistent causet_storage";
         if !warning_prompt(message) {
             return;
         }
@@ -1873,7 +1873,7 @@ fn main() {
         v1!("infile: {}, outfile: {}", infile, outfile);
 
         let key_manager =
-            match DataKeyManager::from_config(&causet.security.encryption, &causet.causetStorage.data_dir)
+            match DataKeyManager::from_config(&causet.security.encryption, &causet.causet_storage.data_dir)
                 .expect("DataKeyManager::from_config should success")
             {
                 Some(mgr) => mgr,
@@ -1925,7 +1925,7 @@ fn main() {
                 }
                 DataKeyManager::dump_key_dict(
                     &causet.security.encryption,
-                    &causet.causetStorage.data_dir,
+                    &causet.causet_storage.data_dir,
                     matches
                         .values_of("ids")
                         .map(|ids| ids.map(|id| id.parse::<u64>().unwrap()).collect()),
@@ -1936,7 +1936,7 @@ fn main() {
                 let path = matches
                     .value_of("path")
                     .map(|path| fs::canonicalize(path).unwrap().to_str().unwrap().to_owned());
-                DataKeyManager::dump_file_dict(&causet.causetStorage.data_dir, path.as_deref()).unwrap();
+                DataKeyManager::dump_file_dict(&causet.causet_storage.data_dir, path.as_deref()).unwrap();
             }
             _ => ve1!("{}", matches.usage()),
         }
@@ -2405,7 +2405,7 @@ fn run_ldb_command(cmd: &ArgMatches<'_>, causet: &EINSTEINDBConfig) {
         None => Vec::new(),
     };
     args.insert(0, "ldb".to_owned());
-    let key_manager = DataKeyManager::from_config(&causet.security.encryption, &causet.causetStorage.data_dir)
+    let key_manager = DataKeyManager::from_config(&causet.security.encryption, &causet.causet_storage.data_dir)
         .unwrap()
         .map(|key_manager| Arc::new(key_manager));
     let env = get_env(key_manager, None).unwrap();

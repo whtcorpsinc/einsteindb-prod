@@ -4,7 +4,7 @@ use crate::store::{CasualMessage, PeerMsg, VioletaBftCommand, VioletaBftRouter, 
 use crate::{DiscardReason, Error, Result};
 use crossbeam::TrylightlikeError;
 use edb::{KvEngine, VioletaBftEngine, Snapshot};
-use ekvproto::violetabft_serverpb::VioletaBftMessage;
+use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
 use std::sync::mpsc;
 
 /// Transports messages between different VioletaBft peers.

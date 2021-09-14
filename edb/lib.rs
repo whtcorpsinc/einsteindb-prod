@@ -19,7 +19,7 @@
 #![crate_type = "lib"]
 #![causet_attr(test, feature(test))]
 #![recursion_limit = "400"]
-#![feature(cell_ufidelate)]
+#![feature(cell_fidelio)]
 #![feature(proc_macro_hygiene)]
 #![feature(min_specialization)]
 #![feature(const_fn)]
@@ -45,7 +45,7 @@ extern crate more_asserts;
 #[macro_use]
 extern crate vlog;
 #[macro_use]
-extern crate edb_util;
+extern crate violetabftstore::interlock::;
 #[macro_use]
 extern crate failure;
 
@@ -59,7 +59,7 @@ pub mod interlock;
 pub mod import;
 pub mod read_pool;
 pub mod server;
-pub mod causetStorage;
+pub mod causet_storage;
 
 /// Returns the edb version information.
 pub fn edb_version_info() -> String {

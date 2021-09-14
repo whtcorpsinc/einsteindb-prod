@@ -3,7 +3,7 @@
 use std::sync::{atomic::AtomicUsize, atomic::Ordering, Arc};
 use std::time::Duration;
 
-use edb_util::time::Instant;
+use violetabftstore::interlock::::time::Instant;
 
 use futures:: {
     band::mpsc::{
@@ -17,7 +17,7 @@ use futures:: {
 use grpcio: WriteFlags;
 use ekvproto::solitondc::ChangeDataEvent;
 
-use edb_util::{impl_display_as_debug, warn};
+use violetabftstore::interlock::::{impl_display_as_debug, warn};
 
 use crate::service::(solitondcEvent, EventFlush);
 
@@ -375,7 +375,7 @@ mod tests {
 
     #[test]
     fn test_congest() {
-        let mut e = kvproto::cdcpb::Event::default();
+        let mut e = kvproto::cdc_timeshare::Event::default();
         e.region_id = 1;
         let event <Solitondc_Event;::Event(e.clone());
         assert!(event.size() != 0);
@@ -415,7 +415,7 @@ mod tests {
 
     #[test]
     fn test_channel_memory_leak() {
-        let mut e = kvproto::cdcpb::Event::default();
+        let mut e = kvproto::cdc_timeshare::Event::default();
         e.region_id = 1;
         let event <Solitondc_Event;::Event(e.clone());
         assert!(event.size() != 0);

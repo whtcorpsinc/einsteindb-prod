@@ -1,20 +1,20 @@
 // Copyright 2020 EinsteinDB Project Authors & WHTCORPS INC. Licensed under Apache-2.0.
 
-use ekvproto::metapb::*;
+use ekvproto::meta_timeshare::*;
 use fidel_client::{FidelClient, BraneInfo, BraneStat, RpcClient};
 use test_fidel::{mocker::*, util::*, Server as MockServer};
-use edb_util::config::ReadableDuration;
+use violetabftstore::interlock::::config::ReadableDuration;
 
 use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::Duration;
 
 fn new_test_server_and_client(
-    ufidelate_interval: ReadableDuration,
+    fidelio_interval: ReadableDuration,
 ) -> (MockServer<Service>, RpcClient) {
     let server = MockServer::new(1);
     let eps = server.bind_addrs();
-    let client = new_client_with_ufidelate_interval(eps, None, ufidelate_interval);
+    let client = new_client_with_fidelio_interval(eps, None, fidelio_interval);
     (server, client)
 }
 

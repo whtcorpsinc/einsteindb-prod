@@ -41,7 +41,7 @@ use edbn::{
 
 use causetids;
 
-use raum_promises::{
+use allegro_promises::{
     attribute,
     Attribute,
     AttributeBitFlags,
@@ -50,7 +50,7 @@ use raum_promises::{
     MinkowskiValueType,
 };
 
-use edb_raum::{
+use edb_allegro::{
     AttributeMap,
     FromMicros,
     CausetIdMap,
@@ -59,7 +59,7 @@ use edb_raum::{
     ValueRc,
 };
 
-use edb_promises::errors::{
+use causetq_pull_promises::errors::{
     DbErrorKind,
     Result,
 };
@@ -1229,19 +1229,19 @@ mod tests {
     use edbn::entities::{
         OpType,
     };
-    use raum_promises::{
+    use allegro_promises::{
         attribute,
         KnownSolitonId,
     };
-    use edb_raum::{
+    use edb_allegro::{
         HasSchemaReplicant,
         Keyword,
     };
-    use edb_raum::util::Either::*;
+    use edb_allegro::util::Either::*;
     use std::collections::{
         BTreeMap,
     };
-    use edb_promises::errors as errors;
+    use causetq_pull_promises::errors as errors;
     use internal_types::{
         Term,
     };

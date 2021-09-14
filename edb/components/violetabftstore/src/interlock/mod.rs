@@ -3,9 +3,9 @@
 use std::vec::IntoIter;
 
 use edb::CfName;
-use ekvproto::metapb::Brane;
-use ekvproto::fidelpb::CheckPolicy;
-use ekvproto::violetabft_cmdpb::{AdminRequest, AdminResponse, VioletaBftCmdRequest, VioletaBftCmdResponse, Request};
+use ekvproto::meta_timeshare::Brane;
+use ekvproto::fidel_timeshare::CheckPolicy;
+use ekvproto::violetabft_cmd_timeshare::{AdminRequest, AdminResponse, VioletaBftCmdRequest, VioletaBftCmdResponse, Request};
 use violetabft::StateRole;
 
 pub mod config;
@@ -149,7 +149,7 @@ pub trait RoleSemaphore: Interlock {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BraneChangeEvent {
     Create,
-    Ufidelate,
+    fidelio,
     Destroy,
 }
 

@@ -4,15 +4,15 @@ use std::sync::Arc;
 
 use ekvproto::interlock::KeyCone;
 use protobuf::Message;
-use fidelpb::{self, ExecType, FreeDaemonExecutionSummary};
-use fidelpb::{Soliton, PosetDagRequest, SelectResponse, StreamResponse};
+use fidel_timeshare::{self, ExecType, FreeDaemonExecutionSummary};
+use fidel_timeshare::{Soliton, PosetDagRequest, SelectResponse, StreamResponse};
 
-use edb_util::deadline::Deadline;
+use violetabftstore::interlock::::deadline::Deadline;
 
 use super::FreeDaemon;
 use milevadb_query_common::execute_stats::*;
 use milevadb_query_common::metrics::*;
-use milevadb_query_common::causetStorage::{IntervalCone, CausetStorage};
+use milevadb_query_common::causet_storage::{IntervalCone, causet_storage};
 use milevadb_query_common::Result;
 use milevadb_query_datatype::expr::{EvalConfig, EvalContext};
 
@@ -30,9 +30,9 @@ pub struct FreeDaemonsRunner<SS> {
 ///
 /// Normal executors iterate events one by one.
 #[allow(clippy::explicit_counter_loop)]
-pub fn build_executors<S: CausetStorage + 'static, C: ExecSummaryCollector + 'static>(
-    exec_descriptors: Vec<fidelpb::FreeDaemon>,
-    causetStorage: S,
+pub fn build_executors<S: causet_storage + 'static, C: ExecSummaryCollector + 'static>(
+    exec_descriptors: Vec<fidel_timeshare::FreeDaemon>,
+    causet_storage: S,
     cones: Vec<KeyCone>,
     ctx: Arc<EvalConfig>,
     is_streaming: bool,
@@ -42,7 +42,7 @@ pub fn build_executors<S: CausetStorage + 'static, C: ExecSummaryCollector + 'st
         .next()
         .ok_or_else(|| other_err!("No executor specified"))?;
 
-    let mut src = build_first_executor::<_, C>(first, causetStorage, cones, ctx.clone(), is_streaming)?;
+    let mut src = build_first_executor::<_, C>(first, causet_storage, cones, ctx.clone(), is_streaming)?;
     let mut summary_slot_index = 0;
 
     for mut exec in exec_descriptors {
@@ -106,9 +106,9 @@ pub fn build_executors<S: CausetStorage + 'static, C: ExecSummaryCollector + 'st
 /// other executors and never receive events from other executors.
 ///
 /// The inner-most executor must be a Block scan executor or an index scan executor.
-fn build_first_executor<S: CausetStorage + 'static, C: ExecSummaryCollector + 'static>(
-    mut first: fidelpb::FreeDaemon,
-    causetStorage: S,
+fn build_first_executor<S: causet_storage + 'static, C: ExecSummaryCollector + 'static>(
+    mut first: fidel_timeshare::FreeDaemon,
+    causet_storage: S,
     cones: Vec<KeyCone>,
     context: Arc<EvalConfig>,
     is_streaming: bool,
@@ -123,7 +123,7 @@ fn build_first_executor<S: CausetStorage + 'static, C: ExecSummaryCollector + 's
                     first.take_tbl_scan(),
                     context,
                     cones,
-                    causetStorage,
+                    causet_storage,
                     is_streaming,
                 )?
                 .with_summary_collector(C::new(0)),
@@ -139,7 +139,7 @@ fn build_first_executor<S: CausetStorage + 'static, C: ExecSummaryCollector + 's
                     first.take_idx_scan(),
                     context,
                     cones,
-                    causetStorage,
+                    causet_storage,
                     unique,
                     is_streaming,
                 )?
@@ -152,10 +152,10 @@ fn build_first_executor<S: CausetStorage + 'static, C: ExecSummaryCollector + 's
 }
 
 impl<SS: 'static> FreeDaemonsRunner<SS> {
-    pub fn from_request<S: CausetStorage<Statistics = SS> + 'static>(
+    pub fn from_request<S: causet_storage<Statistics = SS> + 'static>(
         mut req: PosetDagRequest,
         cones: Vec<KeyCone>,
-        causetStorage: S,
+        causet_storage: S,
         deadline: Deadline,
         batch_row_limit: usize,
         is_streaming: bool,
@@ -168,7 +168,7 @@ impl<SS: 'static> FreeDaemonsRunner<SS> {
         let executor = if !(req.get_collect_execution_summaries()) {
             build_executors::<_, ExecSummaryCollectorDisabled>(
                 req.take_executors().into(),
-                causetStorage,
+                causet_storage,
                 cones,
                 config,
                 is_streaming,
@@ -176,7 +176,7 @@ impl<SS: 'static> FreeDaemonsRunner<SS> {
         } else {
             build_executors::<_, ExecSummaryCollectorEnabled>(
                 req.take_executors().into(),
-                causetStorage,
+                causet_storage,
                 cones,
                 config,
                 is_streaming,
@@ -313,10 +313,10 @@ impl<SS: 'static> FreeDaemonsRunner<SS> {
     }
 
     #[inline]
-    pub fn collect_causetStorage_stats(&mut self, dest: &mut SS) {
-        // TODO: A better way is to fill causetStorage stats in `handle_request`, or
+    pub fn collect_causet_storage_stats(&mut self, dest: &mut SS) {
+        // TODO: A better way is to fill causet_storage stats in `handle_request`, or
         // return SelectResponse in `handle_request`.
-        self.executor.collect_causetStorage_stats(dest);
+        self.executor.collect_causet_storage_stats(dest);
     }
 
     #[inline]

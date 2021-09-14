@@ -18,8 +18,8 @@ milevadb_query_datatype = { path = "../milevadb_query_datatype" }
 milevadb_query_common = { path = "../milevadb_query_common" }
 milevadb_query_vec_expr = { path = "../milevadb_query_vec_expr" }
 milevadb_query_vec_aggr = { path = "../milevadb_query_vec_aggr" }
-edb_util = { path = "../edb_util" }
-fidelpb = { git = "https://github.com/whtcorpsinc/fidelpb.git", default-features = false }
+violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
+fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", default-features = false }
 fail = "0.3"
 
 [deplightlikeencies.yatp]
@@ -27,5 +27,5 @@ git = "https://github.com/edb/yatp.git"
 
 [dev-deplightlikeencies]
 failure = "0.1"
-fidelpb_helper = { path = "../fidelpb_helper" }
+fidel_timeshare_helper = { path = "../fidel_timeshare_helper" }
 milevadb_query_codegen = { path = "../milevadb_query_codegen" }

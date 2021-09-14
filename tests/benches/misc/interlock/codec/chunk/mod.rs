@@ -8,7 +8,7 @@ use milevadb_query_datatype::codec::Soliton::{Soliton, SolitonEncoder};
 use milevadb_query_datatype::codec::datum::Datum;
 use milevadb_query_datatype::codec::mysql::*;
 use milevadb_query_datatype::FieldTypeTp;
-use fidelpb::FieldType;
+use fidel_timeshare::FieldType;
 
 #[bench]
 fn bench_encode_Soliton(b: &mut Bencher) {

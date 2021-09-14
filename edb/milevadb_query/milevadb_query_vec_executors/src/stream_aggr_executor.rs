@@ -4,13 +4,13 @@ use std::convert::TryFrom;
 use std::{cmp::Ordering, sync::Arc};
 
 use milevadb_query_datatype::{EvalType, FieldTypeAccessor};
-use fidelpb::Aggregation;
-use fidelpb::{Expr, FieldType};
+use fidel_timeshare::Aggregation;
+use fidel_timeshare::{Expr, FieldType};
 
 use crate::interface::*;
 use crate::util::aggr_executor::*;
 use crate::util::*;
-use milevadb_query_common::causetStorage::IntervalCone;
+use milevadb_query_common::causet_storage::IntervalCone;
 use milevadb_query_common::Result;
 use milevadb_query_datatype::codec::batch::{LazyBatchPrimaryCauset, LazyBatchPrimaryCausetVec};
 use milevadb_query_datatype::codec::data_type::*;
@@ -42,8 +42,8 @@ impl<Src: BatchFreeDaemon> BatchFreeDaemon for BatchStreamAggregationFreeDaemon<
     }
 
     #[inline]
-    fn collect_causetStorage_stats(&mut self, dest: &mut Self::StorageStats) {
-        self.0.collect_causetStorage_stats(dest);
+    fn collect_causet_storage_stats(&mut self, dest: &mut Self::StorageStats) {
+        self.0.collect_causet_storage_stats(dest);
     }
 
     #[inline]
@@ -281,9 +281,9 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for BatchStreamAggrega
             if group_match()? {
                 group_key_ref.clear();
             } else {
-                // Ufidelate the complete group
+                // fidelio the complete group
                 if logical_row_idx > 0 {
-                    ufidelate_current_states(
+                    fidelio_current_states(
                         context,
                         &mut self.states,
                         aggr_fn_len,
@@ -302,8 +302,8 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for BatchStreamAggrega
                 }
             }
         }
-        // Ufidelate the current group with the remaining data
-        ufidelate_current_states(
+        // fidelio the current group with the remaining data
+        fidelio_current_states(
             context,
             &mut self.states,
             aggr_fn_len,
@@ -387,7 +387,7 @@ impl<Src: BatchFreeDaemon> AggregationFreeDaemonImpl<Src> for BatchStreamAggrega
     }
 }
 
-fn ufidelate_current_states(
+fn fidelio_current_states(
     ctx: &mut EvalContext,
     states: &mut [Box<dyn AggrFunctionState>],
     aggr_fn_len: usize,
@@ -406,7 +406,7 @@ fn ufidelate_current_states(
                     match_template_evaluable! {
                         TT, match value.as_scalar_value_ref() {
                             ScalarValueRef::TT(scalar_value) => {
-                                ufidelate_repeat!(
+                                fidelio_repeat!(
                                     state,
                                     ctx,
                                     scalar_value,
@@ -422,7 +422,7 @@ fn ufidelate_current_states(
                     match_template_evaluable! {
                         TT, match physical_vec {
                             VectorValue::TT(vec) => {
-                                ufidelate_vector!(
+                                fidelio_vector!(
                                     state,
                                     ctx,
                                     vec,
@@ -444,7 +444,7 @@ mod tests {
 
     use milevadb_query_datatype::builder::FieldTypeBuilder;
     use milevadb_query_datatype::{Collation, FieldTypeTp};
-    use fidelpb::ScalarFuncSig;
+    use fidel_timeshare::ScalarFuncSig;
 
     use crate::util::mock_executor::MockFreeDaemon;
     use milevadb_query_datatype::expr::EvalWarnings;
@@ -453,8 +453,8 @@ mod tests {
 
     #[test]
     fn test_it_works_integration() {
-        use fidelpb::ExprType;
-        use fidelpb_helper::ExprDefBuilder;
+        use fidel_timeshare::ExprType;
+        use fidel_timeshare_helper::ExprDefBuilder;
 
         // This test creates a stream aggregation executor with the following aggregate functions:
         // - COUNT(1)

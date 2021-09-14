@@ -7,13 +7,13 @@ use criterion::black_box;
 use criterion::measurement::Measurement;
 
 use ekvproto::interlock::KeyCone;
-use fidelpb::FreeDaemon as PbFreeDaemon;
+use fidel_timeshare::FreeDaemon as PbFreeDaemon;
 
 use test_interlock::*;
 use milevadb_query_common::execute_stats::ExecSummaryCollectorDisabled;
 use milevadb_query_datatype::expr::EvalConfig;
 use edb::interlock::posetdag::EinsteinDBStorage;
-use edb::causetStorage::{LmdbEngine, CausetStore as TxnStore};
+use edb::causet_storage::{LmdbEngine, CausetStore as TxnStore};
 
 use crate::util::bencher::Bencher;
 use crate::util::store::StoreDescriber;

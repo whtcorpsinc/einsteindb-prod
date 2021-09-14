@@ -8,12 +8,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use raum_promises::{
+use allegro_promises::{
     MinkowskiValueType,
     MinkowskiSet,
 };
 
-use edb_raum::{
+use edb_allegro::{
     SchemaReplicant,
 };
 
@@ -190,10 +190,10 @@ impl Inequality {
 mod testing {
     use super::*;
 
-    use raum_promises::attribute::{
+    use allegro_promises::attribute::{
         Unique,
     };
-    use raum_promises::{
+    use allegro_promises::{
         Attribute,
         MinkowskiType,
         MinkowskiValueType,

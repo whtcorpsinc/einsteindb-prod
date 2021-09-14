@@ -2,9 +2,9 @@
 
 use codec::prelude::NumberEncoder;
 use milevadb_query_datatype::{IntertwinerSpinDaggerTypeAccessor, IntertwinerSpinDaggerTypeFlag, IntertwinerSpinDaggerTypeTp};
-use fidelpb::{Prop, PropType, IntertwinerSpinDaggerType, ScalarFuncSig};
+use fidel_timeshare::{Prop, PropType, IntertwinerSpinDaggerType, ScalarFuncSig};
 
-/// A helper utility to build `fidelpb::Prop` (a.k.a. Propession definition) easily.
+/// A helper utility to build `fidel_timeshare::Prop` (a.k.a. Propession definition) easily.
 pub struct PropDefBuilder(Prop);
 
 impl PropDefBuilder {

@@ -9,13 +9,13 @@ use futures::executor::block_on;
 use futures::SinkExt;
 use grpcio::WriteFlags;
 #[causet(not(feature = "prost-codec"))]
-use ekvproto::causet_contextpb::*;
+use ekvproto::causet_context_timeshare::*;
 #[causet(feature = "prost-codec")]
-use ekvproto::causet_contextpb::{
+use ekvproto::causet_context_timeshare::{
     event::{Evcausetidx::OpType as EventEventOpType, Event as Event_oneof_event, LogType as EventLogType},
     ChangeDataEvent,
 };
-use ekvproto::kvrpcpb::*;
+use ekvproto::kvrpc_timeshare::*;
 use fidel_client::FidelClient;
 use test_violetabftstore::sleep_ms;
 use test_violetabftstore::*;
@@ -774,7 +774,7 @@ fn test_old_value_basic() {
     let m2_spacelike_ts = block_on(suite.cluster.fidel_client.get_tso()).unwrap();
     suite.must_kv_prewrite(1, vec![m2], k1.clone(), m2_spacelike_ts);
     suite.must_kv_rollback(1, vec![k1.clone()], m2_spacelike_ts);
-    // Ufidelate value
+    // fidelio value
     let mut m3 = Mutation::default();
     m3.set_op(Op::Put);
     m3.key = k1.clone();
@@ -887,7 +887,7 @@ fn test_causet_context_resolve_ts_checking_concurrency_manager() {
         guard
     };
 
-    cm.ufidelate_max_ts(20.into());
+    cm.fidelio_max_ts(20.into());
 
     let guard = lock_key(b"a", 80);
     suite.set_tso(100);
@@ -941,7 +941,7 @@ fn test_causet_context_resolve_ts_checking_concurrency_manager() {
     let _guard = lock_key(b"a", 90);
     // The resolved_ts should be blocked by the mem dagger but it's already greater than 90.
     // Retry until receiving an unchanged resovled_ts because the first several resolved ts received
-    // might be ufidelated before acquiring the dagger.
+    // might be fideliod before acquiring the dagger.
     let mut last_resolved_ts = 0;
     let mut success = false;
     for _ in 0..5 {
