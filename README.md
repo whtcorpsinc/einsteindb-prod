@@ -6,11 +6,14 @@
 Persistent Causets (KV) stores are an integral part of EinsteinDB's Hybrid Index storage infrastructure. Emerging non-volatile memory (NVM) technologies are potential alternatives for future memory architecture design. EinsteinDB uses NVM to optimize the KV store (LMDB/FoundationDB) and proposes Coset Enumeration, as an embedded LSM-tree based manifold-as-feature store; built on a heterogeneous storage architecture. 
 
 
-EinsteinDB's Hybrid memory systems consisting of DRAM and Non-Volatile Memory promises to persist data fast. The index design of existing key-value stores for hybrid memory fails to utilize its specific performance characteristics: fast writes in DRAM, slow writes in NVM, and similar reads in DRAM and NVM. EinsteinDB, a persistent tuplestore with the central idea of constructing a hybrid index in hybrid memory already supports rich key-value operations efficiently. EinsteinDB exploits the distinct merits of hash index and B+-Tree index. EinsteinDB builds and persists the hash index in NVM to retain its inherent ability of fast index searching. EinsteinDB builds the B+-Tree index in DRAM to support range scan and avoids long NVM writes for maintaining consistency of the two indexes. Furthermore, EinsteinDB applies differential concurrency schemes to hybrid index and adopts ordered-write consistency to ensure crash consistency via interlocking directorate. 
+EinsteinDB's Hybrid memory systems consisting of DRAM and Non-Volatile Memory promises to persist data fast. The atomic broadcast primitive allows us to abstract away any application-specific details, such as how transactions are to be interpreted (to prevent replay attacks, for example, an application might define a transaction to include signatures and sequence numbers). For our purposes, transactions are simply unique strings. 
 
+The index design of existing key-value stores for hybrid memory fails to utilize its specific performance characteristics: fast writes in DRAM, slow writes in NVM, and similar reads in DRAM and NVM. Since each node must output each transaction, O(1) efficiency (which our protocol achieves) is asymptotically optimal. The above definition of efficiency assumes the network is under load, reflecting our primary goal: to sustain high throughput while fully utilizing the network’s available bandwidth.EinsteinDB, a persistent tuplestore with the central idea of constructing a hybrid index in hybrid memory which already supports rich key-value operations efficiently. 
 
+EinsteinDB exploits the distinct merits of hash index and B+-Tree index. EinsteinDB builds and persists the hash index in NVM to retain its inherent ability of fast index searching.
 
-![cncf_logo](images/cncf.png)
+ EinsteinDB builds the B+-Tree index in DRAM to support range scan and avoids long NVM writes for maintaining consistency of the two indexes. Furthermore, EinsteinDB applies differential concurrency schemes to hybrid index and adopts ordered-write consistency to ensure crash consistency via interlocking directorate. 
+
 
 
 ---
@@ -18,9 +21,13 @@ EinsteinDB's Hybrid memory systems consisting of DRAM and Non-Volatile Memory pr
 
 EinsteinDB has the following key features:
 
+- **Atomic Broadcasts**
+    Fault tolerant state machine replication protocols provide strong safety and liveness guarantees, allowing an edb cluster to provide correct service in spite of network latency and the failure of some nodes. 
+    
+
 - **Geo-Replication wihtout zones**
 
-    EinsteinDB uses [VioletaBFT](http://github.com/whtcorpsinc/violetabft) and FIDel to support serverless leaderless zone-less Geo-Replication.
+    EinsteinDB uses [VioletaBFT](http://github.com/whtcorpsinc/violetabft) and FIDel to support Counting rounds in asynchronous networks. Although the guarantee of eventual delivery is decoupled from notions of “real time,” it is nonetheless desirable to characterize the running time of asynchronous protocols. The standard approach is for the adversary to assign each message a virtual round number, subject to the condition that every (r − 1)-message between correct nodes must be delivered before any (r + 1)-message is sent.
 
 - **Value Iteration Networks**
 
@@ -30,7 +37,7 @@ EinsteinDB has the following key features:
     The core insight of learned indexes is to view index as a distribution function from the keys to the index positions that can be approximated by deep neural networks. In EinstAI, models are fine-tuned from the weights obtained in EinsteinDB's Causet Store  from the similar data distribution, which is easier than transferring models trained from another distribution.
     
 
-- **In-Memory Join Processing via sRDMA **
+- **In-Memory Join Processing via sRDMA**
     We propose Active-Memory, a new replication protocol for RDMA-enabled high bandwidth networks, which is equipped with a novel undo-log based fault tolerance protocol that is both correct and fast.        
     
 
@@ -40,14 +47,11 @@ EinsteinDB has the following key features:
 
 ## EinsteinDB adopters
 
-    EinsteinDB was built with Netflix needs in mind, we thank Josh Leder for his brilliant collaboration [Netflix](https://netflix.github.io).
+EinsteinDB was built with Netflix needs in mind, we thank Josh Leder for his brilliant collaboration [Netflix](https://netflix.github.io).
 
 ## EinsteinDB software stack
 
-![The EinsteinDB software stack](images/einsteindb_stack.png)
-
-
-    Basic key-value operations include Put, Get, Update, Delete, and Scan. To locate the requested key-value item, the single-key operations (Put/Get/Update/Delete) first takes exactly one key to search the index. Once the KV item is located, Get directly returns the data, and while the write operations (Put/Update/Delete) require a persist with update.
+Basic key-value operations include Put, Get, Update, Delete, and Scan. To locate the requested key-value item, the single-key operations (Put/Get/Update/Delete) first takes exactly one key to search the index. Once the KV item is located, Get directly returns the data, and while the write operations (Put/Update/Delete) require a persist with update.
 
 - **FIDel:**    
     FIDel is the soliton cellular automaton in charge with provisioning disjoint clusters by pruning and broadcasting QoS across the EinsteinDB specrta (MilevaDB/BerolinaSQL, VioletaBFT, FIDel, and Noether), which periodically checks for spikes and anomalies in the timne series data of high frequency, low latencym and high throughpout constraints appended to the raw packets which balance, load, and replicate run time principles automatically. To maintain a consistent hybrid index, updating both hash index and B+-Tree index for Causets(KV) writes is fundamentally required. FIDel Updates B+-Tree index involved in many writes due to sorting as well as splitting/merging of leaf nodes.
