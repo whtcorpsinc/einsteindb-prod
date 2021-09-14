@@ -5,11 +5,6 @@
 
 Persistent Causets (KV) stores are an integral part of EinsteinDB's Hybrid Index storage infrastructure. Emerging non-volatile memory (NVM) technologies are potential alternatives for future memory architecture design. EinsteinDB uses NVM to optimize the KV store (LMDB/FoundationDB) and proposes Coset Enumeration, as an embedded LSM-tree based manifold-as-feature store; built on a heterogeneous storage architecture. 
 
-EinsteinDB was borne out of two Silicon Valley engineers obsessed with building cloud-native enterprise databases for Netflix, Amazon, and Uber, some of EinsteinDB clients; which also support the entire business operations within the WHTCORPS INC DARPA group from its various business units (from entertainment to e-commerce to logistics). 
-
-To cover a wide variety of application needs, we have provided a broad spectrum of database systems and tools such as EinsteinDB, a shared-storage OLTP database that provisions 100TB of storage capacity and 1 million QPS per processing node. To further scale out the capacity, we have developed MilevaDB, a dis- tributed OLTP database that integrates shared-nothing and shared-storage designs. 
-
-We have also developed Analytic module via FIDel and Noether, an OLAP database as a next-generation data warehouse for high-concurrency, low-latency, and real-time ana- lytical queries at Exo-scale. 
 
 EinsteinDB's Hybrid memory systems consisting of DRAM and Non-Volatile Memory promises to persist data fast. The index design of existing key-value stores for hybrid memory fails to utilize its specific performance characteristics: fast writes in DRAM, slow writes in NVM, and similar reads in DRAM and NVM. EinsteinDB, a persistent tuplestore with the central idea of constructing a hybrid index in hybrid memory already supports rich key-value operations efficiently. EinsteinDB exploits the distinct merits of hash index and B+-Tree index. EinsteinDB builds and persists the hash index in NVM to retain its inherent ability of fast index searching. EinsteinDB builds the B+-Tree index in DRAM to support range scan and avoids long NVM writes for maintaining consistency of the two indexes. Furthermore, EinsteinDB applies differential concurrency schemes to hybrid index and adopts ordered-write consistency to ensure crash consistency via interlocking directorate. 
 
@@ -20,8 +15,6 @@ EinsteinDB's Hybrid memory systems consisting of DRAM and Non-Volatile Memory pr
 
 ---
 
-With the implementation of the Byzantine Bolt-on consensus state stored in LMDB via VioletaBFT, EinsteinDB guarantees globally synchronous data consistency. [FIDel](https://github.com/whtcorpsinc/fidel/), which is an ode to IBM's TimeShare Oracle and ARIES.FIDel implements auto-sharding, enables automatic data migration. 
-EinsteinDB also provides snapshot isolation (SI), snapshot isolation with lockless dagger (SQL: `SELECT ... FOR UPDATE`), and externally consistent reads and writes in distributed transactions.
 
 EinsteinDB has the following key features:
 
