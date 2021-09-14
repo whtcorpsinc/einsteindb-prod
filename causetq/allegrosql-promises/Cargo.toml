@@ -1,5 +1,5 @@
 [package]
-name = "allegrosql-promises"
+name = "allegrosql_promises"
 version = "0.0.1"
 workspace = ".."
 
