@@ -1,4 +1,4 @@
-<img src="images/EinsteinDBLogo.png" alt="einsteindb_logo" width="300"/>
+<img src="images/EinsteinDBLogo.png" alt="einsteindb_logo" width="600"/>
 
 ## [Website](https://www.einsteindb.com) | [Documentation](https://einsteindb.com/docs/latest/concepts/overview/) | [Community Chat](https://einsteindb.com/chat)
 
@@ -8,7 +8,7 @@ Persistent Causets (KV) stores are an integral part of EinsteinDB's Hybrid Index
 
 EinsteinDB's Hybrid memory systems consisting of DRAM and Non-Volatile Memory promises to persist data fast. The atomic broadcast primitive allows us to abstract away any application-specific details, such as how transactions are to be interpreted (to prevent replay attacks, for example, an application might define a transaction to include signatures and sequence numbers). For our purposes, transactions are simply unique strings. 
 
-The index design of existing key-value stores for hybrid memory fails to utilize its specific performance characteristics: fast writes in DRAM, slow writes in NVM, and similar reads in DRAM and NVM. Since each node must output each transaction, O(1) efficiency (which our protocol achieves) is asymptotically optimal. The above definition of efficiency assumes the network is under load, reflecting our primary goal: to sustain high throughput while fully utilizing the network’s available bandwidth.EinsteinDB, a persistent tuplestore with the central idea of constructing a hybrid index in hybrid memory which already supports rich key-value operations efficiently. 
+The index design of existing key-value stores for hybrid memory fails to utilize its specific performance characteristics: fast writes in DRAM, slow writes in NVM, and similar reads in DRAM and NVM. Since each node must output each transaction, O(1) efficiency (which our protocol achieves) is asymptotically optimal. The above definition of efficiency assumes the network is under load, reflecting our primary goal: to sustain high throughput while fully utilizing the network’s available bandwidth, EinsteinDB, a persistent tuplestore with the central idea of constructing a hybrid index in hybrid memory, delegates in the form of interlocking directorate (FUSE/SUSE) in the form of a vizor.
 
 EinsteinDB exploits the distinct merits of hash index and B+-Tree index. EinsteinDB builds and persists the hash index in NVM to retain its inherent ability of fast index searching.
 
