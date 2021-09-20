@@ -47,21 +47,22 @@ EinsteinDB has the following key features:
 
 ## EinsteinDB adopters
 
-EinsteinDB was built with Netflix needs in mind, we thank Josh Leder for his brilliant collaboration [Netflix](https://netflix.github.io).
+EinsteinDB was built with Netflix needs in mind, we thank Josh Leder for his brilliant collaboration [Netflix](https://netflix.github.io)
 
 ## EinsteinDB software stack
 
 Basic key-value operations include Put, Get, Update, Delete, and Scan. To locate the requested key-value item, the single-key operations (Put/Get/Update/Delete) first takes exactly one key to search the index. Once the KV item is located, Get directly returns the data, and while the write operations (Put/Update/Delete) require a persist with update.
 
-- **FIDel:**    
-    FIDel is the soliton cellular automaton in charge with provisioning disjoint clusters by pruning and broadcasting QoS across the EinsteinDB specrta (MilevaDB/BerolinaSQL, VioletaBFT, FIDel, and Noether), which periodically checks for spikes and anomalies in the timne series data of high frequency, low latencym and high throughpout constraints appended to the raw packets which balance, load, and replicate run time principles automatically. To maintain a consistent hybrid index, updating both hash index and B+-Tree index for Causets(KV) writes is fundamentally required. FIDel Updates B+-Tree index involved in many writes due to sorting as well as splitting/merging of leaf nodes.
+- **FIDel:** 
+
+ FIDel is the soliton cellular automaton in charge with provisioning disjoint clusters by pruning and broadcasting QoS across the EinsteinDB specrta (MilevaDB/BerolinaSQL, VioletaBFT, FIDel, and Noether), which periodically checks for spikes and anomalies in the timne series data of high frequency, low latencym and high throughpout constraints appended to the raw packets which balance, load, and replicate run time principles automatically. To maintain a consistent hybrid index, updating both hash index and B+-Tree index for Causets(KV) writes is fundamentally required. FIDel Updates B+-Tree index involved in many writes due to sorting as well as splitting/merging of leaf nodes.
 
 - **Causet Store:** 
-    There is a LMDB store within each Causet Store and it persists data into the local disk. There exists a multitude of viable approaches to quantum gravity, among which causal set theory is perhaps the most minimalistic in terms of baseline assumptions. It is based on the hypothesis that spacetime at the Planck scale is composed of discrete ‘‘spacetime atoms’’ related by causality. These ‘‘atoms’’, hereafter called causets, possess a partial order which encodes
+    There is a LMDB store within each Causet Store and it persists data into the local disk. There exists a multitude of viable approaches to quantum gravity, among which causal set theory is perhaps the most minimalistic in terms of baseline assumptions. It is based on the hypothesis that spacetime at the Planck scale is composed of discrete ‘‘spacetime atoms’’ related by causality. These ‘‘atoms’’, hereafter called causets, possess a partial order which encodes all information about the causal structure of spacetime, while the number of these elements is proportional to the spacetime volume—‘‘Order + Number = Geometry’’
 
-    all information about the causal structure of spacetime, while the number of these elements is proportional to the spacetime volume—‘‘Order + Number = Geometry’’
+- **Brane:** 
+Brane is the basic unit of tuplestore data movement. Each Brane  is replicated to multiple Nodes. These multiple replicas form a HoneyBadger BFT group via VioletaBFT. To read without blocking writes, EinsteinDB and many other database systems keep multiple immutable versions of data (often called multi-version concurrency control). A write creates a new immutable version whose timestamp is that of the write's transaction. A "snapshot read" at a timestamp returns the value of the most recent version prior to that timestamp, and does not need to block writes. It is therefore important that the timestamps assigned to versions be consistent with the order in which transactions can be observed to commit. 
 
-- **Brane:** Brane is the basic unit of tuplestore data movement. Each Brane  is replicated to multiple Nodes. These multiple replicas form a HoneyBadger BFT group via VioletaBFT. To read without blocking writes, EinsteinDB and many other database systems keep multiple immutable versions of data (often called multi-version concurrency control). A write creates a new immutable version whose timestamp is that of the write's transaction. A "snapshot read" at a timestamp returns the value of the most recent version prior to that timestamp, and does not need to block writes. It is therefore important that the timestamps assigned to versions be consistent with the order in which transactions can be observed to commit. 
 - **Soliton:** A physical node in the cluster. Within each node, there are one or more Stores. Within each Store, there are many Branes.
 EinsteinDB's Soliton Nodes Provide the semantics of interfacing commands for a high-bandwidth resistive memory. EinsteinDB implements the primitives for exploiting cache and search capabilities in high bandwidth resistive memories using memristive 2R cells that supports efficient reconfiguration between CAM and RAM. We also examine novel architectural mechanisms for column and row writes in XAM arrays through diagonal organization. 
 
