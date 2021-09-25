@@ -26,7 +26,7 @@ prost-codec = [
   "edb/prost-codec",
 ]
 
-[deplightlikeencies]
+[dependencies]
 crossbeam = "0.7.2"
 edb = { path = "../edb" }
 engine_lmdb = { path = "../engine_lmdb" }
@@ -53,5 +53,5 @@ tokio-timer = "0.2"
 txn_types = { path = "../txn_types" }
 encryption = { path = "../encryption" }
 tokio = { version = "0.2", features = ["rt-threaded"]}
-concurrency_manager = { path = "../concurrency_manager" }
+interlocking_directorate = { path = "../interlocking_directorate" }
 fail = "0.3"

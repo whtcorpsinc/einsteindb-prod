@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::sync::*;
 use std::time::Duration;
 
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use engine_lmdb::LmdbEngine;
 use futures::executor::block_on;
 use futures::StreamExt;
@@ -63,7 +63,7 @@ pub struct TestSuite {
     pub obs: HashMap<u64, causet_contextSemaphore>,
     edb_cli: HashMap<u64, EINSTEINDBClient>,
     causet_context_cli: HashMap<u64, ChangeDataClient>,
-    concurrency_managers: HashMap<u64, ConcurrencyManager>,
+    interlocking_directorates: HashMap<u64, ConcurrencyManager>,
 
     env: Arc<Environment>,
 }
@@ -81,7 +81,7 @@ impl TestSuite {
         let fidel_cli = cluster.fidel_client.clone();
         let mut lightlikepoints = HashMap::default();
         let mut obs = HashMap::default();
-        let mut concurrency_managers = HashMap::default();
+        let mut interlocking_directorates = HashMap::default();
         // Hack! node id are generated from 1..count+1.
         for id in 1..=count as u64 {
             // Create and run causet_context lightlikepoints.
@@ -125,7 +125,7 @@ impl TestSuite {
             );
             causet_context_lightlikepoint.set_min_ts_interval(Duration::from_millis(100));
             causet_context_lightlikepoint.set_scan_batch_size(2);
-            concurrency_managers.insert(*id, cm);
+            interlocking_directorates.insert(*id, cm);
             worker.spacelike(causet_context_lightlikepoint).unwrap();
         }
 
@@ -133,7 +133,7 @@ impl TestSuite {
             cluster,
             lightlikepoints,
             obs,
-            concurrency_managers,
+            interlocking_directorates,
             env: Arc::new(Environment::new(1)),
             edb_cli: HashMap::default(),
             causet_context_cli: HashMap::default(),
@@ -294,8 +294,8 @@ impl TestSuite {
         })
     }
 
-    pub fn get_txn_concurrency_manager(&self, store_id: u64) -> Option<ConcurrencyManager> {
-        self.concurrency_managers.get(&store_id).cloned()
+    pub fn get_txn_interlocking_directorate(&self, store_id: u64) -> Option<ConcurrencyManager> {
+        self.interlocking_directorates.get(&store_id).cloned()
     }
 
     pub fn set_tso(&self, ts: impl Into<TimeStamp>) {

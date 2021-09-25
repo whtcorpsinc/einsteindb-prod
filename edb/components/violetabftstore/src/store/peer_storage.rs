@@ -9,7 +9,7 @@ use std::time::Instant;
 use std::{cmp, error, u64};
 
 use edb::Causet_VIOLETABFT;
-use edb::{Engines, KvEngine, MuBlock, Peekable};
+use edb::{Engines, CausetEngine, MuBlock, Peekable};
 use tuplespaceInstanton::{self, enc_lightlike_key, enc_spacelike_key};
 use ekvproto::meta_timeshare::{self, Brane};
 use ekvproto::violetabft_server_timeshare::{
@@ -353,7 +353,7 @@ pub struct InvokeContext {
 }
 
 impl InvokeContext {
-    pub fn new<EK: KvEngine, ER: VioletaBftEngine>(store: &PeerStorage<EK, ER>) -> InvokeContext {
+    pub fn new<EK: CausetEngine, ER: VioletaBftEngine>(store: &PeerStorage<EK, ER>) -> InvokeContext {
         InvokeContext {
             brane_id: store.get_brane_id(),
             violetabft_state: store.violetabft_state.clone(),
@@ -406,7 +406,7 @@ impl InvokeContext {
     }
 }
 
-pub fn recover_from_applying_state<EK: KvEngine, ER: VioletaBftEngine>(
+pub fn recover_from_applying_state<EK: CausetEngine, ER: VioletaBftEngine>(
     engines: &Engines<EK, ER>,
     violetabft_wb: &mut ER::LogBatch,
     brane_id: u64,
@@ -438,7 +438,7 @@ pub fn recover_from_applying_state<EK: KvEngine, ER: VioletaBftEngine>(
     Ok(())
 }
 
-fn init_applied_index_term<EK: KvEngine, ER: VioletaBftEngine>(
+fn init_applied_index_term<EK: CausetEngine, ER: VioletaBftEngine>(
     engines: &Engines<EK, ER>,
     brane: &Brane,
     apply_state: &VioletaBftApplyState,
@@ -464,7 +464,7 @@ fn init_applied_index_term<EK: KvEngine, ER: VioletaBftEngine>(
     }
 }
 
-fn init_violetabft_state<EK: KvEngine, ER: VioletaBftEngine>(
+fn init_violetabft_state<EK: CausetEngine, ER: VioletaBftEngine>(
     engines: &Engines<EK, ER>,
     brane: &Brane,
 ) -> Result<VioletaBftLocalState> {
@@ -483,7 +483,7 @@ fn init_violetabft_state<EK: KvEngine, ER: VioletaBftEngine>(
     Ok(violetabft_state)
 }
 
-fn init_apply_state<EK: KvEngine, ER: VioletaBftEngine>(
+fn init_apply_state<EK: CausetEngine, ER: VioletaBftEngine>(
     engines: &Engines<EK, ER>,
     brane: &Brane,
 ) -> Result<VioletaBftApplyState> {
@@ -507,7 +507,7 @@ fn init_apply_state<EK: KvEngine, ER: VioletaBftEngine>(
     )
 }
 
-fn validate_states<EK: KvEngine, ER: VioletaBftEngine>(
+fn validate_states<EK: CausetEngine, ER: VioletaBftEngine>(
     brane_id: u64,
     engines: &Engines<EK, ER>,
     violetabft_state: &mut VioletaBftLocalState,
@@ -554,7 +554,7 @@ fn validate_states<EK: KvEngine, ER: VioletaBftEngine>(
     Ok(())
 }
 
-fn init_last_term<EK: KvEngine, ER: VioletaBftEngine>(
+fn init_last_term<EK: CausetEngine, ER: VioletaBftEngine>(
     engines: &Engines<EK, ER>,
     brane: &Brane,
     violetabft_state: &VioletaBftLocalState,
@@ -583,7 +583,7 @@ fn init_last_term<EK: KvEngine, ER: VioletaBftEngine>(
 
 pub struct PeerStorage<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     pub engines: Engines<EK, ER>,
 
@@ -607,7 +607,7 @@ where
 
 impl<EK, ER> causet_storage for PeerStorage<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     fn initial_state(&self) -> violetabft::Result<VioletaBftState> {
@@ -642,7 +642,7 @@ where
 
 impl<EK, ER> PeerStorage<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     pub fn new(
@@ -1480,7 +1480,7 @@ pub fn clear_meta<EK, ER>(
     violetabft_state: &VioletaBftLocalState,
 ) -> Result<()>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     let t = Instant::now();
@@ -1508,7 +1508,7 @@ pub fn do_snapshot<E>(
     last_applied_state: VioletaBftApplyState,
 ) -> violetabft::Result<Snapshot>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     debug!(
         "begin to generate a snapshot";

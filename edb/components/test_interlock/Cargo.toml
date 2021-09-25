@@ -22,7 +22,7 @@ prost-codec = [
   "txn_types/prost-codec",
 ]
 
-[deplightlikeencies]
+[dependencies]
 futures = "0.3"
 ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
 protobuf = "2"
@@ -33,4 +33,4 @@ edb = { path = "../../", default-features = false }
 violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
 fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", default-features = false }
 txn_types = { path = "../txn_types" }
-concurrency_manager = { path = "../concurrency_manager" }
+interlocking_directorate = { path = "../interlocking_directorate" }

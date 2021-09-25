@@ -3,7 +3,7 @@
 use std::fmt;
 use std::time::Instant;
 
-use edb::{CompactedEvent, KvEngine, Snapshot};
+use edb::{CompactedEvent, CausetEngine, Snapshot};
 use ekvproto::import_sst_timeshare::SstMeta;
 use ekvproto::kvrpc_timeshare::ExtraOp as TxnExtraOp;
 use ekvproto::meta_timeshare;
@@ -241,7 +241,7 @@ where
 /// Message that will be sent to a peer.
 ///
 /// These messages are not significant and can be dropped occasionally.
-pub enum CasualMessage<EK: KvEngine> {
+pub enum CasualMessage<EK: CausetEngine> {
     /// Split the target brane into several partitions.
     SplitBrane {
         brane_epoch: BraneEpoch,
@@ -294,7 +294,7 @@ pub enum CasualMessage<EK: KvEngine> {
     AccessPeer(Box<dyn FnOnce(&mut dyn AbstractPeer) + lightlike + 'static>),
 }
 
-impl<EK: KvEngine> fmt::Debug for CasualMessage<EK> {
+impl<EK: CausetEngine> fmt::Debug for CasualMessage<EK> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CasualMessage::ComputeHashResult {
@@ -361,7 +361,7 @@ impl<S: Snapshot> VioletaBftCommand<S> {
 }
 
 /// Message that can be sent to a peer.
-pub enum PeerMsg<EK: KvEngine> {
+pub enum PeerMsg<EK: CausetEngine> {
     /// VioletaBft message is the message sent between violetabft nodes in the same
     /// violetabft group. Messages need to be redirected to violetabftstore if target
     /// peer doesn't exist.
@@ -390,7 +390,7 @@ pub enum PeerMsg<EK: KvEngine> {
     fidelioReplicationMode,
 }
 
-impl<EK: KvEngine> fmt::Debug for PeerMsg<EK> {
+impl<EK: CausetEngine> fmt::Debug for PeerMsg<EK> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             PeerMsg::VioletaBftMessage(_) => write!(fmt, "VioletaBft Message"),
@@ -413,7 +413,7 @@ impl<EK: KvEngine> fmt::Debug for PeerMsg<EK> {
 
 pub enum StoreMsg<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     VioletaBftMessage(VioletaBftMessage),
 
@@ -447,7 +447,7 @@ where
 
 impl<EK> fmt::Debug for StoreMsg<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {

@@ -5,7 +5,7 @@ edition = "2018"
 publish = false
 description = "Vector expressions of query engine to run MilevaDB pushed down executors"
 
-[deplightlikeencies]
+[dependencies]
 base64 = "0.12"
 bstr = "0.2.8"
 byteorder = "1.2"
@@ -26,7 +26,7 @@ twoway = "0.2.0"
 uuid = { version = "0.8.1", features = ["v4"] }
 static_assertions = { version = "1.0", features = ["nightly"] }
 
-[dev-deplightlikeencies]
+[dev-dependencies]
 bstr = "0.2.8"
 chrono = "0.4"
 profiler = { path = "../profiler" }

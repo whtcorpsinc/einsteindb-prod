@@ -12,7 +12,7 @@ use violetabft::evioletabft_timeshare::MessageType;
 use violetabft::SnapshotStatus;
 
 use super::*;
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use encryption::DataKeyManager;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
 use edb::{Engines, MiscExt, Peekable};

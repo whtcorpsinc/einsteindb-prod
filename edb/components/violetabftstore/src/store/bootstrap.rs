@@ -5,7 +5,7 @@ use super::peer_causet_storage::{
 };
 use super::util::new_peer;
 use crate::Result;
-use edb::{Engines, KvEngine, MuBlock, VioletaBftEngine};
+use edb::{Engines, CausetEngine, MuBlock, VioletaBftEngine};
 use edb::{Causet_DEFAULT, Causet_VIOLETABFT};
 
 use ekvproto::meta_timeshare;
@@ -24,7 +24,7 @@ pub fn initial_brane(store_id: u64, brane_id: u64, peer_id: u64) -> meta_timesha
 
 // check no any data in cone [spacelike_key, lightlike_key)
 fn is_cone_empty(
-    engine: &impl KvEngine,
+    engine: &impl CausetEngine,
     causet: &str,
     spacelike_key: &[u8],
     lightlike_key: &[u8],
@@ -40,10 +40,10 @@ fn is_cone_empty(
 
 // Bootstrap the store, the DB for this store must be empty and has no data.
 //
-// FIXME: ER typaram should just be impl KvEngine, but VioletaBftEngine doesn't support
+// FIXME: ER typaram should just be impl CausetEngine, but VioletaBftEngine doesn't support
 // the `is_cone_empty` query yet.
 pub fn bootstrap_store<ER>(
-    engines: &Engines<impl KvEngine, ER>,
+    engines: &Engines<impl CausetEngine, ER>,
     cluster_id: u64,
     store_id: u64,
 ) -> Result<()>
@@ -68,7 +68,7 @@ where
 ///
 /// Write the first brane meta and prepare state.
 pub fn prepare_bootstrap_cluster(
-    engines: &Engines<impl KvEngine, impl VioletaBftEngine>,
+    engines: &Engines<impl CausetEngine, impl VioletaBftEngine>,
     brane: &meta_timeshare::Brane,
 ) -> Result<()> {
     let mut state = BraneLocalState::default();
@@ -89,7 +89,7 @@ pub fn prepare_bootstrap_cluster(
 
 // Clear first brane meta and prepare key.
 pub fn clear_prepare_bootstrap_cluster(
-    engines: &Engines<impl KvEngine, impl VioletaBftEngine>,
+    engines: &Engines<impl CausetEngine, impl VioletaBftEngine>,
     brane_id: u64,
 ) -> Result<()> {
     let mut wb = engines.violetabft.log_batch(1024);
@@ -110,7 +110,7 @@ pub fn clear_prepare_bootstrap_cluster(
 
 // Clear prepare key
 pub fn clear_prepare_bootstrap_key(
-    engines: &Engines<impl KvEngine, impl VioletaBftEngine>,
+    engines: &Engines<impl CausetEngine, impl VioletaBftEngine>,
 ) -> Result<()> {
     box_try!(engines.kv.delete(tuplespaceInstanton::PREPARE_BOOTSTRAP_KEY));
     engines.sync_kv()?;

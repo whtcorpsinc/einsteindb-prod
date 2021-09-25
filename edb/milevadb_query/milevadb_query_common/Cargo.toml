@@ -5,7 +5,7 @@ edition = "2018"
 publish = false
 description = "Common utility of a query engine to run MilevaDB pushed down executors"
 
-[deplightlikeencies]
+[dependencies]
 hex = "0.3"
 time = "0.1"
 failure = "0.1"
@@ -17,10 +17,10 @@ fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", 
 prometheus = { version = "0.8", features = ["nightly", "push"] }
 lazy_static = "1.3"
 
-[deplightlikeencies.prometheus-static-metric]
+[dependencies.prometheus-static-metric]
 git = "https://github.com/edb/rust-prometheus.git"
 rev = "fd122caa03de8e7e5e4fae9372583aebf19e39f6"
 
-[dev-deplightlikeencies]
+[dev-dependencies]
 byteorder = "1.2"
 

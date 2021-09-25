@@ -1,5 +1,5 @@
 [package]
-name = "engine_lmdb"
+name = "embedded_lmdb"
 version = "0.0.1"
 edition = "2018"
 publish = false
@@ -53,7 +53,7 @@ features = ["encryption", "static_libcpp"]
 git = "https://github.com/whtcorpsinc/edb/rust-prometheus.git"
 rev = ""
 
-[dev-deplightlikeencies]
+[dev-dependencies]
 ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
 rand = "0.7"
 toml = "0.4"

@@ -5,7 +5,7 @@ use std::error;
 use std::fmt::{self, Display, Formatter};
 use std::time::Instant;
 
-use edb::KvEngine;
+use edb::CausetEngine;
 use edb::Causet_WRITE;
 use violetabftstore::interlock::::worker::Runnable;
 
@@ -87,7 +87,7 @@ pub struct Runner<E> {
 
 impl<E> Runner<E>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     pub fn new(engine: E) -> Runner<E> {
         Runner { engine }
@@ -121,7 +121,7 @@ where
 
 impl<E> Runnable for Runner<E>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     type Task = Task;
 
@@ -188,7 +188,7 @@ fn need_compact(
 }
 
 fn collect_cones_need_compact(
-    engine: &impl KvEngine,
+    engine: &impl CausetEngine,
     cones: Vec<Key>,
     tombstones_num_memory_barrier: u64,
     tombstones_percent_memory_barrier: u64,

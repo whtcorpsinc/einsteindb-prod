@@ -19,7 +19,7 @@ use tempfile::{Builder, TempDir};
 use tokio::runtime::Builder as TokioBuilder;
 
 use super::*;
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use encryption::DataKeyManager;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
 use edb::{Engines, MiscExt};
@@ -88,7 +88,7 @@ pub struct ServerCluster {
     snap_paths: HashMap<u64, TempDir>,
     fidel_client: Arc<TestFidelClient>,
     violetabft_client: VioletaBftClient<VioletaBftStoreBlackHole>,
-    concurrency_managers: HashMap<u64, ConcurrencyManager>,
+    interlocking_directorates: HashMap<u64, ConcurrencyManager>,
 }
 
 impl ServerCluster {
@@ -119,7 +119,7 @@ impl ServerCluster {
             plightlikeing_services: HashMap::default(),
             interlock_hooks: HashMap::default(),
             violetabft_client,
-            concurrency_managers: HashMap::default(),
+            interlocking_directorates: HashMap::default(),
         }
     }
 
@@ -143,8 +143,8 @@ impl ServerCluster {
         &self.metas.get(&node_id).unwrap().gc_worker
     }
 
-    pub fn get_concurrency_manager(&self, node_id: u64) -> ConcurrencyManager {
-        self.concurrency_managers.get(&node_id).unwrap().clone()
+    pub fn get_interlocking_directorate(&self, node_id: u64) -> ConcurrencyManager {
+        self.interlocking_directorates.get(&node_id).unwrap().clone()
     }
 }
 
@@ -213,14 +213,14 @@ impl Simulator for ServerCluster {
 
         let latest_ts =
             block_on(self.fidel_client.get_tso()).expect("failed to get timestamp from FIDel");
-        let concurrency_manager = ConcurrencyManager::new(latest_ts);
+        let interlocking_directorate = ConcurrencyManager::new(latest_ts);
         let mut lock_mgr = LockManager::new();
         let store = create_violetabft_causet_storage(
             engine,
             &causet.causet_storage,
             causet_storage_read_pool.handle(),
             lock_mgr.clone(),
-            concurrency_manager.clone(),
+            interlocking_directorate.clone(),
             false,
         )?;
         self.causet_storages.insert(node_id, violetabft_engine);
@@ -256,7 +256,7 @@ impl Simulator for ServerCluster {
         let causet = interlock::node::new(
             &server_causet,
             cop_read_pool.handle(),
-            concurrency_manager.clone(),
+            interlocking_directorate.clone(),
         );
         let mut server = None;
         // Create Debug service.
@@ -356,7 +356,7 @@ impl Simulator for ServerCluster {
             importer.clone(),
             split_check_worker,
             AutoSplitController::default(),
-            concurrency_manager.clone(),
+            interlocking_directorate.clone(),
         )?;
         assert!(node_id == 0 || node_id == node.id());
         let node_id = node.id();
@@ -393,8 +393,8 @@ impl Simulator for ServerCluster {
             },
         );
         self.addrs.insert(node_id, format!("{}", addr));
-        self.concurrency_managers
-            .insert(node_id, concurrency_manager);
+        self.interlocking_directorates
+            .insert(node_id, interlocking_directorate);
 
         Ok(node_id)
     }

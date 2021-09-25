@@ -172,7 +172,7 @@ fn test_sync_max_ts_after_leader_transfer() {
     cluster.causet.violetabft_store.violetabft_heartbeat_ticks = 20;
     cluster.run();
 
-    let cm = cluster.sim.read().unwrap().get_concurrency_manager(1);
+    let cm = cluster.sim.read().unwrap().get_interlocking_directorate(1);
     let causet_storage = cluster
         .sim
         .read()

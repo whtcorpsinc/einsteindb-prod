@@ -4,7 +4,7 @@ version = "0.0.1"
 edition = "2018"
 publish = false
 
-[deplightlikeencies]
+[dependencies]
 encryption = { path = "../encryption" }
 fail = "0.3"
 grpcio = { version = "0.6", default-features = false, features = ["openssl-vlightlikeored"] }

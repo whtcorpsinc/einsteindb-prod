@@ -76,7 +76,7 @@ byteorder = "1.2"
 cache-size = "0.5"
 chrono = "0.4"
 codec = { path = "components/codec" }
-concurrency_manager = { path = "components/concurrency_manager" }
+interlocking_directorate = { path = "components/interlocking_directorate" }
 configuration = { path = "components/configuration" }
 crc32fast = "1.2"
 crc64fast = "1.0.0"

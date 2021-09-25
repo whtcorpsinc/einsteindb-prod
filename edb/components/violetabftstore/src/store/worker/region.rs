@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 use std::u64;
 
 use edb::Causet_VIOLETABFT;
-use edb::{Engines, KvEngine, MuBlock, VioletaBftEngine};
+use edb::{Engines, CausetEngine, MuBlock, VioletaBftEngine};
 use ekvproto::violetabft_server_timeshare::{PeerState, VioletaBftApplyState, BraneLocalState};
 use violetabft::evioletabft_timeshare::Snapshot as VioletaBftSnapshot;
 
@@ -214,7 +214,7 @@ impl PlightlikeingDeleteCones {
 #[derive(Clone)]
 struct SnapContext<EK, ER, R>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     engines: Engines<EK, ER>,
@@ -228,7 +228,7 @@ where
 
 impl<EK, ER, R> SnapContext<EK, ER, R>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
     R: CasualRouter<EK>,
 {
@@ -553,7 +553,7 @@ where
 
 pub struct Runner<EK, ER, R>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     pool: ThreadPool<TaskCell>,
@@ -565,7 +565,7 @@ where
 
 impl<EK, ER, R> Runner<EK, ER, R>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
     R: CasualRouter<EK>,
 {
@@ -626,7 +626,7 @@ where
 
 impl<EK, ER, R> Runnable for Runner<EK, ER, R>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
     R: CasualRouter<EK> + lightlike + Clone + 'static,
 {
@@ -697,7 +697,7 @@ pub enum Event {
 
 impl<EK, ER, R> RunnableWithTimer for Runner<EK, ER, R>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
     R: CasualRouter<EK> + lightlike + Clone + 'static,
 {
@@ -741,7 +741,7 @@ mod tests {
     use edb::{
         CausetHandleExt, CausetNamesExt, CompactExt, MiscExt, MuBlock, Peekable, SyncMuBlock, WriteBatchExt,
     };
-    use edb::{Engines, KvEngine};
+    use edb::{Engines, CausetEngine};
     use edb::{Causet_DEFAULT, Causet_VIOLETABFT};
     use ekvproto::violetabft_server_timeshare::{PeerState, VioletaBftApplyState, BraneLocalState};
     use violetabft::evioletabft_timeshare::Entry;

@@ -18,7 +18,7 @@ use std::{
     thread::JoinHandle,
 };
 
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use encryption::DataKeyManager;
 use engine_lmdb::{encryption::get_env, LmdbEngine};
 use edb::{
@@ -144,7 +144,7 @@ struct EinsteinDBServer<ER: VioletaBftEngine> {
     interlock_host: Option<InterlockHost<LmdbEngine>>,
     to_stop: Vec<Box<dyn Stop>>,
     lock_files: Vec<File>,
-    concurrency_manager: ConcurrencyManager,
+    interlocking_directorate: ConcurrencyManager,
 }
 
 struct EinsteinDBEngines<ER: VioletaBftEngine> {
@@ -214,7 +214,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
 
         // Initialize concurrency manager
         let latest_ts = block_on(fidel_client.get_tso()).expect("failed to get timestamp from FIDel");
-        let concurrency_manager = ConcurrencyManager::new(latest_ts.into());
+        let interlocking_directorate = ConcurrencyManager::new(latest_ts.into());
 
         EinsteinDBServer {
             config,
@@ -233,7 +233,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             interlock_host,
             to_stop: vec![Box::new(resolve_worker)],
             lock_files: vec![],
-            concurrency_manager,
+            interlocking_directorate,
         }
     }
 
@@ -530,7 +530,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             &self.config.causet_storage,
             causet_storage_read_pool_handle,
             lock_mgr.clone(),
-            self.concurrency_manager.clone(),
+            self.interlocking_directorate.clone(),
             self.config.pessimistic_txn.pipelined,
         )
         .unwrap_or_else(|e| fatal!("failed to create violetabft causet_storage: {}", e));
@@ -578,7 +578,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             interlock::node::new(
                 &server_config,
                 cop_read_pool_handle,
-                self.concurrency_manager.clone(),
+                self.interlocking_directorate.clone(),
             ),
             self.router.clone(),
             self.resolver.clone(),
@@ -643,7 +643,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             importer.clone(),
             split_check_worker,
             auto_split_controller,
-            self.concurrency_manager.clone(),
+            self.interlocking_directorate.clone(),
         )
         .unwrap_or_else(|e| fatal!("failed to spacelike node: {}", e));
 
@@ -667,7 +667,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             self.router.clone(),
             causet_context_ob,
             engines.store_meta.clone(),
-            self.concurrency_manager.clone(),
+            self.interlocking_directorate.clone(),
         );
         let causet_context_timer = causet_context_lightlikepoint.new_timer();
         causet_context_worker
@@ -777,7 +777,7 @@ impl<ER: VioletaBftEngine> EinsteinDBServer<ER> {
             self.brane_info_accessor.clone(),
             engines.engines.kv.as_inner().clone(),
             self.config.backup.clone(),
-            self.concurrency_manager.clone(),
+            self.interlocking_directorate.clone(),
         );
         self.causet_controller.as_mut().unwrap().register(
             edb::config::Module::Backup,

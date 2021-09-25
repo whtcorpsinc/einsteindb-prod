@@ -2,7 +2,7 @@ use crate::{LmdbEngine, LmdbWriteBatch};
 
 use edb::{Error, VioletaBftEngine, VioletaBftLogBatch, Result};
 use edb::{
-    Iterable, KvEngine, MiscExt, MuBlock, Peekable, SyncMuBlock, WriteBatchExt, WriteOptions,
+    Iterable, CausetEngine, MiscExt, MuBlock, Peekable, SyncMuBlock, WriteBatchExt, WriteOptions,
     Causet_DEFAULT, MAX_DELETE_BATCH_COUNT,
 };
 use ekvproto::violetabft_server_timeshare::VioletaBftLocalState;
@@ -208,10 +208,10 @@ impl VioletaBftEngine for LmdbEngine {
     }
 
     fn flush_metrics(&self, instance: &str) {
-        KvEngine::flush_metrics(self, instance)
+        CausetEngine::flush_metrics(self, instance)
     }
     fn reset_statistics(&self) {
-        KvEngine::reset_statistics(self)
+        CausetEngine::reset_statistics(self)
     }
 
     fn dump_stats(&self) -> Result<String> {

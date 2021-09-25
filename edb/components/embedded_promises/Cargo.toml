@@ -14,7 +14,7 @@ prost-codec = [
   "ekvproto/prost-codec",
 ]
 
-[deplightlikeencies]
+[dependencies]
 error_code = { path = "../error_code" }
 hex = "0.4"
 protobuf = "2"

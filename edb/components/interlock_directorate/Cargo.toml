@@ -1,15 +1,15 @@
 [package]
 edition = "2018"
-name = "concurrency_manager"
+name = "interlocking_directorate"
 publish = false
 version = "0.0.1"
 
-[deplightlikeencies]
+[dependencies]
 parking_lot = "0.10"
 tokio = { version = "0.2", features = ["sync"] }
 txn_types = { path = "../txn_types" }
 
-[deplightlikeencies.crossbeam-skiplist]
+[dependencies.crossbeam-skiplist]
 git = "https://github.com/crossbeam-rs/crossbeam.git"
 tag = "crossbeam-0.7.3"
 package = "crossbeam-skiplist" 

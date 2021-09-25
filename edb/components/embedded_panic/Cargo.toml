@@ -5,7 +5,7 @@ description = "An example EinsteinDB causet_storage engine that does nothing but
 edition = "2018"
 publish = false
 
-[deplightlikeencies]
+[dependencies]
 edb = { path = "../edb" }
 edb_alloc = { path = "../edb_alloc" }
 # FIXME: Remove this dep from the edb interface

@@ -2,7 +2,7 @@
 
 use super::*;
 
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use ekvproto::kvrpc_timeshare::Context;
 
 use milevadb_query_datatype::codec::Datum;

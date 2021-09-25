@@ -1,5 +1,5 @@
 [package]
-name = "interlock_directorate
+name = "edb"
 version = "0.1.0"
 edition = "2018"
 publish = false
@@ -8,7 +8,7 @@ publish = false
 protobuf-codec = ["ekvproto/protobuf-codec"]
 prost-codec = ["ekvproto/prost-codec"]
 
-[deplightlikeencies]
+[dependencies]
 byteorder = "1.2"
 derive_more = "0.99.3"
 failure = "0.1"
@@ -16,5 +16,5 @@ hex = "0.4"
 ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
 edb_alloc = { path = "../edb_alloc" }
 
-[dev-deplightlikeencies]
+[dev-dependencies]
 panic_hook = { path = "../panic_hook" }

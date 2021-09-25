@@ -23,7 +23,7 @@ use uuid::{Builder as UuidBuilder, Uuid};
 use encryption::DataKeyManager;
 use engine_lmdb::{encryption::get_env, LmdbSstReader};
 use edb::{
-    EncryptionKeyManager, IngestExternalFileOptions, Iteron, KvEngine, SeekKey, SstExt,
+    EncryptionKeyManager, IngestExternalFileOptions, Iteron, CausetEngine, SeekKey, SstExt,
     SstReader, SstWriter, Causet_DEFAULT, Causet_WRITE,
 };
 use external_causet_storage::{block_on_external_io, create_causet_storage, url_of_backlightlike, READ_BUF_SIZE};
@@ -81,7 +81,7 @@ impl SSTImporter {
         }
     }
 
-    pub fn ingest<E: KvEngine>(&self, meta: &SstMeta, engine: &E) -> Result<()> {
+    pub fn ingest<E: CausetEngine>(&self, meta: &SstMeta, engine: &E) -> Result<()> {
         match self.dir.ingest(meta, engine, self.key_manager.as_ref()) {
             Ok(_) => {
                 info!("ingest"; "meta" => ?meta);
@@ -110,7 +110,7 @@ impl SSTImporter {
     //
     // This method returns the *inclusive* key cone (`[spacelike, lightlike]`) of SST
     // file created, or returns None if the SST is empty.
-    pub fn download<E: KvEngine>(
+    pub fn download<E: CausetEngine>(
         &self,
         meta: &SstMeta,
         backlightlike: &StorageBacklightlike,
@@ -180,7 +180,7 @@ impl SSTImporter {
         Ok(())
     }
 
-    fn do_download<E: KvEngine>(
+    fn do_download<E: CausetEngine>(
         &self,
         meta: &SstMeta,
         backlightlike: &StorageBacklightlike,
@@ -416,7 +416,7 @@ impl SSTImporter {
         self.dir.list_ssts()
     }
 
-    pub fn new_writer<E: KvEngine>(
+    pub fn new_writer<E: CausetEngine>(
         &self,
         default: E::SstWriter,
         write: E::SstWriter,
@@ -440,7 +440,7 @@ impl SSTImporter {
     }
 }
 
-pub struct SSTWriter<E: KvEngine> {
+pub struct SSTWriter<E: CausetEngine> {
     default: E::SstWriter,
     default_entries: u64,
     default_path: ImportPath,
@@ -451,7 +451,7 @@ pub struct SSTWriter<E: KvEngine> {
     write_meta: SstMeta,
 }
 
-impl<E: KvEngine> SSTWriter<E> {
+impl<E: CausetEngine> SSTWriter<E> {
     pub fn new(
         default: E::SstWriter,
         write: E::SstWriter,
@@ -607,7 +607,7 @@ impl ImportDir {
         Ok(path)
     }
 
-    fn ingest<E: KvEngine>(
+    fn ingest<E: CausetEngine>(
         &self,
         meta: &SstMeta,
         engine: &E,

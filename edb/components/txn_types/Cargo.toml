@@ -8,7 +8,7 @@ publish = false
 protobuf-codec = ["ekvproto/protobuf-codec"]
 prost-codec = ["ekvproto/prost-codec"]
 
-[deplightlikeencies]
+[dependencies]
 byteorder = "1.2"
 farmhash = "1.1.5"
 hex = "0.4"

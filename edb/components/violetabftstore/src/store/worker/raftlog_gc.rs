@@ -6,7 +6,7 @@ use std::sync::mpsc::lightlikeer;
 
 use crate::store::{CasualMessage, CasualRouter};
 
-use edb::{Engines, KvEngine, VioletaBftEngine};
+use edb::{Engines, CausetEngine, VioletaBftEngine};
 use violetabftstore::interlock::::time::Duration;
 use violetabftstore::interlock::::timer::Timer;
 use violetabftstore::interlock::::worker::{Runnable, RunnableWithTimer};
@@ -61,14 +61,14 @@ quick_error! {
     }
 }
 
-pub struct Runner<EK: KvEngine, ER: VioletaBftEngine, R: CasualRouter<EK>> {
+pub struct Runner<EK: CausetEngine, ER: VioletaBftEngine, R: CasualRouter<EK>> {
     ch: R,
     tasks: Vec<Task>,
     engines: Engines<EK, ER>,
     gc_entries: Option<lightlikeer<usize>>,
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine, R: CasualRouter<EK>> Runner<EK, ER, R> {
+impl<EK: CausetEngine, ER: VioletaBftEngine, R: CasualRouter<EK>> Runner<EK, ER, R> {
     pub fn new(ch: R, engines: Engines<EK, ER>) -> Runner<EK, ER, R> {
         Runner {
             ch,
@@ -145,7 +145,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, R: CasualRouter<EK>> Runner<EK, ER, R> 
 
 impl<EK, ER, R> Runnable for Runner<EK, ER, R>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
     R: CasualRouter<EK>,
 {
@@ -166,7 +166,7 @@ where
 
 impl<EK, ER, R> RunnableWithTimer for Runner<EK, ER, R>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
     R: CasualRouter<EK>,
 {
@@ -181,7 +181,7 @@ where
 mod tests {
     use super::*;
     use engine_lmdb::util::new_engine;
-    use edb::{Engines, KvEngine, MuBlock, WriteBatchExt, ALL_CausetS, Causet_DEFAULT};
+    use edb::{Engines, CausetEngine, MuBlock, WriteBatchExt, ALL_CausetS, Causet_DEFAULT};
     use std::sync::mpsc;
     use std::time::Duration;
     use tempfile::Builder;
@@ -231,7 +231,7 @@ mod tests {
     }
 
     fn violetabft_log_must_not_exist(
-        violetabft_engine: &impl KvEngine,
+        violetabft_engine: &impl CausetEngine,
         brane_id: u64,
         spacelike_idx: u64,
         lightlike_idx: u64,
@@ -243,7 +243,7 @@ mod tests {
     }
 
     fn violetabft_log_must_exist(
-        violetabft_engine: &impl KvEngine,
+        violetabft_engine: &impl CausetEngine,
         brane_id: u64,
         spacelike_idx: u64,
         lightlike_idx: u64,

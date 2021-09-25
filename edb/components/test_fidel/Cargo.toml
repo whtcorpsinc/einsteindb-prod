@@ -16,7 +16,7 @@ prost-codec = [
   "fidel_client/prost-codec",
 ]
 
-[deplightlikeencies]
+[dependencies]
 fail = "0.3"
 futures = "0.3"
 grpcio = { version = "0.6", default-features = false, features = ["openssl-vlightlikeored"] }

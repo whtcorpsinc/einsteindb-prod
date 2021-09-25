@@ -2,13 +2,13 @@
 
 use std::marker::PhantomData;
 
-use edb::{KvEngine, Snapshot, Causet_VIOLETABFT};
+use edb::{CausetEngine, Snapshot, Causet_VIOLETABFT};
 use ekvproto::meta_timeshare::Brane;
 
 use crate::interlock::{ConsistencyCheckMethod, Interlock};
 use crate::Result;
 
-pub trait ConsistencyCheckSemaphore<E: KvEngine>: Interlock {
+pub trait ConsistencyCheckSemaphore<E: CausetEngine>: Interlock {
     /// fidelio context. Return `true` if later semaphores should be skiped.
     fn fidelio_context(&self, context: &mut Vec<u8>) -> bool;
 
@@ -22,17 +22,17 @@ pub trait ConsistencyCheckSemaphore<E: KvEngine>: Interlock {
 }
 
 #[derive(Clone)]
-pub struct Raw<E: KvEngine>(PhantomData<E>);
+pub struct Raw<E: CausetEngine>(PhantomData<E>);
 
-impl<E: KvEngine> Interlock for Raw<E> {}
+impl<E: CausetEngine> Interlock for Raw<E> {}
 
-impl<E: KvEngine> Default for Raw<E> {
+impl<E: CausetEngine> Default for Raw<E> {
     fn default() -> Raw<E> {
         Raw(Default::default())
     }
 }
 
-impl<E: KvEngine> ConsistencyCheckSemaphore<E> for Raw<E> {
+impl<E: CausetEngine> ConsistencyCheckSemaphore<E> for Raw<E> {
     fn fidelio_context(&self, context: &mut Vec<u8>) -> bool {
         context.push(ConsistencyCheckMethod::Raw as u8);
         // Raw consistency check is the most heavy and strong one.

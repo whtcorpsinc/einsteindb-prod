@@ -12,7 +12,7 @@ use engine_lmdb::util::new_temp_engine;
 use engine_lmdb::LmdbEngine;
 use engine_lmdb::{Compat, LmdbSnapshot, LmdbSstWriterBuilder};
 use edb::{
-    CompactExt, Engines, KvEngine, MiscExt, SstWriter, SstWriterBuilder, ALL_CausetS, Causet_DEFAULT,
+    CompactExt, Engines, CausetEngine, MiscExt, SstWriter, SstWriterBuilder, ALL_CausetS, Causet_DEFAULT,
     Causet_WRITE,
 };
 use tuplespaceInstanton::data_key;

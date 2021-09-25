@@ -8,7 +8,7 @@ use tempfile::Builder;
 use ekvproto::meta_timeshare;
 use ekvproto::violetabft_server_timeshare::BraneLocalState;
 
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use engine_lmdb::{Compat, LmdbEngine};
 use edb::{Engines, Peekable, ALL_CausetS, Causet_VIOLETABFT};
 use violetabftstore::interlock::InterlockHost;

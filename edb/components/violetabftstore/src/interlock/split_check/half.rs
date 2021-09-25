@@ -1,6 +1,6 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
-use edb::{KvEngine, Cone};
+use edb::{CausetEngine, Cone};
 use ekvproto::meta_timeshare::Brane;
 use ekvproto::fidel_timeshare::CheckPolicy;
 
@@ -33,7 +33,7 @@ impl Checker {
 
 impl<E> SplitChecker<E> for Checker
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     fn on_kv(&mut self, _: &mut SemaphoreContext<'_>, entry: &KeyEntry) -> bool {
         if self.buckets.is_empty() || self.cur_bucket_size >= self.each_bucket_size {
@@ -74,7 +74,7 @@ impl Interlock for HalfCheckSemaphore {}
 
 impl<E> SplitCheckSemaphore<E> for HalfCheckSemaphore
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     fn add_checker(
         &self,
@@ -106,7 +106,7 @@ fn half_split_bucket_size(brane_max_size: u64) -> u64 {
 
 /// Get brane approximate middle key based on default and write causet size.
 pub fn get_brane_approximate_middle(
-    db: &impl KvEngine,
+    db: &impl CausetEngine,
     brane: &Brane,
 ) -> Result<Option<Vec<u8>>> {
     let spacelike_key = tuplespaceInstanton::enc_spacelike_key(brane);
@@ -128,7 +128,7 @@ pub fn get_brane_approximate_middle(
 /// here. It should be a test of the edb or engine_lmdb crates.
 #[causet(test)]
 fn get_brane_approximate_middle_causet(
-    db: &impl KvEngine,
+    db: &impl CausetEngine,
     causetname: &str,
     brane: &Brane,
 ) -> Result<Option<Vec<u8>>> {

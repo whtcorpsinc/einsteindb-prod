@@ -129,12 +129,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_lock_tuplespaceInstanton_order() {
-        let concurrency_manager = ConcurrencyManager::new(1.into());
+        let interlocking_directorate = ConcurrencyManager::new(1.into());
         let tuplespaceInstanton: Vec<_> = [b"c", b"a", b"b"]
             .iter()
             .map(|k| Key::from_raw(*k))
             .collect();
-        let guards = concurrency_manager.lock_tuplespaceInstanton(tuplespaceInstanton.iter()).await;
+        let guards = interlocking_directorate.lock_tuplespaceInstanton(tuplespaceInstanton.iter()).await;
         for (key, guard) in tuplespaceInstanton.iter().zip(&guards) {
             assert_eq!(key, guard.key());
         }
@@ -142,15 +142,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_fidelio_max_ts() {
-        let concurrency_manager = ConcurrencyManager::new(10.into());
-        concurrency_manager.fidelio_max_ts(20.into());
-        assert_eq!(concurrency_manager.max_ts(), 20.into());
+        let interlocking_directorate = ConcurrencyManager::new(10.into());
+        interlocking_directorate.fidelio_max_ts(20.into());
+        assert_eq!(interlocking_directorate.max_ts(), 20.into());
 
-        concurrency_manager.fidelio_max_ts(5.into());
-        assert_eq!(concurrency_manager.max_ts(), 20.into());
+        interlocking_directorate.fidelio_max_ts(5.into());
+        assert_eq!(interlocking_directorate.max_ts(), 20.into());
 
-        concurrency_manager.fidelio_max_ts(TimeStamp::max());
-        assert_eq!(concurrency_manager.max_ts(), 20.into());
+        interlocking_directorate.fidelio_max_ts(TimeStamp::max());
+        assert_eq!(interlocking_directorate.max_ts(), 20.into());
     }
 
     fn new_lock(ts: impl Into<TimeStamp>, primary: &[u8], lock_type: LockType) -> Dagger {
@@ -169,15 +169,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_global_min_lock_ts() {
-        let concurrency_manager = ConcurrencyManager::new(1.into());
+        let interlocking_directorate = ConcurrencyManager::new(1.into());
 
-        assert_eq!(concurrency_manager.global_min_lock_ts(), None);
-        let guard = concurrency_manager.lock_key(&Key::from_raw(b"a")).await;
-        assert_eq!(concurrency_manager.global_min_lock_ts(), None);
+        assert_eq!(interlocking_directorate.global_min_lock_ts(), None);
+        let guard = interlocking_directorate.lock_key(&Key::from_raw(b"a")).await;
+        assert_eq!(interlocking_directorate.global_min_lock_ts(), None);
         guard.with_lock(|l| *l = Some(new_lock(10, b"a", LockType::Put)));
-        assert_eq!(concurrency_manager.global_min_lock_ts(), Some(10.into()));
+        assert_eq!(interlocking_directorate.global_min_lock_ts(), Some(10.into()));
         drop(guard);
-        assert_eq!(concurrency_manager.global_min_lock_ts(), None);
+        assert_eq!(interlocking_directorate.global_min_lock_ts(), None);
 
         let ts_seqs = vec![
             vec![20, 30, 40],
@@ -191,12 +191,12 @@ mod tests {
             .collect();
 
         for ts_seq in ts_seqs {
-            let guards = concurrency_manager.lock_tuplespaceInstanton(tuplespaceInstanton.iter()).await;
-            assert_eq!(concurrency_manager.global_min_lock_ts(), None);
+            let guards = interlocking_directorate.lock_tuplespaceInstanton(tuplespaceInstanton.iter()).await;
+            assert_eq!(interlocking_directorate.global_min_lock_ts(), None);
             for (ts, guard) in ts_seq.into_iter().zip(guards.iter()) {
                 guard.with_lock(|l| *l = Some(new_lock(ts, b"pk", LockType::Put)));
             }
-            assert_eq!(concurrency_manager.global_min_lock_ts(), Some(20.into()));
+            assert_eq!(interlocking_directorate.global_min_lock_ts(), Some(20.into()));
         }
     }
 }

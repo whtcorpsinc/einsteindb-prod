@@ -3,7 +3,7 @@
 use std::fmt::{self, Display, Formatter};
 
 use byteorder::{BigEndian, WriteBytesExt};
-use edb::{KvEngine, Snapshot};
+use edb::{CausetEngine, Snapshot};
 use ekvproto::meta_timeshare::Brane;
 use violetabftstore::interlock::::worker::Runnable;
 
@@ -44,12 +44,12 @@ impl<S: Snapshot> Display for Task<S> {
     }
 }
 
-pub struct Runner<EK: KvEngine, C: CasualRouter<EK>> {
+pub struct Runner<EK: CausetEngine, C: CasualRouter<EK>> {
     router: C,
     interlock_host: InterlockHost<EK>,
 }
 
-impl<EK: KvEngine, C: CasualRouter<EK>> Runner<EK, C> {
+impl<EK: CausetEngine, C: CasualRouter<EK>> Runner<EK, C> {
     pub fn new(router: C, cop_host: InterlockHost<EK>) -> Runner<EK, C> {
         Runner {
             router,
@@ -110,7 +110,7 @@ impl<EK: KvEngine, C: CasualRouter<EK>> Runner<EK, C> {
 
 impl<EK, C> Runnable for Runner<EK, C>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     C: CasualRouter<EK>,
 {
     type Task = Task<EK::Snapshot>;
@@ -134,7 +134,7 @@ mod tests {
     use byteorder::{BigEndian, WriteBytesExt};
     use engine_lmdb::util::new_engine;
     use engine_lmdb::{LmdbEngine, LmdbSnapshot};
-    use edb::{KvEngine, SyncMuBlock, Causet_DEFAULT, Causet_VIOLETABFT};
+    use edb::{CausetEngine, SyncMuBlock, Causet_DEFAULT, Causet_VIOLETABFT};
     use ekvproto::meta_timeshare::*;
     use std::sync::mpsc;
     use std::time::Duration;

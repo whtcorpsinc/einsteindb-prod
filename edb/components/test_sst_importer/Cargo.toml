@@ -20,7 +20,7 @@ prost-codec = [
   "ekvproto/prost-codec",
 ]
 
-[deplightlikeencies]
+[dependencies]
 crc32fast = "1.2"
 engine_lmdb = { path = "../engine_lmdb" }
 edb = { path = "../edb" }

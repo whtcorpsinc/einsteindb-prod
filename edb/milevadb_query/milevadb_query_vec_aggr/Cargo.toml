@@ -5,7 +5,7 @@ edition = "2018"
 publish = false
 description = "Vector aggr functions of query engine to run MilevaDB pushed down executors"
 
-[deplightlikeencies]
+[dependencies]
 match_template = { path = "../match_template" }
 milevadb_query_codegen = { path = "../milevadb_query_codegen" }
 milevadb_query_datatype = { path = "../milevadb_query_datatype" }
@@ -14,6 +14,6 @@ milevadb_query_vec_expr = { path = "../milevadb_query_vec_expr" }
 violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
 fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", default-features = false }
 
-[dev-deplightlikeencies]
+[dev-dependencies]
 panic_hook = { path = "../panic_hook" }
 fidel_timeshare_helper = { path = "../fidel_timeshare_helper" }

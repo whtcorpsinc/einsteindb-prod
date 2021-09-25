@@ -5,7 +5,7 @@ edition = "2018"
 publish = false
 description = "Shared utility of expression used by milevadb_query_normal_expr and milevadb_query_vec_expr"
 
-[deplightlikeencies]
+[dependencies]
 rand = "0.7.3"
 safemem = { version = "0.3", default-features = false }
 time = "0.1"

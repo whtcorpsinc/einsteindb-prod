@@ -7,7 +7,7 @@ use ekvproto::import_sst_timeshare::SstMeta;
 
 use crate::store::util::is_epoch_stale;
 use crate::store::{StoreMsg, StoreRouter};
-use edb::KvEngine;
+use edb::CausetEngine;
 use fidel_client::FidelClient;
 use sst_importer::SSTImporter;
 use std::marker::PhantomData;
@@ -29,7 +29,7 @@ impl fmt::Display for Task {
 
 pub struct Runner<EK, C, S>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     S: StoreRouter<EK>,
 {
     store_id: u64,
@@ -41,7 +41,7 @@ where
 
 impl<EK, C, S> Runner<EK, C, S>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     C: FidelClient,
     S: StoreRouter<EK>,
 {
@@ -107,7 +107,7 @@ where
 
 impl<EK, C, S> Runnable for Runner<EK, C, S>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     C: FidelClient,
     S: StoreRouter<EK>,
 {

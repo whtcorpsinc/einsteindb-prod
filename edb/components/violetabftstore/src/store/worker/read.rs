@@ -24,7 +24,7 @@ use crate::store::{
 };
 use crate::Result;
 
-use edb::{KvEngine, VioletaBftEngine};
+use edb::{CausetEngine, VioletaBftEngine};
 use violetabftstore::interlock::::collections::HashMap;
 use violetabftstore::interlock::::time::monotonic_raw_now;
 use violetabftstore::interlock::::time::{Instant, ThreadReadId};
@@ -32,7 +32,7 @@ use violetabftstore::interlock::::time::{Instant, ThreadReadId};
 use super::metrics::*;
 use crate::store::fsm::store::StoreMeta;
 
-pub trait ReadFreeDaemon<E: KvEngine> {
+pub trait ReadFreeDaemon<E: CausetEngine> {
     fn get_engine(&self) -> &E;
     fn get_snapshot(&mut self, ts: Option<ThreadReadId>) -> Arc<E::Snapshot>;
     fn get_value(&self, req: &Request, brane: &meta_timeshare::Brane) -> Result<Response> {
@@ -149,7 +149,7 @@ pub struct Readpushdown_causet {
 }
 
 impl Readpushdown_causet {
-    pub fn from_peer<EK: KvEngine, ER: VioletaBftEngine>(peer: &Peer<EK, ER>) -> Readpushdown_causet {
+    pub fn from_peer<EK: CausetEngine, ER: VioletaBftEngine>(peer: &Peer<EK, ER>) -> Readpushdown_causet {
         let brane = peer.brane().clone();
         let brane_id = brane.get_id();
         let peer_id = peer.peer.get_id();
@@ -257,7 +257,7 @@ impl Progress {
 pub struct LocalReader<C, E>
 where
     C: ProposalRouter<E::Snapshot>,
-    E: KvEngine,
+    E: CausetEngine,
 {
     store_id: Cell<Option<u64>>,
     store_meta: Arc<Mutex<StoreMeta>>,
@@ -274,7 +274,7 @@ where
 impl<C, E> ReadFreeDaemon<E> for LocalReader<C, E>
 where
     C: ProposalRouter<E::Snapshot>,
-    E: KvEngine,
+    E: CausetEngine,
 {
     fn get_engine(&self) -> &E {
         &self.kv_engine
@@ -301,7 +301,7 @@ where
 impl<C, E> LocalReader<C, E>
 where
     C: ProposalRouter<E::Snapshot>,
-    E: KvEngine,
+    E: CausetEngine,
 {
     pub fn new(kv_engine: E, store_meta: Arc<Mutex<StoreMeta>>, router: C) -> Self {
         let cache_read_id = ThreadReadId::new();
@@ -520,7 +520,7 @@ where
 impl<C, E> Clone for LocalReader<C, E>
 where
     C: ProposalRouter<E::Snapshot> + Clone,
-    E: KvEngine,
+    E: CausetEngine,
 {
     fn clone(&self) -> Self {
         LocalReader {

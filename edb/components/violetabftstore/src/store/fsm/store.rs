@@ -12,7 +12,7 @@ use std::{mem, thread, u64};
 use batch_system::{BasicMailbox, BatchRouter, BatchSystem, Fsm, HandlerBuilder, PollHandler};
 use crossbeam::channel::{TryRecvError, TrylightlikeError};
 use engine_lmdb::{PerfContext, PerfLevel};
-use edb::{Engines, KvEngine, MuBlock, WriteBatch, WriteBatchExt, WriteOptions};
+use edb::{Engines, CausetEngine, MuBlock, WriteBatch, WriteBatchExt, WriteOptions};
 use edb::{Causet_DEFAULT, Causet_DAGGER, Causet_VIOLETABFT, Causet_WRITE};
 use futures::compat::Future01CompatExt;
 use futures::FutureExt;
@@ -70,7 +70,7 @@ use crate::store::{
     SignificantMsg, SnapManager, StoreMsg, StoreTick,
 };
 use crate::Result;
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use violetabftstore::interlock::::future::poll_future_notify;
 
 type Key = Vec<u8>;
@@ -132,7 +132,7 @@ impl StoreMeta {
     }
 
     #[inline]
-    pub fn set_brane<EK: KvEngine, ER: VioletaBftEngine>(
+    pub fn set_brane<EK: CausetEngine, ER: VioletaBftEngine>(
         &mut self,
         host: &InterlockHost<EK>,
         brane: Brane,
@@ -150,7 +150,7 @@ impl StoreMeta {
 
 pub struct VioletaBftRouter<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     pub router: BatchRouter<PeerFsm<EK, ER>, StoreFsm<EK>>,
@@ -158,7 +158,7 @@ where
 
 impl<EK, ER> Clone for VioletaBftRouter<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     fn clone(&self) -> Self {
@@ -170,7 +170,7 @@ where
 
 impl<EK, ER> Deref for VioletaBftRouter<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     type Target = BatchRouter<PeerFsm<EK, ER>, StoreFsm<EK>>;
@@ -182,7 +182,7 @@ where
 
 impl<EK, ER> ApplyNotifier<EK> for VioletaBftRouter<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     fn notify(&self, apply_res: Vec<ApplyRes<EK::Snapshot>>) {
@@ -206,7 +206,7 @@ where
 
 impl<EK, ER> VioletaBftRouter<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     pub fn lightlike_violetabft_message(
@@ -286,7 +286,7 @@ impl Clone for PeerTickBatch {
 
 pub struct PollContext<EK, ER, T, C: 'static>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     pub causet: Config,
@@ -339,7 +339,7 @@ where
 impl<EK, ER, T, C> HandleVioletaBftReadyContext<EK::WriteBatch, ER::LogBatch>
     for PollContext<EK, ER, T, C>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     fn wb_mut(&mut self) -> (&mut EK::WriteBatch, &mut ER::LogBatch) {
@@ -369,7 +369,7 @@ where
 
 impl<EK, ER, T, C> PollContext<EK, ER, T, C>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     #[inline]
@@ -409,7 +409,7 @@ where
 
 impl<EK, ER, T: Transport, C> PollContext<EK, ER, T, C>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     #[inline]
@@ -491,7 +491,7 @@ struct CausetStore {
 
 pub struct StoreFsm<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     store: CausetStore,
     receiver: Receiver<StoreMsg<EK>>,
@@ -499,7 +499,7 @@ where
 
 impl<EK> StoreFsm<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     pub fn new(causet: &Config) -> (LooseBoundedlightlikeer<StoreMsg<EK>>, Box<StoreFsm<EK>>) {
         let (tx, rx) = mpsc::loose_bounded(causet.notify_capacity);
@@ -520,7 +520,7 @@ where
 
 impl<EK> Fsm for StoreFsm<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     type Message = StoreMsg<EK>;
 
@@ -532,7 +532,7 @@ where
 
 struct StoreFsmpushdown_causet<
     'a,
-    EK: KvEngine + 'static,
+    EK: CausetEngine + 'static,
     ER: VioletaBftEngine + 'static,
     T: 'static,
     C: 'static,
@@ -541,7 +541,7 @@ struct StoreFsmpushdown_causet<
     ctx: &'a mut PollContext<EK, ER, T, C>,
 }
 
-impl<'a, EK: KvEngine + 'static, ER: VioletaBftEngine + 'static, T: Transport, C: FidelClient>
+impl<'a, EK: CausetEngine + 'static, ER: VioletaBftEngine + 'static, T: Transport, C: FidelClient>
     StoreFsmpushdown_causet<'a, EK, ER, T, C>
 {
     fn on_tick(&mut self, tick: StoreTick) {
@@ -616,7 +616,7 @@ impl<'a, EK: KvEngine + 'static, ER: VioletaBftEngine + 'static, T: Transport, C
     }
 }
 
-pub struct VioletaBftPoller<EK: KvEngine + 'static, ER: VioletaBftEngine + 'static, T: 'static, C: 'static> {
+pub struct VioletaBftPoller<EK: CausetEngine + 'static, ER: VioletaBftEngine + 'static, T: 'static, C: 'static> {
     tag: String,
     store_msg_buf: Vec<StoreMsg<EK>>,
     peer_msg_buf: Vec<PeerMsg<EK>>,
@@ -627,7 +627,7 @@ pub struct VioletaBftPoller<EK: KvEngine + 'static, ER: VioletaBftEngine + 'stat
     causet_tracker: Tracker<Config>,
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBftPoller<EK, ER, T, C> {
+impl<EK: CausetEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBftPoller<EK, ER, T, C> {
     fn handle_violetabft_ready(&mut self, peers: &mut [Box<PeerFsm<EK, ER>>]) {
         // Only enable the fail point when the store id is equal to 3, which is
         // the id of slow store in tests.
@@ -767,7 +767,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient> VioletaBf
     }
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
+impl<EK: CausetEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     PollHandler<PeerFsm<EK, ER>, StoreFsm<EK>> for VioletaBftPoller<EK, ER, T, C>
 {
     fn begin(&mut self, _batch_size: usize) {
@@ -889,7 +889,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     }
 }
 
-pub struct VioletaBftPollerBuilder<EK: KvEngine, ER: VioletaBftEngine, T, C> {
+pub struct VioletaBftPollerBuilder<EK: CausetEngine, ER: VioletaBftEngine, T, C> {
     pub causet: Arc<VersionTrack<Config>>,
     pub store: meta_timeshare::CausetStore,
     fidel_interlock_semaphore: FutureInterlock_Semaphore<FidelTask<EK>>,
@@ -913,7 +913,7 @@ pub struct VioletaBftPollerBuilder<EK: KvEngine, ER: VioletaBftEngine, T, C> {
     global_replication_state: Arc<Mutex<GlobalReplicationState>>,
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T, C> {
+impl<EK: CausetEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T, C> {
     /// Initialize this store. It scans the db engine, loads all branes
     /// and their peers from it, and schedules snapshot worker if necessary.
     /// WARN: This store should not be used before initialized.
@@ -1079,7 +1079,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine, T, C> VioletaBftPollerBuilder<EK, ER, T
 
 impl<EK, ER, T, C> HandlerBuilder<PeerFsm<EK, ER>, StoreFsm<EK>> for VioletaBftPollerBuilder<EK, ER, T, C>
 where
-    EK: KvEngine + 'static,
+    EK: CausetEngine + 'static,
     ER: VioletaBftEngine + 'static,
     T: Transport + 'static,
     C: FidelClient + 'static,
@@ -1139,7 +1139,7 @@ where
     }
 }
 
-struct Workers<EK: KvEngine> {
+struct Workers<EK: CausetEngine> {
     fidel_worker: FutureWorker<FidelTask<EK>>,
     consistency_check_worker: Worker<ConsistencyCheckTask<EK::Snapshot>>,
     split_check_worker: Worker<SplitCheckTask>,
@@ -1150,7 +1150,7 @@ struct Workers<EK: KvEngine> {
     interlock_host: InterlockHost<EK>,
 }
 
-pub struct VioletaBftBatchSystem<EK: KvEngine, ER: VioletaBftEngine> {
+pub struct VioletaBftBatchSystem<EK: CausetEngine, ER: VioletaBftEngine> {
     system: BatchSystem<PeerFsm<EK, ER>, StoreFsm<EK>>,
     apply_router: ApplyRouter<EK>,
     apply_system: ApplyBatchSystem<EK>,
@@ -1158,7 +1158,7 @@ pub struct VioletaBftBatchSystem<EK: KvEngine, ER: VioletaBftEngine> {
     workers: Option<Workers<EK>>,
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
+impl<EK: CausetEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
     pub fn router(&self) -> VioletaBftRouter<EK, ER> {
         self.router.clone()
     }
@@ -1183,7 +1183,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
         split_check_worker: Worker<SplitCheckTask>,
         auto_split_controller: AutoSplitController,
         global_replication_state: Arc<Mutex<GlobalReplicationState>>,
-        concurrency_manager: ConcurrencyManager,
+        interlocking_directorate: ConcurrencyManager,
     ) -> Result<()> {
         assert!(self.workers.is_none());
         // TODO: we can get cluster meta regularly too later.
@@ -1234,7 +1234,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
                 builder,
                 auto_split_controller,
                 interlock_host,
-                concurrency_manager,
+                interlocking_directorate,
             )?;
         } else {
             self.spacelike_system::<T, C, <EK as WriteBatchExt>::WriteBatch>(
@@ -1243,7 +1243,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
                 builder,
                 auto_split_controller,
                 interlock_host,
-                concurrency_manager,
+                interlocking_directorate,
             )?;
         }
         Ok(())
@@ -1256,7 +1256,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
         builder: VioletaBftPollerBuilder<EK, ER, T, C>,
         auto_split_controller: AutoSplitController,
         interlock_host: InterlockHost<EK>,
-        concurrency_manager: ConcurrencyManager,
+        interlocking_directorate: ConcurrencyManager,
     ) -> Result<()> {
         builder.snap_mgr.init()?;
 
@@ -1350,7 +1350,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
             workers.fidel_worker.interlock_semaphore(),
             causet.fidel_store_heartbeat_tick_interval.0,
             auto_split_controller,
-            concurrency_manager,
+            interlocking_directorate,
         );
         box_try!(workers.fidel_worker.spacelike(fidel_runner));
 
@@ -1391,7 +1391,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftBatchSystem<EK, ER> {
     }
 }
 
-pub fn create_violetabft_batch_system<EK: KvEngine, ER: VioletaBftEngine>(
+pub fn create_violetabft_batch_system<EK: CausetEngine, ER: VioletaBftEngine>(
     causet: &Config,
 ) -> (VioletaBftRouter<EK, ER>, VioletaBftBatchSystem<EK, ER>) {
     let (store_tx, store_fsm) = StoreFsm::new(causet);
@@ -1421,7 +1421,7 @@ enum CheckMsgStatus {
     NewPeerFirst,
 }
 
-impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
+impl<'a, EK: CausetEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     StoreFsmpushdown_causet<'a, EK, ER, T, C>
 {
     /// Checks if the message is targeting a stale peer.
@@ -2151,7 +2151,7 @@ impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     }
 }
 
-impl<'a, EK: KvEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
+impl<'a, EK: CausetEngine, ER: VioletaBftEngine, T: Transport, C: FidelClient>
     StoreFsmpushdown_causet<'a, EK, ER, T, C>
 {
     fn on_validate_sst_result(&mut self, ssts: Vec<SstMeta>) {

@@ -3,7 +3,7 @@
 use std::cell::RefCell;
 
 use crossbeam::{lightlikeError, TrylightlikeError};
-use edb::{KvEngine, VioletaBftEngine, Snapshot};
+use edb::{CausetEngine, VioletaBftEngine, Snapshot};
 use ekvproto::violetabft_cmd_timeshare::VioletaBftCmdRequest;
 use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
 use violetabft::SnapshotStatus;
@@ -20,7 +20,7 @@ use crate::{DiscardReason, Error as VioletaBftStoreError, Result as VioletaBftSt
 pub trait VioletaBftStoreRouter<EK>:
     StoreRouter<EK> + ProposalRouter<EK::Snapshot> + CasualRouter<EK> + lightlike + Clone
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     /// lightlikes VioletaBftMessage to local store.
     fn lightlike_violetabft_msg(&self, msg: VioletaBftMessage) -> VioletaBftStoreResult<()>;
@@ -92,7 +92,7 @@ where
 
 pub trait LocalReadRouter<EK>: lightlike + Clone
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn read(
         &self,
@@ -107,7 +107,7 @@ where
 #[derive(Clone)]
 pub struct VioletaBftStoreBlackHole;
 
-impl<EK: KvEngine> CasualRouter<EK> for VioletaBftStoreBlackHole {
+impl<EK: CausetEngine> CasualRouter<EK> for VioletaBftStoreBlackHole {
     fn lightlike(&self, _: u64, _: CasualMessage<EK>) -> VioletaBftStoreResult<()> {
         Ok(())
     }
@@ -121,7 +121,7 @@ impl<S: Snapshot> ProposalRouter<S> for VioletaBftStoreBlackHole {
 
 impl<EK> StoreRouter<EK> for VioletaBftStoreBlackHole
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn lightlike(&self, _: StoreMsg<EK>) -> VioletaBftStoreResult<()> {
         Ok(())
@@ -130,7 +130,7 @@ where
 
 impl<EK> VioletaBftStoreRouter<EK> for VioletaBftStoreBlackHole
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     /// lightlikes VioletaBftMessage to local store.
     fn lightlike_violetabft_msg(&self, _: VioletaBftMessage) -> VioletaBftStoreResult<()> {
@@ -146,12 +146,12 @@ where
 }
 
 /// A router that routes messages to the violetabftstore
-pub struct ServerVioletaBftStoreRouter<EK: KvEngine, ER: VioletaBftEngine> {
+pub struct ServerVioletaBftStoreRouter<EK: CausetEngine, ER: VioletaBftEngine> {
     router: VioletaBftRouter<EK, ER>,
     local_reader: RefCell<LocalReader<VioletaBftRouter<EK, ER>, EK>>,
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine> Clone for ServerVioletaBftStoreRouter<EK, ER> {
+impl<EK: CausetEngine, ER: VioletaBftEngine> Clone for ServerVioletaBftStoreRouter<EK, ER> {
     fn clone(&self) -> Self {
         ServerVioletaBftStoreRouter {
             router: self.router.clone(),
@@ -160,7 +160,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> Clone for ServerVioletaBftStoreRouter<E
     }
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine> ServerVioletaBftStoreRouter<EK, ER> {
+impl<EK: CausetEngine, ER: VioletaBftEngine> ServerVioletaBftStoreRouter<EK, ER> {
     /// Creates a new router.
     pub fn new(
         router: VioletaBftRouter<EK, ER>,
@@ -174,13 +174,13 @@ impl<EK: KvEngine, ER: VioletaBftEngine> ServerVioletaBftStoreRouter<EK, ER> {
     }
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine> StoreRouter<EK> for ServerVioletaBftStoreRouter<EK, ER> {
+impl<EK: CausetEngine, ER: VioletaBftEngine> StoreRouter<EK> for ServerVioletaBftStoreRouter<EK, ER> {
     fn lightlike(&self, msg: StoreMsg<EK>) -> VioletaBftStoreResult<()> {
         StoreRouter::lightlike(&self.router, msg)
     }
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine> ProposalRouter<EK::Snapshot> for ServerVioletaBftStoreRouter<EK, ER> {
+impl<EK: CausetEngine, ER: VioletaBftEngine> ProposalRouter<EK::Snapshot> for ServerVioletaBftStoreRouter<EK, ER> {
     fn lightlike(
         &self,
         cmd: VioletaBftCommand<EK::Snapshot>,
@@ -189,13 +189,13 @@ impl<EK: KvEngine, ER: VioletaBftEngine> ProposalRouter<EK::Snapshot> for Server
     }
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine> CasualRouter<EK> for ServerVioletaBftStoreRouter<EK, ER> {
+impl<EK: CausetEngine, ER: VioletaBftEngine> CasualRouter<EK> for ServerVioletaBftStoreRouter<EK, ER> {
     fn lightlike(&self, brane_id: u64, msg: CasualMessage<EK>) -> VioletaBftStoreResult<()> {
         CasualRouter::lightlike(&self.router, brane_id, msg)
     }
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftStoreRouter<EK> for ServerVioletaBftStoreRouter<EK, ER> {
+impl<EK: CausetEngine, ER: VioletaBftEngine> VioletaBftStoreRouter<EK> for ServerVioletaBftStoreRouter<EK, ER> {
     fn lightlike_violetabft_msg(&self, msg: VioletaBftMessage) -> VioletaBftStoreResult<()> {
         VioletaBftStoreRouter::lightlike_violetabft_msg(&self.router, msg)
     }
@@ -214,7 +214,7 @@ impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftStoreRouter<EK> for ServerVio
     }
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine> LocalReadRouter<EK> for ServerVioletaBftStoreRouter<EK, ER> {
+impl<EK: CausetEngine, ER: VioletaBftEngine> LocalReadRouter<EK> for ServerVioletaBftStoreRouter<EK, ER> {
     fn read(
         &self,
         read_id: Option<ThreadReadId>,
@@ -240,7 +240,7 @@ pub fn handle_lightlike_error<T>(brane_id: u64, e: TrylightlikeError<T>) -> Viol
     }
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine> VioletaBftStoreRouter<EK> for VioletaBftRouter<EK, ER> {
+impl<EK: CausetEngine, ER: VioletaBftEngine> VioletaBftStoreRouter<EK> for VioletaBftRouter<EK, ER> {
     fn lightlike_violetabft_msg(&self, msg: VioletaBftMessage) -> VioletaBftStoreResult<()> {
         let brane_id = msg.get_brane_id();
         self.lightlike_violetabft_message(msg)

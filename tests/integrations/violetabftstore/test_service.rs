@@ -12,7 +12,7 @@ use ekvproto::violetabft_server_timeshare::*;
 use ekvproto::{debug_timeshare, meta_timeshare, violetabft_server_timeshare};
 use violetabft::evioletabft_timeshare;
 
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use engine_lmdb::raw::WriBlock;
 use engine_lmdb::Compat;
 use edb::Peekable;

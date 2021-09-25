@@ -14,7 +14,7 @@ prost-codec = [
   "fidel_timeshare/prost-codec"
 ]
 
-[deplightlikeencies]
+[dependencies]
 codec = { path = "../codec" }
 milevadb_query_datatype = { path = "../milevadb_query_datatype" }
 fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", default-features = false }

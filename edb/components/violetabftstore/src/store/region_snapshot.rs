@@ -1,7 +1,7 @@
 // Copyright 2020 WHTCORPS INC. Licensed under Apache-2.0.
 
 use edb::{
-    IterOptions, KvEngine, Peekable, ReadOptions, Result as EngineResult, Snapshot,
+    IterOptions, CausetEngine, Peekable, ReadOptions, Result as EngineResult, Snapshot,
 };
 use ekvproto::meta_timeshare::Brane;
 use ekvproto::violetabft_server_timeshare::VioletaBftApplyState;
@@ -15,7 +15,7 @@ use edb::VioletaBftEngine;
 use edb::Causet_VIOLETABFT;
 use edb::{Error as EngineError, Iterable, Iteron};
 use tuplespaceInstanton::DATA_PREFIX_KEY;
-use violetabftstore::interlock::::keybuilder::KeyBuilder;
+use violetabftstore::interlock::::CausetLearnedKey::CausetLearnedKey;
 use violetabftstore::interlock::::metrics::CRITICAL_ERROR;
 use violetabftstore::interlock::::{panic_when_unexpected_key_or_data, set_panic_mark};
 
@@ -38,14 +38,14 @@ where
     #[allow(clippy::new_ret_no_self)] // temporary until this returns BraneSnapshot<E>
     pub fn new<EK>(ps: &PeerStorage<EK, impl VioletaBftEngine>) -> BraneSnapshot<EK::Snapshot>
     where
-        EK: KvEngine,
+        EK: CausetEngine,
     {
         BraneSnapshot::from_snapshot(Arc::new(ps.raw_snapshot()), Arc::new(ps.brane().clone()))
     }
 
     pub fn from_raw<EK>(db: EK, brane: Brane) -> BraneSnapshot<EK::Snapshot>
     where
-        EK: KvEngine,
+        EK: CausetEngine,
     {
         BraneSnapshot::from_snapshot(Arc::new(db.snapshot()), Arc::new(brane))
     }
@@ -114,8 +114,8 @@ where
     where
         F: FnMut(&[u8], &[u8]) -> Result<bool>,
     {
-        let spacelike = KeyBuilder::from_slice(spacelike_key, DATA_PREFIX_KEY.len(), 0);
-        let lightlike = KeyBuilder::from_slice(lightlike_key, DATA_PREFIX_KEY.len(), 0);
+        let spacelike = CausetLearnedKey::from_slice(spacelike_key, DATA_PREFIX_KEY.len(), 0);
+        let lightlike = CausetLearnedKey::from_slice(lightlike_key, DATA_PREFIX_KEY.len(), 0);
         let iter_opt = IterOptions::new(Some(spacelike), Some(lightlike), fill_cache);
         self.scan_impl(self.iter(iter_opt), spacelike_key, f)
     }
@@ -132,8 +132,8 @@ where
     where
         F: FnMut(&[u8], &[u8]) -> Result<bool>,
     {
-        let spacelike = KeyBuilder::from_slice(spacelike_key, DATA_PREFIX_KEY.len(), 0);
-        let lightlike = KeyBuilder::from_slice(lightlike_key, DATA_PREFIX_KEY.len(), 0);
+        let spacelike = CausetLearnedKey::from_slice(spacelike_key, DATA_PREFIX_KEY.len(), 0);
+        let lightlike = CausetLearnedKey::from_slice(lightlike_key, DATA_PREFIX_KEY.len(), 0);
         let iter_opt = IterOptions::new(Some(spacelike), Some(lightlike), fill_cache);
         self.scan_impl(self.iter_causet(causet, iter_opt)?, spacelike_key, f)
     }
@@ -514,8 +514,8 @@ mod tests {
             Option<(&[u8], &[u8])>,
         )>| {
             let iter_opt = IterOptions::new(
-                lower_bound.map(|v| KeyBuilder::from_slice(v, tuplespaceInstanton::DATA_PREFIX_KEY.len(), 0)),
-                upper_bound.map(|v| KeyBuilder::from_slice(v, tuplespaceInstanton::DATA_PREFIX_KEY.len(), 0)),
+                lower_bound.map(|v| CausetLearnedKey::from_slice(v, tuplespaceInstanton::DATA_PREFIX_KEY.len(), 0)),
+                upper_bound.map(|v| CausetLearnedKey::from_slice(v, tuplespaceInstanton::DATA_PREFIX_KEY.len(), 0)),
                 true,
             );
             let mut iter = snap.iter(iter_opt);
@@ -678,7 +678,7 @@ mod tests {
         let snap = BraneSnapshot::<LmdbSnapshot>::new(&store);
         let mut iter = snap.iter(IterOptions::new(
             None,
-            Some(KeyBuilder::from_slice(b"a5", DATA_PREFIX_KEY.len(), 0)),
+            Some(CausetLearnedKey::from_slice(b"a5", DATA_PREFIX_KEY.len(), 0)),
             true,
         ));
         assert!(iter.seek_to_first().unwrap());

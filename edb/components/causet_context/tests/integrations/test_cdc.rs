@@ -4,7 +4,7 @@ use std::sync::*;
 use std::time::Duration;
 
 use crate::{new_event_feed, TestSuite};
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use futures::executor::block_on;
 use futures::SinkExt;
 use grpcio::WriteFlags;
@@ -867,9 +867,9 @@ fn test_old_value_basic() {
 }
 
 #[test]
-fn test_causet_context_resolve_ts_checking_concurrency_manager() {
+fn test_causet_context_resolve_ts_checking_interlocking_directorate() {
     let mut suite: crate::TestSuite = TestSuite::new(1);
-    let cm: ConcurrencyManager = suite.get_txn_concurrency_manager(1).unwrap();
+    let cm: ConcurrencyManager = suite.get_txn_interlocking_directorate(1).unwrap();
     let lock_key = |key: &[u8], ts: u64| {
         let guard = block_on(cm.lock_key(&Key::from_raw(key)));
         guard.with_lock(|l| {

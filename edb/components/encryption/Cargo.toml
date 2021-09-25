@@ -8,7 +8,7 @@ publish = false
 protobuf-codec = ["ekvproto/protobuf-codec"]
 prost-codec = ["ekvproto/prost-codec"]
 
-[deplightlikeencies]
+[dependencies]
 byteorder = "1.2"
 configuration = { path = "../configuration" }
 crc32fast = "1.2"
@@ -38,7 +38,7 @@ bytes = "0.4"
 tokio = { version = "0.2", features = ["time", "rt-core"] }
 futures = "0.3"
 
-[dev-deplightlikeencies]
+[dev-dependencies]
 matches = "0.1.8"
 tempfile = "3.1"
 toml = "0.4"

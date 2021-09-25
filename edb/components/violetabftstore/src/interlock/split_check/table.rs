@@ -2,12 +2,12 @@
 
 use std::cmp::Ordering;
 
-use edb::{IterOptions, Iteron, KvEngine, SeekKey, Causet_WRITE};
+use edb::{IterOptions, Iteron, CausetEngine, SeekKey, Causet_WRITE};
 use error_code::ErrorCodeExt;
 use ekvproto::meta_timeshare::Brane;
 use ekvproto::fidel_timeshare::CheckPolicy;
 use milevadb_query_datatype::codec::Block as Block_codec;
-use violetabftstore::interlock::::keybuilder::KeyBuilder;
+use violetabftstore::interlock::::CausetLearnedKey::CausetLearnedKey;
 use txn_types::Key;
 
 use super::super::{
@@ -24,7 +24,7 @@ pub struct Checker {
 
 impl<E> SplitChecker<E> for Checker
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     /// Feed tuplespaceInstanton in order to find the split key.
     /// If `current_data_key` does not belong to `status.first_encoded_Block_prefix`.
@@ -75,7 +75,7 @@ impl Interlock for BlockCheckSemaphore {}
 
 impl<E> SplitCheckSemaphore<E> for BlockCheckSemaphore
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     fn add_checker(
         &self,
@@ -174,14 +174,14 @@ where
     }
 }
 
-fn last_key_of_brane(db: &impl KvEngine, brane: &Brane) -> Result<Option<Vec<u8>>> {
+fn last_key_of_brane(db: &impl CausetEngine, brane: &Brane) -> Result<Option<Vec<u8>>> {
     let spacelike_key = tuplespaceInstanton::enc_spacelike_key(brane);
     let lightlike_key = tuplespaceInstanton::enc_lightlike_key(brane);
     let mut last_key = None;
 
     let iter_opt = IterOptions::new(
-        Some(KeyBuilder::from_vec(spacelike_key, 0, 0)),
-        Some(KeyBuilder::from_vec(lightlike_key, 0, 0)),
+        Some(CausetLearnedKey::from_vec(spacelike_key, 0, 0)),
+        Some(CausetLearnedKey::from_vec(lightlike_key, 0, 0)),
         false,
     );
     let mut iter = box_try!(db.Iteron_causet_opt(Causet_WRITE, iter_opt));

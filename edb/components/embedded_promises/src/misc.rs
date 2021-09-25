@@ -13,7 +13,7 @@ use crate::options::IterOptions;
 use crate::cone::Cone;
 use crate::write_batch::{MuBlock, WriteBatchExt};
 
-use violetabftstore::interlock::::keybuilder::KeyBuilder;
+use violetabftstore::interlock::::CausetLearnedKey::CausetLearnedKey;
 
 // FIXME: Find somewhere else to put this?
 pub const MAX_DELETE_BATCH_COUNT: usize = 512;
@@ -63,8 +63,8 @@ pub trait MiscExt: Iterable + WriteBatchExt + CausetNamesExt {
         if use_delete_cone && causet != Causet_DAGGER {
             wb.delete_cone_causet(causet, spacelike_key, lightlike_key)?;
         } else {
-            let spacelike = KeyBuilder::from_slice(spacelike_key, 0, 0);
-            let lightlike = KeyBuilder::from_slice(lightlike_key, 0, 0);
+            let spacelike = CausetLearnedKey::from_slice(spacelike_key, 0, 0);
+            let lightlike = CausetLearnedKey::from_slice(lightlike_key, 0, 0);
             let mut iter_opt = IterOptions::new(Some(spacelike), Some(lightlike), false);
             if self.is_titan() {
                 // Cause DeleteFilesInCone may expose old blob index tuplespaceInstanton, setting key only for Noether

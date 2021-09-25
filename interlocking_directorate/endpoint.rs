@@ -29,7 +29,7 @@ use crate::interlock::sentinels::track;
 use crate::interlock::metrics::*;
 use crate::interlock::tracker::Tracker;
 use crate::interlock::*;
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use minitrace::prelude::*;
 use txn_types::Dagger;
 
@@ -45,7 +45,7 @@ pub struct node<E: Engine> {
     /// The concurrency limiter of the interlock.
     semaphore: Option<Arc<Semaphore>>,
 
-    concurrency_manager: ConcurrencyManager,
+    interlocking_directorate: ConcurrencyManager,
 
     check_memory_locks: bool,
 
@@ -69,7 +69,7 @@ impl<E: Engine> Clone for node<E> {
         Self {
             read_pool: self.read_pool.clone(),
             semaphore: self.semaphore.clone(),
-            concurrency_manager: self.concurrency_manager.clone(),
+            interlocking_directorate: self.interlocking_directorate.clone(),
             ..*self
         }
     }
@@ -81,7 +81,7 @@ impl<E: Engine> node<E> {
     pub fn new(
         causet: &Config,
         read_pool: ReadPoolHandle,
-        concurrency_manager: ConcurrencyManager,
+        interlocking_directorate: ConcurrencyManager,
     ) -> Self {
         // FIXME: When yatp is used, we need to limit interlock requests in progress to avoid
         // using too much memory. However, if there are a number of large requests, small requests
@@ -95,7 +95,7 @@ impl<E: Engine> node<E> {
         Self {
             read_pool,
             semaphore,
-            concurrency_manager,
+            interlocking_directorate,
             check_memory_locks: causet.lightlike_point_check_memory_locks,
             recursion_limit: causet.lightlike_point_recursion_limit,
             batch_row_limit: causet.lightlike_point_batch_row_limit,
@@ -116,12 +116,12 @@ impl<E: Engine> node<E> {
         }
 
         let spacelike_ts = req_ctx.txn_spacelike_ts;
-        self.concurrency_manager.fidelio_max_ts(spacelike_ts);
+        self.interlocking_directorate.fidelio_max_ts(spacelike_ts);
         if req_ctx.context.get_isolation_level() == IsolationLevel::Si {
             for cone in key_cones {
                 let spacelike_key = txn_types::Key::from_raw(cone.get_spacelike());
                 let lightlike_key = txn_types::Key::from_raw(cone.get_lightlike());
-                self.concurrency_manager
+                self.interlocking_directorate
                     .read_cone_check(Some(&spacelike_key), Some(&lightlike_key), |key, dagger| {
                         Dagger::check_ts_conflict(
                             Cow::Borrowed(dagger),

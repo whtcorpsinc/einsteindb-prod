@@ -33,7 +33,7 @@ sse = ["edb/sse"]
 mem-profiling = ["edb/mem-profiling"]
 failpoints = ["edb/failpoints"]
 
-[deplightlikeencies]
+[dependencies]
 bitflags = "1.0"
 crossbeam = "0.7"
 hex = "0.4"
@@ -55,14 +55,14 @@ edb = { path = "../../", default-features = false }
 violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
 tokio = { version = "0.2", features = ["rt-threaded"]}
 txn_types = { path = "../txn_types" }
-concurrency_manager = { path = "../concurrency_manager" }
+interlocking_directorate = { path = "../interlocking_directorate" }
 fail = "0.3"
 lazy_static = "1.3"
 prometheus = { version = "0.8", default-features = false, features = ["nightly", "push"] }
 protobuf = "2.8"
 prost = "0.6"
 
-[dev-deplightlikeencies]
+[dev-dependencies]
 edb = { path = "../edb" }
 tempfile = "3.0"
 test_violetabftstore = { path = "../test_violetabftstore" }

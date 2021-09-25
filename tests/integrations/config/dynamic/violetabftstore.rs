@@ -14,7 +14,7 @@ use violetabftstore::Result;
 use edb::config::{ConfigController, Module, EINSTEINDBConfig};
 use edb::import::SSTImporter;
 
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use edb::{Engines, ALL_CausetS};
 use tempfile::TempDir;
 use test_violetabftstore::TestFidelClient;

@@ -7,7 +7,7 @@ use std::io;
 use std::sync::{Arc, Mutex};
 use std::thread::{self, Builder, JoinHandle};
 
-use futures::channel::mpsc::{unbounded, UnboundedReceiver, Unboundedlightlikeer};
+use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedLightlikeValue};
 use futures::executor::block_on;
 use futures::stream::StreamExt;
 use tokio::task::LocalSet;
@@ -42,7 +42,7 @@ pub trait Runnable<T: Display> {
 /// Interlock_Semaphore provides interface to schedule task to underlying workers.
 pub struct Interlock_Semaphore<T> {
     name: Arc<String>,
-    lightlikeer: Unboundedlightlikeer<Option<T>>,
+    lightlikeer: UnboundedLightlikeValue<Option<T>>,
     metrics_plightlikeing_task_count: IntGauge,
 }
 
@@ -52,7 +52,7 @@ pub fn dummy_interlock_semaphore<T: Display>() -> Interlock_Semaphore<T> {
 }
 
 impl<T: Display> Interlock_Semaphore<T> {
-    fn new<S: Into<String>>(name: S, lightlikeer: Unboundedlightlikeer<Option<T>>) -> Interlock_Semaphore<T> {
+    fn new<S: Into<String>>(name: S, lightlikeer: UnboundedLightlikeValue<Option<T>>) -> Interlock_Semaphore<T> {
         let name = name.into();
         Interlock_Semaphore {
             metrics_plightlikeing_task_count: WORKER_PENDING_TASK_VEC.with_label_values(&[&name]),

@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::sync::{Arc, Mutex};
 
-use edb::{KvEngine, Cone};
+use edb::{CausetEngine, Cone};
 use error_code::ErrorCodeExt;
 use ekvproto::meta_timeshare::Brane;
 use ekvproto::fidel_timeshare::CheckPolicy;
@@ -45,7 +45,7 @@ impl Checker {
 
 impl<E> SplitChecker<E> for Checker
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     fn on_kv(&mut self, _: &mut SemaphoreContext<'_>, entry: &KeyEntry) -> bool {
         let size = entry.entry_size() as u64;
@@ -105,7 +105,7 @@ pub struct SizeCheckSemaphore<C, E> {
 
 impl<C: CasualRouter<E>, E> SizeCheckSemaphore<C, E>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     pub fn new(router: C) -> SizeCheckSemaphore<C, E> {
         SizeCheckSemaphore {
@@ -119,7 +119,7 @@ impl<C: lightlike, E: lightlike> Interlock for SizeCheckSemaphore<C, E> {}
 
 impl<C: CasualRouter<E> + lightlike, E> SplitCheckSemaphore<E> for SizeCheckSemaphore<C, E>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     fn add_checker(
         &self,
@@ -198,7 +198,7 @@ where
 
 /// Get the approximate size of the cone.
 pub fn get_brane_approximate_size(
-    db: &impl KvEngine,
+    db: &impl CausetEngine,
     brane: &Brane,
     large_memory_barrier: u64,
 ) -> Result<u64> {
@@ -213,7 +213,7 @@ pub fn get_brane_approximate_size(
 }
 
 pub fn get_brane_approximate_size_causet(
-    db: &impl KvEngine,
+    db: &impl CausetEngine,
     causetname: &str,
     brane: &Brane,
     large_memory_barrier: u64,
@@ -231,7 +231,7 @@ pub fn get_brane_approximate_size_causet(
 
 /// Get brane approximate split tuplespaceInstanton based on default, write and dagger causet.
 fn get_approximate_split_tuplespaceInstanton(
-    db: &impl KvEngine,
+    db: &impl CausetEngine,
     brane: &Brane,
     split_size: u64,
     max_size: u64,

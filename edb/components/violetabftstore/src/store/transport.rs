@@ -3,7 +3,7 @@
 use crate::store::{CasualMessage, PeerMsg, VioletaBftCommand, VioletaBftRouter, StoreMsg};
 use crate::{DiscardReason, Error, Result};
 use crossbeam::TrylightlikeError;
-use edb::{KvEngine, VioletaBftEngine, Snapshot};
+use edb::{CausetEngine, VioletaBftEngine, Snapshot};
 use ekvproto::violetabft_server_timeshare::VioletaBftMessage;
 use std::sync::mpsc;
 
@@ -19,7 +19,7 @@ pub trait Transport: lightlike + Clone {
 /// Messages are not guaranteed to be delivered by this trait.
 pub trait CasualRouter<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn lightlike(&self, brane_id: u64, msg: CasualMessage<EK>) -> Result<()>;
 }
@@ -37,14 +37,14 @@ where
 /// Messages are not guaranteed to be delivered by this trait.
 pub trait StoreRouter<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn lightlike(&self, msg: StoreMsg<EK>) -> Result<()>;
 }
 
 impl<EK, ER> CasualRouter<EK> for VioletaBftRouter<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     #[inline]
@@ -59,7 +59,7 @@ where
 
 impl<EK, ER> ProposalRouter<EK::Snapshot> for VioletaBftRouter<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     #[inline]
@@ -73,7 +73,7 @@ where
 
 impl<EK, ER> StoreRouter<EK> for VioletaBftRouter<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     #[inline]
@@ -90,7 +90,7 @@ where
 
 impl<EK> CasualRouter<EK> for mpsc::Synclightlikeer<(u64, CasualMessage<EK>)>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn lightlike(&self, brane_id: u64, msg: CasualMessage<EK>) -> Result<()> {
         match self.try_lightlike((brane_id, msg)) {
@@ -115,7 +115,7 @@ impl<S: Snapshot> ProposalRouter<S> for mpsc::Synclightlikeer<VioletaBftCommand<
 
 impl<EK> StoreRouter<EK> for mpsc::lightlikeer<StoreMsg<EK>>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn lightlike(&self, msg: StoreMsg<EK>) -> Result<()> {
         match self.lightlike(msg) {

@@ -18,7 +18,7 @@ use std::{cmp, usize};
 use batch_system::{BasicMailbox, BatchRouter, BatchSystem, Fsm, HandlerBuilder, PollHandler};
 use crossbeam::channel::{TryRecvError, TrylightlikeError};
 use engine_lmdb::{PerfContext, PerfLevel};
-use edb::{KvEngine, VioletaBftEngine, Snapshot, WriteBatch};
+use edb::{CausetEngine, VioletaBftEngine, Snapshot, WriteBatch};
 use edb::{ALL_CausetS, Causet_DEFAULT, Causet_DAGGER, Causet_VIOLETABFT, Causet_WRITE};
 use ekvproto::import_sst_timeshare::SstMeta;
 use ekvproto::kvrpc_timeshare::ExtraOp as TxnExtraOp;
@@ -264,7 +264,7 @@ impl ExecContext {
 
 struct ApplyCallback<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     brane: Brane,
     cbs: Vec<(Option<Callback<EK::Snapshot>>, Cmd)>,
@@ -272,7 +272,7 @@ where
 
 impl<EK> ApplyCallback<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn new(brane: Brane) -> Self {
         let cbs = vec![];
@@ -293,7 +293,7 @@ where
     }
 }
 
-pub trait Notifier<EK: KvEngine>: lightlike {
+pub trait Notifier<EK: CausetEngine>: lightlike {
     fn notify(&self, apply_res: Vec<ApplyRes<EK::Snapshot>>);
     fn notify_one(&self, brane_id: u64, msg: PeerMsg<EK>);
     fn clone_box(&self) -> Box<dyn Notifier<EK>>;
@@ -301,7 +301,7 @@ pub trait Notifier<EK: KvEngine>: lightlike {
 
 struct ApplyContext<EK, W>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     W: WriteBatch<EK>,
 {
     tag: String,
@@ -341,7 +341,7 @@ where
 
 impl<EK, W> ApplyContext<EK, W>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     W: WriteBatch<EK>,
 {
     pub fn new(
@@ -659,7 +659,7 @@ struct WaitSourceMergeState {
 
 struct YieldState<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     /// All of the entries that need to continue to be applied after
     /// the source peer has applied its logs.
@@ -672,7 +672,7 @@ where
 
 impl<EK> Debug for YieldState<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("YieldState")
@@ -714,7 +714,7 @@ pub struct NewSplitPeer {
 #[derive(Debug)]
 pub struct Applypushdown_causet<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     /// The ID of the peer.
     id: u64,
@@ -770,7 +770,7 @@ where
 
 impl<EK> Applypushdown_causet<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn from_registration(reg: Registration) -> Applypushdown_causet<EK> {
         Applypushdown_causet {
@@ -1190,7 +1190,7 @@ where
 
 impl<EK> Applypushdown_causet<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     // Only errors that will also occur on all other stores should be returned.
     fn exec_violetabft_cmd<W: WriteBatch<EK>>(
@@ -1328,7 +1328,7 @@ where
 // Write commands related.
 impl<EK> Applypushdown_causet<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn handle_put<W: WriteBatch<EK>>(&mut self, wb: &mut W, req: &Request) -> Result<Response> {
         let (key, value) = (req.get_put().get_key(), req.get_put().get_value());
@@ -1520,7 +1520,7 @@ where
 // Admin commands related.
 impl<EK> Applypushdown_causet<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn exec_change_peer<W: WriteBatch<EK>>(
         &mut self,
@@ -2443,7 +2443,7 @@ pub struct Registration {
 }
 
 impl Registration {
-    pub fn new<EK: KvEngine, ER: VioletaBftEngine>(peer: &Peer<EK, ER>) -> Registration {
+    pub fn new<EK: CausetEngine, ER: VioletaBftEngine>(peer: &Peer<EK, ER>) -> Registration {
         Registration {
             id: peer.peer_id(),
             term: peer.term(),
@@ -2521,7 +2521,7 @@ impl GenSnapTask {
         brane_sched: &Interlock_Semaphore<BraneTask<EK::Snapshot>>,
     ) -> Result<()>
     where
-        EK: KvEngine,
+        EK: CausetEngine,
     {
         let snapshot = BraneTask::Gen {
             brane_id: self.brane_id,
@@ -2584,7 +2584,7 @@ pub enum ChangeCmd {
 
 pub enum Msg<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     Apply {
         spacelike: Instant,
@@ -2607,7 +2607,7 @@ where
 
 impl<EK> Msg<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     pub fn apply(apply: Apply<EK::Snapshot>) -> Msg<EK> {
         Msg::Apply {
@@ -2630,7 +2630,7 @@ where
 
 impl<EK> Debug for Msg<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -2700,7 +2700,7 @@ where
 
 pub struct ApplyFsm<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     pushdown_causet: Applypushdown_causet<EK>,
     receiver: Receiver<Msg<EK>>,
@@ -2709,7 +2709,7 @@ where
 
 impl<EK> ApplyFsm<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn from_peer<ER: VioletaBftEngine>(
         peer: &Peer<EK, ER>,
@@ -3117,7 +3117,7 @@ where
 
 impl<EK> Fsm for ApplyFsm<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     type Message = Msg<EK>;
 
@@ -3145,7 +3145,7 @@ where
 
 impl<EK> Drop for ApplyFsm<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn drop(&mut self) {
         self.pushdown_causet.clear_all_commands_as_stale();
@@ -3167,7 +3167,7 @@ impl Fsm for ControlFsm {
 
 pub struct ApplyPoller<EK, W>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     W: WriteBatch<EK>,
 {
     msg_buf: Vec<Msg<EK>>,
@@ -3178,7 +3178,7 @@ where
 
 impl<EK, W> PollHandler<ApplyFsm<EK>, ControlFsm> for ApplyPoller<EK, W>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     W: WriteBatch<EK>,
 {
     fn begin(&mut self, _batch_size: usize) {
@@ -3265,12 +3265,12 @@ where
     }
 }
 
-pub struct Builder<EK: KvEngine, W: WriteBatch<EK>> {
+pub struct Builder<EK: CausetEngine, W: WriteBatch<EK>> {
     tag: String,
     causet: Arc<VersionTrack<Config>>,
     interlock_host: InterlockHost<EK>,
     importer: Arc<SSTImporter>,
-    brane_interlock_semaphore: Interlock_Semaphore<BraneTask<<EK as KvEngine>::Snapshot>>,
+    brane_interlock_semaphore: Interlock_Semaphore<BraneTask<<EK as CausetEngine>::Snapshot>>,
     engine: EK,
     lightlikeer: Box<dyn Notifier<EK>>,
     router: ApplyRouter<EK>,
@@ -3279,7 +3279,7 @@ pub struct Builder<EK: KvEngine, W: WriteBatch<EK>> {
     plightlikeing_create_peers: Arc<Mutex<HashMap<u64, (u64, bool)>>>,
 }
 
-impl<EK: KvEngine, W> Builder<EK, W>
+impl<EK: CausetEngine, W> Builder<EK, W>
 where
     W: WriteBatch<EK>,
 {
@@ -3306,7 +3306,7 @@ where
 
 impl<EK, W> HandlerBuilder<ApplyFsm<EK>, ControlFsm> for Builder<EK, W>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     W: WriteBatch<EK>,
 {
     type Handler = ApplyPoller<EK, W>;
@@ -3336,14 +3336,14 @@ where
 #[derive(Clone)]
 pub struct ApplyRouter<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     pub router: BatchRouter<ApplyFsm<EK>, ControlFsm>,
 }
 
 impl<EK> Deref for ApplyRouter<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     type Target = BatchRouter<ApplyFsm<EK>, ControlFsm>;
 
@@ -3354,7 +3354,7 @@ where
 
 impl<EK> DerefMut for ApplyRouter<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn deref_mut(&mut self) -> &mut BatchRouter<ApplyFsm<EK>, ControlFsm> {
         &mut self.router
@@ -3363,7 +3363,7 @@ where
 
 impl<EK> ApplyRouter<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     pub fn schedule_task(&self, brane_id: u64, msg: Msg<EK>) {
         let reg = match self.try_lightlike(brane_id, msg) {
@@ -3439,11 +3439,11 @@ where
     }
 }
 
-pub struct ApplyBatchSystem<EK: KvEngine> {
+pub struct ApplyBatchSystem<EK: CausetEngine> {
     system: BatchSystem<ApplyFsm<EK>, ControlFsm>,
 }
 
-impl<EK: KvEngine> Deref for ApplyBatchSystem<EK> {
+impl<EK: CausetEngine> Deref for ApplyBatchSystem<EK> {
     type Target = BatchSystem<ApplyFsm<EK>, ControlFsm>;
 
     fn deref(&self) -> &BatchSystem<ApplyFsm<EK>, ControlFsm> {
@@ -3451,13 +3451,13 @@ impl<EK: KvEngine> Deref for ApplyBatchSystem<EK> {
     }
 }
 
-impl<EK: KvEngine> DerefMut for ApplyBatchSystem<EK> {
+impl<EK: CausetEngine> DerefMut for ApplyBatchSystem<EK> {
     fn deref_mut(&mut self) -> &mut BatchSystem<ApplyFsm<EK>, ControlFsm> {
         &mut self.system
     }
 }
 
-impl<EK: KvEngine> ApplyBatchSystem<EK> {
+impl<EK: CausetEngine> ApplyBatchSystem<EK> {
     pub fn schedule_all<'a, ER: VioletaBftEngine>(&self, peers: impl Iteron<Item = &'a Peer<EK, ER>>) {
         let mut mailboxes = Vec::with_capacity(peers.size_hint().0);
         for peer in peers {
@@ -3468,7 +3468,7 @@ impl<EK: KvEngine> ApplyBatchSystem<EK> {
     }
 }
 
-pub fn create_apply_batch_system<EK: KvEngine>(
+pub fn create_apply_batch_system<EK: CausetEngine>(
     causet: &Config,
 ) -> (ApplyRouter<EK>, ApplyBatchSystem<EK>) {
     let (tx, _) = loose_bounded(usize::MAX);
@@ -3540,11 +3540,11 @@ mod tests {
     }
 
     #[derive(Clone)]
-    pub struct TestNotifier<EK: KvEngine> {
+    pub struct TestNotifier<EK: CausetEngine> {
         tx: lightlikeer<PeerMsg<EK>>,
     }
 
-    impl<EK: KvEngine> Notifier<EK> for TestNotifier<EK> {
+    impl<EK: CausetEngine> Notifier<EK> for TestNotifier<EK> {
         fn notify(&self, apply_res: Vec<ApplyRes<EK::Snapshot>>) {
             for r in apply_res {
                 let res = TaskRes::Apply(r);

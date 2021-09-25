@@ -1,7 +1,7 @@
 //Copyright 2020 EinsteinDB Project Authors & WHTCORPS Inc. Licensed under Apache-2.0.
 
 use crate::store::{CasualMessage, CasualRouter};
-use edb::{KvEngine, Cone};
+use edb::{CausetEngine, Cone};
 use error_code::ErrorCodeExt;
 use ekvproto::{meta_timeshare::Brane, fidel_timeshare::CheckPolicy};
 use std::marker::PhantomData;
@@ -42,7 +42,7 @@ impl Checker {
 
 impl<E> SplitChecker<E> for Checker
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     fn on_kv(&mut self, _: &mut SemaphoreContext<'_>, key: &KeyEntry) -> bool {
         if !key.is_commit_version() {
@@ -90,7 +90,7 @@ pub struct TuplespaceInstantonCheckSemaphore<C, E> {
 
 impl<C: CasualRouter<E>, E> TuplespaceInstantonCheckSemaphore<C, E>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     pub fn new(router: C) -> TuplespaceInstantonCheckSemaphore<C, E> {
         TuplespaceInstantonCheckSemaphore {
@@ -104,7 +104,7 @@ impl<C: lightlike, E: lightlike> Interlock for TuplespaceInstantonCheckSemaphore
 
 impl<C: CasualRouter<E> + lightlike, E> SplitCheckSemaphore<E> for TuplespaceInstantonCheckSemaphore<C, E>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     fn add_checker(
         &self,
@@ -178,7 +178,7 @@ where
 
 /// Get the approximate number of tuplespaceInstanton in the cone.
 pub fn get_brane_approximate_tuplespaceInstanton(
-    db: &impl KvEngine,
+    db: &impl CausetEngine,
     brane: &Brane,
     large_memory_barrier: u64,
 ) -> Result<u64> {
@@ -193,7 +193,7 @@ pub fn get_brane_approximate_tuplespaceInstanton(
 }
 
 pub fn get_brane_approximate_tuplespaceInstanton_causet(
-    db: &impl KvEngine,
+    db: &impl CausetEngine,
     causetname: &str,
     brane: &Brane,
     large_memory_barrier: u64,

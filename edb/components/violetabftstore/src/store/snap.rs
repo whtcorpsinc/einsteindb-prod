@@ -16,7 +16,7 @@ use encryption::{
     create_aes_ctr_crypter, encryption_method_from_db_encryption_method, DataKeyManager, Iv,
 };
 use edb::{CfName, Causet_DEFAULT, Causet_DAGGER, Causet_WRITE};
-use edb::{EncryptionKeyManager, KvEngine};
+use edb::{EncryptionKeyManager, CausetEngine};
 use futures::executor::block_on;
 use futures_util::io::{AllowStdIo, AsyncWriteExt};
 use ekvproto::encryption_timeshare::EncryptionMethod;
@@ -170,7 +170,7 @@ impl SnapshotStatistics {
 
 pub struct ApplyOptions<EK>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     pub db: EK,
     pub brane: Brane,
@@ -186,7 +186,7 @@ where
 ///   3. receive snapshot from remote violetabftstore and write it to local causet_storage
 ///   4. apply snapshot
 ///   5. snapshot gc
-pub trait Snapshot<EK: KvEngine>: GenericSnapshot {
+pub trait Snapshot<EK: CausetEngine>: GenericSnapshot {
     fn build(
         &mut self,
         engine: &EK,
@@ -605,7 +605,7 @@ impl Snap {
         )
     }
 
-    fn validate(&self, engine: &impl KvEngine, for_lightlike: bool) -> VioletaBftStoreResult<()> {
+    fn validate(&self, engine: &impl CausetEngine, for_lightlike: bool) -> VioletaBftStoreResult<()> {
         for causet_file in &self.causet_files {
             if causet_file.size == 0 {
                 // Skip empty file. The checksum of this causet file should be 0 and
@@ -677,7 +677,7 @@ impl Snap {
         }
     }
 
-    fn do_build<EK: KvEngine>(
+    fn do_build<EK: CausetEngine>(
         &mut self,
         engine: &EK,
         kv_snap: &EK::Snapshot,
@@ -685,7 +685,7 @@ impl Snap {
         stat: &mut SnapshotStatistics,
     ) -> VioletaBftStoreResult<()>
     where
-        EK: KvEngine,
+        EK: CausetEngine,
     {
         fail_point!("snapshot_enter_do_build");
         if self.exists() {
@@ -778,7 +778,7 @@ impl fmt::Debug for Snap {
 
 impl<EK> Snapshot<EK> for Snap
 where
-    EK: KvEngine,
+    EK: CausetEngine,
 {
     fn build(
         &mut self,
@@ -1224,7 +1224,7 @@ impl SnapManager {
         self.core.registry.rl().contains_key(key)
     }
 
-    pub fn get_snapshot_for_building<EK: KvEngine>(
+    pub fn get_snapshot_for_building<EK: CausetEngine>(
         &self,
         key: &SnapKey,
     ) -> VioletaBftStoreResult<Box<dyn Snapshot<EK>>> {
@@ -1314,7 +1314,7 @@ impl SnapManager {
         Ok(self.get_concrete_snapshot_for_applying(key)?)
     }
 
-    pub fn get_snapshot_for_applying_to_engine<EK: KvEngine>(
+    pub fn get_snapshot_for_applying_to_engine<EK: CausetEngine>(
         &self,
         key: &SnapKey,
     ) -> VioletaBftStoreResult<Box<dyn Snapshot<EK>>> {

@@ -7,7 +7,7 @@ use std::io::Read;
 use std::ops::{Deref, DerefMut};
 use std::u64;
 
-use edb::KvEngine;
+use edb::CausetEngine;
 use edb::Cone;
 use edb::{IndexHandle, BlockProperties, BlockPropertiesCollection};
 use lmdb::{
@@ -593,7 +593,7 @@ pub fn get_cone_entries_and_versions<E>(
     lightlike: &[u8],
 ) -> Option<(u64, u64)>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     let cone = Cone::new(spacelike, lightlike);
     let collection = match engine.get_properties_of_Blocks_in_cone(causet, &[cone]) {

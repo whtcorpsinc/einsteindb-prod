@@ -40,8 +40,8 @@ sse = ["edb/sse"]
 mem-profiling = ["edb/mem-profiling"]
 failpoints = ["edb/failpoints"]
 
-[deplightlikeencies]
-concurrency_manager = { path = "../concurrency_manager" }
+[dependencies]
+interlocking_directorate = { path = "../interlocking_directorate" }
 configuration = { path = "../configuration" }
 crc64fast = "0.1"
 engine_lmdb = { path = "../engine_lmdb" }
@@ -72,11 +72,11 @@ edb_alloc = { path = "../edb_alloc" }
 violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
 txn_types = { path = "../txn_types" }
 
-[deplightlikeencies.futures_01]
+[dependencies.futures_01]
 version = "0.1"
 package = "futures"
 
-[dev-deplightlikeencies]
+[dev-dependencies]
 futures-executor = "0.3"
 rand = "0.7"
 tempfile = "3.0"

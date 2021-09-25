@@ -7,7 +7,7 @@ use std::sync::atomic::*;
 use std::sync::*;
 use std::{borrow::Cow, time::*};
 
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use configuration::Configuration;
 use engine_lmdb::raw::DB;
 use edb::{name_to_causet, CfName, IterOptions, SstCompressionType, DATA_KEY_PREFIX_LEN};
@@ -59,7 +59,7 @@ struct Request {
 /// Backup Task.
 pub struct Task {
     request: Request,
-    pub(crate) resp: Unboundedlightlikeer<BackupResponse>,
+    pub(crate) resp: UnboundedLightlike<BackupResponse>,
 }
 
 impl fmt::Display for Task {
@@ -90,7 +90,7 @@ impl Task {
     /// Create a backup task based on the given backup request.
     pub fn new(
         req: BackupRequest,
-        resp: Unboundedlightlikeer<BackupResponse>,
+        resp: UnboundedLightlikeValue<BackupResponse>,
     ) -> Result<(Task, Arc<AtomicBool>)> {
         let cancel = Arc::new(AtomicBool::new(false));
 
@@ -148,7 +148,7 @@ impl BackupCone {
         &self,
         writer: &mut BackupWriter,
         engine: &E,
-        concurrency_manager: ConcurrencyManager,
+        interlocking_directorate: ConcurrencyManager,
         backup_ts: TimeStamp,
         begin_ts: TimeStamp,
     ) -> Result<Statistics> {
@@ -160,8 +160,8 @@ impl BackupCone {
         ctx.set_peer(self.leader.clone());
 
         // fidelio max_ts and check the in-memory dagger Block before getting the snapshot
-        concurrency_manager.fidelio_max_ts(backup_ts);
-        concurrency_manager
+        interlocking_directorate.fidelio_max_ts(backup_ts);
+        interlocking_directorate
             .read_cone_check(
                 self.spacelike_key.as_ref(),
                 self.lightlike_key.as_ref(),
@@ -289,7 +289,7 @@ impl BackupCone {
         engine: &E,
         db: Arc<DB>,
         causet_storage: &LimitedStorage,
-        concurrency_manager: ConcurrencyManager,
+        interlocking_directorate: ConcurrencyManager,
         file_name: String,
         backup_ts: TimeStamp,
         spacelike_ts: TimeStamp,
@@ -312,7 +312,7 @@ impl BackupCone {
         let stat = match self.backup(
             &mut writer,
             engine,
-            concurrency_manager,
+            interlocking_directorate,
             backup_ts,
             spacelike_ts,
         ) {
@@ -394,7 +394,7 @@ pub struct node<E: Engine, R: BraneInfoProvider> {
     pool_idle_memory_barrier: u64,
     db: Arc<DB>,
     config_manager: ConfigManager,
-    concurrency_manager: ConcurrencyManager,
+    interlocking_directorate: ConcurrencyManager,
 
     pub(crate) engine: E,
     pub(crate) brane_info: R,
@@ -600,7 +600,7 @@ impl<E: Engine, R: BraneInfoProvider> node<E, R> {
         brane_info: R,
         db: Arc<DB>,
         config: BackupConfig,
-        concurrency_manager: ConcurrencyManager,
+        interlocking_directorate: ConcurrencyManager,
     ) -> node<E, R> {
         node {
             store_id,
@@ -610,7 +610,7 @@ impl<E: Engine, R: BraneInfoProvider> node<E, R> {
             pool_idle_memory_barrier: IDLE_THREADPOOL_DURATION,
             db,
             config_manager: ConfigManager(Arc::new(RwLock::new(config))),
-            concurrency_manager,
+            interlocking_directorate,
         }
     }
 
@@ -628,7 +628,7 @@ impl<E: Engine, R: BraneInfoProvider> node<E, R> {
         &self,
         prs: Arc<Mutex<Progress<R>>>,
         request: Request,
-        tx: Unboundedlightlikeer<BackupResponse>,
+        tx: UnboundedLightlikeValue<BackupResponse>,
     ) {
         let spacelike_ts = request.spacelike_ts;
         let lightlike_ts = request.lightlike_ts;
@@ -636,7 +636,7 @@ impl<E: Engine, R: BraneInfoProvider> node<E, R> {
         let engine = self.engine.clone();
         let db = self.db.clone();
         let store_id = self.store_id;
-        let concurrency_manager = self.concurrency_manager.clone();
+        let interlocking_directorate = self.interlocking_directorate.clone();
         // TODO: make it async.
         self.pool.borrow_mut().spawn(move || loop {
             let (bcones, is_raw_kv, causet) = {
@@ -702,7 +702,7 @@ impl<E: Engine, R: BraneInfoProvider> node<E, R> {
                             &engine,
                             db.clone(),
                             &causet_storage,
-                            concurrency_manager.clone(),
+                            interlocking_directorate.clone(),
                             name,
                             backup_ts,
                             spacelike_ts,
@@ -965,7 +965,7 @@ pub mod tests {
             ])
             .build()
             .unwrap();
-        let concurrency_manager = ConcurrencyManager::new(1.into());
+        let interlocking_directorate = ConcurrencyManager::new(1.into());
         let db = rocks.get_lmdb().get_sync_db();
         (
             temp,
@@ -975,7 +975,7 @@ pub mod tests {
                 MockBraneInfoProvider::new(),
                 db,
                 BackupConfig { num_threads: 4 },
-                concurrency_manager,
+                interlocking_directorate,
             ),
         )
     }

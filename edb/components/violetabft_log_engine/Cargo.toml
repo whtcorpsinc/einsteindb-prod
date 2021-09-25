@@ -17,7 +17,7 @@ prost-codec = [
   "ekvproto/prost-codec",
 ]
 
-[deplightlikeencies]
+[dependencies]
 edb = { path = "../edb" }
 violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
 hex = "0.4"

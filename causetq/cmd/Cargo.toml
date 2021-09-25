@@ -50,12 +50,12 @@ name = "edb-server"
 [[bin]]
 name = "edb-ctl"
 
-[deplightlikeencies]
+[dependencies]
 backup = { path = "../components/backup", default-features = false }
 causet_context = { path = "../components/causet_context" }
 chrono = "0.4"
 clap = "2.32"
-concurrency_manager = { path = "../components/concurrency_manager" }
+interlocking_directorate = { path = "../components/interlocking_directorate" }
 encryption = { path = "../components/encryption" }
 engine_lmdb = { path = "../components/engine_lmdb" }
 edb = { path = "../components/edb" }
@@ -89,8 +89,8 @@ toml = "0.4"
 txn_types = { path = "../components/txn_types" }
 vlog = "0.1.4"
 
-[deplightlikeencies.yatp]
+[dependencies.yatp]
 git = "https://github.com/edb/yatp.git"
 
-[target.'causet(unix)'.deplightlikeencies]
+[target.'causet(unix)'.dependencies]
 signal = "0.6"

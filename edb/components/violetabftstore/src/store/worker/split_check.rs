@@ -5,7 +5,7 @@ use std::collections::BinaryHeap;
 use std::fmt::{self, Display, Formatter};
 use std::mem;
 
-use edb::{CfName, IterOptions, Iterable, Iteron, KvEngine, Causet_WRITE, LARGE_CausetS};
+use edb::{CfName, IterOptions, Iterable, Iteron, CausetEngine, Causet_WRITE, LARGE_CausetS};
 use ekvproto::meta_timeshare::Brane;
 use ekvproto::meta_timeshare::BraneEpoch;
 use ekvproto::fidel_timeshare::CheckPolicy;
@@ -16,7 +16,7 @@ use crate::interlock::SplitCheckerHost;
 use crate::store::{Callback, CasualMessage, CasualRouter};
 use crate::Result;
 use configuration::{ConfigChange, Configuration};
-use violetabftstore::interlock::::keybuilder::KeyBuilder;
+use violetabftstore::interlock::::CausetLearnedKey::CausetLearnedKey;
 use violetabftstore::interlock::::worker::Runnable;
 
 use super::metrics::*;
@@ -74,7 +74,7 @@ impl<I> MergedIterator<I>
 where
     I: Iteron,
 {
-    fn new<E: KvEngine>(
+    fn new<E: CausetEngine>(
         db: &E,
         causets: &[CfName],
         spacelike_key: &[u8],
@@ -85,8 +85,8 @@ where
         let mut heap = BinaryHeap::with_capacity(causets.len());
         for (pos, causet) in causets.iter().enumerate() {
             let iter_opt = IterOptions::new(
-                Some(KeyBuilder::from_slice(spacelike_key, 0, 0)),
-                Some(KeyBuilder::from_slice(lightlike_key, 0, 0)),
+                Some(CausetLearnedKey::from_slice(spacelike_key, 0, 0)),
+                Some(CausetLearnedKey::from_slice(lightlike_key, 0, 0)),
                 fill_cache,
             );
             let mut iter = db.Iteron_causet_opt(causet, iter_opt)?;
@@ -163,7 +163,7 @@ impl Display for Task {
 
 pub struct Runner<E, S>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     engine: E,
     router: S,
@@ -173,7 +173,7 @@ where
 
 impl<E, S> Runner<E, S>
 where
-    E: KvEngine,
+    E: CausetEngine,
     S: CasualRouter<E>,
 {
     pub fn new(engine: E, router: S, interlock: InterlockHost<E>, causet: Config) -> Runner<E, S> {
@@ -320,7 +320,7 @@ where
 
 impl<E, S> Runnable for Runner<E, S>
 where
-    E: KvEngine,
+    E: CausetEngine,
     S: CasualRouter<E>,
 {
     type Task = Task;
@@ -341,7 +341,7 @@ where
 
 fn new_split_brane<E>(brane_epoch: BraneEpoch, split_tuplespaceInstanton: Vec<Vec<u8>>) -> CasualMessage<E>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     CasualMessage::SplitBrane {
         brane_epoch,

@@ -6,7 +6,7 @@ use std::sync::RwLock;
 use std::time::Duration;
 use std::time::Instant;
 
-use futures::channel::mpsc::Unboundedlightlikeer;
+use futures::channel::mpsc::UnboundedLightlikeValue;
 use futures::compat::Future01CompatExt;
 use futures::executor::block_on;
 use futures::future;
@@ -37,7 +37,7 @@ pub struct Inner {
     env: Arc<Environment>,
     pub hb_lightlikeer: Either<
         Option<ClientDuplexlightlikeer<BraneHeartbeatRequest>>,
-        Unboundedlightlikeer<BraneHeartbeatRequest>,
+        UnboundedLightlikeValue<BraneHeartbeatRequest>,
     >,
     pub hb_receiver: Either<Option<ClientDuplexReceiver<BraneHeartbeatResponse>>, Waker>,
     pub client_stub: FidelClientStub,

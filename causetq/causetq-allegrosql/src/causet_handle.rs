@@ -32,7 +32,7 @@ impl CausetHandleExt for LmdbEngine {
 }
 
 // FIXME: This nasty representation with pointer casting is due to the lack of
-// generic associated types in Rust. See comment on the KvEngine::CausetHandle
+// generic associated types in Rust. See comment on the CausetEngine::CausetHandle
 // associated type. This could also be fixed if the CausetHandle impl was defined
 // inside the rust-lmdb crate where the RawCausetHandles are managed, but that
 // would be an ugly abstraction violation.

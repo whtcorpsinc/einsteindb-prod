@@ -8,7 +8,7 @@ publish = false
 protobuf-codec = ["ekvproto/protobuf-codec"]
 prost-codec = ["ekvproto/prost-codec"]
 
-[deplightlikeencies]
+[dependencies]
 bytes = "0.5.3"
 futures = "0.3"
 futures-executor = "0.3"
@@ -32,7 +32,7 @@ edb_alloc = { path = "../edb_alloc" }
 tokio = { version = "0.2.13", features = ["time"] }
 url = "2.0"
 
-[dev-deplightlikeencies]
+[dev-dependencies]
 structopt = "0.3"
 rusoto_mock = "0.44.0"
 tempfile = "3.1"

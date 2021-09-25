@@ -13,14 +13,14 @@ use crate::*;
 const DEFAULT_FLUSH_INTERVAL: Duration = Duration::from_millis(10_000);
 const FLUSHER_RESET_INTERVAL: Duration = Duration::from_millis(60_000);
 
-pub struct MetricsFlusher<K: KvEngine, R: VioletaBftEngine> {
+pub struct MetricsFlusher<K: CausetEngine, R: VioletaBftEngine> {
     pub engines: Engines<K, R>,
     interval: Duration,
     handle: Option<JoinHandle<()>>,
     lightlikeer: Option<lightlikeer<bool>>,
 }
 
-impl<K: KvEngine, R: VioletaBftEngine> MetricsFlusher<K, R> {
+impl<K: CausetEngine, R: VioletaBftEngine> MetricsFlusher<K, R> {
     pub fn new(engines: Engines<K, R>) -> Self {
         MetricsFlusher {
             engines,

@@ -6,7 +6,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use edb::{
-    Error, IterOptions, Iterable, KvEngine, Peekable, ReadOptions, Result, SyncMuBlock,
+    Error, IterOptions, Iterable, CausetEngine, Peekable, ReadOptions, Result, SyncMuBlock,
 };
 use lmdb::{DBIterator, WriBlock, DB};
 
@@ -65,7 +65,7 @@ impl LmdbEngine {
     }
 }
 
-impl KvEngine for LmdbEngine {
+impl CausetEngine for LmdbEngine {
     type Snapshot = LmdbSnapshot;
 
     fn snapshot(&self) -> LmdbSnapshot {
@@ -185,7 +185,7 @@ impl SyncMuBlock for LmdbEngine {
 #[causet(test)]
 mod tests {
     use crate::raw_util;
-    use edb::{Iterable, KvEngine, Peekable, SyncMuBlock};
+    use edb::{Iterable, CausetEngine, Peekable, SyncMuBlock};
     use ekvproto::meta_timeshare::Brane;
     use std::sync::Arc;
     use tempfile::Builder;

@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
 
-use edb::{CfName, KvEngine};
+use edb::{CfName, CausetEngine};
 use ekvproto::meta_timeshare::Brane;
 use ekvproto::fidel_timeshare::CheckPolicy;
 use ekvproto::violetabft_cmd_timeshare::{ComputeHashRequest, VioletaBftCmdRequest};
@@ -79,8 +79,8 @@ macro_rules! impl_box_semaphore {
 // This is the same as impl_box_semaphore_g except $ob has a typaram
 macro_rules! impl_box_semaphore_g {
     ($name:ident, $ob: ident, $wrapper: ident) => {
-        pub struct $name<E: KvEngine>(Box<dyn ClonableSemaphore<Ob = dyn $ob<E>> + lightlike>);
-        impl<E: KvEngine + 'static + lightlike> $name<E> {
+        pub struct $name<E: CausetEngine>(Box<dyn ClonableSemaphore<Ob = dyn $ob<E>> + lightlike>);
+        impl<E: CausetEngine + 'static + lightlike> $name<E> {
             pub fn new<T: 'static + $ob<E> + Clone>(semaphore: T) -> $name<E> {
                 $name(Box::new($wrapper {
                     inner: semaphore,
@@ -88,12 +88,12 @@ macro_rules! impl_box_semaphore_g {
                 }))
             }
         }
-        impl<E: KvEngine + 'static> Clone for $name<E> {
+        impl<E: CausetEngine + 'static> Clone for $name<E> {
             fn clone(&self) -> $name<E> {
                 $name((**self).box_clone())
             }
         }
-        impl<E: KvEngine> Deref for $name<E> {
+        impl<E: CausetEngine> Deref for $name<E> {
             type Target = Box<dyn ClonableSemaphore<Ob = dyn $ob<E>> + lightlike>;
 
             fn deref(&self) -> &Box<dyn ClonableSemaphore<Ob = dyn $ob<E>> + lightlike> {
@@ -101,11 +101,11 @@ macro_rules! impl_box_semaphore_g {
             }
         }
 
-        struct $wrapper<E: KvEngine, T: $ob<E> + Clone> {
+        struct $wrapper<E: CausetEngine, T: $ob<E> + Clone> {
             inner: T,
             _phantom: PhantomData<E>,
         }
-        impl<E: KvEngine + 'static + lightlike, T: 'static + $ob<E> + Clone> ClonableSemaphore
+        impl<E: CausetEngine + 'static + lightlike, T: 'static + $ob<E> + Clone> ClonableSemaphore
             for $wrapper<E, T>
         {
             type Ob = dyn $ob<E>;
@@ -156,7 +156,7 @@ impl_box_semaphore_g!(
 #[derive(Clone)]
 pub struct Registry<E>
 where
-    E: KvEngine + 'static,
+    E: CausetEngine + 'static,
 {
     admin_semaphores: Vec<Entry<BoxAdminSemaphore>>,
     query_semaphores: Vec<Entry<BoxQuerySemaphore>>,
@@ -169,7 +169,7 @@ where
     // TODO: add lightlikepoint
 }
 
-impl<E: KvEngine> Default for Registry<E> {
+impl<E: CausetEngine> Default for Registry<E> {
     fn default() -> Registry<E> {
         Registry {
             admin_semaphores: Default::default(),
@@ -197,7 +197,7 @@ macro_rules! push {
     };
 }
 
-impl<E: KvEngine> Registry<E> {
+impl<E: CausetEngine> Registry<E> {
     pub fn register_admin_semaphore(&mut self, priority: u32, ao: BoxAdminSemaphore) {
         push!(priority, ao, self.admin_semaphores);
     }
@@ -287,12 +287,12 @@ macro_rules! loop_ob {
 #[derive(Clone)]
 pub struct InterlockHost<E>
 where
-    E: KvEngine + 'static,
+    E: CausetEngine + 'static,
 {
     pub registry: Registry<E>,
 }
 
-impl<E: KvEngine> Default for InterlockHost<E>
+impl<E: CausetEngine> Default for InterlockHost<E>
 where
     E: 'static,
 {
@@ -303,7 +303,7 @@ where
     }
 }
 
-impl<E: KvEngine> InterlockHost<E> {
+impl<E: CausetEngine> InterlockHost<E> {
     pub fn new<C: CasualRouter<E> + Clone + lightlike + 'static>(ch: C) -> InterlockHost<E> {
         let mut registry = Registry::default();
         registry.register_split_check_semaphore(

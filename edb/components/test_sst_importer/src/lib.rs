@@ -8,7 +8,7 @@ use engine_lmdb::LmdbEngine;
 use engine_lmdb::LmdbSstReader;
 pub use engine_lmdb::LmdbSstWriter;
 use engine_lmdb::LmdbSstWriterBuilder;
-use edb::KvEngine;
+use edb::CausetEngine;
 use edb::SstReader;
 use edb::SstWriter;
 use edb::SstWriterBuilder;
@@ -67,7 +67,7 @@ pub fn calc_data_crc32(data: &[u8]) -> u32 {
 
 pub fn check_db_cone<E>(db: &E, cone: (u8, u8))
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     for i in cone.0..cone.1 {
         let k = tuplespaceInstanton::data_key(&[i]);

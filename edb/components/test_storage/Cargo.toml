@@ -20,7 +20,7 @@ prost-codec = [
   "txn_types/prost-codec",
 ]
 
-[deplightlikeencies]
+[dependencies]
 futures = "0.3"
 ekvproto = { git = "https://github.com/whtcorpsinc/ekvproto.git", default-features = false }
 violetabftstore = { path = "../violetabftstore" }

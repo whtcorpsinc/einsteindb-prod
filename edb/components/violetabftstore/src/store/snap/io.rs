@@ -10,7 +10,7 @@ use encryption::{
 };
 use edb::{
     CfName, EncryptionKeyManager, Error as EngineError, ImportExt, IngestExternalFileOptions,
-    Iterable, KvEngine, MuBlock, SstWriter, SstWriterBuilder,
+    Iterable, CausetEngine, MuBlock, SstWriter, SstWriterBuilder,
 };
 use ekvproto::encryption_timeshare::EncryptionMethod;
 use violetabftstore::interlock::::codec::bytes::{BytesEncoder, CompactBytesFromFileDecoder};
@@ -41,7 +41,7 @@ pub fn build_plain_causet_file<E>(
     lightlike_key: &[u8],
 ) -> Result<BuildStatistics, Error>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     let mut file = Some(box_try!(OpenOptions::new()
         .write(true)
@@ -109,7 +109,7 @@ pub fn build_sst_causet_file<E>(
     io_limiter: &Limiter,
 ) -> Result<BuildStatistics, Error>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     let mut sst_writer = create_sst_file_writer::<E>(engine, causet, path)?;
     let mut stats = BuildStatistics::default();
@@ -145,7 +145,7 @@ pub fn apply_plain_causet_file<E, F>(
     mut callback: F,
 ) -> Result<(), Error>
 where
-    E: KvEngine,
+    E: CausetEngine,
     F: for<'r> FnMut(&'r [(Vec<u8>, Vec<u8>)]),
 {
     let file = box_try!(File::open(path));
@@ -194,7 +194,7 @@ where
 
 pub fn apply_sst_causet_file<E>(path: &str, db: &E, causet: &str) -> Result<(), Error>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     let causet_handle = box_try!(db.causet_handle(causet));
     let mut ingest_opt = <E as ImportExt>::IngestExternalFileOptions::new();
@@ -205,7 +205,7 @@ where
 
 fn create_sst_file_writer<E>(engine: &E, causet: CfName, path: &str) -> Result<E::SstWriter, Error>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     let builder = E::SstWriterBuilder::new().set_db(&engine).set_causet(causet);
     let writer = box_try!(builder.build(path));

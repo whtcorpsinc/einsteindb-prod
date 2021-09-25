@@ -1206,7 +1206,7 @@ fn test_sync_max_ts_after_brane_merge() {
     let left = cluster.get_brane(b"k1");
     let right = cluster.get_brane(b"k3");
 
-    let cm = cluster.sim.read().unwrap().get_concurrency_manager(1);
+    let cm = cluster.sim.read().unwrap().get_interlocking_directorate(1);
     let causet_storage = cluster
         .sim
         .read()

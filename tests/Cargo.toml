@@ -77,7 +77,7 @@ jemalloc = ["edb/jemalloc"]
 sse = ["edb/sse"]
 porBlock = ["edb/porBlock"]
 
-[deplightlikeencies]
+[dependencies]
 fail = { version = "0.3", optional = true }
 batch-system = { path = "../components/batch-system" }
 crc64fast = "0.1"
@@ -113,7 +113,7 @@ txn_types = { path = "../components/txn_types" }
 uuid = { version = "0.8.1", features = ["serde", "v4"] }
 time = "0.1"
 
-[dev-deplightlikeencies]
+[dev-dependencies]
 # See https://bheisler.github.io/criterion.rs/book/user_guide/known_limitations.html for the usage
 # of `real_blackbox` feature.
 criterion = "0.3"
@@ -140,7 +140,7 @@ byteorder = "1.2"
 serde_json = "1.0"
 tokio = { version = "0.2", features = ["rt-threaded"] }
 semver = "0.10"
-concurrency_manager = { path = "../components/concurrency_manager" }
+interlocking_directorate = { path = "../components/interlocking_directorate" }
 
-[target.'causet(target_os = "linux")'.dev-deplightlikeencies]
+[target.'causet(target_os = "linux")'.dev-dependencies]
 criterion-papi = "0.1"

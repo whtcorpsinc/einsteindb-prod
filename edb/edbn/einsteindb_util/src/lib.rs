@@ -44,7 +44,7 @@ pub mod future;
 pub mod macros;
 pub mod callback;
 pub mod deadline;
-pub mod keybuilder;
+pub mod CausetLearnedKey;
 pub mod logger;
 pub mod lru;
 pub mod metrics;

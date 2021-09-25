@@ -3,12 +3,12 @@
 use std::ptr;
 
 #[derive(Clone)]
-pub struct KeyBuilder {
+pub struct CausetLearnedKey {
     buf: Vec<u8>,
     spacelike: usize,
 }
 
-impl KeyBuilder {
+impl CausetLearnedKey {
     pub fn new(max_size: usize, reserved_prefix_len: usize) -> Self {
         assert!(reserved_prefix_len < max_size);
         let mut buf = Vec::with_capacity(max_size);
@@ -118,7 +118,7 @@ mod tests {
         // new
         let key1 = b"key1";
         let mut key_builder =
-            KeyBuilder::new(key1.len() + prefix.len() + suffix.len(), prefix.len());
+            CausetLearnedKey::new(key1.len() + prefix.len() + suffix.len(), prefix.len());
         key_builder.applightlike(key1);
         key_builder.applightlike(suffix);
         key_builder.set_prefix(prefix);
@@ -128,7 +128,7 @@ mod tests {
 
         // from_vec
         let key2 = b"key2";
-        let mut key_builder = KeyBuilder::from_vec(key2.to_vec(), prefix.len(), suffix.len());
+        let mut key_builder = CausetLearnedKey::from_vec(key2.to_vec(), prefix.len(), suffix.len());
         assert_eq!(key_builder.len(), key2.len());
         key_builder.set_prefix(prefix);
         assert_eq!(key_builder.len(), key2.len() + prefix.len());
@@ -137,7 +137,7 @@ mod tests {
         assert_eq!(res, b"prefix-key2-suffix".to_vec());
 
         // from_vec but not set prefix
-        let mut key_builder = KeyBuilder::from_vec(key2.to_vec(), prefix.len(), suffix.len());
+        let mut key_builder = CausetLearnedKey::from_vec(key2.to_vec(), prefix.len(), suffix.len());
         key_builder.applightlike(suffix);
         let res = key_builder.build();
         assert_eq!(res, b"key2-suffix".to_vec());
@@ -145,7 +145,7 @@ mod tests {
         // from_vec vec has enough memory.
         let mut vec = Vec::with_capacity(key2.len() + prefix.len() + suffix.len());
         vec.extlightlike_from_slice(key2);
-        let mut key_builder = KeyBuilder::from_vec(vec, prefix.len(), suffix.len());
+        let mut key_builder = CausetLearnedKey::from_vec(vec, prefix.len(), suffix.len());
         key_builder.set_prefix(prefix);
         key_builder.applightlike(suffix);
         let res = key_builder.build();
@@ -153,7 +153,7 @@ mod tests {
 
         // from_slice
         let key3 = b"key3";
-        let mut key_builder = KeyBuilder::from_slice(key3, prefix.len(), suffix.len());
+        let mut key_builder = CausetLearnedKey::from_slice(key3, prefix.len(), suffix.len());
         assert_eq!(key_builder.len(), key3.len());
         key_builder.set_prefix(prefix);
         assert_eq!(key_builder.len(), key3.len() + prefix.len());

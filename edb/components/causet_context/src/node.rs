@@ -6,7 +6,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use crossbeam::atomic::AtomicCell;
 use engine_lmdb::{LmdbEngine, LmdbSnapshot};
 use futures::compat::Future01CompatExt;
@@ -245,7 +245,7 @@ pub struct node<T> {
     store_meta: Arc<Mutex<StoreMeta>>,
     /// The concurrency manager for bundles. It's needed for causet_context to check locks when
     /// calculating resolved_ts.
-    concurrency_manager: ConcurrencyManager,
+    interlocking_directorate: ConcurrencyManager,
 
     workers: Runtime,
 
@@ -262,7 +262,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
         violetabft_router: T,
         semaphore: causet_contextSemaphore,
         store_meta: Arc<Mutex<StoreMeta>>,
-        concurrency_manager: ConcurrencyManager,
+        interlocking_directorate: ConcurrencyManager,
     ) -> node<T> {
         let workers = Builder::new()
             .threaded_interlock_semaphore()
@@ -287,7 +287,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
             violetabft_router,
             semaphore,
             store_meta,
-            concurrency_manager,
+            interlocking_directorate,
             scan_batch_size: 1024,
             min_ts_interval: causet.min_ts_interval.0,
             min_resolved_ts: TimeStamp::max(),
@@ -708,7 +708,7 @@ impl<T: 'static + VioletaBftStoreRouter<LmdbEngine>> node<T> {
             .iter()
             .map(|(brane_id, pushdown_causet)| (*brane_id, pushdown_causet.id))
             .collect();
-        let cm: ConcurrencyManager = self.concurrency_manager.clone();
+        let cm: ConcurrencyManager = self.interlocking_directorate.clone();
         let fut = async move {
             let _ = timeout.compat().await;
             // Ignore get tso errors since we will retry every `min_ts_interval`.

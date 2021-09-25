@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use std::{cmp, mem, u64, usize};
 
 use crossbeam::atomic::AtomicCell;
-use edb::{Engines, KvEngine, VioletaBftEngine, Snapshot, WriteOptions};
+use edb::{Engines, CausetEngine, VioletaBftEngine, Snapshot, WriteOptions};
 use error_code::ErrorCodeExt;
 use ekvproto::kvrpc_timeshare::ExtraOp as TxnExtraOp;
 use ekvproto::meta_timeshare;
@@ -330,7 +330,7 @@ impl<S: Snapshot> Drop for CmdEpochChecker<S> {
 
 pub struct Peer<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     /// The ID of the Brane which this Peer belongs to.
@@ -455,7 +455,7 @@ where
 
 impl<EK, ER> Peer<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     pub fn new(
@@ -869,7 +869,7 @@ where
     /// has been preserved in a durable device.
     pub fn set_brane(
         &mut self,
-        host: &InterlockHost<impl KvEngine>,
+        host: &InterlockHost<impl CausetEngine>,
         reader: &mut Readpushdown_causet,
         brane: meta_timeshare::Brane,
     ) {
@@ -2921,7 +2921,7 @@ where
 
 impl<EK, ER> Peer<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     pub fn insert_peer_cache(&mut self, peer: meta_timeshare::Peer) {
@@ -3307,7 +3307,7 @@ pub trait RequestInspector {
 
 impl<EK, ER> RequestInspector for Peer<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     fn has_applied_to_current_term(&mut self) -> bool {
@@ -3336,7 +3336,7 @@ where
 
 impl<EK, ER, T, C> ReadFreeDaemon<EK> for PollContext<EK, ER, T, C>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     fn get_engine(&self) -> &EK {
@@ -3421,7 +3421,7 @@ pub trait AbstractPeer {
     fn plightlikeing_merge_state(&self) -> Option<&MergeState>;
 }
 
-impl<EK: KvEngine, ER: VioletaBftEngine> AbstractPeer for Peer<EK, ER> {
+impl<EK: CausetEngine, ER: VioletaBftEngine> AbstractPeer for Peer<EK, ER> {
     fn meta_peer(&self) -> &meta_timeshare::Peer {
         &self.peer
     }

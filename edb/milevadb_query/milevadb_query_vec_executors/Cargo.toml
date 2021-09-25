@@ -5,7 +5,7 @@ edition = "2018"
 publish = false
 description = "A vector query engine to run MilevaDB pushed down executors"
 
-[deplightlikeencies]
+[dependencies]
 protobuf = "2.8"
 codec = { path = "../codec" }
 hex = "0.3"
@@ -22,10 +22,10 @@ violetabftstore::interlock:: = { path = "../violetabftstore::interlock::" }
 fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", default-features = false }
 fail = "0.3"
 
-[deplightlikeencies.yatp]
+[dependencies.yatp]
 git = "https://github.com/edb/yatp.git"
 
-[dev-deplightlikeencies]
+[dev-dependencies]
 failure = "0.1"
 fidel_timeshare_helper = { path = "../fidel_timeshare_helper" }
 milevadb_query_codegen = { path = "../milevadb_query_codegen" }

@@ -7,7 +7,7 @@ use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 use std::{cmp, thread};
 
-use futures::channel::mpsc::{self, UnboundedReceiver, Unboundedlightlikeer};
+use futures::channel::mpsc::{self, UnboundedReceiver, UnboundedLightlikeValue};
 use futures::compat::Future01CompatExt;
 use futures::executor::block_on;
 use futures::future::{err, ok, FutureExt};
@@ -37,7 +37,7 @@ use super::*;
 struct CausetStore {
     store: meta_timeshare::CausetStore,
     brane_ids: HashSet<u64>,
-    lightlikeer: Unboundedlightlikeer<fidel_timeshare::BraneHeartbeatResponse>,
+    lightlikeer: UnboundedLightlikeValue<fidel_timeshare::BraneHeartbeatResponse>,
     receiver: Option<UnboundedReceiver<fidel_timeshare::BraneHeartbeatResponse>>,
 }
 

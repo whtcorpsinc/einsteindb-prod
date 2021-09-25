@@ -8,7 +8,7 @@ use std::sync::Arc;
 /// with as little syntax as possible.
 ///
 /// This will be used during the transition from Lmdb to the
-/// `KvEngine` abstraction and then discarded.
+/// `CausetEngine` abstraction and then discarded.
 pub trait Compat {
     type Other;
 

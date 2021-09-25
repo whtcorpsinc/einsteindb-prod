@@ -20,7 +20,7 @@ prost-codec = [
   "txn_types/prost-codec",
 ]
 
-[deplightlikeencies]
+[dependencies]
 crc32fast = "1.2"
 encryption = { path = "../encryption" }
 engine_lmdb = { path = "../engine_lmdb" }
@@ -46,7 +46,7 @@ tokio = { version = "0.2.13", features = ["time", "rt-threaded", "macros"] }
 txn_types = { path = "../txn_types" }
 uuid = { version = "0.8.1", features = ["serde", "v4"] }
 
-[dev-deplightlikeencies]
+[dev-dependencies]
 engine_lmdb = { path = "../engine_lmdb" }
 tempfile = "3.0"
 test_util = { path = "../test_util" }

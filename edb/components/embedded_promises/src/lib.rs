@@ -6,7 +6,7 @@
 //! EinsteinDB to persist its data, so that causet_storage engines other than Lmdb may be
 //! added to EinsteinDB in the future.
 //!
-//! This crate **must not have any transitive deplightlikeencies on Lmdb**. The
+//! This crate **must not have any transitive dependencies on Lmdb**. The
 //! Lmdb implementation is in the `engine_lmdb` crate.
 //!
 //! In addition to documenting the API, this documentation contains a
@@ -39,9 +39,9 @@
 //!
 //! Some key types include:
 //!
-//! - [`KvEngine`] - a key-value engine, and the primary type defined by this
+//! - [`CausetEngine`] - a key-value engine, and the primary type defined by this
 //!   crate. Most code that uses generic engines will be bounded over a generic
-//!   type implementing `KvEngine`. `KvEngine` itself is bounded by many other
+//!   type implementing `CausetEngine`. `CausetEngine` itself is bounded by many other
 //!   promises that provide collections of functionality, with the intent that as
 //!   EinsteinDB evolves it may be possible to use each trait individually, and to
 //!   define classes of engine that do not implement all collections of
@@ -64,7 +64,7 @@
 //!   A `WriteBatchExt::WriteBtach` commits all pairs in one atomic transaction.
 //!   A `WriteBatchExt::WriteBatchVec` does not (FIXME: is this correct?).
 //!
-//! The `KvEngine` instance generally acts as a factory for types that implement
+//! The `CausetEngine` instance generally acts as a factory for types that implement
 //! other promises in the crate. These factory methods, associated types, and
 //! other associated methods are defined in "extension" promises. For example, methods
 //! on engines related to batch writes are in the `WriteBatchExt` trait.
@@ -72,15 +72,15 @@
 //!
 //! # Design notes
 //!
-//! - `KvEngine` is the main engine trait. It requires many other promises, which
+//! - `CausetEngine` is the main engine trait. It requires many other promises, which
 //!   have many other associated types that implement yet more promises.
 //!
 //! - Features should be grouped into their own modules with their own
 //!   promises. A common TuringString is to have an associated type that implements
-//!   a trait, and an "extension" trait that associates that type with `KvEngine`,
-//!   which is part of `KvEngine's trait requirements.
+//!   a trait, and an "extension" trait that associates that type with `CausetEngine`,
+//!   which is part of `CausetEngine's trait requirements.
 //!
-//! - For now, for simplicity, all extension promises are required by `KvEngine`.
+//! - For now, for simplicity, all extension promises are required by `CausetEngine`.
 //!   In the future it may be feasible to separate them for engines with
 //!   different feature sets.
 //!
@@ -114,7 +114,7 @@
 //! - All engines use the same error type, defined in this crate. Thus
 //!   engine-specific type information is boxed and hidden.
 //!
-//! - `KvEngine` is a factory type for some of its associated types, but not
+//! - `CausetEngine` is a factory type for some of its associated types, but not
 //!   others. For now, use factory methods when Lmdb would require factory
 //!   method (that is, when the DB is required to create the associated type -
 //!   if the associated type can be created without context from the database,
@@ -130,9 +130,9 @@
 //!   - [https://github.com/rust-lang/rust/issues/44265](https://github.com/rust-lang/rust/issues/44265)
 //!
 //! - Promises can't have mutually-recursive associated types. That is, if
-//!   `KvEngine` has a `Snapshot` associated type, `Snapshot` can't then have a
-//!   `KvEngine` associated type - the compiler will not be able to resolve both
-//!   `KvEngine`s to the same type. In these cases, e.g. `Snapshot` needs to be
+//!   `CausetEngine` has a `Snapshot` associated type, `Snapshot` can't then have a
+//!   `CausetEngine` associated type - the compiler will not be able to resolve both
+//!   `CausetEngine`s to the same type. In these cases, e.g. `Snapshot` needs to be
 //!   parameterized over its engine type and `impl Snapshot<LmdbEngine> for
 //!   LmdbSnapshot`.
 //!
@@ -163,8 +163,8 @@
 //!
 //! The engine crate was an earlier attempt to abstract the causet_storage engine. Much
 //! of its structure is duplicated near-identically in edb, the
-//! difference being that edb has no Lmdb deplightlikeencies. Having no
-//! Lmdb deplightlikeencies makes it trivial to guarantee that the abstractions are
+//! difference being that edb has no Lmdb dependencies. Having no
+//! Lmdb dependencies makes it trivial to guarantee that the abstractions are
 //! truly abstract.
 //!
 //! `engine` also reexports raw ConstrainedEntss from `rust-lmdb` for every purpose
@@ -215,7 +215,7 @@
 //!
 //! # Refactoring tips
 //!
-//! - Port modules with the fewest Lmdb deplightlikeencies at a time, modifying
+//! - Port modules with the fewest Lmdb dependencies at a time, modifying
 //!   those modules's callers to convert to and from the engine promises as
 //!   needed. Move in and out of the edb world with the
 //!   `Lmdb::from_ref` and `Lmdb::as_inner` methods.
@@ -233,17 +233,17 @@
 //!
 //! - When new types are needed from the Lmdb API, add a new module, define a
 //!   new trait (possibly with the same name as the Lmdb type), then define a
-//!   `TraitExt` trait to "mixin" to the `KvEngine` trait.
+//!   `TraitExt` trait to "mixin" to the `CausetEngine` trait.
 //!
 //! - Port methods directly from the existing `engine` crate by re-implementing
 //!   it in edb and engine_lmdb, replacing all the callers with calls
 //!   into the promises, then delete the versions in the `engine` crate.
 //!
 //! - Use the .c() method from engine_lmdb::compat::Compat to get a
-//!   KvEngine reference from Arc<DB> in the fewest characters. It also
+//!   CausetEngine reference from Arc<DB> in the fewest characters. It also
 //!   works on Snapshot, and can be adapted to other types.
 //!
-//! - Use `IntoOther` to adapt between error types of deplightlikeencies that are not
+//! - Use `IntoOther` to adapt between error types of dependencies that are not
 //!   themselves interdeplightlikeent. E.g. violetabft::Error can be created from
 //!   edb::Error even though neither `violetabft` tor `edb` know
 //!   about each other.
@@ -262,7 +262,7 @@ extern crate edb_alloc;
 extern crate slog_global;
 
 // These modules contain promises that need to be implemented by engines, either
-// they are required by KvEngine or are an associated type of KvEngine. It is
+// they are required by CausetEngine or are an associated type of CausetEngine. It is
 // recommlightlikeed that engines follow the same module layout.
 //
 // Many of these define "extension" promises, that lightlike in `Ext`.

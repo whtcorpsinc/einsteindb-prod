@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use crate::*;
 
 /// An EinsteinDB key-value store
-pub trait KvEngine:
+pub trait CausetEngine:
     Peekable
     + SyncMuBlock
     + Iterable

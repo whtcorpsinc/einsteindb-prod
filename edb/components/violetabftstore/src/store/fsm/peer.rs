@@ -8,7 +8,7 @@ use std::{cmp, u64};
 
 use batch_system::{BasicMailbox, Fsm};
 use edb::Causet_VIOLETABFT;
-use edb::{Engines, KvEngine, VioletaBftEngine, WriteBatchExt};
+use edb::{Engines, CausetEngine, VioletaBftEngine, WriteBatchExt};
 use error_code::ErrorCodeExt;
 use ekvproto::error_timeshare;
 use ekvproto::import_sst_timeshare::SstMeta;
@@ -84,7 +84,7 @@ pub enum GroupState {
 
 pub struct PeerFsm<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     pub peer: Peer<EK, ER>,
@@ -117,7 +117,7 @@ where
 
 pub struct BatchVioletaBftCmdRequestBuilder<E>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     violetabft_entry_max_size: f64,
     batch_req_size: u32,
@@ -127,7 +127,7 @@ where
 
 impl<EK, ER> Drop for PeerFsm<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     fn drop(&mut self) {
@@ -153,7 +153,7 @@ pub type lightlikeerFsmPair<EK, ER> = (LooseBoundedlightlikeer<PeerMsg<EK>>, Box
 
 impl<EK, ER> PeerFsm<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     // If we create the peer actively, like bootstrap/split/merge brane, we should
@@ -278,7 +278,7 @@ where
 
 impl<E> BatchVioletaBftCmdRequestBuilder<E>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     fn new(violetabft_entry_max_size: f64) -> BatchVioletaBftCmdRequestBuilder<E> {
         BatchVioletaBftCmdRequestBuilder {
@@ -379,7 +379,7 @@ where
 
 impl<EK, ER> Fsm for PeerFsm<EK, ER>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     type Message = PeerMsg<EK>;
@@ -411,7 +411,7 @@ where
 
 pub struct PeerFsmpushdown_causet<'a, EK, ER, T: 'static, C: 'static>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     fsm: &'a mut PeerFsm<EK, ER>,
@@ -420,7 +420,7 @@ where
 
 impl<'a, EK, ER, T: Transport, C: FidelClient> PeerFsmpushdown_causet<'a, EK, ER, T, C>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     pub fn new(
@@ -3569,7 +3569,7 @@ where
 
 impl<'a, EK, ER, T: Transport, C: FidelClient> PeerFsmpushdown_causet<'a, EK, ER, T, C>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     fn on_ready_compute_hash(
@@ -3812,7 +3812,7 @@ fn new_compact_log_request(
 
 impl<'a, EK, ER, T: Transport, C: FidelClient> PeerFsmpushdown_causet<'a, EK, ER, T, C>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     // Handle status commands here, separate the logic, maybe we can move it

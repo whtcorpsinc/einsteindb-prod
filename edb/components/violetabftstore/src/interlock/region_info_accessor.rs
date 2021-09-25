@@ -11,7 +11,7 @@ use super::{
     BoxBraneChangeSemaphore, BoxRoleSemaphore, Interlock, InterlockHost, SemaphoreContext,
     BraneChangeEvent, BraneChangeSemaphore, Result, RoleSemaphore,
 };
-use edb::KvEngine;
+use edb::CausetEngine;
 use tuplespaceInstanton::{data_lightlike_key, data_key};
 use ekvproto::meta_timeshare::Brane;
 use violetabft::StateRole;
@@ -143,7 +143,7 @@ impl RoleSemaphore for BraneEventListener {
 
 /// Creates an `BraneEventListener` and register it to given interlock host.
 fn register_brane_event_listener(
-    host: &mut InterlockHost<impl KvEngine>,
+    host: &mut InterlockHost<impl CausetEngine>,
     interlock_semaphore: Interlock_Semaphore<BraneInfoQuery>,
 ) {
     let listener = BraneEventListener { interlock_semaphore };
@@ -462,7 +462,7 @@ impl BraneInfoAccessor {
     /// Creates a new `BraneInfoAccessor` and register to `host`.
     /// `BraneInfoAccessor` doesn't need, and should not be created more than once. If it's needed
     /// in different places, just clone it, and their contents are shared.
-    pub fn new(host: &mut InterlockHost<impl KvEngine>) -> Self {
+    pub fn new(host: &mut InterlockHost<impl CausetEngine>) -> Self {
         let worker = WorkerBuilder::new("brane-collector-worker").create();
         let interlock_semaphore = worker.interlock_semaphore();
 

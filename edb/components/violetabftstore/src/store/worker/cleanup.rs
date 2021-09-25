@@ -6,7 +6,7 @@ use super::cleanup_sst::{Runner as CleanupSSTRunner, Task as CleanupSSTTask};
 use super::compact::{Runner as CompactRunner, Task as CompactTask};
 
 use crate::store::StoreRouter;
-use edb::KvEngine;
+use edb::CausetEngine;
 use fidel_client::FidelClient;
 use violetabftstore::interlock::::worker::Runnable;
 
@@ -26,7 +26,7 @@ impl Display for Task {
 
 pub struct Runner<E, C, S>
 where
-    E: KvEngine,
+    E: CausetEngine,
     S: StoreRouter<E>,
 {
     compact: CompactRunner<E>,
@@ -35,7 +35,7 @@ where
 
 impl<E, C, S> Runner<E, C, S>
 where
-    E: KvEngine,
+    E: CausetEngine,
     C: FidelClient,
     S: StoreRouter<E>,
 {
@@ -52,7 +52,7 @@ where
 
 impl<E, C, S> Runnable for Runner<E, C, S>
 where
-    E: KvEngine,
+    E: CausetEngine,
     C: FidelClient,
     S: StoreRouter<E>,
 {

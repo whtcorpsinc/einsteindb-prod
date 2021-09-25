@@ -13,7 +13,7 @@ use std::{cmp, io};
 use futures::future::TryFutureExt;
 use tokio::task::spawn_local;
 
-use edb::{KvEngine, VioletaBftEngine};
+use edb::{CausetEngine, VioletaBftEngine};
 use ekvproto::meta_timeshare;
 use ekvproto::fidel_timeshare;
 use ekvproto::violetabft_cmd_timeshare::{AdminCmdType, AdminRequest, VioletaBftCmdRequest, SplitRequest};
@@ -33,7 +33,7 @@ use crate::store::Callback;
 use crate::store::StoreInfo;
 use crate::store::{CasualMessage, PeerMsg, VioletaBftCommand, VioletaBftRouter, StoreMsg};
 
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use fidel_client::metrics::*;
 use fidel_client::{Error, FidelClient, BraneStat};
 use violetabftstore::interlock::::collections::HashMap;
@@ -64,7 +64,7 @@ pub trait FlowStatsReporter: lightlike + Clone + Sync + 'static {
 
 impl<E> FlowStatsReporter for Interlock_Semaphore<Task<E>>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     fn report_read_stats(&self, read_stats: ReadStats) {
         if let Err(e) = self.schedule(Task::ReadStats { read_stats }) {
@@ -76,7 +76,7 @@ where
 /// Uses an asynchronous thread to tell FIDel something.
 pub enum Task<E>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     AskSplit {
         brane: meta_timeshare::Brane,
@@ -189,7 +189,7 @@ pub struct PeerStat {
 
 impl<E> Display for Task<E>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match *self {
@@ -285,7 +285,7 @@ fn convert_record_pairs(m: HashMap<String, u64>) -> RecordPairVec {
 
 struct StatsMonitor<E>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     interlock_semaphore: Interlock_Semaphore<Task<E>>,
     handle: Option<JoinHandle<()>>,
@@ -298,7 +298,7 @@ where
 
 impl<E> StatsMonitor<E>
 where
-    E: KvEngine,
+    E: CausetEngine,
 {
     pub fn new(interval: Duration, interlock_semaphore: Interlock_Semaphore<Task<E>>) -> Self {
         StatsMonitor {
@@ -420,7 +420,7 @@ where
 
 pub struct Runner<EK, ER, T>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
     T: FidelClient + 'static,
 {
@@ -440,12 +440,12 @@ where
     interlock_semaphore: Interlock_Semaphore<Task<EK>>,
     stats_monitor: StatsMonitor<EK>,
 
-    concurrency_manager: ConcurrencyManager,
+    interlocking_directorate: ConcurrencyManager,
 }
 
 impl<EK, ER, T> Runner<EK, ER, T>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
     T: FidelClient + 'static,
 {
@@ -459,7 +459,7 @@ where
         interlock_semaphore: Interlock_Semaphore<Task<EK>>,
         store_heartbeat_interval: Duration,
         auto_split_controller: AutoSplitController,
-        concurrency_manager: ConcurrencyManager,
+        interlocking_directorate: ConcurrencyManager,
     ) -> Runner<EK, ER, T> {
         let interval = store_heartbeat_interval / Self::INTERVAL_DIVISOR;
         let mut stats_monitor = StatsMonitor::new(interval, interlock_semaphore.clone());
@@ -478,7 +478,7 @@ where
             spacelike_ts: UnixSecs::now(),
             interlock_semaphore,
             stats_monitor,
-            concurrency_manager,
+            interlocking_directorate,
         }
     }
 
@@ -939,13 +939,13 @@ where
         max_ts_sync_status: Arc<AtomicU64>,
     ) {
         let fidel_client = self.fidel_client.clone();
-        let concurrency_manager = self.concurrency_manager.clone();
+        let interlocking_directorate = self.interlocking_directorate.clone();
         let f = async move {
             let mut success = false;
             while max_ts_sync_status.load(Ordering::SeqCst) == initial_status {
                 match fidel_client.get_tso().await {
                     Ok(ts) => {
-                        concurrency_manager.fidelio_max_ts(ts);
+                        interlocking_directorate.fidelio_max_ts(ts);
                         // Set the least significant bit to 1 to mark it as synced.
                         let old_value = max_ts_sync_status.compare_and_swap(
                             initial_status,
@@ -979,7 +979,7 @@ where
 
 impl<EK, ER, T> Runnable<Task<EK>> for Runner<EK, ER, T>
 where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
     T: FidelClient,
 {
@@ -1209,7 +1209,7 @@ fn lightlike_admin_request<EK, ER>(
     request: AdminRequest,
     callback: Callback<EK::Snapshot>,
 ) where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     let cmd_type = request.get_cmd_type();
@@ -1236,7 +1236,7 @@ fn lightlike_destroy_peer_message<EK, ER>(
     peer: meta_timeshare::Peer,
     fidel_brane: meta_timeshare::Brane,
 ) where
-    EK: KvEngine,
+    EK: CausetEngine,
     ER: VioletaBftEngine,
 {
     let mut message = VioletaBftMessage::default();

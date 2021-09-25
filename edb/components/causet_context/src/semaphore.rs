@@ -5,7 +5,7 @@ use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 
 use engine_lmdb::LmdbEngine;
-use edb::{IterOptions, KvEngine, ReadOptions, Causet_DEFAULT, Causet_DAGGER, Causet_WRITE};
+use edb::{IterOptions, CausetEngine, ReadOptions, Causet_DEFAULT, Causet_DAGGER, Causet_WRITE};
 use ekvproto::meta_timeshare::{Peer, Brane};
 use violetabft::StateRole;
 use violetabftstore::interlock::*;
@@ -97,7 +97,7 @@ impl causet_contextSemaphore {
 
 impl Interlock for causet_contextSemaphore {}
 
-impl<E: KvEngine> CmdSemaphore<E> for causet_contextSemaphore {
+impl<E: CausetEngine> CmdSemaphore<E> for causet_contextSemaphore {
     fn on_prepare_for_apply(&self, observe_id: ObserveID, brane_id: u64) {
         self.cmd_batches
             .borrow_mut()

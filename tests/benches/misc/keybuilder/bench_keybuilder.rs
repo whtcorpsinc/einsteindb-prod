@@ -3,7 +3,7 @@
 use rand::{thread_rng, RngCore};
 use test::Bencher;
 
-use violetabftstore::interlock::::keybuilder::KeyBuilder;
+use violetabftstore::interlock::::CausetLearnedKey::CausetLearnedKey;
 
 #[inline]
 fn gen_rand_str(len: usize) -> Vec<u8> {
@@ -26,7 +26,7 @@ fn bench_key_builder_data_key(b: &mut Bencher) {
 fn bench_key_builder_from_slice(b: &mut Bencher) {
     let k = gen_rand_str(64);
     b.iter(|| {
-        let mut builder = KeyBuilder::from_slice(k.as_slice(), 1, 0);
+        let mut builder = CausetLearnedKey::from_slice(k.as_slice(), 1, 0);
         builder.set_prefix(b"z");
         let _res = builder.build();
     })

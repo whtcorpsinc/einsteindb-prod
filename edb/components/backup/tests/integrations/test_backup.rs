@@ -13,7 +13,7 @@ use futures_util::io::AsyncReadExt;
 use grpcio::{ChannelBuilder, Environment};
 
 use backup::Task;
-use concurrency_manager::ConcurrencyManager;
+use interlocking_directorate::ConcurrencyManager;
 use edb::IterOptions;
 use edb::{CfName, Causet_DEFAULT, Causet_WRITE, DATA_KEY_PREFIX_LEN};
 use external_causet_storage::*;
@@ -75,7 +75,7 @@ impl TestSuite {
         configure_for_lease_read(&mut cluster, Some(100), None);
         cluster.run();
 
-        let concurrency_manager =
+        let interlocking_directorate =
             ConcurrencyManager::new(block_on(cluster.fidel_client.get_tso()).unwrap());
         let mut lightlikepoints = HashMap::default();
         for (id, engines) in &cluster.engines {
@@ -87,7 +87,7 @@ impl TestSuite {
                 sim.brane_info_accessors[&id].clone(),
                 engines.kv.as_inner().clone(),
                 BackupConfig { num_threads: 4 },
-                concurrency_manager.clone(),
+                interlocking_directorate.clone(),
             );
             let mut worker = Worker::new(format!("backup-{}", id));
             worker.spacelike(backup_lightlikepoint).unwrap();

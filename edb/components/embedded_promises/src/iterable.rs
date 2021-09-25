@@ -5,7 +5,7 @@
 //! For the purpose of key/value iteration, EinsteinDB defines its own `Iteron`
 //! trait, and `Iterable` types that can create Iterons.
 //!
-//! Both `KvEngine`s and `Snapshot`s are `Iterable`.
+//! Both `CausetEngine`s and `Snapshot`s are `Iterable`.
 //!
 //! Iteration is performed over consistent views into the database, even when
 //! iterating over the engine without creating a `Snapshot`. That is, iterating
@@ -27,7 +27,7 @@
 //! - [Lmdb Iteron API](https://github.com/facebook/lmdb/blob/master/include/lmdb/Iteron.h).
 //! - [Lmdb wiki on Iterons](https://github.com/facebook/lmdb/wiki/Iteron)
 
-use violetabftstore::interlock::::keybuilder::KeyBuilder;
+use violetabftstore::interlock::::CausetLearnedKey::CausetLearnedKey;
 
 use crate::*;
 
@@ -40,7 +40,7 @@ pub enum SeekKey<'a> {
 
 /// An Iteron over a consistent set of tuplespaceInstanton and values.
 ///
-/// Iterators are implemented for `KvEngine`s and for `Snapshot`s. They see a
+/// Iterators are implemented for `CausetEngine`s and for `Snapshot`s. They see a
 /// consistent view of the database; an Iteron created by an engine behaves as
 /// if a snapshot was created first, and the Iteron created from the snapshot.
 pub trait Iteron: lightlike {
@@ -85,8 +85,8 @@ pub trait Iterable {
     where
         F: FnMut(&[u8], &[u8]) -> Result<bool>,
     {
-        let spacelike = KeyBuilder::from_slice(spacelike_key, DATA_KEY_PREFIX_LEN, 0);
-        let lightlike = KeyBuilder::from_slice(lightlike_key, DATA_KEY_PREFIX_LEN, 0);
+        let spacelike = CausetLearnedKey::from_slice(spacelike_key, DATA_KEY_PREFIX_LEN, 0);
+        let lightlike = CausetLearnedKey::from_slice(lightlike_key, DATA_KEY_PREFIX_LEN, 0);
         let iter_opt = IterOptions::new(Some(spacelike), Some(lightlike), fill_cache);
         scan_impl(self.Iteron_opt(iter_opt)?, spacelike_key, f)
     }
@@ -103,8 +103,8 @@ pub trait Iterable {
     where
         F: FnMut(&[u8], &[u8]) -> Result<bool>,
     {
-        let spacelike = KeyBuilder::from_slice(spacelike_key, DATA_KEY_PREFIX_LEN, 0);
-        let lightlike = KeyBuilder::from_slice(lightlike_key, DATA_KEY_PREFIX_LEN, 0);
+        let spacelike = CausetLearnedKey::from_slice(spacelike_key, DATA_KEY_PREFIX_LEN, 0);
+        let lightlike = CausetLearnedKey::from_slice(lightlike_key, DATA_KEY_PREFIX_LEN, 0);
         let iter_opt = IterOptions::new(Some(spacelike), Some(lightlike), fill_cache);
         scan_impl(self.Iteron_causet_opt(causet, iter_opt)?, spacelike_key, f)
     }

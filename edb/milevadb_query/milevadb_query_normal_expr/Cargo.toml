@@ -5,7 +5,7 @@ edition = "2018"
 publish = false
 description = "A scalar expression of query engine to run MilevaDB pushed down executors"
 
-[deplightlikeencies]
+[dependencies]
 base64 = "0.12"
 bstr = "0.2.8"
 byteorder = "1.2"
@@ -29,5 +29,5 @@ fidel_timeshare = { git = "https://github.com/whtcorpsinc/fidel_timeshare.git", 
 twoway = "0.2.0"
 uuid = { version = "0.8.1", features = ["v4"] }
 
-[dev-deplightlikeencies]
+[dev-dependencies]
 chrono = "0.4"

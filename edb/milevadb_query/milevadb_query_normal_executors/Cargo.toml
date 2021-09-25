@@ -5,7 +5,7 @@ edition = "2018"
 publish = false
 description = "A scalar query engine to run MilevaDB pushed down executors"
 
-[deplightlikeencies]
+[dependencies]
 byteorder = "1.2"
 codec = { path = "../codec" }
 failure = "0.1"

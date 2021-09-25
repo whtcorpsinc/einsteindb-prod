@@ -1,6 +1,6 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 use std::ops::Bound;
-use violetabftstore::interlock::::keybuilder::KeyBuilder;
+use violetabftstore::interlock::::CausetLearnedKey::CausetLearnedKey;
 
 #[derive(Clone)]
 pub struct ReadOptions {
@@ -62,8 +62,8 @@ pub enum SeekMode {
 
 #[derive(Clone)]
 pub struct IterOptions {
-    lower_bound: Option<KeyBuilder>,
-    upper_bound: Option<KeyBuilder>,
+    lower_bound: Option<CausetLearnedKey>,
+    upper_bound: Option<CausetLearnedKey>,
     prefix_same_as_spacelike: bool,
     fill_cache: bool,
     // hint for we will only scan data with commit ts >= hint_min_ts
@@ -77,8 +77,8 @@ pub struct IterOptions {
 
 impl IterOptions {
     pub fn new(
-        lower_bound: Option<KeyBuilder>,
-        upper_bound: Option<KeyBuilder>,
+        lower_bound: Option<CausetLearnedKey>,
+        upper_bound: Option<CausetLearnedKey>,
         fill_cache: bool,
     ) -> IterOptions {
         IterOptions {
@@ -159,12 +159,12 @@ impl IterOptions {
 
     #[inline]
     pub fn set_lower_bound(&mut self, bound: &[u8], reserved_prefix_len: usize) {
-        let builder = KeyBuilder::from_slice(bound, reserved_prefix_len, 0);
+        let builder = CausetLearnedKey::from_slice(bound, reserved_prefix_len, 0);
         self.lower_bound = Some(builder);
     }
 
     pub fn set_vec_lower_bound(&mut self, bound: Vec<u8>) {
-        self.lower_bound = Some(KeyBuilder::from_vec(bound, 0, 0));
+        self.lower_bound = Some(CausetLearnedKey::from_vec(bound, 0, 0));
     }
 
     pub fn set_lower_bound_prefix(&mut self, prefix: &[u8]) {
@@ -180,12 +180,12 @@ impl IterOptions {
 
     #[inline]
     pub fn set_upper_bound(&mut self, bound: &[u8], reserved_prefix_len: usize) {
-        let builder = KeyBuilder::from_slice(bound, reserved_prefix_len, 0);
+        let builder = CausetLearnedKey::from_slice(bound, reserved_prefix_len, 0);
         self.upper_bound = Some(builder);
     }
 
     pub fn set_vec_upper_bound(&mut self, bound: Vec<u8>) {
-        self.upper_bound = Some(KeyBuilder::from_vec(bound, 0, 0));
+        self.upper_bound = Some(CausetLearnedKey::from_vec(bound, 0, 0));
     }
 
     pub fn set_upper_bound_prefix(&mut self, prefix: &[u8]) {
@@ -196,8 +196,8 @@ impl IterOptions {
 
     #[inline]
     pub fn build_bounds(self) -> (Option<Vec<u8>>, Option<Vec<u8>>) {
-        let lower = self.lower_bound.map(KeyBuilder::build);
-        let upper = self.upper_bound.map(KeyBuilder::build);
+        let lower = self.lower_bound.map(CausetLearnedKey::build);
+        let upper = self.upper_bound.map(CausetLearnedKey::build);
         (lower, upper)
     }
 
