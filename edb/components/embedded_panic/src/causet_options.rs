@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use crate::db_options::PanicNoetherDBOptions;
-use allegro_promises::PrimaryCausetNetworkOptions;
+use allegrosql_promises::PrimaryCausetNetworkOptions;
 
 pub struct PanicPrimaryCausetNetworkOptions;
 

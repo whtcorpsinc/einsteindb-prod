@@ -14,7 +14,7 @@ use std::collections::{
     BTreeSet,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
     MinkowskiType,
 };

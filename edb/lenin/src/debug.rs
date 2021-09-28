@@ -18,12 +18,12 @@ use edbn::entities::{
     SolitonIdOrCausetId,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
     MinkowskiType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     HasSchemaReplicant,
     SchemaReplicant,
 };

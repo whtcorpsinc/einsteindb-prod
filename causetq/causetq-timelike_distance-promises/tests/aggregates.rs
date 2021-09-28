@@ -9,23 +9,23 @@
 // specific language governing permissions and limitations under the License.
 
 extern crate edbn;
-extern crate edb_allegro;
-extern crate allegro_promises;
+extern crate causetq_allegrosql;
+extern crate allegrosql_promises;
 extern crate edb_causetq_parityfilter;
 extern crate edb_causetq_projector;
 extern crate causetq_projector_promises;
 
-use allegro_promises::{
+use allegrosql_promises::{
     Attribute,
     SolitonId,
     MinkowskiValueType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     SchemaReplicant,
 };
 
-use edbn::causetq::{
+use causetq::*::{
     Keyword,
 };
 

@@ -17,12 +17,12 @@
 // - When semaphores are registered we want to flip some flags as writes occur so that we can
 //   notifying them outside the transaction.
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
     MinkowskiType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     SchemaReplicant,
 };
 

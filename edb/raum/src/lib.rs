@@ -15,11 +15,11 @@ extern crate indexmap;
 extern crate ordered_float;
 extern crate uuid;
 
-extern crate allegro_promises;
+extern crate allegrosql_promises;
 
 extern crate edbn;
 
-use allegro_promises::{
+use allegrosql_promises::{
     Attribute,
     SolitonId,
     KnownSolitonId,
@@ -253,7 +253,7 @@ mod test {
 
     use std::str::FromStr;
 
-    use allegro_promises::{
+    use allegrosql_promises::{
         attribute,
         MinkowskiType,
     };

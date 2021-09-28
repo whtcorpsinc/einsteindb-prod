@@ -41,7 +41,7 @@ use edbn::{
 
 use causetids;
 
-use allegro_promises::{
+use allegrosql_promises::{
     attribute,
     Attribute,
     AttributeBitFlags,
@@ -50,7 +50,7 @@ use allegro_promises::{
     MinkowskiValueType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     AttributeMap,
     FromMicros,
     CausetIdMap,
@@ -1229,15 +1229,15 @@ mod tests {
     use edbn::entities::{
         OpType,
     };
-    use allegro_promises::{
+    use allegrosql_promises::{
         attribute,
         KnownSolitonId,
     };
-    use edb_allegro::{
+    use causetq_allegrosql::{
         HasSchemaReplicant,
         Keyword,
     };
-    use edb_allegro::util::Either::*;
+    use causetq_allegrosql::util::Either::*;
     use std::collections::{
         BTreeMap,
     };

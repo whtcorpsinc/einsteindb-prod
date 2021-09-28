@@ -14,7 +14,7 @@ use std::collections::{
     BTreeMap,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
 };
 

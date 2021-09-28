@@ -38,16 +38,16 @@ use internal_types::{
     MinkowskiTypeOr,
 };
 
-use edb_allegro::util::Either::*;
+use causetq_allegrosql::util::Either::*;
 
-use allegro_promises::{
+use allegrosql_promises::{
     attribute,
     Attribute,
     SolitonId,
     MinkowskiType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     SchemaReplicant,
 };
 use edbn::entities::OpType;

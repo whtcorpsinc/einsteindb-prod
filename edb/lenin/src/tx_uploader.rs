@@ -12,7 +12,7 @@ use std::collections::HashMap;
 
 use uuid::Uuid;
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
 };
 

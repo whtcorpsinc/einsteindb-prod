@@ -9,8 +9,8 @@
 // specific language governing permissions and limitations under the License.
 
 extern crate edbn;
-extern crate edb_allegro;
-extern crate allegro_promises;
+extern crate causetq_allegrosql;
+extern crate allegrosql_promises;
 extern crate edb_causetq_parityfilter;
 extern crate causetq_parityfilter_promises;
 
@@ -18,17 +18,17 @@ mod utils;
 
 use std::collections::BTreeMap;
 
-use allegro_promises::{
+use allegrosql_promises::{
     Attribute,
     MinkowskiValueType,
     MinkowskiType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     SchemaReplicant,
 };
 
-use edbn::causetq::{
+use causetq::*::{
     Keyword,
     PlainSymbol,
     ToUpper,

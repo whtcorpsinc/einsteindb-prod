@@ -29,7 +29,7 @@ impl RcCounter {
     /// Return the next value in the sequence.
     ///
     /// ```
-    /// use edb_allegro::counter::RcCounter;
+    /// use causetq_allegrosql::counter::RcCounter;
     ///
     /// let c = RcCounter::with_initial(3);
     /// assert_eq!(c.next(), 3);

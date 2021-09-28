@@ -12,7 +12,7 @@ use edbn::{
     Keyword,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
     MinkowskiType,
 };

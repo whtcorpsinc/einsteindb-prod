@@ -18,7 +18,7 @@ use edb_causetq_pull::{
     Puller,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
 };
 

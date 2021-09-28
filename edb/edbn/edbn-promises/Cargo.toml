@@ -17,7 +17,7 @@ failure_derive = "0.1.1"
 [dependencies.edbn]
 path = "../edb/edbn"
 
-[dependencies.allegro_promises]
+[dependencies.allegrosql_promises]
 path = "../allegro-promises"
 
 [dependencies.rusqlite]

@@ -23,9 +23,9 @@ extern crate tabwriter;
 extern crate time;
 
 #[macro_use] extern crate edbn;
-#[macro_use] extern crate edb_allegro;
+#[macro_use] extern crate causetq_allegrosql;
 extern crate causetq_pull_promises;
-#[macro_use] extern crate allegro_promises;
+#[macro_use] extern crate allegrosql_promises;
 extern crate edb_sql;
 
 use std::iter::repeat;

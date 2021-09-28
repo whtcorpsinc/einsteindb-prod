@@ -30,10 +30,10 @@ extern crate serde_json;
 extern crate log;
 extern crate einstein_db;
 
-extern crate edb_allegro;
+extern crate causetq_allegrosql;
 extern crate causetq_pull_promises;
 #[macro_use]
-extern crate allegro_promises;
+extern crate allegrosql_promises;
 extern crate public_promises;
 extern crate rusqlite;
 extern crate uuid;

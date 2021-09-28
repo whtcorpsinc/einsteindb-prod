@@ -14,13 +14,13 @@ indexmap = "1"
 version = "0.13"
 features = ["limits"]
 
-[dependencies.allegro_promises]
+[dependencies.allegrosql_promises]
 path = "../allegro-promises"
 
 [dependencies.edbn]
 path = "../edbn"
 
-[dependencies.edb_allegro]
+[dependencies.causetq_allegrosql]
 path = "../allegro"
 
 [dependencies.einstein_db]

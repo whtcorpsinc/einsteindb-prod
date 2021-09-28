@@ -11,7 +11,7 @@
 use std::cmp::Ordering;
 use uuid::Uuid;
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
     MinkowskiType,
 };

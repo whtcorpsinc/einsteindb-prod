@@ -11,9 +11,9 @@
 extern crate failure;
 
 extern crate edbn;
-extern crate edb_allegro;
+extern crate causetq_allegrosql;
 #[macro_use]
-extern crate allegro_promises;
+extern crate allegrosql_promises;
 extern crate causetq_parityfilter_promises;
 
 use std::collections::BTreeSet;
@@ -24,21 +24,21 @@ mod types;
 mod validate;
 mod gerunds;
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     CachedAttributes,
     SchemaReplicant,
     parse_causetq,
 };
 
-use edb_allegro::counter::RcCounter;
+use causetq_allegrosql::counter::RcCounter;
 
-use edbn::causetq::{
+use causetq::*::{
     Element,
     FindSpec,
     Limit,

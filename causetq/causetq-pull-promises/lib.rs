@@ -12,7 +12,7 @@ extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 
-extern crate allegro_promises;
+extern crate allegrosql_promises;
 extern crate edbn_promises;
 
 pub mod errors;

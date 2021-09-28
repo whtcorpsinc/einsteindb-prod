@@ -10,7 +10,7 @@
 
 use std::collections::BTreeSet;
 
-use edbn::causetq::{
+use causetq::*::{
     ContainsVariables,
     OrJoin,
     NotJoin,
@@ -73,10 +73,10 @@ pub(crate) fn validate_not_join(not_join: &NotJoin) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    extern crate edb_allegro;
+    extern crate causetq_allegrosql;
     extern crate edbn;
 
-    use edbn::causetq::{
+    use causetq::*::{
         Keyword,
         OrWhereGerund,
         TuringString,

@@ -3,7 +3,7 @@
 use crate::db_vector::PanicDBVector;
 use crate::snapshot::PanicSnapshot;
 use crate::write_batch::PanicWriteBatch;
-use allegro_promises::{
+use allegrosql_promises::{
     IterOptions, Iterable, Iteron, Txnallegro, Peekable, ReadOptions, Result, SeekKey, SyncMuBlock,
     WriteOptions,
 };

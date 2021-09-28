@@ -14,18 +14,18 @@ use std::fmt::{
     Formatter,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
     MinkowskiSet,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     ValueRc,
 };
 
-use edbn::causetq::{
+use causetq::*::{
     Direction,
     FindSpec,
     Keyword,

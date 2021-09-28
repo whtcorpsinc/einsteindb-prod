@@ -14,7 +14,7 @@
 ///
 /// Used through-out the transactor to match allegro EDB constructs.
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
 };
 

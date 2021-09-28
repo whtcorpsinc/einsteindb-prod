@@ -17,13 +17,13 @@ use causetq_pull_promises::errors::{
     Result,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
     KnownSolitonId,
     MinkowskiType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     SchemaReplicant,
 };
 

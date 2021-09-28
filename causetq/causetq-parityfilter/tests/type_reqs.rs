@@ -9,8 +9,8 @@
 // specific language governing permissions and limitations under the License.
 
 extern crate edbn;
-extern crate allegro_promises;
-extern crate edb_allegro;
+extern crate allegrosql_promises;
+extern crate causetq_allegrosql;
 extern crate edb_causetq_parityfilter;
 extern crate causetq_parityfilter_promises;
 
@@ -22,11 +22,11 @@ use utils::{
     bails,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     MinkowskiValueType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     SchemaReplicant,
 };
 

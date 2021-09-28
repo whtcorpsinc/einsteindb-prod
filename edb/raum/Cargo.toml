@@ -11,7 +11,7 @@ indexmap = "1"
 ordered-float = { version = "0.5", features = ["serde"] }
 uuid = { version = "0.5", features = ["v4", "serde"] }
 
-[dependencies.allegro_promises]
+[dependencies.allegrosql_promises]
 path = "../allegro-promises"
 
 [dependencies.edbn]

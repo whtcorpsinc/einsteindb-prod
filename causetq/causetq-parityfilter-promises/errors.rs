@@ -10,7 +10,7 @@
 
 use std; // To refer to std::result::Result.
 
-use allegro_promises::{
+use allegrosql_promises::{
     MinkowskiValueType,
     MinkowskiSet,
 };
@@ -19,7 +19,7 @@ use edbn::parse::{
     ParseError,
 };
 
-use edbn::causetq::{
+use causetq::*::{
     PlainSymbol,
 };
 

@@ -1,7 +1,7 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use crate::allegro::Panicallegro;
-use allegro_promises::{ImportExt, IngestExternalFileOptions, Result};
+use allegrosql_promises::{ImportExt, IngestExternalFileOptions, Result};
 use std::path::Path;
 
 impl ImportExt for Panicallegro {

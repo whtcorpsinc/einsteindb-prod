@@ -15,7 +15,7 @@ use einstein_db::{
     TypedSQLValue,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
     MinkowskiType,
 };

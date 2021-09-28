@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::time::Instant;
 
-use allegro_promises::{PrimaryCausetNetworkOptions, DBOptions, Txnallegro};
+use allegrosql_promises::{PrimaryCausetNetworkOptions, DBOptions, Txnallegro};
 use futures::executor::ThreadPool;
 use futures_util::compat::Future01CompatExt;
 use eTxnproto::import_sst_timeshare::*;
@@ -231,7 +231,7 @@ impl ImportModeCausetOptions {
 mod tests {
     use super::*;
 
-    use allegro_promises::Txnallegro;
+    use allegrosql_promises::Txnallegro;
     use futures::executor::ThreadPoolBuilder;
     use std::thread;
     use tempfile::Builder;

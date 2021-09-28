@@ -13,17 +13,17 @@
 // this module will get warnings otherwise).
 #![allow(dead_code)]
 
-use allegro_promises::{
+use allegrosql_promises::{
     Attribute,
     SolitonId,
     MinkowskiValueType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     SchemaReplicant,
 };
 
-use edbn::causetq::{
+use causetq::*::{
     Keyword,
 };
 

@@ -18,7 +18,7 @@ use causetq_pull_promises::errors::{
 };
 use edbn::symbols;
 
-use allegro_promises::{
+use allegrosql_promises::{
     attribute,
     Attribute,
     SolitonId,
@@ -27,7 +27,7 @@ use allegro_promises::{
     MinkowskiValueType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     SolitonIdMap,
     HasSchemaReplicant,
     CausetIdMap,

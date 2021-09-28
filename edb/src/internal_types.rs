@@ -18,7 +18,7 @@ use std::collections::{
     HashMap,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     Attribute,
     SolitonId,
     KnownSolitonId,
@@ -26,7 +26,7 @@ use allegro_promises::{
     MinkowskiValueType,
 };
 
-use edb_allegro::util::Either;
+use causetq_allegrosql::util::Either;
 
 use edbn;
 use edbn::{

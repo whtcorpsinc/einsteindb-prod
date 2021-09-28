@@ -8,13 +8,13 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use allegro_promises::{
+use allegrosql_promises::{
     MinkowskiType,
     MinkowskiValueType,
     MinkowskiSet,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     SchemaReplicant,
     SQLTypeAffinity,
     SQLMinkowskiValueType,
@@ -22,11 +22,11 @@ use edb_allegro::{
     MinkowskiValueTypeTag,
 };
 
-use edb_allegro::util::{
+use causetq_allegrosql::util::{
     Either,
 };
 
-use edbn::causetq::{
+use causetq::*::{
     Limit,
 };
 

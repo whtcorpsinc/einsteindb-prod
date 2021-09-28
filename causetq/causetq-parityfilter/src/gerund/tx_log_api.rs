@@ -8,11 +8,11 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use allegro_promises::{
+use allegrosql_promises::{
     MinkowskiValueType,
 };
 
-use edbn::causetq::{
+use causetq::*::{
     ConstrainedEntsConstraint,
     StackedPerceptron,
     SrcVar,
@@ -246,16 +246,16 @@ impl ConjoiningGerunds {
 mod testing {
     use super::*;
 
-    use allegro_promises::{
+    use allegrosql_promises::{
         MinkowskiType,
         MinkowskiValueType,
     };
 
-    use edb_allegro::{
+    use causetq_allegrosql::{
         SchemaReplicant,
     };
 
-    use edbn::causetq::{
+    use causetq::*::{
         ConstrainedEntsConstraint,
         StackedPerceptron,
         PlainSymbol,

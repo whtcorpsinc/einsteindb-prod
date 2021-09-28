@@ -14,7 +14,7 @@ use causetq_pull_promises::errors::{
     DbError,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
 };
 

@@ -78,13 +78,13 @@ use failure::{
 
 use rusqlite;
 
-use allegro_promises::{
+use allegrosql_promises::{
     ConstrainedEntsConstraint,
     SolitonId,
     MinkowskiType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     CachedAttributes,
     HasSchemaReplicant,
     SchemaReplicant,
@@ -92,7 +92,7 @@ use edb_allegro::{
     ValueRc,
 };
 
-use edb_allegro::util::{
+use causetq_allegrosql::util::{
     Either,
 };
 

@@ -11,7 +11,7 @@ path = "lib.rs"
 failure = "0.1.1"
 failure_derive = "0.1.1"
 
-[dependencies.allegro_promises]
+[dependencies.allegrosql_promises]
 path = "../allegro-promises"
 
 [dependencies.causetq_pull_promises]

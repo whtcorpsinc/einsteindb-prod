@@ -24,15 +24,15 @@ use std::ops::{
     Range,
 };
 
-extern crate edb_allegro;
+extern crate causetq_allegrosql;
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-pub use self::edb_allegro::{
+pub use self::causetq_allegrosql::{
     DateTime,
     SchemaReplicant,
     Utc,

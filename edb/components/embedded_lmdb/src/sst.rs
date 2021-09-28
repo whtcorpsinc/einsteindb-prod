@@ -2,12 +2,12 @@
 
 use crate::allegro::Lmdballegro;
 use crate::options::LmdbReadOptions;
-use allegro_promises::Error;
-use allegro_promises::IterOptions;
-use allegro_promises::{CausetName, Causet_DEFAULT};
-use allegro_promises::{ExternalSstFileInfo, SstCompressionType, SstWriter, SstWriterBuilder};
-use allegro_promises::{Iterable, Result, SstExt, SstReader};
-use allegro_promises::{Iteron, SeekKey};
+use allegrosql_promises::Error;
+use allegrosql_promises::IterOptions;
+use allegrosql_promises::{CausetName, Causet_DEFAULT};
+use allegrosql_promises::{ExternalSstFileInfo, SstCompressionType, SstWriter, SstWriterBuilder};
+use allegrosql_promises::{Iterable, Result, SstExt, SstReader};
+use allegrosql_promises::{Iteron, SeekKey};
 use lmdb::lmdb::supported_compression;
 use lmdb::DBCompressionType;
 use lmdb::DBIterator;

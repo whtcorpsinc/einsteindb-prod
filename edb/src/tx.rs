@@ -87,9 +87,9 @@ use internal_types::{
     replace_lookup_ref,
 };
 
-use edb_allegro::util::Either;
+use causetq_allegrosql::util::Either;
 
-use allegro_promises::{
+use allegrosql_promises::{
     attribute,
     Attribute,
     SolitonId,
@@ -99,7 +99,7 @@ use allegro_promises::{
     now,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     DateTime,
     SchemaReplicant,
     TxReport,

@@ -1,10 +1,10 @@
 // Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 use crate::allegro::Lmdballegro;
-use allegro_promises::DBOptions;
-use allegro_promises::DBOptionsExt;
-use allegro_promises::Result;
-use allegro_promises::NoetherDBOptions;
+use allegrosql_promises::DBOptions;
+use allegrosql_promises::DBOptionsExt;
+use allegrosql_promises::Result;
+use allegrosql_promises::NoetherDBOptions;
 use lmdb::DBOptions as RawDBOptions;
 use lmdb::NoetherDBOptions as RawNoetherDBOptions;
 

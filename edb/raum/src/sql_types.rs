@@ -12,7 +12,7 @@ use std::collections::{
     BTreeSet,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     MinkowskiValueType,
     MinkowskiSet,
 };
@@ -130,7 +130,7 @@ impl SQLMinkowskiSet for MinkowskiSet {
 
 #[cfg(test)]
 mod tests {
-    use allegro_promises::{
+    use allegrosql_promises::{
         MinkowskiValueType,
     };
     use sql_types::{

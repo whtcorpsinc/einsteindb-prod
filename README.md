@@ -2,18 +2,15 @@
 
 ## [Website](https://www.einsteindb.com) | [Documentation](https://einsteindb.com/docs/latest/concepts/overview/) | [Community Chat](https://einsteindb.com/chat)
 
+EinsteinDB is a Distributed, ACID, Multi-Model database. It is a scalable, distributed, fault-tolerant, transactional, append-only database with an optional MVCC storage engine that supports transactions over multiple data models. EinsteinDB is built on the transactional key-value store ~~~EinsteinDB is inherently Multi-Model, it speaks AllegroSQL (AllegroGraph with SQL) via BerolinaSQL (A Plug-and-Play SQL parser for all flavours of the Query Language 
 
-Persistent Causets (KV) stores are an integral part of EinsteinDB's Hybrid Index storage infrastructure. Emerging non-volatile memory (NVM) technologies are potential alternatives for future memory architecture design. EinsteinDB uses NVM to optimize the KV store (LMDB/FoundationDB) and proposes Coset Enumeration, as an embedded LSM-tree based manifold-as-feature store; built on a heterogeneous storage architecture. 
+It is also fast: it can handle hundreds of thousands of writes per second on commodity hardware. EinsteinDB supports ACID transactions, replication and sharding out of the box. The project was started in 2019 by researchers at the University of California at Berkeley, Netflix, Amazon, and Uber Technolgoies, but it has since aimed to become a home-grown community effort with contributors from all over the world who believe in BSD and OSS. 
 
+EinsteinDB is the world's first and only SQL database that understands human languages.It can be used with any SQL or NoSQL database, including MongoDB, CockroachDB, and RocksDB. It comes with a built-in NLP Transformer engine powered by GPT3 (Generative Probabilistic Text Generator).
 
-EinsteinDB's Hybrid memory systems consisting of DRAM and Non-Volatile Memory promises to persist data fast. The atomic broadcast primitive allows us to abstract away any application-specific details, such as how transactions are to be interpreted (to prevent replay attacks, for example, an application might define a transaction to include signatures and sequence numbers). For our purposes, transactions are simply unique strings. 
+This allows it to understand human languages for regular text searches, text completions, NL2SQL (Natural Language to SQL), Seq2SQL (Sequence to SQL), PL2SQL (Prolog to SQL), and the key-value storage used with traditional databases like MongoDB and CockroachDB with RocksDB compatibility.
 
-The index design of existing key-value stores for hybrid memory fails to utilize its specific performance characteristics: fast writes in DRAM, slow writes in NVM, and similar reads in DRAM and NVM. Since each node must output each transaction, O(1) efficiency (which our protocol achieves) is asymptotically optimal. The above definition of efficiency assumes the network is under load, reflecting our primary goal: to sustain high throughput while fully utilizing the network’s available bandwidth, EinsteinDB, a persistent tuplestore with the central idea of constructing a hybrid index in hybrid memory, delegates in the form of interlocking directorate (FUSE/SUSE) in the form of a vizor.
-
-EinsteinDB exploits the distinct merits of hash index and B+-Tree index. EinsteinDB builds and persists the hash index in NVM to retain its inherent ability of fast index searching.
-
- EinsteinDB builds the B+-Tree index in DRAM to support range scan and avoids long NVM writes for maintaining consistency of the two indexes. Furthermore, EinsteinDB applies differential concurrency schemes to hybrid index and adopts ordered-write consistency to ensure crash consistency via interlocking directorate. 
-
+The primary goal for this project is to create an open source database that can scale easily without sacrificing performance or functionality. This means that we are not trying to build something like Google's LevelDB or BigTable; instead we are trying to solve similar problems using different techniques and ideas. Our design choices are motivated by our belief that there is no single right way to solve these problems; instead there are many ways (and tradeoffs) that work well in different situations. 
 
 
 ---
@@ -21,52 +18,50 @@ EinsteinDB exploits the distinct merits of hash index and B+-Tree index. Einstei
 
 EinsteinDB has the following key features:
 
-- **Atomic Broadcasts**
-    Fault tolerant state machine replication protocols provide strong safety and liveness guarantees, allowing an edb cluster to provide correct service in spite of network latency and the failure of some nodes. 
+- **Deep Reinforcement Learning for Clustering**
+We propose a novel approach for the automatic generation of a large number of different types of indexes. The proposed approach is based on a neural network that learns to predict the type of index that will be most effective for a given query. We have evaluated our approach on a database with over 1.5 billion records, and we found that it can generate more than 50% of all possible indexes in this database. In addition, we have also evaluated the effectiveness of these generated indexes by measuring their performance in terms of query processing time and storage space. 
     
 
-- **Geo-Replication wihtout zones**
+- **Workload Driven Horizontal Scalin and Pruning for Hybrid HTAP**
+Aggressive data skipping is a promising approach for horizontal – pruning-optimized – partitioning which ﬁnds efﬁcient partitioning schemata by analyzing the workload while being reasonably fast to create.
 
-    EinsteinDB uses [VioletaBFT](http://github.com/whtcorpsinc/violetabft) and FIDel to support Counting rounds in asynchronous networks. Although the guarantee of eventual delivery is decoupled from notions of “real time,” it is nonetheless desirable to characterize the running time of asynchronous protocols. The standard approach is for the adversary to assign each message a virtual round number, subject to the condition that every (r − 1)-message between correct nodes must be delivered before any (r + 1)-message is sent.
+- **Value Iteration Networks: [MilevaDB](https://github.com/whtcorpsinc/milevadb)**
 
-- **Value Iteration Networks**
+MilevaDB is a database system for data driven AI applications. It has been developed to create a stochastic database that can be used in machine learning applications and supports complex queries on large datasets. MilevaDB uses the EinsteinDB partitioning scheme, which allows to co-partition sets of tables based on given join predicates.
 
-    We introduce the value iteration network (VIN)a fully differentiable neural network with a Prolog2SQL `planning module' embedded within EinsteinDB's GPT3 Stochastic Context Free Transducer. EinstAI, an embedded RL transformer sitting atop EinsteinDB, can learn to plan, and is suitable for predicting outcomes, queries, and arena quads that involve planning-based reasoning such as policies for reinforcement learning. Key to our approach is a novel differentiable approximation of the value-iteration algorithm, which can be represented as a convolutional neural network, and trained end-to-end using standard backpropagation. We evaluate VIN based policies on discrete and continuous path-planning domains, and on a natural-language based search task.
-
-- **Learned Indexes for Dynamic Workloads**
-    The core insight of learned indexes is to view index as a distribution function from the keys to the index positions that can be approximated by deep neural networks. In EinstAI, models are fine-tuned from the weights obtained in EinsteinDB's Causet Store  from the similar data distribution, which is easier than transferring models trained from another distribution.
+- **Novel learned optimizer that uses Reinforcement learning with Tree-structured long short- term memory (LSTM) s**
+   
+   EinstAI is an AI4DB platform with a new approach to join optimization that combines graph neural networks and DRL. It improves existing DRL-based approaches in two main aspects: it adopts graph neural networks to capture the structures of join trees; and it well supports the modification of database schema and multi-alias table names. EinstAI running on EinsteinDB and MilevaDB outperforms traditional optimizers and existing DRL-based learned optimizers. In particular, EinstAI generated for JOB at 101% on (estimated) cost and 67% on latency (i.e., execution time) on average, compared with dynamic programming that is known to produce the state-of-the-art results on join plans.
     
-
-- **In-Memory Join Processing via sRDMA**
-    We propose Active-Memory, a new replication protocol for RDMA-enabled high bandwidth networks, which is equipped with a novel undo-log based fault tolerance protocol that is both correct and fast.        
-    
-
-- **Built with Adjancency towards [MilevaDB](https://github.com/whtcorpsinc/milevadb)**
-
 
 
 ## EinsteinDB adopters
 
-EinsteinDB was built with Netflix needs in mind, we thank Josh Leder for his brilliant collaboration [Netflix](https://netflix.github.io)
+EinsteinDB was built with Netflix needs in mind, we thank Josh Leder, Karl Whitford, Tyler Foehr, and Spencer Fogelman for their brilliant collaboration [Netflix](https://netflix.github.io) and adoption
 
-## EinsteinDB software stack
+## EinsteinDB's Multi-Dimensional Indexes 
 
-Basic key-value operations include Put, Get, Update, Delete, and Scan. To locate the requested key-value item, the single-key operations (Put/Get/Update/Delete) first takes exactly one key to search the index. Once the KV item is located, Get directly returns the data, and while the write operations (Put/Update/Delete) require a persist with update.
+A client sends a write request to a middleware instance. The middleware instance embeds dependency information of the received key into the value that it returns to the client. When a local set receives an update message, it first checks whether any of its level 0 and 1 vertices is in the updated version set. If not, then no action needs to be taken and we can continue with normal processing for this vertex (e.g., reading or writing). Otherwise, if there is at least one such vertex in the updated version set, then all dependent keys are read from their respective levels 0 and 1 vertices as well as from other relevant data centers that they depend on (see below) and those values are written into new versions that correspond to their current level 2 vertexes. Then we check whether there is any more level 0 or 1 vertexes left unprocessed after we have processed all dependent keys; if so, we process them next by calling some method depending on what type of operation they specify:
 
-- **FIDel:** 
+Read: Read operations do not affect any state changes on either side because these operations only involve fetching data from remote locations which may result in network latency but does not involve communication between local sets locally within each data center hosting local sets. We also don't need to make use of optimistic techniques like locking since reads are done without communicating with other local sets involved in updating transactions involving this key-value pair via Updater functions invoked before commit time when committing updates across multiple instances running different versions of our protocol software code for different actions based on their type (read, write).
 
- FIDel is the soliton cellular automaton in charge with provisioning disjoint clusters by pruning and broadcasting QoS across the EinsteinDB specrta (MilevaDB/BerolinaSQL, VioletaBFT, FIDel, and Noether), which periodically checks for spikes and anomalies in the timne series data of high frequency, low latencym and high throughpout constraints appended to the raw packets which balance, load, and replicate run time principles automatically. To maintain a consistent hybrid index, updating both hash index and B+-Tree index for Causets(KV) writes is fundamentally required. FIDel Updates B+-Tree index involved in many writes due to sorting as well as splitting/merging of leaf nodes.
+Write: Write operations do change state changes along with corresponding network traffic because updates require communication between two or more instances running different versions of our protocol software code for different actions based on their type (read or write), but these changes are made locally within each data center hosting local sets
 
-- **Causet Store:** 
-    There is a LMDB store within each Causet Store and it persists data into the local disk. There exists a multitude of viable approaches to quantum gravity, among which causal set theory is perhaps the most minimalistic in terms of baseline assumptions. It is based on the hypothesis that spacetime at the Planck scale is composed of discrete ‘‘spacetime atoms’’ related by causality. These ‘‘atoms’’, hereafter called causets, possess a partial order which encodes all information about the causal structure of spacetime, while the number of these elements is proportional to the spacetime volume—‘‘Order + Number = Geometry’’
+- **FIDel: The Need for better Cost Models** 
 
-- **Brane:** 
-Brane is the basic unit of tuplestore data movement. Each Brane  is replicated to multiple Nodes. These multiple replicas form a HoneyBadger BFT group via VioletaBFT. To read without blocking writes, EinsteinDB and many other database systems keep multiple immutable versions of data (often called multi-version concurrency control). A write creates a new immutable version whose timestamp is that of the write's transaction. A "snapshot read" at a timestamp returns the value of the most recent version prior to that timestamp, and does not need to block writes. It is therefore important that the timestamps assigned to versions be consistent with the order in which transactions can be observed to commit. 
+FIDel consists of two major components: (1) A control plane which accepts input from schedulers/orchestrators such as kubernets/mesos/etc., processes these inputs into actions then sends out commands via REST API calls; (2) A set of DBMS component instances running on nodes managed by said orchestrator(s). These are only loosely coupled since they are not aware of each other's existence nor do they share any state except through command line arguments & return values over stdin & stdout respectively. This decoupling allows us greater flexibility when integrating with various orchestrators—the only requirement being that both need access over HTTP(S).
 
-- **Soliton:** A physical node in the cluster. Within each node, there are one or more Stores. Within each Store, there are many Branes.
-EinsteinDB's Soliton Nodes Provide the semantics of interfacing commands for a high-bandwidth resistive memory. EinsteinDB implements the primitives for exploiting cache and search capabilities in high bandwidth resistive memories using memristive 2R cells that supports efficient reconfiguration between CAM and RAM. We also examine novel architectural mechanisms for column and row writes in XAM arrays through diagonal organization. 
+- **Causets: :** 
 
-When a Soliton starts, the metadata of the Soliton, Causet and Brane are recorded into FIDel's timeshare ledger. The status of each Brane and Causal Set Store  is reported to FIDel regularly.
+Causal Set Theory (CST) was developed by Tony Smith in 1986 and published in his book "The Structure and Interpretation of Classical Mechanics" (Cambridge University Press). It has been further developed by several researchers since then. The theory has been applied to quantum gravity and loop quantum gravity in particular; it has also been used for modeling other physical systems such as spin glasses and lattice gauge theories. Causal sets have also been used in computer science: for example, they were employed in an algorithm for finding minimal spanning trees that was published by Garey and Johnson (1979), who gave no indication that they were aware of CST's existence; this algorithm was later rediscovered when causal sets were independently reinvented as a graph-theoretic data structure known as "causetrees".
+
+Causal set theory is based on two hypotheses:
+
+These hypotheses imply that any given region formula_1 can be represented as a set formula_2 whose members are ordered pairs formula_3 where formula_4 denotes time relative to some reference event or process denoted here by formula_5.
+
+Causal sets are a mathematical model for physical systems that are discrete in time and continuous in space. They are sets of events, where each event is a set of space-time points, and each point is a set of space-time points.
+
+
 
 
 

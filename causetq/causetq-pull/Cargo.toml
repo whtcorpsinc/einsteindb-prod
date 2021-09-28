@@ -19,10 +19,10 @@ features = ["limits"]
 [dependencies.edbn]
 path = "..edb/edbn"
 
-[dependencies.edb_allegro]
+[dependencies.causetq_allegrosql]
 path = "../allegro"
 
-[dependencies.allegro_promises]
+[dependencies.allegrosql_promises]
 path = "../allegro-promises"
 
 [dependencies.einstein_db]

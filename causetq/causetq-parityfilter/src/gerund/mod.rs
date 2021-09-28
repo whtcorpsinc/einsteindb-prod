@@ -25,7 +25,7 @@ use std::fmt::{
     Formatter,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     Attribute,
     SolitonId,
     KnownSolitonId,
@@ -34,15 +34,15 @@ use allegro_promises::{
     MinkowskiType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     Cloned,
     HasSchemaReplicant,
     SchemaReplicant,
 };
 
-use edb_allegro::counter::RcCounter;
+use causetq_allegrosql::counter::RcCounter;
 
-use edbn::causetq::{
+use causetq::*::{
     Element,
     FindSpec,
     Keyword,

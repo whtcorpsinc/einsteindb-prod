@@ -22,11 +22,11 @@ use allegrosql_promises::{
     MinkowskiValueType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     SQLTypeAffinity,
 };
 
-use edbn::causetq::{
+use causetq::*::{
     Direction,
     Limit,
     ToUpper,

@@ -21,12 +21,12 @@ use causetids;
 use edb::TypedSQLValue;
 use edbn::entities::Instanton;
 
-use allegro_promises::{
+use allegrosql_promises::{
     MinkowskiType,
     values,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     CausetIdMap,
     SchemaReplicant,
 };

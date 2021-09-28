@@ -27,7 +27,7 @@ use edbn::entities::{
     TempId,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
     KnownSolitonId,
     MinkowskiType,

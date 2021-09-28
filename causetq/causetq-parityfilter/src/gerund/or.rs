@@ -14,11 +14,11 @@ use std::collections::{
     BTreeSet,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     MinkowskiSet,
 };
 
-use edbn::causetq::{
+use causetq::*::{
     OrJoin,
     OrWhereGerund,
     TuringString,
@@ -753,17 +753,17 @@ fn union_types(into: &mut BTreeMap<ToUpper, MinkowskiSet>,
 mod testing {
     use super::*;
 
-    use allegro_promises::{
+    use allegrosql_promises::{
         Attribute,
         MinkowskiValueType,
         MinkowskiType,
     };
 
-    use edb_allegro::{
+    use causetq_allegrosql::{
         SchemaReplicant,
     };
 
-    use edbn::causetq::{
+    use causetq::*::{
         Keyword,
         ToUpper,
     };

@@ -8,19 +8,19 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use allegro_promises::{
+use allegrosql_promises::{
     MinkowskiValueType,
     MinkowskiSet,
     MinkowskiType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     HasSchemaReplicant,
     SchemaReplicant,
     SQLMinkowskiValueType,
 };
 
-use edbn::causetq::{
+use causetq::*::{
     StackedPerceptron,
     NonIntegerConstant,
     ToUpper,

@@ -39,14 +39,14 @@ use causetq_pull_promises::errors::{
     Result,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     attribute,
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     SchemaReplicant,
     AttributeMap,
 };

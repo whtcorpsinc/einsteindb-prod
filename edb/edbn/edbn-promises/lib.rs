@@ -15,6 +15,6 @@ extern crate failure_derive;
 extern crate rusqlite;
 
 extern crate edbn;
-extern crate allegro_promises;
+extern crate allegrosql_promises;
 
 pub mod errors;

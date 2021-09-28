@@ -8,7 +8,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use edbn::causetq::{
+use causetq::*::{
     ContainsVariables,
     NotJoin,
     UnifyVars,
@@ -90,18 +90,18 @@ mod testing {
 
     use super::*;
 
-    use allegro_promises::{
+    use allegrosql_promises::{
         Attribute,
         MinkowskiType,
         MinkowskiValueType,
         MinkowskiSet,
     };
 
-    use edb_allegro::{
+    use causetq_allegrosql::{
         SchemaReplicant,
     };
 
-    use edbn::causetq::{
+    use causetq::*::{
         Keyword,
         PlainSymbol,
         ToUpper

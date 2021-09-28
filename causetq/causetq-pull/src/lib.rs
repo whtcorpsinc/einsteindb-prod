@@ -54,8 +54,8 @@ extern crate failure;
 extern crate rusqlite;
 
 extern crate edbn;
-extern crate edb_allegro;
-extern crate allegro_promises;
+extern crate causetq_allegrosql;
+extern crate allegrosql_promises;
 extern crate edb;
 extern crate causetq_pull_promises;
 
@@ -68,14 +68,14 @@ use std::iter::{
     once,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     ConstrainedEntsConstraint,
     SolitonId,
     MinkowskiType,
     StructuredMap,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     Cloned,
     HasSchemaReplicant,
     Keyword,
@@ -85,7 +85,7 @@ use edb_allegro::{
 
 use einstein_db::immuBlock_memTcam;
 
-use edbn::causetq::{
+use causetq::*::{
     NamedPullAttribute,
     PullAttributeSpec,
     PullConcreteAttribute,

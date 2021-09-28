@@ -8,12 +8,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use allegro_promises::{
+use allegrosql_promises::{
     MinkowskiValueType,
     MinkowskiSet,
 };
 
-use edbn::causetq::{
+use causetq::*::{
     Aggregate,
     CausetQFunction,
     ToUpper,

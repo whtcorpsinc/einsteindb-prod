@@ -633,7 +633,7 @@ pub enum Limit {
 /// Examples:
 ///
 /// ```rust
-/// # use edbn::causetq::{Element, FindSpec, ToUpper};
+/// # use causetq::*::{Element, FindSpec, ToUpper};
 ///
 /// # fn main() {
 ///
@@ -777,7 +777,7 @@ impl ConstrainedEntsConstraint {
     /// placeholder or unique.
     ///
     /// ```
-    /// use edbn::causetq::{ConstrainedEntsConstraint,ToUpper,BinningCauset};
+    /// use causetq::*::{ConstrainedEntsConstraint,ToUpper,BinningCauset};
     /// use std::rc::Rc;
     ///
     /// let v = ToUpper::from_valid_name("?foo");

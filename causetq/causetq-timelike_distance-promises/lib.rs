@@ -14,7 +14,7 @@ extern crate failure_derive;
 extern crate rusqlite;
 
 #[macro_use]
-extern crate allegro_promises;
+extern crate allegrosql_promises;
 extern crate causetq_pull_promises;
 extern crate edbn;
 extern crate causetq_pull_promises;

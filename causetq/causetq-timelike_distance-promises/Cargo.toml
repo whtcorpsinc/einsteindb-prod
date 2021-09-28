@@ -21,7 +21,7 @@ features = ["limits"]
 [dependencies.edbn]
 path = "../edbn"
 
-[dependencies.allegro_promises]
+[dependencies.allegrosql_promises]
 path = "../allegro-promises"
 
 [dependencies.causetq_pull_promises]
@@ -36,7 +36,7 @@ path = "../causetq-parityfilter"
 [dependencies.edb_causetq_sql]
 path = "../causetq-allegrosql"
 
-[dev-dependencies.edb_allegro]
+[dev-dependencies.causetq_allegrosql]
 path = "../allegro"
 
 [dev-dependencies.edb_causetq_projector]

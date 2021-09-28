@@ -16,20 +16,20 @@ use indexmap::{
     IndexSet,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     MinkowskiSet,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     SQLMinkowskiValueType,
     SQLMinkowskiSet,
 };
 
-use edb_allegro::util::{
+use causetq_allegrosql::util::{
     Either,
 };
 
-use edbn::causetq::{
+use causetq::*::{
     Element,
     Pull,
     ToUpper,

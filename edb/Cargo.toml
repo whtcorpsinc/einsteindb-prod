@@ -28,10 +28,10 @@ features = ["limits"]
 [dependencies.edbn]
 path = "../edbn"
 
-[dependencies.edb_allegro]
+[dependencies.causetq_allegrosql]
 path = "../allegro"
 
-[dependencies.allegro_promises]
+[dependencies.allegrosql_promises]
 path = "../allegro-promises"
 
 [dependencies.causetq_pull_promises]

@@ -67,13 +67,13 @@ use edbn;
 use causetids;
 use causetq_pull_promises::errors::Result;
 
-use allegro_promises::{
+use allegrosql_promises::{
     SolitonId,
     MinkowskiType,
     MinkowskiValueType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     HasSchemaReplicant,
     SQLMinkowskiValueType,
     TxReport,

@@ -13,19 +13,19 @@ use std::collections::{
     BTreeSet,
 };
 
-use allegro_promises::{
+use allegrosql_promises::{
     ConstrainedEntsConstraint,
     SolitonId,
     StructuredMap,
     MinkowskiType,
 };
 
-use edb_allegro::{
+use causetq_allegrosql::{
     SchemaReplicant,
     ValueRc,
 };
 
-use edbn::causetq::{
+use causetq::*::{
     PullAttributeSpec,
 };
 
