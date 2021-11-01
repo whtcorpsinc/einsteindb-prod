@@ -1,0 +1,16 @@
+[package]
+name = "simd_causet"
+version = "0.1.0"
+authors = ["Karl Whitford, Josh Leder, Spencer Fogelman <karl@einst.ai>"]
+edition = "2021"
+description = "utilities for arrow and simd embedded on the CausetStore persistence layer for EinsteinDB"
+
+[dependencies]
+
+arrow = { version = "6.0", features = ["prettyprint"] }
+ahash = "0.7.5"
+num-traits = "0.2"
+snafu = "0.6"
+hashbrown = "0.11"
+chrono = "0.4"
+comfy-table = { version = "4.0", default-features = false }

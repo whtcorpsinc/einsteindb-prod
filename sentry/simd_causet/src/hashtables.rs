@@ -5,8 +5,12 @@ use arrow::buffer::Buffer;
 use arrow::datatypes::{DataType, Int32Type};
 use hashbrown::HashMap;
 use num_traits::{AsPrimitive, FromPrimitive, Zero};
-
+use snafu::Snafu;
 use crate::string::PackedStringArray;
+use comfy_table::{Cell, Table};
+
+use chrono::prelude::*;
+
 
 //1. The `new` method creates a new `BitSet` with a default buffer of length 0.
 //2. The `with_size` method creates a new `BitSet` with a buffer of the specified length.
@@ -185,7 +189,7 @@ pub fn extend_from_range(&mut self, other: &BitSet, range: Range<usize>) {
         self.buffer[byte_idx] |= 1 << bit_idx;
     }
 
-/// Returns if the given index is set
+
 //3. The get method takes in an index and returns true if the bit at that index is 1, false otherwise.
 
     pub fn get(&self, idx: usize) -> bool {
@@ -215,8 +219,260 @@ pub fn byte_len(&self) -> usize {
 
 /// Return the raw packed bytes used by thie bitset
 pub fn bytes(&self) -> &[u8] {
-    &self.buffer
-}
+    &self.buffer 
+ }
 }
 
-    
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("duplicate key found {}", key))]
+    DuplicateKeyFound { key: String },
+}
+
+
+
+
+#[derive(Debug)]
+//1. It has a hashmap that maps from a hash of the string to the key
+pub struct StringDictionary<K> {
+    //2. It has a hashmap that maps from the key to the string
+    hash: ahash::RandomState,
+    dedup: HashMap<K, (), ()>,
+    //3. It has a storage that stores the strings
+    storage: PackedStringArray<K>,
+}
+
+impl<K: AsPrimitive<usize> + FromPrimitive + Zero> Default for StringDictionary<K> {
+    fn default() -> Self {
+        Self {
+            hash: ahash::RandomState::new(),
+            dedup: Default::default(),
+            storage: PackedStringArray::new(),
+        }
+    }
+}
+
+impl<K: AsPrimitive<usize> + FromPrimitive + Zero> StringDictionary<K> {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn with_capacity(keys: usize, values: usize) -> StringDictionary<K> {
+        Self {
+            hash: Default::default(),
+            dedup: HashMap::with_capacity_and_hasher(keys, ()),
+            storage: PackedStringArray::with_capacity(keys, values),
+        }
+    }
+
+    /// Returns the id corresponding to value, adding an entry for the
+    /// id if it is not yet present in the dictionary.
+    pub fn lookup_value_or_insert(&mut self, value: &str) -> K {
+        use hashbrown::hash_map::RawEntryMut;
+
+        let hasher = &self.hash;
+        let storage = &mut self.storage;
+        let hash = hash_str(hasher, value);
+
+        let entry = self
+            .dedup
+            .raw_entry_mut()
+            .from_hash(hash, |key| value == storage.get(key.as_()).unwrap());
+
+        match entry {
+            RawEntryMut::Occupied(entry) => *entry.into_key(),
+            RawEntryMut::Vacant(entry) => {
+                let index = storage.append(value);
+                let key =
+                    K::from_usize(index).expect("failed to fit string index into dictionary key");
+                *entry
+                    .insert_with_hasher(hash, key, (), |key| {
+                        let string = storage.get(key.as_()).unwrap();
+                        hash_str(hasher, string)
+                    })
+                    .0
+            }
+        }
+    }
+
+    /// Returns the ID in self.dictionary that corresponds to `value`, if any.
+    pub fn lookup_value(&self, value: &str) -> Option<K> {
+        let hash = hash_str(&self.hash, value);
+        self.dedup
+            .raw_entry()
+            .from_hash(hash, |key| value == self.storage.get(key.as_()).unwrap())
+            .map(|(&symbol, &())| symbol)
+    }
+
+    /// Returns the str in self.dictionary that corresponds to `id`
+    pub fn lookup_id(&self, id: K) -> Option<&str> {
+        self.storage.get(id.as_())
+    }
+
+    pub fn size(&self) -> usize {
+        self.storage.size() + self.dedup.len() * std::mem::size_of::<K>()
+    }
+
+    pub fn values(&self) -> &PackedStringArray<K> {
+        &self.storage
+    }
+
+
+    pub fn into_inner(self) -> PackedStringArray<K> {
+        self.storage
+    }
+
+    /// Truncates this dictionary removing all keys larger than `id`
+    pub fn truncate(&mut self, id: K) {
+        let id = id.as_();
+        self.dedup.retain(|k, _| k.as_() <= id);
+        self.storage.truncate(id + 1)
+    }
+
+    /// Clears this dictionary removing all elements
+    pub fn clear(&mut self) {
+        self.storage.clear();
+        self.dedup.clear()
+    }
+}
+
+fn hash_str(hasher: &ahash::RandomState, value: &str) -> u64 {
+    use std::hash::{BuildHasher, Hash, Hasher};
+    let mut state = hasher.build_hasher();
+    value.hash(&mut state);
+    state.finish()
+}
+
+impl StringDictionary<i32> {
+    /// Convert to an arrow representation with the provided set of
+    /// keys and an optional null bitmask
+    pub fn to_arrow<I>(&self, keys: I, nulls: Option<Buffer>) -> DictionaryArray<Int32Type>
+    where
+        I: IntoIterator<Item = i32>,
+        I::IntoIter: ExactSizeIterator,
+    {
+        let keys = keys.into_iter();
+        let mut array_builder = ArrayDataBuilder::new(DataType::Dictionary(
+            Box::new(DataType::Int32),
+            Box::new(DataType::Utf8),
+        ))
+        .len(keys.len())
+        .add_buffer(keys.collect())
+        .add_child_data(self.storage.to_arrow().data().clone());
+
+        if let Some(nulls) = nulls {
+            array_builder = array_builder.null_bit_buffer(nulls);
+        }
+
+        // TODO consider skipping the validation checks by using
+        // `build_unchecked()`
+        let array_data = array_builder.build().expect("Valid array data");
+        DictionaryArray::<Int32Type>::from(array_data)
+    }
+}
+
+   /* (~[* !] | ** | Here's what the above class is doing:
+1. The `lookup_value_or_insert` method takes a string and returns the corresponding ID. If the string is not yet in the dictionary, it adds it to the dictionary and returns the new ID.
+2. The `lookup_value` method takes a string and returns the corresponding ID if it is in the dictionary.
+3. The `lookup_id` method takes an ID and returns the corresponding string if it is in the dictionary.
+4. The `size` method returns the total size of the dictionary in bytes.
+5. The `values` method returns the underlying `PackedStringArray` object.
+6. The `truncate` method removes all keys larger than `id`.
+7. The `clear` method removes all elements.) (\ | # Example
+
+Here's an example of how to use the `StringDictionary` class:
+
+```
+use std::collections::HashMap;
+use std::hash::BuildHasherDefault;
+use std::iter::FromIterator;
+use std::sync::Arc;
+
+use arrow::array::{
+    Array,
+    ArrayDataBuilder,
+    DictionaryArray,
+    Int32Array,
+    StringArray,
+};
+use arrow::datatypes::{
+    DataType,
+    Field,
+    Schema,
+};
+use arrow::error::Result;
+use arrow::record_batch::RecordBatch;
+use datafusion::datasource::MemTable;
+use datafusion::error::Result as DataFusionResult;
+use datafusion::execution::context::ExecutionContext;
+use datafusion::logicalplan::LogicalPlan;
+use datafusion::physical_plan::{
+    ExecutionPlan,
+    Partitioning,
+};
+use datafusion::scalar::ScalarValue;
+use datafusion::{
+    prelude::*,
+    util::{
+        bit_util::set_array_bit,
+        memory::MemTracker,
+    },
+};
+
+use string_dictionary::StringDictionary;
+
+/// Create a dictionary from a sequence of keys
+fn dictionary_from_keys<I>(keys: I) -> StringDictionary<i32>
+where
+    I: IntoIterator<Item = &'static str>,
+    I::IntoIter: ExactSizeIterator,
+{
+    let mut dict = StringDictionary::new(BuildHasherDefault::<ahash::RandomState>::default());
+    for key in keys {
+        dict.lookup_value_or_insert(key);
+    }
+    dict
+}
+
+**/
+
+
+/// Create a dictionary from a sequence of keys
+fn dictionary_from_keys_unchecked<I>(keys: I) -> StringDictionary<i32>
+where
+    I: IntoIterator<Item = &'static str>,
+    I::IntoIter: ExactSizeIterator,
+{
+    let mut dict = StringDictionary::new(BuildHasherDefault::<ahash::RandomState>::default());
+    for key in keys {
+        dict.lookup_value_or_insert(key);
+    }
+    dict
+}
+
+/// Create a dictionary from a sequence of keys
+fn dictionary_from_keys_unchecked_no_hash<I>(keys: I) -> StringDictionary<i32>
+where
+    I: IntoIterator<Item = &'static str>,
+    I::IntoIter: ExactSizeIterator,
+{
+    let mut dict = StringDictionary::new(BuildHasherDefault::<ahash::RandomState>::default());
+    for key in keys {
+        dict.lookup_value_or_insert(key);
+    }
+    dict
+}
+
+/// Create a dictionary from a sequence of keys
+fn dictionary_from_keys_unchecked_no_hash_no_validate<I>(keys: I) -> StringDictionary<i32>
+where
+    I: IntoIterator<Item = &'static str>,
+    I::IntoIter: ExactSizeIterator,
+{
+    let mut dict = StringDictionary::new(BuildHasherDefault::<ahash::RandomState>::default());
+    for key in keys {
+        dict.lookup_value_or_insert(key);
+    }
+   dict
+}
+
