@@ -1,13 +1,43 @@
-[workspace]
-members = [
-    "edb",
-    "causetq",
-    "tests",
-]
+[package]
+name = "einsteindb"
+version = "0.1.1"
+authors = ["karl whitford (karl@einst.ai), josh (slushie@gmail.com)"]
+repository = "https://github.com/whtcorpsinc/einsteindb-prod"
+license-file = "LICENSE"
+description = """
+A Hybrid Index Embedded In-Memory store that speaks AllegroSQL but treats tuples as atomic concurrent repeatable reads, thus serializable; yet, causal consistent at the stack level; with instantiated
+ uncommitted byzantine pollers which avoid locking by  queieing parity filter values for semantic stores instead.
+"""
 
+[dependencies]
+bytes = "0.4"
+chan = "0.1.21"
+chan-signal = "0.3.1"
+crc = "1.5.0"
+crossbeam = "0.7"
+either = "1.3"
+error-chain = "0.12.1"
+fasthash = "0.3"
+flate2 = "1.0.2"
+lazy_static = "1.0"
+log = "0.4"
+memmap = "0.6"
+num_cpus = "1.10.0"
+rand = "0.5"
+regex = "0.2"
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
+smallvec = "0.6.9"
+thread_local = "0.3"
+unicode_reader = "0.1.1"
+num-traits = "0.2"
+byteorder = "1"
+crunchy = "0.2.2"
+
+[dev-dependencies]
+tempfile = "3.0.8"
+
+# The release profile, used for `cargo build --release`
 [profile.release]
-debug= true
-
-[profile.release]
-debug=true
-
+debug = true
