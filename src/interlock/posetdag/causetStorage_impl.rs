@@ -84,6 +84,21 @@ impl<S: CausetStore> interlock for EinsteinDBStorage<S> {
         Ok(value.map(move |v| (key, v)))
     }
 
+    fn next_batch_by_point(&mut self, _is_key_only: bool) -> QEResult<Vec<OwnedKvPair>> {
+        let mut result = Vec::new();
+        while let Some(kv) = self.scan_next()? {
+            result.push(kv);
+        }
+        Ok(result)
+    }
+
+    fn next_batch_by_range(&mut self, _is_key_only: bool) -> QEResult<Vec<OwnedKvPair>> {
+        let mut result = Vec::new();
+        while let Some(kv) = self.scan_next()? {
+            result.push(kv);
+        }
+
+
     #[inline]
     fn met_uncacheable_data(&self) -> Option<bool> {
         if let Some(scanner) = &self.scanner {
@@ -111,3 +126,4 @@ impl<S: CausetStore> interlock for EinsteinDBStorage<S> {
         self.causet_stats_backlog = Statistics::default();
     }
 }
+
