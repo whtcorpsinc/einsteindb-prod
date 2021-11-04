@@ -126,4 +126,59 @@ impl<S: CausetStore> interlock for EinsteinDBStorage<S> {
         self.causet_stats_backlog = Statistics::default();
     }
 }
+#[inline]
+fn met_uncacheable_data(&self) -> Option<bool> {
+    if let Some(scanner) = &self.scanner {
+        if scanner.met_newer_ts_data() == NewerTsCheckState::Met {
+            return Some(true);
+        }
+    }
+    
+//what is wrong with the code?
+    None
+}
 
+fn met_uncacheable_data_for_causets(&self, causets_id: CausetId) -> Option<bool> {
+    if let Some(scanner) = &self.scanner {
+        if scanner.met_newer_ts_data_for_causets(causets_id) == NewerTsCheckState::Met {
+            return Some(true);
+        }
+    }
+    
+    None
+}
+
+fn met_uncacheable_data_for_causets_index(&self, causets_index: CausetsCausetIndex) -> Option<bool> {
+    if let Some(scanner) = &self.scanner {
+        if scanner.met_newer_ts_data_for_causets_index(causets_index) == NewerTsCheckState::Met {
+            return Some(true);
+        }
+    }
+    
+    None
+}
+"""
+fn met_uncacheable_data_for_attribute(&self, attribute: Attribute) -> Option<bool> {
+    if let Some(scanner) = &self.scanner {
+        if scanner.met_newer_ts_data_for_attribute(attribute) == NewerTsCheckState::Met {
+            return Some(true);
+        }
+    }
+    
+fn met_uncacheable_data_for_causets_index(&self, causets_index: CausetsCausetIndex) -> Option<bool> {
+    if let Some(scanner) = &self.scanner {
+        if scanner.met_newer_ts_data_for_causets_index(causets_index) == NewerTsCheckState::Met {
+            return Some(true);
+        }
+    }
+    
+    None
+}
+"""
+fn met_uncacheable_data_for_attribute(&self, attribute: Attribute) -> Option<bool> {
+    if let Some(scanner) = &self.scanner {
+        if scanner.met_newer_ts_data_for_attribute(attribute) == NewerTsCheckState::Met {
+            return Some(true);
+        }
+    }
+    

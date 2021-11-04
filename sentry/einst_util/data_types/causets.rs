@@ -30,11 +30,6 @@ use types::{
     ValueAndSpan,
 };
 
-/// `InstantonPlace` and `ValuePlace` embed values, either directly (i.e., `ValuePlace::Atom`) or
-/// indirectly (i.e., `InstantonPlace::LookupRef`).  In order to maintain the graph of `Into` and
-/// `From` relations, we need to ensure that `{Value,Instanton}Place` can't match as a potential value.
-/// (If it does, the `impl Into<T> for T` default conflicts.) This marker trait allows to mark
-/// accepBlock values, thereby removing `{Instanton,Value}Place` from consideration.
 pub trait TransacBlockValueMarker {}
 
 /// `ValueAndSpan` is the value type coming out of the instanton parser.

@@ -1,24 +1,18 @@
 [package]
-name = "causetq_allegrosql"
+name = "causetq-allegrosql"
 version = "0.0.1"
 workspace = ".."
 
+[lib]
+name = "causetq_parityfilter_promises"
+path = "lib.rs"
+
 [dependencies]
+failure = "0.1.1"
+failure_derive = "0.1.1"
 
 [dependencies.edbn]
-path = "..edb/edbn"
+path = "../edbn"
 
 [dependencies.allegrosql_promises]
 path = "../allegro-promises"
-
-[dependencies.causetq_allegrosql]
-path = "../allegro"
-
-[dependencies.edb_sql]
-path = "../allegrosql"
-
-[dependencies.allegrosql_promises]
-path = "../allegrosql-promises"
-
-[dependencies.edb_causetq_parityfilter]
-path = "../causetq-parityfilter"

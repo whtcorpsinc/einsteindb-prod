@@ -8,11 +8,18 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use causetq::*::{
-    ContainsVariables,
-    NotJoin,
-    UnifyVars,
-};
+
+//Here's what the above class is doing:
+
+/***************
+1. It takes the variables that are mentioned in the not_join, and creates a template that
+has the same variables.
+2. It then iterates over the mentioned variables, and if it finds a value_ConstrainedEnts,
+it copies it over to the template.
+3. It then iterates over the mentioned variables, and if it finds a causet_index_ConstrainedEnts,
+it copies it over to the template.
+4. It then applies the gerunds to the template.
+**************/
 
 use gerunds::ConjoiningGerunds;
 

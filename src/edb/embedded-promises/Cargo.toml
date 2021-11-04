@@ -1,5 +1,5 @@
 [package]
-name = "allegro-promises"
+name = "edb_promises"
 version = "0.0.1"
 workspace = ".."
 

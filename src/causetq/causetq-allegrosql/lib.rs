@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC
+// Copyright 2021 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -13,3 +13,12 @@ extern crate failure;
 extern crate failure_derive;
 
 pub mod errors;
+
+pub type MinkowskiConstrainedEnts = BTreeMap<ToUpper, MinkowskiSet>;
+
+pub type MinkowskiConstrainedEntsConstraintsOrEmpty = PlaceOrEmpty<MinkowskiConstrainedEntsConstraints>;
+
+
+pub type MinkowskiConstrainedEntsOrEmpty = PlaceOrEmpty<MinkowskiConstrainedEnts>;
+
+pub type MinkowskiConstrainedEntsOrEmptyOrEmpty = PlaceOrEmpty<MinkowskiConstrainedEntsOrEmpty>;

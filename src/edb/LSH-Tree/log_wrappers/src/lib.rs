@@ -1,4 +1,4 @@
-// Copyright 2019 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
+// Copyright 2021 WHTCORPS INC Project Authors. Licensed under Apache-2.0.
 
 //! Provides wrappers for types that comes from 3rd-party and does not implement slog::Value.
 

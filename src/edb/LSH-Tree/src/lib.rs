@@ -1,4 +1,4 @@
-// Copyright 2020 WHTCORPS INC
+// Copyright 2021 WHTCORPS INC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 // this file except in compliance with the License. You may obtain a copy of the
@@ -49,6 +49,8 @@
 ///!     (pull ?person [:person/friend])
 ///      [*]))
 ///! ```
+
+/// The following example shows how to use the edbn parser to parse a JSON document.
 
 extern crate failure;
 extern crate rusqlite;

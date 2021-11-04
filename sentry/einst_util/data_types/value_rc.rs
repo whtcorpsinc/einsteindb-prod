@@ -63,7 +63,6 @@ impl<T> FromRc<T> for Box<T> where T: Sized + Clone {
     }
 }
 
-// We do this a lot for errors.
 pub trait Cloned<T> {
     fn cloned(&self) -> T;
     fn to_value_rc(&self) -> ValueRc<T>;
