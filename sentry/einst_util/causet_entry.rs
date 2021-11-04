@@ -3,7 +3,8 @@
 
 use bytes::Bytes;
 use std::{collections::BTreeMap, convert::TryFrom, fmt::Formatter};
-
+use std::cmp::Ordering;
+use std::mem;
 use chrono::{DateTime, TimeZone, Utc};
 use flatbuffers::{FlatBufferBuilder, Follow, ForwardsUOffset, Vector, VectorIter, WIPOffset};
 use ouroboros::self_referencing;
