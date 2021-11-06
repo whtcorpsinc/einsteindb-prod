@@ -8,11 +8,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-extern crate edbn;
-extern crate causetq_allegrosql;
-extern crate allegrosql_promises;
-extern crate edb_causetq_parityfilter;
-extern crate causetq_parityfilter_promises;
+extern crate *;
+
 
 mod utils;
 

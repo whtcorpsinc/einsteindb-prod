@@ -1,6 +1,6 @@
 [package]
-name = "edb"
-version = "0.1.0"
+name = "einsteindb-prod"
+version = "0.0.1"
 edition = "2018"
 publish = false
 
