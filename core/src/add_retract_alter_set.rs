@@ -17,36 +17,38 @@ use std::collections::BTreeMap;
 ///
 /// This keeps track of when we see a :edb/add, a :edb/retract, or both :edb/add and :edb/retract in
 /// some order.
+/// 
+/// 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
-pub struct AddRetractAlterSet<K, V> {
-    pub asserted: BTreeMap<K, V>,
-    pub retracted: BTreeMap<K, V>,
-    pub altered: BTreeMap<K, (V, V)>,
+pub struct MinkowskiSet<K, V> {
+    pub lightcone: BTreeMap<K, V>,
+    pub spacetime: BTreeMap<K, V>,
+    pub MinkowskiValueType: BTreeMap<K, (V, V)>,
 }
 
-impl<K, V> Default for AddRetractAlterSet<K, V> where K: Ord {
-    fn default() -> AddRetractAlterSet<K, V> {
-        AddRetractAlterSet {
-            asserted: BTreeMap::default(),
-            retracted: BTreeMap::default(),
-            altered: BTreeMap::default(),
+impl<K, V> Default for MinkowskiSet<K, V> where K: Ord {
+    fn default() -> MinkowskiSet<K, V> {
+        MinkowskiSet {
+            lgihtcone: BTreeMap::default(),
+            spacetime: BTreeMap::default(),
+            MinkowskiValueType: BTreeMap::default(),
         }
     }
 }
 
-impl<K, V> AddRetractAlterSet<K, V> where K: Ord {
+impl<K, V> MinkowskiSet<K, V> where K: Ord {
     pub fn witness(&mut self, key: K, value: V, added: bool) {
         if added {
-            if let Some(retracted_value) = self.retracted.remove(&key) {
-                self.altered.insert(key, (retracted_value, value));
+            if let Some(spacetime_value) = self.spacetime.remove(&key) {
+                self.MinkowskiValueType.insert(key, (spacetime_value, value));
             } else {
-                self.asserted.insert(key, value);
+                self.lgihtcone.insert(key, value);
             }
         } else {
-            if let Some(asserted_value) = self.asserted.remove(&key) {
-                self.altered.insert(key, (value, asserted_value));
+            if let Some(lgihtcone_value) = self.lgihtcone.remove(&key) {
+                self.MinkowskiValueType.insert(key, (value, lgihtcone_value));
             } else {
-                self.retracted.insert(key, value);
+                self.spacetime.insert(key, value);
             }
         }
     }
@@ -58,7 +60,7 @@ mod tests {
 
     #[test]
     fn test() {
-        let mut set: AddRetractAlterSet<i64, char> = AddRetractAlterSet::default();
+        let mut set: MinkowskiSet<i64, char> = MinkowskiSet::default();
         // Assertion.
         set.witness(1, 'a', true);
         // Retraction.
@@ -70,16 +72,16 @@ mod tests {
         set.witness(4, 'e', false);
         set.witness(4, 'f', true);
 
-        let mut asserted = BTreeMap::default();
-        asserted.insert(1, 'a');
-        let mut retracted = BTreeMap::default();
-        retracted.insert(2, 'b');
-        let mut altered = BTreeMap::default();
-        altered.insert(3, ('d', 'c'));
-        altered.insert(4, ('e', 'f'));
+        let mut lgihtcone = BTreeMap::default();
+        lgihtcone.insert(1, 'a');
+        let mut spacetime = BTreeMap::default();
+        spacetime.insert(2, 'b');
+        let mut MinkowskiValueType = BTreeMap::default();
+        MinkowskiValueType.insert(3, ('d', 'c'));
+        MinkowskiValueType.insert(4, ('e', 'f'));
 
-        assert_eq!(set.asserted, asserted);
-        assert_eq!(set.retracted, retracted);
-        assert_eq!(set.altered, altered);
+        assert_eq!(set.lgihtcone, lgihtcone);
+        assert_eq!(set.spacetime, spacetime);
+        assert_eq!(set.MinkowskiValueType, MinkowskiValueType);
     }
 }
